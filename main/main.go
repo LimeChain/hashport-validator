@@ -3,13 +3,14 @@ package main
 import (
 	"Event-Listener/hedera/connectivity"
 	"Event-Listener/hedera/observer"
+	"Event-Listener/hedera/samples"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"time"
 )
 
 func main() {
 	client := connectivity.NewClient()
-	newAccount := connectivity.NewTestNetAccount(client)
+	newAccount := samples.NewAccount(client)
 	receipt, _ := newAccount.GetReceipt(client)
 	newAccountId := receipt.GetAccountID()
 	main, _ := connectivity.MainAccount()

@@ -5,20 +5,6 @@ import (
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 )
 
-func NewTestNetAccount(client *hederasdk.Client) hederasdk.TransactionID {
-	privateKey, _ := hederasdk.GenerateEd25519PrivateKey()
-	publicKey := privateKey.PublicKey()
-
-	balance := int64(100)
-
-	newAccount, _ := hederasdk.NewAccountCreateTransaction().
-		SetKey(publicKey).
-		SetInitialBalance(hederasdk.HbarFromTinybar(balance)).
-		Execute(client)
-
-	return newAccount
-}
-
 func NewClient() *hederasdk.Client {
 	var client *hederasdk.Client
 	switch config.NetworkType {

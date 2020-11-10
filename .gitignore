@@ -16,3 +16,4 @@
 # vendor/
 
 hedera/config/config.go
+hedera/samples
