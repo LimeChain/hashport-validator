@@ -34,3 +34,11 @@ func SubscribeToTopic(mirrorClient hederasdk.MirrorClient, topicId hederasdk.Con
 func handle(hederasdk.MirrorConsensusTopicResponse) {
 
 }
+
+func SubmitMessageToTopic(client *hederasdk.Client, topic hederasdk.ConsensusTopicID, message string) (hederasdk.TransactionReceipt, error) {
+	receipt, _ := hederasdk.NewConsensusMessageSubmitTransaction().
+		SetTopicID(topic).
+		SetMessage([]byte(message)).
+		Execute(client)
+	return receipt.GetReceipt(client)
+}

@@ -3,13 +3,12 @@ package main
 import (
 	"Event-Listener/hedera/connectivity"
 	"Event-Listener/hedera/observer"
-	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"time"
 )
 
 func main() {
-	client := connectivity.NewTestnetClient()
+	client := connectivity.NewClient()
 	newAccount := connectivity.NewTestNetAccount(client)
 	receipt, _ := newAccount.GetReceipt(client)
 	newAccountId := receipt.GetAccountID()
@@ -32,32 +31,30 @@ func main() {
 
 	//fmt.Println(main)
 	//
-	//
 	//balance, _ :=  hederasdk.NewAccountBalanceQuery().SetAccountID(main).Execute(client)
 	//fmt.Println(balance)
 	//
 	//_, _ = hederasdk.NewAccountInfoQuery().SetAccountID(main).Execute(client)
-
 	//
 	//newBalance, _ :=  hederasdk.NewAccountBalanceQuery().SetAccountID(newAccount.AccountID).Execute(client)
 	//fmt.Println(newBalance)
-
+	//
 	//res2, _ := hederasdk.NewAccountRecordsQuery().SetAccountID(main).Execute(client)
 	//fmt.Println(res2)
-
-	fmt.Scanln()
-
-	//topicId, _ := config.TopicCreation(client)
+	//
+	//fmt.Scanln()
+	//
+	//topicId, _ := handler.TopicCreation(client)
 	//consensusTopicId := topicId.GetConsensusTopicID()
 	//fmt.Println(consensusTopicId)
 	//
-	//_, e := hedera.NewConsensusTopicInfoQuery().SetTopicID(consensusTopicId).Execute(client)
+	//_, e := hederasdk.NewConsensusTopicInfoQuery().SetTopicID(consensusTopicId).Execute(client)
 	//if e!=nil {
 	//	fmt.Println(e)
 	//	return
 	//}
 	//
-	//mirrorClient, e := config.NewMirrorClient()
+	//mirrorClient, e := connectivity.NewMirrorClient()
 	//if e!=nil{
 	//	fmt.Println(e)
 	//	return
@@ -65,8 +62,8 @@ func main() {
 	//
 	//time.Sleep(30 * time.Second)
 	//
-	//config.SubscribeToTopic(mirrorClient, consensusTopicId)
-	//config.SubmitTransaction(client, consensusTopicId, "Someasod messa2ge")
+	//handler.SubscribeToTopic(mirrorClient, consensusTopicId)
+	//handler.SubmitMessageToTopic(client, consensusTopicId, "Someasod messa2ge")
 	//
 	//fmt.Scanln()
 }

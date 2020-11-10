@@ -99,5 +99,5 @@ func Stop(account hederasdk.AccountID) bool {
 }
 
 func process(essential.Essential) {
-	panic("Not implemented")
+	// TODO: Implement processing logic
 }

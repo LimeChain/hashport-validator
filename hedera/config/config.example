@@ -13,9 +13,9 @@ var AccountData = struct {
 		PublicKey  string
 		PrivateKey string
 	}{
-		"",
-		"",
-		"",
+		"some.account.id",
+		"some.public.key",
+		"some.private.key",
 	},
 	Network: map[string]string{
 		"mainnet/testnet-link": "0.0.1",

@@ -19,22 +19,22 @@ func NewTestNetAccount(client *hederasdk.Client) hederasdk.TransactionID {
 	return newAccount
 }
 
-func NewTestnetClient() *hederasdk.Client {
+func NewClient() *hederasdk.Client {
+	var client *hederasdk.Client
+	switch config.NetworkType {
+	case "testnet":
+		client = hederasdk.ClientForTestnet()
+	case "mainnet":
+		client = hederasdk.ClientForMainnet()
+	default:
+		panic("Cannot instantiate client. No [config.NetworkType] provided!")
+	}
+
 	accountId, _ := hederasdk.AccountIDFromString(config.AccountData.Operator.AccountId)
 	privateKey, _ := hederasdk.Ed25519PrivateKeyFromString(config.AccountData.Operator.PrivateKey)
 
-	client := hederasdk.ClientForTestnet()
 	client.SetOperator(accountId, privateKey)
-
 	return client
-}
-
-func SubmitTransaction(client *hederasdk.Client, topic hederasdk.ConsensusTopicID, message string) (hederasdk.TransactionReceipt, error) {
-	receipt, _ := hederasdk.NewConsensusMessageSubmitTransaction().
-		SetTopicID(topic).
-		SetMessage([]byte(message)).
-		Execute(client)
-	return receipt.GetReceipt(client)
 }
 
 func MainAccount() (hederasdk.AccountID, error) {
