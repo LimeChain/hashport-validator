@@ -17,3 +17,4 @@
 
 hedera/config/config.go
 hedera/samples
+main/main.go
