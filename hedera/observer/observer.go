@@ -2,7 +2,8 @@ package observer
 
 import (
 	"Event-Listener/hedera/config"
-	"Event-Listener/hedera/transaction"
+	"Event-Listener/hedera/model/essential"
+	"Event-Listener/hedera/model/transaction"
 	"encoding/json"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
@@ -70,7 +71,14 @@ func observe(account hederasdk.AccountID, client *hederasdk.Client, quitter <-ch
 						account.String(),
 						transaction.TransactionHash)
 
+					info := essential.Essential{
+						TxMemo: transaction.MemoBase64,
+						Sender: transaction.Transfers[len(transaction.Transfers)-2].Account,
+						Amount: transaction.Transfers[len(transaction.Transfers)-1].Amount,
+					}
+
 					// TODO: Start Processing TX
+					process(info)
 				}
 				lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 			}
@@ -88,4 +96,8 @@ func Stop(account hederasdk.AccountID) bool {
 	stoppers[account] <- true
 	fmt.Printf("Stopping observing config [%s]\n", account.String())
 	return true
+}
+
+func process(essential.Essential) {
+	panic("Not implemented")
 }
