@@ -25,7 +25,7 @@ func ObserveAccount(account hederasdk.AccountID, client *hederasdk.Client) {
 func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
 	// TODO: GET LAST PROCESSED TX TIMESTAMP
 	address := fmt.Sprintf("%s%s", config.MirrorNodeAPIAddress, "transactions")
-	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s",
+	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		address,
 		account.String(),
 		lastProcessedTimestamp)
@@ -66,14 +66,13 @@ func observe(account hederasdk.AccountID, client *hederasdk.Client, quitter <-ch
 				fmt.Printf("After [%s] - Account [%s] - Transactions Length: [%d]\n", lastObservedTimestamp, account.String(), len(transactions.Transactions))
 				for _, transaction := range transactions.Transactions {
 					fmt.Printf("[%s] - New transaction on config [%s] - Tx Hash: [%s]\n",
-						transaction.ValidStartTimestamp,
+						transaction.ConsensusTimestamp,
 						account.String(),
 						transaction.TransactionHash)
 
 					// TODO: Start Processing TX
 				}
-
-				lastObservedTimestamp = transactions.Transactions[0].ConsensusTimestamp
+				lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 			}
 		}
 		time.Sleep(5 * time.Second)
