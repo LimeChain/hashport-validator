@@ -59,16 +59,16 @@ func beginWatching(account hederasdk.AccountID /*TODO: add SDK queue as paramete
 
 		if len(transactions.Transactions) > 0 {
 			log.Printf("After [%s] - Account [%s] - Transactions Length: [%d]\n", lastObservedTimestamp, account.String(), len(transactions.Transactions))
-			for _, transaction := range transactions.Transactions {
+			for _, tx := range transactions.Transactions {
 				log.Printf("[%s] - New transaction on config [%s] - Tx Hash: [%s]\n",
-					transaction.ConsensusTimestamp,
+					tx.ConsensusTimestamp,
 					account.String(),
-					transaction.TransactionHash)
+					tx.TransactionHash)
 
 				_ = essential.Essential{
-					TxMemo: transaction.MemoBase64,
-					Sender: transaction.Transfers[len(transaction.Transfers)-2].Account,
-					Amount: transaction.Transfers[len(transaction.Transfers)-1].Amount,
+					TxMemo: tx.MemoBase64,
+					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
+					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
 				}
 
 				// TODO: Send TX for processing
