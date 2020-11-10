@@ -8,6 +8,7 @@ import (
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,15 +52,15 @@ func beginWatching(account hederasdk.AccountID /*TODO: add SDK queue as paramete
 	for {
 		transactions, e := getTransactionsFor(account, lastObservedTimestamp)
 		if e != nil {
-			fmt.Printf("Suddenly stopped monitoring config [%s]\n", account.String())
-			fmt.Println(e)
+			log.Printf("Suddenly stopped monitoring config [%s]\n", account.String())
+			log.Println(e)
 			return
 		}
 
 		if len(transactions.Transactions) > 0 {
-			fmt.Printf("After [%s] - Account [%s] - Transactions Length: [%d]\n", lastObservedTimestamp, account.String(), len(transactions.Transactions))
+			log.Printf("After [%s] - Account [%s] - Transactions Length: [%d]\n", lastObservedTimestamp, account.String(), len(transactions.Transactions))
 			for _, transaction := range transactions.Transactions {
-				fmt.Printf("[%s] - New transaction on config [%s] - Tx Hash: [%s]\n",
+				log.Printf("[%s] - New transaction on config [%s] - Tx Hash: [%s]\n",
 					transaction.ConsensusTimestamp,
 					account.String(),
 					transaction.TransactionHash)
