@@ -49,6 +49,24 @@ type Hedera struct {
 	Validator  Validator  `yaml:"validator"`
 	MirrorNode MirrorNode `yaml:"mirror_node"`
 	Client     Client     `yaml:"client"`
+	Watcher    Watcher    `yaml:"watcher"`
+}
+
+type Watcher struct {
+	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
+	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
+}
+
+type CryptoTransfer struct {
+	Accounts []ID `yaml:"accounts" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
+}
+
+type ConsensusMessage struct {
+	Topics []ID `yaml:"topics" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
+}
+
+type ID struct {
+	Id string `yaml:"id"`
 }
 
 type Client struct {
@@ -58,7 +76,6 @@ type Client struct {
 
 type Operator struct {
 	AccountId  string `yaml:"account_id" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ACCOUNT_ID"`
-	PublicKey  string `yaml:"public_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PUBLIC_KEY"`
 	PrivateKey string `yaml:"private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PRIVATE_KEY"`
 }
 

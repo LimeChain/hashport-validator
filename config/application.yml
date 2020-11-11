@@ -15,5 +15,15 @@ hedera:
     network_type: testnet
     operator:
       account_id:
-      public_key:
       private_key:
+  watcher:
+    crypto-transfer:
+      accounts:
+        - id: shard.realm.account
+        - id: shard.realm.account
+        - id: shard.realm.account
+    consensus-message:
+      topics:
+        - id: shard.realm.topic
+        - id: shard.realm.topic
+        - id: shard.realm.topic

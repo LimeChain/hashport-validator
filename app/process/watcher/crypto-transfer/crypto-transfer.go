@@ -7,6 +7,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/essential"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-watcher-sdk/queue"
+	"github.com/limechain/hedera-watcher-sdk/types"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,8 +20,8 @@ type CryptoTransferWatcher struct {
 	Account hederasdk.AccountID
 }
 
-func (ctw CryptoTransferWatcher) Watch( /*TODO: add SDK queue as parameter*/ ) {
-	go beginWatching(ctw.Account /*TODO: add SDK queue as parameter*/)
+func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
+	go beginWatching(ctw.Account, queue)
 }
 
 func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
@@ -47,7 +49,7 @@ func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp stri
 	return transactions, nil
 }
 
-func beginWatching(account hederasdk.AccountID /*TODO: add SDK queue as parameter*/) {
+func beginWatching(account hederasdk.AccountID, q *queue.Queue) {
 	lastObservedTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	for {
 		transactions, e := getTransactionsFor(account, lastObservedTimestamp)
@@ -65,14 +67,21 @@ func beginWatching(account hederasdk.AccountID /*TODO: add SDK queue as paramete
 					account.String(),
 					tx.TransactionHash)
 
-				_ = essential.Essential{
+				information := essential.Essential{
 					TxMemo: tx.MemoBase64,
 					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
 					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
 				}
 
-				// TODO: Send TX for processing
-				// TODO: push info object to SDK queue
+				message, e := json.Marshal(information)
+				if e != nil {
+					log.Printf("Failed marshalling Tx information - Tx Hash [%s]\n", tx.TransactionHash)
+				}
+
+				q.Push(&types.Message{
+					Payload: message,
+					Type:    "HCS_CRYPTO_TRANSFER",
+				})
 			}
 			lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}

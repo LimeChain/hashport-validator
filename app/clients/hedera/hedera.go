@@ -5,8 +5,6 @@ import (
 	config "github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
-// TODO hedera client for interacting with hedera nodes
-
 func NewClient(clientData config.Client) *hederasdk.Client {
 	var client *hederasdk.Client
 	switch clientData.NetworkType {
