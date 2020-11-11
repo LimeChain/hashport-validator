@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -46,7 +47,44 @@ type Config struct {
 }
 
 type Hedera struct {
-	Validator Validator `yaml:"validator"`
+	Validator  Validator  `yaml:"validator"`
+	MirrorNode MirrorNode `yaml:"mirror_node"`
+	Client     Client     `yaml:"client"`
+	Watcher    Watcher    `yaml:"watcher"`
+}
+
+type Watcher struct {
+	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
+	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
+}
+
+type CryptoTransfer struct {
+	Accounts []ID `yaml:"accounts" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
+}
+
+type ConsensusMessage struct {
+	Topics []ID `yaml:"topics" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
+}
+
+type ID struct {
+	Id         string `yaml:"id"`
+	MaxRetries int    `yaml:"max_retries"`
+}
+
+type Client struct {
+	NetworkType string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator    Operator `yaml:"operator"`
+}
+
+type Operator struct {
+	AccountId  string `yaml:"account_id" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ACCOUNT_ID"`
+	PrivateKey string `yaml:"private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PRIVATE_KEY"`
+}
+
+type MirrorNode struct {
+	ClientAddress   string        `yaml:"client_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_CLIENT_ADDRESS"`
+	ApiAddress      string        `yaml:"api_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_API_ADDRESS"`
+	PollingInterval time.Duration `yaml:"polling_interval" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_POLLING_INTERVAL"`
 }
 
 type Validator struct {

@@ -1,42 +1,63 @@
-package consensus_message
+package consensusmessage
 
 import (
-	"Event-Listener/config"
-	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	"log"
+	"github.com/hashgraph/hedera-sdk-go"
+	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-watcher-sdk/queue"
+	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type ConsensusTopicWatcher struct {
-	TopicID hederasdk.ConsensusTopicID
+	client      *hederaClient.HederaClient
+	topicID     hedera.ConsensusTopicID
+	typeMessage string
+	maxRetries  int
 }
 
-func (ctw ConsensusTopicWatcher) Watch( /* TODO: add SDK queue as a parameter */ ) {
-	subscribeToTopic(ctw.TopicID /* TODO: add SDK queue as a parameter */)
-}
-
-func subscribeToTopic(topicId hederasdk.ConsensusTopicID /* TODO: add SDK queue as a parameter */) {
-	client, e := hederasdk.NewMirrorClient(config.MirrorNodeAPIAddress)
-	if e != nil {
-		log.Printf("Did not subscribe to [%s].", topicId)
-		return
+func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID, maxRetries int) *ConsensusTopicWatcher {
+	return &ConsensusTopicWatcher{
+		client:      client,
+		topicID:     topicID,
+		typeMessage: "HCS_TOPIC_MSG",
+		maxRetries:  maxRetries,
 	}
+}
 
-	_, e = hederasdk.NewMirrorConsensusTopicQuery().
-		SetTopicID(topicId).
+func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
+	go ctw.subscribeToTopic(q)
+}
+
+func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
+	_, e := hedera.NewMirrorConsensusTopicQuery().
+		SetTopicID(ctw.topicID).
 		Subscribe(
-			client,
-			func(response hederasdk.MirrorConsensusTopicResponse) {
-				log.Printf("[%s] - Topic [%s] - Response incoming: [%s]", response.ConsensusTimestamp, topicId, response.Message)
-				// TODO: Push response to SDK queue
+			*ctw.client.GetMirrorClient(),
+			func(response hedera.MirrorConsensusTopicResponse) {
+				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
+				publisher.Publish(response, ctw.typeMessage, ctw.topicID, q)
 			},
 			func(err error) {
-				log.Printf("Error incoming: [%s]", err)
+				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
+				time.Sleep(10 * time.Second)
+				ctw.restart(q)
 			},
 		)
 
 	if e != nil {
-		log.Printf("Did not subscribe to [%s].", topicId)
+		log.Infof("Did not subscribe to [%s].", ctw.topicID)
 		return
 	}
-	log.Printf("Subscribed to [%s] successfully.", topicId)
+	log.Infof("Subscribed to [%s] successfully.", ctw.topicID)
+}
+
+func (ctw ConsensusTopicWatcher) restart(q *queue.Queue) {
+	if ctw.maxRetries > 0 {
+		ctw.maxRetries--
+		log.Printf("Consensus Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
+		go ctw.Watch(q)
+		return
+	}
+	log.Errorf("Consensus Topic [%s] - Watcher failed: [Too many retries]\n", ctw.topicID)
 }
