@@ -6,7 +6,6 @@ var AccountData = struct {
 		PublicKey  string
 		PrivateKey string
 	}
-	Network map[string]string
 }{
 	Operator: struct {
 		AccountId  string
@@ -17,10 +16,8 @@ var AccountData = struct {
 		"some.public.key",
 		"some.private.key",
 	},
-	Network: map[string]string{
-		"mainnet/testnet-link": "0.0.1",
-	},
 }
 
 var MirrorNodeClientAddress = "hcs.testnet.mirrornode.hedera.com:5600"
 var MirrorNodeAPIAddress = "https://testnet.mirrornode.hedera.com/api/v1/"
+var NetworkType = "testnet"
