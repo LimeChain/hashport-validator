@@ -18,21 +18,13 @@ type CryptoTransferWatcher struct {
 }
 
 func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
-	go beginWatching(ctw.client, ctw.accountID, ctw.typeMessage, queue)
+	go ctw.beginWatching(ctw.accountID, ctw.typeMessage, queue)
 }
 
-func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID) *CryptoTransferWatcher {
-	return &CryptoTransferWatcher{
-		client:      client,
-		accountID:   accountID,
-		typeMessage: "HCS_CRYPTO_TRANSFER",
-	}
-}
-
-func beginWatching(client *http.Client, account hederasdk.AccountID, typeMessage string, q *queue.Queue) {
+func (ctw CryptoTransferWatcher) beginWatching(account hederasdk.AccountID, typeMessage string, q *queue.Queue) {
 	lastObservedTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	for {
-		transactions, e := client.GetTransactionsByAccountIdAndTimestamp(account, lastObservedTimestamp)
+		transactions, e := ctw.client.GetTransactionsByAccountIdAndTimestamp(account, lastObservedTimestamp)
 		if e != nil {
 			log.Printf("Suddenly stopped monitoring config [%s]\n", account.String())
 			log.Println(e)
@@ -57,5 +49,13 @@ func beginWatching(client *http.Client, account hederasdk.AccountID, typeMessage
 			lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
 		time.Sleep(5 * time.Second)
+	}
+}
+
+func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID) *CryptoTransferWatcher {
+	return &CryptoTransferWatcher{
+		client:      client,
+		accountID:   accountID,
+		typeMessage: "HCS_CRYPTO_TRANSFER",
 	}
 }

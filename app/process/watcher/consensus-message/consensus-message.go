@@ -14,22 +14,14 @@ type ConsensusTopicWatcher struct {
 }
 
 func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
-	subscribeToTopic(ctw.client, ctw.topicID, ctw.typeMessage, q)
+	ctw.subscribeToTopic(ctw.topicID, ctw.typeMessage, q)
 }
 
-func NewConsensusTopicWatcher(client hederasdk.MirrorClient, topicID hederasdk.ConsensusTopicID) *ConsensusTopicWatcher {
-	return &ConsensusTopicWatcher{
-		client:      client,
-		topicID:     topicID,
-		typeMessage: "HCS_TOPIC_MSG",
-	}
-}
-
-func subscribeToTopic(client hederasdk.MirrorClient, topicId hederasdk.ConsensusTopicID, typeMessage string, q *queue.Queue) {
+func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hederasdk.ConsensusTopicID, typeMessage string, q *queue.Queue) {
 	_, e := hederasdk.NewMirrorConsensusTopicQuery().
 		SetTopicID(topicId).
 		Subscribe(
-			client,
+			ctw.client,
 			func(response hederasdk.MirrorConsensusTopicResponse) {
 				log.Printf("[%s] - Topic [%s] - Response incoming: [%s]", response.ConsensusTimestamp, topicId, response.Message)
 				proceed.Proceed(response, typeMessage, topicId, q)
@@ -44,4 +36,12 @@ func subscribeToTopic(client hederasdk.MirrorClient, topicId hederasdk.Consensus
 		return
 	}
 	log.Printf("Subscribed to [%s] successfully.", topicId)
+}
+
+func NewConsensusTopicWatcher(client hederasdk.MirrorClient, topicID hederasdk.ConsensusTopicID) *ConsensusTopicWatcher {
+	return &ConsensusTopicWatcher{
+		client:      client,
+		topicID:     topicID,
+		typeMessage: "HCS_TOPIC_MSG",
+	}
 }
