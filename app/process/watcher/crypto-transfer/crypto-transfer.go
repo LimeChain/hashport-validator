@@ -1,17 +1,12 @@
 package crypto_transfer
 
 import (
-	"encoding/json"
-	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
+	http "github.com/limechain/hedera-eth-bridge-validator/app/clients/http"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/proceed"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -34,35 +29,10 @@ func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID
 	}
 }
 
-func getTransactionsFor(client *http.Client, account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
-	// TODO: Get last processed Tx timestamp
-	address := fmt.Sprintf("%s%s", config.LoadConfig().Hedera.MirrorNode.ApiAddress, "transactions")
-	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
-		address,
-		account.String(),
-		lastProcessedTimestamp)
-
-	response, e := client.Get(accountLink)
-	if e != nil {
-		return nil, e
-	}
-
-	defer response.Body.Close()
-	bodyBytes, _ := ioutil.ReadAll(response.Body)
-
-	var transactions *transaction.Transactions
-	failed := json.Unmarshal(bodyBytes, &transactions)
-	if failed != nil {
-		return nil, failed
-	}
-
-	return transactions, nil
-}
-
 func beginWatching(client *http.Client, account hederasdk.AccountID, typeMessage string, q *queue.Queue) {
 	lastObservedTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	for {
-		transactions, e := getTransactionsFor(client, account, lastObservedTimestamp)
+		transactions, e := client.GetTransactionsByAccountIdAndTimestamp(account, lastObservedTimestamp)
 		if e != nil {
 			log.Printf("Suddenly stopped monitoring config [%s]\n", account.String())
 			log.Println(e)

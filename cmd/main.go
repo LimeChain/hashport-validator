@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
+	http "github.com/limechain/hedera-eth-bridge-validator/app/clients/http"
 	consensus_message "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	crypto_transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
-	"net/http"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	server := server.NewServer()
 
 	mirrorNodeClient, _ := hedera.NewMirrorClient(configuration.Hedera.MirrorNode.Client)
-	httpClient := &http.Client{}
+	httpClient := http.NewClient()
 
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)
