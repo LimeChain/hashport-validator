@@ -1,0 +1,29 @@
+version: "3.3"
+services:
+  db:
+    image: postgres:9.6-alpine
+    restart: unless-stopped
+    stop_grace_period: 2m
+    stop_signal: SIGTERM
+    tty: true
+    environment:
+      POSTGRES_DB: hedera_validator
+      POSTGRES_PASSWORD: validator_pass
+      POSTGRES_USER: validator
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  validator:
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile
+    environment:
+      HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 5200:5200
+    depends_on:
+      - "db"
