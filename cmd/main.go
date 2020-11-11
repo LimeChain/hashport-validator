@@ -1,15 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
-	"strconv"
 )
 
 func main() {
-	config := config.LoadConfig()
-	persistence.RunDb(config.Hedera.Validator.Db)
-	port, _ := strconv.ParseInt(config.Hedera.Validator.Port, 10, 64)
-	server.NewServer().Run(int(port))
+	configuration := config.LoadConfig()
+	persistence.RunDb(configuration.Hedera.Validator.Db)
+	server.NewServer().Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
