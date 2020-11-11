@@ -1,4 +1,4 @@
-package crypto_transfer_message
+package cryptotransfermessage
 
 type (
 	CryptoTransferMessage struct {

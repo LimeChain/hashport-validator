@@ -9,7 +9,7 @@ hedera:
       username: validator
     port: 5200
   mirror_node:
-    client: hcs.testnet.mirrornode.hedera.com:5600
+    client_address: hcs.testnet.mirrornode.hedera.com:5600
     api_address: https://testnet.mirrornode.hedera.com/api/v1/
     polling_interval: 5000000000
   client:
@@ -20,11 +20,5 @@ hedera:
   watcher:
     crypto-transfer:
       accounts:
-#        - id: shard.realm.account
-#        - id: shard.realm.account
-#        - id: shard.realm.account
     consensus-message:
       topics:
-#        - id: shard.realm.topic
-#        - id: shard.realm.topic
-#        - id: shard.realm.topic

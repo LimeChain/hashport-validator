@@ -1,3 +1,3 @@
-package crypto_transfer
+package cryptotransfer
 
 // Crypto Transfer event handler

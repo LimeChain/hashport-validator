@@ -1,10 +1,10 @@
-package crypto_transfer
+package cryptotransfer
 
 import (
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	http "github.com/limechain/hedera-eth-bridge-validator/app/clients/http"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/proceed"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	cryptotransfermessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	"log"
 	"strconv"
@@ -12,7 +12,7 @@ import (
 )
 
 type CryptoTransferWatcher struct {
-	client          *http.Client
+	client          *hedera.Client
 	accountID       hederasdk.AccountID
 	typeMessage     string
 	pollingInterval time.Duration
@@ -40,12 +40,12 @@ func (ctw CryptoTransferWatcher) beginWatching(account hederasdk.AccountID, type
 					account.String(),
 					tx.TransactionHash)
 
-				information := crypto_transfer_message.CryptoTransferMessage{
+				information := cryptotransfermessage.CryptoTransferMessage{
 					TxMemo: tx.MemoBase64,
 					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
 					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
 				}
-				proceed.Proceed(information, typeMessage, account, q)
+				publisher.Publish(information, typeMessage, account, q)
 			}
 			lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
@@ -53,7 +53,7 @@ func (ctw CryptoTransferWatcher) beginWatching(account hederasdk.AccountID, type
 	}
 }
 
-func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID, pollingInterval time.Duration) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *hedera.Client, accountID hederasdk.AccountID, pollingInterval time.Duration) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
 		client:          client,
 		accountID:       accountID,

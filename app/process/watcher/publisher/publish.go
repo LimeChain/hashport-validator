@@ -1,4 +1,4 @@
-package proceed
+package publisher
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func Proceed(m interface{}, typeMessage string, id interface{}, q *queue.Queue) {
+func Publish(m interface{}, typeMessage string, id interface{}, q *queue.Queue) {
 	message, e := json.Marshal(m)
 	if e != nil {
 		log.Printf("[%s] - Failed marshalling response - ID: [%s]\n", typeMessage, id)

@@ -1,3 +1,3 @@
-package consensus_message
+package consensusmessage
 
 // TODO consensus message event handler
