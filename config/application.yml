@@ -8,3 +8,12 @@ hedera:
       port: 5432
       username: validator
     port: 5200
+  mirror_node:
+    client: hcs.testnet.mirrornode.hedera.com:5600
+    api_address: https://testnet.mirrornode.hedera.com/api/v1/
+  client:
+    network_type: testnet
+    operator:
+      account_id:
+      public_key:
+      private_key:

@@ -1,8 +1,8 @@
 package consensus_message
 
 import (
-	"Event-Listener/config"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"log"
 )
 
@@ -15,7 +15,7 @@ func (ctw ConsensusTopicWatcher) Watch( /* TODO: add SDK queue as a parameter */
 }
 
 func subscribeToTopic(topicId hederasdk.ConsensusTopicID /* TODO: add SDK queue as a parameter */) {
-	client, e := hederasdk.NewMirrorClient(config.MirrorNodeAPIAddress)
+	client, e := hederasdk.NewMirrorClient(config.LoadConfig().Hedera.MirrorNode.ApiAddress)
 	if e != nil {
 		log.Printf("Did not subscribe to [%s].", topicId)
 		return

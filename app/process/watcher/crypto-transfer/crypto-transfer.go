@@ -1,12 +1,12 @@
 package crypto_transfer
 
 import (
-	"Event-Listener/app/process/model/essential"
-	"Event-Listener/app/process/model/transaction"
-	"Event-Listener/config"
 	"encoding/json"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/essential"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -24,7 +24,7 @@ func (ctw CryptoTransferWatcher) Watch( /*TODO: add SDK queue as parameter*/ ) {
 
 func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
 	// TODO: Get last processed Tx timestamp
-	address := fmt.Sprintf("%s%s", config.MirrorNodeAPIAddress, "transactions")
+	address := fmt.Sprintf("%s%s", config.LoadConfig().Hedera.MirrorNode.ApiAddress, "transactions")
 	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		address,
 		account.String(),
