@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/essential"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/proceed"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
-	"github.com/limechain/hedera-watcher-sdk/types"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,14 +17,24 @@ import (
 )
 
 type CryptoTransferWatcher struct {
-	Account hederasdk.AccountID
+	client      *http.Client
+	accountID   hederasdk.AccountID
+	typeMessage string
 }
 
 func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
-	go beginWatching(ctw.Account, queue)
+	go beginWatching(ctw.client, ctw.accountID, ctw.typeMessage, queue)
 }
 
-func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
+func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID) *CryptoTransferWatcher {
+	return &CryptoTransferWatcher{
+		client:      client,
+		accountID:   accountID,
+		typeMessage: "HCS_CRYPTO_TRANSFER",
+	}
+}
+
+func getTransactionsFor(client *http.Client, account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
 	// TODO: Get last processed Tx timestamp
 	address := fmt.Sprintf("%s%s", config.LoadConfig().Hedera.MirrorNode.ApiAddress, "transactions")
 	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
@@ -32,7 +42,7 @@ func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp stri
 		account.String(),
 		lastProcessedTimestamp)
 
-	response, e := http.Get(accountLink)
+	response, e := client.Get(accountLink)
 	if e != nil {
 		return nil, e
 	}
@@ -49,10 +59,10 @@ func getTransactionsFor(account hederasdk.AccountID, lastProcessedTimestamp stri
 	return transactions, nil
 }
 
-func beginWatching(account hederasdk.AccountID, q *queue.Queue) {
+func beginWatching(client *http.Client, account hederasdk.AccountID, typeMessage string, q *queue.Queue) {
 	lastObservedTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	for {
-		transactions, e := getTransactionsFor(account, lastObservedTimestamp)
+		transactions, e := getTransactionsFor(client, account, lastObservedTimestamp)
 		if e != nil {
 			log.Printf("Suddenly stopped monitoring config [%s]\n", account.String())
 			log.Println(e)
@@ -67,21 +77,12 @@ func beginWatching(account hederasdk.AccountID, q *queue.Queue) {
 					account.String(),
 					tx.TransactionHash)
 
-				information := essential.Essential{
+				information := crypto_transfer_message.CryptoTransferMessage{
 					TxMemo: tx.MemoBase64,
 					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
 					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
 				}
-
-				message, e := json.Marshal(information)
-				if e != nil {
-					log.Printf("Failed marshalling Tx information - Tx Hash [%s]\n", tx.TransactionHash)
-				}
-
-				q.Push(&types.Message{
-					Payload: message,
-					Type:    "HCS_CRYPTO_TRANSFER",
-				})
+				proceed.Proceed(information, typeMessage, account, q)
 			}
 			lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}

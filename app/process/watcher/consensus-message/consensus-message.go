@@ -1,44 +1,38 @@
 package consensus_message
 
 import (
-	"encoding/json"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/proceed"
 	"github.com/limechain/hedera-watcher-sdk/queue"
-	"github.com/limechain/hedera-watcher-sdk/types"
 	"log"
 )
 
 type ConsensusTopicWatcher struct {
-	TopicID hederasdk.ConsensusTopicID
+	client      hederasdk.MirrorClient
+	topicID     hederasdk.ConsensusTopicID
+	typeMessage string
 }
 
 func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
-	subscribeToTopic(ctw.TopicID, q)
+	subscribeToTopic(ctw.client, ctw.topicID, ctw.typeMessage, q)
 }
 
-func subscribeToTopic(topicId hederasdk.ConsensusTopicID, q *queue.Queue) {
-	client, e := hederasdk.NewMirrorClient(config.LoadConfig().Hedera.MirrorNode.Client)
-	if e != nil {
-		log.Printf("Did not subscribe to [%s].", topicId)
-		return
+func NewConsensusTopicWatcher(client hederasdk.MirrorClient, topicID hederasdk.ConsensusTopicID) *ConsensusTopicWatcher {
+	return &ConsensusTopicWatcher{
+		client:      client,
+		topicID:     topicID,
+		typeMessage: "HCS_TOPIC_MSG",
 	}
-	_, e = hederasdk.NewMirrorConsensusTopicQuery().
+}
+
+func subscribeToTopic(client hederasdk.MirrorClient, topicId hederasdk.ConsensusTopicID, typeMessage string, q *queue.Queue) {
+	_, e := hederasdk.NewMirrorConsensusTopicQuery().
 		SetTopicID(topicId).
 		Subscribe(
 			client,
 			func(response hederasdk.MirrorConsensusTopicResponse) {
 				log.Printf("[%s] - Topic [%s] - Response incoming: [%s]", response.ConsensusTimestamp, topicId, response.Message)
-
-				message, e := json.Marshal(response)
-				if e != nil {
-					log.Printf("Failed marshalling response from topic [%s]\n", topicId)
-				}
-
-				q.Push(&types.Message{
-					Payload: message,
-					Type:    "HCS_TOPIC_MSG",
-				})
+				proceed.Proceed(response, typeMessage, topicId, q)
 			},
 			func(err error) {
 				log.Printf("Error incoming: [%s]", err)
