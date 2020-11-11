@@ -16,3 +16,5 @@
 # vendor/
 
 config/config.go
+.idea/
+db/
