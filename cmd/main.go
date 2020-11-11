@@ -18,7 +18,7 @@ func main() {
 	server := server.NewServer()
 
 	mirrorNodeClient, _ := hederasdk.NewMirrorClient(configuration.Hedera.MirrorNode)
-	httpClient := http.NewClient()
+	httpClient := http.NewClient(configuration.Hedera.MirrorNode.ApiAddress)
 
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)

@@ -5,23 +5,24 @@ import (
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"io/ioutil"
 	"net/http"
 )
 
 type Client struct {
-	client *http.Client
+	client            *http.Client
+	mirrorNodeAddress string
 }
 
-func NewClient() *Client {
+func NewClient(mirrorNodeAddress string) *Client {
 	return &Client{
-		client: &http.Client{},
+		client:            &http.Client{},
+		mirrorNodeAddress: mirrorNodeAddress,
 	}
 }
 
 func (http Client) GetTransactionsByAccountIdAndTimestamp(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
-	address := fmt.Sprintf("%s%s", config.LoadConfig().Hedera.MirrorNode.ApiAddress, "transactions")
+	address := fmt.Sprintf("%s%s", http.mirrorNodeAddress, "transactions")
 	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		address,
 		account.String(),
