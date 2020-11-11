@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -80,8 +81,9 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	Client     string `yaml:"client" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_CLIENT"`
-	ApiAddress string `yaml:"api_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_API_ADDRESS"`
+	Client          string        `yaml:"client" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_CLIENT"`
+	ApiAddress      string        `yaml:"api_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_API_ADDRESS"`
+	PollingInterval time.Duration `yaml:"polling_interval" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_POLLING_INTERVAL"`
 }
 
 type Validator struct {

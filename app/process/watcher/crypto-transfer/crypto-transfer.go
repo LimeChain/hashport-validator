@@ -12,9 +12,10 @@ import (
 )
 
 type CryptoTransferWatcher struct {
-	client      *http.Client
-	accountID   hederasdk.AccountID
-	typeMessage string
+	client          *http.Client
+	accountID       hederasdk.AccountID
+	typeMessage     string
+	pollingInterval time.Duration
 }
 
 func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
@@ -48,14 +49,15 @@ func (ctw CryptoTransferWatcher) beginWatching(account hederasdk.AccountID, type
 			}
 			lastObservedTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(ctw.pollingInterval * time.Second)
 	}
 }
 
-func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *http.Client, accountID hederasdk.AccountID, pollingInterval time.Duration) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
-		client:      client,
-		accountID:   accountID,
-		typeMessage: "HCS_CRYPTO_TRANSFER",
+		client:          client,
+		accountID:       accountID,
+		typeMessage:     "HCS_CRYPTO_TRANSFER",
+		pollingInterval: pollingInterval,
 	}
 }

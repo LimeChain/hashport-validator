@@ -10,6 +10,7 @@ import (
 	crypto_transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
+	"log"
 )
 
 func main() {
@@ -17,7 +18,12 @@ func main() {
 	persistence.RunDb(configuration.Hedera.Validator.Db)
 	server := server.NewServer()
 
-	mirrorNodeClient, _ := hederasdk.NewMirrorClient(configuration.Hedera.MirrorNode)
+	mirrorNodeClient, e := hederasdk.NewMirrorClient(configuration.Hedera.MirrorNode)
+	if e != nil {
+		log.Printf("Error instantiating mirror-node client: [%s]\n", e)
+		return
+	}
+
 	httpClient := http.NewClient(configuration.Hedera.MirrorNode.ApiAddress)
 
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
@@ -26,7 +32,7 @@ func main() {
 			panic(e)
 		}
 
-		server.AddWatcher(crypto_transfer.NewCryptoTransferWatcher(httpClient, id))
+		server.AddWatcher(crypto_transfer.NewCryptoTransferWatcher(httpClient, id, configuration.Hedera.MirrorNode.PollingInterval))
 	}
 	for _, topic := range configuration.Hedera.Watcher.ConsensusMessage.Topics {
 		id, e := hedera.TopicIDFromString(topic.Id)
