@@ -10,31 +10,33 @@ import (
 	crypto_transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
-	"log"
+	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
+	initLogger()
 	configuration := config.LoadConfig()
 	persistence.RunDb(configuration.Hedera.Validator.Db)
 	server := server.NewServer()
-	hederaClient := hederasdk.NewClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+	hederaClient := hederasdk.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
 
 	failure := addCryptoTransferWatchers(configuration, hederaClient, server)
 	if failure != nil {
-		log.Println(failure)
+		log.Errorln(failure)
 	}
 
 	failure = addConsensusTopicWatchers(configuration, hederaClient, server)
 	if failure != nil {
-		log.Println(failure)
+		log.Errorln(failure)
 	}
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederasdk.Client, server *server.HederaWatcherServer) error {
+func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederasdk.HederaClient, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
-		fmt.Println("There are no Crypto Transfer Watchers.")
+		log.Warningln("There are no Crypto Transfer Watchers.")
 	}
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)
@@ -43,14 +45,14 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 		}
 
 		server.AddWatcher(crypto_transfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval))
-		log.Printf("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
+		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederasdk.Client, server *server.HederaWatcherServer) error {
+func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederasdk.HederaClient, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
-		fmt.Println("There are no Consensus Topic Watchers.")
+		log.Warningln("There are no Consensus Topic Watchers.")
 	}
 	for _, topic := range configuration.Hedera.Watcher.ConsensusMessage.Topics {
 		id, e := hedera.TopicIDFromString(topic.Id)
@@ -59,7 +61,13 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 		}
 
 		server.AddWatcher(consensus_message.NewConsensusTopicWatcher(hederaClient, id))
-		log.Printf("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
+		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil
+}
+
+func initLogger() {
+	log.SetOutput(os.Stdout)
+
+	log.SetLevel(log.InfoLevel)
 }

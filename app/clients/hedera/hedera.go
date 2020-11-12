@@ -3,44 +3,43 @@ package hedera
 import (
 	"encoding/json"
 	"fmt"
-	hederasdk "github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
-type Client struct {
+type HederaClient struct {
 	mirrorAPIAddress string
-	mirrorClient     *hederasdk.MirrorClient
+	mirrorClient     *hedera.MirrorClient
 	httpClient       *http.Client
 }
 
-func (hedera Client) GetMirror() *hederasdk.MirrorClient {
-	return hedera.mirrorClient
+func (c HederaClient) GetMirrorClient() *hedera.MirrorClient {
+	return c.mirrorClient
 }
 
-func NewClient(mirrorAPIAddress, mirrorNodeClientAddress string) *Client {
-	mirrorClient, e := hederasdk.NewMirrorClient(mirrorNodeClientAddress)
+func NewHederaClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaClient {
+	mirrorClient, e := hedera.NewMirrorClient(mirrorNodeClientAddress)
 	if e != nil {
-		log.Printf("Error: Could not instantiate mirror client - [%s]", e)
+		panic(e)
 	}
 
-	return &Client{
-		mirrorAPIAddress: mirrorAPIAddress,
+	return &HederaClient{
+		mirrorAPIAddress: mirrorNodeAPIAddress,
 		mirrorClient:     &mirrorClient,
 		httpClient:       &http.Client{},
 	}
 }
 
-func (hedera Client) GetTransactionsByAccountIdAndTimestamp(account hederasdk.AccountID, lastProcessedTimestamp string) (*transaction.Transactions, error) {
-	address := fmt.Sprintf("%s%s", hedera.mirrorAPIAddress, "transactions")
-	accountLink := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
-		address,
-		account.String(),
-		lastProcessedTimestamp)
+func (c HederaClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "transactions")
+	transactionsDownloadQuery := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
+		mirrorNodeApiTransactionAddress,
+		accountId.String(),
+		milestoneTimestamp)
 
-	response, e := hedera.httpClient.Get(accountLink)
+	response, e := c.httpClient.Get(transactionsDownloadQuery)
 	if e != nil {
 		return nil, e
 	}
@@ -48,7 +47,7 @@ func (hedera Client) GetTransactionsByAccountIdAndTimestamp(account hederasdk.Ac
 	defer response.Body.Close()
 	bodyBytes, _ := ioutil.ReadAll(response.Body)
 
-	var transactions *transaction.Transactions
+	var transactions *transaction.HederaTransactions
 	failed := json.Unmarshal(bodyBytes, &transactions)
 	if failed != nil {
 		return nil, failed

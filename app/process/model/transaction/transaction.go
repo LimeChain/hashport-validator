@@ -1,7 +1,7 @@
 package transaction
 
 type (
-	Transaction struct {
+	HederaTransaction struct {
 		ConsensusTimestamp   string `json:"consensus_timestamp"`
 		TransactionHash      string `json:"transaction_hash"`
 		ValidStartTimestamp  string `json:"valid_start_timestamp"`
@@ -19,7 +19,7 @@ type (
 		Account string `json:"config"`
 		Amount  int64  `json:"amount"`
 	}
-	Transactions struct {
-		Transactions []Transaction
+	HederaTransactions struct {
+		Transactions []HederaTransaction
 	}
 )
