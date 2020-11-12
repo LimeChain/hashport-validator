@@ -63,7 +63,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id))
+		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, topic.MaxRetries))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil

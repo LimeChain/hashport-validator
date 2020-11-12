@@ -6,19 +6,22 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type ConsensusTopicWatcher struct {
 	client      *hederaClient.HederaClient
 	topicID     hedera.ConsensusTopicID
 	typeMessage string
+	maxRetries  int
 }
 
-func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID, maxRetries int) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
 		client:      client,
 		topicID:     topicID,
 		typeMessage: "HCS_TOPIC_MSG",
+		maxRetries:  maxRetries,
 	}
 }
 
@@ -37,6 +40,12 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hedera.ConsensusTopicI
 			},
 			func(err error) {
 				log.Errorf("Error incoming: [%s]", err)
+				time.Sleep(10 * time.Second)
+				if ctw.maxRetries > 0 {
+					ctw.maxRetries--
+					log.Printf("Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
+					ctw.subscribeToTopic(topicId, typeMessage, q)
+				}
 			},
 		)
 
