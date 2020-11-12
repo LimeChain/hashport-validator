@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 )
 
 // Establish connection to the Postgres Database
 func connectToDb(dbConfig config.Db) *gorm.DB {
 	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Name, dbConfig.Password)
-	db, err := gorm.Open(postgres.Open(connectionStr), &gorm.Config{})
+	db, err := gorm.Open(
+		postgres.Open(connectionStr),
+		&gorm.Config{},
+	)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorln(err)
 	}
-	log.Println("Successfully connected to Database")
+	log.Infoln("Successfully connected to Database")
 
 	return db
 }
@@ -34,6 +37,5 @@ func migrateDb(db *gorm.DB) {
 func RunDb(dbConfig config.Db) *gorm.DB {
 	gorm := connectToDb(dbConfig)
 	migrateDb(gorm)
-
 	return gorm
 }

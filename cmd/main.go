@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederasdk "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	consensus_message "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	crypto_transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -17,11 +18,14 @@ import (
 func main() {
 	initLogger()
 	configuration := config.LoadConfig()
-	persistence.RunDb(configuration.Hedera.Validator.Db)
-	server := server.NewServer()
-	hederaClient := hederasdk.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+	hederaClient := hederaClient.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
 
-	failure := addCryptoTransferWatchers(configuration, hederaClient, server)
+	db := persistence.RunDb(configuration.Hedera.Validator.Db)
+	statusRepository := status.NewStatusRepository(db)
+
+	server := server.NewServer()
+
+	failure := addCryptoTransferWatchers(configuration, hederaClient, statusRepository, server)
 	if failure != nil {
 		log.Errorln(failure)
 	}
@@ -34,7 +38,7 @@ func main() {
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederasdk.HederaClient, server *server.HederaWatcherServer) error {
+func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
 		log.Warningln("There are no Crypto Transfer Watchers.")
 	}
@@ -44,13 +48,13 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(crypto_transfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval))
+		server.AddWatcher(crypto_transfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederasdk.HederaClient, server *server.HederaWatcherServer) error {
+func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
 		log.Warningln("There are no Consensus Topic Watchers.")
 	}
@@ -68,6 +72,5 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 
 func initLogger() {
 	log.SetOutput(os.Stdout)
-
 	log.SetLevel(log.InfoLevel)
 }

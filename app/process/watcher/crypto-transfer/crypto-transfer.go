@@ -3,19 +3,20 @@ package cryptotransfer
 import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	cryptotransfermessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 type CryptoTransferWatcher struct {
-	client          *hederaClient.HederaClient
-	accountID       hedera.AccountID
-	typeMessage     string
-	pollingInterval time.Duration
+	client           *hederaClient.HederaClient
+	accountID        hedera.AccountID
+	typeMessage      string
+	pollingInterval  time.Duration
+	statusRepository repositories.StatusRepository
 }
 
 func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
@@ -23,8 +24,7 @@ func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
 }
 
 func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeMessage string, q *queue.Queue) {
-	// temporary timestamp - should be getting the last processed Tx timestamp from DB
-	milestoneTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	milestoneTimestamp := ctw.statusRepository.GetLastFetchedTimestamp()
 	for {
 		transactions, e := ctw.client.GetAccountTransactionsAfterDate(accountID, milestoneTimestamp)
 		if e != nil {
@@ -50,15 +50,17 @@ func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeM
 			}
 			milestoneTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
+		ctw.statusRepository.UpdateLastFetchedTimestamp(milestoneTimestamp)
 		time.Sleep(ctw.pollingInterval * time.Second)
 	}
 }
 
-func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
-		client:          client,
-		accountID:       accountID,
-		typeMessage:     "HCS_CRYPTO_TRANSFER",
-		pollingInterval: pollingInterval,
+		client:           client,
+		accountID:        accountID,
+		typeMessage:      "HCS_CRYPTO_TRANSFER",
+		pollingInterval:  pollingInterval,
+		statusRepository: repository,
 	}
 }
