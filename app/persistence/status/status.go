@@ -38,7 +38,7 @@ func (s StatusRepository) GetLastFetchedTimestamp(accountID hedera.AccountID) st
 		log.Errorf("Could not get last fetched timestamp: [%s]\n", failure)
 		now := time.Now()
 		newLastFetchedTimestamp := strconv.FormatInt(now.Unix(), 10)
-		log.Infof("Proceeding monitoring from current moment [%s] - [%s].\n", now.String(), now.Unix())
+		log.Infof("Proceeding monitoring from current moment [%s]\n", now.String())
 		s.dbClient.Create(Status{
 			Name:      "Last fetched timestamp",
 			AccountID: accountID.String(),

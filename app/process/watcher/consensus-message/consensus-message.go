@@ -14,6 +14,14 @@ type ConsensusTopicWatcher struct {
 	typeMessage string
 }
 
+func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID) *ConsensusTopicWatcher {
+	return &ConsensusTopicWatcher{
+		client:      client,
+		topicID:     topicID,
+		typeMessage: "HCS_TOPIC_MSG",
+	}
+}
+
 func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
 	ctw.subscribeToTopic(ctw.topicID, ctw.typeMessage, q)
 }
@@ -37,12 +45,4 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hedera.ConsensusTopicI
 		return
 	}
 	log.Infof("Subscribed to [%s] successfully.", topicId)
-}
-
-func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID) *ConsensusTopicWatcher {
-	return &ConsensusTopicWatcher{
-		client:      client,
-		topicID:     topicID,
-		typeMessage: "HCS_TOPIC_MSG",
-	}
 }

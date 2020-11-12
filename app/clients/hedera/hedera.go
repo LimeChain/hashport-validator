@@ -15,10 +15,6 @@ type HederaClient struct {
 	httpClient       *http.Client
 }
 
-func (c HederaClient) GetMirrorClient() *hedera.MirrorClient {
-	return c.mirrorClient
-}
-
 func NewHederaClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaClient {
 	mirrorClient, e := hedera.NewMirrorClient(mirrorNodeClientAddress)
 	if e != nil {
@@ -30,6 +26,10 @@ func NewHederaClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *Hede
 		mirrorClient:     &mirrorClient,
 		httpClient:       &http.Client{},
 	}
+}
+
+func (c HederaClient) GetMirrorClient() *hedera.MirrorClient {
+	return c.mirrorClient
 }
 
 func (c HederaClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
