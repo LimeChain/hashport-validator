@@ -26,7 +26,7 @@ func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.
 }
 
 func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
-	ctw.subscribeToTopic(ctw.topicID, ctw.typeMessage, q)
+	go ctw.subscribeToTopic(ctw.topicID, ctw.typeMessage, q)
 }
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hedera.ConsensusTopicID, typeMessage string, q *queue.Queue) {
@@ -44,8 +44,10 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hedera.ConsensusTopicI
 				if ctw.maxRetries > 0 {
 					ctw.maxRetries--
 					log.Printf("Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
-					ctw.subscribeToTopic(topicId, typeMessage, q)
+					go ctw.subscribeToTopic(topicId, typeMessage, q)
+					return
 				}
+				log.Errorf("Topic [%s] - Watcher failed: [Too many retries]\n", ctw.topicID)
 			},
 		)
 
