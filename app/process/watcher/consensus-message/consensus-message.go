@@ -26,34 +26,38 @@ func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.
 }
 
 func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
-	go ctw.subscribeToTopic(ctw.topicID, ctw.typeMessage, q)
+	go ctw.subscribeToTopic(q)
 }
 
-func (ctw ConsensusTopicWatcher) subscribeToTopic(topicId hedera.ConsensusTopicID, typeMessage string, q *queue.Queue) {
+func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	_, e := hedera.NewMirrorConsensusTopicQuery().
-		SetTopicID(topicId).
+		SetTopicID(ctw.topicID).
 		Subscribe(
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
-				log.Infof("[%s] - Topic [%s] - Response incoming: [%s]", response.ConsensusTimestamp, topicId, response.Message)
-				publisher.Publish(response, typeMessage, topicId, q)
+				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
+				publisher.Publish(response, ctw.typeMessage, ctw.topicID, q)
 			},
 			func(err error) {
-				log.Errorf("Error incoming: [%s]", err)
+				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
 				time.Sleep(10 * time.Second)
-				if ctw.maxRetries > 0 {
-					ctw.maxRetries--
-					log.Printf("Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
-					go ctw.subscribeToTopic(topicId, typeMessage, q)
-					return
-				}
-				log.Errorf("Topic [%s] - Watcher failed: [Too many retries]\n", ctw.topicID)
+				ctw.restart(q)
 			},
 		)
 
 	if e != nil {
-		log.Infof("Did not subscribe to [%s].", topicId)
+		log.Infof("Did not subscribe to [%s].", ctw.topicID)
 		return
 	}
-	log.Infof("Subscribed to [%s] successfully.", topicId)
+	log.Infof("Subscribed to [%s] successfully.", ctw.topicID)
+}
+
+func (ctw ConsensusTopicWatcher) restart(q *queue.Queue) {
+	if ctw.maxRetries > 0 {
+		ctw.maxRetries--
+		log.Printf("Consensus Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
+		go ctw.Watch(q)
+		return
+	}
+	log.Errorf("Consensus Topic [%s] - Watcher failed: [Too many retries]\n", ctw.topicID)
 }

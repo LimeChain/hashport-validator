@@ -17,38 +17,44 @@ type CryptoTransferWatcher struct {
 	typeMessage      string
 	pollingInterval  time.Duration
 	statusRepository repositories.StatusRepository
+	maxRetries       int
 }
 
-func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
 		client:           client,
 		accountID:        accountID,
 		typeMessage:      "HCS_CRYPTO_TRANSFER",
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
+		maxRetries:       maxRetries,
 	}
 }
 
-func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
-	go ctw.beginWatching(ctw.accountID, ctw.typeMessage, queue)
+func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
+	go ctw.beginWatching(q)
 }
 
-func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeMessage string, q *queue.Queue) {
-	milestoneTimestamp := ctw.statusRepository.GetLastFetchedTimestamp(accountID)
+func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
+	if !ctw.client.AccountExists(ctw.accountID) {
+		log.Errorf("Error incoming: Could not start monitoring account [%s]\n", ctw.accountID.String())
+	}
+	log.Infof("Started Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
+	milestoneTimestamp := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID)
 	for {
-		transactions, e := ctw.client.GetAccountTransactionsAfterDate(accountID, milestoneTimestamp)
+		transactions, e := ctw.client.GetAccountTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			log.Errorf("Suddenly stopped monitoring account [%s]\n", accountID.String())
+			log.Errorf("Error incoming: Suddenly stopped monitoring account [%s]\n", ctw.accountID.String())
 			log.Errorln(e)
+			ctw.restart(q)
 			return
 		}
 
 		if len(transactions.Transactions) > 0 {
-			log.Infof("After [%s] - Account [%s] - Transactions Length: [%d]\n", milestoneTimestamp, accountID.String(), len(transactions.Transactions))
 			for _, tx := range transactions.Transactions {
 				log.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]\n",
 					tx.ConsensusTimestamp,
-					accountID.String(),
+					ctw.accountID.String(),
 					tx.TransactionHash)
 
 				information := cryptotransfermessage.CryptoTransferMessage{
@@ -56,17 +62,27 @@ func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeM
 					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
 					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
 				}
-				publisher.Publish(information, typeMessage, accountID, q)
+				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
 			milestoneTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
 
-		failure := ctw.statusRepository.UpdateLastFetchedTimestamp(accountID, milestoneTimestamp)
+		failure := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID, milestoneTimestamp)
 		if failure != nil {
-			log.Errorf("Suddenly stopped monitoring account [%s]\n", accountID.String())
+			log.Errorf("Error incoming: Suddenly stopped monitoring account [%s]\n", ctw.accountID.String())
 			log.Errorln(e)
 			return
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
 	}
+}
+
+func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
+	if ctw.maxRetries > 0 {
+		ctw.maxRetries--
+		log.Printf("Crypto Transfer Watcher - Account [%s] - Trying to reconnect\n", ctw.accountID)
+		go ctw.Watch(q)
+		return
+	}
+	log.Errorf("Crypto Transfer Watcher - Account [%s] - Crypto Transfer Watcher failed: [Too many retries]\n", ctw.accountID)
 }

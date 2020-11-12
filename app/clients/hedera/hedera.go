@@ -55,3 +55,20 @@ func (c HederaClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID
 
 	return transactions, nil
 }
+
+func (c HederaClient) AccountExists(accountID hedera.AccountID) bool {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
+	accountQuery := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		accountID.String())
+	response, e := c.httpClient.Get(accountQuery)
+	if e != nil {
+		return false
+	}
+
+	if response.StatusCode != 200 {
+		return false
+	}
+
+	return true
+}
