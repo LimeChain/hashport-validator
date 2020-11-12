@@ -19,6 +19,16 @@ type CryptoTransferWatcher struct {
 	statusRepository repositories.StatusRepository
 }
 
+func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository) *CryptoTransferWatcher {
+	return &CryptoTransferWatcher{
+		client:           client,
+		accountID:        accountID,
+		typeMessage:      "HCS_CRYPTO_TRANSFER",
+		pollingInterval:  pollingInterval,
+		statusRepository: repository,
+	}
+}
+
 func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
 	go ctw.beginWatching(ctw.accountID, ctw.typeMessage, queue)
 }
@@ -58,15 +68,5 @@ func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeM
 			return
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
-	}
-}
-
-func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository) *CryptoTransferWatcher {
-	return &CryptoTransferWatcher{
-		client:           client,
-		accountID:        accountID,
-		typeMessage:      "HCS_CRYPTO_TRANSFER",
-		pollingInterval:  pollingInterval,
-		statusRepository: repository,
 	}
 }
