@@ -19,11 +19,10 @@ func main() {
 	initLogger()
 	configuration := config.LoadConfig()
 	hederaClient := hederaClient.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+	server := server.NewServer()
 
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	statusRepository := status.NewStatusRepository(db)
-
-	server := server.NewServer()
 
 	failure := addCryptoTransferWatchers(configuration, hederaClient, statusRepository, server)
 	if failure != nil {

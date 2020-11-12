@@ -2,7 +2,8 @@ package status
 
 import (
 	"errors"
-	"fmt"
+	"github.com/hashgraph/hedera-sdk-go"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -10,9 +11,10 @@ import (
 
 // This table will contain information for latest status of the application
 type Status struct {
-	Name  string
-	Code  string
-	Value string
+	Name      string
+	AccountID string
+	Code      string
+	Value     string
 }
 
 type StatusRepository struct {
@@ -25,31 +27,37 @@ func NewStatusRepository(dbClient *gorm.DB) *StatusRepository {
 	}
 }
 
-func (s StatusRepository) GetLastFetchedTimestamp() string {
-	lastFetchedStatus, err := s.GetStatus("LAST_FETCHED_TIMESTAMP")
-	lastFetchedTimestamp := lastFetchedStatus.Value
-	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		fmt.Println(err)
-		lastFetchedTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
-		s.dbClient.Create(Status{Name: "Last fetched timestamp", Code: "LAST_FETCHED_TIMESTAMP", Value: lastFetchedTimestamp})
+func (s StatusRepository) GetLastFetchedTimestamp(accountID hedera.AccountID) string {
+	lastFetchedStatus := &Status{}
+	failure := s.dbClient.
+		Table("statuses").
+		Where("code = ? and account_id = ?", "LAST_FETCHED_TIMESTAMP", accountID.String()).
+		First(&lastFetchedStatus).Error
+
+	if failure != nil && errors.Is(failure, gorm.ErrRecordNotFound) {
+		log.Errorf("Could not get last fetched timestamp: [%s]\n", failure)
+		now := time.Now()
+		newLastFetchedTimestamp := strconv.FormatInt(now.Unix(), 10)
+		log.Infof("Proceeding monitoring from current moment [%s] - [%s].\n", now.String(), now.Unix())
+		s.dbClient.Create(Status{
+			Name:      "Last fetched timestamp",
+			AccountID: accountID.String(),
+			Code:      "LAST_FETCHED_TIMESTAMP",
+			Value:     newLastFetchedTimestamp,
+		})
+		return newLastFetchedTimestamp
 	}
-	return lastFetchedTimestamp
+	return lastFetchedStatus.Value
 }
 
-func (s StatusRepository) UpdateLastFetchedTimestamp(timestamp string) (bool, error) {
-	failure := s.dbClient.Where("code = ?", "LAST_FETCHED_TIMESTAMP").
-		Save(Status{Name: "Last fetched timestamp", Code: "LAST_FETCHED_TIMESTAMP", Value: timestamp})
-	if failure.Error != nil {
-		return false, failure.Error
-	}
-	return true, nil
-}
-
-func (s StatusRepository) GetStatus(code string) (*Status, error) {
-	status := &Status{}
-	failure := s.dbClient.Table("statuses").Where("code = ?", code).First(&status)
-	if failure.Error != nil {
-		return nil, failure.Error
-	}
-	return status, nil
+func (s StatusRepository) UpdateLastFetchedTimestamp(accountID hedera.AccountID, timestamp string) error {
+	return s.dbClient.
+		Where("code = ? and account_id = ?", "LAST_FETCHED_TIMESTAMP", accountID.String()).
+		Save(Status{
+			Name:      "Last fetched timestamp",
+			AccountID: accountID.String(),
+			Code:      "LAST_FETCHED_TIMESTAMP",
+			Value:     timestamp,
+		}).
+		Error
 }

@@ -24,11 +24,11 @@ func (ctw CryptoTransferWatcher) Watch(queue *queue.Queue) {
 }
 
 func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeMessage string, q *queue.Queue) {
-	milestoneTimestamp := ctw.statusRepository.GetLastFetchedTimestamp()
+	milestoneTimestamp := ctw.statusRepository.GetLastFetchedTimestamp(accountID)
 	for {
 		transactions, e := ctw.client.GetAccountTransactionsAfterDate(accountID, milestoneTimestamp)
 		if e != nil {
-			log.Errorf("Suddenly stopped monitoring config [%s]\n", accountID.String())
+			log.Errorf("Suddenly stopped monitoring account [%s]\n", accountID.String())
 			log.Errorln(e)
 			return
 		}
@@ -50,7 +50,13 @@ func (ctw CryptoTransferWatcher) beginWatching(accountID hedera.AccountID, typeM
 			}
 			milestoneTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
-		ctw.statusRepository.UpdateLastFetchedTimestamp(milestoneTimestamp)
+
+		failure := ctw.statusRepository.UpdateLastFetchedTimestamp(accountID, milestoneTimestamp)
+		if failure != nil {
+			log.Errorf("Suddenly stopped monitoring account [%s]\n", accountID.String())
+			log.Errorln(e)
+			return
+		}
 		time.Sleep(ctw.pollingInterval * time.Second)
 	}
 }

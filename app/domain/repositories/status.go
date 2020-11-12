@@ -1,10 +1,9 @@
 package repositories
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
+import "github.com/hashgraph/hedera-sdk-go"
 
 // AccountRepository Interface that all AccountRepository structs must implement
 type StatusRepository interface {
-	GetLastFetchedTimestamp() string
-	UpdateLastFetchedTimestamp(timestamp string) (bool, error)
-	GetStatus(code string) (*status.Status, error)
+	GetLastFetchedTimestamp(accountID hedera.AccountID) string
+	UpdateLastFetchedTimestamp(accountID hedera.AccountID, timestamp string) error
 }
