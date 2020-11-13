@@ -85,8 +85,8 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 			milestoneTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
 
-		failure := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID, milestoneTimestamp)
-		if failure != nil {
+		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID, milestoneTimestamp)
+		if err != nil {
 			log.Errorf("Error incoming: Suddenly stopped monitoring account [%s]\n", ctw.accountID.String())
 			log.Errorln(e)
 			return
