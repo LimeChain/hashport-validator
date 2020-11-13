@@ -17,7 +17,7 @@ func connectToDb(dbConfig config.Db) *gorm.DB {
 		&gorm.Config{},
 	)
 	if err != nil {
-		log.Errorln(err)
+		log.Fatal(err)
 	}
 	log.Infoln("Successfully connected to Database")
 

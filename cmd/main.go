@@ -26,12 +26,12 @@ func main() {
 
 	failure := addCryptoTransferWatchers(configuration, hederaClient, statusRepository, server)
 	if failure != nil {
-		log.Errorln(failure)
+		log.Fatal(failure)
 	}
 
 	failure = addConsensusTopicWatchers(configuration, hederaClient, server)
 	if failure != nil {
-		log.Errorln(failure)
+		log.Fatal(failure)
 	}
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
