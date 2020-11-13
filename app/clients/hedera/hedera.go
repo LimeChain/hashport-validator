@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 )
@@ -18,7 +19,7 @@ type HederaClient struct {
 func NewHederaClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaClient {
 	mirrorClient, e := hedera.NewMirrorClient(mirrorNodeClientAddress)
 	if e != nil {
-		panic(e)
+		log.Fatal(e)
 	}
 
 	return &HederaClient{
