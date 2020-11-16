@@ -53,11 +53,11 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	milestoneTimestamp := ctw.startTimestamp
 
 	if !ctw.started {
-		log.Warnln("Starting Timestamp was empty, proceeding to get [timestamp] from database.")
 		if milestoneTimestamp == "" {
+			log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.accountID.String())
 			milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
 			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Warnln("Database Timestamp was empty, proceeding with [timestamp] from current moment.")
+				log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.accountID.String())
 				milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
 				e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
 				if e != nil {
@@ -68,32 +68,9 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	} else {
 		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
 		if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warnln("Database Timestamp was empty. Restarting.")
+			log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.accountID.String())
 			ctw.started = false
-			ctw.beginWatching(q)
-		}
-	}
-
-	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
-
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Fatal(err)
-		}
-		log.Warnf("Could not get last fetched timestamp for account [%s]\n", ctw.accountID.String())
-		if ctw.startTimestamp != "" {
-			milestoneTimestamp = ctw.startTimestamp
-		} else {
-			now := time.Now()
-			milestoneTimestamp = strconv.FormatInt(now.Unix(), 10)
-			log.Warnf("Proceeding to monitor from current moment [%s]\n", now.String())
-		}
-		e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
-		if e != nil {
-			log.Errorf("Error incoming: Could not start monitoring account [%s]\n", ctw.accountID.String())
-			log.Errorln(err)
 			ctw.restart(q)
-			return
 		}
 	}
 

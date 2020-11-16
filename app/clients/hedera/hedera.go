@@ -76,7 +76,7 @@ func (c HederaClient) AccountExists(accountID hedera.AccountID) bool {
 }
 
 func (c HederaClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.ConsensusTopicID, timestamp string) (*hcstopicmessage.HCSMessages, error) {
-	mirrorNodeApiTopicAddress := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics")
+	mirrorNodeApiTopicAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
 	unprocessedMessagesQuery := fmt.Sprintf("%s/%s/messages?timestamp=gt:%s",
 		mirrorNodeApiTopicAddress,
 		topicID.String(),
