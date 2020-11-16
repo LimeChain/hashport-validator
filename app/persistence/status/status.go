@@ -1,37 +1,47 @@
 package status
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
+	"fmt"
 	"gorm.io/gorm"
-)
-
-var (
-	lastFetchedTimestampCode = "LAST_FETCHED_TIMESTAMP"
+	"log"
 )
 
 // This table will contain information for latest status of the application
 type Status struct {
-	Name      string
-	AccountID string
-	Code      string
-	Value     string
+	Name     string
+	EntityID string
+	Code     string
+	Value    string
 }
 
 type StatusRepository struct {
-	dbClient *gorm.DB
+	dbClient                 *gorm.DB
+	lastFetchedTimestampCode string //"LAST_FETCHED_TIMESTAMP"
 }
 
-func NewStatusRepository(dbClient *gorm.DB) *StatusRepository {
+func NewStatusRepository(dbClient *gorm.DB, statusType string) *StatusRepository {
+	typeCheck(statusType)
 	return &StatusRepository{
-		dbClient: dbClient,
+		dbClient:                 dbClient,
+		lastFetchedTimestampCode: fmt.Sprintf("LAST_%s_TIMESTAMP", statusType),
 	}
 }
 
-func (s StatusRepository) GetLastFetchedTimestamp(accountID hedera.AccountID) (string, error) {
+func typeCheck(statusType string) {
+	switch statusType {
+	case "HCS_TOPIC":
+	case "CRYPTO_TRANSFER":
+		return
+	default:
+		log.Fatal("Invalid status type.")
+	}
+}
+
+func (s StatusRepository) GetLastFetchedTimestamp(entityID string) (string, error) {
 	lastFetchedStatus := &Status{}
 	err := s.dbClient.
 		Model(&Status{}).
-		Where("code = ? and account_id = ?", lastFetchedTimestampCode, accountID.String()).
+		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
 		First(&lastFetchedStatus).Error
 	if err != nil {
 		return "", err
@@ -39,12 +49,12 @@ func (s StatusRepository) GetLastFetchedTimestamp(accountID hedera.AccountID) (s
 	return lastFetchedStatus.Value, nil
 }
 
-func (s StatusRepository) CreateTimestamp(accountID hedera.AccountID, timestamp string) error {
+func (s StatusRepository) CreateTimestamp(entityID string, timestamp string) error {
 	err := s.dbClient.Create(Status{
-		Name:      "Last fetched timestamp",
-		AccountID: accountID.String(),
-		Code:      lastFetchedTimestampCode,
-		Value:     timestamp,
+		Name:     "Last fetched timestamp",
+		EntityID: entityID,
+		Code:     s.lastFetchedTimestampCode,
+		Value:    timestamp,
 	}).Error
 	if err != nil {
 		return err
@@ -52,14 +62,14 @@ func (s StatusRepository) CreateTimestamp(accountID hedera.AccountID, timestamp 
 	return nil
 }
 
-func (s StatusRepository) UpdateLastFetchedTimestamp(accountID hedera.AccountID, timestamp string) error {
+func (s StatusRepository) UpdateLastFetchedTimestamp(entityID string, timestamp string) error {
 	return s.dbClient.
-		Where("code = ? and account_id = ?", lastFetchedTimestampCode, accountID.String()).
+		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
 		Save(Status{
-			Name:      "Last fetched timestamp",
-			AccountID: accountID.String(),
-			Code:      lastFetchedTimestampCode,
-			Value:     timestamp,
+			Name:     "Last fetched timestamp",
+			EntityID: entityID,
+			Code:     s.lastFetchedTimestampCode,
+			Value:    timestamp,
 		}).
 		Error
 }

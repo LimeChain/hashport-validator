@@ -1,6 +1,7 @@
 package cryptotransfer
 
 import (
+	"errors"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
@@ -8,6 +9,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"strconv"
 	"time"
 )
@@ -19,9 +21,11 @@ type CryptoTransferWatcher struct {
 	pollingInterval  time.Duration
 	statusRepository repositories.StatusRepository
 	maxRetries       int
+	startTimestamp   string
+	started          bool
 }
 
-func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
 		client:           client,
 		accountID:        accountID,
@@ -29,6 +33,8 @@ func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID heder
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
+		startTimestamp:   startTimestamp,
+		started:          false,
 	}
 }
 
@@ -43,13 +49,46 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	}
 	log.Infof("Starting Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
 
-	milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID)
+	var err error
+	milestoneTimestamp := ctw.startTimestamp
+
+	if !ctw.started {
+		log.Warnln("Starting Timestamp was empty, proceeding to get [timestamp] from database.")
+		if milestoneTimestamp == "" {
+			milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+				log.Warnln("Database Timestamp was empty, proceeding with [timestamp] from current moment.")
+				milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
+				e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
+				if e != nil {
+					log.Fatal(e)
+				}
+			}
+		}
+	} else {
+		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+		if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warnln("Database Timestamp was empty. Restarting.")
+			ctw.started = false
+			ctw.beginWatching(q)
+		}
+	}
+
+	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+
 	if err != nil {
-		log.Errorf("Could not get last fetched timestamp for account [%s]\n", ctw.accountID.String())
-		now := time.Now()
-		milestoneTimestamp = strconv.FormatInt(now.Unix(), 10)
-		log.Infof("Proceeding to monitor from current moment [%s]\n", now.String())
-		e := ctw.statusRepository.CreateTimestamp(ctw.accountID, milestoneTimestamp)
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Fatal(err)
+		}
+		log.Warnf("Could not get last fetched timestamp for account [%s]\n", ctw.accountID.String())
+		if ctw.startTimestamp != "" {
+			milestoneTimestamp = ctw.startTimestamp
+		} else {
+			now := time.Now()
+			milestoneTimestamp = strconv.FormatInt(now.Unix(), 10)
+			log.Warnf("Proceeding to monitor from current moment [%s]\n", now.String())
+		}
+		e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
 		if e != nil {
 			log.Errorf("Error incoming: Could not start monitoring account [%s]\n", ctw.accountID.String())
 			log.Errorln(err)
@@ -70,10 +109,15 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
+				m := make(map[string]int64)
 				log.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]\n",
 					tx.ConsensusTimestamp,
 					ctw.accountID.String(),
 					tx.TransactionHash)
+
+				for _, tr := range tx.Transfers {
+					m[tr.Account] += tr.Amount
+				}
 
 				information := cryptotransfermessage.CryptoTransferMessage{
 					TxMemo: tx.MemoBase64,
@@ -85,7 +129,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 			milestoneTimestamp = transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp
 		}
 
-		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID, milestoneTimestamp)
+		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
 		if err != nil {
 			log.Errorf("Error incoming: Suddenly stopped monitoring account [%s]\n", ctw.accountID.String())
 			log.Errorln(e)
@@ -98,7 +142,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
-		log.Printf("Crypto Transfer Watcher - Account [%s] - Trying to reconnect\n", ctw.accountID)
+		log.Infof("Crypto Transfer Watcher - Account [%s] - Trying to reconnect\n", ctw.accountID)
 		go ctw.Watch(q)
 		return
 	}

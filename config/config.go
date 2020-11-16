@@ -67,8 +67,9 @@ type ConsensusMessage struct {
 }
 
 type ID struct {
-	Id         string `yaml:"id"`
-	MaxRetries int    `yaml:"max_retries"`
+	Id             string `yaml:"id"`
+	MaxRetries     int    `yaml:"max_retries"`
+	StartTimestamp string `yaml:"start_timestamp"`
 }
 
 type Client struct {

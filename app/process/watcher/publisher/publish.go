@@ -13,6 +13,8 @@ func Publish(m interface{}, typeMessage string, id interface{}, q *queue.Queue) 
 		log.Fatalf("[%s] - Failed marshalling response - ID: [%s]\n", typeMessage, id)
 	}
 
+	log.Println(message)
+
 	q.Push(&types.Message{
 		Payload: message,
 		Type:    typeMessage,

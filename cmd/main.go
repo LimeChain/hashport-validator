@@ -21,16 +21,16 @@ func main() {
 	hederaClient := hederaClient.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
 	server := server.NewServer()
 
-	defer persistence.RunDb(configuration.Hedera.Validator.Db)
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
-	statusRepository := status.NewStatusRepository(db)
+	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
+	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
 
-	err := addCryptoTransferWatchers(configuration, hederaClient, statusRepository, server)
+	err := addCryptoTransferWatchers(configuration, hederaClient, statusCryptoTransferRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = addConsensusTopicWatchers(configuration, hederaClient, server)
+	err = addConsensusTopicWatchers(configuration, hederaClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 
 func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
-		log.Warningln("CryptoTransfer Accounts list is empty. No CryptoTransfer Watchers will be started")
+		log.Warningln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
 	}
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)
@@ -48,13 +48,13 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries))
+		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, server *server.HederaWatcherServer) error {
+func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
 		log.Warningln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
 	}
@@ -64,7 +64,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, topic.MaxRetries))
+		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil
