@@ -109,20 +109,25 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
-				m := make(map[string]int64)
 				log.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]\n",
 					tx.ConsensusTimestamp,
 					ctw.accountID.String(),
 					tx.TransactionHash)
 
+				var sender string
+				var amount int64
 				for _, tr := range tx.Transfers {
-					m[tr.Account] += tr.Amount
+					if tr.Amount < 0 {
+						sender = tr.Account
+					} else if tr.Account == ctw.accountID.String() {
+						amount = tr.Amount
+					}
 				}
 
 				information := cryptotransfermessage.CryptoTransferMessage{
 					TxMemo: tx.MemoBase64,
-					Sender: tx.Transfers[len(tx.Transfers)-2].Account,
-					Amount: tx.Transfers[len(tx.Transfers)-1].Amount,
+					Sender: sender,
+					Amount: amount,
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
