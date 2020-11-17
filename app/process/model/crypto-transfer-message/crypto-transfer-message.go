@@ -5,7 +5,7 @@ type (
 		EthAddress string
 		TxId       string
 		Amount     int64
-		TxFee      string
+		TxFee      uint64
 		Sender     string
 	}
 )

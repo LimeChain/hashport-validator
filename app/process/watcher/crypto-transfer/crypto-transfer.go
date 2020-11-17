@@ -11,6 +11,7 @@ import (
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -127,13 +128,24 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				// TODO: Should verify memo.
-				ethAddress := decodedMemo[:20]
-				fee := decodedMemo[20:]
+				ethAddress := string(decodedMemo[:20])
+				feeString := string(decodedMemo[20:])
+
+				re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+				if !re.MatchString(string(ethAddress)) {
+					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify Ethereum Address\n\t- [%s]", ctw.accountID.String(), ethAddress)
+					continue
+				}
+
+				fee, e := strconv.ParseInt(feeString, 10, 64)
+				if e != nil {
+					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
+				}
 
 				information := cryptotransfermessage.CryptoTransferMessage{
-					EthAddress: string(ethAddress),
+					EthAddress: ethAddress,
 					TxId:       tx.TransactionID,
-					TxFee:      string(fee),
+					TxFee:      uint64(fee),
 					Sender:     sender,
 					Amount:     amount,
 				}
