@@ -43,36 +43,53 @@ func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
 	go ctw.beginWatching(q)
 }
 
+func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) string {
+	milestoneTimestamp := ctw.startTimestamp
+	var err error
+
+	if !ctw.started {
+		if milestoneTimestamp != "" {
+			return milestoneTimestamp
+		}
+
+		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.accountID.String())
+		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+		if milestoneTimestamp != "" {
+			return milestoneTimestamp
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Fatal(err)
+		}
+
+		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.accountID.String())
+		milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
+		e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
+		if e != nil {
+			log.Fatal(e)
+		}
+		return milestoneTimestamp
+	}
+
+	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.accountID.String())
+		ctw.started = false
+		ctw.restart(q)
+	}
+
+	return milestoneTimestamp
+}
+
 func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
-		log.Errorf("Error incoming: Could not start monitoring account [%s]\n", ctw.accountID.String())
+		log.Errorf("Error incoming: Could not start monitoring account [%s] - Account not found.\n", ctw.accountID.String())
 		return
 	}
 	log.Infof("Starting Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
 
-	var err error
-	milestoneTimestamp := ctw.startTimestamp
-
-	if !ctw.started {
-		if milestoneTimestamp == "" {
-			log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.accountID.String())
-			milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
-			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.accountID.String())
-				milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
-				e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
-				if e != nil {
-					log.Fatal(e)
-				}
-			}
-		}
-	} else {
-		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
-		if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.accountID.String())
-			ctw.started = false
-			ctw.restart(q)
-		}
+	milestoneTimestamp := ctw.getTimestamp(q)
+	if milestoneTimestamp == "" {
+		return
 	}
 
 	log.Infof("Started Crypto Transfer Watcher for account [%s]\n", ctw.accountID)

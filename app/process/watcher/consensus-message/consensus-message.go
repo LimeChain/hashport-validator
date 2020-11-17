@@ -39,40 +39,49 @@ func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
 	go ctw.subscribeToTopic(q)
 }
 
-func (ctw ConsensusTopicWatcher) retrieveTimestamp() string {
-	if ctw.startTimestamp == "" {
-		now := time.Now()
-		milestoneTimestamp := strconv.FormatInt(now.Unix(), 10)
-		log.Infof("Proceeding to monitor from current moment [%s]\n", now.String())
+func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
+	milestoneTimestamp := ctw.startTimestamp
+	var err error
+
+	if !ctw.started {
+		if milestoneTimestamp != "" {
+			return milestoneTimestamp
+		}
+
+		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.topicID.String())
+		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
+		if milestoneTimestamp != "" {
+			return milestoneTimestamp
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Fatal(err)
+		}
+
+		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.topicID.String())
+		milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
+		e := ctw.statusRepository.CreateTimestamp(ctw.topicID.String(), milestoneTimestamp)
+		if e != nil {
+			log.Fatal(e)
+		}
 		return milestoneTimestamp
 	}
-	return ctw.startTimestamp
+
+	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.topicID.String())
+		ctw.started = false
+		ctw.restart(q)
+	}
+
+	return milestoneTimestamp
 }
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
+	log.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
 	var err error
-	milestoneTimestamp := ctw.startTimestamp
-
-	if !ctw.started {
-		if milestoneTimestamp == "" {
-			log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.", ctw.topicID.String())
-			milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
-			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.", ctw.topicID.String())
-				milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
-				e := ctw.statusRepository.CreateTimestamp(ctw.topicID.String(), milestoneTimestamp)
-				if e != nil {
-					log.Fatal(e)
-				}
-			}
-		}
-	} else {
-		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
-		if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warnf("[%s] Database Timestamp was empty. Restarting.", ctw.topicID.String())
-			ctw.started = false
-			ctw.restart(q)
-		}
+	milestoneTimestamp := ctw.getTimestamp(q)
+	if milestoneTimestamp == "" {
+		return
 	}
 
 	log.Infof("Started Consensus Message Watcher for topic [%s]\n", ctw.topicID)
