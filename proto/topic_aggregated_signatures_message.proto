@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+message TopicAggregatedSignaturesMessage {
+  string hash = 1;
+  string ethTxHash = 2;
+}
