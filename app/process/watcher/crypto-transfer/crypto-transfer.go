@@ -121,7 +121,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-				if e != nil {
+				if e != nil || len(decodedMemo) < 20 {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction memo - Error: [%s]\n", ctw.accountID.String(), e)
 				}
 
