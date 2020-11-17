@@ -40,6 +40,7 @@ func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
 }
 
 func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
+	topicAddress := ctw.topicID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
 
@@ -48,8 +49,8 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 			return milestoneTimestamp
 		}
 
-		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.topicID.String())
-		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
+		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", topicAddress)
+		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
 		if milestoneTimestamp != "" {
 			return milestoneTimestamp
 		}
@@ -57,18 +58,18 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 			log.Fatal(err)
 		}
 
-		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.topicID.String())
+		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", topicAddress)
 		milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
-		e := ctw.statusRepository.CreateTimestamp(ctw.topicID.String(), milestoneTimestamp)
+		e := ctw.statusRepository.CreateTimestamp(topicAddress, milestoneTimestamp)
 		if e != nil {
 			log.Fatal(e)
 		}
 		return milestoneTimestamp
 	}
 
-	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.topicID.String())
+	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.topicID.String())
+		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", topicAddress)
 		ctw.started = false
 		ctw.restart(q)
 	}
@@ -78,10 +79,9 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	log.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
-	var err error
 	milestoneTimestamp := ctw.getTimestamp(q)
 	if milestoneTimestamp == "" {
-		return
+		log.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.\n", ctw.topicID)
 	}
 
 	log.Infof("Started Consensus Message Watcher for topic [%s]\n", ctw.topicID)

@@ -44,6 +44,7 @@ func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
 }
 
 func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) string {
+	accountAddress := ctw.accountID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
 
@@ -52,8 +53,8 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) string {
 			return milestoneTimestamp
 		}
 
-		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", ctw.accountID.String())
-		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", accountAddress)
+		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 		if milestoneTimestamp != "" {
 			return milestoneTimestamp
 		}
@@ -61,18 +62,18 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) string {
 			log.Fatal(err)
 		}
 
-		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", ctw.accountID.String())
+		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", accountAddress)
 		milestoneTimestamp = strconv.FormatInt(time.Now().Unix(), 10)
-		e := ctw.statusRepository.CreateTimestamp(ctw.accountID.String(), milestoneTimestamp)
+		e := ctw.statusRepository.CreateTimestamp(accountAddress, milestoneTimestamp)
 		if e != nil {
 			log.Fatal(e)
 		}
 		return milestoneTimestamp
 	}
 
-	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", ctw.accountID.String())
+		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", accountAddress)
 		ctw.started = false
 		ctw.restart(q)
 	}
@@ -89,7 +90,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 	milestoneTimestamp := ctw.getTimestamp(q)
 	if milestoneTimestamp == "" {
-		return
+		log.Fatalf("Could not start Crypto Transfer Watcher for account [%s] - Could not generate a milestone timestamp.\n", ctw.accountID)
 	}
 
 	log.Infof("Started Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
