@@ -1,6 +1,7 @@
 package cryptotransfer
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
@@ -100,6 +101,14 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 						amount = tr.Amount
 					}
 				}
+
+				decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
+				if e != nil {
+					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction memo - Error: [%s]\n", ctw.accountID.String(), e)
+				}
+
+				// TODO: Should verify memo.
+				log.Printf("%s", decodedMemo)
 
 				information := cryptotransfermessage.CryptoTransferMessage{
 					TxMemo: tx.MemoBase64,
