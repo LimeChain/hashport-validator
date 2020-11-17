@@ -122,14 +122,14 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-				if e != nil || len(decodedMemo) < 20 {
+				if e != nil || len(decodedMemo) < 42 {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction memo - Error: [%s]\n", ctw.accountID.String(), e)
 					continue
 				}
 
 				// TODO: Should verify memo.
-				ethAddress := string(decodedMemo[:20])
-				feeString := string(decodedMemo[20:])
+				ethAddress := decodedMemo[:42]
+				feeString := decodedMemo[42:]
 
 				re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 				if !re.MatchString(string(ethAddress)) {
@@ -137,14 +137,14 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 					continue
 				}
 
-				fee, e := strconv.ParseInt(feeString, 10, 64)
+				fee, e := strconv.ParseInt(string(feeString), 10, 64)
 				if e != nil {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
 					continue
 				}
 
 				information := cryptotransfermessage.CryptoTransferMessage{
-					EthAddress: ethAddress,
+					EthAddress: string(ethAddress),
 					TxId:       tx.TransactionID,
 					TxFee:      uint64(fee),
 					Sender:     sender,
