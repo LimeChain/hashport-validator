@@ -140,6 +140,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				fee, e := strconv.ParseInt(feeString, 10, 64)
 				if e != nil {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
+					continue
 				}
 
 				information := cryptotransfermessage.CryptoTransferMessage{
