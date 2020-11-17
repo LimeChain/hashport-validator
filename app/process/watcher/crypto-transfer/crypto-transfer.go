@@ -126,12 +126,15 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				// TODO: Should verify memo.
-				log.Printf("%s", decodedMemo)
+				ethAddress := decodedMemo[:20]
+				fee := decodedMemo[20:]
 
 				information := cryptotransfermessage.CryptoTransferMessage{
-					TxMemo: tx.MemoBase64,
-					Sender: sender,
-					Amount: amount,
+					EthAddress: string(ethAddress),
+					TxId:       tx.TransactionID,
+					TxFee:      string(fee),
+					Sender:     sender,
+					Amount:     amount,
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
