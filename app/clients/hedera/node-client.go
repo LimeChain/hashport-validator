@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type HederaNodeClient struct {

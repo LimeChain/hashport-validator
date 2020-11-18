@@ -2,9 +2,9 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"

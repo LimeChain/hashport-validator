@@ -51,7 +51,7 @@ func main() {
 
 func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
-		log.Warningln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
+		log.Warnln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
 	}
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)
@@ -67,7 +67,7 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 
 func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
-		log.Warningln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
+		log.Warnln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
 	}
 	for _, topic := range configuration.Hedera.Watcher.ConsensusMessage.Topics {
 		id, e := hedera.TopicIDFromString(topic.Id)

@@ -7,5 +7,5 @@ type TransactionRepository interface {
 	Create(ct *proto.CryptoTransferMessage) error
 	UpdateStatusCancelled(txId string) error
 	UpdateStatusCompleted(txId string) error
-	UpdateStatusSubmitted(txId string, submissionTxId string) error
+	UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error
 }

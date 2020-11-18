@@ -12,11 +12,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 // Crypto Transfer event handler
-
 type CryptoTransferHandler struct {
 	topicID         hedera.ConsensusTopicID
 	ethSigner       *eth.Signer
@@ -66,18 +65,23 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 		return err
 	}
 
-	topicMsgSubmissionTxId, err := cth.handleTopicSubmission(hash, signature)
+	encodedSignature := hex.EncodeToString(signature)
+
+	topicMsgSubmissionTxId, err := cth.handleTopicSubmission(&ctm, encodedSignature)
 	if err != nil {
 		return err
 	}
 
-	return cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMsgSubmissionTxId)
+	return cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMsgSubmissionTxId, encodedSignature)
 }
 
-func (cth *CryptoTransferHandler) handleTopicSubmission(hash []byte, signature []byte) (string, error) {
+func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (string, error) {
 	topicSigMessage := &protomsg.TopicSignatureMessage{
-		Hash:      hex.EncodeToString(hash),
-		Signature: hex.EncodeToString(signature),
+		TransactionId: message.TransactionId,
+		EthAddress:    message.EthAddress,
+		Amount:        message.Amount,
+		Fee:           message.Fee,
+		Signature:     signature,
 	}
 
 	topicSigMessageBytes, err := proto.Marshal(topicSigMessage)

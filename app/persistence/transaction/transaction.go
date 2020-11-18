@@ -19,6 +19,7 @@ type Transaction struct {
 	EthAddress     string
 	Amount         uint64
 	Fee            string
+	Signature      string
 	SubmissionTxId string
 	Status         string
 }
@@ -57,11 +58,11 @@ func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
 
-func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string) error {
+func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId}).
+		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
 		Error
 }
 

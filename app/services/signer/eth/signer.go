@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type Signer struct {
