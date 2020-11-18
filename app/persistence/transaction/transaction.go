@@ -18,7 +18,7 @@ type Transaction struct {
 	TransactionId  string `gorm:"unique"`
 	EthAddress     string
 	Amount         uint64
-	Fee            uint64
+	Fee            string
 	SubmissionTxId string
 	Status         string
 }
