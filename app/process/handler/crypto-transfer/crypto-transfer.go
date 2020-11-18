@@ -23,64 +23,68 @@ type CryptoTransferHandler struct {
 	transactionRepo repositories.TransactionRepository
 }
 
-func (cth *CryptoTransferHandler) Handle(payload []byte) error {
+func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
-		return err
+		log.Error(fmt.Sprintf("Failed to parse incoming payload. Error [%s].", err))
+		return
 	}
 
 	exists, err := cth.transactionRepo.Exists(ctm.TransactionId)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error while trying to get transaction [%s] from database.", ctm.TransactionId))
-		return err
+		log.Error(fmt.Sprintf("Failed to check existence of record with TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+		return
 	}
 
 	if exists {
 		log.Info(fmt.Sprintf("Transaction with TransactionID [%s] has already been added. Skipping further execution.", ctm.TransactionId))
-		return nil
+		return
 	}
 
 	log.Info(fmt.Sprintf("Creating a transaction record for TransactionID [%s].", ctm.TransactionId))
 	err = cth.transactionRepo.Create(&ctm)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err.Error()))
-		return err
+		log.Error(fmt.Sprintf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+		return
 	}
 
 	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to validate fee for TransactionID [%s].", ctm.TransactionId))
-		return err
+		log.Error(fmt.Sprintf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+		return
 	}
 
 	if !validFee {
 		log.Info(fmt.Sprintf("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee))
 		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
 		if err != nil {
-			log.Error(fmt.Sprintf("Failed to cancel transaction with TransactionID [%s].", ctm.TransactionId))
-			return err
+			log.Error(fmt.Sprintf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+			return
 		}
 
-		return nil
+		return
 	}
 
 	hash := crypto.Keccak256([]byte(ctm.String()))
 	signature, err := cth.ethSigner.Sign(hash)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to sign transaction data for TransactionID [%s], Hash [%s]", ctm.TransactionId, hash))
-		return err
+		log.Error(fmt.Sprintf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err))
+		return
 	}
 
 	encodedSignature := hex.EncodeToString(signature)
 
 	topicMsgSubmissionTxId, err := cth.handleTopicSubmission(&ctm, encodedSignature)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s]", ctm.TransactionId, err.Error()))
-		return err
+		log.Error(fmt.Sprintf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+		return
 	}
 
-	return cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMsgSubmissionTxId, encodedSignature)
+	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMsgSubmissionTxId, encodedSignature)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+	}
 }
 
 func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (string, error) {
