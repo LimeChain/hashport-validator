@@ -32,21 +32,25 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 
 	exists, err := cth.transactionRepo.Exists(ctm.TransactionId)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error while trying to get transaction [%s] from database", ctm.TransactionId))
+		log.Error(fmt.Sprintf("Error while trying to get transaction [%s] from database.", ctm.TransactionId))
 		return err
 	}
 
 	if exists {
+		log.Info(fmt.Sprintf("Transaction with TransactionID [%s] has already been added. Skipping further execution.", ctm.TransactionId))
 		return nil
 	}
 
+	log.Info(fmt.Sprintf("Creating a transaction record for TransactionID [%s].", ctm.TransactionId))
 	err = cth.transactionRepo.Create(&ctm)
 	if err != nil {
+		log.Error(fmt.Sprintf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err.Error()))
 		return err
 	}
 
 	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
 	if err != nil {
+		log.Error(fmt.Sprintf("Failed to validate fee for TransactionID [%s].", ctm.TransactionId))
 		return err
 	}
 
@@ -54,6 +58,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 		log.Info(fmt.Sprintf("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee))
 		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
 		if err != nil {
+			log.Error(fmt.Sprintf("Failed to cancel transaction with TransactionID [%s].", ctm.TransactionId))
 			return err
 		}
 
@@ -63,6 +68,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 	hash := crypto.Keccak256([]byte(ctm.String()))
 	signature, err := cth.ethSigner.Sign(hash)
 	if err != nil {
+		log.Error(fmt.Sprintf("Failed to sign transaction data for TransactionID [%s], Hash [%s]", ctm.TransactionId, hash))
 		return err
 	}
 
@@ -70,6 +76,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 
 	topicMsgSubmissionTxId, err := cth.handleTopicSubmission(&ctm, encodedSignature)
 	if err != nil {
+		log.Error(fmt.Sprintf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s]", ctm.TransactionId, err.Error()))
 		return err
 	}
 
