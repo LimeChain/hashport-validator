@@ -29,7 +29,7 @@ func main() {
 	server := server.NewServer()
 
 	server.AddHandler("HCS_CRYPTO_TRANSFER",
-		cth.NewCryptoTransferHandler(configuration.Hedera.Handlers.CryptoTransferHandler, ethSigner, hederaNodeClient, transactionRepository))
+		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaNodeClient, transactionRepository))
 
 	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
 
