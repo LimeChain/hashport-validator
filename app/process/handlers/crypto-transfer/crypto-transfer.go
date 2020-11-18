@@ -20,7 +20,7 @@ import (
 type CryptoTransferHandler struct {
 	topicID         hedera.ConsensusTopicID
 	ethSigner       *eth.Signer
-	hederaClient    *hederaClient.HederaClient
+	hederaClient    *hederaClient.HederaNodeClient
 	transactionRepo repositories.TransactionRepository
 }
 
@@ -91,7 +91,7 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(hash []byte, signature [
 func NewCryptoTransferHandler(
 	config config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
-	hederaClient *hederaClient.HederaClient,
+	hederaClient *hederaClient.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(config.TopicId)
 	if err != nil {

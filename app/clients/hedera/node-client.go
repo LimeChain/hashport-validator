@@ -8,11 +8,11 @@ import (
 	"log"
 )
 
-type HederaClient struct {
+type HederaNodeClient struct {
 	client *hedera.Client
 }
 
-func (hc *HederaClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopicID, message []byte) (string, error) {
+func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopicID, message []byte) (string, error) {
 	id, err := hedera.NewConsensusMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
@@ -35,7 +35,7 @@ func (hc *HederaClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopi
 	return id.String(), err
 }
 
-func NewClient(config config.Client) *HederaClient {
+func NewClient(config config.Client) *HederaNodeClient {
 	var client *hedera.Client
 	switch config.NetworkType {
 	case "mainnet":
@@ -60,5 +60,5 @@ func NewClient(config config.Client) *HederaClient {
 
 	client.SetOperator(accID, privateKey)
 
-	return &HederaClient{client}
+	return &HederaNodeClient{client}
 }
