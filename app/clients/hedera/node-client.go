@@ -28,7 +28,6 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.Consensus
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		// TODO: what happens if the tx fails to be submitted?
 		return "", errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.String(), receipt.Status))
 	}
 

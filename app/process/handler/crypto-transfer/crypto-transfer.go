@@ -24,7 +24,6 @@ type CryptoTransferHandler struct {
 }
 
 func (cth *CryptoTransferHandler) Handle(payload []byte) error {
-	// TODO: logs instead of todos
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
