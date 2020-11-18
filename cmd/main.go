@@ -8,7 +8,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handlers/crypto-transfer"
+	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
