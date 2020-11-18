@@ -51,15 +51,15 @@ type Hedera struct {
 	MirrorNode MirrorNode `yaml:"mirror_node"`
 	Client     Client     `yaml:"client"`
 	Watcher    Watcher    `yaml:"watcher"`
-	Handler    Handlers   `yaml:"handler"`
+	Handler    Handler    `yaml:"handler"`
 }
 
-type Handlers struct {
+type Handler struct {
 	CryptoTransfer CryptoTransferHandler `yaml:"crypto-transfer"`
 }
 
 type CryptoTransferHandler struct {
-	TopicId string
+	TopicId string `yaml:"topic_id"`
 }
 
 type Watcher struct {

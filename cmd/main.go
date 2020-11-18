@@ -22,8 +22,8 @@ func main() {
 	initLogger()
 	configuration := config.LoadConfig()
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
-	hederaNodeClient := hederaClients.NewClient(configuration.Hedera.Client)
-	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.PrivateKey)
+	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
+	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
 	server := server.NewServer()

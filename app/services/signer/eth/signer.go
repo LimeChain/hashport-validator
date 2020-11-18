@@ -14,7 +14,7 @@ type Signer struct {
 func NewEthSigner(privateKey string) *Signer {
 	pk, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Invalid Private Key provided: [%s]", privateKey))
+		log.Fatal(fmt.Sprintf("Invalid Ethereum Private Key provided: [%s]", privateKey))
 	}
 	return &Signer{privateKey: pk}
 }

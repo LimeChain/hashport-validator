@@ -33,6 +33,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 
 	exists, err := cth.transactionRepo.Exists(ctm.TransactionId)
 	if err != nil {
+		log.Error(fmt.Sprintf("Error while trying to get transaction [%s] from database", ctm.TransactionId))
 		return err
 	}
 
@@ -51,6 +52,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) error {
 	}
 
 	if !validFee {
+		log.Info(fmt.Sprintf("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee))
 		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
 		if err != nil {
 			return err
@@ -89,6 +91,7 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 		return "", err
 	}
 
+	log.Info(fmt.Sprintf("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId))
 	return cth.hederaClient.SubmitTopicConsensusMessage(cth.topicID, topicSigMessageBytes)
 }
 

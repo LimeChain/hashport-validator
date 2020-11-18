@@ -27,7 +27,7 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.Consensus
 		return "", err
 	}
 
-	if receipt.Status != hedera.StatusOk {
+	if receipt.Status != hedera.StatusSuccess {
 		// TODO: what happens if the tx fails to be submitted?
 		return "", errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.String(), receipt.Status))
 	}
@@ -35,7 +35,7 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.Consensus
 	return id.String(), err
 }
 
-func NewClient(config config.Client) *HederaNodeClient {
+func NewNodeClient(config config.Client) *HederaNodeClient {
 	var client *hedera.Client
 	switch config.NetworkType {
 	case "mainnet":

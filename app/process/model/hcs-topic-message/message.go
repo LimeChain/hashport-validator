@@ -5,7 +5,7 @@ type HCSMessage struct {
 	TopicId            string `json:"topic_id"`
 	Message            string `json:"message"`
 	RunningHash        string `json:"running_hash"`
-	SequenceNumber     string `json:"sequence_number"`
+	SequenceNumber     int64  `json:"sequence_number"`
 }
 
 type HCSMessages struct {

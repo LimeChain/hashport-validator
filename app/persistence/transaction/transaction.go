@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"gorm.io/gorm"
 )
@@ -34,6 +35,9 @@ func (tr *TransactionRepository) Exists(transactionId string) (bool, error) {
 		Where("transaction_id = ?", transactionId).
 		First(&Transaction{}).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
