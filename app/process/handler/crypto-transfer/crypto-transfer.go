@@ -1,4 +1,4 @@
-package crypto_transfer
+package cryptotransfer
 
 import (
 	"encoding/hex"
