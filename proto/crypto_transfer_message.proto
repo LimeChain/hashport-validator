@@ -8,5 +8,5 @@ message CryptoTransferMessage {
   string transactionId = 1;
   string ethAddress = 2;
   uint64 amount = 3;
-  uint64 fee = 4;
+  string fee = 4;
 }

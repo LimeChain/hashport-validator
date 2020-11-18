@@ -5,8 +5,9 @@ go 1.13
 require (
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/caarlos0/env/v6 v6.4.0
-	github.com/ethereum/go-ethereum v1.9.24 // indirect
+	github.com/ethereum/go-ethereum v1.9.24
 	github.com/golang/protobuf v1.4.2
+	github.com/hashgraph/hedera-sdk-go v0.9.2
 	github.com/jackc/pgx/v4 v4.9.2 // indirect
 	github.com/limechain/hedera-watcher-sdk v0.0.0-20201111080202-64f64e3604d1 // indirect
 	golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9 // indirect

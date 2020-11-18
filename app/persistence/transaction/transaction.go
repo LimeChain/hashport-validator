@@ -22,6 +22,7 @@ type Transaction struct {
 	SubmissionTxId string
 	Status         string
 }
+
 type TransactionRepository struct {
 	dbClient *gorm.DB
 }
