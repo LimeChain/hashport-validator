@@ -6,8 +6,8 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	cryptotransfermessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/crypto-transfer-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ import (
 )
 
 type CryptoTransferWatcher struct {
-	client           *hederaClient.HederaClient
+	client           *hederaClient.HederaMirrorClient
 	accountID        hedera.AccountID
 	typeMessage      string
 	pollingInterval  time.Duration
@@ -27,7 +27,7 @@ type CryptoTransferWatcher struct {
 	started          bool
 }
 
-func NewCryptoTransferWatcher(client *hederaClient.HederaClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(client *hederaClient.HederaMirrorClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
 		client:           client,
 		accountID:        accountID,
@@ -111,12 +111,9 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 					ctw.accountID.String(),
 					tx.TransactionHash)
 
-				var sender string
 				var amount int64
 				for _, tr := range tx.Transfers {
-					if tr.Amount < 0 {
-						sender = tr.Account
-					} else if tr.Account == ctw.accountID.String() {
+					if tr.Account == ctw.accountID.String() {
 						amount = tr.Amount
 					}
 				}
@@ -137,18 +134,17 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 					continue
 				}
 
-				fee, e := strconv.ParseInt(string(feeString), 10, 64)
+				_, e = strconv.ParseInt(string(feeString), 10, 64)
 				if e != nil {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
 					continue
 				}
 
-				information := cryptotransfermessage.CryptoTransferMessage{
-					EthAddress: string(ethAddress),
-					TxId:       tx.TransactionID,
-					TxFee:      uint64(fee),
-					Sender:     sender,
-					Amount:     amount,
+				information := &protomsg.CryptoTransferMessage{
+					EthAddress:    string(ethAddress),
+					TransactionId: tx.TransactionID,
+					Fee:           string(feeString),
+					Amount:        uint64(amount),
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}

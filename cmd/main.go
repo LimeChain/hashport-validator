@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
 	log "github.com/sirupsen/logrus"
@@ -18,19 +21,27 @@ import (
 func main() {
 	initLogger()
 	configuration := config.LoadConfig()
-	hederaClient := hederaClient.NewHederaClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+	db := persistence.RunDb(configuration.Hedera.Validator.Db)
+	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
+	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
+
+	transactionRepository := transaction.NewTransactionRepository(db)
 	server := server.NewServer()
 
-	db := persistence.RunDb(configuration.Hedera.Validator.Db)
+	server.AddHandler("HCS_CRYPTO_TRANSFER",
+		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaNodeClient, transactionRepository))
+
+	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
 
-	err := addCryptoTransferWatchers(configuration, hederaClient, statusCryptoTransferRepository, server)
+	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = addConsensusTopicWatchers(configuration, hederaClient, statusConsensusMessageRepository, server)
+	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,9 +49,9 @@ func main() {
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
+func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
-		log.Warningln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
+		log.Warnln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
 	}
 	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
 		id, e := hedera.AccountIDFromString(account.Id)
@@ -54,9 +65,9 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClient.HederaClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
+func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
-		log.Warningln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
+		log.Warnln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
 	}
 	for _, topic := range configuration.Hedera.Watcher.ConsensusMessage.Topics {
 		id, e := hedera.TopicIDFromString(topic.Id)

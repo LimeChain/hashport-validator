@@ -11,30 +11,30 @@ import (
 	"net/http"
 )
 
-type HederaClient struct {
+type HederaMirrorClient struct {
 	mirrorAPIAddress string
 	mirrorClient     *hedera.MirrorClient
 	httpClient       *http.Client
 }
 
-func NewHederaClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaClient {
+func NewHederaMirrorClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaMirrorClient {
 	mirrorClient, e := hedera.NewMirrorClient(mirrorNodeClientAddress)
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	return &HederaClient{
+	return &HederaMirrorClient{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
 		mirrorClient:     &mirrorClient,
 		httpClient:       &http.Client{},
 	}
 }
 
-func (c HederaClient) GetMirrorClient() *hedera.MirrorClient {
+func (c HederaMirrorClient) GetMirrorClient() *hedera.MirrorClient {
 	return c.mirrorClient
 }
 
-func (c HederaClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
+func (c HederaMirrorClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "transactions")
 	transactionsDownloadQuery := fmt.Sprintf("%s?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		mirrorNodeApiTransactionAddress,
@@ -58,7 +58,7 @@ func (c HederaClient) GetAccountTransactionsAfterDate(accountId hedera.AccountID
 	return transactions, nil
 }
 
-func (c HederaClient) AccountExists(accountID hedera.AccountID) bool {
+func (c HederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 	accountQuery := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,
@@ -75,7 +75,7 @@ func (c HederaClient) AccountExists(accountID hedera.AccountID) bool {
 	return true
 }
 
-func (c HederaClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.ConsensusTopicID, timestamp string) (*hcstopicmessage.HCSMessages, error) {
+func (c HederaMirrorClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.ConsensusTopicID, timestamp string) (*hcstopicmessage.HCSMessages, error) {
 	mirrorNodeApiTopicAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
 	unprocessedMessagesQuery := fmt.Sprintf("%s/%s/messages?timestamp=gt:%s",
 		mirrorNodeApiTopicAddress,
