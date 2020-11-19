@@ -105,13 +105,14 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 	timestamp := strconv.Itoa(int(topicMessageSubmissionTx.ValidStart.Unix()))
 
 	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].", transactionId, topicMessageSubmissionTxId)
+
 	for {
 		txs, err := cth.hederaMirrorClient.GetAccountTransactionsAfterDate(topicMessageSubmissionTx.AccountID, timestamp)
 		if err != nil {
 			log.Error("Error while trying to get account transactions after data: [%s].", err.Error())
+			return
 		}
 
-		success := false
 		if len(txs.Transactions) > 0 {
 			for _, tx := range txs.Transactions {
 				if tx.TransactionID == topicMessageSubmissionTxId {
@@ -120,8 +121,6 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 						err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
 						if err != nil {
 							log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
-						} else {
-							success = true
 						}
 					} else {
 						log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId, tx.Result)
@@ -130,12 +129,9 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 							log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
 						}
 					}
-					break
+					return
 				}
 			}
-		}
-		if success {
-			break
 		}
 
 		time.Sleep(cth.pollingInterval * time.Second)
