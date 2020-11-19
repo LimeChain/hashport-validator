@@ -124,7 +124,11 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 							success = true
 						}
 					} else {
-						log.Infof("Result for Transaction ID [%s] and Submission Message TxID [%s] is [%s]", transactionId, topicMessageSubmissionTxId, tx.Result)
+						log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId, tx.Result)
+						err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
+						if err != nil {
+							log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
+						}
 					}
 					break
 				}
