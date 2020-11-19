@@ -31,7 +31,7 @@ type TopicSignatureMessage struct {
 	unknownFields protoimpl.UnknownFields
 
 	Hash      string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	Signature string `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+	Signature string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (x *TopicSignatureMessage) Reset() {

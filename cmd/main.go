@@ -6,7 +6,9 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
+	consensusmessage2 "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -24,6 +26,7 @@ func main() {
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
+	messageRepository := message.NewMessageRepository(db)
 
 	err := addCryptoTransferWatchers(configuration, hederaClient, statusCryptoTransferRepository, server)
 	if err != nil {
@@ -34,6 +37,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	server.AddHandler("HCS_TOPIC_MSG", consensusmessage2.NewConsensusMessageHandler(*messageRepository))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }

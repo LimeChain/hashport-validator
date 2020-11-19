@@ -91,7 +91,10 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	}
 	ctw.started = true
 	for _, u := range unprocessedMessages.Messages {
-		publisher.Publish(u, ctw.typeMessage, ctw.topicID, q)
+		// decode base64
+		// unmarshall to proto
+		// publish
+		publisher.Publish(u.Message, ctw.typeMessage, ctw.topicID, q)
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
 		if err != nil {
 			log.Fatal(err)
@@ -104,7 +107,9 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-				publisher.Publish(response, ctw.typeMessage, ctw.topicID, q)
+				// unmarshall to proto
+				// publish
+				publisher.Publish(response.Message, ctw.typeMessage, ctw.topicID, q)
 				err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
 				if err != nil {
 					log.Fatal(err)
