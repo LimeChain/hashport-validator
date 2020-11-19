@@ -1,7 +1,9 @@
 package consensusmessage
 
 import (
+	b64 "encoding/base64"
 	"errors"
+	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
@@ -92,13 +94,19 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	}
 	ctw.started = true
 	for _, u := range unprocessedMessages.Messages {
-		// decode base64
-		// unmarshall to proto
-		// publish
-		// validate and check body
+		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		msg := &validatorproto.TopicSignatureMessage{}
+		err = proto.Unmarshal(decodedMessage, msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
+		err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,12 +118,15 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-				// unmarshall to proto
-				// publish
-				// validate and check body
+
 				msg := &validatorproto.TopicSignatureMessage{}
+				err := proto.Unmarshal(response.Message, msg)
+				if err != nil {
+					log.Fatal(err)
+				}
+
 				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-				err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
+				err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
 				if err != nil {
 					log.Fatal(err)
 				}
