@@ -6,6 +6,7 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -95,7 +96,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		// unmarshall to proto
 		// publish
 		// validate and check body
-		msg := &protomsg.TopicSignatureMessage{}
+		msg := &validatorproto.TopicSignatureMessage{}
 		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
 		if err != nil {
@@ -112,7 +113,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 				// unmarshall to proto
 				// publish
 				// validate and check body
-				msg := &protomsg.TopicSignatureMessage{}
+				msg := &validatorproto.TopicSignatureMessage{}
 				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 				err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
 				if err != nil {

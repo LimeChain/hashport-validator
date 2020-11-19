@@ -1,7 +1,6 @@
 package message
 
 import (
-	hcstopicmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/hcs-topic-message"
 	"gorm.io/gorm"
 )
 
@@ -11,6 +10,7 @@ type TransactionMessage struct {
 	Amount        uint64
 	Fee           string
 	Signature     string
+	Hash          string
 }
 
 type MessageRepository struct {
@@ -23,21 +23,15 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 	}
 }
 
-func (m MessageRepository) Get(TxId string) ([]TransactionMessage, error) {
+func (m MessageRepository) Get(txId, signature string) ([]TransactionMessage, error) {
 	var signatures []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ?", TxId).Find(&signatures).Error
+	err := m.dbClient.Where("transaction_id = ? and signature = ?", txId, signature).Find(&signatures).Error
 	if err != nil {
 		return nil, err
 	}
 	return signatures, nil
 }
 
-func (m MessageRepository) Add(message *hcstopicmessage.ConsensusMessage) error {
-	return m.dbClient.Create(&TransactionMessage{
-		TransactionId: message.TransactionID,
-		Signature:     message.Signature,
-		EthAddress:    message.EthAddress,
-		Fee:           message.Fee,
-		Amount:        message.Amount,
-	}).Error
+func (m MessageRepository) Add(message *TransactionMessage) error {
+	return m.dbClient.Create(message).Error
 }

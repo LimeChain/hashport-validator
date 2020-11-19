@@ -26,3 +26,5 @@ hedera:
   handler:
     crypto-transfer:
       topic_id:
+    consensus-message:
+      keys:

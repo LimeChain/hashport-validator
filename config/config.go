@@ -55,7 +55,12 @@ type Hedera struct {
 }
 
 type Handler struct {
-	CryptoTransfer CryptoTransferHandler `yaml:"crypto-transfer"`
+	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
+	ConsensusMessage ConsensusMessageHandler `yaml:"crypto-transfer"`
+}
+
+type ConsensusMessageHandler struct {
+	Keys []string `yaml:"topic_id"`
 }
 
 type CryptoTransferHandler struct {
