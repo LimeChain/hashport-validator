@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"gorm.io/gorm"
 )
@@ -18,10 +19,12 @@ type Transaction struct {
 	TransactionId  string `gorm:"unique"`
 	EthAddress     string
 	Amount         uint64
-	Fee            uint64
+	Fee            string
+	Signature      string
 	SubmissionTxId string
 	Status         string
 }
+
 type TransactionRepository struct {
 	dbClient *gorm.DB
 }
@@ -32,6 +35,9 @@ func (tr *TransactionRepository) Exists(transactionId string) (bool, error) {
 		Where("transaction_id = ?", transactionId).
 		First(&Transaction{}).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
@@ -56,11 +62,11 @@ func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
 
-func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string) error {
+func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId}).
+		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
 		Error
 }
 

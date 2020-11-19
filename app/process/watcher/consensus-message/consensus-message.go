@@ -14,7 +14,7 @@ import (
 )
 
 type ConsensusTopicWatcher struct {
-	client           *hederaClient.HederaClient
+	client           *hederaClient.HederaMirrorClient
 	topicID          hedera.ConsensusTopicID
 	typeMessage      string
 	maxRetries       int
@@ -23,7 +23,7 @@ type ConsensusTopicWatcher struct {
 	started          bool
 }
 
-func NewConsensusTopicWatcher(client *hederaClient.HederaClient, topicID hedera.ConsensusTopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(client *hederaClient.HederaMirrorClient, topicID hedera.ConsensusTopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
 		client:           client,
 		topicID:          topicID,
@@ -94,7 +94,9 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		// decode base64
 		// unmarshall to proto
 		// publish
-		publisher.Publish(u.Message, ctw.typeMessage, ctw.topicID, q)
+		// validate and check body
+		msg := &protomsg.TopicSignatureMessage{}
+		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
 		if err != nil {
 			log.Fatal(err)
@@ -109,7 +111,9 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
 				// unmarshall to proto
 				// publish
-				publisher.Publish(response.Message, ctw.typeMessage, ctw.topicID, q)
+				// validate and check body
+				msg := &protomsg.TopicSignatureMessage{}
+				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 				err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
 				if err != nil {
 					log.Fatal(err)

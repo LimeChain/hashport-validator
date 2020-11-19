@@ -2,8 +2,8 @@ package status
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 // This table will contain information for latest status of the application

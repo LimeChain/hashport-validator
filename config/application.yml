@@ -17,8 +17,12 @@ hedera:
     operator:
       account_id:
       private_key:
+      eth_private_key:
   watcher:
     crypto-transfer:
       accounts:
     consensus-message:
       topics:
+  handler:
+    crypto-transfer:
+      topic_id:
