@@ -2,9 +2,9 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -51,6 +51,15 @@ type Hedera struct {
 	MirrorNode MirrorNode `yaml:"mirror_node"`
 	Client     Client     `yaml:"client"`
 	Watcher    Watcher    `yaml:"watcher"`
+	Handler    Handler    `yaml:"handler"`
+}
+
+type Handler struct {
+	CryptoTransfer CryptoTransferHandler `yaml:"crypto-transfer"`
+}
+
+type CryptoTransferHandler struct {
+	TopicId string `yaml:"topic_id"`
 }
 
 type Watcher struct {
@@ -78,8 +87,9 @@ type Client struct {
 }
 
 type Operator struct {
-	AccountId  string `yaml:"account_id" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ACCOUNT_ID"`
-	PrivateKey string `yaml:"private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PRIVATE_KEY"`
+	AccountId     string `yaml:"account_id" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ACCOUNT_ID"`
+	EthPrivateKey string `yaml:"eth_private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ETH_PRIVATE_KEY"`
+	PrivateKey    string `yaml:"private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PRIVATE_KEY"`
 }
 
 type MirrorNode struct {
