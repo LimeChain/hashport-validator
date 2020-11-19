@@ -90,24 +90,29 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	log.Infof("Started Consensus Message Watcher for topic [%s]\n", ctw.topicID)
 	unprocessedMessages, err := ctw.client.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
 	if err != nil {
+		log.Errorf("Could not get unprocessed messages after timestamp [%s]", milestoneTimestamp)
 		log.Fatal(err)
 	}
 	ctw.started = true
+	log.Println(unprocessedMessages)
 	for _, u := range unprocessedMessages.Messages {
 		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
 		if err != nil {
+			log.Errorf("Could not decode message - [%s]", u.Message)
 			log.Fatal(err)
 		}
 
 		msg := &validatorproto.TopicSignatureMessage{}
 		err = proto.Unmarshal(decodedMessage, msg)
 		if err != nil {
+			log.Errorf("Could not unmarshal message - [%s]", u.Message)
 			log.Fatal(err)
 		}
 
 		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 		err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
 		if err != nil {
+			log.Errorf("Could not update last fetched timestamp - [%s]", u.ConsensusTimestamp)
 			log.Fatal(err)
 		}
 	}

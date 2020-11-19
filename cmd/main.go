@@ -9,8 +9,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
-	consensusmessage2 "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -49,7 +49,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server.AddHandler("HCS_TOPIC_MSG", consensusmessage2.NewConsensusMessageHandler(*messageRepository))
+	server.AddHandler("HCS_TOPIC_MSG", cmh.NewConsensusMessageHandler(*messageRepository))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }

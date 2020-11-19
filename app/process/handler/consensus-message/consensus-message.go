@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -13,7 +14,7 @@ import (
 )
 
 type ConsensusMessageHandler struct {
-	repository message.MessageRepository
+	repository repositories.MessageRepository
 }
 
 func NewConsensusMessageHandler(repository message.MessageRepository) *ConsensusMessageHandler {
@@ -54,7 +55,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	hexPublicKey := hex.EncodeToString(key)
 	if !isValidPublicKey(hexPublicKey) {
-		return errors.New(fmt.Sprintf("Public key is not valid - [%s]", hexPublicKey))
+		return errors.New(fmt.Sprintf("Public Key is not valid - [%s]", hexPublicKey))
 	}
 
 	messages, err := cmh.repository.Get(m.TransactionId, m.Signature)
@@ -80,6 +81,9 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		log.Errorf("Error - [%s]", err)
 		return err
 	}
+
+	// Count signatures
+	// Determine Soft Elected Leader
 	return nil
 }
 
