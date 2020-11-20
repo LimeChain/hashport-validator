@@ -136,6 +136,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 					log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
 				}
 			}
+			return
 		}
 
 		time.Sleep(cth.pollingInterval * time.Second)
