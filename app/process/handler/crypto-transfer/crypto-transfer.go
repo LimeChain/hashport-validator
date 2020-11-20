@@ -107,7 +107,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].", transactionId, topicMessageSubmissionTxId)
 
 	for {
-		txs, err := cth.hederaMirrorClient.GetAccountTransactionsAfterDate(topicMessageSubmissionTx.AccountID, timestamp)
+		txs, err := cth.hederaMirrorClient.GetAccountConsensusSubmitMessagesTransactionsAfterDate(topicMessageSubmissionTx.AccountID, timestamp)
 		if err != nil {
 			log.Error("Error while trying to get account transactions after data: [%s].", err.Error())
 			return
