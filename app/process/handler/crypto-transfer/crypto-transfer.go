@@ -109,29 +109,31 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 		fmt.Sprintf(topicMessageSubmissionTx.String()))
 
 	for {
-		txs, err := cth.hederaMirrorClient.GetAccountConsensusSubmitMessagesTransactionsAfterDate(topicMessageSubmissionTx.AccountId, topicMessageSubmissionTx.Timestamp())
+		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTx.String())
 		if err != nil {
 			log.Error("Error while trying to get account transactions after data: [%s].", err.Error())
 			return
 		}
 
 		if len(txs.Transactions) > 0 {
+			success := false
 			for _, tx := range txs.Transactions {
-				if tx.TransactionID == topicMessageSubmissionTx.String() {
-					if tx.Result == hedera.StatusSuccess.String() {
-						log.Infof("Completing status for Transaction ID [%s].", transactionId)
-						err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
-						if err != nil {
-							log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
-						}
-					} else {
-						log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTx.String(), tx.Result)
-						err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
-						if err != nil {
-							log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
-						}
-					}
-					return
+				if tx.Result == hedera.StatusSuccess.String() {
+					success = true
+				}
+			}
+
+			if success {
+				log.Infof("Completing status for Transaction ID [%s].", transactionId)
+				err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
+				if err != nil {
+					log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
+				}
+			} else {
+				log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTx.String())
+				err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
+				if err != nil {
+					log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
 				}
 			}
 		}
