@@ -9,12 +9,12 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
@@ -97,17 +97,19 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTx)
+	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
+
+	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId)
 }
 
-func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTx *hedera.TransactionID) {
-	topicMessageSubmissionTxId := formatTxId(topicMessageSubmissionTx)
-	timestamp := strconv.Itoa(int(topicMessageSubmissionTx.ValidStart.Unix()))
+func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTx tx.TxId) {
 
-	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].", transactionId, topicMessageSubmissionTxId)
+	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
+		transactionId,
+		fmt.Sprintf(topicMessageSubmissionTx.String()))
 
 	for {
-		txs, err := cth.hederaMirrorClient.GetAccountConsensusSubmitMessagesTransactionsAfterDate(topicMessageSubmissionTx.AccountID, timestamp)
+		txs, err := cth.hederaMirrorClient.GetAccountConsensusSubmitMessagesTransactionsAfterDate(topicMessageSubmissionTx.AccountId, topicMessageSubmissionTx.Timestamp())
 		if err != nil {
 			log.Error("Error while trying to get account transactions after data: [%s].", err.Error())
 			return
@@ -115,7 +117,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 
 		if len(txs.Transactions) > 0 {
 			for _, tx := range txs.Transactions {
-				if tx.TransactionID == topicMessageSubmissionTxId {
+				if tx.TransactionID == topicMessageSubmissionTx.String() {
 					if tx.Result == hedera.StatusSuccess.String() {
 						log.Infof("Completing status for Transaction ID [%s].", transactionId)
 						err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
@@ -123,7 +125,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 							log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
 						}
 					} else {
-						log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId, tx.Result)
+						log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTx.String(), tx.Result)
 						err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
 						if err != nil {
 							log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
@@ -175,11 +177,4 @@ func NewCryptoTransferHandler(
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
 	}
-}
-
-func formatTxId(txId *hedera.TransactionID) string {
-	return fmt.Sprintf("%s-%v-%v",
-		txId.AccountID.String(),
-		txId.ValidStart.Unix(),
-		int32(txId.ValidStart.UnixNano()-(txId.ValidStart.Unix()*1e+9)))
 }

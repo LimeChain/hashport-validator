@@ -41,10 +41,10 @@ func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(acco
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c HederaMirrorClient) GetAccountConsensusSubmitMessagesTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
+func (c HederaMirrorClient) GetAccountConsensusSubmitMessagesTransactionsAfterDate(accountId string, timestamp string) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("account.id=%s&transactionType=consensussubmitmessage&timestamp=gt:%s",
-		accountId.String(),
-		milestoneTimestamp)
+		accountId,
+		timestamp)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
