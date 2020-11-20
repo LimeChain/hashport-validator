@@ -29,18 +29,20 @@ type TransactionRepository struct {
 	dbClient *gorm.DB
 }
 
-func (tr *TransactionRepository) Exists(transactionId string) (bool, error) {
-	err := tr.dbClient.
+func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Transaction, error) {
+	tx := &Transaction{}
+	result := tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", transactionId).
-		First(&Transaction{}).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
+		First(tx)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
-		return false, err
+		return nil, result.Error
 	}
-	return true, nil
+	return tx, nil
 }
 
 func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {

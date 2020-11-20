@@ -59,7 +59,8 @@ type Handler struct {
 }
 
 type CryptoTransferHandler struct {
-	TopicId string `yaml:"topic_id"`
+	TopicId         string        `yaml:"topic_id"`
+	PollingInterval time.Duration `yaml:"polling_interval"`
 }
 
 type Watcher struct {

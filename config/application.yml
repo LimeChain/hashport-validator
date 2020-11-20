@@ -26,3 +26,4 @@ hedera:
   handler:
     crypto-transfer:
       topic_id:
+      polling_interval:
