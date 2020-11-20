@@ -45,18 +45,32 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Fee:           m.Fee,
 	}
 
+	log.Printf("[%s] signature", m.GetSignature())
+
 	decodedSig, err := hex.DecodeString(m.GetSignature())
 	if err != nil {
 		return errors.New("Failed to decode signature.")
 	}
 
-	hash := crypto.Keccak256([]byte(ctm.String()))
-	key, err := crypto.Ecrecover(hash, decodedSig)
+	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
 
-	hexPublicKey := hex.EncodeToString(key)
-	if !isValidPublicKey(hexPublicKey) {
-		return errors.New(fmt.Sprintf("Public Key is not valid - [%s]", hexPublicKey))
+	log.Printf("[%s] hex hash", hex.EncodeToString(hash))
+
+	key, err := crypto.Ecrecover(hash, decodedSig)
+	pubKey, err := crypto.UnmarshalPubkey(key)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	log.Printf("[%s] Pub key", hex.EncodeToString(key))
+
+	address := crypto.PubkeyToAddress(*pubKey)
+	log.Printf("[%s] ADDRESS", address.String())
+	//hexPublicKey := hex.EncodeToString(key)
+	if !isValidPublicKey(address.String()) {
+		return errors.New(fmt.Sprintf("Address is not valid - [%s]", address.String()))
+	}
+	log.Println("ADDRESS VALIDATION PASSED SUCCESSFULLY")
 
 	messages, err := cmh.repository.Get(m.TransactionId, m.Signature)
 	if err != nil {
@@ -82,6 +96,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return err
 	}
 
+	fmt.Println("Success.")
 	// Count signatures
 	// Determine Soft Elected Leader
 	return nil
