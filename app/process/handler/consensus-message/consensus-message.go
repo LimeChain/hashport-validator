@@ -67,7 +67,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Address is not valid - [%s]", address.String()))
 	}
 
-	messages, err := cmh.repository.Get(m.TransactionId, m.Signature)
+	messages, err := cmh.repository.GetByTxIdAndSignature(m.TransactionId, m.Signature)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
@@ -76,7 +76,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
-	err = cmh.repository.Add(&message.TransactionMessage{
+	err = cmh.repository.Create(&message.TransactionMessage{
 		TransactionId: m.TransactionId,
 		EthAddress:    m.EthAddress,
 		Amount:        m.Amount,
