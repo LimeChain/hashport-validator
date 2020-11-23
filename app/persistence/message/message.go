@@ -5,12 +5,14 @@ import (
 )
 
 type TransactionMessage struct {
+	gorm.Model
 	TransactionId string
 	EthAddress    string
 	Amount        uint64
 	Fee           string
 	Signature     string
 	Hash          string
+	Leader        bool
 }
 
 type MessageRepository struct {
@@ -23,9 +25,9 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 	}
 }
 
-func (m MessageRepository) Get(txId, signature string) ([]TransactionMessage, error) {
+func (m MessageRepository) Get(txId, signature, hash string) ([]TransactionMessage, error) {
 	var signatures []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and signature = ?", txId, signature).Find(&signatures).Error
+	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).Find(&signatures).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +35,21 @@ func (m MessageRepository) Get(txId, signature string) ([]TransactionMessage, er
 }
 
 func (m MessageRepository) Add(message *TransactionMessage) error {
+	message.Model = gorm.Model{}
 	return m.dbClient.Create(message).Error
 }
 
-func (m MessageRepository) GetByTransactionId(txId string) ([]TransactionMessage, error) {
+func (m MessageRepository) GetByTransactionId(txId string, hash string) ([]TransactionMessage, error) {
 	var signatures []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ?", txId).Find(&signatures).Error
+	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Find(&signatures).Error
 	if err != nil {
 		return nil, err
 	}
 	return signatures, nil
+}
+
+func (m MessageRepository) Elect(signature string, hash string) error {
+	return m.dbClient.Model(&TransactionMessage{}).
+		Where("signature = ? and hash = ?", signature, hash).
+		Update("leader", "true").Error
 }
