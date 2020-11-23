@@ -35,3 +35,12 @@ func (m MessageRepository) Get(txId, signature string) ([]TransactionMessage, er
 func (m MessageRepository) Add(message *TransactionMessage) error {
 	return m.dbClient.Create(message).Error
 }
+
+func (m MessageRepository) GetByTransactionId(txId string) ([]TransactionMessage, error) {
+	var signatures []TransactionMessage
+	err := m.dbClient.Where("transaction_id = ?", txId).Find(&signatures).Error
+	if err != nil {
+		return nil, err
+	}
+	return signatures, nil
+}

@@ -88,7 +88,19 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
-	fmt.Println("Success.")
+	txSignatures, err := cmh.repository.GetByTransactionId(m.TransactionId)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
+	}
+
+	requiredSigCount := len(config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses)/2 + len(config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses)%2
+	if len(txSignatures) > requiredSigCount {
+		// Send Tx Message
+	}
+	// Count signatures
+	// If no other signatures -> elect as leader
+	//
+
 	return nil
 }
 
