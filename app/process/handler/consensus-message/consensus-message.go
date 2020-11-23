@@ -29,7 +29,8 @@ func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMess
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 	err := cmh.handlePayload(payload)
 	if err != nil {
-		log.Fatalf("Error - could not handle payload: [%s]", err)
+		log.Errorf("Error - could not handle payload: [%s]", err)
+		return
 	}
 }
 
