@@ -76,7 +76,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	hash := crypto.Keccak256([]byte(ctm.String()))
+	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
 	signature, err := cth.ethSigner.Sign(hash)
 	if err != nil {
 		log.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)

@@ -26,17 +26,16 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 	}
 }
 
-func (m MessageRepository) Get(txId, signature, hash string) ([]TransactionMessage, error) {
-	var signatures []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).Find(&signatures).Error
+func (m MessageRepository) GetByTxIdAndSignature(txId, signature, hash string) ([]TransactionMessage, error) {
+	var messages []TransactionMessage
+	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
-	return signatures, nil
+	return messages, nil
 }
 
-func (m MessageRepository) Add(message *TransactionMessage) error {
-	message.Model = gorm.Model{}
+func (m MessageRepository) Create(message *TransactionMessage) error {
 	return m.dbClient.Create(message).Error
 }
 

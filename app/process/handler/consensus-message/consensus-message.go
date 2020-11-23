@@ -11,22 +11,28 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type ConsensusMessageHandler struct {
-	repository repositories.MessageRepository
+	repository     repositories.MessageRepository
+	validAddresses []string
+	operatorAddress string
 }
 
-func NewConsensusMessageHandler(repository message.MessageRepository) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {
 	return &ConsensusMessageHandler{
-		repository: repository,
+		repository:     r,
+		validAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
+		operatorAddress: config.LoadConfig().Hedera.Client.Operator.EthPrivateKey,
 	}
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 	err := cmh.handlePayload(payload)
 	if err != nil {
-		log.Fatalf("Error - could not handle payload: [%s]", err)
+		log.Errorf("Error - could not handle payload: [%s]", err)
+		return
 	}
 }
 
@@ -63,13 +69,12 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	address := crypto.PubkeyToAddress(*pubKey)
-	addresses := config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses
 
-	if !isValidAddress(address.String(), addresses) {
+	if !cmh.isValidAddress(address.String()) {
 		return errors.New(fmt.Sprintf("Address is not valid - [%s]", address.String()))
 	}
 
-	messages, err := cmh.repository.Get(m.TransactionId, m.Signature, messageHash)
+	messages, err := cmh.repository.GetByTxIdAndSignature(m.TransactionId, m.Signature)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
@@ -78,7 +83,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
-	err = cmh.repository.Add(&message.TransactionMessage{
+	err = cmh.repository.Create(&message.TransactionMessage{
 		TransactionId: m.TransactionId,
 		EthAddress:    m.EthAddress,
 		Amount:        m.Amount,
@@ -112,9 +117,9 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	return nil
 }
 
-func isValidAddress(address string, addresses []string) bool {
-	for _, a := range addresses {
-		if a == address {
+func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
+	for _, k := range cmh.validAddresses {
+		if strings.ToLower(k) == strings.ToLower(key) {
 			return true
 		}
 	}
