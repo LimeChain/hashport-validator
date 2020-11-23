@@ -60,7 +60,7 @@ type Handler struct {
 }
 
 type ConsensusMessageHandler struct {
-	Keys []string `yaml:"keys"`
+	Addresses []string `yaml:"addresses"`
 }
 
 type CryptoTransferHandler struct {

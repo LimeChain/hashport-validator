@@ -34,8 +34,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	m := &validatorproto.TopicSignatureMessage{}
 	err := proto.Unmarshal(payload, m)
 	if err != nil {
-		log.Errorf("Error - [%s]", err)
-		return err
+		return errors.New(fmt.Sprintf("Failed to unmarshal topic signature message. - [%s]", err))
 	}
 
 	ctm := &validatorproto.CryptoTransferMessage{
@@ -49,7 +48,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	decodedSig, err := hex.DecodeString(m.GetSignature())
 	if err != nil {
-		return errors.New("Failed to decode signature.")
+		return errors.New(fmt.Sprintf("Failed to decode signature. - [%s]", err))
 	}
 
 	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
@@ -59,27 +58,21 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	key, err := crypto.Ecrecover(hash, decodedSig)
 	pubKey, err := crypto.UnmarshalPubkey(key)
 	if err != nil {
-		log.Fatal(err)
+		return errors.New(fmt.Sprintf("Failed to unmarshal public key. - [%s]", err))
 	}
-
-	log.Printf("[%s] Pub key", hex.EncodeToString(key))
 
 	address := crypto.PubkeyToAddress(*pubKey)
-	log.Printf("[%s] ADDRESS", address.String())
-	//hexPublicKey := hex.EncodeToString(key)
-	if !isValidPublicKey(address.String()) {
+
+	if !isValidAddress(address.String()) {
 		return errors.New(fmt.Sprintf("Address is not valid - [%s]", address.String()))
 	}
-	log.Println("ADDRESS VALIDATION PASSED SUCCESSFULLY")
 
 	messages, err := cmh.repository.Get(m.TransactionId, m.Signature)
 	if err != nil {
-		log.Errorf("Error - [%s]", err)
-		return err
+		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
 
 	if len(messages) > 0 {
-		log.Warnf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature)
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
@@ -92,18 +85,15 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Hash:          hex.EncodeToString(hash),
 	})
 	if err != nil {
-		log.Errorf("Error - [%s]", err)
-		return err
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
 	fmt.Println("Success.")
-	// Count signatures
-	// Determine Soft Elected Leader
 	return nil
 }
 
-func isValidPublicKey(key string) bool {
-	keys := config.LoadConfig().Hedera.Handler.ConsensusMessage.Keys
+func isValidAddress(key string) bool {
+	keys := config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses
 	for _, k := range keys {
 		if k == key {
 			return true

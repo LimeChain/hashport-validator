@@ -27,4 +27,4 @@ hedera:
     crypto-transfer:
       topic_id:
     consensus-message:
-      keys:
+      addresses:
