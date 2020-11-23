@@ -31,7 +31,7 @@ type CryptoTransferHandler struct {
 }
 
 // Recover mechanism
-func (cth *CryptoTransferHandler) Watch(q *queue.Queue) {
+func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	log.Info("[Recovery - CryptoTransfer Handler] Executing Recovery mechanism for CryptoTransfer Handler.")
 	log.Info("[Recovery - CryptoTransfer Handler] Database GET [PENDING] [SUBMITTED] transactions.")
 
@@ -125,7 +125,6 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 }
 
 func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
-
 	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))

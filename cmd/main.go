@@ -32,7 +32,6 @@ func main() {
 	cryptoTransferWatcherHandler := cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository)
 
 	server.AddHandler("HCS_CRYPTO_TRANSFER", cryptoTransferWatcherHandler)
-	server.AddWatcher(cryptoTransferWatcherHandler)
 
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
