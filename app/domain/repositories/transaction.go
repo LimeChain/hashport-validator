@@ -7,6 +7,7 @@ import (
 
 type TransactionRepository interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
+	GetPendingOrSubmittedTransactions() ([]*transaction.Transaction, error)
 	Create(ct *proto.CryptoTransferMessage) error
 	UpdateStatusCancelled(txId string) error
 	UpdateStatusCompleted(txId string) error
