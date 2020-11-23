@@ -13,6 +13,7 @@ type TransactionMessage struct {
 	Signature     string
 	Hash          string
 	Leader        bool
+	SignerAddress string
 }
 
 type MessageRepository struct {

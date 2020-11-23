@@ -86,6 +86,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Signature:     m.Signature,
 		Hash:          messageHash,
 		Leader:        false,
+		SignerAddress: cmh.OperatorAddress,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
