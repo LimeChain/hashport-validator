@@ -12,26 +12,26 @@ type HederaNodeClient struct {
 	client *hedera.Client
 }
 
-func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopicID, message []byte) (string, error) {
+func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopicID, message []byte) (*hedera.TransactionID, error) {
 	id, err := hedera.NewConsensusMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	receipt, err := id.GetReceipt(hc.client)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return "", errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.String(), receipt.Status))
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.String(), receipt.Status))
 	}
 
-	return id.String(), err
+	return &id, err
 }
 
 func NewNodeClient(config config.Client) *HederaNodeClient {
@@ -44,17 +44,17 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
-		log.Fatal(fmt.Sprintf("Invalid Client NetworkType provided: [%s]", config.NetworkType))
+		log.Fatalf("Invalid Client NetworkType provided: [%s]", config.NetworkType)
 	}
 
 	accID, err := hedera.AccountIDFromString(config.Operator.AccountId)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Invalid Operator AccountId provided: [%s]", config.Operator.AccountId))
+		log.Fatalf("Invalid Operator AccountId provided: [%s]", config.Operator.AccountId)
 	}
 
 	privateKey, err := hedera.Ed25519PrivateKeyFromString(config.Operator.PrivateKey)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey))
+		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey)
 	}
 
 	client.SetOperator(accID, privateKey)

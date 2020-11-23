@@ -24,6 +24,7 @@ func main() {
 	initLogger()
 	configuration := config.LoadConfig()
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
+	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
 	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
@@ -31,9 +32,7 @@ func main() {
 	server := server.NewServer()
 
 	server.AddHandler("HCS_CRYPTO_TRANSFER",
-		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaNodeClient, transactionRepository))
-
-	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository))
 
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
