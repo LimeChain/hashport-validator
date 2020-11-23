@@ -99,14 +99,14 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
 		if err != nil {
 			log.Errorf("Could not decode message - [%s]", u.Message)
-			log.Fatal(err)
+			continue
 		}
 
 		msg := &validatorproto.TopicSignatureMessage{}
 		err = proto.Unmarshal(decodedMessage, msg)
 		if err != nil {
-			log.Errorf("Could not unmarshal message - [%s]", u.Message)
-			log.Fatal(err)
+			log.Errorf("Could not unmarshal message - [%s] - [%s]", u.Message, err)
+			continue
 		}
 
 		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)

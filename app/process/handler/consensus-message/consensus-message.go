@@ -11,15 +11,18 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type ConsensusMessageHandler struct {
-	repository repositories.MessageRepository
+	repository     repositories.MessageRepository
+	validAddresses []string
 }
 
-func NewConsensusMessageHandler(repository message.MessageRepository) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {
 	return &ConsensusMessageHandler{
-		repository: repository,
+		repository:     r,
+		validAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
 	}
 }
 
@@ -56,6 +59,10 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	log.Printf("[%s] hex hash", hex.EncodeToString(hash))
 
 	key, err := crypto.Ecrecover(hash, decodedSig)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Failed to recover public key. - [%s]", err))
+	}
+
 	pubKey, err := crypto.UnmarshalPubkey(key)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to unmarshal public key. - [%s]", err))
@@ -63,7 +70,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	address := crypto.PubkeyToAddress(*pubKey)
 
-	if !isValidAddress(address.String()) {
+	if !cmh.isValidAddress(address.String()) {
 		return errors.New(fmt.Sprintf("Address is not valid - [%s]", address.String()))
 	}
 
@@ -92,10 +99,9 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	return nil
 }
 
-func isValidAddress(key string) bool {
-	keys := config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses
-	for _, k := range keys {
-		if k == key {
+func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
+	for _, k := range cmh.validAddresses {
+		if strings.ToLower(k) == strings.ToLower(key) {
 			return true
 		}
 	}
