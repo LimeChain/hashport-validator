@@ -6,6 +6,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -31,7 +32,7 @@ func NewCryptoTransferWatcher(client *hederaClient.HederaMirrorClient, accountID
 	return &CryptoTransferWatcher{
 		client:           client,
 		accountID:        accountID,
-		typeMessage:      "HCS_CRYPTO_TRANSFER",
+		typeMessage:      process.CryptoTransferMessageType,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
 		maxRetries:       maxRetries,

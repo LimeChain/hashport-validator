@@ -9,6 +9,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
@@ -35,7 +36,7 @@ func main() {
 
 	server := server.NewServer()
 
-	server.AddHandler("HCS_CRYPTO_TRANSFER",
+	server.AddHandler(process.CryptoTransferMessageType,
 		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
@@ -43,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server.AddHandler("HCS_TOPIC_MSG", cmh.NewConsensusMessageHandler(*messageRepository))
+	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(*messageRepository))
 
 	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {

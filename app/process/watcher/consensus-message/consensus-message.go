@@ -7,6 +7,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -30,7 +31,7 @@ func NewConsensusTopicWatcher(client *hederaClient.HederaMirrorClient, topicID h
 	return &ConsensusTopicWatcher{
 		client:           client,
 		topicID:          topicID,
-		typeMessage:      "HCS_TOPIC_MSG",
+		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
