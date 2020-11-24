@@ -23,7 +23,7 @@ import (
 // Crypto Transfer event handler
 type CryptoTransferHandler struct {
 	pollingInterval    time.Duration
-	topicID            hedera.ConsensusTopicID
+	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient

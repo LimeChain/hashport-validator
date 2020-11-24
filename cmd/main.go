@@ -22,7 +22,7 @@ func main() {
 	initLogger()
 	configuration := config.LoadConfig()
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
-	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress, configuration.Hedera.MirrorNode.ClientAddress)
+	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress)
 	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
@@ -44,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
+	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
+func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *hederaClients.HederaNodeClient, hederaMirrorClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
 		log.Warnln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
 	}
@@ -78,7 +78,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
+		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil

@@ -15,8 +15,9 @@ import (
 )
 
 type ConsensusTopicWatcher struct {
-	client           *hederaClient.HederaMirrorClient
-	topicID          hedera.ConsensusTopicID
+	nodeClient       *hederaClient.HederaNodeClient
+	mirrorClient     *hederaClient.HederaMirrorClient
+	topicID          hedera.TopicID
 	typeMessage      string
 	maxRetries       int
 	statusRepository repositories.StatusRepository
@@ -24,9 +25,10 @@ type ConsensusTopicWatcher struct {
 	started          bool
 }
 
-func NewConsensusTopicWatcher(client *hederaClient.HederaMirrorClient, topicID hedera.ConsensusTopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
-		client:           client,
+		nodeClient:       nodeClient,
+		mirrorClient:     mirrorClient,
 		topicID:          topicID,
 		typeMessage:      "HCS_TOPIC_MSG",
 		statusRepository: repository,
@@ -86,7 +88,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	}
 
 	log.Infof("Started Consensus Message Watcher for topic [%s]\n", ctw.topicID)
-	unprocessedMessages, err := ctw.client.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
+	unprocessedMessages, err := ctw.mirrorClient.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,12 +103,12 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		}
 	}
 
-	_, err = hedera.NewMirrorConsensusTopicQuery().
+	_, err = hedera.NewTopicMessageQuery().
 		SetTopicID(ctw.topicID).
 		Subscribe(
-			*ctw.client.GetMirrorClient(),
-			func(response hedera.MirrorConsensusTopicResponse) {
-				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
+			ctw.nodeClient.GetClient(),
+			func(response hedera.TopicMessage) {
+				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
 				// validate and check body
 				msg := &protomsg.TopicSignatureMessage{}
 				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
@@ -114,13 +116,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 				if err != nil {
 					log.Fatal(err)
 				}
-			},
-			func(err error) {
-				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
-				time.Sleep(10 * time.Second)
-				ctw.restart(q)
-			},
-		)
+			})
 
 	if err != nil {
 		log.Errorf("Did not subscribe to [%s].", ctw.topicID)
