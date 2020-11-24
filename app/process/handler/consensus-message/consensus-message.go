@@ -21,7 +21,7 @@ type ConsensusMessageHandler struct {
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	panic("implement me")
+	log.Println("Recovery method not implemented yet.")
 }
 
 func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {

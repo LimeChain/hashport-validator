@@ -110,7 +110,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		log.Fatal(err)
 	}
 	ctw.started = true
-	log.Println("Found [%v] unprocessed messages. Processing now", len(unprocessedMessages.Messages))
+	log.Printf("Found [%v] unprocessed messages. Processing now\n", len(unprocessedMessages.Messages))
 
 	for _, u := range unprocessedMessages.Messages {
 		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
