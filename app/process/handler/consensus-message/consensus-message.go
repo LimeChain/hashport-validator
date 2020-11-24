@@ -10,6 +10,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -17,6 +18,10 @@ import (
 type ConsensusMessageHandler struct {
 	repository     repositories.MessageRepository
 	validAddresses []string
+}
+
+func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
+	panic("implement me")
 }
 
 func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {
