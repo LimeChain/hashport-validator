@@ -81,7 +81,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 	return milestoneTimestamp
 }
 
-func (ctw ConsensusTopicWatcher) updateTimestamp(message []byte, timestamp string, q *queue.Queue) {
+func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp string, q *queue.Queue) {
 	msg := &validatorproto.TopicSignatureMessage{}
 	err := proto.Unmarshal(message, msg)
 	if err != nil {
@@ -119,7 +119,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			continue
 		}
 
-		ctw.updateTimestamp(decodedMessage, u.ConsensusTimestamp, q)
+		ctw.processMessage(decodedMessage, u.ConsensusTimestamp, q)
 	}
 
 	_, err = hedera.NewMirrorConsensusTopicQuery().
@@ -128,7 +128,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-				ctw.updateTimestamp(response.Message, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
+				ctw.processMessage(response.Message, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
 			},
 			func(err error) {
 				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
