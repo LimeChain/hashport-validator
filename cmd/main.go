@@ -36,8 +36,12 @@ func main() {
 
 	server := server.NewServer()
 
-	server.AddHandler(process.CryptoTransferMessageType,
-		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository))
+	server.AddHandler(process.CryptoTransferMessageType, cth.NewCryptoTransferHandler(
+		configuration.Hedera.Handler.CryptoTransfer,
+		ethSigner,
+		hederaMirrorClient,
+		hederaNodeClient,
+		transactionRepository))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {

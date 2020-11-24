@@ -1,8 +1,7 @@
 package fees
 
 import (
-	"errors"
-	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"math/big"
 )
 
@@ -11,11 +10,11 @@ func getFee() (*big.Int, error) {
 }
 
 func ValidateExecutionFee(strTransferFee string) (bool, error) {
-	transferFee := new(big.Int)
-	transferFee, ok := transferFee.SetString(strTransferFee, 10)
-	if !ok {
-		return false, errors.New(fmt.Sprintf("Failed to parse fee: [%s]", strTransferFee))
+	transferFee, err := helper.ToBigInt(strTransferFee)
+	if err != nil {
+		return false, err
 	}
+
 	estimatedFee, err := getFee()
 	if err != nil {
 		return false, err
