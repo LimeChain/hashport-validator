@@ -29,26 +29,26 @@ func main() {
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
+	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
+	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
+	messageRepository := message.NewMessageRepository(db)
+
 	server := server.NewServer()
 
 	server.AddHandler("HCS_CRYPTO_TRANSFER",
 		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository))
-
-	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
-	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
-	messageRepository := message.NewMessageRepository(db)
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	server.AddHandler("HCS_TOPIC_MSG", cmh.NewConsensusMessageHandler(*messageRepository))
+
 	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	server.AddHandler("HCS_TOPIC_MSG", cmh.NewConsensusMessageHandler(*messageRepository))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
