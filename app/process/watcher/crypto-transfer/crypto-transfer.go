@@ -6,6 +6,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -126,7 +127,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 				// TODO: Should verify memo.
 				ethAddress := decodedMemo[:42]
-				feeString := decodedMemo[42:]
+				feeString := string(decodedMemo[42:])
 
 				re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 				if !re.MatchString(string(ethAddress)) {
@@ -134,7 +135,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 					continue
 				}
 
-				_, e = strconv.ParseInt(string(feeString), 10, 64)
+				_, e = helper.ToBigInt(feeString)
 				if e != nil {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
 					continue
@@ -143,7 +144,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				information := &protomsg.CryptoTransferMessage{
 					EthAddress:    string(ethAddress),
 					TransactionId: tx.TransactionID,
-					Fee:           string(feeString),
+					Fee:           feeString,
 					Amount:        uint64(amount),
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
