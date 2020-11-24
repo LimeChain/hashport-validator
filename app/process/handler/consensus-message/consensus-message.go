@@ -8,23 +8,25 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 type ConsensusMessageHandler struct {
-	repository     repositories.MessageRepository
-	validAddresses []string
+	repository      repositories.MessageRepository
+	validAddresses  []string
 	operatorAddress string
 }
 
 func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {
 	return &ConsensusMessageHandler{
-		repository:     r,
-		validAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
-		operatorAddress: config.LoadConfig().Hedera.Client.Operator.EthPrivateKey,
+		repository:      r,
+		validAddresses:  config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
+		operatorAddress: eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String(),
 	}
 }
 
@@ -84,6 +86,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
+		// Add Tx Timestamp to TransactionMessage
 		TransactionId: m.TransactionId,
 		EthAddress:    m.EthAddress,
 		Amount:        m.Amount,
@@ -91,7 +94,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Signature:     m.Signature,
 		Hash:          messageHash,
 		Leader:        false,
-		SignerAddress: cmh.OperatorAddress,
+		SignerAddress: cmh.operatorAddress,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
@@ -102,6 +105,11 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
 	}
 
+	// Gather Signatures
+	// Elect leader by Timestamp
+	// Post-Signature-Gathering function
+
+	// Elects a leader if there is no leader at the time
 	if len(txSignatures) == 1 {
 		err := cmh.repository.Elect(messageHash, m.Signature)
 		if err != nil {
@@ -109,9 +117,27 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		}
 	}
 
-	requiredSigCount := len(addresses)/2 + len(addresses)%2
-	if len(txSignatures) > requiredSigCount {
-		// Send Tx Message
+	requiredSigCount := len(cmh.validAddresses)/2 + len(cmh.validAddresses)%2
+	for len(txSignatures) < requiredSigCount {
+		txSignatures, err = cmh.repository.GetByTransactionId(m.TransactionId, messageHash)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	// Check if I am a Leader -> Send
+	if cmh.operatorAddress == txSignatures[0].SignerAddress {
+		// Send Tx
+		// Submit HCS Topic
+	}
+
+	// Start polling every amount of seconds
+	for {
+		// If transaction was sent -> return
+		// If not -> wait
+		// If a new leader is elected -> loop
+		time.Sleep(5 * time.Second)
 	}
 
 	return nil
