@@ -81,6 +81,21 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 	return milestoneTimestamp
 }
 
+func (ctw ConsensusTopicWatcher) updateTimestamp(message []byte, timestamp string, q *queue.Queue) {
+	msg := &validatorproto.TopicSignatureMessage{}
+	err := proto.Unmarshal(message, msg)
+	if err != nil {
+		log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
+		return
+	}
+
+	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
+	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
+	if err != nil {
+		log.Errorf("Could not update last fetched timestamp - [%s]", timestamp)
+	}
+}
+
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	log.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
 	milestoneTimestamp := ctw.getTimestamp(q)
@@ -104,18 +119,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			continue
 		}
 
-		msg := &validatorproto.TopicSignatureMessage{}
-		err = proto.Unmarshal(decodedMessage, msg)
-		if err != nil {
-			log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", u.Message, err)
-			continue
-		}
-
-		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-		err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
-		if err != nil {
-			log.Errorf("Could not update last fetched timestamp - [%s]", u.ConsensusTimestamp)
-		}
+		ctw.updateTimestamp(decodedMessage, u.ConsensusTimestamp, q)
 	}
 
 	_, err = hedera.NewMirrorConsensusTopicQuery().
@@ -124,18 +128,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-
-				msg := &validatorproto.TopicSignatureMessage{}
-				err := proto.Unmarshal(response.Message, msg)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-				err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
-				if err != nil {
-					log.Fatal(err)
-				}
+				ctw.updateTimestamp(response.Message, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
 			},
 			func(err error) {
 				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
