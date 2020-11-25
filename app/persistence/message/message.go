@@ -2,18 +2,40 @@ package message
 
 import (
 	"gorm.io/gorm"
+	"strconv"
 )
 
 type TransactionMessage struct {
 	gorm.Model
-	TransactionId string
-	EthAddress    string
-	Amount        uint64
-	Fee           string
-	Signature     string
-	Hash          string
-	Leader        bool
-	SignerAddress string
+	TransactionId        string
+	EthAddress           string
+	Amount               uint64
+	Fee                  string
+	Signature            string
+	Hash                 string
+	Leader               bool
+	SignerAddress        string
+	TransactionTimestamp string
+}
+
+type ByTimestamp []TransactionMessage
+
+func (tm ByTimestamp) Len() int {
+	return len(tm)
+}
+func (tm ByTimestamp) Swap(i, j int) {
+	tm[i], tm[j] = tm[j], tm[i]
+}
+func (tm ByTimestamp) Less(i, j int) bool {
+	firstTimestamp, err := strconv.ParseFloat(tm[i].TransactionTimestamp, 32)
+	if err != nil {
+
+	}
+	secondTimestamp, err := strconv.ParseFloat(tm[j].TransactionTimestamp, 32)
+	if err != nil {
+
+	}
+	return firstTimestamp < secondTimestamp
 }
 
 type MessageRepository struct {

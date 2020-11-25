@@ -13,6 +13,7 @@ import (
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
+	"sort"
 	"strings"
 	"time"
 )
@@ -83,7 +84,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
-	messages, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature)
+	messages, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
@@ -93,15 +94,15 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
-		// Add Tx Timestamp to TransactionMessage
-		TransactionId: m.TransactionId,
-		EthAddress:    m.EthAddress,
-		Amount:        m.Amount,
-		Fee:           m.Fee,
-		Signature:     m.Signature,
-		Hash:          hexHash,
-		Leader:        false,
-		SignerAddress: cmh.operatorAddress,
+		TransactionId:        m.TransactionId,
+		EthAddress:           m.EthAddress,
+		Amount:               m.Amount,
+		Fee:                  m.Fee,
+		Signature:            m.Signature,
+		Hash:                 hexHash,
+		Leader:               false,
+		SignerAddress:        cmh.operatorAddress,
+		TransactionTimestamp: m.TransactionTimestamp,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
@@ -109,35 +110,38 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Printf("Successfully verified and persisted TX with ID [%s]\n", m.TransactionId)
 
-
-	txSignatures, err := cmh.repository.GetByTransactionId(m.TransactionId, messageHash)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
-	}
-
 	// Gather Signatures
 	// Elect leader by Timestamp
 	// Post-Signature-Gathering function
 
 	// Elects a leader if there is no leader at the time
-	if len(txSignatures) == 1 {
-		err := cmh.repository.Elect(messageHash, m.Signature)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Could not soft elect leader for Transaction [%s]", m.TransactionId))
-		}
+	//if len(txSignatures) == 1 {
+	//	err := cmh.repository.Elect(hexHash, m.Signature)
+	//	if err != nil {
+	//		return errors.New(fmt.Sprintf("Could not soft elect leader for Transaction [%s]", m.TransactionId))
+	//	}
+	//}
+
+	txSignatures, err := cmh.repository.GetByTransactionId(m.TransactionId, hexHash)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
 	}
 
 	requiredSigCount := len(cmh.validAddresses)/2 + len(cmh.validAddresses)%2
 	for len(txSignatures) < requiredSigCount {
-		txSignatures, err = cmh.repository.GetByTransactionId(m.TransactionId, messageHash)
+		txSignatures, err = cmh.repository.GetByTransactionId(m.TransactionId, hexHash)
 		if err != nil {
 			return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
 		}
 		time.Sleep(5 * time.Second)
 	}
 
+	sort.Sort(message.ByTimestamp(txSignatures))
+
 	// Check if I am a Leader -> Send
 	if cmh.operatorAddress == txSignatures[0].SignerAddress {
+		log.Infof("Leader [%s]", cmh.operatorAddress)
+		// I am leader!
 		// Send Tx
 		// Submit HCS Topic
 	}

@@ -6,8 +6,8 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -143,10 +143,11 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				information := &protomsg.CryptoTransferMessage{
-					EthAddress:    string(ethAddress),
-					TransactionId: tx.TransactionID,
-					Fee:           feeString,
-					Amount:        uint64(amount),
+					TransactionId:        tx.TransactionID,
+					EthAddress:           string(ethAddress),
+					Amount:               uint64(amount),
+					Fee:                  feeString,
+					TransactionTimestamp: tx.ConsensusTimestamp,
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
