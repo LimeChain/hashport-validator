@@ -6,32 +6,20 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hcstopicmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/hcs-topic-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 )
 
 type HederaMirrorClient struct {
 	mirrorAPIAddress string
-	mirrorClient     *hedera.MirrorClient
 	httpClient       *http.Client
 }
 
-func NewHederaMirrorClient(mirrorNodeAPIAddress, mirrorNodeClientAddress string) *HederaMirrorClient {
-	mirrorClient, e := hedera.NewMirrorClient(mirrorNodeClientAddress)
-	if e != nil {
-		log.Fatal(e)
-	}
-
+func NewHederaMirrorClient(mirrorNodeAPIAddress string) *HederaMirrorClient {
 	return &HederaMirrorClient{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
-		mirrorClient:     &mirrorClient,
 		httpClient:       &http.Client{},
 	}
-}
-
-func (c HederaMirrorClient) GetMirrorClient() *hedera.MirrorClient {
-	return c.mirrorClient
 }
 
 func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp string) (*transaction.HederaTransactions, error) {
@@ -84,7 +72,7 @@ func (c HederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
 	return true
 }
 
-func (c HederaMirrorClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.ConsensusTopicID, timestamp string) (*hcstopicmessage.HCSMessages, error) {
+func (c HederaMirrorClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.TopicID, timestamp string) (*hcstopicmessage.HCSMessages, error) {
 	mirrorNodeApiTopicAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
 	unprocessedMessagesQuery := fmt.Sprintf("%s/%s/messages?timestamp=gt:%s",
 		mirrorNodeApiTopicAddress,
