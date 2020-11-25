@@ -50,16 +50,12 @@ func (s StatusRepository) GetLastFetchedTimestamp(entityID string) (string, erro
 }
 
 func (s StatusRepository) CreateTimestamp(entityID string, timestamp string) error {
-	err := s.dbClient.Create(Status{
+	return s.dbClient.Create(Status{
 		Name:     "Last fetched timestamp",
 		EntityID: entityID,
 		Code:     s.lastFetchedTimestampCode,
 		Value:    timestamp,
 	}).Error
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s StatusRepository) UpdateLastFetchedTimestamp(entityID string, timestamp string) error {
