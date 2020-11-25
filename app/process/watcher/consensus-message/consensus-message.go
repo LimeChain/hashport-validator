@@ -7,6 +7,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -30,7 +31,7 @@ func NewConsensusTopicWatcher(client *hederaClient.HederaMirrorClient, topicID h
 	return &ConsensusTopicWatcher{
 		client:           client,
 		topicID:          topicID,
-		typeMessage:      "HCS_TOPIC_MSG",
+		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
@@ -80,6 +81,21 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) string {
 	return milestoneTimestamp
 }
 
+func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp string, q *queue.Queue) {
+	msg := &validatorproto.TopicSignatureMessage{}
+	err := proto.Unmarshal(message, msg)
+	if err != nil {
+		log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
+		return
+	}
+
+	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
+	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
+	if err != nil {
+		log.Errorf("Could not update last fetched timestamp - [%s]", timestamp)
+	}
+}
+
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	log.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
 	milestoneTimestamp := ctw.getTimestamp(q)
@@ -94,27 +110,16 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		log.Fatal(err)
 	}
 	ctw.started = true
-	log.Println(unprocessedMessages)
+	log.Infof("Found [%v] unprocessed messages. Processing now\n", len(unprocessedMessages.Messages))
+
 	for _, u := range unprocessedMessages.Messages {
 		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
 		if err != nil {
-			log.Errorf("Could not decode message - [%s]", u.Message)
+			log.Errorf("Could not decode message - [%s]. Skipping the processing of this message", u.Message)
 			continue
 		}
 
-		msg := &validatorproto.TopicSignatureMessage{}
-		err = proto.Unmarshal(decodedMessage, msg)
-		if err != nil {
-			log.Errorf("Could not unmarshal message - [%s] - [%s]", u.Message, err)
-			continue
-		}
-
-		publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-		err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), u.ConsensusTimestamp)
-		if err != nil {
-			log.Errorf("Could not update last fetched timestamp - [%s]", u.ConsensusTimestamp)
-			log.Fatal(err)
-		}
+		ctw.processMessage(decodedMessage, u.ConsensusTimestamp, q)
 	}
 
 	_, err = hedera.NewMirrorConsensusTopicQuery().
@@ -123,18 +128,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			*ctw.client.GetMirrorClient(),
 			func(response hedera.MirrorConsensusTopicResponse) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-
-				msg := &validatorproto.TopicSignatureMessage{}
-				err := proto.Unmarshal(response.Message, msg)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-				err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10))
-				if err != nil {
-					log.Fatal(err)
-				}
+				ctw.processMessage(response.Message, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
 			},
 			func(err error) {
 				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)

@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/hashgraph/hedera-sdk-go v0.9.2
 	github.com/jackc/pgx/v4 v4.9.2 // indirect
-	github.com/limechain/hedera-watcher-sdk v0.0.0-20201118155857-7677712bef91
+	github.com/limechain/hedera-watcher-sdk v0.0.0-20201123115519-56ea1fae7526
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/sys v0.0.0-20201113233024-12cec1faf1ba // indirect

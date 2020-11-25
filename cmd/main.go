@@ -9,6 +9,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
@@ -29,26 +30,30 @@ func main() {
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
-	server := server.NewServer()
-
-	server.AddHandler("HCS_CRYPTO_TRANSFER",
-		cth.NewCryptoTransferHandler(configuration.Hedera.Handler.CryptoTransfer, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepository))
-
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
 	messageRepository := message.NewMessageRepository(db)
+
+	server := server.NewServer()
+
+	server.AddHandler(process.CryptoTransferMessageType, cth.NewCryptoTransferHandler(
+		configuration.Hedera.Handler.CryptoTransfer,
+		ethSigner,
+		hederaMirrorClient,
+		hederaNodeClient,
+		transactionRepository))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(*messageRepository))
+
 	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	server.AddHandler("HCS_TOPIC_MSG", cmh.NewConsensusMessageHandler(*messageRepository))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }

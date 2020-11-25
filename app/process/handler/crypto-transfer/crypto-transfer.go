@@ -8,12 +8,14 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
@@ -28,6 +30,27 @@ type CryptoTransferHandler struct {
 	transactionRepo    repositories.TransactionRepository
 }
 
+// Recover mechanism
+func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
+	log.Info("[Recovery - CryptoTransfer Handler] Executing Recovery mechanism for CryptoTransfer Handler.")
+	log.Info("[Recovery - CryptoTransfer Handler] Database GET [PENDING] [SUBMITTED] transactions.")
+
+	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
+	if err != nil {
+		log.Errorf("[Recovery - CryptoTransfer] Failed to Database GET transactions. Error [%s]", err)
+		return
+	}
+
+	for _, transaction := range transactions {
+		if transaction.Status == txRepo.StatusPending {
+			log.Infof("[Recovery - CryptoTransfer Handler] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
+			go cth.submitTx(transaction, q)
+		} else {
+			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
+		}
+	}
+}
+
 func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
@@ -38,7 +61,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 
 	dbTransaction, err := cth.transactionRepo.GetByTransactionId(ctm.TransactionId)
 	if err != nil {
-		log.Errorf("Failed to check existence of record with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		log.Errorf("Failed to get record with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
@@ -53,7 +76,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	} else {
 		log.Infof("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
-		if dbTransaction.Status != transaction.StatusPending {
+		if dbTransaction.Status != txRepo.StatusPending {
 			log.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
 			return
 		}
@@ -90,28 +113,26 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		log.Errorf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
+	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
 
-	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTx.String(), encodedSignature)
+	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
 	if err != nil {
 		log.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
-	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
-
-	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId)
+	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId.String())
 }
 
-func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTx tx.TxId) {
-
+func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
 	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
-		fmt.Sprintf(topicMessageSubmissionTx.String()))
+		fmt.Sprintf(topicMessageSubmissionTxId))
 
 	for {
-		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTx.String())
+		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTxId)
 		if err != nil {
-			log.Error("Error while trying to get account transactions after data: [%s].", err.Error())
+			log.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", topicMessageSubmissionTxId, err.Error())
 			return
 		}
 
@@ -130,7 +151,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 					log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
 				}
 			} else {
-				log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTx.String())
+				log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId)
 				err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
 				if err != nil {
 					log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
@@ -141,6 +162,16 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 
 		time.Sleep(cth.pollingInterval * time.Second)
 	}
+}
+
+func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
+	ctm := &protomsg.CryptoTransferMessage{
+		TransactionId: tx.TransactionId,
+		EthAddress:    tx.EthAddress,
+		Amount:        tx.Amount,
+		Fee:           tx.Fee,
+	}
+	publisher.Publish(ctm, "HCS_CRYPTO_TRANSFER", cth.topicID, q)
 }
 
 func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {

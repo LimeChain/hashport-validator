@@ -26,7 +26,7 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 	}
 }
 
-func (m MessageRepository) GetByTxIdAndSignature(txId, signature, hash string) ([]TransactionMessage, error) {
+func (m MessageRepository) GetTransaction(txId, signature, hash string) ([]TransactionMessage, error) {
 	var messages []TransactionMessage
 	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).Find(&messages).Error
 	if err != nil {
