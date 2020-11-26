@@ -75,7 +75,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Fee:           m.Fee,
 	}
 
-	log.Printf("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
+	log.Infof("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
 
 	decodedSig, err := hex.DecodeString(m.GetSignature())
 	if err != nil {
