@@ -108,7 +108,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
-				log.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]\n",
+				log.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]",
 					tx.ConsensusTimestamp,
 					ctw.accountID.String(),
 					tx.TransactionHash)
@@ -143,11 +143,10 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				}
 
 				information := &protomsg.CryptoTransferMessage{
-					TransactionId:        tx.TransactionID,
-					EthAddress:           string(ethAddress),
-					Amount:               uint64(amount),
-					Fee:                  feeString,
-					TransactionTimestamp: tx.ConsensusTimestamp,
+					TransactionId: tx.TransactionID,
+					EthAddress:    string(ethAddress),
+					Amount:        uint64(amount),
+					Fee:           feeString,
 				}
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}

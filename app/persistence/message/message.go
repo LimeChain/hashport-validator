@@ -27,11 +27,11 @@ func (tm ByTimestamp) Swap(i, j int) {
 	tm[i], tm[j] = tm[j], tm[i]
 }
 func (tm ByTimestamp) Less(i, j int) bool {
-	firstTimestamp, err := strconv.ParseFloat(tm[i].TransactionTimestamp, 32)
+	firstTimestamp, err := strconv.ParseInt(tm[i].TransactionTimestamp, 10, 32)
 	if err != nil {
 
 	}
-	secondTimestamp, err := strconv.ParseFloat(tm[j].TransactionTimestamp, 32)
+	secondTimestamp, err := strconv.ParseInt(tm[j].TransactionTimestamp, 10, 32)
 	if err != nil {
 
 	}

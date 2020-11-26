@@ -48,7 +48,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(*messageRepository))
+	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
+		*messageRepository,
+		hederaNodeClient))
 
 	err = addConsensusTopicWatchers(configuration, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
