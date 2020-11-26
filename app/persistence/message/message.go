@@ -13,7 +13,6 @@ type TransactionMessage struct {
 	Fee                  string
 	Signature            string
 	Hash                 string
-	Leader               bool
 	SignerAddress        string
 	TransactionTimestamp string
 }
@@ -68,10 +67,4 @@ func (m MessageRepository) GetByTransactionId(txId string, hash string) ([]Trans
 		return nil, err
 	}
 	return signatures, nil
-}
-
-func (m MessageRepository) Elect(signature string, hash string) error {
-	return m.dbClient.Model(&TransactionMessage{}).
-		Where("signature = ? and hash = ?", signature, hash).
-		Update("leader", "true").Error
 }

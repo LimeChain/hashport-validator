@@ -117,7 +117,6 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Fee:                  m.Fee,
 		Signature:            m.Signature,
 		Hash:                 hexHash,
-		Leader:               false,
 		SignerAddress:        address.String(),
 		TransactionTimestamp: m.TransactionTimestamp,
 	})

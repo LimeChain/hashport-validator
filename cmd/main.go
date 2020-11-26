@@ -30,8 +30,8 @@ func main() {
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
-	statusCryptoTransferRepository := status.NewStatusRepository(db, "CRYPTO_TRANSFER")
-	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC")
+	statusCryptoTransferRepository := status.NewStatusRepository(db, "HCS_CRYPTO_TRANSFER")
+	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC_MSG")
 	messageRepository := message.NewMessageRepository(db)
 
 	server := server.NewServer()

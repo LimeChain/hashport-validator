@@ -29,8 +29,8 @@ func NewStatusRepository(dbClient *gorm.DB, statusType string) *StatusRepository
 
 func typeCheck(statusType string) {
 	switch statusType {
-	case "HCS_TOPIC":
-	case "CRYPTO_TRANSFER":
+	case "HCS_TOPIC_MSG":
+	case "HCS_CRYPTO_TRANSFER":
 		return
 	default:
 		log.Fatal("Invalid status type.")
