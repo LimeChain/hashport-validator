@@ -61,7 +61,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
 
-	encodedData, err := ethhelper.EncodeData(ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)
+	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
 		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}

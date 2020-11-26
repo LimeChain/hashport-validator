@@ -2,6 +2,7 @@ package eth
 
 import (
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,4 +28,8 @@ func (s *Signer) Sign(msg []byte) ([]byte, error) {
 	signature[64] += 27
 
 	return signature, nil
+}
+
+func (s *Signer) NewKeyTransactor() *bind.TransactOpts {
+	return bind.NewKeyedTransactor(s.privateKey)
 }

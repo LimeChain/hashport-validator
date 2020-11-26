@@ -5,13 +5,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"strconv"
 )
 
 var (
-	LogEventItemSetName    = "ItemSet"
-	logEventItemSetSig     = []byte("ItemSet(uint256,address)")
-	LogEventItemSetSigHash = crypto.Keccak256Hash(logEventItemSetSig)
+	LogEventBridgeEthBurn      = "EthBurn"
+	logEventBridgeEthBurnBytes = []byte("EthBurn(address,uint256,bytes)")
+	LogEventBridgeEthBurnHash  = crypto.Keccak256Hash(logEventBridgeEthBurnBytes)
 )
 
 func generateArguments() (abi.Arguments, error) {
@@ -45,24 +46,24 @@ func generateArguments() (abi.Arguments, error) {
 		}}, nil
 }
 
-func EncodeData(txId string, ethAddress string, amount uint64, fee string) ([]byte, error) {
+func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err
 	}
 
-	amountBn, err := helper.ToBigInt(strconv.Itoa(int(amount)))
+	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
 	if err != nil {
 		return nil, err
 	}
-	feeBn, err := helper.ToBigInt(fee)
+	feeBn, err := helper.ToBigInt(ctm.Fee)
 	if err != nil {
 		return nil, err
 	}
 
 	return args.Pack(
-		[]byte(txId),
-		common.HexToAddress(ethAddress),
+		[]byte(ctm.TransactionId),
+		common.HexToAddress(ctm.EthAddress),
 		amountBn,
 		feeBn)
 }

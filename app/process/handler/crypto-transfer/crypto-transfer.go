@@ -100,7 +100,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	encodedData, err := ethhelper.EncodeData(ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)
+	encodedData, err := ethhelper.EncodeData(&ctm)
 	if err != nil {
 		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}

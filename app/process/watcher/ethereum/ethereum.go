@@ -44,8 +44,8 @@ func (ew *EthWatcher) handleLog(eventLog types.Log, q *queue.Queue) {
 	}
 
 	switch eventLog.Topics[0].Hex() {
-	case eth.LogEventItemSetSigHash.Hex():
-		log.Infof("Found a new [%s] event.", eth.LogEventItemSetName)
+	case eth.LogEventBridgeEthBurnHash.Hex():
+		log.Infof("Found a new [%s] event.", eth.LogEventBridgeEthBurn)
 		// TODO:
 	}
 }
