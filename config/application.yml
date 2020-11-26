@@ -31,3 +31,5 @@ hedera:
     crypto-transfer:
       topic_id:
       polling_interval:
+    consensus-message:
+      addresses:
