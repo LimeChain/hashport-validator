@@ -60,7 +60,8 @@ type Handler struct {
 }
 
 type ConsensusMessageHandler struct {
-	Addresses []string `yaml:"addresses"`
+	Addresses    []string `yaml:"addresses"`
+	SendDeadline int64    `yaml:"send_deadline"`
 }
 
 type CryptoTransferHandler struct {

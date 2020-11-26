@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
+	"github.com/hashgraph/hedera-sdk-go"
+	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -14,25 +16,32 @@ import (
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type ConsensusMessageHandler struct {
-	repository      repositories.MessageRepository
-	validAddresses  []string
-	operatorAddress string
+	repository       repositories.MessageRepository
+	validAddresses   []string
+	operatorAddress  string
+	deadline         int64
+	hederaNodeClient *hederaClient.HederaNodeClient
+	topicID          hedera.ConsensusTopicID
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 	log.Println("Recovery method not implemented yet.")
 }
 
-func NewConsensusMessageHandler(r repositories.MessageRepository) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient, topicID hedera.ConsensusTopicID) *ConsensusMessageHandler {
 	return &ConsensusMessageHandler{
-		repository:      r,
-		validAddresses:  config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
-		operatorAddress: eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String(),
+		repository:       r,
+		validAddresses:   config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
+		operatorAddress:  eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String(),
+		deadline:         config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline,
+		hederaNodeClient: hederaNodeClient,
+		topicID:          topicID,
 	}
 }
 
@@ -110,18 +119,6 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Printf("Successfully verified and persisted TX with ID [%s]\n", m.TransactionId)
 
-	// Gather Signatures
-	// Elect leader by Timestamp
-	// Post-Signature-Gathering function
-
-	// Elects a leader if there is no leader at the time
-	//if len(txSignatures) == 1 {
-	//	err := cmh.repository.Elect(hexHash, m.Signature)
-	//	if err != nil {
-	//		return errors.New(fmt.Sprintf("Could not soft elect leader for Transaction [%s]", m.TransactionId))
-	//	}
-	//}
-
 	txSignatures, err := cmh.repository.GetByTransactionId(m.TransactionId, hexHash)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
@@ -136,25 +133,89 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		time.Sleep(5 * time.Second)
 	}
 
-	sort.Sort(message.ByTimestamp(txSignatures))
+	pos := int64(cmh.findMyPosition(txSignatures))
+	if pos == -1 {
+		return errors.New(fmt.Sprintf("Operator is not amongst the potential leaders - [%v]", pos))
+	}
+
+	now := int64(time.Now().Minute())
+	deadline := now + cmh.deadline*pos
+
+	for now < deadline {
+		// check if transaction was sent
+		// if yes -> kill process
+
+		now = int64(time.Now().Minute())
+		time.Sleep(10 * time.Second)
+	}
+
+	// send transaction
+	tasm := &validatorproto.TopicAggregatedSignaturesMessage{
+		Hash:      hexHash,
+		EthTxHash: "0x12345",
+	}
+
+	topicMessageBytes, err := proto.Marshal(tasm)
+	if err != nil {
+		log.Error("Could not marshal Topic Aggregated Signatures Message [%s] - [%s]", tasm, err)
+	}
+
+	_, err = cmh.hederaNodeClient.SubmitTopicConsensusMessage(cmh.topicID, topicMessageBytes)
+	if err != nil {
+		log.Error("Could not Submit Topic Consensus Message [%s] - [%s]", topicMessageBytes, err)
+	}
+
+	return nil
+}
+
+func (cmh ConsensusMessageHandler) listenForTx(messages []message.TransactionMessage) {
+	leader, err := cmh.electLeader(messages)
+	if err != nil {
+		log.Error(err)
+	}
 
 	// Check if I am a Leader -> Send
-	if cmh.operatorAddress == txSignatures[0].SignerAddress {
+	if cmh.operatorAddress == leader {
 		log.Infof("Leader [%s]", cmh.operatorAddress)
 		// I am leader!
 		// Send Tx
 		// Submit HCS Topic
+		return
 	}
+	time.Sleep(5 * time.Second)
 
-	// Start polling every amount of seconds
-	for {
-		// If transaction was sent -> return
-		// If not -> wait
-		// If a new leader is elected -> loop
-		time.Sleep(5 * time.Second)
+	// Check if Tx was sent
+	// if yes -> return
+	// if not -> listen
+	cmh.listenForTx(messages)
+}
+
+func (cmh ConsensusMessageHandler) electLeader(messages []message.TransactionMessage) (string, error) {
+	sort.Sort(message.ByTimestamp(messages))
+	for _, m := range messages {
+		txTimestamp, err := strconv.ParseInt(m.TransactionTimestamp, 10, 32)
+		if err != nil {
+			log.Error("Invalid Transaction Timestamp [%v] - [%s]", m.TransactionTimestamp, err)
+		}
+		deadline := txTimestamp + cmh.deadline
+
+		if time.Now().Unix() > deadline {
+			continue
+		}
+		return m.SignerAddress, nil
 	}
+	return "", errors.New("could not assign leader")
+}
 
-	return nil
+func (cmh ConsensusMessageHandler) findMyPosition(messages []message.TransactionMessage) int {
+	sort.Sort(message.ByTimestamp(messages))
+
+	for i := 0; i < len(messages); i++ {
+		if messages[i].SignerAddress == cmh.operatorAddress {
+			return i + 1
+		}
+	}
+	return -1
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {

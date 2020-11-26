@@ -21,11 +21,16 @@ hedera:
   watcher:
     crypto-transfer:
       accounts:
+        - id:
     consensus-message:
       topics:
+        - id:
+          max_retries: 10
   handler:
     crypto-transfer:
       topic_id:
-      polling_interval:
+      polling_interval: 5
     consensus-message:
       addresses:
+        -
+      send_deadline: 5
