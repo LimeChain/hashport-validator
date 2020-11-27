@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
@@ -11,6 +12,7 @@ import (
 )
 
 type EthWatcher struct {
+	abi             abi.ABI
 	client          *ethClient.EthereumClient
 	config          config.EthereumWatcher
 	contractAddress *common.Address
@@ -44,9 +46,17 @@ func (ew *EthWatcher) handleLog(eventLog types.Log, q *queue.Queue) {
 	}
 
 	switch eventLog.Topics[0].Hex() {
-	case eth.LogEventBridgeEthBurnHash.Hex():
-		log.Infof("Found a new [%s] event.", eth.LogEventBridgeEthBurn)
-		// TODO:
+	case eth.LogEventBridgeBurnHash.Hex():
+		eLog := eth.LogBurn{}
+		err := ew.abi.UnpackIntoInterface(&eLog, eth.LogEventBridgeBurn, eventLog.Data)
+		if err != nil {
+			log.Errorf("Failed to parse incoming log with data [%s]. Error [%s]", eventLog.Data, err)
+		}
+		log.Infof("New Burn Event for [%s], Amount [%s], Receiver Address [%s] has been found. Scheduling Hedera Threshold Transaction...",
+			eLog.Account.Hex(),
+			eLog.Amount.String(),
+			eLog.ReceiverAddress)
+		// TODO: send a hedera threshold transaction
 	}
 }
 
@@ -56,7 +66,13 @@ func NewEthereumWatcher(ethClient *ethClient.EthereumClient, config config.Ether
 		log.Fatal(err)
 	}
 
+	contractABI, err := eth.GetABI(config.ABI)
+	if err != nil {
+		log.Fatalf("Failed to parse ABI [%s]. Error [%s]", config.ABI, err)
+	}
+
 	return &EthWatcher{
+		abi:             contractABI,
 		config:          config,
 		client:          ethClient,
 		contractAddress: contractAddress,

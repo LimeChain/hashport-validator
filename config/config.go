@@ -82,6 +82,7 @@ type Ethereum struct {
 
 type EthereumWatcher struct {
 	ContractAddress string `yaml:"contract_address" env:"HEDERA_ETH_BRIDGE_WATCHER_ETH_CONTRACT_ADDRESS"`
+	ABI             string `yaml:"abi" env:"HEDERA_ETH_BRIDGE_WATCHER_ETH_ABI"`
 }
 
 type CryptoTransfer struct {

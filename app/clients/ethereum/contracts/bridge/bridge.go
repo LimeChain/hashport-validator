@@ -27,7 +27,7 @@ var (
 )
 
 // BridgeABI is the input ABI used to generate the binding from.
-const BridgeABI = "[{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"fromHbar\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"removeOperator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"setOperator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"hbarAddress\",\"type\":\"bytes\"}],\"name\":\"toHbar\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"fromHbarTransfers\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"sigCounts\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fromHbarTransfersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"getHash\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"operators\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token\",\"outputs\":[{\"internalType\":\"contractWHBAR\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalOperators\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const BridgeABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiverAddress\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiverAddress\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"getHash\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"sigCounts\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"mintTransfersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"operators\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"removeOperator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"setOperator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token\",\"outputs\":[{\"internalType\":\"contractWHBAR\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalOperators\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // Bridge is an auto generated Go binding around an Ethereum contract.
 type Bridge struct {
@@ -171,68 +171,6 @@ func (_Bridge *BridgeTransactorRaw) Transact(opts *bind.TransactOpts, method str
 	return _Bridge.Contract.contract.Transact(opts, method, params...)
 }
 
-// FromHbarTransfers is a free data retrieval call binding the contract method 0xcc2b0fd6.
-//
-// Solidity: function fromHbarTransfers(uint256 ) view returns(uint256 sigCounts)
-func (_Bridge *BridgeCaller) FromHbarTransfers(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
-	var out []interface{}
-	err := _Bridge.contract.Call(opts, &out, "fromHbarTransfers", arg0)
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// FromHbarTransfers is a free data retrieval call binding the contract method 0xcc2b0fd6.
-//
-// Solidity: function fromHbarTransfers(uint256 ) view returns(uint256 sigCounts)
-func (_Bridge *BridgeSession) FromHbarTransfers(arg0 *big.Int) (*big.Int, error) {
-	return _Bridge.Contract.FromHbarTransfers(&_Bridge.CallOpts, arg0)
-}
-
-// FromHbarTransfers is a free data retrieval call binding the contract method 0xcc2b0fd6.
-//
-// Solidity: function fromHbarTransfers(uint256 ) view returns(uint256 sigCounts)
-func (_Bridge *BridgeCallerSession) FromHbarTransfers(arg0 *big.Int) (*big.Int, error) {
-	return _Bridge.Contract.FromHbarTransfers(&_Bridge.CallOpts, arg0)
-}
-
-// FromHbarTransfersCount is a free data retrieval call binding the contract method 0xfb5c3c52.
-//
-// Solidity: function fromHbarTransfersCount() view returns(uint256)
-func (_Bridge *BridgeCaller) FromHbarTransfersCount(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _Bridge.contract.Call(opts, &out, "fromHbarTransfersCount")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// FromHbarTransfersCount is a free data retrieval call binding the contract method 0xfb5c3c52.
-//
-// Solidity: function fromHbarTransfersCount() view returns(uint256)
-func (_Bridge *BridgeSession) FromHbarTransfersCount() (*big.Int, error) {
-	return _Bridge.Contract.FromHbarTransfersCount(&_Bridge.CallOpts)
-}
-
-// FromHbarTransfersCount is a free data retrieval call binding the contract method 0xfb5c3c52.
-//
-// Solidity: function fromHbarTransfersCount() view returns(uint256)
-func (_Bridge *BridgeCallerSession) FromHbarTransfersCount() (*big.Int, error) {
-	return _Bridge.Contract.FromHbarTransfersCount(&_Bridge.CallOpts)
-}
-
 // GetHash is a free data retrieval call binding the contract method 0x084490b9.
 //
 // Solidity: function getHash(bytes transactionId, address receiver, uint256 amount, uint256 fee) pure returns(bytes32)
@@ -262,6 +200,68 @@ func (_Bridge *BridgeSession) GetHash(transactionId []byte, receiver common.Addr
 // Solidity: function getHash(bytes transactionId, address receiver, uint256 amount, uint256 fee) pure returns(bytes32)
 func (_Bridge *BridgeCallerSession) GetHash(transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int) ([32]byte, error) {
 	return _Bridge.Contract.GetHash(&_Bridge.CallOpts, transactionId, receiver, amount, fee)
+}
+
+// MintTransfers is a free data retrieval call binding the contract method 0xef2f0a8a.
+//
+// Solidity: function mintTransfers(uint256 ) view returns(uint256 sigCounts)
+func (_Bridge *BridgeCaller) MintTransfers(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var out []interface{}
+	err := _Bridge.contract.Call(opts, &out, "mintTransfers", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MintTransfers is a free data retrieval call binding the contract method 0xef2f0a8a.
+//
+// Solidity: function mintTransfers(uint256 ) view returns(uint256 sigCounts)
+func (_Bridge *BridgeSession) MintTransfers(arg0 *big.Int) (*big.Int, error) {
+	return _Bridge.Contract.MintTransfers(&_Bridge.CallOpts, arg0)
+}
+
+// MintTransfers is a free data retrieval call binding the contract method 0xef2f0a8a.
+//
+// Solidity: function mintTransfers(uint256 ) view returns(uint256 sigCounts)
+func (_Bridge *BridgeCallerSession) MintTransfers(arg0 *big.Int) (*big.Int, error) {
+	return _Bridge.Contract.MintTransfers(&_Bridge.CallOpts, arg0)
+}
+
+// MintTransfersCount is a free data retrieval call binding the contract method 0x5bec0dd3.
+//
+// Solidity: function mintTransfersCount() view returns(uint256)
+func (_Bridge *BridgeCaller) MintTransfersCount(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Bridge.contract.Call(opts, &out, "mintTransfersCount")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MintTransfersCount is a free data retrieval call binding the contract method 0x5bec0dd3.
+//
+// Solidity: function mintTransfersCount() view returns(uint256)
+func (_Bridge *BridgeSession) MintTransfersCount() (*big.Int, error) {
+	return _Bridge.Contract.MintTransfersCount(&_Bridge.CallOpts)
+}
+
+// MintTransfersCount is a free data retrieval call binding the contract method 0x5bec0dd3.
+//
+// Solidity: function mintTransfersCount() view returns(uint256)
+func (_Bridge *BridgeCallerSession) MintTransfersCount() (*big.Int, error) {
+	return _Bridge.Contract.MintTransfersCount(&_Bridge.CallOpts)
 }
 
 // Operators is a free data retrieval call binding the contract method 0x13e7c9d8.
@@ -388,25 +388,46 @@ func (_Bridge *BridgeCallerSession) TotalOperators() (*big.Int, error) {
 	return _Bridge.Contract.TotalOperators(&_Bridge.CallOpts)
 }
 
-// FromHbar is a paid mutator transaction binding the contract method 0xcd89a656.
+// Burn is a paid mutator transaction binding the contract method 0xfe9d9303.
 //
-// Solidity: function fromHbar(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
-func (_Bridge *BridgeTransactor) FromHbar(opts *bind.TransactOpts, transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Bridge.contract.Transact(opts, "fromHbar", transactionId, receiver, amount, fee, signatures)
+// Solidity: function burn(uint256 amount, bytes receiverAddress) returns()
+func (_Bridge *BridgeTransactor) Burn(opts *bind.TransactOpts, amount *big.Int, receiverAddress []byte) (*types.Transaction, error) {
+	return _Bridge.contract.Transact(opts, "burn", amount, receiverAddress)
 }
 
-// FromHbar is a paid mutator transaction binding the contract method 0xcd89a656.
+// Burn is a paid mutator transaction binding the contract method 0xfe9d9303.
 //
-// Solidity: function fromHbar(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
-func (_Bridge *BridgeSession) FromHbar(transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Bridge.Contract.FromHbar(&_Bridge.TransactOpts, transactionId, receiver, amount, fee, signatures)
+// Solidity: function burn(uint256 amount, bytes receiverAddress) returns()
+func (_Bridge *BridgeSession) Burn(amount *big.Int, receiverAddress []byte) (*types.Transaction, error) {
+	return _Bridge.Contract.Burn(&_Bridge.TransactOpts, amount, receiverAddress)
 }
 
-// FromHbar is a paid mutator transaction binding the contract method 0xcd89a656.
+// Burn is a paid mutator transaction binding the contract method 0xfe9d9303.
 //
-// Solidity: function fromHbar(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
-func (_Bridge *BridgeTransactorSession) FromHbar(transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Bridge.Contract.FromHbar(&_Bridge.TransactOpts, transactionId, receiver, amount, fee, signatures)
+// Solidity: function burn(uint256 amount, bytes receiverAddress) returns()
+func (_Bridge *BridgeTransactorSession) Burn(amount *big.Int, receiverAddress []byte) (*types.Transaction, error) {
+	return _Bridge.Contract.Burn(&_Bridge.TransactOpts, amount, receiverAddress)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xa70040fb.
+//
+// Solidity: function mint(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
+func (_Bridge *BridgeTransactor) Mint(opts *bind.TransactOpts, transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Bridge.contract.Transact(opts, "mint", transactionId, receiver, amount, fee, signatures)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xa70040fb.
+//
+// Solidity: function mint(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
+func (_Bridge *BridgeSession) Mint(transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Bridge.Contract.Mint(&_Bridge.TransactOpts, transactionId, receiver, amount, fee, signatures)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xa70040fb.
+//
+// Solidity: function mint(bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures) returns()
+func (_Bridge *BridgeTransactorSession) Mint(transactionId []byte, receiver common.Address, amount *big.Int, fee *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Bridge.Contract.Mint(&_Bridge.TransactOpts, transactionId, receiver, amount, fee, signatures)
 }
 
 // RemoveOperator is a paid mutator transaction binding the contract method 0xac8a584a.
@@ -472,27 +493,6 @@ func (_Bridge *BridgeTransactorSession) SetOperator(account common.Address) (*ty
 	return _Bridge.Contract.SetOperator(&_Bridge.TransactOpts, account)
 }
 
-// ToHbar is a paid mutator transaction binding the contract method 0x52a989d5.
-//
-// Solidity: function toHbar(uint256 amount, bytes hbarAddress) returns()
-func (_Bridge *BridgeTransactor) ToHbar(opts *bind.TransactOpts, amount *big.Int, hbarAddress []byte) (*types.Transaction, error) {
-	return _Bridge.contract.Transact(opts, "toHbar", amount, hbarAddress)
-}
-
-// ToHbar is a paid mutator transaction binding the contract method 0x52a989d5.
-//
-// Solidity: function toHbar(uint256 amount, bytes hbarAddress) returns()
-func (_Bridge *BridgeSession) ToHbar(amount *big.Int, hbarAddress []byte) (*types.Transaction, error) {
-	return _Bridge.Contract.ToHbar(&_Bridge.TransactOpts, amount, hbarAddress)
-}
-
-// ToHbar is a paid mutator transaction binding the contract method 0x52a989d5.
-//
-// Solidity: function toHbar(uint256 amount, bytes hbarAddress) returns()
-func (_Bridge *BridgeTransactorSession) ToHbar(amount *big.Int, hbarAddress []byte) (*types.Transaction, error) {
-	return _Bridge.Contract.ToHbar(&_Bridge.TransactOpts, amount, hbarAddress)
-}
-
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
 // Solidity: function transferOwnership(address newOwner) returns()
@@ -512,6 +512,278 @@ func (_Bridge *BridgeSession) TransferOwnership(newOwner common.Address) (*types
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_Bridge *BridgeTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _Bridge.Contract.TransferOwnership(&_Bridge.TransactOpts, newOwner)
+}
+
+// BridgeBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the Bridge contract.
+type BridgeBurnIterator struct {
+	Event *BridgeBurn // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BridgeBurnIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BridgeBurn)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BridgeBurn)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BridgeBurnIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BridgeBurnIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BridgeBurn represents a Burn event raised by the Bridge contract.
+type BridgeBurn struct {
+	Account         common.Address
+	Amount          *big.Int
+	ReceiverAddress []byte
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterBurn is a free log retrieval operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+//
+// Solidity: event Burn(address account, uint256 amount, bytes receiverAddress)
+func (_Bridge *BridgeFilterer) FilterBurn(opts *bind.FilterOpts) (*BridgeBurnIterator, error) {
+
+	logs, sub, err := _Bridge.contract.FilterLogs(opts, "Burn")
+	if err != nil {
+		return nil, err
+	}
+	return &BridgeBurnIterator{contract: _Bridge.contract, event: "Burn", logs: logs, sub: sub}, nil
+}
+
+// WatchBurn is a free log subscription operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+//
+// Solidity: event Burn(address account, uint256 amount, bytes receiverAddress)
+func (_Bridge *BridgeFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *BridgeBurn) (event.Subscription, error) {
+
+	logs, sub, err := _Bridge.contract.WatchLogs(opts, "Burn")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BridgeBurn)
+				if err := _Bridge.contract.UnpackLog(event, "Burn", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseBurn is a log parse operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+//
+// Solidity: event Burn(address account, uint256 amount, bytes receiverAddress)
+func (_Bridge *BridgeFilterer) ParseBurn(log types.Log) (*BridgeBurn, error) {
+	event := new(BridgeBurn)
+	if err := _Bridge.contract.UnpackLog(event, "Burn", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// BridgeMintIterator is returned from FilterMint and is used to iterate over the raw logs and unpacked data for Mint events raised by the Bridge contract.
+type BridgeMintIterator struct {
+	Event *BridgeMint // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BridgeMintIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BridgeMint)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BridgeMint)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BridgeMintIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BridgeMintIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BridgeMint represents a Mint event raised by the Bridge contract.
+type BridgeMint struct {
+	Account       common.Address
+	Amount        *big.Int
+	TransactionId []byte
+	Raw           types.Log // Blockchain specific contextual infos
+}
+
+// FilterMint is a free log retrieval operation binding the contract event 0x13b4590e2f417016fce3f02298116b2ad6220e5ee149b4c55d2f1d9f50127623.
+//
+// Solidity: event Mint(address account, uint256 amount, bytes transactionId)
+func (_Bridge *BridgeFilterer) FilterMint(opts *bind.FilterOpts) (*BridgeMintIterator, error) {
+
+	logs, sub, err := _Bridge.contract.FilterLogs(opts, "Mint")
+	if err != nil {
+		return nil, err
+	}
+	return &BridgeMintIterator{contract: _Bridge.contract, event: "Mint", logs: logs, sub: sub}, nil
+}
+
+// WatchMint is a free log subscription operation binding the contract event 0x13b4590e2f417016fce3f02298116b2ad6220e5ee149b4c55d2f1d9f50127623.
+//
+// Solidity: event Mint(address account, uint256 amount, bytes transactionId)
+func (_Bridge *BridgeFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *BridgeMint) (event.Subscription, error) {
+
+	logs, sub, err := _Bridge.contract.WatchLogs(opts, "Mint")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BridgeMint)
+				if err := _Bridge.contract.UnpackLog(event, "Mint", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseMint is a log parse operation binding the contract event 0x13b4590e2f417016fce3f02298116b2ad6220e5ee149b4c55d2f1d9f50127623.
+//
+// Solidity: event Mint(address account, uint256 amount, bytes transactionId)
+func (_Bridge *BridgeFilterer) ParseMint(log types.Log) (*BridgeMint, error) {
+	event := new(BridgeMint)
+	if err := _Bridge.contract.UnpackLog(event, "Mint", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // BridgeOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the Bridge contract.

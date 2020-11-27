@@ -65,7 +65,7 @@ func (ec *EthereumClient) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.C
 		return nil, err
 	}
 
-	return ec.contractInstance.FromHbar(
+	return ec.contractInstance.Mint(
 		opts,
 		[]byte(ctm.TransactionId),
 		common.HexToAddress(ctm.EthAddress),

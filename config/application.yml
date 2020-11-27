@@ -28,6 +28,7 @@ hedera:
       topics:
     eth:
       contract_address:
+      abi:
   handler:
     crypto-transfer:
       topic_id:
