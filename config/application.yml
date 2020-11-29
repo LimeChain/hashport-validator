@@ -34,4 +34,4 @@ hedera:
       topic_id:
       addresses:
         -
-      send_deadline: 5
+      send_deadline: 300

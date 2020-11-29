@@ -9,5 +9,4 @@ message CryptoTransferMessage {
   string ethAddress = 2;
   uint64 amount = 3;
   string fee = 4;
-  string transactionTimestamp = 5;
 }

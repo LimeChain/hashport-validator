@@ -176,12 +176,11 @@ func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queu
 
 func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
 	topicSigMessage := &protomsg.TopicSignatureMessage{
-		TransactionId:        message.TransactionId,
-		EthAddress:           message.EthAddress,
-		Amount:               message.Amount,
-		Fee:                  message.Fee,
-		Signature:            signature,
-		TransactionTimestamp: message.TransactionTimestamp,
+		TransactionId: message.TransactionId,
+		EthAddress:    message.EthAddress,
+		Amount:        message.Amount,
+		Fee:           message.Fee,
+		Signature:     signature,
 	}
 
 	topicSigMessageBytes, err := proto.Marshal(topicSigMessage)
