@@ -6,10 +6,11 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-state-proof-verifier-go/stateproof"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -139,6 +140,23 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				_, e = helper.ToBigInt(feeString)
 				if e != nil {
 					log.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
+					continue
+				}
+
+				stateProof, e := ctw.client.GetStateProof(tx.TransactionID)
+				if e != nil {
+					log.Errorf("[%s] Crypto Transfer Watcher: Could not GET state proof, TransactionID [%s]. Error [%s]", ctw.accountID.String(), tx.TransactionID, e)
+					continue
+				}
+
+				verified, e := stateproof.Verify(tx.TransactionID, stateProof)
+				if e != nil {
+					log.Errorf("[%s] Crypto Transfer Watcher: Error while trying to verify state proof for TransactionID [%s]. Error [%s]", ctw.accountID.String(), tx.TransactionID, e)
+					continue
+				}
+
+				if !verified {
+					log.Errorf("[%s] Crypto Transfer Watcher: Failed to verify state proof for TransactionID [%s]", ctw.accountID.String(), tx.TransactionID)
 					continue
 				}
 
