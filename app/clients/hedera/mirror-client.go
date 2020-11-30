@@ -64,12 +64,15 @@ func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.H
 		return nil, e
 	}
 
-	bodyBytes, err := readResponseBody(response)
+	bodyBytes, e := readResponseBody(response)
+	if e != nil {
+		return nil, e
+	}
 
 	var transactions *transaction.HederaTransactions
-	err = json.Unmarshal(bodyBytes, &transactions)
-	if err != nil {
-		return nil, err
+	e = json.Unmarshal(bodyBytes, &transactions)
+	if e != nil {
+		return nil, e
 	}
 
 	return transactions, nil
