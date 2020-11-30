@@ -77,9 +77,7 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature []
 	ethSig := decodedSig
 	if decodedSig[64] == 0 || decodedSig[64] == 1 {
 		ethSig[64] += 27
-	}
-
-	if decodedSig[64] == 27 || decodedSig[64] == 28 {
+	} else if decodedSig[64] == 27 || decodedSig[64] == 28 {
 		decodedSig[64] -= 27
 	}
 
