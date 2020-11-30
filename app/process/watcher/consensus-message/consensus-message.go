@@ -147,7 +147,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		Subscribe(
 			ctw.nodeClient.GetClient(),
 			func(response hedera.TopicMessage) {
-				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
+				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
 				ctw.processMessage(response.Contents, timestamp.NewTimestamp(response.ConsensusTimestamp.Unix(), 0), q)
 			},
 		)

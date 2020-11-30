@@ -28,7 +28,7 @@ type ConsensusMessageHandler struct {
 	operatorAddress       string
 	deadline              int
 	hederaNodeClient      *hederaClient.HederaNodeClient
-	topicID               hedera.ConsensusTopicID
+	topicID               hedera.TopicID
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {

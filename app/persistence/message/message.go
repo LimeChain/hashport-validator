@@ -42,7 +42,7 @@ func (m MessageRepository) Create(message *TransactionMessage) error {
 
 func (m MessageRepository) GetByTransactionWith(txId string, hash string) ([]TransactionMessage, error) {
 	var messages []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Find(&messages).Error
+	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Order("transaction_timestamp_seconds, transaction_timestamp_nanoseconds").Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
