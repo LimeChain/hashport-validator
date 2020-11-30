@@ -8,7 +8,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"math/big"
 	"strconv"
-	"strings"
 )
 
 type LogBurn struct {
@@ -22,10 +21,6 @@ var (
 	logEventBridgeBurnBytes = []byte("Burn(address,uint256,bytes)")
 	LogEventBridgeBurnHash  = crypto.Keccak256Hash(logEventBridgeBurnBytes)
 )
-
-func GetABI(abiJSON string) (abi.ABI, error) {
-	return abi.JSON(strings.NewReader(abiJSON))
-}
 
 func generateArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)

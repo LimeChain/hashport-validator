@@ -31,8 +31,8 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 		select {
 		case err := <-sub.Err():
 			log.Errorf("Event subscription failed with error [%s].", err)
-		case vLog := <-events:
-			ew.handleLog(vLog, q)
+		case eventLog := <-events:
+			ew.handleLog(eventLog, q)
 		}
 	}
 }
