@@ -48,6 +48,7 @@ type Config struct {
 
 type Hedera struct {
 	Validator  Validator  `yaml:"validator"`
+	Eth        Ethereum   `yaml:"eth"`
 	MirrorNode MirrorNode `yaml:"mirror_node"`
 	Client     Client     `yaml:"client"`
 	Watcher    Watcher    `yaml:"watcher"`
@@ -71,6 +72,11 @@ type CryptoTransferHandler struct {
 type Watcher struct {
 	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
 	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
+}
+
+type Ethereum struct {
+	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
+	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_CONTRACT_ADDRESS"`
 }
 
 type CryptoTransfer struct {
