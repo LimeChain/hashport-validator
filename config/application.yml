@@ -26,9 +26,6 @@ hedera:
       accounts:
     consensus-message:
       topics:
-    eth:
-      contract_address:
-      abi:
   handler:
     crypto-transfer:
       topic_id:

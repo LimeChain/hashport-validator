@@ -4,45 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 // Ethereum Node Client
 type EthereumClient struct {
-	client           *ethclient.Client
-	config           config.Ethereum
-	contractInstance *bridge.Bridge
-}
-
-func (ec *EthereumClient) SubscribeToEventLogs(contractAddress common.Address) (ethereum.Subscription, chan types.Log, error) {
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{contractAddress},
-	}
-	logs := make(chan types.Log)
-
-	sub, err := ec.client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return sub, logs, nil
+	Client *ethclient.Client
+	config config.Ethereum
 }
 
 func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*common.Address, error) {
 	address := common.HexToAddress(contractAddress)
 
-	bytecode, err := ec.client.CodeAt(context.Background(), address, nil)
+	bytecode, err := ec.Client.CodeAt(context.Background(), address, nil)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Failed to Get Code for contract address [%s].", contractAddress))
 	}
@@ -52,26 +31,6 @@ func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*comm
 	}
 
 	return &address, nil
-}
-
-func (ec *EthereumClient) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
-	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
-	if err != nil {
-		return nil, err
-	}
-
-	feeBn, err := helper.ToBigInt(ctm.Fee)
-	if err != nil {
-		return nil, err
-	}
-
-	return ec.contractInstance.Mint(
-		opts,
-		[]byte(ctm.TransactionId),
-		common.HexToAddress(ctm.EthAddress),
-		amountBn,
-		feeBn,
-		signatures)
 }
 
 func (ec *EthereumClient) WaitForTransactionStatus(hash common.Hash) (isSuccessful bool, err error) {
@@ -86,7 +45,7 @@ func (ec *EthereumClient) WaitForTransactionStatus(hash common.Hash) (isSuccessf
 
 func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
-		_, isPending, err := ec.client.TransactionByHash(context.Background(), hash)
+		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +55,7 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 		time.Sleep(5 * time.Second)
 	}
 
-	return ec.client.TransactionReceipt(context.Background(), hash)
+	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
 func NewEthereumClient(config config.Ethereum) *EthereumClient {
@@ -106,21 +65,9 @@ func NewEthereumClient(config config.Ethereum) *EthereumClient {
 	}
 
 	ethereumClient := &EthereumClient{
+		Client: client,
 		config: config,
-		client: client,
 	}
-
-	bridgeContractAddress, err := ethereumClient.ValidateContractAddress(config.BridgeContractAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bridgeContractInstance, err := bridge.NewBridge(*bridgeContractAddress, ethereumClient.client)
-	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", config.BridgeContractAddress, err)
-	}
-
-	ethereumClient.contractInstance = bridgeContractInstance
 
 	return ethereumClient
 }

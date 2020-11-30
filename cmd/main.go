@@ -58,7 +58,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Watcher.EthereumWatcher))
+	server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }

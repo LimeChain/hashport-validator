@@ -72,17 +72,11 @@ type CryptoTransferHandler struct {
 type Watcher struct {
 	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
 	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
-	EthereumWatcher  EthereumWatcher  `yaml:"eth"`
 }
 
 type Ethereum struct {
 	InfuraUrl             string `yaml:"infura_url" env:"HEDERA_ETH_BRIDGE_ETH_INFURA_URL"`
 	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_CONTRACT_ADDRESS"`
-}
-
-type EthereumWatcher struct {
-	ContractAddress string `yaml:"contract_address" env:"HEDERA_ETH_BRIDGE_WATCHER_ETH_CONTRACT_ADDRESS"`
-	ABI             string `yaml:"abi" env:"HEDERA_ETH_BRIDGE_WATCHER_ETH_ABI"`
 }
 
 type CryptoTransfer struct {
