@@ -15,6 +15,7 @@ import (
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"sort"
 	"strings"
 	"time"
@@ -102,26 +103,27 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	mes, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
 
-	if mes != nil {
+	if mes != nil || err == nil {
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
-		TransactionId:        m.TransactionId,
-		EthAddress:           m.EthAddress,
-		Amount:               m.Amount,
-		Fee:                  m.Fee,
-		Signature:            m.Signature,
-		Hash:                 hexHash,
-		SignerAddress:        address.String(),
-		TransactionTimestamp: m.TransactionTimestamp,
+		TransactionId:             m.TransactionId,
+		EthAddress:                m.EthAddress,
+		Amount:                    m.Amount,
+		Fee:                       m.Fee,
+		Signature:                 m.Signature,
+		Hash:                      hexHash,
+		SignerAddress:             address.String(),
+		TransactionTimestampWhole: m.TransactionTimestampWhole,
+		TransactionTimestampDec:   m.TransactionTimestampDec,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, m.Signature, err))
 	}
 
 	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
@@ -162,15 +164,15 @@ func (cmh ConsensusMessageHandler) start(txSignatures []message.TransactionMessa
 		EthTxHash: "0x12345",
 	}
 
-	topicMessageBytes, err := proto.Marshal(tasm)
+	_, err = proto.Marshal(tasm) // topicMessageBytes
 	if err != nil {
 		log.Error("Could not marshal Topic Aggregated Signatures Message [%s] - [%s]", tasm, err)
 	}
 
-	_, err = cmh.hederaNodeClient.SubmitTopicConsensusMessage(cmh.topicID, topicMessageBytes)
-	if err != nil {
-		log.Error("Could not submit Topic Consensus Message [%s] - [%s]", topicMessageBytes, err)
-	}
+	//_, err = cmh.hederaNodeClient.SubmitTopicConsensusMessage(cmh.topicID, topicMessageBytes)
+	//if err != nil {
+	//	log.Error("Could not submit Topic Consensus Message [%s] - [%s]", topicMessageBytes, err)
+	//}
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {

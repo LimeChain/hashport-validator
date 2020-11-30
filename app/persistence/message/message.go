@@ -6,14 +6,15 @@ import (
 
 type TransactionMessage struct {
 	gorm.Model
-	TransactionId        string
-	EthAddress           string
-	Amount               uint64
-	Fee                  string
-	Signature            string
-	Hash                 string
-	SignerAddress        string
-	TransactionTimestamp uint64
+	TransactionId             string
+	EthAddress                string
+	Amount                    uint64
+	Fee                       string
+	Signature                 string
+	Hash                      string
+	SignerAddress             string
+	TransactionTimestampWhole int64
+	TransactionTimestampDec   int64
 }
 
 type MessageRepository struct {
@@ -27,12 +28,12 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 }
 
 func (m MessageRepository) GetTransaction(txId, signature, hash string) (*TransactionMessage, error) {
-	var message *TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).First(&message).Error
+	var message TransactionMessage
+	err := m.dbClient.Model(&TransactionMessage{}).Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).First(message).Error
 	if err != nil {
 		return nil, err
 	}
-	return message, nil
+	return &message, nil
 }
 
 func (m MessageRepository) Create(message *TransactionMessage) error {

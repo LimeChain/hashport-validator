@@ -12,6 +12,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/timestamp"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -70,7 +71,7 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
+		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, timestamp.NewTimestamp(account.StartTimestamp, 0)))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil
@@ -86,7 +87,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
+		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaClient, id, repository, topic.MaxRetries, timestamp.NewTimestamp(topic.StartTimestamp, 0)))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil
