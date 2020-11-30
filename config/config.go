@@ -75,7 +75,7 @@ type Watcher struct {
 }
 
 type Ethereum struct {
-	InfuraUrl             string `yaml:"infura_url" env:"HEDERA_ETH_BRIDGE_ETH_INFURA_URL"`
+	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
 	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_CONTRACT_ADDRESS"`
 }
 

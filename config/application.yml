@@ -9,7 +9,7 @@ hedera:
       username: validator
     port: 5200
   eth:
-    infura_url:
+    node_url:
     bridge_contract_address:
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600

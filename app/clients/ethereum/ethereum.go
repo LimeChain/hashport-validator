@@ -59,7 +59,7 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 }
 
 func NewEthereumClient(config config.Ethereum) *EthereumClient {
-	client, err := ethclient.Dial(config.InfuraUrl)
+	client, err := ethclient.Dial(config.NodeUrl)
 	if err != nil {
 		log.Fatalf("Failed to initialize EthereumClient. Error [%s]", err)
 	}
