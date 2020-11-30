@@ -33,7 +33,7 @@ func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*comm
 	return &address, nil
 }
 
-func (ec *EthereumClient) WaitForTransactionStatus(hash common.Hash) (isSuccessful bool, err error) {
+func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
 	receipt, err := ec.waitForTransactionReceipt(hash)
 	if err != nil {
 		return false, err
