@@ -3,7 +3,6 @@ package ethereum
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"math/big"
@@ -15,12 +14,6 @@ type LogBurn struct {
 	Amount          *big.Int
 	ReceiverAddress []byte
 }
-
-var (
-	LogEventBridgeBurn      = "Burn"
-	logEventBridgeBurnBytes = []byte("Burn(address,uint256,bytes)")
-	LogEventBridgeBurnHash  = crypto.Keccak256Hash(logEventBridgeBurnBytes)
-)
 
 func generateArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
