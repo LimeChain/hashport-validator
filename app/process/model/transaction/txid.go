@@ -17,7 +17,6 @@ func FromHederaTransactionID(id *hedera.TransactionID) TxId {
 	split := strings.Split(stringTxId, "@")
 	accId := split[0]
 
-	fmt.Println(split)
 	split = strings.Split(split[1], ".")
 
 	return TxId{

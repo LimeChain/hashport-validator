@@ -12,8 +12,12 @@ type HederaNodeClient struct {
 	client *hedera.Client
 }
 
-func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.ConsensusTopicID, message []byte) (*hedera.TransactionID, error) {
-	id, err := hedera.NewConsensusMessageSubmitTransaction().
+func (hc *HederaNodeClient) GetClient() *hedera.Client {
+	return hc.client
+}
+
+func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+	id, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
@@ -28,10 +32,10 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.Consensus
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.String(), receipt.Status))
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
 	}
 
-	return &id, err
+	return &id.TransactionID, err
 }
 
 func NewNodeClient(config config.Client) *HederaNodeClient {
@@ -52,7 +56,7 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 		log.Fatalf("Invalid Operator AccountId provided: [%s]", config.Operator.AccountId)
 	}
 
-	privateKey, err := hedera.Ed25519PrivateKeyFromString(config.Operator.PrivateKey)
+	privateKey, err := hedera.PrivateKeyFromString(config.Operator.PrivateKey)
 	if err != nil {
 		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey)
 	}
