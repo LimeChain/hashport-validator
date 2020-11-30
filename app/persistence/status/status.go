@@ -56,8 +56,8 @@ func (s StatusRepository) CreateTimestamp(entityID string, timestamp *timestamp.
 		Name:         "Last fetched timestamp",
 		EntityID:     entityID,
 		Code:         s.lastFetchedTimestampCode,
-		WholeValue:   timestamp.Whole,
-		DecimalValue: timestamp.Dec,
+		WholeValue:   timestamp.Seconds,
+		DecimalValue: timestamp.NanoSeconds,
 	}).Error
 }
 
@@ -68,8 +68,8 @@ func (s StatusRepository) UpdateLastFetchedTimestamp(entityID string, timestamp 
 			Name:         "Last fetched timestamp",
 			EntityID:     entityID,
 			Code:         s.lastFetchedTimestampCode,
-			WholeValue:   timestamp.Whole,
-			DecimalValue: timestamp.Dec,
+			WholeValue:   timestamp.Seconds,
+			DecimalValue: timestamp.NanoSeconds,
 		}).
 		Error
 }

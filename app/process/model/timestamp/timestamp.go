@@ -5,21 +5,21 @@ import (
 )
 
 type Timestamp struct {
-	Whole int64
-	Dec   int64
+	Seconds     int64
+	NanoSeconds int64
 }
 
-func NewTimestamp(whole int64, dec int64) *Timestamp {
+func NewTimestamp(seconds int64, nanoSeconds int64) *Timestamp {
 	return &Timestamp{
-		Whole: whole,
-		Dec:   dec,
+		Seconds:     seconds,
+		NanoSeconds: nanoSeconds,
 	}
 }
 
 func (t Timestamp) IsValid() bool {
-	return t.Whole > 0 || t.Dec > 0
+	return t.Seconds > 0 || t.NanoSeconds > 0
 }
 
 func (t Timestamp) ToString() string {
-	return fmt.Sprintf("%d.%d", t.Whole, t.Dec)
+	return fmt.Sprintf("%d.%d", t.Seconds, t.NanoSeconds)
 }

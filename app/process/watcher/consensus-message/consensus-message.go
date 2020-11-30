@@ -90,8 +90,8 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp *times
 		log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
 		return
 	}
-	msg.TransactionTimestampWhole = timestamp.Whole
-	msg.TransactionTimestampDec = timestamp.Dec
+	msg.TransactionTimestampWhole = timestamp.Seconds
+	msg.TransactionTimestampDec = timestamp.NanoSeconds
 
 	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
