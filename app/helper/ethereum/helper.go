@@ -68,7 +68,7 @@ func DecodeSignature(signature string) ([]byte, error) {
 		return nil, err
 	}
 
-	// note: https://github.com/ethereum/go-ethereum/issues/1975
+	// note: https://github.com/ethereum/go-ethereum/issues/19751
 	decodedSig[64] -= 27
 
 	return decodedSig, nil

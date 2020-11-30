@@ -24,7 +24,7 @@ func (s *Signer) Sign(msg []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// note: https://github.com/ethereum/go-ethereum/issues/1975
+	// note: https://github.com/ethereum/go-ethereum/issues/19751
 	signature[64] += 27
 
 	return signature, nil
