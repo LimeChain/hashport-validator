@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
@@ -59,4 +60,16 @@ func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
 		common.HexToAddress(ctm.EthAddress),
 		amountBn,
 		feeBn)
+}
+
+func DecodeSignature(signature string) ([]byte, error) {
+	decodedSig, err := hex.DecodeString(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	// note: https://github.com/ethereum/go-ethereum/issues/1975
+	decodedSig[64] -= 27
+
+	return decodedSig, nil
 }

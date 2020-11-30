@@ -56,7 +56,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Printf("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
 
-	decodedSig, err := hex.DecodeString(m.GetSignature())
+	decodedSig, err := ethhelper.DecodeSignature(m.GetSignature())
 	if err != nil {
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
