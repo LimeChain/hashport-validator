@@ -24,13 +24,13 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 	events := make(chan *bridgecontract.BridgeBurn)
 	sub, err := ew.contractService.WatchBurnEventLogs(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for events for contract address [%s]. Error [%s].", ew.config.BridgeContractAddress, err)
+		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.BridgeContractAddress, err)
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("Event subscription failed with error [%s].", err)
+			log.Errorf("Burn Event Logs subscription failed. Error [%s].", err)
 		case eventLog := <-events:
 			ew.handleLog(eventLog, q)
 		}
@@ -38,11 +38,11 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 }
 
 func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Queue) {
-	log.Infof("New Burn Event for [%s], Amount [%s], Receiver Address [%s] has been found. Scheduling Hedera Threshold Transaction...",
+	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		eventLog.ReceiverAddress)
-	// TODO: send a hedera threshold transaction
+	// TODO: push to queue with message type, corresponding to ETH Handler
 }
 
 func NewEthereumWatcher(ethClient *ethClient.EthereumClient, config config.Ethereum) *EthWatcher {
