@@ -95,4 +95,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaClient *heder
 func initLogger() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
 }

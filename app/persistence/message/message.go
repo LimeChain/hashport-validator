@@ -16,6 +16,18 @@ type TransactionMessage struct {
 	TransactionTimestamp uint64
 }
 
+type ByTimestamp []TransactionMessage
+
+func (tm ByTimestamp) Len() int {
+	return len(tm)
+}
+func (tm ByTimestamp) Swap(i, j int) {
+	tm[i], tm[j] = tm[j], tm[i]
+}
+func (tm ByTimestamp) Less(i, j int) bool {
+	return tm[i].TransactionTimestamp < tm[j].TransactionTimestamp
+}
+
 type MessageRepository struct {
 	dbClient *gorm.DB
 }
@@ -27,12 +39,12 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 }
 
 func (m MessageRepository) GetTransaction(txId, signature, hash string) (*TransactionMessage, error) {
-	var message *TransactionMessage
+	var message TransactionMessage
 	err := m.dbClient.Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).First(&message).Error
 	if err != nil {
 		return nil, err
 	}
-	return message, nil
+	return &message, nil
 }
 
 func (m MessageRepository) Create(message *TransactionMessage) error {
@@ -41,7 +53,7 @@ func (m MessageRepository) Create(message *TransactionMessage) error {
 
 func (m MessageRepository) GetByTransactionWith(txId string, hash string) ([]TransactionMessage, error) {
 	var messages []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Find(&messages).Error
+	err := m.dbClient.Model(&TransactionMessage{}).Where("transaction_id = ? and hash = ?", txId, hash).Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}

@@ -10,23 +10,23 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"sort"
+	"gorm.io/gorm"
 	"strings"
-	"time"
 )
 
 type ConsensusMessageHandler struct {
 	repository            repositories.MessageRepository
 	operatorsEthAddresses []string
-	operatorAddress       string
 	deadline              int
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	topicID               hedera.ConsensusTopicID
+	scheduler             *scheduler.Scheduler
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
@@ -39,13 +39,16 @@ func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClie
 		log.Fatal("Invalid topic id: [%v]", config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
 	}
 
+	executionWindow := config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline
+	operatorAddress := eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String()
+
 	return &ConsensusMessageHandler{
 		repository:            r,
 		operatorsEthAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
-		operatorAddress:       eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String(),
 		deadline:              config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
+		scheduler:             scheduler.NewScheduler(operatorAddress, int64(executionWindow)),
 	}
 }
 
@@ -77,13 +80,21 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Infof("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
 
+	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
+	hexHash := hex.EncodeToString(hash)
+
+	exists, err := cmh.alreadyExists(m, hexHash)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
+	}
+
 	decodedSig, err := hex.DecodeString(m.GetSignature())
 	if err != nil {
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
-
-	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
-	hexHash := hex.EncodeToString(hash)
 
 	key, err := crypto.Ecrecover(hash, decodedSig)
 	if err != nil {
@@ -99,15 +110,6 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	if !cmh.isValidAddress(address.String()) {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
-	}
-
-	mes, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
-	}
-
-	if mes != nil {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
@@ -132,45 +134,23 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
-		log.Infof("Signatures for TX ID [%s] were collected. Proceeding with leader election.", m.TransactionId)
-		go cmh.start(txSignatures, hexHash)
-		log.Infof("Started leader election and preparation of aggregated signatures message.")
+		log.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
+		err := cmh.scheduler.Schedule(m.TransactionId, txSignatures)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) start(txSignatures []message.TransactionMessage, hash string) {
-	pos, err := cmh.findMyPosition(txSignatures)
-	if err != nil {
-		log.Errorf("Failed in finding leader position: [%s]", err)
-		return
-	}
+func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatureMessage, hexHash string) (bool, error) {
+	_, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
+	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
-	now := time.Now()
-	deadline := now.Add(time.Second * time.Duration(cmh.deadline*pos))
-
-	for now.Before(deadline) {
-		if cmh.transactionSent() {
-			return
-		}
-		now = time.Now()
-		time.Sleep(10 * time.Second)
+	if err != nil && !notFound {
+		return false, errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
 	}
-
-	tasm := &validatorproto.TopicAggregatedSignaturesMessage{
-		Hash:      hash,
-		EthTxHash: "0x12345",
-	}
-
-	topicMessageBytes, err := proto.Marshal(tasm)
-	if err != nil {
-		log.Error("Could not marshal Topic Aggregated Signatures Message [%s] - [%s]", tasm, err)
-	}
-
-	_, err = cmh.hederaNodeClient.SubmitTopicConsensusMessage(cmh.topicID, topicMessageBytes)
-	if err != nil {
-		log.Error("Could not submit Topic Consensus Message [%s] - [%s]", topicMessageBytes, err)
-	}
+	return !notFound, nil
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
@@ -182,22 +162,6 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 		return false
 	}
 	return true
-}
-
-func (cmh ConsensusMessageHandler) transactionSent() bool {
-	// TODO: Implement Transaction status check
-	return false
-}
-
-func (cmh ConsensusMessageHandler) findMyPosition(messages []message.TransactionMessage) (int, error) {
-	sort.Sort(message.ByTimestamp(messages))
-	for i := 0; i < len(messages); i++ {
-		if messages[i].SignerAddress == cmh.operatorAddress {
-			return i, nil
-		}
-	}
-
-	return -1, errors.New(fmt.Sprintf("Operator is not amongst the potential leaders - [%v]", cmh.operatorAddress))
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
