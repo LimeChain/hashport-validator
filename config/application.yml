@@ -10,7 +10,7 @@ hedera:
     port: 5200
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600
-    api_address: https://testnet.mirrornode.hedera.com/api/v1/
+    api_address: http://testnet.mirrornode.hedera.com/api/v1/
     polling_interval: 5
   client:
     network_type: testnet
@@ -22,10 +22,13 @@ hedera:
     crypto-transfer:
       accounts:
         - id:
+          max_retries: 10
+          start_timestamp:
     consensus-message:
       topics:
         - id:
           max_retries: 10
+          start_timestamp:
   handler:
     crypto-transfer:
       topic_id:
