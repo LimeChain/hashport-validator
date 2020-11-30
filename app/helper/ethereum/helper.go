@@ -5,15 +5,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
-	"math/big"
 	"strconv"
 )
-
-type LogBurn struct {
-	Account         common.Address
-	Amount          *big.Int
-	ReceiverAddress []byte
-}
 
 func generateArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
