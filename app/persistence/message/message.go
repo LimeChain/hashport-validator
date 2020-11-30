@@ -6,15 +6,15 @@ import (
 
 type TransactionMessage struct {
 	gorm.Model
-	TransactionId             string
-	EthAddress                string
-	Amount                    uint64
-	Fee                       string
-	Signature                 string
-	Hash                      string
-	SignerAddress             string
-	TransactionTimestampWhole int64
-	TransactionTimestampDec   int64
+	TransactionId                   string
+	EthAddress                      string
+	Amount                          uint64
+	Fee                             string
+	Signature                       string
+	Hash                            string
+	SignerAddress                   string
+	TransactionTimestampSeconds     int64
+	TransactionTimestampNanoseconds int64
 }
 
 type MessageRepository struct {

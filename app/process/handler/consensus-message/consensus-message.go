@@ -112,15 +112,15 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
-		TransactionId:             m.TransactionId,
-		EthAddress:                m.EthAddress,
-		Amount:                    m.Amount,
-		Fee:                       m.Fee,
-		Signature:                 m.Signature,
-		Hash:                      hexHash,
-		SignerAddress:             address.String(),
-		TransactionTimestampWhole: m.TransactionTimestampWhole,
-		TransactionTimestampDec:   m.TransactionTimestampDec,
+		TransactionId:                   m.TransactionId,
+		EthAddress:                      m.EthAddress,
+		Amount:                          m.Amount,
+		Fee:                             m.Fee,
+		Signature:                       m.Signature,
+		Hash:                            hexHash,
+		SignerAddress:                   address.String(),
+		TransactionTimestampSeconds:     m.TransactionTimestampSeconds,
+		TransactionTimestampNanoseconds: m.TransactionTimestampNanoSeconds,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, m.Signature, err))
