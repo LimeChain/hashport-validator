@@ -92,7 +92,13 @@ func (s *Scheduler) Cancel(id string) error {
 }
 
 // NewScheduler - Creates new instance of Scheduler
-func NewScheduler(topicId string, operator string, executionWindow int64, contractService *bridge.BridgeContractService, hederaClient *hederaClient.HederaNodeClient) *Scheduler {
+func NewScheduler(
+	topicId string,
+	operator string,
+	executionWindow int64,
+	contractService *bridge.BridgeContractService,
+	hederaClient *hederaClient.HederaNodeClient,
+) *Scheduler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
 		log.Fatal("Invalid topic id: [%v]", topicID)

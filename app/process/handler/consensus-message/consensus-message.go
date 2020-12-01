@@ -36,7 +36,13 @@ func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 	log.Println("Recovery method not implemented yet.")
 }
 
-func NewConsensusMessageHandler(configuration config.ConsensusMessageHandler, r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient, scheduler *scheduler.Scheduler, signer *eth.Signer) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(
+	configuration config.ConsensusMessageHandler,
+	r repositories.MessageRepository,
+	hederaNodeClient *hederaClient.HederaNodeClient,
+	scheduler *scheduler.Scheduler,
+	signer *eth.Signer,
+) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
 	if err != nil {
 		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
