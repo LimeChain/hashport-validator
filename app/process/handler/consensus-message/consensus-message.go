@@ -11,6 +11,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -56,20 +57,35 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 }
 
 func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
-	err := cmh.handlePayload(payload)
+	m := &validatorproto.TopicSubmissionMessage{}
+	err := proto.Unmarshal(payload, m)
+	if err != nil {
+		log.Errorf("Error could not unmarshal payload. Error [%s].", err)
+	}
+
+	switch m.Type {
+	case process.EthTransactionMessage:
+		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
+	case process.SignatureMessageType:
+		err = cmh.handleSignatureMessage(m)
+	default:
+		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
+	}
+
 	if err != nil {
 		log.Errorf("Error - could not handle payload: [%s]", err)
 		return
 	}
 }
 
-func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
-	m := &validatorproto.TopicSignatureMessage{}
-	err := proto.Unmarshal(payload, m)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to unmarshal topic signature message. - [%s]", err))
-	}
+func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
+	// TODO: verify authenticity of transaction hash
 
+	return cmh.scheduler.Cancel(m.TransactionId)
+}
+
+func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
+	m := msg.GetTopicSignatureMessage()
 	ctm := &validatorproto.CryptoTransferMessage{
 		TransactionId: m.TransactionId,
 		EthAddress:    m.EthAddress,
@@ -125,7 +141,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Signature:            ethSig,
 		Hash:                 hexHash,
 		SignerAddress:        address.String(),
-		TransactionTimestamp: m.TransactionTimestamp,
+		TransactionTimestamp: msg.TransactionTimestamp,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))

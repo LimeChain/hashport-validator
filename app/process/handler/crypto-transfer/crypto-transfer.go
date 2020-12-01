@@ -10,6 +10,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
@@ -189,13 +190,18 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 		Signature:     signature,
 	}
 
-	topicSigMessageBytes, err := proto.Marshal(topicSigMessage)
+	topicSubmissionMessage := &protomsg.TopicSubmissionMessage{
+		Type:    process.SignatureMessageType,
+		Message: &protomsg.TopicSubmissionMessage_TopicSignatureMessage{TopicSignatureMessage: topicSigMessage},
+	}
+
+	topicSubmissionMessageBytes, err := proto.Marshal(topicSubmissionMessage)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Infof("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId)
-	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSigMessageBytes)
+	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSubmissionMessageBytes)
 }
 
 func NewCryptoTransferHandler(

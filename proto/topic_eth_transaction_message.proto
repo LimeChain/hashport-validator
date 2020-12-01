@@ -4,10 +4,8 @@ package proto;
 
 option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
-message TopicSignatureMessage {
+message TopicEthTransactionMessage {
   string transactionId = 1;
-  string ethAddress = 2;
-  uint64 amount = 3;
-  string fee = 4;
-  string signature = 5;
+  string hash = 2; // hedera hash data
+  string ethTxHash = 3;
 }
