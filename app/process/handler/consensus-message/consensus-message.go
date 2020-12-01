@@ -24,29 +24,34 @@ import (
 type ConsensusMessageHandler struct {
 	repository            repositories.MessageRepository
 	operatorsEthAddresses []string
-	operatorAddress       string
 	deadline              int
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	topicID               hedera.TopicID
+	signer                *eth.Signer
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 	log.Println("Recovery method not implemented yet.")
 }
 
-func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient) *ConsensusMessageHandler {
-	topicID, err := hedera.TopicIDFromString(config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
+func NewConsensusMessageHandler(
+	r repositories.MessageRepository,
+	hederaNodeClient *hederaClient.HederaNodeClient,
+	config *config.Config,
+	signer *eth.Signer,
+) *ConsensusMessageHandler {
+	topicID, err := hedera.TopicIDFromString(config.Hedera.Handler.ConsensusMessage.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
+		log.Fatal("Invalid topic id: [%v]", config.Hedera.Handler.ConsensusMessage.TopicId)
 	}
 
 	return &ConsensusMessageHandler{
 		repository:            r,
-		operatorsEthAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
-		operatorAddress:       eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String(),
-		deadline:              config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline,
+		operatorsEthAddresses: config.Hedera.Handler.ConsensusMessage.Addresses,
+		deadline:              config.Hedera.Handler.ConsensusMessage.SendDeadline,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
+		signer:                signer,
 	}
 }
 
@@ -184,7 +189,7 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 	log.Infof("Required signatures: [%v]", requiredSigCount)
 
 	if len(txSignatures) < requiredSigCount {
-		log.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signatures", transactionId, len(txSignatures))
+		log.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}
 	return true
@@ -197,12 +202,12 @@ func (cmh ConsensusMessageHandler) transactionSent() bool {
 
 func (cmh ConsensusMessageHandler) findMyPosition(messages []message.TransactionMessage) (int, error) {
 	for i := 0; i < len(messages); i++ {
-		if messages[i].SignerAddress == cmh.operatorAddress {
+		if messages[i].SignerAddress == cmh.signer.Address().String() {
 			return i, nil
 		}
 	}
 
-	return -1, errors.New(fmt.Sprintf("Operator is not amongst the potential leaders - [%v]", cmh.operatorAddress))
+	return -1, errors.New(fmt.Sprintf("Operator is not amongst the potential leaders - [%v]", cmh.signer.Address().String()))
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {

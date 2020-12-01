@@ -31,8 +31,8 @@ func main() {
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
-	statusCryptoTransferRepository := status.NewStatusRepository(db, "HCS_CRYPTO_TRANSFER")
-	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC_MSG")
+	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
+	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 
 	server := server.NewServer()
@@ -51,7 +51,9 @@ func main() {
 
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		*messageRepository,
-		hederaNodeClient))
+		hederaNodeClient,
+		configuration,
+		ethSigner))
 
 	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
