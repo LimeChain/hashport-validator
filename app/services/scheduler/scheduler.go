@@ -16,7 +16,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -115,8 +114,9 @@ func NewScheduler(
 	}
 }
 
+// computeExecutionTime - computes the time at which the TX must be executed based on the first signature and the current validator
+// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
 func (s *Scheduler) computeExecutionTime(messages []message.TransactionMessage) (time.Time, error) {
-	sort.Sort(message.ByTimestamp(messages))
 	slot, err := s.computeExecutionSlot(messages)
 	if err != nil {
 		return time.Unix(0, 0), err
