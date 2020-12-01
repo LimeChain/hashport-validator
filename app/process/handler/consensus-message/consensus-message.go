@@ -78,7 +78,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Infof("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
 
-	decodedSig, err := hex.DecodeString(m.GetSignature())
+	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
 	if err != nil {
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
@@ -107,13 +107,13 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
-	mes, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
+	mes, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
+		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, ethSig, err))
 	}
 
 	if mes != nil || err == nil {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
+		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
@@ -121,14 +121,14 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		EthAddress:                      m.EthAddress,
 		Amount:                          m.Amount,
 		Fee:                             m.Fee,
-		Signature:                       m.Signature,
+		Signature:                       ethSig,
 		Hash:                            hexHash,
 		SignerAddress:                   address.String(),
 		TransactionTimestampSeconds:     m.TransactionTimestampSeconds,
 		TransactionTimestampNanoseconds: m.TransactionTimestampNanoSeconds,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, m.Signature, err))
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
 	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
