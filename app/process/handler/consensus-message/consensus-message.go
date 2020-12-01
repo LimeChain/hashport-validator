@@ -17,7 +17,6 @@ import (
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"sort"
 	"strings"
 	"time"
 )
@@ -198,7 +197,6 @@ func (cmh ConsensusMessageHandler) transactionSent() bool {
 }
 
 func (cmh ConsensusMessageHandler) findMyPosition(messages []message.TransactionMessage) (int, error) {
-	sort.Sort(message.ByTimestamp(messages))
 	for i := 0; i < len(messages); i++ {
 		if messages[i].SignerAddress == cmh.operatorAddress {
 			return i, nil
