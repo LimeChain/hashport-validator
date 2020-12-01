@@ -85,13 +85,13 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
-	messages, err := cmh.repository.GetTransaction(m.TransactionId, hex.EncodeToString(ethSig))
+	messages, err := cmh.repository.GetTransaction(m.TransactionId, ethSig)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, hex.EncodeToString(ethSig), err))
+		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, ethSig, err))
 	}
 
 	if len(messages) > 0 {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, hex.EncodeToString(ethSig)))
+		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
 	}
 
 	err = cmh.repository.Create(&message.TransactionMessage{
@@ -99,11 +99,11 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		EthAddress:    m.EthAddress,
 		Amount:        m.Amount,
 		Fee:           m.Fee,
-		Signature:     hex.EncodeToString(ethSig),
+		Signature:     ethSig,
 		Hash:          hexHash,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, hex.EncodeToString(ethSig)))
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
 	}
 
 	log.Printf("Successfully verified and persisted TX with ID [%s]\n", m.TransactionId)

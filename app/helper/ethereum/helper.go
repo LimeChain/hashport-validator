@@ -63,14 +63,14 @@ func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
 		feeBn)
 }
 
-func DecodeSignature(signature string) (decodedSignature []byte, ethSignature []byte, err error) {
+func DecodeSignature(signature string) (decodedSignature []byte, ethSignature string, err error) {
 	decodedSig, err := hex.DecodeString(signature)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
 	if len(decodedSig) != 65 {
-		return nil, nil, errors.New("invalid signature length")
+		return nil, "", errors.New("invalid signature length")
 	}
 
 	// note: https://github.com/ethereum/go-ethereum/issues/19751
@@ -81,5 +81,5 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature []
 		decodedSig[64] -= 27
 	}
 
-	return decodedSig, ethSig, nil
+	return decodedSig, hex.EncodeToString(ethSig), nil
 }
