@@ -39,7 +39,7 @@ func (m MessageRepository) Create(message *TransactionMessage) error {
 	return m.dbClient.Create(message).Error
 }
 
-func (m MessageRepository) GetByTransactionWith(txId string, hash string) ([]TransactionMessage, error) {
+func (m MessageRepository) GetTransactions(txId string, hash string) ([]TransactionMessage, error) {
 	var messages []TransactionMessage
 	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Order("transaction_timestamp").Find(&messages).Error
 	if err != nil {

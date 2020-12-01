@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -29,8 +30,8 @@ func NewStatusRepository(dbClient *gorm.DB, statusType string) *StatusRepository
 
 func typeCheck(statusType string) {
 	switch statusType {
-	case "HCS_TOPIC_MSG":
-	case "HCS_CRYPTO_TRANSFER":
+	case process.HCSMessageType:
+	case process.CryptoTransferMessageType:
 		return
 	default:
 		log.Fatal("Invalid status type.")

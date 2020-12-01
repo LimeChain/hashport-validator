@@ -74,8 +74,8 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 	}
 
 	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", topicAddress)
+	if err != nil {
+		log.Warnf("[%s] Database Timestamp was empty. Restarting. Error - [%s]", topicAddress, err)
 		ctw.started = false
 		ctw.restart(q)
 	}

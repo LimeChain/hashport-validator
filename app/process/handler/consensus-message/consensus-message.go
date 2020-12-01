@@ -114,7 +114,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	mes, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, ethSig, err))
+		return errors.New(fmt.Sprintf("Failed to retrieve transaction message with TxID [%s], Signature [%s]. Error [%s].", m.TransactionId, ethSig, err))
 	}
 
 	if mes != nil || err == nil {
@@ -137,9 +137,9 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
 
-	txSignatures, err := cmh.repository.GetByTransactionWith(m.TransactionId, hexHash)
+	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
+		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId))
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {

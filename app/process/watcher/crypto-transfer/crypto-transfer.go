@@ -82,8 +82,8 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
 	}
 
 	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warnf("[%s] Database Timestamp was empty. Restarting.\n", accountAddress)
+	if err != nil {
+		log.Warnf("[%s] Database Timestamp was empty. Restarting. Error - [%s]", accountAddress, err)
 		ctw.started = false
 		ctw.restart(q)
 	}
