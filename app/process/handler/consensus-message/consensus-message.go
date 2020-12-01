@@ -11,7 +11,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -20,7 +19,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"strings"
-	"time"
 )
 
 type ConsensusMessageHandler struct {
@@ -47,14 +45,14 @@ func NewConsensusMessageHandler(
 		log.Fatal("Invalid topic id: [%v]", config.Hedera.Handler.ConsensusMessage.TopicId)
 	}
 
-	executionWindow := config.Hedera.Handler.ConsensusMessage.SendDeadline,
+	executionWindow := config.Hedera.Handler.ConsensusMessage.SendDeadline
 	return &ConsensusMessageHandler{
 		repository:            r,
 		operatorsEthAddresses: config.Hedera.Handler.ConsensusMessage.Addresses,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
 		signer:                signer,
-		scheduler:             scheduler.NewScheduler(signer.Address(), int64(executionWindow)),
+		scheduler:             scheduler.NewScheduler(signer.Address().String(), int64(executionWindow)),
 	}
 }
 
@@ -106,8 +104,6 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	if exists {
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
-
-
 
 	key, err := crypto.Ecrecover(hash, decodedSig)
 	if err != nil {
