@@ -61,7 +61,9 @@ type Handler struct {
 }
 
 type ConsensusMessageHandler struct {
-	Addresses []string `yaml:"addresses"`
+	TopicId      string   `yaml:"topic_id"`
+	Addresses    []string `yaml:"addresses"`
+	SendDeadline int      `yaml:"send_deadline"`
 }
 
 type CryptoTransferHandler struct {
@@ -90,7 +92,7 @@ type ConsensusMessage struct {
 type ID struct {
 	Id             string `yaml:"id"`
 	MaxRetries     int    `yaml:"max_retries"`
-	StartTimestamp string `yaml:"start_timestamp"`
+	StartTimestamp int64  `yaml:"start_timestamp"`
 }
 
 type Client struct {

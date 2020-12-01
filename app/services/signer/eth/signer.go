@@ -3,6 +3,7 @@ package eth
 import (
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,4 +33,9 @@ func (s *Signer) Sign(msg []byte) ([]byte, error) {
 
 func (s *Signer) NewKeyTransactor() *bind.TransactOpts {
 	return bind.NewKeyedTransactor(s.privateKey)
+}
+
+func (s *Signer) Address() common.Address {
+	publicKey := s.privateKey.Public().(*ecdsa.PublicKey)
+	return crypto.PubkeyToAddress(*publicKey)
 }
