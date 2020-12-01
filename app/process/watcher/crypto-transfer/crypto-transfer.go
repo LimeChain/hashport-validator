@@ -7,9 +7,9 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/util"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-state-proof-verifier-go/stateproof"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -175,7 +175,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
 			var err error
-			milestoneTimestamp, err = util.StringToTimestamp(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
+			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
 				log.Errorf("[%s] Crypto Transfer Watcher: [%s]", ctw.accountID.String(), err)
 				continue

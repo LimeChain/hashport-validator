@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -43,7 +44,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 		return err
 	}
 
-	executeIn := et.Sub(time.Now())
+	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
 	s.tasks.Store(id, timer)
 	go func() {
@@ -123,9 +124,9 @@ func (s *Scheduler) computeExecutionTime(messages []message.TransactionMessage) 
 	}
 
 	firstSignatureTimestamp := messages[0].TransactionTimestamp
-	executionTime := time.Unix(0, firstSignatureTimestamp).Unix() + (int64(slot) * s.executionWindow)
+	executionTimeNanos := firstSignatureTimestamp + timestamp.ToNanos(int64(slot)*s.executionWindow)
 
-	return time.Unix(executionTime, 0), nil
+	return time.Unix(0, executionTimeNanos), nil
 }
 
 func (s *Scheduler) computeExecutionSlot(messages []message.TransactionMessage) (int, error) {

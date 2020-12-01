@@ -7,9 +7,9 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/util"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -125,7 +125,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			continue
 		}
 
-		milestoneTimestamp, err = util.StringToTimestamp(u.ConsensusTimestamp)
+		milestoneTimestamp, err = timestamp.FromString(u.ConsensusTimestamp)
 		if err != nil {
 			log.Errorf("[%s] Consensus Message Watcher: [%s]", ctw.topicID.String(), err)
 			continue
