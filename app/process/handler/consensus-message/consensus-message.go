@@ -11,6 +11,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -24,32 +25,29 @@ import (
 type ConsensusMessageHandler struct {
 	repository            repositories.MessageRepository
 	operatorsEthAddresses []string
-	deadline              int
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	topicID               hedera.TopicID
 	scheduler             *scheduler.Scheduler
+	signer                *eth.Signer
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 	log.Println("Recovery method not implemented yet.")
 }
 
-func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient, scheduler *scheduler.Scheduler, signer *eth.Signer) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
 	if err != nil {
 		log.Fatal("Invalid topic id: [%v]", config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
 	}
 
-	executionWindow := config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline
-	operatorAddress := eth.PrivateToPublicKeyToAddress(config.LoadConfig().Hedera.Client.Operator.EthPrivateKey).String()
-
 	return &ConsensusMessageHandler{
 		repository:            r,
 		operatorsEthAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
-		deadline:              config.LoadConfig().Hedera.Handler.ConsensusMessage.SendDeadline,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
-		scheduler:             scheduler.NewScheduler(operatorAddress, int64(executionWindow)),
+		scheduler:             scheduler,
+		signer:                signer,
 	}
 }
 
@@ -142,7 +140,13 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
 		log.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
-		err := cmh.scheduler.Schedule(m.TransactionId, txSignatures)
+
+		submission := &ethsubmission.Submission{
+			TransactOps:           cmh.signer.NewKeyTransactor(),
+			CryptoTransferMessage: ctm,
+			Messages:              txSignatures,
+		}
+		err := cmh.scheduler.Schedule(m.TransactionId, *submission)
 		if err != nil {
 			return err
 		}

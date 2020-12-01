@@ -16,6 +16,8 @@ import (
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	scheduler2 "github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
@@ -31,11 +33,15 @@ func main() {
 	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
 	ethClient := ethclient.NewEthereumClient(configuration.Hedera.Eth)
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
+	contractService := bridge.NewBridgeContractService(ethClient, configuration.Hedera.Eth)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
 	statusCryptoTransferRepository := status.NewStatusRepository(db, "HCS_CRYPTO_TRANSFER")
 	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC_MSG")
 	messageRepository := message.NewMessageRepository(db)
+
+	scheduler := scheduler2.NewScheduler(ethSigner.Address(),
+		configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService)
 
 	server := server.NewServer()
 
@@ -53,14 +59,14 @@ func main() {
 
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		*messageRepository,
-		hederaNodeClient))
+		hederaNodeClient, scheduler, ethSigner))
 
 	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
+	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
