@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
+	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -14,6 +15,7 @@ import (
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
@@ -27,7 +29,7 @@ func main() {
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress)
 	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
-	//ethClient := ethclient.NewEthereumClient(configuration.Hedera.Eth)
+	ethClient := ethclient.NewEthereumClient(configuration.Hedera.Eth)
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
@@ -60,7 +62,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
+	server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
