@@ -13,7 +13,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
-	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
+	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -93,7 +93,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *h
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
+		server.AddWatcher(cmw.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil
@@ -102,4 +102,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *h
 func initLogger() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
 }
