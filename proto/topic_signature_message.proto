@@ -10,6 +10,5 @@ message TopicSignatureMessage {
   uint64 amount = 3;
   string fee = 4;
   string signature = 5;
-  int64 transactionTimestampSeconds = 6;
-  int64 transactionTimestampNanoSeconds = 7;
+  int64 transactionTimestamp = 6;
 }

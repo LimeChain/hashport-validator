@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -13,10 +12,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/timestamp"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
@@ -30,7 +27,7 @@ func main() {
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress)
 	hederaNodeClient := hederaClients.NewNodeClient(configuration.Hedera.Client)
-	ethClient := ethclient.NewEthereumClient(configuration.Hedera.Eth)
+	//ethClient := ethclient.NewEthereumClient(configuration.Hedera.Eth)
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
@@ -61,7 +58,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
+	//server.AddWatcher(ethereum.NewEthereumWatcher(ethClient, configuration.Hedera.Eth))
 
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
@@ -76,7 +73,7 @@ func addCryptoTransferWatchers(configuration *config.Config, hederaClient *heder
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, timestamp.NewTimestamp(account.StartTimestamp, 0)))
+		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil
@@ -92,7 +89,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *h
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, timestamp.NewTimestamp(topic.StartTimestamp, 0)))
+		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil

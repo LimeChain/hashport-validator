@@ -8,14 +8,12 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/util"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -26,11 +24,11 @@ type ConsensusTopicWatcher struct {
 	typeMessage      string
 	maxRetries       int
 	statusRepository repositories.StatusRepository
-	startTimestamp   *timestamp.Timestamp
+	startTimestamp   int64
 	started          bool
 }
 
-func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp *timestamp.Timestamp) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
 		nodeClient:       nodeClient,
 		mirrorClient:     mirrorClient,
@@ -47,19 +45,19 @@ func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
 	go ctw.subscribeToTopic(q)
 }
 
-func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) *timestamp.Timestamp {
+func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 	topicAddress := ctw.topicID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
 
 	if !ctw.started {
-		if milestoneTimestamp.IsValid() {
+		if milestoneTimestamp > 0 {
 			return milestoneTimestamp
 		}
 
 		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", topicAddress)
 		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
-		if err == nil && milestoneTimestamp.IsValid() {
+		if err == nil && milestoneTimestamp > 0 {
 			return milestoneTimestamp
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -67,7 +65,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) *timestamp.Timesta
 		}
 
 		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", topicAddress)
-		milestoneTimestamp = timestamp.NewTimestamp(time.Now().Unix(), 0)
+		milestoneTimestamp = time.Now().UnixNano()
 		e := ctw.statusRepository.CreateTimestamp(topicAddress, milestoneTimestamp)
 		if e != nil {
 			log.Fatal(e)
@@ -85,15 +83,14 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) *timestamp.Timesta
 	return milestoneTimestamp
 }
 
-func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp *timestamp.Timestamp, q *queue.Queue) {
+func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64, q *queue.Queue) {
 	msg := &validatorproto.TopicSignatureMessage{}
 	err := proto.Unmarshal(message, msg)
 	if err != nil {
 		log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
 		return
 	}
-	msg.TransactionTimestampSeconds = timestamp.Seconds
-	msg.TransactionTimestampNanoSeconds = timestamp.NanoSeconds
+	msg.TransactionTimestamp = timestamp
 
 	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
@@ -105,7 +102,7 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp *times
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	log.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
 	milestoneTimestamp := ctw.getTimestamp(q)
-	if !milestoneTimestamp.IsValid() {
+	if milestoneTimestamp == 0 {
 		log.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.\n", ctw.topicID)
 	}
 
@@ -128,18 +125,13 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			continue
 		}
 
-		stringTimestamp := strings.Split(u.ConsensusTimestamp, ".")
-
-		whole, err := strconv.ParseInt(stringTimestamp[0], 10, 64)
+		milestoneTimestamp, err = util.StringToTimestamp(u.ConsensusTimestamp)
 		if err != nil {
-			log.Errorf("Could not parse the whole part of a timestamp: [%s]", u.ConsensusTimestamp)
-		}
-		dec, err := strconv.ParseInt(stringTimestamp[1], 10, 64)
-		if err != nil {
-			log.Errorf("Could not parse the decimal part of a timestamp: [%s]", u.ConsensusTimestamp)
+			log.Errorf("[%s] Consensus Message Watcher: [%s]", ctw.topicID.String(), err)
+			continue
 		}
 
-		ctw.processMessage(decodedMessage, timestamp.NewTimestamp(whole, dec), q)
+		ctw.processMessage(decodedMessage, milestoneTimestamp, q)
 	}
 
 	_, err = hedera.NewTopicMessageQuery().
@@ -148,7 +140,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 			ctw.nodeClient.GetClient(),
 			func(response hedera.TopicMessage) {
 				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
-				ctw.processMessage(response.Contents, timestamp.NewTimestamp(response.ConsensusTimestamp.Unix(), 0), q)
+				ctw.processMessage(response.Contents, response.ConsensusTimestamp.UnixNano(), q)
 			},
 		)
 

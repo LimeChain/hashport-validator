@@ -8,15 +8,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/util"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -27,11 +25,18 @@ type CryptoTransferWatcher struct {
 	pollingInterval  time.Duration
 	statusRepository repositories.StatusRepository
 	maxRetries       int
-	startTimestamp   *timestamp.Timestamp
+	startTimestamp   int64
 	started          bool
 }
 
-func NewCryptoTransferWatcher(client *hederaClient.HederaMirrorClient, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.StatusRepository, maxRetries int, startTimestamp *timestamp.Timestamp) *CryptoTransferWatcher {
+func NewCryptoTransferWatcher(
+	client *hederaClient.HederaMirrorClient,
+	accountID hedera.AccountID,
+	pollingInterval time.Duration,
+	repository repositories.StatusRepository,
+	maxRetries int,
+	startTimestamp int64,
+) *CryptoTransferWatcher {
 	return &CryptoTransferWatcher{
 		client:           client,
 		accountID:        accountID,
@@ -48,19 +53,19 @@ func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
 	go ctw.beginWatching(q)
 }
 
-func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) *timestamp.Timestamp {
+func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
 	accountAddress := ctw.accountID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
 
 	if !ctw.started {
-		if milestoneTimestamp.IsValid() {
+		if milestoneTimestamp > 0 {
 			return milestoneTimestamp
 		}
 
 		log.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.", accountAddress)
 		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
-		if err == nil && milestoneTimestamp.IsValid() {
+		if err == nil && milestoneTimestamp > 0 {
 			return milestoneTimestamp
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -68,7 +73,7 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) *timestamp.Timesta
 		}
 
 		log.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.", accountAddress)
-		milestoneTimestamp = timestamp.NewTimestamp(time.Now().Unix(), 0)
+		milestoneTimestamp = time.Now().UnixNano()
 		e := ctw.statusRepository.CreateTimestamp(accountAddress, milestoneTimestamp)
 		if e != nil {
 			log.Fatal(e)
@@ -94,7 +99,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	log.Infof("Starting Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
 
 	milestoneTimestamp := ctw.getTimestamp(q)
-	if milestoneTimestamp == nil {
+	if milestoneTimestamp == 0 {
 		log.Fatalf("Could not start Crypto Transfer Watcher for account [%s] - Could not generate a milestone timestamp.\n", ctw.accountID)
 	}
 
@@ -152,19 +157,11 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 			}
 			var err error
-			stringTimestamp := strings.Split(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp, ".")
-
-			whole, err := strconv.ParseInt(stringTimestamp[0], 10, 64)
+			milestoneTimestamp, err = util.StringToTimestamp(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
-				log.Errorf("Could not parse the whole part of a timestamp: [%s]", transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
+				log.Errorf("[%s] Crypto Transfer Watcher: [%s]", ctw.accountID.String(), err)
+				continue
 			}
-			dec, err := strconv.ParseInt(stringTimestamp[1], 10, 64)
-			if err != nil {
-				log.Errorf("Could not parse the decimal part of a timestamp: [%s]", transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
-			}
-
-			milestoneTimestamp = timestamp.NewTimestamp(whole, dec)
-			log.Infof("NEW MILESTONE: [%s]", milestoneTimestamp)
 		}
 
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
