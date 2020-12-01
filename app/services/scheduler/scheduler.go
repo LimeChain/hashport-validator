@@ -3,6 +3,7 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +30,7 @@ func (s *Scheduler) Schedule(id string, messages []message.TransactionMessage) e
 		return err
 	}
 
-	executeIn := et.Sub(time.Now())
+	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
 	s.tasks.Store(id, timer)
 	go func() {
@@ -80,9 +81,9 @@ func (s *Scheduler) computeExecutionTime(messages []message.TransactionMessage) 
 	}
 
 	firstSignatureTimestamp := messages[0].TransactionTimestamp
-	executionTime := int64(firstSignatureTimestamp) + (int64(slot) * s.executionWindow)
+	executionTimeNanos := firstSignatureTimestamp + timestamp.ToNanos(int64(slot)*s.executionWindow)
 
-	return time.Unix(executionTime, 0), nil
+	return time.Unix(0, executionTimeNanos), nil
 }
 
 func (s *Scheduler) computeExecutionSlot(messages []message.TransactionMessage) (int, error) {
