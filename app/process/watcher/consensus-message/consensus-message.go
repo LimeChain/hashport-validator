@@ -18,8 +18,9 @@ import (
 )
 
 type ConsensusTopicWatcher struct {
-	client           *hederaClient.HederaMirrorClient
-	topicID          hedera.ConsensusTopicID
+	nodeClient       *hederaClient.HederaNodeClient
+	mirrorClient     *hederaClient.HederaMirrorClient
+	topicID          hedera.TopicID
 	typeMessage      string
 	maxRetries       int
 	statusRepository repositories.StatusRepository
@@ -27,9 +28,10 @@ type ConsensusTopicWatcher struct {
 	started          bool
 }
 
-func NewConsensusTopicWatcher(client *hederaClient.HederaMirrorClient, topicID hedera.ConsensusTopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp string) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
-		client:           client,
+		nodeClient:       nodeClient,
+		mirrorClient:     mirrorClient,
 		topicID:          topicID,
 		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
@@ -109,7 +111,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 	}
 
 	log.Infof("Started Consensus Message Watcher for topic [%s]\n", ctw.topicID)
-	unprocessedMessages, err := ctw.client.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
+	unprocessedMessages, err := ctw.mirrorClient.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
 	if err != nil {
 		log.Errorf("Could not get unprocessed messages after timestamp [%s]", milestoneTimestamp)
 		log.Fatal(err)
@@ -127,20 +129,14 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		ctw.processMessage(decodedMessage, u.ConsensusTimestamp, q)
 	}
 
-	_, err = hedera.NewMirrorConsensusTopicQuery().
+	_, err = hedera.NewTopicMessageQuery().
 		SetTopicID(ctw.topicID).
 		Subscribe(
-			*ctw.client.GetMirrorClient(),
-			func(response hedera.MirrorConsensusTopicResponse) {
-				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Message)
-				ctw.processMessage(response.Message, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
-			},
-			func(err error) {
-				log.Errorf("Consensus Topic [%s] - Error incoming: [%s]", ctw.topicID, err)
-				time.Sleep(10 * time.Second)
-				ctw.restart(q)
-			},
-		)
+			ctw.nodeClient.GetClient(),
+			func(response hedera.TopicMessage) {
+				log.Infof("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
+				ctw.processMessage(response.Contents, strconv.FormatInt(response.ConsensusTimestamp.Unix(), 10), q)
+			})
 
 	if err != nil {
 		log.Errorf("Did not subscribe to [%s].", ctw.topicID)

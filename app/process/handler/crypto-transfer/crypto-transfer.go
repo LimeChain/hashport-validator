@@ -8,6 +8,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
@@ -23,7 +24,7 @@ import (
 // Crypto Transfer event handler
 type CryptoTransferHandler struct {
 	pollingInterval    time.Duration
-	topicID            hedera.ConsensusTopicID
+	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient
@@ -99,7 +100,12 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
+	encodedData, err := ethhelper.EncodeData(&ctm)
+	if err != nil {
+		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+	}
+
+	hash := crypto.Keccak256(encodedData)
 	signature, err := cth.ethSigner.Sign(hash)
 	if err != nil {
 		log.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)

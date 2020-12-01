@@ -9,6 +9,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -25,7 +26,7 @@ type ConsensusMessageHandler struct {
 	operatorsEthAddresses []string
 	deadline              int
 	hederaNodeClient      *hederaClient.HederaNodeClient
-	topicID               hedera.ConsensusTopicID
+	topicID               hedera.TopicID
 	scheduler             *scheduler.Scheduler
 }
 
@@ -80,7 +81,18 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	log.Infof("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
 
-	hash := crypto.Keccak256([]byte(fmt.Sprintf("%s-%s-%d-%s", ctm.TransactionId, ctm.EthAddress, ctm.Amount, ctm.Fee)))
+	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
+	m.Signature = ethSig
+	if err != nil {
+		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
+	}
+
+	encodedData, err := ethhelper.EncodeData(ctm)
+	if err != nil {
+		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+	}
+
+	hash := crypto.Keccak256(encodedData)
 	hexHash := hex.EncodeToString(hash)
 
 	exists, err := cmh.alreadyExists(m, hexHash)
@@ -88,12 +100,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return err
 	}
 	if exists {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
-	}
-
-	decodedSig, err := hex.DecodeString(m.GetSignature())
-	if err != nil {
-		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
+		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
 	}
 
 	key, err := crypto.Ecrecover(hash, decodedSig)
@@ -117,13 +124,13 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		EthAddress:           m.EthAddress,
 		Amount:               m.Amount,
 		Fee:                  m.Fee,
-		Signature:            m.Signature,
+		Signature:            ethSig,
 		Hash:                 hexHash,
 		SignerAddress:        address.String(),
 		TransactionTimestamp: m.TransactionTimestamp,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
 	}
 
 	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
