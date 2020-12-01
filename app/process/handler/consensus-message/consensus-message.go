@@ -43,7 +43,7 @@ func NewConsensusMessageHandler(
 	scheduler *scheduler.Scheduler,
 	signer *eth.Signer,
 ) *ConsensusMessageHandler {
-	topicID, err := hedera.TopicIDFromString(config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
+	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
 		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
 	}
