@@ -123,7 +123,7 @@ func (s *Scheduler) computeExecutionTime(messages []message.TransactionMessage) 
 	}
 
 	firstSignatureTimestamp := messages[0].TransactionTimestamp
-	executionTime := int64(firstSignatureTimestamp) + (int64(slot) * s.executionWindow)
+	executionTime := time.Unix(0, firstSignatureTimestamp).Unix() + (int64(slot) * s.executionWindow)
 
 	return time.Unix(executionTime, 0), nil
 }
