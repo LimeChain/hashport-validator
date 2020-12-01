@@ -13,5 +13,5 @@ message TopicSubmissionMessage {
     TopicSignatureMessage topicSignatureMessage = 2;
     TopicEthTransactionMessage topicEthTransactionMessage = 3;
   }
-  uint64 transactionTimestamp = 4;
+  int64 transactionTimestamp = 4;
 }

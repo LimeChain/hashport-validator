@@ -36,15 +36,15 @@ func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 	log.Println("Recovery method not implemented yet.")
 }
 
-func NewConsensusMessageHandler(r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient, scheduler *scheduler.Scheduler, signer *eth.Signer) *ConsensusMessageHandler {
+func NewConsensusMessageHandler(configuration config.ConsensusMessageHandler, r repositories.MessageRepository, hederaNodeClient *hederaClient.HederaNodeClient, scheduler *scheduler.Scheduler, signer *eth.Signer) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", config.LoadConfig().Hedera.Handler.ConsensusMessage.TopicId)
+		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
 	}
 
 	return &ConsensusMessageHandler{
 		repository:            r,
-		operatorsEthAddresses: config.LoadConfig().Hedera.Handler.ConsensusMessage.Addresses,
+		operatorsEthAddresses: configuration.Addresses,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
 		scheduler:             scheduler,
@@ -93,13 +93,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		Fee:           m.Fee,
 	}
 
-	log.Infof("New Consensus Message for processing Transaction ID [%s] was received\n", m.TransactionId)
-
-	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
-	m.Signature = ethSig
-	if err != nil {
-		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
-	}
+	log.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
 
 	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
@@ -109,12 +103,18 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	hash := crypto.Keccak256(encodedData)
 	hexHash := hex.EncodeToString(hash)
 
-	exists, err := cmh.alreadyExists(m, hexHash)
+	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
+	m.Signature = ethSig
+	if err != nil {
+		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
+	}
+
+	exists, err := cmh.alreadyExists(m, ethSig, hexHash)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
+		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
 	key, err := crypto.Ecrecover(hash, decodedSig)
@@ -144,14 +144,14 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		TransactionTimestamp: msg.TransactionTimestamp,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s]", m.TransactionId, ethSig))
+		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
 	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
 
-	txSignatures, err := cmh.repository.GetByTransactionWith(m.TransactionId, hexHash)
+	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve Transaction Signatures for Transaction [%s]", m.TransactionId))
+		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId))
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
@@ -167,11 +167,12 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 			return err
 		}
 	}
+
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatureMessage, hexHash string) (bool, error) {
-	_, err := cmh.repository.GetTransaction(m.TransactionId, m.Signature, hexHash)
+func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatureMessage, ethSig, hexHash string) (bool, error) {
+	_, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
 	if err != nil && !notFound {

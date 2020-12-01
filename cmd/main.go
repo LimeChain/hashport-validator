@@ -13,7 +13,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
-	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
+	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
@@ -38,8 +38,8 @@ func main() {
 		configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, hederaNodeClient)
 
 	transactionRepository := transaction.NewTransactionRepository(db)
-	statusCryptoTransferRepository := status.NewStatusRepository(db, "HCS_CRYPTO_TRANSFER")
-	statusConsensusMessageRepository := status.NewStatusRepository(db, "HCS_TOPIC_MSG")
+	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
+	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 
 	server := server.NewServer()
@@ -57,8 +57,11 @@ func main() {
 	}
 
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
+		configuration.Hedera.Handler.ConsensusMessage,
 		*messageRepository,
-		hederaNodeClient, schedulerService, ethSigner))
+		hederaNodeClient,
+		schedulerService,
+		ethSigner))
 
 	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
@@ -96,7 +99,7 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *h
 			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 		}
 
-		server.AddWatcher(consensusmessage.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
+		server.AddWatcher(cmw.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil

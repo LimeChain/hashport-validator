@@ -25,10 +25,13 @@ hedera:
     crypto-transfer:
       accounts:
         - id:
+          max_retries: 10
+          start_timestamp:
     consensus-message:
       topics:
         - id:
           max_retries: 10
+          start_timestamp:
   handler:
     crypto-transfer:
       topic_id:
