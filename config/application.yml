@@ -8,6 +8,9 @@ hedera:
       port: 5432
       username: validator
     port: 5200
+  eth:
+    node_url:
+    bridge_contract_address:
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600
     api_address: https://testnet.mirrornode.hedera.com/api/v1/
@@ -22,10 +25,13 @@ hedera:
     crypto-transfer:
       accounts:
         - id:
+          max_retries: 10
+          start_timestamp:
     consensus-message:
       topics:
         - id:
           max_retries: 10
+          start_timestamp:
   handler:
     crypto-transfer:
       topic_id:
