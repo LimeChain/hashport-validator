@@ -36,13 +36,6 @@ func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*comm
 
 func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
 	receipt, err := ec.waitForTransactionReceipt(hash)
-
-	// try again mechanism in case transaction is not validated for tx mempool yet
-	if errors.Is(err, ethereum.NotFound) {
-		time.Sleep(5 * time.Second)
-		receipt, err = ec.waitForTransactionReceipt(hash)
-	}
-
 	if err != nil {
 		return false, err
 	}
@@ -54,6 +47,12 @@ func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccess
 func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
 		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
+		// try again mechanism in case transaction is not validated for tx mempool yet
+		if errors.Is(err, ethereum.NotFound) {
+			time.Sleep(5 * time.Second)
+			_, isPending, err = ec.Client.TransactionByHash(context.Background(), hash)
+		}
+
 		if err != nil {
 			return nil, err
 		}
