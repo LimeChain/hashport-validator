@@ -12,6 +12,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -41,7 +42,11 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
 
-	_, alreadyExisted := s.tasks.LoadOrStore(id, timer)
+	_, alreadyExisted := s.tasks.LoadOrStore(id, &scheduler.Storage{
+		SubmitterAddress: submission.TransactOps.From.String(),
+		Timer:            timer,
+	})
+
 	if alreadyExisted {
 		s.logger.Infof("Transaction with ID [%s] already scheduled for execution.", id)
 		return nil
@@ -84,17 +89,20 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 }
 
 // Cancel - Removes and cancels an already scheduled Transaction
-func (s *Scheduler) Cancel(id string) error {
+func (s *Scheduler) Cancel(id string, submitterAddress string) error {
 	t, exists := s.tasks.Load(id)
 	if !exists {
 		s.logger.Warnf("Scheduled transaction execution for [%s] not found.", id)
 		return nil
 	}
 
-	timer := t.(*time.Timer)
-	timer.Stop()
+	storage := t.(*scheduler.Storage)
+	storage.Timer.Stop()
 
-	s.logger.Infof("Cancelled scheduled execution for TX [%s]", id)
+	if strings.ToLower(storage.SubmitterAddress) != strings.ToLower(submitterAddress) {
+		s.logger.Infof("Cancelled scheduled execution for TX [%s].", id)
+	}
+
 	return nil
 }
 
