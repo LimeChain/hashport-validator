@@ -181,7 +181,7 @@ func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queu
 }
 
 func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
-	topicSigMessage := &protomsg.TopicSignatureMessage{
+	topicSigMessage := &protomsg.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,
 		Amount:        message.Amount,
@@ -190,7 +190,7 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 	}
 
 	topicSubmissionMessage := &protomsg.TopicSubmissionMessage{
-		Type:    protomsg.TopicSubmissionType_Signature,
+		Type:    protomsg.TopicSubmissionType_EthSignature,
 		Message: &protomsg.TopicSubmissionMessage_TopicSignatureMessage{TopicSignatureMessage: topicSigMessage},
 	}
 

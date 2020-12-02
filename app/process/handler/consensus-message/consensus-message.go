@@ -74,10 +74,10 @@ func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 	}
 
 	switch m.Type {
+	case validatorproto.TopicSubmissionType_EthSignature:
+		err = cmh.handleSignatureMessage(m)
 	case validatorproto.TopicSubmissionType_EthTransaction:
 		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
-	case validatorproto.TopicSubmissionType_Signature:
-		err = cmh.handleSignatureMessage(m)
 	default:
 		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 	}
@@ -186,7 +186,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatureMessage, ethSig, hexHash string) (bool, error) {
+func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
 	_, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
