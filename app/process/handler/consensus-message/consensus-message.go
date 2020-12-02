@@ -13,7 +13,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
+	configuration "github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -28,31 +28,33 @@ type ConsensusMessageHandler struct {
 	topicID               hedera.TopicID
 	signer                *eth.Signer
 	scheduler             *scheduler.Scheduler
+	logger                *log.Entry
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	log.Println("Recovery method not implemented yet.")
+	cmh.logger.Println("Recovery method not implemented yet.")
 }
 
 func NewConsensusMessageHandler(
 	r repositories.MessageRepository,
 	hederaNodeClient *hederaClient.HederaNodeClient,
-	config *config.Config,
+	c *configuration.Config,
 	signer *eth.Signer,
 ) *ConsensusMessageHandler {
-	topicID, err := hedera.TopicIDFromString(config.Hedera.Handler.ConsensusMessage.TopicId)
+	topicID, err := hedera.TopicIDFromString(c.Hedera.Handler.ConsensusMessage.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", config.Hedera.Handler.ConsensusMessage.TopicId)
+		log.Fatal("Invalid topic id: [%v]", c.Hedera.Handler.ConsensusMessage.TopicId)
 	}
 
-	executionWindow := config.Hedera.Handler.ConsensusMessage.SendDeadline
+	executionWindow := c.Hedera.Handler.ConsensusMessage.SendDeadline
 	return &ConsensusMessageHandler{
 		repository:            r,
-		operatorsEthAddresses: config.Hedera.Handler.ConsensusMessage.Addresses,
+		operatorsEthAddresses: c.Hedera.Handler.ConsensusMessage.Addresses,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
 		signer:                signer,
 		scheduler:             scheduler.NewScheduler(signer.Address().String(), int64(executionWindow)),
+		logger:                configuration.GetLoggerFor(fmt.Sprintf("Consensus Message Handler [%s]", topicID.String())),
 	}
 }
 
@@ -63,7 +65,7 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 	err := cmh.handlePayload(payload)
 	if err != nil {
-		log.Errorf("Error - could not handle payload: [%s]", err)
+		cmh.logger.Errorf("Error - could not handle payload: [%s]", err)
 		return
 	}
 }
@@ -82,11 +84,11 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Fee:           m.Fee,
 	}
 
-	log.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
+	cmh.logger.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
 
 	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
-		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
 	hash := crypto.Keccak256(encodedData)
@@ -135,7 +137,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
-	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
+	cmh.logger.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
 
 	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
@@ -143,7 +145,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
-		log.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
+		cmh.logger.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
 		err := cmh.scheduler.Schedule(m.TransactionId, txSignatures)
 		if err != nil {
 			return err
@@ -165,10 +167,10 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatur
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
 	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + len(cmh.operatorsEthAddresses)%2
-	log.Infof("Required signatures: [%v]", requiredSigCount)
+	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
 
 	if len(txSignatures) < requiredSigCount {
-		log.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
+		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}
 	return true

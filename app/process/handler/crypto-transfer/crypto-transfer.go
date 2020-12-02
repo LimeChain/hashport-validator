@@ -29,22 +29,45 @@ type CryptoTransferHandler struct {
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient
 	transactionRepo    repositories.TransactionRepository
+	logger             *log.Entry
+}
+
+func NewCryptoTransferHandler(
+	c config.CryptoTransferHandler,
+	ethSigner *eth.Signer,
+	hederaMirrorClient *hederaClient.HederaMirrorClient,
+	hederaNodeClient *hederaClient.HederaNodeClient,
+	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
+	topicID, err := hedera.TopicIDFromString(c.TopicId)
+	if err != nil {
+		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
+	}
+
+	return &CryptoTransferHandler{
+		pollingInterval:    c.PollingInterval,
+		topicID:            topicID,
+		ethSigner:          ethSigner,
+		hederaMirrorClient: hederaMirrorClient,
+		hederaNodeClient:   hederaNodeClient,
+		transactionRepo:    transactionRepository,
+		logger:             config.GetLoggerFor(fmt.Sprintf("Crypto Transfer Handler [%s]", topicID.String())),
+	}
 }
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
-	log.Info("[Recovery - CryptoTransfer Handler] Executing Recovery mechanism for CryptoTransfer Handler.")
-	log.Info("[Recovery - CryptoTransfer Handler] Database GET [PENDING] [SUBMITTED] transactions.")
+	cth.logger.Info("[Recovery - CryptoTransfer Handler] Executing Recovery mechanism for CryptoTransfer Handler.")
+	cth.logger.Info("[Recovery - CryptoTransfer Handler] Database GET [PENDING] [SUBMITTED] transactions.")
 
 	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
 	if err != nil {
-		log.Errorf("[Recovery - CryptoTransfer] Failed to Database GET transactions. Error [%s]", err)
+		cth.logger.Errorf("[Recovery - CryptoTransfer] Failed to Database GET transactions. Error [%s]", err)
 		return
 	}
 
 	for _, transaction := range transactions {
 		if transaction.Status == txRepo.StatusPending {
-			log.Infof("[Recovery - CryptoTransfer Handler] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
+			cth.logger.Infof("[Recovery - CryptoTransfer Handler] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
 		} else {
 			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
@@ -56,44 +79,44 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
-		log.Errorf("Failed to parse incoming payload. Error [%s].", err)
+		cth.logger.Errorf("Failed to parse incoming payload. Error [%s].", err)
 		return
 	}
 
 	dbTransaction, err := cth.transactionRepo.GetByTransactionId(ctm.TransactionId)
 	if err != nil {
-		log.Errorf("Failed to get record with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to get record with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
 	if dbTransaction == nil {
-		log.Infof("Creating a transaction record for TransactionID [%s].", ctm.TransactionId)
+		cth.logger.Infof("Creating a transaction record for TransactionID [%s].", ctm.TransactionId)
 
 		err = cth.transactionRepo.Create(&ctm)
 		if err != nil {
-			log.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+			cth.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 			return
 		}
 	} else {
-		log.Infof("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
+		cth.logger.Infof("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
 		if dbTransaction.Status != txRepo.StatusPending {
-			log.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
+			cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
 			return
 		}
 	}
 
 	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
 	if err != nil {
-		log.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
 	if !validFee {
-		log.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
+		cth.logger.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
 		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
 		if err != nil {
-			log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+			cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 			return
 		}
 
@@ -102,13 +125,13 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 
 	encodedData, err := ethhelper.EncodeData(&ctm)
 	if err != nil {
-		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
 	hash := crypto.Keccak256(encodedData)
 	signature, err := cth.ethSigner.Sign(hash)
 	if err != nil {
-		log.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)
+		cth.logger.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)
 		return
 	}
 
@@ -116,14 +139,14 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 
 	topicMessageSubmissionTx, err := cth.handleTopicSubmission(&ctm, encodedSignature)
 	if err != nil {
-		log.Errorf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
 
 	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
 	if err != nil {
-		log.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
@@ -131,14 +154,14 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 }
 
 func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
-	log.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
+	cth.logger.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))
 
 	for {
 		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTxId)
 		if err != nil {
-			log.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", topicMessageSubmissionTxId, err.Error())
+			cth.logger.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", topicMessageSubmissionTxId, err.Error())
 			return
 		}
 
@@ -151,16 +174,16 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 			}
 
 			if success {
-				log.Infof("Completing status for Transaction ID [%s].", transactionId)
+				cth.logger.Infof("Completing status for Transaction ID [%s].", transactionId)
 				err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
 				if err != nil {
-					log.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
 				}
 			} else {
-				log.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId)
+				cth.logger.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId)
 				err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
 				if err != nil {
-					log.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
 				}
 			}
 			return
@@ -194,27 +217,6 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 		return nil, err
 	}
 
-	log.Infof("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId)
+	cth.logger.Infof("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId)
 	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSigMessageBytes)
-}
-
-func NewCryptoTransferHandler(
-	config config.CryptoTransferHandler,
-	ethSigner *eth.Signer,
-	hederaMirrorClient *hederaClient.HederaMirrorClient,
-	hederaNodeClient *hederaClient.HederaNodeClient,
-	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
-	topicID, err := hedera.TopicIDFromString(config.TopicId)
-	if err != nil {
-		log.Fatalf("Invalid Topic ID provided: [%s]", config.TopicId)
-	}
-
-	return &CryptoTransferHandler{
-		pollingInterval:    config.PollingInterval,
-		topicID:            topicID,
-		ethSigner:          ethSigner,
-		hederaMirrorClient: hederaMirrorClient,
-		hederaNodeClient:   hederaNodeClient,
-		transactionRepo:    transactionRepository,
-	}
 }

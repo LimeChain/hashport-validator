@@ -4,15 +4,27 @@ import (
 	ethClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	bridgecontract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
+	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 )
 
 type EthWatcher struct {
-	config          config.Ethereum
+	config          c.Ethereum
 	contractService *bridge.BridgeContractService
 	client          *ethClient.EthereumClient
+	logger          *log.Entry
+}
+
+func NewEthereumWatcher(ethClient *ethClient.EthereumClient, config c.Ethereum) *EthWatcher {
+	bridgeContractService := bridge.NewBridgeContractService(ethClient, config)
+
+	return &EthWatcher{
+		config:          config,
+		contractService: bridgeContractService,
+		client:          ethClient,
+		logger:          c.GetLoggerFor("Ethereum Watcher"),
+	}
 }
 
 func (ew *EthWatcher) Watch(queue *queue.Queue) {
@@ -43,14 +55,4 @@ func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Qu
 		eventLog.Amount.String(),
 		eventLog.ReceiverAddress)
 	// TODO: push to queue with message type, corresponding to ETH Handler
-}
-
-func NewEthereumWatcher(ethClient *ethClient.EthereumClient, config config.Ethereum) *EthWatcher {
-	bridgeContractService := bridge.NewBridgeContractService(ethClient, config)
-
-	return &EthWatcher{
-		config:          config,
-		contractService: bridgeContractService,
-		client:          ethClient,
-	}
 }
