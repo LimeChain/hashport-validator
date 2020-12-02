@@ -98,21 +98,21 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
 
 func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
-		ctw.logger.Errorf("Error incoming: Could not start monitoring account [%s] - Account not found.\n", ctw.accountID.String())
+		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
 		return
 	}
-	ctw.logger.Infof("Starting Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
+	ctw.logger.Info("Starting watcher")
 
 	milestoneTimestamp := ctw.getTimestamp(q)
 	if milestoneTimestamp == 0 {
-		ctw.logger.Fatalf("Could not start Crypto Transfer Watcher for account [%s] - Could not generate a milestone timestamp.\n", ctw.accountID)
+		ctw.logger.Fatalf("Could not start watcher - Could not generate a milestone timestamp.")
 	}
 
-	ctw.logger.Infof("Started Crypto Transfer Watcher for account [%s]\n", ctw.accountID)
+	ctw.logger.Infof("Started watcher")
 	for {
 		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account [%s] - [%s]", ctw.accountID.String(), e)
+			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
 			return
 		}
@@ -133,7 +133,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 				decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
 				if e != nil || len(decodedMemo) < 42 {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction memo - Error: [%s]\n", ctw.accountID.String(), e)
+					ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
 					continue
 				}
 
@@ -143,30 +143,30 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 				re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 				if !re.MatchString(string(ethAddress)) {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Could not verify Ethereum Address\n\t- [%s]", ctw.accountID.String(), ethAddress)
+					ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
 					continue
 				}
 
 				_, e = helper.ToBigInt(feeString)
 				if e != nil {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Could not verify transaction fee\n\t- [%s]", ctw.accountID.String(), feeString)
+					ctw.logger.Errorf("Could not verify transaction fee - [%s]", feeString)
 					continue
 				}
 
 				stateProof, e := ctw.client.GetStateProof(tx.TransactionID)
 				if e != nil {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Could not GET state proof, TransactionID [%s]. Error [%s]", ctw.accountID.String(), tx.TransactionID, e)
+					ctw.logger.Errorf("Could not GET state proof, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
 					continue
 				}
 
 				verified, e := stateproof.Verify(tx.TransactionID, stateProof)
 				if e != nil {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Error while trying to verify state proof for TransactionID [%s]. Error [%s]", ctw.accountID.String(), tx.TransactionID, e)
+					ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
 					continue
 				}
 
 				if !verified {
-					ctw.logger.Errorf("[%s] Crypto Transfer Watcher: Failed to verify state proof for TransactionID [%s]", ctw.accountID.String(), tx.TransactionID)
+					ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
 					continue
 				}
 
@@ -181,14 +181,14 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
-				ctw.logger.Errorf("[%s] Crypto Transfer Watcher: [%s]", ctw.accountID.String(), err)
+				ctw.logger.Errorf("[%s]", ctw.accountID.String(), err)
 				continue
 			}
 		}
 
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
 		if err != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account [%s] - [%s]", ctw.accountID.String(), e)
+			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
 			return
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
@@ -198,9 +198,9 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
-		ctw.logger.Infof("Crypto Transfer Watcher - Account [%s] - Trying to reconnect\n", ctw.accountID)
+		ctw.logger.Infof("Watcher is trying to reconnect")
 		go ctw.Watch(q)
 		return
 	}
-	ctw.logger.Errorf("Crypto Transfer Watcher - Account [%s] - Crypto Transfer Watcher failed: [Too many retries]\n", ctw.accountID)
+	ctw.logger.Errorf("Watcher failed: [Too many retries]")
 }

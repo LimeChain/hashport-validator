@@ -169,7 +169,7 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + len(cmh.operatorsEthAddresses)%2
 	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
 
-	if len(txSignatures) < requiredSigCount {
+	if len(txSignatures) <= requiredSigCount {
 		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}

@@ -56,18 +56,18 @@ func NewCryptoTransferHandler(
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
-	cth.logger.Info("[Recovery - CryptoTransfer Handler] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Info("[Recovery - CryptoTransfer Handler] Database GET [PENDING] [SUBMITTED] transactions.")
+	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
+	cth.logger.Info("[Recovery] Database GET [PENDING] [SUBMITTED] transactions.")
 
 	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
 	if err != nil {
-		cth.logger.Errorf("[Recovery - CryptoTransfer] Failed to Database GET transactions. Error [%s]", err)
+		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
 		return
 	}
 
 	for _, transaction := range transactions {
 		if transaction.Status == txRepo.StatusPending {
-			cth.logger.Infof("[Recovery - CryptoTransfer Handler] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
+			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
 		} else {
 			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)

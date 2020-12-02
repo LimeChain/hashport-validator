@@ -59,7 +59,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 			return milestoneTimestamp
 		}
 
-		ctw.logger.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.\n", topicAddress)
+		ctw.logger.Warn("Starting Timestamp was empty, proceeding to get [timestamp] from database.")
 		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
 		if err == nil && milestoneTimestamp > 0 {
 			return milestoneTimestamp
@@ -68,7 +68,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 			ctw.logger.Fatal(err)
 		}
 
-		ctw.logger.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.\n", topicAddress)
+		ctw.logger.Warn("Database Timestamp was empty, proceeding with [timestamp] from current moment.")
 		milestoneTimestamp = time.Now().UnixNano()
 		e := ctw.statusRepository.CreateTimestamp(topicAddress, milestoneTimestamp)
 		if e != nil {
@@ -79,7 +79,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 
 	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
 	if err != nil {
-		ctw.logger.Warnf("[%s] Database Timestamp was empty. Restarting. Error - [%s]", topicAddress, err)
+		ctw.logger.Warnf("Database Timestamp was empty. Restarting. Error - [%s]", err)
 		ctw.started = false
 		ctw.restart(q)
 	}
@@ -104,10 +104,10 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64,
 }
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
-	ctw.logger.Infof("Starting Consensus Message Watcher for topic [%s]\n", ctw.topicID)
+	ctw.logger.Info("Starting watcher")
 	milestoneTimestamp := ctw.getTimestamp(q)
 	if milestoneTimestamp == 0 {
-		ctw.logger.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.\n", ctw.topicID)
+		ctw.logger.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.", ctw.topicID)
 	}
 
 	ctw.logger.Infof("Started Consensus Message Watcher for topic [%s]", ctw.topicID)
@@ -158,9 +158,9 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 func (ctw ConsensusTopicWatcher) restart(q *queue.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
-		ctw.logger.Infof("Consensus Topic [%s] - Watcher is trying to reconnect\n", ctw.topicID)
+		ctw.logger.Infof("Watcher is trying to reconnect")
 		go ctw.Watch(q)
 		return
 	}
-	ctw.logger.Errorf("Consensus Topic [%s] - Watcher failed: [Too many retries]\n", ctw.topicID)
+	ctw.logger.Errorf("Watcher failed: [Too many retries]")
 }
