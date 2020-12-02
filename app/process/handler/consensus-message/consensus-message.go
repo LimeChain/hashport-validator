@@ -24,12 +24,12 @@ import (
 )
 
 type ConsensusMessageHandler struct {
-	repository            repositories.MessageRepository
-	operatorsEthAddresses []string
 	hederaNodeClient      *hederaClient.HederaNodeClient
-	topicID               hedera.TopicID
-	signer                *eth.Signer
+	operatorsEthAddresses []string
+	repository            repositories.MessageRepository
 	scheduler             *scheduler.Scheduler
+	signer                *eth.Signer
+	topicID               hedera.TopicID
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
