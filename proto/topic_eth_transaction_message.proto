@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+message TopicEthTransactionMessage {
+  string transactionId = 1;
+  string hash = 2; // hedera hash data
+  string ethTxHash = 3;
+}
