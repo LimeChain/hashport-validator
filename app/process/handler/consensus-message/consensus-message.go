@@ -28,8 +28,8 @@ type ConsensusMessageHandler struct {
 	operatorsEthAddresses []string
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	topicID               hedera.TopicID
-	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
+	scheduler             *scheduler.Scheduler
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
