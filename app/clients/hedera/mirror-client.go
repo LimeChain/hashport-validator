@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	hcstopicmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/model/hcs-topic-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"io/ioutil"
 	"net/http"
@@ -94,30 +93,6 @@ func (c HederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
 	}
 
 	return true
-}
-
-func (c HederaMirrorClient) GetUnprocessedMessagesAfterTimestamp(topicID hedera.TopicID, timestamp int64) (*hcstopicmessage.HCSMessages, error) {
-	mirrorNodeApiTopicAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
-	unprocessedMessagesQuery := fmt.Sprintf("%s/%s/messages?timestamp=gt:%s",
-		mirrorNodeApiTopicAddress,
-		topicID.String(),
-		timestampHelper.ToString(timestamp),
-	)
-	response, e := c.httpClient.Get(unprocessedMessagesQuery)
-	if e != nil {
-		return nil, e
-	}
-
-	defer response.Body.Close()
-	bodyBytes, _ := ioutil.ReadAll(response.Body)
-
-	var messages *hcstopicmessage.HCSMessages
-	err := json.Unmarshal(bodyBytes, &messages)
-	if err != nil {
-		return nil, err
-	}
-
-	return messages, nil
 }
 
 func readResponseBody(response *http.Response) ([]byte, error) {
