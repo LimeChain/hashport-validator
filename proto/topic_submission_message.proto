@@ -4,11 +4,12 @@ package proto;
 
 option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
-import "topic_signature_message.proto";
 import "topic_eth_transaction_message.proto";
+import "topic_signature_message.proto";
+import "topic_submission_type.proto";
 
 message TopicSubmissionMessage {
-  string type = 1;
+  TopicSubmissionType type = 1;
   oneof message {
     TopicSignatureMessage topicSignatureMessage = 2;
     TopicEthTransactionMessage topicEthTransactionMessage = 3;

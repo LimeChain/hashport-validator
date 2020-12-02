@@ -10,7 +10,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
@@ -191,7 +190,7 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 	}
 
 	topicSubmissionMessage := &protomsg.TopicSubmissionMessage{
-		Type:    process.SignatureMessageType,
+		Type:    protomsg.TopicSubmissionType_Signature,
 		Message: &protomsg.TopicSubmissionMessage_TopicSignatureMessage{TopicSignatureMessage: topicSigMessage},
 	}
 

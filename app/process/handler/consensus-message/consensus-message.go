@@ -11,7 +11,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -70,9 +69,9 @@ func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 	}
 
 	switch m.Type {
-	case process.EthTransactionMessage:
+	case validatorproto.TopicSubmissionType_EthTransaction:
 		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
-	case process.SignatureMessageType:
+	case validatorproto.TopicSubmissionType_Signature:
 		err = cmh.handleSignatureMessage(m)
 	default:
 		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))

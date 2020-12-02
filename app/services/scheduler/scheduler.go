@@ -11,7 +11,6 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -62,12 +61,22 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 		s.logger.Infof("Executed Scheduled TX [%s], TX Hash [%s].", id, ethTxHashString)
 		tx, err := s.submitEthTxTopicMessage(id, submission, ethTxHashString)
 		if err != nil {
-			log.Errorf("Failed to submit topic consensus eth tx message for TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHashString, err)
+			s.logger.Errorf("Failed to submit topic consensus eth tx message for TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHashString, err)
 			return
 		}
-		log.Infof("Submitted topic consensus eth tx message for TX [%s], Tx Hash [%s] at Transaction ID [%s].", id, ethTxHashString, tx.String())
+		s.logger.Infof("Submitted topic consensus eth tx message for TX [%s], Tx Hash [%s] at Transaction ID [%s].", id, ethTxHashString, tx.String())
 
-		s.waitForEthTxSuccess(id, ethTx.Hash())
+		success, err := s.waitForEthTxMined(ethTx.Hash())
+		if err != nil {
+			s.logger.Errorf("Waiting for execution for TX [%s] and Hash [%s] failed. Error [%s].", id, ethTxHashString, err)
+			return
+		}
+
+		if success {
+			s.logger.Infof("Successful execution of TX [%s] with TX Hash [%s].", id, ethTxHashString)
+		} else {
+			s.logger.Warn("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxHashString)
+		}
 	}()
 
 	s.logger.Infof("Scheduled new TX with ID [%s] for execution in [%s]", id, executeIn)
@@ -155,7 +164,7 @@ func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.
 	}
 
 	msg := &protomsg.TopicSubmissionMessage{
-		Type: process.EthTransactionMessage,
+		Type: protomsg.TopicSubmissionType_EthTransaction,
 		Message: &protomsg.TopicSubmissionMessage_TopicEthTransactionMessage{
 			TopicEthTransactionMessage: ethTxMsg}}
 
@@ -167,19 +176,8 @@ func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.
 	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)
 }
 
-func (s *Scheduler) waitForEthTxSuccess(id string, ethTx common.Hash) {
-	ethTxString := ethTx.String()
-	success, err := s.contractService.Client.WaitForTransactionSuccess(ethTx)
-	if err != nil {
-		s.logger.Errorf("Waiting for execution for TX [%s] and Hash [%s] failed. Error [%s].", id, ethTxString, err)
-		return
-	}
-
-	if success {
-		s.logger.Infof("Successful execution of TX [%s] with TX Hash [%s].", id, ethTxString)
-	} else {
-		s.logger.Warn("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxString)
-	}
+func (s *Scheduler) waitForEthTxMined(ethTx common.Hash) (bool, error) {
+	return s.contractService.Client.WaitForTransactionSuccess(ethTx)
 }
 
 func getSignatures(messages []message.TransactionMessage) ([][]byte, error) {
