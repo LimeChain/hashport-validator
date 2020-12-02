@@ -33,11 +33,6 @@ type Scheduler struct {
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
 func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) error {
-	_, exists := s.tasks.Load(id)
-	if exists {
-		return errors.New(fmt.Sprintf("Transaction with ID [%s] already scheduled for execution.", id))
-	}
-
 	et, err := s.computeExecutionTime(submission.Messages)
 	if err != nil {
 		return err
@@ -45,11 +40,15 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
-	s.tasks.Store(id, timer)
+
+	_, alreadyExisted := s.tasks.LoadOrStore(id, timer)
+	if alreadyExisted {
+		s.logger.Infof("Transaction with ID [%s] already scheduled for execution.", id)
+		return nil
+	}
+
 	go func() {
 		<-timer.C
-
-		s.tasks.Delete(id)
 
 		ethTx, err := s.execute(submission)
 		if err != nil {
@@ -91,7 +90,6 @@ func (s *Scheduler) Cancel(id string) error {
 		s.logger.Warnf("Scheduled transaction execution for [%s] not found.", id)
 		return nil
 	}
-	s.tasks.Delete(id)
 
 	timer := t.(*time.Timer)
 	timer.Stop()
