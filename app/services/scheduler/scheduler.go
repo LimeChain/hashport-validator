@@ -18,6 +18,16 @@ type Scheduler struct {
 	executionWindow int64
 }
 
+// NewScheduler - Creates new instance of Scheduler
+func NewScheduler(operator string, executionWindow int64) *Scheduler {
+	return &Scheduler{
+		logger:          config.GetLoggerFor("Scheduler"),
+		tasks:           new(sync.Map),
+		operator:        operator,
+		executionWindow: executionWindow,
+	}
+}
+
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
 func (s *Scheduler) Schedule(id string, messages []message.TransactionMessage) error {
 	_, exists := s.tasks.Load(id)
@@ -60,16 +70,6 @@ func (s *Scheduler) Cancel(id string) error {
 
 	s.logger.Infof("Cancelled scheduled execution for TX [%s]", id)
 	return nil
-}
-
-// NewScheduler - Creates new instance of Scheduler
-func NewScheduler(operator string, executionWindow int64) *Scheduler {
-	return &Scheduler{
-		logger:          config.GetLoggerFor("Scheduler"),
-		tasks:           new(sync.Map),
-		operator:        operator,
-		executionWindow: executionWindow,
-	}
 }
 
 // computeExecutionTime - computes the time at which the TX must be executed based on the first signature and the current validator

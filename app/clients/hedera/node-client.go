@@ -12,32 +12,6 @@ type HederaNodeClient struct {
 	client *hedera.Client
 }
 
-func (hc *HederaNodeClient) GetClient() *hedera.Client {
-	return hc.client
-}
-
-func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	id, err := hedera.NewTopicMessageSubmitTransaction().
-		SetTopicID(topicId).
-		SetMessage(message).
-		Execute(hc.client)
-
-	if err != nil {
-		return nil, err
-	}
-
-	receipt, err := id.GetReceipt(hc.client)
-	if err != nil {
-		return nil, err
-	}
-
-	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
-	}
-
-	return &id.TransactionID, err
-}
-
 func NewNodeClient(config config.Client) *HederaNodeClient {
 	var client *hedera.Client
 	switch config.NetworkType {
@@ -64,4 +38,30 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 	client.SetOperator(accID, privateKey)
 
 	return &HederaNodeClient{client}
+}
+
+func (hc *HederaNodeClient) GetClient() *hedera.Client {
+	return hc.client
+}
+
+func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+	id, err := hedera.NewTopicMessageSubmitTransaction().
+		SetTopicID(topicId).
+		SetMessage(message).
+		Execute(hc.client)
+
+	if err != nil {
+		return nil, err
+	}
+
+	receipt, err := id.GetReceipt(hc.client)
+	if err != nil {
+		return nil, err
+	}
+
+	if receipt.Status != hedera.StatusSuccess {
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
+	}
+
+	return &id.TransactionID, err
 }

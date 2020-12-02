@@ -19,6 +19,23 @@ type BridgeContractService struct {
 	client           *ethclient.EthereumClient
 }
 
+func NewBridgeContractService(client *ethclient.EthereumClient, config config.Ethereum) *BridgeContractService {
+	bridgeContractAddress, err := client.ValidateContractAddress(config.BridgeContractAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	contractInstance, err := bridge.NewBridge(*bridgeContractAddress, client.Client)
+	if err != nil {
+		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", config.BridgeContractAddress, err)
+	}
+
+	return &BridgeContractService{
+		client:           client,
+		contractInstance: contractInstance,
+	}
+}
+
 func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
 	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
 	if err != nil {
@@ -41,21 +58,4 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 
 func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridge.BridgeBurn) (event.Subscription, error) {
 	return bsc.contractInstance.WatchBurn(opts, sink)
-}
-
-func NewBridgeContractService(client *ethclient.EthereumClient, config config.Ethereum) *BridgeContractService {
-	bridgeContractAddress, err := client.ValidateContractAddress(config.BridgeContractAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	contractInstance, err := bridge.NewBridge(*bridgeContractAddress, client.Client)
-	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", config.BridgeContractAddress, err)
-	}
-
-	return &BridgeContractService{
-		client:           client,
-		contractInstance: contractInstance,
-	}
 }

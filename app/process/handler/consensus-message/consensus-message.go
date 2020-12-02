@@ -31,10 +31,6 @@ type ConsensusMessageHandler struct {
 	logger                *log.Entry
 }
 
-func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	cmh.logger.Println("Recovery method not implemented yet.")
-}
-
 func NewConsensusMessageHandler(
 	r repositories.MessageRepository,
 	hederaNodeClient *hederaClient.HederaNodeClient,
@@ -56,6 +52,10 @@ func NewConsensusMessageHandler(
 		scheduler:             scheduler.NewScheduler(signer.Address().String(), int64(executionWindow)),
 		logger:                configuration.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
+}
+
+func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
+	cmh.logger.Println("Recovery method not implemented yet.")
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
