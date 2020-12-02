@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -35,6 +36,13 @@ func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*comm
 
 func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
 	receipt, err := ec.waitForTransactionReceipt(hash)
+
+	// try again mechanism in case transaction is not validated for tx mempool yet
+	if errors.Is(err, ethereum.NotFound) {
+		time.Sleep(5 * time.Second)
+		receipt, err = ec.waitForTransactionReceipt(hash)
+	}
+
 	if err != nil {
 		return false, err
 	}
