@@ -4,11 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
@@ -25,7 +23,6 @@ import (
 )
 
 type ConsensusMessageHandler struct {
-	ethClient             *ethclient.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	operatorsEthAddresses []string
 	repository            repositories.MessageRepository
@@ -41,7 +38,6 @@ func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 func NewConsensusMessageHandler(
 	configuration config.ConsensusMessageHandler,
 	r repositories.MessageRepository,
-	ethClient *ethclient.EthereumClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,
 	signer *eth.Signer,
@@ -54,7 +50,6 @@ func NewConsensusMessageHandler(
 	return &ConsensusMessageHandler{
 		repository:            r,
 		operatorsEthAddresses: configuration.Addresses,
-		ethClient:             ethClient,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
 		scheduler:             scheduler,
@@ -91,12 +86,7 @@ func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
 	// TODO: verify authenticity of transaction hash
 
-	fromAddress, err := cmh.ethClient.GetTransactionFromAddress(common.HexToHash(m.EthTxHash))
-	if err != nil {
-		return err
-	}
-
-	return cmh.scheduler.Cancel(m.TransactionId, fromAddress)
+	return cmh.scheduler.Cancel(m.TransactionId)
 }
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {

@@ -59,7 +59,6 @@ func main() {
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		configuration.Hedera.Handler.ConsensusMessage,
 		*messageRepository,
-		ethClient,
 		hederaNodeClient,
 		schedulerService,
 		ethSigner))

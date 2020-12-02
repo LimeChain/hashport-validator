@@ -42,9 +42,9 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
 
-	_, alreadyExisted := s.tasks.LoadOrStore(id, &scheduler.Storage{
-		SubmitterAddress: submission.TransactOps.From.String(),
-		Timer:            timer,
+	storedValue, alreadyExisted := s.tasks.LoadOrStore(id, &scheduler.Storage{
+		Executed: false,
+		Timer:    timer,
 	})
 
 	if alreadyExisted {
@@ -54,6 +54,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 
 	go func() {
 		<-timer.C
+		storedValue.(*scheduler.Storage).Executed = true
 
 		ethTx, err := s.execute(submission)
 		if err != nil {
@@ -89,7 +90,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 }
 
 // Cancel - Removes and cancels an already scheduled Transaction
-func (s *Scheduler) Cancel(id string, submitterAddress string) error {
+func (s *Scheduler) Cancel(id string) error {
 	t, exists := s.tasks.Load(id)
 	if !exists {
 		s.logger.Warnf("Scheduled transaction execution for [%s] not found.", id)
@@ -97,10 +98,12 @@ func (s *Scheduler) Cancel(id string, submitterAddress string) error {
 	}
 
 	storage := t.(*scheduler.Storage)
-	storage.Timer.Stop()
 
-	if strings.ToLower(storage.SubmitterAddress) != strings.ToLower(submitterAddress) {
+	if !storage.Executed {
+		storage.Timer.Stop()
 		s.logger.Infof("Cancelled scheduled execution for TX [%s].", id)
+	} else {
+
 	}
 
 	return nil

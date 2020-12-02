@@ -15,9 +15,8 @@ import (
 
 // Ethereum Node Client
 type EthereumClient struct {
-	Client    *ethclient.Client
-	config    config.Ethereum
-	networkId *big.Int
+	Client *ethclient.Client
+	config config.Ethereum
 }
 
 func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*common.Address, error) {
@@ -60,20 +59,6 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *EthereumClient) GetTransactionFromAddress(hash common.Hash) (string, error) {
-	tx, _, err := ec.Client.TransactionByHash(context.Background(), hash)
-	if err != nil {
-		return "", err
-	}
-
-	msg, err := tx.AsMessage(types.NewEIP155Signer(ec.networkId))
-	if err != nil {
-		return "", err
-	}
-
-	return msg.From().String(), nil
-}
-
 func NewEthereumClient(config config.Ethereum) *EthereumClient {
 	client, err := ethclient.Dial(config.NodeUrl)
 	if err != nil {
@@ -83,11 +68,6 @@ func NewEthereumClient(config config.Ethereum) *EthereumClient {
 	ethereumClient := &EthereumClient{
 		Client: client,
 		config: config,
-	}
-
-	ethereumClient.networkId, err = client.NetworkID(context.Background())
-	if err != nil {
-		log.Fatal("Failed to retrieve network id. Error [%s]", err)
 	}
 
 	return ethereumClient

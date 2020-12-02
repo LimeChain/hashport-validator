@@ -3,6 +3,6 @@ package scheduler
 import "time"
 
 type Storage struct {
-	SubmitterAddress string
-	Timer            *time.Timer
+	Executed bool
+	Timer    *time.Timer
 }
