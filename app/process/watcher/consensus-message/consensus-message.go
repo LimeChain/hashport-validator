@@ -84,7 +84,7 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 }
 
 func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64, q *queue.Queue) {
-	msg := &validatorproto.TopicSignatureMessage{}
+	msg := &validatorproto.TopicSubmissionMessage{}
 	err := proto.Unmarshal(message, msg)
 	if err != nil {
 		log.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
