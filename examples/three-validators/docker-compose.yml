@@ -43,6 +43,7 @@ services:
     ports:
       - 8432:5432
   alice_validator:
+    image: eth-hedera-validator
     build:
       context: ../..
       dockerfile: ./build/Dockerfile
@@ -57,9 +58,7 @@ services:
     depends_on:
       - "alice_db"
   bob_validator:
-    build:
-      context: ../..
-      dockerfile: ./build/Dockerfile
+    image: eth-hedera-validator
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: bob_db
     volumes:
@@ -71,9 +70,7 @@ services:
     depends_on:
       - "bob_db"
   carol_validator:
-    build:
-      context: ../..
-      dockerfile: ./build/Dockerfile
+    image: eth-hedera-validator
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: carol_db
     volumes:
