@@ -166,10 +166,10 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatur
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + len(cmh.operatorsEthAddresses)%2
+	requiredSigCount := len(cmh.operatorsEthAddresses) / 2
 	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
 
-	if len(txSignatures) <= requiredSigCount {
+	if len(txSignatures) < requiredSigCount {
 		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}
