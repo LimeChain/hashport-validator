@@ -103,7 +103,7 @@ func (s *Scheduler) Cancel(id string) error {
 		storage.Timer.Stop()
 		s.logger.Infof("Cancelled scheduled execution for TX [%s].", id)
 	} else {
-
+		s.logger.Infof("TX [%s] already executed.", id)
 	}
 
 	return nil
