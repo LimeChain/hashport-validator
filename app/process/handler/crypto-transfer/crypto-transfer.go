@@ -50,7 +50,7 @@ func NewCryptoTransferHandler(
 		hederaMirrorClient: hederaMirrorClient,
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
-		logger:             config.GetLoggerFor(fmt.Sprintf("Crypto Transfer Handler [%s]", topicID.String())),
+		logger:             config.GetLoggerFor("Account Transfer Handler"),
 	}
 }
 

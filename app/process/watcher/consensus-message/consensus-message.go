@@ -41,7 +41,7 @@ func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorC
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		started:          false,
-		logger:           config.GetLoggerFor(fmt.Sprintf("Consensus Message Watcher [%s]", topicID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("Topic [%s] Watcher", topicID.String())),
 	}
 }
 

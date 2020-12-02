@@ -54,7 +54,7 @@ func NewConsensusMessageHandler(
 		topicID:               topicID,
 		signer:                signer,
 		scheduler:             scheduler.NewScheduler(signer.Address().String(), int64(executionWindow)),
-		logger:                configuration.GetLoggerFor(fmt.Sprintf("Consensus Message Handler [%s]", topicID.String())),
+		logger:                configuration.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
 
