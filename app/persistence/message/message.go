@@ -28,7 +28,9 @@ func NewMessageRepository(dbClient *gorm.DB) *MessageRepository {
 
 func (m MessageRepository) GetTransaction(txId, signature, hash string) (*TransactionMessage, error) {
 	var message TransactionMessage
-	err := m.dbClient.Model(&TransactionMessage{}).Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).First(&message).Error
+	err := m.dbClient.Model(&TransactionMessage{}).
+		Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).
+		First(&message).Error
 	if err != nil {
 		return nil, err
 	}
