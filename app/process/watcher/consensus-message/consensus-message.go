@@ -1,14 +1,12 @@
 package consensusmessage
 
 import (
-	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -110,35 +108,10 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		ctw.logger.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.", ctw.topicID)
 	}
 
-	ctw.logger.Infof("Started Consensus Message Watcher for topic [%s]", ctw.topicID)
-	unprocessedMessages, err := ctw.mirrorClient.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
-	if err != nil {
-		ctw.logger.Errorf("Could not get unprocessed messages after timestamp [%s] - [%s]", milestoneTimestamp, err)
-		ctw.logger.Fatal(err)
-	}
 	ctw.started = true
 
-	if len(unprocessedMessages.Messages) > 0 {
-		ctw.logger.Infof("Found [%v] unprocessed messages. Processing now.", len(unprocessedMessages.Messages))
-	}
-
-	for _, u := range unprocessedMessages.Messages {
-		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
-		if err != nil {
-			ctw.logger.Errorf("Could not decode message - [%s]. Skipping the processing of this message", u.Message)
-			continue
-		}
-
-		milestoneTimestamp, err = timestamp.FromString(u.ConsensusTimestamp)
-		if err != nil {
-			ctw.logger.Errorf("[%s] Consensus Message Watcher: [%s]", ctw.topicID.String(), err)
-			continue
-		}
-
-		ctw.processMessage(decodedMessage, milestoneTimestamp, q)
-	}
-
-	_, err = hedera.NewTopicMessageQuery().
+	_, err := hedera.NewTopicMessageQuery().
+		SetStartTime(time.Unix(0, milestoneTimestamp)).
 		SetTopicID(ctw.topicID).
 		Subscribe(
 			ctw.nodeClient.GetClient(),

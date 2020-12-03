@@ -10,6 +10,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -119,64 +120,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
-				ctw.logger.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]",
-					tx.ConsensusTimestamp,
-					ctw.accountID.String(),
-					tx.TransactionHash)
-
-				var amount int64
-				for _, tr := range tx.Transfers {
-					if tr.Account == ctw.accountID.String() {
-						amount = tr.Amount
-					}
-				}
-
-				decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-				if e != nil || len(decodedMemo) < 42 {
-					ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
-					continue
-				}
-
-				// TODO: Should verify memo.
-				ethAddress := decodedMemo[:42]
-				feeString := string(decodedMemo[42:])
-
-				re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-				if !re.MatchString(string(ethAddress)) {
-					ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
-					continue
-				}
-
-				_, e = helper.ToBigInt(feeString)
-				if e != nil {
-					ctw.logger.Errorf("Could not verify transaction fee - [%s]", feeString)
-					continue
-				}
-
-				stateProof, e := ctw.client.GetStateProof(tx.TransactionID)
-				if e != nil {
-					ctw.logger.Errorf("Could not GET state proof, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
-					continue
-				}
-
-				verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-				if e != nil {
-					ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
-					continue
-				}
-
-				if !verified {
-					ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
-					continue
-				}
-
-				information := &protomsg.CryptoTransferMessage{
-					TransactionId: tx.TransactionID,
-					EthAddress:    string(ethAddress),
-					Amount:        uint64(amount),
-					Fee:           feeString,
-				}
-				publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
+				go ctw.processTransaction(tx, q)
 			}
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
@@ -188,11 +132,72 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
 		if err != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Error incoming: Failed to update last fetched timestamp - [%s]", e)
 			return
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
 	}
+}
+
+func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
+	ctw.logger.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]",
+		tx.ConsensusTimestamp,
+		ctw.accountID.String(),
+		tx.TransactionHash)
+
+	var amount int64
+	for _, tr := range tx.Transfers {
+		if tr.Account == ctw.accountID.String() {
+			amount = tr.Amount
+			break
+		}
+	}
+
+	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
+	if e != nil || len(decodedMemo) < 42 {
+		ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
+		return
+	}
+
+	ethAddress := decodedMemo[:42]
+	feeString := string(decodedMemo[42:])
+
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	if !re.MatchString(string(ethAddress)) {
+		ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
+		return
+	}
+
+	_, e = helper.ToBigInt(feeString)
+	if e != nil {
+		ctw.logger.Errorf("Could not verify transaction fee - [%s]", feeString)
+		return
+	}
+
+	stateProof, e := ctw.client.GetStateProof(tx.TransactionID)
+	if e != nil {
+		ctw.logger.Errorf("Could not GET state proof, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
+		return
+	}
+
+	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
+	if e != nil {
+		ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
+		return
+	}
+
+	if !verified {
+		ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
+		return
+	}
+
+	information := &protomsg.CryptoTransferMessage{
+		TransactionId: tx.TransactionID,
+		EthAddress:    string(ethAddress),
+		Amount:        uint64(amount),
+		Fee:           feeString,
+	}
+	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
 
 func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {

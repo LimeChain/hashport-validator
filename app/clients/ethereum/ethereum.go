@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -60,6 +61,13 @@ func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccess
 func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
 		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
+
+		// try again mechanism in case transaction is not validated for tx mempool yet
+		if errors.Is(ethereum.NotFound, err) {
+			time.Sleep(5 * time.Second)
+			_, isPending, err = ec.Client.TransactionByHash(context.Background(), hash)
+		}
+
 		if err != nil {
 			return nil, err
 		}
