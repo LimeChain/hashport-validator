@@ -132,7 +132,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
 		if err != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Error incoming: Failed to update last fetched timestamp - [%s]", e)
 			return
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
@@ -149,6 +149,7 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	for _, tr := range tx.Transfers {
 		if tr.Account == ctw.accountID.String() {
 			amount = tr.Amount
+			break
 		}
 	}
 
