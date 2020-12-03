@@ -90,7 +90,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 
 	if dbTransaction == nil {
-		cth.logger.Infof("Creating a transaction record for TransactionID [%s].", ctm.TransactionId)
+		cth.logger.Debugf("Persisting TX with ID [%s].", ctm.TransactionId)
 
 		err = cth.transactionRepo.Create(&ctm)
 		if err != nil {
@@ -98,7 +98,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 			return
 		}
 	} else {
-		cth.logger.Infof("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
+		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
 		if dbTransaction.Status != txRepo.StatusPending {
 			cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
@@ -154,7 +154,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 }
 
 func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
-	cth.logger.Infof("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
+	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))
 
@@ -167,14 +167,15 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 
 		if len(txs.Transactions) > 0 {
 			success := false
-			for _, tx := range txs.Transactions {
-				if tx.Result == hedera.StatusSuccess.String() {
+			for _, transaction := range txs.Transactions {
+				if transaction.Result == hedera.StatusSuccess.String() {
 					success = true
+					break
 				}
 			}
 
 			if success {
-				cth.logger.Infof("Completing status for Transaction ID [%s].", transactionId)
+				cth.logger.Debugf("Updating status to completed for TX ID [%s] and Topic Submission ID [%s].", transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
 				err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
 				if err != nil {
 					cth.logger.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
@@ -222,6 +223,6 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 		return nil, err
 	}
 
-	cth.logger.Infof("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId)
+	cth.logger.Infof("Submitting Signature for TX ID [%s] on Topic [%s]", message.TransactionId, cth.topicID)
 	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSubmissionMessageBytes)
 }

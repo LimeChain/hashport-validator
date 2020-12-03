@@ -22,11 +22,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 func main() {
-	initLogger()
+	config.InitLogger()
 	configuration := config.LoadConfig()
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress)
@@ -103,12 +102,4 @@ func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *h
 		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	}
 	return nil
-}
-
-func initLogger() {
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
 }
