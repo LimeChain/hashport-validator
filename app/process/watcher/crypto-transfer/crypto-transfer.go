@@ -51,7 +51,7 @@ func NewCryptoTransferWatcher(
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		started:          false,
-		logger:           config.GetLoggerFor(fmt.Sprintf("Crypto Transfer Watcher [%s]", accountID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("Account [%s] Transfer Watcher", accountID.String())),
 	}
 }
 

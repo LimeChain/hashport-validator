@@ -29,10 +29,7 @@ type ConsensusMessageHandler struct {
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
-}
-
-func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	log.Println("Recovery method not implemented yet.")
+	logger                *log.Entry
 }
 
 func NewConsensusMessageHandler(
@@ -54,7 +51,12 @@ func NewConsensusMessageHandler(
 		topicID:               topicID,
 		scheduler:             scheduler,
 		signer:                signer,
+		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
+}
+
+func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
+	cmh.logger.Println("Recovery method not implemented yet.")
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
@@ -78,7 +80,7 @@ func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 	}
 
 	if err != nil {
-		log.Errorf("Error - could not handle payload: [%s]", err)
+		cmh.logger.Errorf("Error - could not handle payload: [%s]", err)
 		return
 	}
 }
@@ -98,11 +100,11 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		Fee:           m.Fee,
 	}
 
-	log.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
+	cmh.logger.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
 
 	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
-		log.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
 	hash := crypto.Keccak256(encodedData)
@@ -152,7 +154,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
-	log.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
+	cmh.logger.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
 
 	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
@@ -160,7 +162,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
-		log.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
+		cmh.logger.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
 
 		submission := &ethsubmission.Submission{
 			TransactOps:           cmh.signer.NewKeyTransactor(),
@@ -187,11 +189,11 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + len(cmh.operatorsEthAddresses)%2
-	log.Infof("Required signatures: [%v]", requiredSigCount)
+	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
+	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
 
-	if len(txSignatures) < requiredSigCount {
-		log.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
+	if requiredSigCount > len(txSignatures) {
+		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}
 	return true

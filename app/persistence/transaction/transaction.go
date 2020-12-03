@@ -29,6 +29,12 @@ type TransactionRepository struct {
 	dbClient *gorm.DB
 }
 
+func NewTransactionRepository(dbClient *gorm.DB) *TransactionRepository {
+	return &TransactionRepository{
+		dbClient: dbClient,
+	}
+}
+
 func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Transaction, error) {
 	tx := &Transaction{}
 	result := tr.dbClient.
@@ -92,10 +98,4 @@ func (tr *TransactionRepository) updateStatus(txId string, status string) error 
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
 		Error
-}
-
-func NewTransactionRepository(dbClient *gorm.DB) *TransactionRepository {
-	return &TransactionRepository{
-		dbClient: dbClient,
-	}
 }
