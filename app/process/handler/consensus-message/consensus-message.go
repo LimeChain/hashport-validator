@@ -11,9 +11,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
-	configuration "github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -22,35 +23,35 @@ import (
 )
 
 type ConsensusMessageHandler struct {
-	repository            repositories.MessageRepository
-	operatorsEthAddresses []string
 	hederaNodeClient      *hederaClient.HederaNodeClient
-	topicID               hedera.TopicID
-	signer                *eth.Signer
+	operatorsEthAddresses []string
+	repository            repositories.MessageRepository
 	scheduler             *scheduler.Scheduler
+	signer                *eth.Signer
+	topicID               hedera.TopicID
 	logger                *log.Entry
 }
 
 func NewConsensusMessageHandler(
+	configuration config.ConsensusMessageHandler,
 	r repositories.MessageRepository,
 	hederaNodeClient *hederaClient.HederaNodeClient,
-	c *configuration.Config,
+	scheduler *scheduler.Scheduler,
 	signer *eth.Signer,
 ) *ConsensusMessageHandler {
-	topicID, err := hedera.TopicIDFromString(c.Hedera.Handler.ConsensusMessage.TopicId)
+	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", c.Hedera.Handler.ConsensusMessage.TopicId)
+		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
 	}
 
-	executionWindow := c.Hedera.Handler.ConsensusMessage.SendDeadline
 	return &ConsensusMessageHandler{
 		repository:            r,
-		operatorsEthAddresses: c.Hedera.Handler.ConsensusMessage.Addresses,
+		operatorsEthAddresses: configuration.Addresses,
 		hederaNodeClient:      hederaNodeClient,
 		topicID:               topicID,
+		scheduler:             scheduler,
 		signer:                signer,
-		scheduler:             scheduler.NewScheduler(signer.Address().String(), int64(executionWindow)),
-		logger:                configuration.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		logger: 			   config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
 
@@ -63,20 +64,35 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 }
 
 func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
-	err := cmh.handlePayload(payload)
+	m := &validatorproto.TopicSubmissionMessage{}
+	err := proto.Unmarshal(payload, m)
+	if err != nil {
+		log.Errorf("Error could not unmarshal payload. Error [%s].", err)
+	}
+
+	switch m.Type {
+	case validatorproto.TopicSubmissionType_EthSignature:
+		err = cmh.handleSignatureMessage(m)
+	case validatorproto.TopicSubmissionType_EthTransaction:
+		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
+	default:
+		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
+	}
+
 	if err != nil {
 		cmh.logger.Errorf("Error - could not handle payload: [%s]", err)
 		return
 	}
 }
 
-func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
-	m := &validatorproto.TopicSignatureMessage{}
-	err := proto.Unmarshal(payload, m)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to unmarshal topic signature message. - [%s]", err))
-	}
+func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
+	// TODO: verify authenticity of transaction hash
 
+	return cmh.scheduler.Cancel(m.TransactionId)
+}
+
+func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
+	m := msg.GetTopicSignatureMessage()
 	ctm := &validatorproto.CryptoTransferMessage{
 		TransactionId: m.TransactionId,
 		EthAddress:    m.EthAddress,
@@ -95,6 +111,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	hexHash := hex.EncodeToString(hash)
 
 	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
+	m.Signature = ethSig
 	if err != nil {
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
@@ -131,7 +148,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 		Signature:            ethSig,
 		Hash:                 hexHash,
 		SignerAddress:        address.String(),
-		TransactionTimestamp: m.TransactionTimestamp,
+		TransactionTimestamp: msg.TransactionTimestamp,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
@@ -146,7 +163,13 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
 		cmh.logger.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
-		err := cmh.scheduler.Schedule(m.TransactionId, txSignatures)
+
+		submission := &ethsubmission.Submission{
+			TransactOps:           cmh.signer.NewKeyTransactor(),
+			CryptoTransferMessage: ctm,
+			Messages:              txSignatures,
+		}
+		err := cmh.scheduler.Schedule(m.TransactionId, *submission)
 		if err != nil {
 			return err
 		}
@@ -155,7 +178,7 @@ func (cmh ConsensusMessageHandler) handlePayload(payload []byte) error {
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicSignatureMessage, ethSig, hexHash string) (bool, error) {
+func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
 	_, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 

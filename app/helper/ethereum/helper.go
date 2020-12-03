@@ -74,7 +74,9 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	}
 
 	// note: https://github.com/ethereum/go-ethereum/issues/19751
-	ethSig := decodedSig
+	ethSig := make([]byte, len(decodedSig))
+	copy(ethSig, decodedSig)
+
 	if decodedSig[64] == 0 || decodedSig[64] == 1 {
 		ethSig[64] += 27
 	} else if decodedSig[64] == 27 || decodedSig[64] == 28 {

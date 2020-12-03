@@ -16,7 +16,7 @@ import (
 
 type BridgeContractService struct {
 	contractInstance *bridge.Bridge
-	client           *ethclient.EthereumClient
+	Client           *ethclient.EthereumClient
 }
 
 func NewBridgeContractService(client *ethclient.EthereumClient, config config.Ethereum) *BridgeContractService {
@@ -31,7 +31,7 @@ func NewBridgeContractService(client *ethclient.EthereumClient, config config.Et
 	}
 
 	return &BridgeContractService{
-		client:           client,
+		Client:           client,
 		contractInstance: contractInstance,
 	}
 }

@@ -204,7 +204,7 @@ func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queu
 }
 
 func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
-	topicSigMessage := &protomsg.TopicSignatureMessage{
+	topicSigMessage := &protomsg.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,
 		Amount:        message.Amount,
@@ -212,11 +212,16 @@ func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.Crypto
 		Signature:     signature,
 	}
 
-	topicSigMessageBytes, err := proto.Marshal(topicSigMessage)
+	topicSubmissionMessage := &protomsg.TopicSubmissionMessage{
+		Type:    protomsg.TopicSubmissionType_EthSignature,
+		Message: &protomsg.TopicSubmissionMessage_TopicSignatureMessage{TopicSignatureMessage: topicSigMessage},
+	}
+
+	topicSubmissionMessageBytes, err := proto.Marshal(topicSubmissionMessage)
 	if err != nil {
 		return nil, err
 	}
 
 	cth.logger.Infof("Submitting Topic Consensus Message for Topic ID [%s] and Transaction ID [%s]", cth.topicID, message.TransactionId)
-	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSigMessageBytes)
+	return cth.hederaNodeClient.SubmitTopicConsensusMessage(cth.topicID, topicSubmissionMessageBytes)
 }
