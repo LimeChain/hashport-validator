@@ -1,13 +1,11 @@
 package consensusmessage
 
 import (
-	b64 "encoding/base64"
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -106,35 +104,10 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		log.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.\n", ctw.topicID)
 	}
 
-	log.Infof("Started Consensus Message Watcher for topic [%s]", ctw.topicID)
-	unprocessedMessages, err := ctw.mirrorClient.GetUnprocessedMessagesAfterTimestamp(ctw.topicID, milestoneTimestamp)
-	if err != nil {
-		log.Errorf("Could not get unprocessed messages after timestamp [%s] - [%s]", milestoneTimestamp, err)
-		log.Fatal(err)
-	}
 	ctw.started = true
 
-	if len(unprocessedMessages.Messages) > 0 {
-		log.Infof("Found [%v] unprocessed messages. Processing now.", len(unprocessedMessages.Messages))
-	}
-
-	for _, u := range unprocessedMessages.Messages {
-		decodedMessage, err := b64.StdEncoding.DecodeString(u.Message)
-		if err != nil {
-			log.Errorf("Could not decode message - [%s]. Skipping the processing of this message", u.Message)
-			continue
-		}
-
-		milestoneTimestamp, err = timestamp.FromString(u.ConsensusTimestamp)
-		if err != nil {
-			log.Errorf("[%s] Consensus Message Watcher: [%s]", ctw.topicID.String(), err)
-			continue
-		}
-
-		ctw.processMessage(decodedMessage, milestoneTimestamp, q)
-	}
-
-	_, err = hedera.NewTopicMessageQuery().
+	_, err := hedera.NewTopicMessageQuery().
+		SetStartTime(time.Unix(0, milestoneTimestamp)).
 		SetTopicID(ctw.topicID).
 		Subscribe(
 			ctw.nodeClient.GetClient(),
