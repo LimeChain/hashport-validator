@@ -12,14 +12,19 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
 )
 
 type BridgeContractService struct {
 	contractInstance *bridge.Bridge
 	Client           *ethclient.EthereumClient
+	mutex            sync.Mutex
 }
 
 func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
+	bsc.mutex.Lock()
+	defer bsc.mutex.Unlock()
+
 	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
 	if err != nil {
 		return nil, err
