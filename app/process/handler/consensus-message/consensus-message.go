@@ -51,7 +51,7 @@ func NewConsensusMessageHandler(
 		topicID:               topicID,
 		scheduler:             scheduler,
 		signer:                signer,
-		logger: 			   config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
 
@@ -189,10 +189,10 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.operatorsEthAddresses) / 2
+	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
 	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
 
-	if len(txSignatures) < requiredSigCount {
+	if requiredSigCount > len(txSignatures) {
 		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
 		return false
 	}
