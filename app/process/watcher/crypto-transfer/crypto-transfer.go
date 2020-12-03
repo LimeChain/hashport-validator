@@ -140,10 +140,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 }
 
 func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
-	ctw.logger.Infof("[%s] - New transaction on account [%s] - Tx Hash: [%s]",
-		tx.ConsensusTimestamp,
-		ctw.accountID.String(),
-		tx.TransactionHash)
+	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
 	var amount int64
 	for _, tr := range tx.Transfers {
