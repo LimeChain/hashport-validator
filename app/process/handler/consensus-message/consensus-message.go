@@ -60,10 +60,6 @@ func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
-	go cmh.errorHandler(payload)
-}
-
-func (cmh ConsensusMessageHandler) errorHandler(payload []byte) {
 	m := &validatorproto.TopicSubmissionMessage{}
 	err := proto.Unmarshal(payload, m)
 	if err != nil {
