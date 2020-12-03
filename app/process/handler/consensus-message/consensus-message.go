@@ -96,7 +96,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		Fee:           m.Fee,
 	}
 
-	cmh.logger.Infof("New Consensus Message for processing Transaction ID [%s] was received", m.TransactionId)
+	cmh.logger.Debugf("Signature for TX ID [%s] was received", m.TransactionId)
 
 	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
@@ -150,7 +150,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
-	cmh.logger.Infof("Successfully verified and saved signature for TX with ID [%s]", m.TransactionId)
+	cmh.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
 
 	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
@@ -158,8 +158,6 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	}
 
 	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
-		cmh.logger.Infof("Signatures for TX ID [%s] were collected", m.TransactionId)
-
 		submission := &ethsubmission.Submission{
 			TransactOps:           cmh.signer.NewKeyTransactor(),
 			CryptoTransferMessage: ctm,
@@ -186,13 +184,8 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
 	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
-	cmh.logger.Infof("Required signatures: [%v]", requiredSigCount)
-
-	if requiredSigCount > len(txSignatures) {
-		cmh.logger.Infof("Insignificant amount of Transaction Signatures for Transaction [%s] - [%d] signaturеs out of [%d].", transactionId, len(txSignatures), requiredSigCount)
-		return false
-	}
-	return true
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.operatorsEthAddresses), transactionId)
+	return len(txSignatures) >= requiredSigCount
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {

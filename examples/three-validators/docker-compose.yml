@@ -42,7 +42,7 @@ services:
       - ./carol/db:/var/lib/postgresql/data
     ports:
       - 8432:5432
-  alice_validator:
+  alice:
     image: eth-hedera-validator
     build:
       context: ../..
@@ -57,7 +57,7 @@ services:
       - 6200:5200
     depends_on:
       - "alice_db"
-  bob_validator:
+  bob:
     image: eth-hedera-validator
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: bob_db
@@ -69,7 +69,7 @@ services:
       - 7200:5200
     depends_on:
       - "bob_db"
-  carol_validator:
+  carol:
     image: eth-hedera-validator
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: carol_db

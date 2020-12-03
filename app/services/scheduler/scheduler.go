@@ -48,7 +48,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 	})
 
 	if alreadyExisted {
-		s.logger.Infof("Transaction with ID [%s] already scheduled for execution.", id)
+		s.logger.Infof("TX with ID [%s] already scheduled for execution/executed.", id)
 		return nil
 	}
 
@@ -63,13 +63,13 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 		}
 		ethTxHashString := ethTx.Hash().String()
 
-		s.logger.Infof("Executed Scheduled TX [%s], TX Hash [%s].", id, ethTxHashString)
+		s.logger.Infof("Executed Scheduled TX [%s], Eth TX Hash [%s].", id, ethTxHashString)
 		tx, err := s.submitEthTxTopicMessage(id, submission, ethTxHashString)
 		if err != nil {
 			s.logger.Errorf("Failed to submit topic consensus eth tx message for TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHashString, err)
 			return
 		}
-		s.logger.Infof("Submitted topic consensus eth tx message for TX [%s], Tx Hash [%s] at Transaction ID [%s].", id, ethTxHashString, tx.String())
+		s.logger.Infof("Submitted Eth TX Hash [%s] for TX [%s] at HCS Transaction ID [%s]", ethTxHashString, id, tx.String())
 
 		success, err := s.waitForEthTxMined(ethTx.Hash())
 		if err != nil {
@@ -103,7 +103,7 @@ func (s *Scheduler) Cancel(id string) error {
 		storage.Timer.Stop()
 		s.logger.Infof("Cancelled scheduled execution for TX [%s].", id)
 	} else {
-		s.logger.Infof("TX [%s] already executed.", id)
+		s.logger.Infof("TX [%s] was already broadcast/executed.", id)
 	}
 
 	return nil
