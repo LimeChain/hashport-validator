@@ -3,6 +3,7 @@ package ethereum
 import (
 	bridgecontract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,15 @@ import (
 type EthWatcher struct {
 	config          config.Ethereum
 	contractService *bridge.BridgeContractService
+	logger          *log.Entry
+}
+
+func NewEthereumWatcher(contractService *bridge.BridgeContractService, config config.Ethereum) *EthWatcher {
+	return &EthWatcher{
+		config:          config,
+		contractService: contractService,
+		logger:          c.GetLoggerFor("Ethereum Watcher"),
+	}
 }
 
 func (ew *EthWatcher) Watch(queue *queue.Queue) {
@@ -43,9 +53,4 @@ func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Qu
 	// TODO: push to queue with message type, corresponding to ETH Handler
 }
 
-func NewEthereumWatcher(contractService *bridge.BridgeContractService, config config.Ethereum) *EthWatcher {
-	return &EthWatcher{
-		config:          config,
-		contractService: contractService,
-	}
-}
+
