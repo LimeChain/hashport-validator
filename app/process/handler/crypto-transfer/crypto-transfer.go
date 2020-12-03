@@ -170,6 +170,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 			for _, transaction := range txs.Transactions {
 				if transaction.Result == hedera.StatusSuccess.String() {
 					success = true
+					break
 				}
 			}
 
