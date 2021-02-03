@@ -119,7 +119,7 @@ func NewScheduler(
 ) *Scheduler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", topicID)
+		log.Fatalf("Invalid topic id: [%v]", topicID)
 	}
 
 	return &Scheduler{
