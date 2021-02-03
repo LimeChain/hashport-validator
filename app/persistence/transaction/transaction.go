@@ -12,6 +12,13 @@ const (
 	StatusCompleted = "COMPLETED"
 	StatusPending   = "PENDING"
 	StatusSubmitted = "SUBMITTED"
+
+	StatusInitial           = "INITIAL"
+	StatusInsufficientFee   = "INSUFFICIENT_FEE"
+	StatusSignatureProvided = "SIGNATURE_PROVIDED"
+	StatusSignatureFailed   = "SIGNATURE_FAILED"
+	StatusEthTxSubmitted    = "ETH_TX_SUBMITTED"
+	StatusEthTxReverted     = "ETH_TX_REVERTED"
 )
 
 type Transaction struct {
@@ -82,6 +89,30 @@ func (tr *TransactionRepository) UpdateStatusCancelled(txId string) error {
 
 func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
+}
+
+func (tr *TransactionRepository) UpdateStatusInitial(txId string) error {
+	return tr.updateStatus(txId, StatusInitial)
+}
+
+func (tr *TransactionRepository) UpdateStatusInsufficientFee(txId string) error {
+	return tr.updateStatus(txId, StatusInsufficientFee)
+}
+
+func (tr *TransactionRepository) UpdateStatusSignatureProvided(txId string) error {
+	return tr.updateStatus(txId, StatusSignatureProvided)
+}
+
+func (tr *TransactionRepository) UpdateStatusSignatureFailed(txId string) error {
+	return tr.updateStatus(txId, StatusSignatureFailed)
+}
+
+func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxSubmitted)
+}
+
+func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxReverted)
 }
 
 func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error {
