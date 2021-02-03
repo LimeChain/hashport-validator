@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
@@ -25,7 +27,9 @@ import (
 )
 
 func main() {
-	config.InitLogger()
+	debugMode := flag.Bool("debug", false, "run in debug mode")
+	flag.Parse()
+	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
 	db := persistence.RunDb(configuration.Hedera.Validator.Db)
 	hederaMirrorClient := hederaClients.NewHederaMirrorClient(configuration.Hedera.MirrorNode.ApiAddress)
