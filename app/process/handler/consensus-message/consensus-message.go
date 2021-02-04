@@ -158,11 +158,11 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	}
 
 	if cmh.enoughSignaturesCollected(txMessages, m.TransactionId) {
-		cmh.logger.Debugf("Enough signatures have been collected for Transaction ID [%s].", m.TransactionId)
+		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", m.TransactionId)
 
 		slot, isFound := cmh.computeExecutionSlot(txMessages)
 		if !isFound {
-			cmh.logger.Debugf("Operator [%s] has not been found amongst the signatures collected for Transaction ID [%s].", cmh.signer.Address(), m.TransactionId)
+			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", m.TransactionId, cmh.signer.Address())
 			return nil
 		}
 
