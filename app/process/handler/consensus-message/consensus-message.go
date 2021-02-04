@@ -152,17 +152,27 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 
 	cmh.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
 
-	txSignatures, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
+	txMessages, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId))
+		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId, err))
 	}
 
-	if cmh.enoughSignaturesCollected(txSignatures, m.TransactionId) {
-		submission := &ethsubmission.Submission{
-			TransactOps:           cmh.signer.NewKeyTransactor(),
-			CryptoTransferMessage: ctm,
-			Messages:              txSignatures,
+	if cmh.enoughSignaturesCollected(txMessages, m.TransactionId) {
+		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", m.TransactionId)
+
+		slot, isFound := cmh.computeExecutionSlot(txMessages)
+		if !isFound {
+			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", m.TransactionId, cmh.signer.Address())
+			return nil
 		}
+
+		submission := &ethsubmission.Submission{
+			CryptoTransferMessage: ctm,
+			Messages:              txMessages,
+			Slot:                  slot,
+			TransactOps:           cmh.signer.NewKeyTransactor(),
+		}
+
 		err := cmh.scheduler.Schedule(m.TransactionId, *submission)
 		if err != nil {
 			return err
@@ -186,6 +196,18 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
 	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.operatorsEthAddresses), transactionId)
 	return len(txSignatures) >= requiredSigCount
+}
+
+// computeExecutionSlot - computes the slot order in which the TX will execute
+// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
+func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
+	for i := 0; i < len(messages); i++ {
+		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(cmh.signer.Address()) {
+			return int64(i), true
+		}
+	}
+
+	return -1, false
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
