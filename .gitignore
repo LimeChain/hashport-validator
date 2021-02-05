@@ -16,3 +16,4 @@
 .idea/
 db/
 testscenario/
+config/application.yml

@@ -91,13 +91,13 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 }
 
 func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
-	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.Hash)
+	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
 	if err != nil {
 		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
 		return err
 	}
 
-	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.Hash))
+	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
 	if err != nil {
 		cmh.logger.Errorf("Failed await a transaction with Id [%s] and Hash [%s]. Error [%s].", m.TransactionId, m.Hash, err)
 		return err
