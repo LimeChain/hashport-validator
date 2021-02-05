@@ -20,3 +20,9 @@ jobs:
             ${{ runner.os }}-go-test-
       - name: Run Unit Tests
         run: go test ./...
+      # TODO: uncomment after CodeCov config is added
+      # - name: Run Unit Tests with Coverage
+      #   run: go test ./...
+      #- name: Upload Coverage report to CodeCov
+      #    run: bash <(curl -s https://codecov.io/bash)
+      #    working-directory: ${{env.working-directory}}
