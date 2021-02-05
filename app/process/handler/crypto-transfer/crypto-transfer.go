@@ -116,7 +116,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		cth.logger.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
 		err = cth.transactionRepo.UpdateStatusInsufficientFee(ctm.TransactionId)
 		if err != nil {
-			cth.logger.Errorf("Failed to update status to [INSUFFICIENT_FEE] of transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, err)
 			return
 		}
 
@@ -178,13 +178,13 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 				cth.logger.Debugf("Updating status to completed for TX ID [%s] and Topic Submission ID [%s].", transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
 				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to update status to [SIGNATURE_PROVIDED] status for TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
 				}
 			} else {
 				cth.logger.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId)
 				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to update status to [SIGNATURE_FAILED] transaction with TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
 				}
 			}
 			return

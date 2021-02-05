@@ -8,7 +8,6 @@ import (
 
 // Enum Transaction Status
 const (
-	StatusCancelled         = "CANCELLED"
 	StatusCompleted         = "COMPLETED"
 	StatusPending           = "PENDING"
 	StatusSubmitted         = "SUBMITTED"
@@ -29,6 +28,7 @@ type Transaction struct {
 	Signature      string
 	SubmissionTxId string
 	Status         string
+	EthHash        string
 }
 
 type TransactionRepository struct {
@@ -82,10 +82,6 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 	}).Error
 }
 
-func (tr *TransactionRepository) UpdateStatusCancelled(txId string) error {
-	return tr.updateStatus(txId, StatusCancelled)
-}
-
 func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
@@ -106,8 +102,12 @@ func (tr *TransactionRepository) UpdateStatusSignatureFailed(txId string) error 
 	return tr.updateStatus(txId, StatusSignatureFailed)
 }
 
-func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string) error {
-	return tr.updateStatus(txId, StatusEthTxSubmitted)
+func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
+	return tr.dbClient.
+		Model(Transaction{}).
+		Where("transaction_id = ?", txId).
+		Updates(Transaction{Status: StatusSubmitted, EthHash: hash}).
+		Error
 }
 
 func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {

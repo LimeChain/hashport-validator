@@ -13,6 +13,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -90,9 +91,9 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 }
 
 func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
-	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId)
+	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.Hash)
 	if err != nil {
-		cmh.logger.Errorf("Failed to update status to [ETH_TX_SUBMITTED] of transaction with TransactionID [%s]. Error [%s].", m.TransactionId, err)
+		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
 		return err
 	}
 
@@ -103,14 +104,16 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 	}
 
 	if !isSuccessful {
-		cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
-		cmh.logger.Errorf("Failed to update status to [ETH_TX_REVERTED] of transaction with TransactionID [%s]. Error [%s].", m.TransactionId, err)
+		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
+		if err != nil {
+			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
+		}
 		return err
 	}
 
 	err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
 	if err != nil {
-		cmh.logger.Errorf("Failed to update status to [COMPLETED] of transaction with TransactionID [%s]. Error [%s].", m.TransactionId, err)
+		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
 		return err
 	}
 
