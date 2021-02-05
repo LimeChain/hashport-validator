@@ -2,8 +2,6 @@ package scheduler
 
 import (
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/golang/protobuf/proto"
@@ -17,7 +15,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"sync"
 	"time"
 )
@@ -34,10 +31,8 @@ type Scheduler struct {
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
 func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) error {
-	et, err := s.computeExecutionTime(submission.Messages)
-	if err != nil {
-		return err
-	}
+	// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
+	et := s.computeExecutionTime(submission.Messages[0].TransactionTimestamp, submission.Slot)
 
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
@@ -133,28 +128,11 @@ func NewScheduler(
 	}
 }
 
-// computeExecutionTime - computes the time at which the TX must be executed based on the first signature and the current validator
-// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (s *Scheduler) computeExecutionTime(messages []message.TransactionMessage) (time.Time, error) {
-	slot, err := s.computeExecutionSlot(messages)
-	if err != nil {
-		return time.Unix(0, 0), err
-	}
+// computeExecutionTime - computes the time at which the TX must be executed based on message timestamp and slot provided
+func (s *Scheduler) computeExecutionTime(messageTimestamp int64, slot int64) time.Time {
+	executionTimeNanos := messageTimestamp + timestamp.ToNanos(slot*s.executionWindow)
 
-	firstSignatureTimestamp := messages[0].TransactionTimestamp
-	executionTimeNanos := firstSignatureTimestamp + timestamp.ToNanos(int64(slot)*s.executionWindow)
-
-	return time.Unix(0, executionTimeNanos), nil
-}
-
-func (s *Scheduler) computeExecutionSlot(messages []message.TransactionMessage) (int, error) {
-	for i := 0; i < len(messages); i++ {
-		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(s.operator) {
-			return i, nil
-		}
-	}
-
-	return -1, errors.New(fmt.Sprintf("Operator is not amongst the potential leaders - [%v]", s.operator))
+	return time.Unix(0, executionTimeNanos)
 }
 
 func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transaction, error) {

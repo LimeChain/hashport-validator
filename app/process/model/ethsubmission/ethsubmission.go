@@ -10,4 +10,5 @@ type Submission struct {
 	TransactOps           *bind.TransactOpts
 	CryptoTransferMessage *proto.CryptoTransferMessage
 	Messages              []message.TransactionMessage
+	Slot                  int64
 }

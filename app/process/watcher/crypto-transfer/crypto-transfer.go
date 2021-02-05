@@ -14,7 +14,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
-	"github.com/limechain/hedera-state-proof-verifier-go/stateproof"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -171,22 +170,23 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		return
 	}
 
-	stateProof, e := ctw.client.GetStateProof(tx.TransactionID)
+	_, e = ctw.client.GetStateProof(tx.TransactionID)
 	if e != nil {
 		ctw.logger.Errorf("Could not GET state proof, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
 		return
 	}
 
-	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-	if e != nil {
-		ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
-		return
-	}
-
-	if !verified {
-		ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
-		return
-	}
+	// TODO: Uncomment after support for V5 record and signature files has been added
+	//verified, e := stateproof.Verify(tx.TransactionID, stateProof)
+	//if e != nil {
+	//	ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
+	//	return
+	//}
+	//
+	//if !verified {
+	//	ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
+	//	return
+	//}
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
