@@ -11,11 +11,11 @@ jobs:
         name: Setup GO Env
         with:
           go-version: '1.13'
-      - name: Cache Go modules
+      - name: Cache Go Test modules
         uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ secrets.CACHE_VERSION }}-tests-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Run Unit Tests
