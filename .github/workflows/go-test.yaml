@@ -15,8 +15,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ secrets.CACHE_VERSION }}-tests-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-test-
       - name: Run Unit Tests
         run: go test ./...

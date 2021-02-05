@@ -97,7 +97,7 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64,
 	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
 	if err != nil {
-		ctw.logger.Errorf("Could not update last fetched timestamp - [%s]", timestamp)
+		ctw.logger.Errorf("Could not update last fetched timestamp - [%d]", timestamp)
 	}
 }
 
@@ -116,7 +116,7 @@ func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
 		Subscribe(
 			ctw.nodeClient.GetClient(),
 			func(response hedera.TopicMessage) {
-				ctw.logger.Debugf("Consensus Topic [%s] - Message incoming: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
+				ctw.logger.Debugf("Consensus Topic [%s] - Message incoming: [%s] - Contents: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
 				ctw.processMessage(response.Contents, response.ConsensusTimestamp.UnixNano(), q)
 			},
 		)
