@@ -22,7 +22,7 @@ jobs:
         run: go test ./...
       # TODO: uncomment after CodeCov config is added
       # - name: Run Unit Tests with Coverage
-      #   run: go test ./...
+      #   run: go test ./... -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic
       #- name: Upload Coverage report to CodeCov
       #    run: bash <(curl -s https://codecov.io/bash)
       #    working-directory: ${{env.working-directory}}
