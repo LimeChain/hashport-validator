@@ -10,7 +10,6 @@ type TransactionRepository interface {
 	GetIncompleteTransactions() ([]*transaction.Transaction, error)
 	Create(ct *proto.CryptoTransferMessage) error
 	UpdateStatusCompleted(txId string) error
-	UpdateStatusInitial(txId string) error
 	UpdateStatusInsufficientFee(txId string) error
 	UpdateStatusSignatureProvided(txId string) error
 	UpdateStatusSignatureFailed(txId string) error

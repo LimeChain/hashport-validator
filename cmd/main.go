@@ -52,7 +52,8 @@ func main() {
 		ethSigner,
 		hederaMirrorClient,
 		hederaNodeClient,
-		transactionRepository))
+		transactionRepository,
+		ethClient))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {
