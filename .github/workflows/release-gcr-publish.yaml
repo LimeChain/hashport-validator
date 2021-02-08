@@ -27,4 +27,3 @@ jobs:
             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest \
             -f build/Dockerfile .
           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:v0.0.1
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
