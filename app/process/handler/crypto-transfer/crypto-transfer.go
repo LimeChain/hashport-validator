@@ -118,12 +118,6 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 			cth.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 			return
 		}
-
-		err = cth.transactionRepo.UpdateStatusInitial(ctm.TransactionId)
-		if err != nil {
-			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInitial, ctm.TransactionId, err)
-			return
-		}
 	} else {
 		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 

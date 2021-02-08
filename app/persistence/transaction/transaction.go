@@ -85,10 +85,6 @@ func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
 
-func (tr *TransactionRepository) UpdateStatusInitial(txId string) error {
-	return tr.updateStatus(txId, StatusInitial)
-}
-
 func (tr *TransactionRepository) UpdateStatusInsufficientFee(txId string) error {
 	return tr.updateStatus(txId, StatusInsufficientFee)
 }
