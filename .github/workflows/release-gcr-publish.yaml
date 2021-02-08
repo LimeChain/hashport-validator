@@ -1,0 +1,26 @@
+name: Build and Publish Image to GCR
+
+on:
+  push:
+    branches:
+      - cd/deploy-to-gcr
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Authorize Docker
+        run: gcloud auth configure-docker
+
+      - name: Build and Push Container
+        run: |-
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:v0.0.1 -f build/Dockerfile .
+          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:v0.0.1
