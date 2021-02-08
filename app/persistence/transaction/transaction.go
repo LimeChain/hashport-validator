@@ -9,7 +9,6 @@ import (
 // Enum Transaction Status
 const (
 	StatusCompleted         = "COMPLETED"
-	StatusPending           = "PENDING"
 	StatusSubmitted         = "SUBMITTED"
 	StatusInitial           = "INITIAL"
 	StatusInsufficientFee   = "INSUFFICIENT_FEE"
@@ -57,12 +56,12 @@ func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Tran
 	return tx, nil
 }
 
-func (tr *TransactionRepository) GetPendingOrSubmittedTransactions() ([]*Transaction, error) {
+func (tr *TransactionRepository) GetIncompleteTransactions() ([]*Transaction, error) {
 	var transactions []*Transaction
 
 	err := tr.dbClient.
 		Model(Transaction{}).
-		Where("status = ? OR status = ?", StatusPending, StatusSubmitted).
+		Where("status = ? OR status = ? OR status = ? OR status = ? OR status = ?", StatusInitial, StatusSubmitted, StatusSignatureProvided, StatusCompleted, StatusEthTxSubmitted).
 		Find(&transactions).Error
 	if err != nil {
 		return nil, err
@@ -78,7 +77,7 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 		EthAddress:    ct.EthAddress,
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
-		Status:        StatusPending,
+		Status:        StatusInitial,
 	}).Error
 }
 

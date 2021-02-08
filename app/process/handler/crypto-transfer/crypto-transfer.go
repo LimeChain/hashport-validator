@@ -3,9 +3,11 @@ package crypto_transfer
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
@@ -28,6 +30,7 @@ type CryptoTransferHandler struct {
 	ethSigner          *eth.Signer
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient
+	ethereumClient     *ethereum.EthereumClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 }
@@ -37,7 +40,8 @@ func NewCryptoTransferHandler(
 	ethSigner *eth.Signer,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
-	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
+	transactionRepository repositories.TransactionRepository,
+	ethereumClient *ethereum.EthereumClient) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -51,6 +55,7 @@ func NewCryptoTransferHandler(
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
+		ethereumClient:     ethereumClient,
 	}
 }
 
@@ -59,18 +64,34 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
 	cth.logger.Info("[Recovery] Database GET [PENDING] [SUBMITTED] transactions.")
 
-	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
+	transactions, err := cth.transactionRepo.GetIncompleteTransactions()
 	if err != nil {
 		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
 		return
 	}
 
 	for _, transaction := range transactions {
-		if transaction.Status == txRepo.StatusPending {
+		if transaction.Status == txRepo.StatusInitial {
 			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
+		} else if transaction.Status == txRepo.StatusEthTxSubmitted {
+			go cth.waitOrRevert(transaction)
 		} else {
 			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
+		}
+	}
+}
+
+func (cth *CryptoTransferHandler) waitOrRevert(m *txRepo.Transaction) {
+	isSuccessful, err := cth.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthHash))
+	if err != nil {
+		cth.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.EthHash, err)
+	}
+
+	if !isSuccessful {
+		err = cth.transactionRepo.UpdateStatusEthTxReverted(m.TransactionId)
+		if err != nil {
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", m.Status, m.TransactionId, err)
 		}
 	}
 }
@@ -106,7 +127,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	} else {
 		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
-		if dbTransaction.Status != txRepo.StatusPending {
+		if dbTransaction.Status != txRepo.StatusInitial {
 			cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
 			return
 		}
