@@ -4,9 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -44,6 +44,8 @@ func main() {
 	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
+	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
+	exchangeRateService.Monitor()
 
 	server := server.NewServer()
 
@@ -52,7 +54,8 @@ func main() {
 		ethSigner,
 		hederaMirrorClient,
 		hederaNodeClient,
-		transactionRepository))
+		transactionRepository,
+		exchangeRateService))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {

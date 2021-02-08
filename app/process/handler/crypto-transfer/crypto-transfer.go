@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
@@ -23,13 +24,14 @@ import (
 
 // Crypto Transfer event handler
 type CryptoTransferHandler struct {
-	pollingInterval    time.Duration
-	topicID            hedera.TopicID
-	ethSigner          *eth.Signer
-	hederaMirrorClient *hederaClient.HederaMirrorClient
-	hederaNodeClient   *hederaClient.HederaNodeClient
-	transactionRepo    repositories.TransactionRepository
-	logger             *log.Entry
+	pollingInterval     time.Duration
+	topicID             hedera.TopicID
+	ethSigner           *eth.Signer
+	hederaMirrorClient  *hederaClient.HederaMirrorClient
+	hederaNodeClient    *hederaClient.HederaNodeClient
+	transactionRepo     repositories.TransactionRepository
+	logger              *log.Entry
+	exchangeRateService *exchangerate.ExchangeRateProvider
 }
 
 func NewCryptoTransferHandler(
@@ -37,20 +39,22 @@ func NewCryptoTransferHandler(
 	ethSigner *eth.Signer,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
-	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
+	transactionRepository repositories.TransactionRepository,
+	exchangeRateService *exchangerate.ExchangeRateProvider) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
 	}
 
 	return &CryptoTransferHandler{
-		pollingInterval:    c.PollingInterval,
-		topicID:            topicID,
-		ethSigner:          ethSigner,
-		hederaMirrorClient: hederaMirrorClient,
-		hederaNodeClient:   hederaNodeClient,
-		transactionRepo:    transactionRepository,
-		logger:             config.GetLoggerFor("Account Transfer Handler"),
+		pollingInterval:     c.PollingInterval,
+		topicID:             topicID,
+		ethSigner:           ethSigner,
+		hederaMirrorClient:  hederaMirrorClient,
+		hederaNodeClient:    hederaNodeClient,
+		transactionRepo:     transactionRepository,
+		logger:              config.GetLoggerFor("Account Transfer Handler"),
+		exchangeRateService: exchangeRateService,
 	}
 }
 
@@ -106,7 +110,13 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
+	rate, err := cth.exchangeRateService.GetRate()
+	if err != nil {
+		cth.logger.Errorf("Failed to retrieve exchange rate. Error [%s].", ctm.TransactionId, err)
+		return
+	}
+
+	validFee, err := fees.ValidateExecutionFee(ctm.Fee, rate)
 	if err != nil {
 		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
