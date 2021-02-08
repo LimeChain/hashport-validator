@@ -99,7 +99,7 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 
 	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
 	if err != nil {
-		cmh.logger.Errorf("Failed await a transaction with Id [%s] and Hash [%s]. Error [%s].", m.TransactionId, m.Hash, err)
+		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
 		return err
 	}
 

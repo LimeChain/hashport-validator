@@ -27,7 +27,7 @@ import (
 )
 
 func main() {
-	debugMode := flag.Bool("debug", true, "run in debug mode")
+	debugMode := flag.Bool("debug", false, "run in debug mode")
 	flag.Parse()
 	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()

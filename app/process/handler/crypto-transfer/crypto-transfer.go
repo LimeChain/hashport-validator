@@ -97,6 +97,12 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 			cth.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 			return
 		}
+
+		err = cth.transactionRepo.UpdateStatusInitial(ctm.TransactionId)
+		if err != nil {
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInitial, ctm.TransactionId, err)
+			return
+		}
 	} else {
 		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
@@ -113,7 +119,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 
 	if !validFee {
-		cth.logger.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
+		cth.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
 		err = cth.transactionRepo.UpdateStatusInsufficientFee(ctm.TransactionId)
 		if err != nil {
 			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, err)
@@ -175,13 +181,13 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 			}
 
 			if success {
-				cth.logger.Debugf("Updating status to completed for TX ID [%s] and Topic Submission ID [%s].", transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureProvided, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
 				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
 				if err != nil {
 					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
 				}
 			} else {
-				cth.logger.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s] with Result [%s].", transactionId, topicMessageSubmissionTxId)
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureFailed, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
 				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
 				if err != nil {
 					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
