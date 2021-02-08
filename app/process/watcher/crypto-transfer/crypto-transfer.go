@@ -124,7 +124,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
-				ctw.logger.Errorf("[%s]", ctw.accountID.String(), err)
+				ctw.logger.Errorf("Watcher [%s] - Unable to parse latest transaction timestamp. Error - [%s].", ctw.accountID.String(), err)
 				continue
 			}
 		}

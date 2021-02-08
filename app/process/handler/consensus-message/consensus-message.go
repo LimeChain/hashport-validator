@@ -41,7 +41,7 @@ func NewConsensusMessageHandler(
 ) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
+		log.Fatalf("Invalid topic id: [%s]", configuration.TopicId)
 	}
 
 	return &ConsensusMessageHandler{
