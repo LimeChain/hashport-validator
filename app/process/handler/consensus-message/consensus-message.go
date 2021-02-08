@@ -107,8 +107,9 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
+			return err
 		}
-		return err
+		return cmh.scheduler.Cancel(m.TransactionId)
 	}
 
 	err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
