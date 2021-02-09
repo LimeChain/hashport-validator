@@ -1,9 +1,8 @@
-name: Deploy to VM
+name: Deploy to VMs
 
 on:
-  push:
-    branches:
-      - cd/deploy-to-vms
+  repository_dispatch:
+    types: [trigger-image-release]
 
 jobs:
   deploy:
@@ -23,5 +22,5 @@ jobs:
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_1_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_1_INSTANCE }}:~
 
-      - name: SSH
+      - name: Refresh containers
         run: gcloud compute ssh ${{ secrets.APP_1_INSTANCE }} --zone=${{ secrets.APP_1_ZONE }} --command="docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d"
