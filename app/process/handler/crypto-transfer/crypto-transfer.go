@@ -62,7 +62,7 @@ func NewCryptoTransferHandler(
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Info("[Recovery] Database GET [PENDING] [SUBMITTED] transactions.")
+	cth.logger.Infof("[Recovery] Database GET [%s] [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSubmitted, txRepo.StatusEthTxSubmitted)
 
 	transactions, err := cth.transactionRepo.GetIncompleteTransactions()
 	if err != nil {

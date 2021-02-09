@@ -104,12 +104,14 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 	}
 
 	if !isSuccessful {
+		cmh.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
 		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
 			return err
 		}
 	} else {
+		cmh.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
 		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
