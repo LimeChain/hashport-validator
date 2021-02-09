@@ -15,5 +15,5 @@ type TransactionRepository interface {
 	UpdateStatusSignatureFailed(txId string) error
 	UpdateStatusEthTxSubmitted(txId string, hash string) error
 	UpdateStatusEthTxReverted(txId string) error
-	UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error
+	UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error
 }

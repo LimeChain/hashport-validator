@@ -8,14 +8,14 @@ import (
 
 // Enum Transaction Status
 const (
-	StatusCompleted         = "COMPLETED"
-	StatusSubmitted         = "SUBMITTED"
-	StatusInitial           = "INITIAL"
-	StatusInsufficientFee   = "INSUFFICIENT_FEE"
-	StatusSignatureProvided = "SIGNATURE_PROVIDED"
-	StatusSignatureFailed   = "SIGNATURE_FAILED"
-	StatusEthTxSubmitted    = "ETH_TX_SUBMITTED"
-	StatusEthTxReverted     = "ETH_TX_REVERTED"
+	StatusCompleted          = "COMPLETED"
+	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
+	StatusInitial            = "INITIAL"
+	StatusInsufficientFee    = "INSUFFICIENT_FEE"
+	StatusSignatureProvided  = "SIGNATURE_PROVIDED"
+	StatusSignatureFailed    = "SIGNATURE_FAILED"
+	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
+	StatusEthTxReverted      = "ETH_TX_REVERTED"
 )
 
 type Transaction struct {
@@ -61,7 +61,7 @@ func (tr *TransactionRepository) GetIncompleteTransactions() ([]*Transaction, er
 
 	err := tr.dbClient.
 		Model(Transaction{}).
-		Where("status = ? OR status = ? OR status = ?", StatusInitial, StatusSubmitted, StatusEthTxSubmitted).
+		Where("status = ? OR status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted, StatusEthTxSubmitted).
 		Find(&transactions).Error
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash st
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSubmitted, EthHash: hash}).
+		Updates(Transaction{Status: StatusSignatureSubmitted, EthHash: hash}).
 		Error
 }
 
@@ -109,11 +109,11 @@ func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {
 	return tr.updateStatus(txId, StatusEthTxReverted)
 }
 
-func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error {
+func (tr *TransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
+		Updates(Transaction{Status: StatusSignatureSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
 		Error
 }
 

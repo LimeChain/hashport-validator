@@ -62,7 +62,7 @@ func NewCryptoTransferHandler(
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Infof("[Recovery] Database GET [%s] [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSubmitted, txRepo.StatusEthTxSubmitted)
+	cth.logger.Infof("[Recovery] Database GET [%s] [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted, txRepo.StatusEthTxSubmitted)
 
 	transactions, err := cth.transactionRepo.GetIncompleteTransactions()
 	if err != nil {
@@ -170,7 +170,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
 
-	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
+	err = cth.transactionRepo.UpdateStatusSignatureSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
 	if err != nil {
 		cth.logger.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
