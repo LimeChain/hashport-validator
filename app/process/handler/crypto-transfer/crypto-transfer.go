@@ -116,7 +116,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
+	validFee, err := fees.ValidateExecutionFee(ctm.Fee, ctm.Amount*10/100, ctm.Amount)
 	if err != nil {
 		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
