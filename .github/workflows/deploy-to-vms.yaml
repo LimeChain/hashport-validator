@@ -16,7 +16,9 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
+
       - name: Copy files
         run: gcloud compute scp --zone=europe-west3-c ./docker-compose.yml ./application.yml instance-1:~
+
       - name: Execute docker-compose
-        run: gcloud compute ssh instance-1 --zone=europe-west3-c --command="docker-compose up -d"
+        run: gcloud compute ssh instance-1 --zone=europe-west3-c --command="docker-compose stop && docker-compose rm -f && docker rmi $(docker images -qa) -f && docker-compose pull && docker-compose up -d"
