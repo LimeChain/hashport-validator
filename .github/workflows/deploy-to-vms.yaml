@@ -1,4 +1,4 @@
-name: Build and Publish Image to GCR
+name: Deploy to VM
 
 on:
   push:
