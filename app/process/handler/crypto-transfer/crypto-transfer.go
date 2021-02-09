@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
@@ -19,6 +20,7 @@ import (
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -27,6 +29,7 @@ type CryptoTransferHandler struct {
 	pollingInterval     time.Duration
 	topicID             hedera.TopicID
 	ethSigner           *eth.Signer
+	ethClient           *ethereum.EthereumClient
 	hederaMirrorClient  *hederaClient.HederaMirrorClient
 	hederaNodeClient    *hederaClient.HederaNodeClient
 	transactionRepo     repositories.TransactionRepository
@@ -37,6 +40,7 @@ type CryptoTransferHandler struct {
 func NewCryptoTransferHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
+	ethClient *ethereum.EthereumClient,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
@@ -55,6 +59,7 @@ func NewCryptoTransferHandler(
 		transactionRepo:     transactionRepository,
 		logger:              config.GetLoggerFor("Account Transfer Handler"),
 		exchangeRateService: exchangeRateService,
+		ethClient:           ethClient,
 	}
 }
 
@@ -110,7 +115,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	_, err = cth.exchangeRateService.GetRate()
+	exchangeRate, err := cth.exchangeRateService.GetRate()
 	if err != nil {
 		cth.logger.Errorf("Failed to retrieve exchange rate. Error [%s].", ctm.TransactionId, err)
 		return
@@ -133,9 +138,36 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
+	estimatedGas, err := cth.ethClient.EstimateGas(ctm.Amount)
+	if err != nil {
+		cth.logger.Errorf("Failed to estimate gas for TransactionID [%s]. Error [%s]", ctm.TransactionId, err)
+		return
+	}
+
+	slowGasPrice, err := cth.ethClient.GetSlowGasPrice()
+	if err != nil {
+		cth.logger.Errorf("Failed to get slow gas price. Error [%s]", ctm.TransactionId, err)
+		return
+	}
+
+	ethPrice := slowGasPrice * estimatedGas
+
+	HBarTxFee := float64(ethPrice) / exchangeRate
+	TxFee, err := strconv.ParseFloat(ctm.Fee, 64)
+	if err != nil {
+		cth.logger.Errorf("Could not parse transaction fee: [%s]. Error: [%s]", ctm.Fee, err)
+		return
+	}
+
+	if HBarTxFee >= TxFee {
+		cth.logger.Errorf("Insufficient transaction fee: [%s]. Error: [%s]", ctm.Fee, err)
+		return
+	}
+
 	encodedData, err := ethhelper.EncodeData(&ctm)
 	if err != nil {
 		cth.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		return
 	}
 
 	hash := crypto.Keccak256(encodedData)

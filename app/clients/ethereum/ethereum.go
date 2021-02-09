@@ -12,6 +12,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"time"
 )
@@ -85,7 +86,7 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *EthereumClient) GetSlowGasPrice() (int32, error) {
+func (ec *EthereumClient) GetSlowGasPrice() (uint64, error) {
 	apiURL := "https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=2TX7CUPTGNKIFYC4V12GTJSQJ73EKZ5Z21"
 
 	response, err := ec.httpClient.Get(apiURL)
@@ -101,17 +102,38 @@ func (ec *EthereumClient) GetSlowGasPrice() (int32, error) {
 		return 0, err
 	}
 
-	fmt.Println(data["result"])
-
 	result := data["result"]
 	pricesData := result.(map[string]interface{})
-	safeGasPrice := pricesData["SafeGasPrice"].(int32)
+	slowGasPrice := pricesData["SafeGasPrice"].(uint64)
+	if err != nil {
+		return 0, err
+	}
 
-	return safeGasPrice, nil
+	return slowGasPrice, nil
 }
 
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
 	return ioutil.ReadAll(response.Body)
+}
+
+func (ec *EthereumClient) EstimateGas(amount uint64) (uint64, error) {
+	slowGasPrice, err := ec.GetSlowGasPrice()
+	if err != nil {
+		return 0, err
+	}
+
+	msg := ethereum.CallMsg{
+		From:     common.HexToAddress("0x37EA216A28628eCC1de4d982cEc46569203a9F4a"),
+		GasPrice: new(big.Int).SetUint64(slowGasPrice),
+		Value:    new(big.Int).SetUint64(amount),
+	}
+
+	gasEstimation, err := ec.Client.EstimateGas(context.Background(), msg)
+	if err != nil {
+		return 0, err
+	}
+
+	return gasEstimation, nil
 }

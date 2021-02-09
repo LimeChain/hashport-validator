@@ -15,7 +15,7 @@ type ExchangeRateProvider struct {
 	coin       string
 	currency   string
 	retries    int
-	rate       float32
+	rate       float64
 }
 
 func NewExchangeRateProvider(coin string, currency string) *ExchangeRateProvider {
@@ -32,7 +32,7 @@ func (erp *ExchangeRateProvider) Monitor() {
 	go erp.getRateFromGecko()
 }
 
-func (erp *ExchangeRateProvider) GetRate() (float32, error) {
+func (erp *ExchangeRateProvider) GetRate() (float64, error) {
 	if erp.rate > 0 {
 		return erp.rate, nil
 	}
@@ -60,7 +60,7 @@ func (erp *ExchangeRateProvider) getRateFromGecko() {
 		return
 	}
 
-	erp.rate = rates[erp.coin][erp.currency]
+	erp.rate = float64(rates[erp.coin][erp.currency])
 
 	time.Sleep(1 * time.Hour)
 	erp.getRateFromGecko()
