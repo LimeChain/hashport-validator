@@ -16,7 +16,10 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
-
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_CONFIG_1 }}" >> ./application.yml
       - name: Copy files
         run: gcloud compute scp --zone=europe-west3-c ./docker-compose.yml ./application.yml instance-1:~
 
