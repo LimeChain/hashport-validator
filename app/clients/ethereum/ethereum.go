@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -10,13 +11,16 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
+	"net/http"
 	"time"
 )
 
 // Ethereum Node Client
 type EthereumClient struct {
-	Client *ethclient.Client
-	config config.Ethereum
+	Client     *ethclient.Client
+	httpClient *http.Client
+	config     config.Ethereum
 }
 
 func NewEthereumClient(config config.Ethereum) *EthereumClient {
@@ -26,8 +30,9 @@ func NewEthereumClient(config config.Ethereum) *EthereumClient {
 	}
 
 	ethereumClient := &EthereumClient{
-		Client: client,
-		config: config,
+		httpClient: &http.Client{},
+		Client:     client,
+		config:     config,
 	}
 
 	return ethereumClient
@@ -78,4 +83,35 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 	}
 
 	return ec.Client.TransactionReceipt(context.Background(), hash)
+}
+
+func (ec *EthereumClient) GetSlowGasPrice() (int32, error) {
+	apiURL := "https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=2TX7CUPTGNKIFYC4V12GTJSQJ73EKZ5Z21"
+
+	response, err := ec.httpClient.Get(apiURL)
+
+	bodyBytes, err := readResponseBody(response)
+	if err != nil {
+		return 0, err
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal(bodyBytes, &data)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println(data["result"])
+
+	result := data["result"]
+	pricesData := result.(map[string]interface{})
+	safeGasPrice := pricesData["SafeGasPrice"].(int32)
+
+	return safeGasPrice, nil
+}
+
+func readResponseBody(response *http.Response) ([]byte, error) {
+	defer response.Body.Close()
+
+	return ioutil.ReadAll(response.Body)
 }

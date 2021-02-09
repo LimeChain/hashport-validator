@@ -6,10 +6,11 @@ import (
 )
 
 func getFee() (*big.Int, error) {
+
 	return new(big.Int), nil
 }
 
-func ValidateExecutionFee(strTransferFee string, exchangeRate float32) (bool, error) {
+func ValidateExecutionFee(strTransferFee string) (bool, error) {
 	transferFee, err := helper.ToBigInt(strTransferFee)
 	if err != nil {
 		return false, err

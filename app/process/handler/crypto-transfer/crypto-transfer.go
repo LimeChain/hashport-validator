@@ -110,13 +110,13 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	rate, err := cth.exchangeRateService.GetRate()
+	_, err = cth.exchangeRateService.GetRate()
 	if err != nil {
 		cth.logger.Errorf("Failed to retrieve exchange rate. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
-	validFee, err := fees.ValidateExecutionFee(ctm.Fee, rate)
+	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
 	if err != nil {
 		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
