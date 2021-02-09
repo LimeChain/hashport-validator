@@ -15,12 +15,14 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
+
       - name: Export application config
         shell: bash
         run: |
           echo "${{ secrets.APP_1_CONFIG }}" > ./application.yml
+
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_1_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_1_INSTANCE }}:~
 
-      - name: Refresh containers
+      - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_1_INSTANCE }} --zone=${{ secrets.APP_1_ZONE }} --command="docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d"
