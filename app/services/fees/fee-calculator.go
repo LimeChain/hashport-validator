@@ -16,14 +16,26 @@ func ValidateExecutionFee(strTransferFee string) (bool, error) {
 		return false, err
 	}
 
+	serviceFee, err := retrieveServiceFee()
+	if err != nil {
+		return false, err
+	}
+
 	estimatedFee, err := getFee()
 	if err != nil {
 		return false, err
 	}
 
-	if transferFee.Cmp(estimatedFee) >= 0 {
+	estimation := estimatedFee.Mul(estimatedFee, serviceFee)
+	estimation = estimation.Div(estimation, new(big.Int).SetInt64(100))
+
+	if transferFee.Cmp(estimation) >= 0 {
 		return true, nil
 	}
 
 	return false, nil
+}
+
+func retrieveServiceFee() (*big.Int, error) {
+	return new(big.Int).SetInt64(10), nil
 }
