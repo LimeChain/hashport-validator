@@ -16,9 +16,7 @@ services:
       - 5432:5432
 
   validator:
-    build:
-      context: .
-      dockerfile: ./build/Dockerfile
+    image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:latest
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: db
     restart: unless-stopped
