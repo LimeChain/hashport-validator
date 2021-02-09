@@ -18,5 +18,5 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
       - name: Copy files
         run: gcloud compute scp --zone=europe-west3-c ./docker-compose.yml ./application.yml instance-1:~
-      - name: SSH
-        run: gcloud compute ssh instance-1 --zone=europe-west3-c --comand=="docker-compose up -d"
+      - name: Execute docker-compose
+        run: gcloud compute ssh instance-1 --zone=europe-west3-c --command=="docker-compose up -d"
