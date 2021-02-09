@@ -75,14 +75,14 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
 		} else if transaction.Status == txRepo.StatusEthTxSubmitted {
-			go cth.waitOrRevert(transaction)
+			go cth.checkEthTransactionStatus(transaction)
 		} else {
 			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
 		}
 	}
 }
 
-func (cth *CryptoTransferHandler) waitOrRevert(m *txRepo.Transaction) {
+func (cth *CryptoTransferHandler) checkEthTransactionStatus(m *txRepo.Transaction) {
 	isSuccessful, err := cth.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthHash))
 	if err != nil {
 		cth.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.EthHash, err)
@@ -92,6 +92,11 @@ func (cth *CryptoTransferHandler) waitOrRevert(m *txRepo.Transaction) {
 		err = cth.transactionRepo.UpdateStatusEthTxReverted(m.TransactionId)
 		if err != nil {
 			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", m.Status, m.TransactionId, err)
+		}
+	} else {
+		err = cth.transactionRepo.UpdateStatusCompleted(m.TransactionId)
+		if err != nil {
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusCompleted, m.TransactionId, err)
 		}
 	}
 }

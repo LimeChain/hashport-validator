@@ -109,13 +109,12 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
 			return err
 		}
-		return cmh.scheduler.Cancel(m.TransactionId)
-	}
-
-	err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
-	if err != nil {
-		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-		return err
+	} else {
+		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
+		if err != nil {
+			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
+			return err
+		}
 	}
 
 	return cmh.scheduler.Cancel(m.TransactionId)
