@@ -3,7 +3,6 @@ package e2e
 import (
 	"fmt"
 	"log"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	common "github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
@@ -93,16 +93,18 @@ func Test_E2E(t *testing.T) {
 
 				if msg.GetType() == validatorproto.TopicSubmissionType_EthSignature {
 					//Verify that all the submitted messages have signed the same transaction
-					if msg.GetTopicSignatureMessage().TransactionId != fromHederaTransactionID(transactionResponse.TransactionID) {
-						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, fromHederaTransactionID(transactionResponse.TransactionID))
+					topicSubmissionMessageSign := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
+						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
 					}
 					ethSignaturesCollected++
 				}
 
 				if msg.GetType() == validatorproto.TopicSubmissionType_EthTransaction {
 					//Verify that the eth transaction message has been submitted
-					if msg.GetTopicEthTransactionMessage().TransactionId != fromHederaTransactionID(transactionResponse.TransactionID) {
-						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, fromHederaTransactionID(transactionResponse.TransactionID))
+					topicSubmissionMessageTrans := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					if msg.GetTopicEthTransactionMessage().TransactionId != topicSubmissionMessageTrans.String() {
+						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()
 					ethTransMsgCollected++
@@ -164,13 +166,4 @@ func initClient(accID hedera.AccountID, pK hedera.PrivateKey) *hedera.Client {
 	client := hedera.ClientForTestnet()
 	client.SetOperator(accID, pK)
 	return client
-}
-
-func fromHederaTransactionID(id hedera.TransactionID) string {
-	stringTxID := id.String()
-	split := strings.Split(stringTxID, "@")
-	accID := split[0]
-	split = strings.Split(split[1], ".")
-
-	return fmt.Sprintf("%s-%s-%s", accID, split[0], split[1])
 }
