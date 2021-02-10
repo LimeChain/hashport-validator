@@ -18,6 +18,8 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-test-
+      - name: Create e2e run test config
+        run: echo ${{ secrets.E2E_TEST_CONFIG }} e2e/config
       - name: Run Unit Tests
         run: go test ./...
       # TODO: uncomment after CodeCov config is added
