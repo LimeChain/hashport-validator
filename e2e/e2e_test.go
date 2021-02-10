@@ -52,11 +52,11 @@ func Test_E2E(t *testing.T) {
 	fmt.Printf("WHBAR balance before transaction: [%s]\n", whbarBalanceBefore)
 
 	// Get custodian hbar balance before transfer
-	recieverBalance, err := hedera.NewAccountBalanceQuery().
+	receiverBalance, err := hedera.NewAccountBalanceQuery().
 		SetAccountID(receiving).
 		Execute(client)
 
-	fmt.Println(fmt.Sprintf(`HBAR custodian balance before transaction: [%d]`, recieverBalance.Hbars.AsTinybar()))
+	fmt.Println(fmt.Sprintf(`HBAR custodian balance before transaction: [%d]`, receiverBalance.Hbars.AsTinybar()))
 
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendTransactionToCustodialAccount(acc, receiving, memo, hBarAmount, client)
@@ -65,20 +65,20 @@ func Test_E2E(t *testing.T) {
 	if err != nil {
 		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
 		t.Fatal(err)
-	} else {
-		fmt.Println(fmt.Sprintf(`Successfully sent HBAR to custodian adress, Status: [%s]`, transactionReceipt.Status))
 	}
 
+	fmt.Println(fmt.Sprintf(`Successfully sent HBAR to custodian adress, Status: [%s]`, transactionReceipt.Status))
+
 	// Get custodian hbar balance after transfer
-	recieverBalanceNew, err := hedera.NewAccountBalanceQuery().
+	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
 		SetAccountID(receiving).
 		Execute(client)
 
-	fmt.Println(fmt.Sprintf(`HBAR custodian balance after transaction: [%d]`, recieverBalanceNew.Hbars.AsTinybar()))
+	fmt.Println(fmt.Sprintf(`HBAR custodian balance after transaction: [%d]`, receiverBalanceNew.Hbars.AsTinybar()))
 
 	// Verify that the custodial address has recieved exactly the amount sent
-	if (recieverBalanceNew.Hbars.AsTinybar() - recieverBalance.Hbars.AsTinybar()) != hedera.HbarFrom(hBarAmount, "hbar").AsTinybar() {
-		t.Fatal(`Expected to recieve the exact transfer amount of hbar`)
+	if (receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()) != hedera.HbarFrom(hBarAmount, "hbar").AsTinybar() {
+		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hedera.HbarFrom(hBarAmount, "hbar").AsTinybar())
 	}
 
 	// Subscribe to Topic
@@ -94,7 +94,7 @@ func Test_E2E(t *testing.T) {
 				if msg.GetType() == validatorproto.TopicSubmissionType_EthSignature {
 					//Verify that all the submitted messages have signed the same transaction
 					if msg.GetTopicSignatureMessage().TransactionId != fromHederaTransactionID(transactionResponse.TransactionID) {
-						t.Fatal(`Expected signature message to contain the transaction id`)
+						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, fromHederaTransactionID(transactionResponse.TransactionID))
 					}
 					ethSignaturesCollected++
 				}
@@ -102,7 +102,7 @@ func Test_E2E(t *testing.T) {
 				if msg.GetType() == validatorproto.TopicSubmissionType_EthTransaction {
 					//Verify that the eth transaction message has been submitted
 					if msg.GetTopicEthTransactionMessage().TransactionId != fromHederaTransactionID(transactionResponse.TransactionID) {
-						t.Fatal(`Expected ethereum transaction message to contain the transaction id`)
+						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, fromHederaTransactionID(transactionResponse.TransactionID))
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()
 					ethTransMsgCollected++
@@ -115,19 +115,23 @@ func Test_E2E(t *testing.T) {
 
 	// Check that all the validators have submitted a message with authorisation signature
 	if ethSignaturesCollected != validatorsCount {
-		t.Fatal(`Expected the count of collected signatures to equal the number of validators`)
+		t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v]`, validatorsCount)
 	}
 
 	// Verify the exactly on eth transaction hash has been submitted
 	if ethTransMsgCollected != 1 {
-		t.Fatal(`Expected to submit exaclty 1 ethereum transaction in topic`)
+		t.Fatal(`Expected to submit exactly 1 ethereum transaction in topic`)
 	}
+
+	fmt.Printf("Waiting for transaction [%s] to succeed...\n", ethTransactionHash)
 
 	success, err := ethClient.WaitForTransactionSuccess(common.HexToHash(ethTransactionHash))
 	// Verify that the eth transaction has been mined and succeeded
 	if success == false {
-		t.Fatal(`Expected to mine successfully the broadcasted ethereum transaction`)
+		t.Fatalf(`Expected to mine successfully the broadcasted ethereum transaction: [%s]`, ethTransactionHash)
 	}
+
+	fmt.Printf("Transaction [%s] mined successfully\n", ethTransactionHash)
 
 	// Get the wrapped hbar balance of the receiver after the transfer
 	whbarBalanceAfter, err := whbarInstance.BalanceOf(&bind.CallOpts{}, whbarReceiverAddress)
@@ -139,7 +143,7 @@ func Test_E2E(t *testing.T) {
 
 	// Verify that the ethereum address hass recieved the exact transfer amount of WHBARs
 	if (whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()) != hedera.HbarFrom(hBarAmount, "hbar").AsTinybar() {
-		t.Fatal(`Expected to recieve the exact transfer amount of WHBAR`)
+		t.Fatalf(`Expected to recieve the exact transfer amount of WHBAR: [%v]`, hedera.HbarFrom(hBarAmount, "hbar").AsTinybar())
 	}
 
 }
