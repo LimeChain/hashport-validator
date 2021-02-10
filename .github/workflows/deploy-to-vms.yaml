@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [trigger-image-release]
 
+env:
+  refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
+
 jobs:
   deploy_app_alice:
     runs-on: ubuntu-latest
@@ -25,7 +28,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_ALICE_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_ALICE_INSTANCE }}:~
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d"
+        run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
 
   deploy_app_bob:
     runs-on: ubuntu-latest
@@ -47,7 +50,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_BOB_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_BOB_INSTANCE }}:~
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_BOB_INSTANCE }} --zone=${{ secrets.APP_BOB_ZONE }} --command="docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d"
+        run: gcloud compute ssh ${{ secrets.APP_BOB_INSTANCE }} --zone=${{ secrets.APP_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
 
   deploy_app_carol:
     runs-on: ubuntu-latest
@@ -69,4 +72,4 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_CAROL_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_CAROL_INSTANCE }}:~
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_CAROL_INSTANCE }} --zone=${{ secrets.APP_CAROL_ZONE }} --command="docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d"
+        run: gcloud compute ssh ${{ secrets.APP_CAROL_INSTANCE }} --zone=${{ secrets.APP_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
