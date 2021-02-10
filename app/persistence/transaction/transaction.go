@@ -101,7 +101,7 @@ func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash st
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSignatureSubmitted, EthHash: hash}).
+		Updates(Transaction{Status: StatusEthTxSubmitted, EthHash: hash}).
 		Error
 }
 
