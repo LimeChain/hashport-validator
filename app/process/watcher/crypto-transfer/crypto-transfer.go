@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -149,14 +150,18 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		}
 	}
 
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}[1-9][0-9]+-[1-9][0-9]+$")
+
 	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-	if e != nil || len(decodedMemo) < 42 {
+	if e != nil || len(decodedMemo) < 42 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
 		ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
 		return
 	}
 
 	ethAddress := decodedMemo[:42]
-	feeString := string(decodedMemo[42:])
+	feeAndGasPrice := strings.Split(string(decodedMemo[42:]), "-")
+	fee := feeAndGasPrice[0]
+	gasPrice := feeAndGasPrice[1]
 
 	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 	if !re.MatchString(string(ethAddress)) {
@@ -164,9 +169,15 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		return
 	}
 
-	_, e = helper.ToBigInt(feeString)
+	_, e = helper.ToBigInt(fee)
 	if e != nil {
-		ctw.logger.Errorf("Could not verify transaction fee - [%s]", feeString)
+		ctw.logger.Errorf("Could not verify transaction fee - [%s]", fee)
+		return
+	}
+
+	_, e = helper.ToBigInt(gasPrice)
+	if e != nil {
+		ctw.logger.Errorf("Could not verify gas price - [%s]", gasPrice)
 		return
 	}
 
@@ -192,7 +203,8 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		TransactionId: tx.TransactionID,
 		EthAddress:    string(ethAddress),
 		Amount:        uint64(amount),
-		Fee:           feeString,
+		Fee:           fee,
+		GasPrice:      gasPrice,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
