@@ -1,4 +1,4 @@
-name: Deploy a small network, consisting of 3 validator nodes
+name: Deploy three validators network
 
 on:
   repository_dispatch:
