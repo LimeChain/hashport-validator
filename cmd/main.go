@@ -52,7 +52,8 @@ func main() {
 		ethSigner,
 		hederaMirrorClient,
 		hederaNodeClient,
-		transactionRepository))
+		transactionRepository,
+		ethClient))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {
@@ -62,6 +63,8 @@ func main() {
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		configuration.Hedera.Handler.ConsensusMessage,
 		*messageRepository,
+		transactionRepository,
+		ethClient,
 		hederaNodeClient,
 		schedulerService,
 		ethSigner))

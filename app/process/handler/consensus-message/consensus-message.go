@@ -4,13 +4,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -23,9 +26,11 @@ import (
 )
 
 type ConsensusMessageHandler struct {
+	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	operatorsEthAddresses []string
-	repository            repositories.MessageRepository
+	messageRepository     repositories.MessageRepository
+	transactionRepository repositories.TransactionRepository
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
@@ -34,20 +39,24 @@ type ConsensusMessageHandler struct {
 
 func NewConsensusMessageHandler(
 	configuration config.ConsensusMessageHandler,
-	r repositories.MessageRepository,
+	messageRepository repositories.MessageRepository,
+	transactionRepository repositories.TransactionRepository,
+	ethereumClient *ethereum.EthereumClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,
 	signer *eth.Signer,
 ) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
-		log.Fatal("Invalid topic id: [%v]", configuration.TopicId)
+		log.Fatalf("Invalid topic id: [%v]", configuration.TopicId)
 	}
 
 	return &ConsensusMessageHandler{
-		repository:            r,
+		messageRepository:     messageRepository,
+		transactionRepository: transactionRepository,
 		operatorsEthAddresses: configuration.Addresses,
 		hederaNodeClient:      hederaNodeClient,
+		ethereumClient:        ethereumClient,
 		topicID:               topicID,
 		scheduler:             scheduler,
 		signer:                signer,
@@ -84,7 +93,41 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
 	// TODO: verify authenticity of transaction hash
 
+	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
+	if err != nil {
+		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
+		return err
+	}
+
+	go cmh.acknowledgeTransactionSuccess(m)
+
 	return cmh.scheduler.Cancel(m.TransactionId)
+}
+
+func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
+	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
+
+	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
+	if err != nil {
+		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
+		return
+	}
+
+	if !isSuccessful {
+		cmh.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
+		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
+		if err != nil {
+			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
+			return
+		}
+	} else {
+		cmh.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
+		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
+		if err != nil {
+			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
+			return
+		}
+	}
 }
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
@@ -136,7 +179,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
-	err = cmh.repository.Create(&message.TransactionMessage{
+	err = cmh.messageRepository.Create(&message.TransactionMessage{
 		TransactionId:        m.TransactionId,
 		EthAddress:           m.EthAddress,
 		Amount:               m.Amount,
@@ -152,7 +195,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 
 	cmh.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
 
-	txMessages, err := cmh.repository.GetTransactions(m.TransactionId, hexHash)
+	txMessages, err := cmh.messageRepository.GetTransactions(m.TransactionId, hexHash)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId, err))
 	}
@@ -183,7 +226,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 }
 
 func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
-	_, err := cmh.repository.GetTransaction(m.TransactionId, ethSig, hexHash)
+	_, err := cmh.messageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
 	if err != nil && !notFound {
