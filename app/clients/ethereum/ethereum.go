@@ -126,8 +126,11 @@ func (ec *EthereumClient) EstimateGas(amount uint64) (uint64, error) {
 
 	msg := ethereum.CallMsg{
 		From:     common.HexToAddress("0x37EA216A28628eCC1de4d982cEc46569203a9F4a"),
+		To:       nil,
+		Gas:      0, // Gas limit: in app.yml -> base gas usage + X * gas usage per signature, X >= 50% of validator signatures ... get count of operators from smart contract
 		GasPrice: new(big.Int).SetUint64(slowGasPrice),
 		Value:    new(big.Int).SetUint64(amount),
+		Data:     nil, // Should send necessary data (signatures, etc.)
 	}
 
 	gasEstimation, err := ec.Client.EstimateGas(context.Background(), msg)

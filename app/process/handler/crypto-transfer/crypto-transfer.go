@@ -115,15 +115,16 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	exchangeRate, err := cth.exchangeRateService.GetRate()
-	if err != nil {
-		cth.logger.Errorf("Failed to retrieve exchange rate. Error [%s].", ctm.TransactionId, err)
-		return
-	}
-
+	// TODO: Sanity check before other costly operations (External APIs, etc)
 	validFee, err := fees.ValidateExecutionFee(ctm.Fee, ctm.Amount*10/100, ctm.Amount)
 	if err != nil {
 		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		return
+	}
+
+	exchangeRate, err := cth.exchangeRateService.GetRate()
+	if err != nil {
+		cth.logger.Errorf("Failed to retrieve exchange rate. Error [%s].", ctm.TransactionId, err)
 		return
 	}
 
@@ -138,27 +139,25 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	estimatedGas, err := cth.ethClient.EstimateGas(ctm.Amount)
+	estimatedGas, err := cth.ethClient.EstimateGas(ctm.Amount) // TODO: wait for other implementation -> get from app.yml
 	if err != nil {
 		cth.logger.Errorf("Failed to estimate gas for TransactionID [%s]. Error [%s]", ctm.TransactionId, err)
 		return
 	}
 
-	slowGasPrice, err := cth.ethClient.GetSlowGasPrice()
+	slowGasPrice, err := cth.ethClient.GetSlowGasPrice() // TODO: get from decoded memo
 	if err != nil {
 		cth.logger.Errorf("Failed to get slow gas price. Error [%s]", ctm.TransactionId, err)
 		return
 	}
 
-	ethPrice := slowGasPrice * estimatedGas
-
-	HBarTxFee := float64(ethPrice) / exchangeRate
 	TxFee, err := strconv.ParseFloat(ctm.Fee, 64)
 	if err != nil {
 		cth.logger.Errorf("Could not parse transaction fee: [%s]. Error: [%s]", ctm.Fee, err)
 		return
 	}
 
+	HBarTxFee := float64(slowGasPrice*estimatedGas) / exchangeRate // TODO: convert from gwei to wei, because it comes as gwei in the first place
 	if HBarTxFee >= TxFee {
 		cth.logger.Errorf("Insufficient transaction fee: [%s]. Error: [%s]", ctm.Fee, err)
 		return

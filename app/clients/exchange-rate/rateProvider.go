@@ -36,7 +36,7 @@ func (erp *ExchangeRateProvider) GetRate() (float64, error) {
 	if erp.rate > 0 {
 		return erp.rate, nil
 	}
-
+	// TODO: Throw error and stop processing of order, when status != 200
 	return 0, errors.New(fmt.Sprintf("Could not retrieve exchange rate for [%s] against [%s]: Rate is not retrieved yet", erp.coin, erp.currency))
 }
 
@@ -67,11 +67,14 @@ func (erp *ExchangeRateProvider) getRateFromGecko() {
 }
 
 func (erp *ExchangeRateProvider) retry(err error) {
+	// TODO: nullify erp.retries when successful retry -> Suggestion: another external API to provide data
+	time.Sleep(10 * time.Second)
 	erp.retries++
-	fmt.Errorf("Could not retrieve exchange rate for [%s] against [%s]: %s", erp.coin, erp.currency, err)
 	if erp.retries < 10 {
 		erp.getRateFromGecko()
+		return
 	}
+	fmt.Errorf("Could not retrieve exchange rate for [%s] against [%s]: %s", erp.coin, erp.currency, err)
 }
 
 func readResponseBody(response *http.Response) ([]byte, error) {
