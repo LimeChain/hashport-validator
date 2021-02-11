@@ -12,3 +12,9 @@ Name                       | Default                              | Description
 -------------------------- | ------------------------------------ | ----------------------------------
 TODO: fill the necessary properties.
 
+
+### Run E2E Tests
+
+```
+go test ./e2e
+```
