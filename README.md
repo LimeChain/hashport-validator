@@ -8,6 +8,7 @@ TODO
  - [Configuration](docs/configuration.md)
  - [Testing](docs/testing.md)
  - [Workflows](docs/workflows.md)
+ - [Release](docs/release.md)
 
 ## Examples
 * [Three Validators Bridge Network](./examples/three-validators/README.md)
