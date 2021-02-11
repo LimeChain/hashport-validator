@@ -23,6 +23,12 @@ Run initialization script located at `scripts/init.sql`:
 psql postgres -f scripts/init.sql
 ```
 
+### Build application
+
+```
+go build cmd/*
+```
+
 ### Run application
 
 After you have run the database, you need to have the necessary [configuration](configuration.md) populated and run:
@@ -30,16 +36,16 @@ After you have run the database, you need to have the necessary [configuration](
 go run cmd/main.go
 ```
 
+or use the built executable:
+
+```
+./main
+```
+
 ### Run in debug mode
 
 ```
 go run cmd/main.go -debug=true
-```
-
-### Build application
-
-```
-go build cmd/main.go -o validator
 ```
 
 ### Unit Tests
@@ -50,7 +56,7 @@ go test ./...
 
 ## Running via Docker Compose
 
-Docker Compose consists of scrips of the following components:
+Docker Compose consists of scripts for the following components
  - PostgreSQL database
  - Hedera-Ethereum Bridge Validator (the application itself)
  
@@ -61,7 +67,7 @@ Containers use the following persisted volumes:
    
 ### How to run?
 
-Before you run, [configure](configuration.md) the application updating the [application.myl](../application.yml)
+Before you run, [configure](configuration.md) the application updating the [application.yml](../application.yml)
 file configuration. This file persists as a volume to the `Application` container.
 
 Finally, run:
