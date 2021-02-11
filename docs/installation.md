@@ -8,9 +8,8 @@ docker-compose pull
 ```
 
 ## Prerequisites
-``
-Go 1.13+
-``
+- [Go 1.13+](https://golang.org/doc/install)
+- [docker](https://docs.docker.com/install/)
 
 ## Local development
 
