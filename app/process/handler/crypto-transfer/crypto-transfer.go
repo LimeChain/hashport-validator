@@ -3,7 +3,6 @@ package crypto_transfer
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
@@ -62,7 +61,7 @@ func NewCryptoTransferHandler(
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Infof("[Recovery] Database GET [%s] [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted, txRepo.StatusEthTxSubmitted)
+	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
 	transactions, err := cth.transactionRepo.GetIncompleteTransactions()
 	if err != nil {
@@ -74,29 +73,8 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 		if transaction.Status == txRepo.StatusInitial {
 			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
-		} else if transaction.Status == txRepo.StatusEthTxSubmitted {
-			go cth.checkEthTransactionStatus(transaction)
 		} else {
 			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
-		}
-	}
-}
-
-func (cth *CryptoTransferHandler) checkEthTransactionStatus(m *txRepo.Transaction) {
-	isSuccessful, err := cth.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthHash))
-	if err != nil {
-		cth.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.EthHash, err)
-	}
-
-	if !isSuccessful {
-		err = cth.transactionRepo.UpdateStatusEthTxReverted(m.TransactionId)
-		if err != nil {
-			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", m.Status, m.TransactionId, err)
-		}
-	} else {
-		err = cth.transactionRepo.UpdateStatusCompleted(m.TransactionId)
-		if err != nil {
-			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusCompleted, m.TransactionId, err)
 		}
 	}
 }

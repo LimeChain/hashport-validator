@@ -99,10 +99,18 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		return err
 	}
 
+	go cmh.acknowledgeTransactionSuccess(m)
+
+	return nil
+}
+
+func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
+	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
+
 	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
 	if err != nil {
 		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
-		return err
+		return
 	}
 
 	if !isSuccessful {
@@ -110,18 +118,16 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
-			return err
+			return
 		}
 	} else {
 		cmh.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
 		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-			return err
+			return
 		}
 	}
-
-	return cmh.scheduler.Cancel(m.TransactionId)
 }
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
