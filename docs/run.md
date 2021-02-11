@@ -7,3 +7,9 @@ go run cmd/main.go -debug=true
 ```
 go test ./...
 ```
+
+## Run E2E Tests
+```sh
+cd e2e
+go test
+```
