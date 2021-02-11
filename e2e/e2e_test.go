@@ -45,7 +45,7 @@ func Test_E2E(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	transactionResponse, whbarBalanceBefore := verifyCryproTransfer(memo, acc, receiving, hBarAmount, whbarInstance, whbarReceiverAddress, client, t)
+	transactionResponse, whbarBalanceBefore := verifyCryptoTransfer(memo, acc, receiving, hBarAmount, whbarInstance, whbarReceiverAddress, client, t)
 
 	ethTransactionHash := verifyTopicMessages(topicID, client, transactionResponse, validatorsCount, t)
 
@@ -75,7 +75,7 @@ func initClient(accID hedera.AccountID, pK hedera.PrivateKey) *hedera.Client {
 	return client
 }
 
-func verifyCryproTransfer(memo string, acc hedera.AccountID, receiving hedera.AccountID, hBarAmount float64, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, client *hedera.Client, t *testing.T) (hedera.TransactionResponse, *big.Int) {
+func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.AccountID, hBarAmount float64, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, client *hedera.Client, t *testing.T) (hedera.TransactionResponse, *big.Int) {
 	// Get the wrapped hbar balance of the receiver before the transfer
 	whbarBalanceBefore, err := whbarInstance.BalanceOf(&bind.CallOpts{}, whbarReceiverAddress)
 	if err != nil {
