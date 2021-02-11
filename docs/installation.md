@@ -31,19 +31,19 @@ After you have run the database, you need to have the necessary [configuration](
 go run cmd/main.go
 ```
 
-#### Run in debug mode
+### Run in debug mode
 
 ```
 go run cmd/main.go -debug=true
 ```
 
-#### Build application
+### Build application
 
 ```
 go build cmd/main.go -o validator
 ```
 
-#### Unit Tests
+### Unit Tests
 
 ```
 go test ./...
@@ -53,7 +53,7 @@ go test ./...
 
 Docker Compose consists of scrips of the following components:
  - PostgreSQL database
- - Hedera-ETH Bridge Validator (Application)
+ - Hedera-Ethereum Bridge Validator (the application itself)
  
 Containers use the following persisted volumes:
  - `./db` on your local machine maps to `/var/lib/postgresql/data` in the container, containing all necessary files
