@@ -56,7 +56,7 @@ func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Tran
 	return tx, nil
 }
 
-func (tr *TransactionRepository) GetIncompleteTransactions() ([]*Transaction, error) {
+func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error) {
 	var transactions []*Transaction
 
 	err := tr.dbClient.

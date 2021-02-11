@@ -63,7 +63,7 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
 	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
-	transactions, err := cth.transactionRepo.GetIncompleteTransactions()
+	transactions, err := cth.transactionRepo.GetInitialAndSignatureSubmittedTx()
 	if err != nil {
 		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
 		return
