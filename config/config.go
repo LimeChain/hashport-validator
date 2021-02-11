@@ -1,24 +1,37 @@
 package config
 
 import (
-	"github.com/caarlos0/env/v6"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/caarlos0/env/v6"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const (
-	defaultConfigFile = "config/application.yml"
-	mainConfigFile    = "application.yml"
+	defaultConfigFile     = "config/application.yml"
+	mainConfigFile        = "application.yml"
+	defaultTestConfigFile = "config/application.yml"
 )
 
 func LoadConfig() *Config {
 	var configuration Config
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
+
+	if err := env.Parse(&configuration); err != nil {
+		panic(err)
+	}
+
+	return &configuration
+}
+
+func LoadTestConfig() *Config {
+	var configuration Config
+	GetConfig(&configuration, defaultTestConfigFile)
 
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
@@ -81,6 +94,7 @@ type Watcher struct {
 type Ethereum struct {
 	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
 	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_CONTRACT_ADDRESS"`
+	WhbarContractAddress  string `yaml:"whbar_contract_address" env:"HEDERA_ETH_BRIDGE_WHBAR_CONTRACT_ADDRESS"`
 }
 
 type CryptoTransfer struct {
