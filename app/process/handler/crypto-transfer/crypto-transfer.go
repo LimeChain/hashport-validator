@@ -1,4 +1,4 @@
-package cryptotransfer
+package crypto_transfer
 
 import (
 	"encoding/hex"
@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
@@ -28,6 +29,7 @@ type CryptoTransferHandler struct {
 	ethSigner          *eth.Signer
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient
+	ethereumClient     *ethereum.EthereumClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 }
@@ -37,7 +39,8 @@ func NewCryptoTransferHandler(
 	ethSigner *eth.Signer,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
-	transactionRepository repositories.TransactionRepository) *CryptoTransferHandler {
+	transactionRepository repositories.TransactionRepository,
+	ethereumClient *ethereum.EthereumClient) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -51,22 +54,23 @@ func NewCryptoTransferHandler(
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
+		ethereumClient:     ethereumClient,
 	}
 }
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Info("[Recovery] Database GET [PENDING] [SUBMITTED] transactions.")
+	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
-	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
+	transactions, err := cth.transactionRepo.GetInitialAndSignatureSubmittedTx()
 	if err != nil {
 		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
 		return
 	}
 
 	for _, transaction := range transactions {
-		if transaction.Status == txRepo.StatusPending {
+		if transaction.Status == txRepo.StatusInitial {
 			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
 		} else {
@@ -100,7 +104,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	} else {
 		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
-		if dbTransaction.Status != txRepo.StatusPending {
+		if dbTransaction.Status != txRepo.StatusInitial {
 			cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
 			return
 		}
@@ -113,10 +117,10 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 
 	if !validFee {
-		cth.logger.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
-		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
+		cth.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
+		err = cth.transactionRepo.UpdateStatusInsufficientFee(ctm.TransactionId)
 		if err != nil {
-			cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, err)
 			return
 		}
 
@@ -144,7 +148,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
 
-	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
+	err = cth.transactionRepo.UpdateStatusSignatureSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
 	if err != nil {
 		cth.logger.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
@@ -175,16 +179,16 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 			}
 
 			if success {
-				cth.logger.Debugf("Updating status to completed for TX ID [%s] and Topic Submission ID [%s].", transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-				err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureProvided, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
+				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
 				}
 			} else {
-				cth.logger.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s].", transactionId, topicMessageSubmissionTxId)
-				err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureFailed, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
+				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
 				}
 			}
 			return
