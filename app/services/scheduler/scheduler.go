@@ -75,7 +75,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 		if success {
 			s.logger.Infof("Successful execution of TX [%s] with TX Hash [%s].", id, ethTxHashString)
 		} else {
-			s.logger.Warn("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxHashString)
+			s.logger.Warnf("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxHashString)
 		}
 	}()
 
@@ -157,7 +157,7 @@ func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.
 
 	msgBytes, err := proto.Marshal(msg)
 	if err != nil {
-		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash)
+		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash, err)
 	}
 
 	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)

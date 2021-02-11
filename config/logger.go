@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,6 +24,6 @@ func InitLogger(debugMode *bool) {
 
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp:   true,
-		TimestampFormat: "2000-01-02T16:20:00.999999999Z",
+		TimestampFormat: time.RFC3339Nano,
 	})
 }

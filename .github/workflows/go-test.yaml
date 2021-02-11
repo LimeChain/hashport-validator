@@ -1,0 +1,32 @@
+name: Go Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        name: Setup GO Env
+        with:
+          go-version: '1.13'
+      - name: Cache Go Test modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-test-
+      - name: Create e2e run test config
+        shell: bash
+        run: |
+          echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/config/application.yml
+      - name: Run Unit Tests
+        run: go test $(go list ./... | grep -v e2e)
+      # TODO: uncomment after CodeCov config is added
+      # - name: Run Unit Tests with Coverage
+      #   run: go test ./... -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic
+      #- name: Upload Coverage report to CodeCov
+      #    run: bash <(curl -s https://codecov.io/bash)
+      #    working-directory: ${{env.working-directory}}
