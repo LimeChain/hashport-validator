@@ -8,4 +8,4 @@ a Github Action workflow publishes a new image here [here](https://console.cloud
 ## Testnet
 
 When a new image publishes, a Github Action workflow deploys three validator applications in GCloud, simulating
-a bridge application on Testnet.
+a bridge of three validators on Testnet (currently Hedera Testnet and Ethereum Ropsten testnet).
