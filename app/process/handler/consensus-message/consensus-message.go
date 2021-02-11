@@ -101,7 +101,7 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 
 	go cmh.acknowledgeTransactionSuccess(m)
 
-	return nil
+	return cmh.scheduler.Cancel(m.TransactionId)
 }
 
 func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {

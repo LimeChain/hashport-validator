@@ -61,7 +61,7 @@ func (tr *TransactionRepository) GetIncompleteTransactions() ([]*Transaction, er
 
 	err := tr.dbClient.
 		Model(Transaction{}).
-		Where("status = ? OR status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted, StatusEthTxSubmitted).
+		Where("status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted).
 		Find(&transactions).Error
 	if err != nil {
 		return nil, err
