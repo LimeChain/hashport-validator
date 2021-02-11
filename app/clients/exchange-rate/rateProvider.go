@@ -2,11 +2,9 @@ package exchangerate
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 type ExchangeRateProvider struct {
@@ -14,7 +12,6 @@ type ExchangeRateProvider struct {
 	rateURL    string
 	coin       string
 	currency   string
-	retries    int
 	rate       float64
 }
 
@@ -24,57 +21,27 @@ func NewExchangeRateProvider(coin string, currency string) *ExchangeRateProvider
 		rateURL:    fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=%s", coin, currency),
 		coin:       coin,
 		currency:   currency,
-		retries:    0,
 	}
 }
 
-func (erp *ExchangeRateProvider) Monitor() {
-	go erp.getRateFromGecko()
-}
-
-func (erp *ExchangeRateProvider) GetRate() (float64, error) {
-	if erp.rate > 0 {
-		return erp.rate, nil
-	}
-	// TODO: Throw error and stop processing of order, when status != 200
-	return 0, errors.New(fmt.Sprintf("Could not retrieve exchange rate for [%s] against [%s]: Rate is not retrieved yet", erp.coin, erp.currency))
-}
-
-func (erp *ExchangeRateProvider) getRateFromGecko() {
+func (erp *ExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
 	response, err := erp.httpClient.Get(erp.rateURL)
 	if err != nil {
-		erp.retry(err)
-		return
+		return 0, err
 	}
 
 	bodyBytes, err := readResponseBody(response)
 	if err != nil {
-		erp.retry(err)
-		return
+		return 0, err
 	}
 
 	var rates map[string]map[string]float32
 	err = json.Unmarshal(bodyBytes, &rates)
 	if err != nil {
-		erp.retry(err)
-		return
+		return 0, err
 	}
 
-	erp.rate = float64(rates[erp.coin][erp.currency])
-
-	time.Sleep(1 * time.Hour)
-	erp.getRateFromGecko()
-}
-
-func (erp *ExchangeRateProvider) retry(err error) {
-	// TODO: nullify erp.retries when successful retry -> Suggestion: another external API to provide data
-	time.Sleep(10 * time.Second)
-	erp.retries++
-	if erp.retries < 10 {
-		erp.getRateFromGecko()
-		return
-	}
-	fmt.Errorf("Could not retrieve exchange rate for [%s] against [%s]: %s", erp.coin, erp.currency, err)
+	return float64(rates[erp.coin][erp.currency]), nil
 }
 
 func readResponseBody(response *http.Response) ([]byte, error) {
