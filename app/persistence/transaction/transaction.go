@@ -8,10 +8,14 @@ import (
 
 // Enum Transaction Status
 const (
-	StatusCancelled = "CANCELLED"
-	StatusCompleted = "COMPLETED"
-	StatusPending   = "PENDING"
-	StatusSubmitted = "SUBMITTED"
+	StatusCompleted          = "COMPLETED"
+	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
+	StatusInitial            = "INITIAL"
+	StatusInsufficientFee    = "INSUFFICIENT_FEE"
+	StatusSignatureProvided  = "SIGNATURE_PROVIDED"
+	StatusSignatureFailed    = "SIGNATURE_FAILED"
+	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
+	StatusEthTxReverted      = "ETH_TX_REVERTED"
 )
 
 type Transaction struct {
@@ -23,6 +27,7 @@ type Transaction struct {
 	Signature      string
 	SubmissionTxId string
 	Status         string
+	EthHash        string
 }
 
 type TransactionRepository struct {
@@ -51,12 +56,12 @@ func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Tran
 	return tx, nil
 }
 
-func (tr *TransactionRepository) GetPendingOrSubmittedTransactions() ([]*Transaction, error) {
+func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error) {
 	var transactions []*Transaction
 
 	err := tr.dbClient.
 		Model(Transaction{}).
-		Where("status = ? OR status = ?", StatusPending, StatusSubmitted).
+		Where("status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted).
 		Find(&transactions).Error
 	if err != nil {
 		return nil, err
@@ -72,23 +77,43 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 		EthAddress:    ct.EthAddress,
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
-		Status:        StatusPending,
+		Status:        StatusInitial,
 	}).Error
-}
-
-func (tr *TransactionRepository) UpdateStatusCancelled(txId string) error {
-	return tr.updateStatus(txId, StatusCancelled)
 }
 
 func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
 
-func (tr *TransactionRepository) UpdateStatusSubmitted(txId string, submissionTxId string, signature string) error {
+func (tr *TransactionRepository) UpdateStatusInsufficientFee(txId string) error {
+	return tr.updateStatus(txId, StatusInsufficientFee)
+}
+
+func (tr *TransactionRepository) UpdateStatusSignatureProvided(txId string) error {
+	return tr.updateStatus(txId, StatusSignatureProvided)
+}
+
+func (tr *TransactionRepository) UpdateStatusSignatureFailed(txId string) error {
+	return tr.updateStatus(txId, StatusSignatureFailed)
+}
+
+func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{Status: StatusSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
+		Updates(Transaction{Status: StatusEthTxSubmitted, EthHash: hash}).
+		Error
+}
+
+func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxReverted)
+}
+
+func (tr *TransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
+	return tr.dbClient.
+		Model(Transaction{}).
+		Where("transaction_id = ?", txId).
+		Updates(Transaction{Status: StatusSignatureSubmitted, SubmissionTxId: submissionTxId, Signature: signature}).
 		Error
 }
 
