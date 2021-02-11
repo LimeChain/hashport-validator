@@ -1,6 +1,7 @@
 package fees
 
 import (
+	"github.com/ethereum/go-ethereum/eth"
 	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"math/big"
@@ -16,7 +17,12 @@ func ValidateExecutionFee(strTransferFee string, serviceFee uint64, transferAmou
 		return false, err
 	}
 
-	HBarTxFee := float64(gasPrice*estimatedGas) / exchangeRate // TODO: convert from gwei to wei, because it comes as gwei in the first place
+	bigGasPrice, err := helper.ToBigInt(gasPrice)
+	if err != nil {
+		return false, err
+	}
+
+	HBarTxFee := float64(bigGasPrice*estimatedGas) / exchangeRate // TODO: convert from gwei to wei, because it comes as gwei in the first place
 	if HBarTxFee >= TxFee {
 		return false, err
 	}

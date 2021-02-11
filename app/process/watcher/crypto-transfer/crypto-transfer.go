@@ -157,14 +157,14 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
 		return
 	}
-	// TODO: Let's split everything by "-" and validate data
-	ethAddress := decodedMemo[:42]
-	feeAndGasPrice := strings.Split(string(decodedMemo[42:]), "-")
-	fee := feeAndGasPrice[0]
-	gasPrice := feeAndGasPrice[1] // in gwei
+
+	memo := strings.Split(string(decodedMemo), "-")
+	ethAddress := memo[0]
+	fee := memo[1]
+	gasPrice := memo[2] // In gwei
 
 	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(string(ethAddress)) {
+	if !re.MatchString(ethAddress) {
 		ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
 		return
 	}
