@@ -1,0 +1,42 @@
+name: E2E Tests
+on: pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Export alice application config
+        shell: bash
+        run: |
+         echo "${{ secrets.E2E_ALICE_CONFIG }}" > ./examples/three-validators/alice/config/application.yml
+      - name: Export bob application config
+        shell: bash
+        run: |
+         echo "${{ secrets.E2E_BOB_CONFIG }}" > ./examples/three-validators/bob/config/application.yml
+      - name: Export carol application config
+        shell: bash
+        run: |
+         echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
+      - name: Build the stack
+        run: cd examples/three-validators; docker-compose up -d
+      - uses: jakejarvis/wait-action@master
+        name: Sleep for 45 seconds
+        with:
+          time: '45s'
+      - uses: actions/setup-go@v2
+        name: Setup GO Env
+        with:
+          go-version: '1.13'
+      - name: Cache Go E2E Test modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-e2e-test-
+      - name: Create e2e run test config
+        shell: bash
+        run: |
+          echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/config/application.yml
+      - name: Run E2E Tests
+        run: go test ./e2e/
