@@ -19,6 +19,7 @@ import (
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -45,17 +46,19 @@ func main() {
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
-	exchangeRateService.Monitor()
+
+	feeCalculator := fees.NewFeeCalculator(exchangeRateService, configuration.Hedera)
 
 	server := server.NewServer()
 
 	server.AddHandler(process.CryptoTransferMessageType, cth.NewCryptoTransferHandler(
 		configuration.Hedera.Handler.CryptoTransfer,
 		ethSigner,
+		ethClient,
 		hederaMirrorClient,
 		hederaNodeClient,
 		transactionRepository,
-		exchangeRateService))
+		feeCalculator))
 
 	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
 	if err != nil {

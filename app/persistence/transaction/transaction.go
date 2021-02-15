@@ -18,7 +18,7 @@ type Transaction struct {
 	gorm.Model
 	TransactionId  string `gorm:"unique"`
 	EthAddress     string
-	Amount         uint64
+	Amount         string
 	Fee            string
 	Signature      string
 	SubmissionTxId string

@@ -142,7 +142,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
-	var amount int64
+	var amount string
 	for _, tr := range tx.Transfers {
 		if tr.Account == ctw.accountID.String() {
 			amount = tr.Amount
@@ -201,8 +201,8 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
-		EthAddress:    string(ethAddress),
-		Amount:        uint64(amount),
+		EthAddress:    ethAddress,
+		Amount:        amount,
 		Fee:           fee,
 		GasPrice:      gasPrice,
 	}

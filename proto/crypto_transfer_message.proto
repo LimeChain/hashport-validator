@@ -7,7 +7,7 @@ option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 message CryptoTransferMessage {
   string transactionId = 1;
   string ethAddress = 2;
-  uint64 amount = 3;
+  string amount = 3;
   string fee = 4;
   string gasPrice = 5;
 }

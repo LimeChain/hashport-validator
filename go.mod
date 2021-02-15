@@ -11,7 +11,9 @@ require (
 	github.com/jackc/pgx/v4 v4.9.2 // indirect
 	github.com/limechain/hedera-state-proof-verifier-go v0.0.0-20201130142223-751c4825b4ac
 	github.com/limechain/hedera-watcher-sdk v0.0.0-20201123115519-56ea1fae7526
+	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.6.1
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392 // indirect
