@@ -1,12 +1,13 @@
-# Hedera - Ethereum Bridge Node
 
 <div align="center">
+
+# Hedera - Ethereum Bridge
+
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Go build](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/Go%20build/badge.svg)
 ![Go Test](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/Go%20Test/badge.svg)
 ![E2E Tests](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/E2E%20Tests/badge.svg)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/LimeChain/hedera-eth-bridge-validator)
 
 </div>
 
