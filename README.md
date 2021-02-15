@@ -16,7 +16,7 @@ The diagram below shows the operations involved for the Hedera -> Ethereum bridg
 
 <p align="center">
 
-![Hedera-Ethereum-MVP](./docs/images/Hedera-ETH-MVP.png "Hedera->Ethereum") 
+![Hedera-Ethereum-MVP](docs/images/hedera-eth-mvp.png "Hedera->Ethereum") 
 
 </p>
 
