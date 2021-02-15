@@ -1,10 +1,29 @@
-# Hedera - Ethereum Bridge Validator
+# Hedera - Ethereum Bridge Node
+
+<div align="center">
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Go build](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/Go%20build/badge.svg)
+![Go Test](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/Go%20Test/badge.svg)
+![E2E Tests](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/E2E%20Tests/badge.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/LimeChain/hedera-eth-bridge-validator)
+
+</div>
 
 ## Overview 
-TODO
+This repository contains the Hedera <-> Ethereum Bridge Node. The bridge is operated by a set of validators who are running the Bridge Node software.  
+The diagram below shows the operations involved for the Hedera -> Ethereum bridging solution.
+
+<p align="center">
+
+![Hedera-Ethereum-MVP](./docs/images/Hedera-ETH-MVP.png "Hedera->Ethereum") 
+
+</p>
 
 ## Technologies
-TODO
+The Validator node is using Hedera Consensus Service for aggregating authorisation signatures resolving the need for node to have p2p communication and providing traceability for the transfer.
+The node is a Go Lang service with several watchers and handlers for Crypto Transfer, Message submission and Ethereum events.
+Postgres is used for persisting state. 
 
 ## Prerequisite Tools
 
