@@ -19,6 +19,8 @@ package crypto_transfer
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
@@ -35,7 +37,6 @@ import (
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Crypto Transfer event handler
@@ -99,6 +100,7 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 }
 
 func (cth *CryptoTransferHandler) Handle(payload []byte) {
+	fmt.Println(payload)
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
