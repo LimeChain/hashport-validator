@@ -22,9 +22,9 @@ The diagram below shows the operations involved for the Hedera -> Ethereum bridg
 </p>
 
 ## Technologies
-The Validator node is using Hedera Consensus Service for aggregating authorisation signatures resolving the need for node to have p2p communication and providing traceability for the transfer.
-The node is a Go Lang service with several watchers and handlers for Crypto Transfer, Message submission and Ethereum events.
-Postgres is used for persisting state. 
+The Validator node is using Hedera Consensus Service for aggregating authorisation signatures resolving the need for nodes to have p2p communication and providing traceability for the bridging operations.
+The node is a Go service with several watchers and handlers for Crypto Transfer, Message submission and Ethereum events.
+Postgres is used for persisting state.
 
 ## Prerequisite Tools
 
