@@ -15,8 +15,8 @@ type ExchangeRateProvider struct {
 	rate       float64
 }
 
-func NewExchangeRateProvider(coin string, currency string) *ExchangeRateProvider {
-	return &ExchangeRateProvider{
+func NewExchangeRateProvider(coin string, currency string) ExchangeRateProvider {
+	return ExchangeRateProvider{
 		httpClient: &http.Client{},
 		rateURL:    fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=%s", coin, currency),
 		coin:       coin,

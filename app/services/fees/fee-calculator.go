@@ -1,8 +1,9 @@
 package fees
 
 import (
+	"errors"
 	"github.com/ethereum/go-ethereum/params"
-	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
@@ -11,11 +12,11 @@ import (
 )
 
 type FeeCalculator struct {
-	rateProvider  *exchangerate.ExchangeRateProvider
+	rateProvider  provider.ExchangeRateProvider
 	configuration config.Hedera
 }
 
-func NewFeeCalculator(rateProvider *exchangerate.ExchangeRateProvider, configuration config.Hedera) *FeeCalculator {
+func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration config.Hedera) *FeeCalculator {
 	return &FeeCalculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,
@@ -43,7 +44,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 	}
 
 	if bigTransferAmount.Cmp(estimatedFee) < 0 {
-		return false, nil
+		return false, errors.New("Did not pass sanity check.")
 	}
 
 	bigGasPrice, err := helper.ToBigInt(gasPrice)
@@ -70,7 +71,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	decimalTxFee := decimal.NewFromBigInt(bigTxFee, 0)
 	if tinyBarTxFee.Cmp(decimalTxFee) >= 0 {
-		return false, err
+		return false, errors.New("Insufficient fee.")
 	}
 
 	return true, nil
