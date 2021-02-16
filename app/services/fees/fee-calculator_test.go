@@ -12,7 +12,7 @@ const (
 	exchangeRate          = 0.0000764
 	validGasPrice         = "2"
 	invalidValue          = "someinvalidvalue"
-	transferFee           = "600000000"
+	transferFee           = "6000000000"
 	tooSmallTransferFee   = "2700"
 	transferAmount        = "10000000000000000"
 	invalidTransferAmount = "100"

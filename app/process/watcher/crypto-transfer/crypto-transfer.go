@@ -161,12 +161,12 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	var amount string
 	for _, tr := range tx.Transfers {
 		if tr.Account == ctw.accountID.String() {
-			amount = string(tr.Amount)
+			amount = fmt.Sprint(tr.Amount)
 			break
 		}
 	}
 
-	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}[1-9][0-9]+-[1-9][0-9]+$")
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]+-[1-9][0-9]+$")
 
 	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
 	if e != nil || len(decodedMemo) < 42 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
