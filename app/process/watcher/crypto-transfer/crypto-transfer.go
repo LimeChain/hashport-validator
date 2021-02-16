@@ -145,7 +145,7 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	var amount string
 	for _, tr := range tx.Transfers {
 		if tr.Account == ctw.accountID.String() {
-			amount = tr.Amount
+			amount = string(tr.Amount)
 			break
 		}
 	}

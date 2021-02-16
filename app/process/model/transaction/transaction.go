@@ -17,7 +17,7 @@ type (
 	}
 	Transfer struct {
 		Account string `json:"account"`
-		Amount  string `json:"amount"`
+		Amount  int64  `json:"amount"`
 	}
 	HederaTransactions struct {
 		Transactions []HederaTransaction
