@@ -1,4 +1,20 @@
-package cryptotransfer
+/*
+ * Copyright 2021 LimeChain Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package crypto_transfer
 
 import (
 	"encoding/hex"
@@ -27,9 +43,9 @@ type CryptoTransferHandler struct {
 	pollingInterval    time.Duration
 	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
-	ethClient          *ethereum.EthereumClient
 	hederaMirrorClient *hederaClient.HederaMirrorClient
 	hederaNodeClient   *hederaClient.HederaNodeClient
+	ethereumClient     *ethereum.EthereumClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
@@ -38,7 +54,7 @@ type CryptoTransferHandler struct {
 func NewCryptoTransferHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
-	ethClient *ethereum.EthereumClient,
+	ethereumClient *ethereum.EthereumClient,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
@@ -57,23 +73,23 @@ func NewCryptoTransferHandler(
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
 		feeCalculator:      feeCalculator,
-		ethClient:          ethClient,
+		ethereumClient:     ethereumClient,
 	}
 }
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Info("[Recovery] Database GET [PENDING] [SUBMITTED] transactions.")
+	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
-	transactions, err := cth.transactionRepo.GetPendingOrSubmittedTransactions()
+	transactions, err := cth.transactionRepo.GetInitialAndSignatureSubmittedTx()
 	if err != nil {
 		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
 		return
 	}
 
 	for _, transaction := range transactions {
-		if transaction.Status == txRepo.StatusPending {
+		if transaction.Status == txRepo.StatusInitial {
 			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
 			go cth.submitTx(transaction, q)
 		} else {
@@ -107,7 +123,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	} else {
 		cth.logger.Debugf("Transaction with TransactionID [%s] has already been added. Continuing execution.", ctm.TransactionId)
 
-		if dbTransaction.Status != txRepo.StatusPending {
+		if dbTransaction.Status != txRepo.StatusInitial {
 			cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", ctm.TransactionId, dbTransaction.Status)
 			return
 		}
@@ -120,10 +136,10 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 
 	if !validFee {
-		cth.logger.Infof("Cancelling transaction [%s] due to invalid fee provided: [%s]", ctm.TransactionId, ctm.Fee)
-		err = cth.transactionRepo.UpdateStatusCancelled(ctm.TransactionId)
+		cth.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
+		err = cth.transactionRepo.UpdateStatusInsufficientFee(ctm.TransactionId)
 		if err != nil {
-			cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, err)
 			return
 		}
 
@@ -152,7 +168,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
 
-	err = cth.transactionRepo.UpdateStatusSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
+	err = cth.transactionRepo.UpdateStatusSignatureSubmitted(ctm.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
 	if err != nil {
 		cth.logger.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
@@ -183,16 +199,16 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 			}
 
 			if success {
-				cth.logger.Debugf("Updating status to completed for TX ID [%s] and Topic Submission ID [%s].", transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-				err := cth.transactionRepo.UpdateStatusCompleted(transactionId)
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureProvided, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
+				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to update completed status for TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
 				}
 			} else {
-				cth.logger.Infof("Cancelling unsuccessful Transaction ID [%s], Submission Message TxID [%s].", transactionId, topicMessageSubmissionTxId)
-				err := cth.transactionRepo.UpdateStatusCancelled(transactionId)
+				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureFailed, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
+				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
 				if err != nil {
-					cth.logger.Errorf("Failed to cancel transaction with TransactionID [%s]. Error [%s].", transactionId, err)
+					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
 				}
 			}
 			return
