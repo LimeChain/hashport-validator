@@ -18,7 +18,6 @@ package ethereum
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -27,17 +26,13 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"math/big"
-	"net/http"
 	"time"
 )
 
 // Ethereum Node Client
 type EthereumClient struct {
-	Client     *ethclient.Client
-	httpClient *http.Client
-	config     config.Ethereum
+	Client *ethclient.Client
+	config config.Ethereum
 }
 
 func NewEthereumClient(config config.Ethereum) *EthereumClient {
@@ -47,9 +42,8 @@ func NewEthereumClient(config config.Ethereum) *EthereumClient {
 	}
 
 	ethereumClient := &EthereumClient{
-		httpClient: &http.Client{},
-		Client:     client,
-		config:     config,
+		Client: client,
+		config: config,
 	}
 
 	return ethereumClient
@@ -100,59 +94,4 @@ func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt
 	}
 
 	return ec.Client.TransactionReceipt(context.Background(), hash)
-}
-
-func (ec *EthereumClient) GetSlowGasPrice() (uint64, error) {
-	apiURL := "https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=2TX7CUPTGNKIFYC4V12GTJSQJ73EKZ5Z21"
-
-	response, err := ec.httpClient.Get(apiURL)
-
-	bodyBytes, err := readResponseBody(response)
-	if err != nil {
-		return 0, err
-	}
-
-	var data map[string]interface{}
-	err = json.Unmarshal(bodyBytes, &data)
-	if err != nil {
-		return 0, err
-	}
-
-	result := data["result"]
-	pricesData := result.(map[string]interface{})
-	slowGasPrice := pricesData["SafeGasPrice"].(uint64)
-	if err != nil {
-		return 0, err
-	}
-
-	return slowGasPrice, nil
-}
-
-func readResponseBody(response *http.Response) ([]byte, error) {
-	defer response.Body.Close()
-
-	return ioutil.ReadAll(response.Body)
-}
-
-func (ec *EthereumClient) EstimateGas(amount uint64) (uint64, error) {
-	slowGasPrice, err := ec.GetSlowGasPrice()
-	if err != nil {
-		return 0, err
-	}
-
-	msg := ethereum.CallMsg{
-		From:     common.HexToAddress("0x37EA216A28628eCC1de4d982cEc46569203a9F4a"),
-		To:       nil,
-		Gas:      0, // Gas limit: in app.yml -> base gas usage + X * gas usage per signature, X >= 50% of validator signatures ... get count of operators from smart contract
-		GasPrice: new(big.Int).SetUint64(slowGasPrice),
-		Value:    new(big.Int).SetUint64(amount),
-		Data:     nil, // Should send necessary data (signatures, etc.)
-	}
-
-	gasEstimation, err := ec.Client.EstimateGas(context.Background(), msg)
-	if err != nil {
-		return 0, err
-	}
-
-	return gasEstimation, nil
 }
