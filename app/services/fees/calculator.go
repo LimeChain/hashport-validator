@@ -38,7 +38,7 @@ func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration 
 	}
 }
 
-func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmount string, gasPrice string) (bool, error) {
+func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
 		return false, InvalidTransferAmount
@@ -48,7 +48,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 	bigServiceFee := new(big.Int).Mul(bigTransferAmount, serviceFeePercent)
 	bigServiceFee = new(big.Int).Div(bigServiceFee, new(big.Int).SetInt64(100))
 
-	bigTxFee, err := helper.ToBigInt(strTransferFee)
+	bigTxFee, err := helper.ToBigInt(transferFee)
 	if err != nil {
 		return false, InvalidTransferFee
 	}
@@ -59,7 +59,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 		return false, Insane
 	}
 
-	bigGasPrice, err := helper.ToBigInt(gasPrice)
+	bigGasPrice, err := helper.ToBigInt(gasPriceGwei)
 	if err != nil {
 		return false, InvalidGasPrice
 	}
