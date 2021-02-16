@@ -26,6 +26,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	hederaCl "github.com/limechain/hedera-eth-bridge-validator/app/domain/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -45,7 +46,7 @@ type CryptoTransferHandler struct {
 	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
 	hederaMirrorClient *hederaClient.HederaMirrorClient
-	hederaNodeClient   *hederaClient.HederaNodeClient
+	hederaNodeClient   hederaCl.HederaNodeClient
 	ethereumClient     *ethereum.EthereumClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
@@ -57,7 +58,7 @@ func NewCryptoTransferHandler(
 	ethSigner *eth.Signer,
 	ethereumClient *ethereum.EthereumClient,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
-	hederaNodeClient *hederaClient.HederaNodeClient,
+	hederaNodeClient hederaCl.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
 	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
@@ -100,7 +101,6 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 }
 
 func (cth *CryptoTransferHandler) Handle(payload []byte) {
-	fmt.Println(payload)
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {

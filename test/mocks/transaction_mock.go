@@ -1,4 +1,4 @@
-package repository
+package mocks
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -12,12 +12,18 @@ type MockTransactionRepository struct {
 
 func (m *MockTransactionRepository) GetByTransactionId(transactionId string) (*transaction.Transaction, error) {
 	args := m.Called(transactionId)
-	return args.Get(0).(*transaction.Transaction), args.Get(0).(error)
+	if args.Get(1) == nil {
+		return args.Get(0).(*transaction.Transaction), nil
+	}
+	return args.Get(0).(*transaction.Transaction), args.Get(1).(error)
 }
 
 func (m *MockTransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error) {
 	args := m.Called()
-	return args.Get(0).([]*transaction.Transaction), args.Get(0).(error)
+	if args.Get(1) == nil {
+		return args.Get(0).([]*transaction.Transaction), nil
+	}
+	return args.Get(0).([]*transaction.Transaction), args.Get(1).(error)
 
 }
 
@@ -64,5 +70,8 @@ func (m *MockTransactionRepository) UpdateStatusEthTxReverted(txId string) error
 
 func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
 	args := m.Called(txId, submissionTxId, signature)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(error)
 }
