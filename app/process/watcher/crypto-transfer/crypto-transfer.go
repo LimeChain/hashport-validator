@@ -166,34 +166,28 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		}
 	}
 
-	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]+-[1-9][0-9]+$")
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
 
 	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-	if e != nil || len(decodedMemo) < 42 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
-		ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
+	if e != nil || len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+		ctw.logger.Errorf("Could not parse transaction memo for Transaction with ID [%s] - Error: [%s]", tx.TransactionID, e)
 		return
 	}
 
 	memo := strings.Split(string(decodedMemo), "-")
 	ethAddress := memo[0]
 	fee := memo[1]
-	gasPrice := memo[2] // In gwei
-
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(ethAddress) {
-		ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
-		return
-	}
+	gasPriceGwei := memo[2]
 
 	_, e = helper.ToBigInt(fee)
 	if e != nil {
-		ctw.logger.Errorf("Could not verify transaction fee - [%s]", fee)
+		ctw.logger.Errorf("Could not parse transaction fee [%s], for Transaction with ID [%s]", fee, tx.TransactionID)
 		return
 	}
 
-	_, e = helper.ToBigInt(gasPrice)
+	_, e = helper.ToBigInt(gasPriceGwei)
 	if e != nil {
-		ctw.logger.Errorf("Could not verify gas price - [%s]", gasPrice)
+		ctw.logger.Errorf("Could not parse gas price [%s], for Transaction with ID [%s]", gasPriceGwei, tx.TransactionID)
 		return
 	}
 
@@ -220,7 +214,7 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		EthAddress:    ethAddress,
 		Amount:        amount,
 		Fee:           fee,
-		GasPrice:      gasPrice,
+		GasPriceGwei:  gasPriceGwei,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }

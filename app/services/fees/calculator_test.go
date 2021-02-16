@@ -1,21 +1,25 @@
 package fees
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 const (
-	testConfigAddress     = "../../../config/application.yml"
-	exchangeRate          = 0.0000764
-	validGasPrice         = "2"
-	invalidValue          = "someinvalidvalue"
-	transferFee           = "6000000000"
-	tooSmallTransferFee   = "2700"
-	transferAmount        = "10000000000000000"
+	testConfigAddress = "../../../config/application.yml"
+	exchangeRate      = 0.0000764
+	validGasPrice     = "130"
+
+	invalidValue = "someinvalidvalue"
+
+	transferAmount        = "1000000000000"
 	invalidTransferAmount = "100"
+
+	transferFee         = "60000000000"
+	tooSmallTransferFee = "2"
+	tooBigTransferFee   = transferAmount
 )
 
 var (
@@ -38,7 +42,7 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
-	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, invalidTransferAmount, validGasPrice)
+	valid, err := feeCalculator.ValidateExecutionFee(tooBigTransferFee, invalidTransferAmount, validGasPrice)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, Insane)
 	assert.False(t, valid)
