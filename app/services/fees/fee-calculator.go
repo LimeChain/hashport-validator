@@ -51,7 +51,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
 	if err != nil {
-		return false, errors.New(RATE_PROVIDER_FAILURE)
+		return false, err
 	}
 
 	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())

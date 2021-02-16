@@ -36,6 +36,7 @@ func TestFeeCalculatorHappyPath(t *testing.T) {
 
 func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 	mocks.Setup()
+
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, invalidTransferAmount, validGasPrice)
@@ -46,8 +47,9 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 
 func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 	mocks.Setup()
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, transferAmount, validGasPrice)
 	assert.NotNil(t, err)
@@ -57,6 +59,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 
 func TestFeeCalculatorFailsWithInvalidTransferFee(t *testing.T) {
 	mocks.Setup()
+
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(invalidValue, transferAmount, validGasPrice)
@@ -67,8 +70,9 @@ func TestFeeCalculatorFailsWithInvalidTransferFee(t *testing.T) {
 
 func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 	mocks.Setup()
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, invalidValue)
 	assert.NotNil(t, err)
@@ -78,8 +82,9 @@ func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 
 func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 	mocks.Setup()
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, invalidValue, validGasPrice)
 	assert.NotNil(t, err)
@@ -89,8 +94,9 @@ func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 
 func TestFeeCalculatorWithInvalidRateProvider(t *testing.T) {
 	mocks.Setup()
+	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), errors.New(RATE_PROVIDER_FAILURE))
+
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
-	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), errors.New("This error should be returned"))
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	assert.NotNil(t, err)
