@@ -8,7 +8,7 @@ type TransactionMessage struct {
 	gorm.Model
 	TransactionId        string
 	EthAddress           string
-	Amount               uint64
+	Amount               string
 	Fee                  string
 	Signature            string
 	Hash                 string

@@ -26,7 +26,7 @@ func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration 
 func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmount string, gasPrice string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
-		return false, err
+		return false, errors.New(INVALID_TRANSFER_AMOUNT)
 	}
 
 	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
@@ -35,26 +35,23 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	bigTxFee, err := helper.ToBigInt(strTransferFee)
 	if err != nil {
-		return false, err
+		return false, errors.New(INVALID_TRANSFER_FEE)
 	}
 
-	estimatedFee, err := fc.getFee(bigTxFee, bigServiceFee)
-	if err != nil {
-		return false, err
-	}
+	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
 	if bigTransferAmount.Cmp(estimatedFee) < 0 {
-		return false, errors.New("Did not pass sanity check.")
+		return false, errors.New(INSANE)
 	}
 
 	bigGasPrice, err := helper.ToBigInt(gasPrice)
 	if err != nil {
-		return false, err
+		return false, errors.New(INVALID_GAS_PRICE)
 	}
 
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
 	if err != nil {
-		return false, err
+		return false, errors.New(RATE_PROVIDER_FAILURE)
 	}
 
 	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
@@ -71,10 +68,16 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	decimalTxFee := decimal.NewFromBigInt(bigTxFee, 0)
 	if tinyBarTxFee.Cmp(decimalTxFee) >= 0 {
-		return false, errors.New("Insufficient fee.")
+		return false, errors.New(INSUFFICIENT_FEE)
 	}
 
 	return true, nil
+}
+
+func (fc FeeCalculator) getEstimatedGas() uint64 {
+	majorityValidatorsCount := len(fc.configuration.Handler.ConsensusMessage.Addresses)/2 + 1
+	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
+	return estimatedGas
 }
 
 func calculateWeiTxFee(gasPrice *big.Int, estimatedGas *big.Int) *big.Int {
@@ -103,12 +106,6 @@ func hbarToTinyBar(hbar decimal.Decimal) decimal.Decimal {
 	return hbar
 }
 
-func (fc FeeCalculator) getEstimatedGas() uint64 {
-	majorityValidatorsCount := len(fc.configuration.Handler.ConsensusMessage.Addresses)/2 + 1
-	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
-	return estimatedGas
-}
-
-func (fc FeeCalculator) getFee(transferFee *big.Int, serviceFee *big.Int) (*big.Int, error) {
-	return new(big.Int).Add(transferFee, serviceFee), nil
+func getFee(transferFee *big.Int, serviceFee *big.Int) *big.Int {
+	return new(big.Int).Add(transferFee, serviceFee)
 }
