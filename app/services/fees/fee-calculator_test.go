@@ -1,7 +1,6 @@
 package fees
 
 import (
-	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, invalidTransferAmount, validGasPrice)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), INSANE)
+	assert.Equal(t, err, Insane)
 	assert.False(t, valid)
 }
 
@@ -53,7 +52,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, transferAmount, validGasPrice)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), INSUFFICIENT_FEE)
+	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
 }
 
@@ -64,7 +63,7 @@ func TestFeeCalculatorFailsWithInvalidTransferFee(t *testing.T) {
 
 	valid, err := feeCalculator.ValidateExecutionFee(invalidValue, transferAmount, validGasPrice)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), INVALID_TRANSFER_FEE)
+	assert.Equal(t, err, InvalidTransferFee)
 	assert.False(t, valid)
 }
 
@@ -76,7 +75,7 @@ func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, invalidValue)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), INVALID_GAS_PRICE)
+	assert.Equal(t, err, InvalidGasPrice)
 	assert.False(t, valid)
 }
 
@@ -88,18 +87,18 @@ func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, invalidValue, validGasPrice)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), INVALID_TRANSFER_AMOUNT)
+	assert.Equal(t, err, InvalidTransferAmount)
 	assert.False(t, valid)
 }
 
 func TestFeeCalculatorWithInvalidRateProvider(t *testing.T) {
 	mocks.Setup()
-	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), errors.New(RATE_PROVIDER_FAILURE))
+	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, hederaConfig)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), RATE_PROVIDER_FAILURE)
+	assert.Equal(t, err, RateProviderFailure)
 	assert.False(t, valid)
 }

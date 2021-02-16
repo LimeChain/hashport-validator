@@ -1,10 +1,12 @@
 package fees
 
-const (
-	INVALID_TRANSFER_AMOUNT = "INVALID_TRANSFER_AMOUNT"
-	INVALID_TRANSFER_FEE    = "INVALID_TRANSFER_FEE"
-	INVALID_GAS_PRICE       = "INVALID_GAS_PRICE"
-	INSANE                  = "INSANE"
-	INSUFFICIENT_FEE        = "INSUFFICIENT_FEE"
-	RATE_PROVIDER_FAILURE   = "RATE_PROVIDER_FAILURE"
+import "errors"
+
+var (
+	InvalidTransferAmount = errors.New("INVALID_TRANSFER_AMOUNT")
+	InvalidTransferFee    = errors.New("INVALID_TRANSFER_FEE")
+	InvalidGasPrice       = errors.New("INVALID_GAS_PRICE")
+	Insane                = errors.New("INSANE")
+	InsufficientFee       = errors.New("INSUFFICIENT_FEE")
+	RateProviderFailure   = errors.New("RATE_PROVIDER_FAILURE")
 )

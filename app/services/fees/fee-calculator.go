@@ -17,7 +17,6 @@
 package fees
 
 import (
-	"errors"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
@@ -42,7 +41,7 @@ func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration 
 func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmount string, gasPrice string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
-		return false, errors.New(INVALID_TRANSFER_AMOUNT)
+		return false, InvalidTransferAmount
 	}
 
 	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
@@ -51,18 +50,18 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	bigTxFee, err := helper.ToBigInt(strTransferFee)
 	if err != nil {
-		return false, errors.New(INVALID_TRANSFER_FEE)
+		return false, InvalidTransferFee
 	}
 
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
 	if bigTransferAmount.Cmp(estimatedFee) < 0 {
-		return false, errors.New(INSANE)
+		return false, Insane
 	}
 
 	bigGasPrice, err := helper.ToBigInt(gasPrice)
 	if err != nil {
-		return false, errors.New(INVALID_GAS_PRICE)
+		return false, InvalidGasPrice
 	}
 
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
@@ -84,7 +83,7 @@ func (fc FeeCalculator) ValidateExecutionFee(strTransferFee string, transferAmou
 
 	decimalTxFee := decimal.NewFromBigInt(bigTxFee, 0)
 	if tinyBarTxFee.Cmp(decimalTxFee) >= 0 {
-		return false, errors.New(INSUFFICIENT_FEE)
+		return false, InsufficientFee
 	}
 
 	return true, nil
