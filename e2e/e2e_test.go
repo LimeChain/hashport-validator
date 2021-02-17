@@ -38,7 +38,7 @@ import (
 func Test_E2E(t *testing.T) {
 	configuration := config.LoadTestConfig()
 
-	memo := "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD-600000000-2"
+	memo := "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD-600000000-1"
 	whbarReceiverAddress := common.HexToAddress("0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD")
 
 	hBarAmount := float64(10)
