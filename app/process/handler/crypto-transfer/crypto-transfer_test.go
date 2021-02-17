@@ -53,7 +53,7 @@ func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.Accou
 	return ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes
 }
 
-func Test_Handle(t *testing.T) {
+func Test_Handle_Not_Initial_Transaction(t *testing.T) {
 	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
 	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
 
@@ -85,6 +85,48 @@ func Test_Handle(t *testing.T) {
 	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 
 	ctHandler.Handle(cryptoTransferPayload)
+
+	if transactionRepo.AssertNotCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature) != true {
+		t.Fatalf("Method should not have been called when transaction status is completed")
+	}
+}
+
+func Test_Handle_Initial_Transaction(t *testing.T) {
+	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
+	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
+
+	proto.Unmarshal(cryptoTransferPayload, &ctm)
+
+	expectedTransaction := hedera.TransactionID{
+		AccountID:  accID,
+		ValidStart: time.Time{},
+	}
+
+	tx := &transaction.Transaction{
+		Model:          gorm.Model{},
+		TransactionId:  ctm.TransactionId,
+		EthAddress:     ctm.EthAddress,
+		Amount:         ctm.Amount,
+		Fee:            ctm.Fee,
+		Signature:      signature,
+		SubmissionTxId: submissionTxID,
+		Status:         txRepo.StatusInitial,
+	}
+
+	txs := txn.HederaTransactions{
+		Transactions: []txn.HederaTransaction{},
+	}
+
+	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, nil)
+	transactionRepo.On("UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature).Return(nil)
+	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
+	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
+
+	ctHandler.Handle(cryptoTransferPayload)
+
+	if transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature) != true {
+		t.Fatalf("Method should have been called when transaction status is initial")
+	}
 }
 
 func Test_HandleTopicSubmission(t *testing.T) {
