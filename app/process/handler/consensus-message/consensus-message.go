@@ -20,6 +20,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
@@ -38,7 +40,6 @@ import (
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type ConsensusMessageHandler struct {
@@ -163,7 +164,10 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	}
 
 	hash := crypto.Keccak256(encodedData)
-	hexHash := hex.EncodeToString(hash)
+	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
+	ethHash := crypto.Keccak256(toEthSignedMsg, hash)
+
+	hexHash := hex.EncodeToString(ethHash)
 
 	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
 	m.Signature = ethSig
@@ -179,7 +183,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
 	}
 
-	key, err := crypto.Ecrecover(hash, decodedSig)
+	key, err := crypto.Ecrecover(ethHash, decodedSig)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[%s] - Failed to recover public key. Hash - [%s] - [%s]", m.TransactionId, hexHash, err))
 	}

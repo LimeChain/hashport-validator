@@ -19,6 +19,8 @@ package crypto_transfer
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
@@ -35,7 +37,6 @@ import (
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Crypto Transfer event handler
@@ -149,7 +150,9 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	}
 
 	hash := crypto.Keccak256(encodedData)
-	signature, err := cth.ethSigner.Sign(hash)
+	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
+	ethHash := crypto.Keccak256(toEthSignedMsg, hash)
+	signature, err := cth.ethSigner.Sign(ethHash)
 	if err != nil {
 		cth.logger.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)
 		return
