@@ -21,8 +21,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/shopspring/decimal"
-	"math"
 	"math/big"
 )
 
@@ -75,18 +73,19 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 
 	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
 
-	ethTxFee := weiToEther(weiTxFee)
+	tinyBarTxFee := weiToTinyBar(weiTxFee, exchangeRate)
 
-	hbarTxFee := etherToHbar(ethTxFee, exchangeRate)
+	floatTxFee := new(big.Float).SetInt(bigTxFee)
 
-	tinyBarTxFee := hbarToTinyBar(hbarTxFee)
-
-	decimalTxFee := decimal.NewFromBigInt(bigTxFee, 0)
-	if tinyBarTxFee.Cmp(decimalTxFee) >= 0 {
+	if tinyBarTxFee.Cmp(floatTxFee) >= 0 {
 		return false, InsufficientFee
 	}
 
 	return true, nil
+}
+
+func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
+	return new(big.Float).Quo(new(big.Float).Mul(new(big.Float).SetInt(weiTxFee), big.NewFloat(1e-10)), big.NewFloat(exchangeRate))
 }
 
 func (fc FeeCalculator) getEstimatedGas() uint64 {
@@ -99,26 +98,8 @@ func calculateWeiTxFee(gasPrice *big.Int, estimatedGas *big.Int) *big.Int {
 	return new(big.Int).Mul(gasPrice, estimatedGas)
 }
 
-func etherToHbar(ethTxFee decimal.Decimal, exchangeRate float64) decimal.Decimal {
-	return ethTxFee.Div(decimal.NewFromFloat(exchangeRate))
-}
-
 func gweiToWei(gwei *big.Int) *big.Int {
 	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
-}
-
-func weiToEther(wei *big.Int) decimal.Decimal {
-	divisor := decimal.NewFromInt(params.Ether)
-	ether := decimal.NewFromBigInt(wei, 0)
-	ether = ether.Div(divisor)
-	return ether
-}
-
-func hbarToTinyBar(hbar decimal.Decimal) decimal.Decimal {
-	exp := math.Pow(10, 8)
-	multiplier := decimal.NewFromFloat(exp)
-	hbar = hbar.Mul(multiplier)
-	return hbar
 }
 
 func getFee(transferFee *big.Int, serviceFee *big.Int) *big.Int {
