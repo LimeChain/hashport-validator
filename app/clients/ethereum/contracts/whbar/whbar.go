@@ -27,7 +27,7 @@ var (
 )
 
 // WhbarABI is the input ABI used to generate the binding from.
-const WhbarABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const WhbarABI = "[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"tokenName\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenSymbol\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newControllerAddress\",\"type\":\"address\"}],\"name\":\"SetControllerAddress\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"controllerAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_controllerAddress\",\"type\":\"address\"}],\"name\":\"setControllerAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // Whbar is an auto generated Go binding around an Ethereum contract.
 type Whbar struct {
@@ -233,6 +233,37 @@ func (_Whbar *WhbarCallerSession) BalanceOf(account common.Address) (*big.Int, e
 	return _Whbar.Contract.BalanceOf(&_Whbar.CallOpts, account)
 }
 
+// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+//
+// Solidity: function controllerAddress() view returns(address)
+func (_Whbar *WhbarCaller) ControllerAddress(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Whbar.contract.Call(opts, &out, "controllerAddress")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+//
+// Solidity: function controllerAddress() view returns(address)
+func (_Whbar *WhbarSession) ControllerAddress() (common.Address, error) {
+	return _Whbar.Contract.ControllerAddress(&_Whbar.CallOpts)
+}
+
+// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+//
+// Solidity: function controllerAddress() view returns(address)
+func (_Whbar *WhbarCallerSession) ControllerAddress() (common.Address, error) {
+	return _Whbar.Contract.ControllerAddress(&_Whbar.CallOpts)
+}
+
 // Decimals is a free data retrieval call binding the contract method 0x313ce567.
 //
 // Solidity: function decimals() view returns(uint8)
@@ -326,6 +357,37 @@ func (_Whbar *WhbarCallerSession) Owner() (common.Address, error) {
 	return _Whbar.Contract.Owner(&_Whbar.CallOpts)
 }
 
+// Paused is a free data retrieval call binding the contract method 0x5c975abb.
+//
+// Solidity: function paused() view returns(bool)
+func (_Whbar *WhbarCaller) Paused(opts *bind.CallOpts) (bool, error) {
+	var out []interface{}
+	err := _Whbar.contract.Call(opts, &out, "paused")
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// Paused is a free data retrieval call binding the contract method 0x5c975abb.
+//
+// Solidity: function paused() view returns(bool)
+func (_Whbar *WhbarSession) Paused() (bool, error) {
+	return _Whbar.Contract.Paused(&_Whbar.CallOpts)
+}
+
+// Paused is a free data retrieval call binding the contract method 0x5c975abb.
+//
+// Solidity: function paused() view returns(bool)
+func (_Whbar *WhbarCallerSession) Paused() (bool, error) {
+	return _Whbar.Contract.Paused(&_Whbar.CallOpts)
+}
+
 // Symbol is a free data retrieval call binding the contract method 0x95d89b41.
 //
 // Solidity: function symbol() view returns(string)
@@ -409,25 +471,25 @@ func (_Whbar *WhbarTransactorSession) Approve(spender common.Address, amount *bi
 	return _Whbar.Contract.Approve(&_Whbar.TransactOpts, spender, amount)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x9dc29fac.
+// BurnFrom is a paid mutator transaction binding the contract method 0x79cc6790.
 //
-// Solidity: function burn(address account, uint256 amount) returns()
-func (_Whbar *WhbarTransactor) Burn(opts *bind.TransactOpts, account common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Whbar.contract.Transact(opts, "burn", account, amount)
+// Solidity: function burnFrom(address account, uint256 amount) returns()
+func (_Whbar *WhbarTransactor) BurnFrom(opts *bind.TransactOpts, account common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Whbar.contract.Transact(opts, "burnFrom", account, amount)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x9dc29fac.
+// BurnFrom is a paid mutator transaction binding the contract method 0x79cc6790.
 //
-// Solidity: function burn(address account, uint256 amount) returns()
-func (_Whbar *WhbarSession) Burn(account common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Whbar.Contract.Burn(&_Whbar.TransactOpts, account, amount)
+// Solidity: function burnFrom(address account, uint256 amount) returns()
+func (_Whbar *WhbarSession) BurnFrom(account common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Whbar.Contract.BurnFrom(&_Whbar.TransactOpts, account, amount)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x9dc29fac.
+// BurnFrom is a paid mutator transaction binding the contract method 0x79cc6790.
 //
-// Solidity: function burn(address account, uint256 amount) returns()
-func (_Whbar *WhbarTransactorSession) Burn(account common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Whbar.Contract.Burn(&_Whbar.TransactOpts, account, amount)
+// Solidity: function burnFrom(address account, uint256 amount) returns()
+func (_Whbar *WhbarTransactorSession) BurnFrom(account common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Whbar.Contract.BurnFrom(&_Whbar.TransactOpts, account, amount)
 }
 
 // DecreaseAllowance is a paid mutator transaction binding the contract method 0xa457c2d7.
@@ -493,6 +555,27 @@ func (_Whbar *WhbarTransactorSession) Mint(account common.Address, amount *big.I
 	return _Whbar.Contract.Mint(&_Whbar.TransactOpts, account, amount)
 }
 
+// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+//
+// Solidity: function pause() returns()
+func (_Whbar *WhbarTransactor) Pause(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Whbar.contract.Transact(opts, "pause")
+}
+
+// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+//
+// Solidity: function pause() returns()
+func (_Whbar *WhbarSession) Pause() (*types.Transaction, error) {
+	return _Whbar.Contract.Pause(&_Whbar.TransactOpts)
+}
+
+// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+//
+// Solidity: function pause() returns()
+func (_Whbar *WhbarTransactorSession) Pause() (*types.Transaction, error) {
+	return _Whbar.Contract.Pause(&_Whbar.TransactOpts)
+}
+
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
 //
 // Solidity: function renounceOwnership() returns()
@@ -512,6 +595,27 @@ func (_Whbar *WhbarSession) RenounceOwnership() (*types.Transaction, error) {
 // Solidity: function renounceOwnership() returns()
 func (_Whbar *WhbarTransactorSession) RenounceOwnership() (*types.Transaction, error) {
 	return _Whbar.Contract.RenounceOwnership(&_Whbar.TransactOpts)
+}
+
+// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+//
+// Solidity: function setControllerAddress(address _controllerAddress) returns()
+func (_Whbar *WhbarTransactor) SetControllerAddress(opts *bind.TransactOpts, _controllerAddress common.Address) (*types.Transaction, error) {
+	return _Whbar.contract.Transact(opts, "setControllerAddress", _controllerAddress)
+}
+
+// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+//
+// Solidity: function setControllerAddress(address _controllerAddress) returns()
+func (_Whbar *WhbarSession) SetControllerAddress(_controllerAddress common.Address) (*types.Transaction, error) {
+	return _Whbar.Contract.SetControllerAddress(&_Whbar.TransactOpts, _controllerAddress)
+}
+
+// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+//
+// Solidity: function setControllerAddress(address _controllerAddress) returns()
+func (_Whbar *WhbarTransactorSession) SetControllerAddress(_controllerAddress common.Address) (*types.Transaction, error) {
+	return _Whbar.Contract.SetControllerAddress(&_Whbar.TransactOpts, _controllerAddress)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
@@ -575,6 +679,27 @@ func (_Whbar *WhbarSession) TransferOwnership(newOwner common.Address) (*types.T
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_Whbar *WhbarTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _Whbar.Contract.TransferOwnership(&_Whbar.TransactOpts, newOwner)
+}
+
+// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
+//
+// Solidity: function unpause() returns()
+func (_Whbar *WhbarTransactor) Unpause(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Whbar.contract.Transact(opts, "unpause")
+}
+
+// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
+//
+// Solidity: function unpause() returns()
+func (_Whbar *WhbarSession) Unpause() (*types.Transaction, error) {
+	return _Whbar.Contract.Unpause(&_Whbar.TransactOpts)
+}
+
+// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
+//
+// Solidity: function unpause() returns()
+func (_Whbar *WhbarTransactorSession) Unpause() (*types.Transaction, error) {
+	return _Whbar.Contract.Unpause(&_Whbar.TransactOpts)
 }
 
 // WhbarApprovalIterator is returned from FilterApproval and is used to iterate over the raw logs and unpacked data for Approval events raised by the Whbar contract.
@@ -884,6 +1009,274 @@ func (_Whbar *WhbarFilterer) ParseOwnershipTransferred(log types.Log) (*WhbarOwn
 	return event, nil
 }
 
+// WhbarPausedIterator is returned from FilterPaused and is used to iterate over the raw logs and unpacked data for Paused events raised by the Whbar contract.
+type WhbarPausedIterator struct {
+	Event *WhbarPaused // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *WhbarPausedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(WhbarPaused)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(WhbarPaused)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *WhbarPausedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *WhbarPausedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// WhbarPaused represents a Paused event raised by the Whbar contract.
+type WhbarPaused struct {
+	Account common.Address
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterPaused is a free log retrieval operation binding the contract event 0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258.
+//
+// Solidity: event Paused(address account)
+func (_Whbar *WhbarFilterer) FilterPaused(opts *bind.FilterOpts) (*WhbarPausedIterator, error) {
+
+	logs, sub, err := _Whbar.contract.FilterLogs(opts, "Paused")
+	if err != nil {
+		return nil, err
+	}
+	return &WhbarPausedIterator{contract: _Whbar.contract, event: "Paused", logs: logs, sub: sub}, nil
+}
+
+// WatchPaused is a free log subscription operation binding the contract event 0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258.
+//
+// Solidity: event Paused(address account)
+func (_Whbar *WhbarFilterer) WatchPaused(opts *bind.WatchOpts, sink chan<- *WhbarPaused) (event.Subscription, error) {
+
+	logs, sub, err := _Whbar.contract.WatchLogs(opts, "Paused")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(WhbarPaused)
+				if err := _Whbar.contract.UnpackLog(event, "Paused", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParsePaused is a log parse operation binding the contract event 0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258.
+//
+// Solidity: event Paused(address account)
+func (_Whbar *WhbarFilterer) ParsePaused(log types.Log) (*WhbarPaused, error) {
+	event := new(WhbarPaused)
+	if err := _Whbar.contract.UnpackLog(event, "Paused", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// WhbarSetControllerAddressIterator is returned from FilterSetControllerAddress and is used to iterate over the raw logs and unpacked data for SetControllerAddress events raised by the Whbar contract.
+type WhbarSetControllerAddressIterator struct {
+	Event *WhbarSetControllerAddress // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *WhbarSetControllerAddressIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(WhbarSetControllerAddress)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(WhbarSetControllerAddress)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *WhbarSetControllerAddressIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *WhbarSetControllerAddressIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// WhbarSetControllerAddress represents a SetControllerAddress event raised by the Whbar contract.
+type WhbarSetControllerAddress struct {
+	NewControllerAddress common.Address
+	Raw                  types.Log // Blockchain specific contextual infos
+}
+
+// FilterSetControllerAddress is a free log retrieval operation binding the contract event 0xe0d83b4732480120032fa3f120c21e746becaa19fe924d56c59a7d85166e2aac.
+//
+// Solidity: event SetControllerAddress(address newControllerAddress)
+func (_Whbar *WhbarFilterer) FilterSetControllerAddress(opts *bind.FilterOpts) (*WhbarSetControllerAddressIterator, error) {
+
+	logs, sub, err := _Whbar.contract.FilterLogs(opts, "SetControllerAddress")
+	if err != nil {
+		return nil, err
+	}
+	return &WhbarSetControllerAddressIterator{contract: _Whbar.contract, event: "SetControllerAddress", logs: logs, sub: sub}, nil
+}
+
+// WatchSetControllerAddress is a free log subscription operation binding the contract event 0xe0d83b4732480120032fa3f120c21e746becaa19fe924d56c59a7d85166e2aac.
+//
+// Solidity: event SetControllerAddress(address newControllerAddress)
+func (_Whbar *WhbarFilterer) WatchSetControllerAddress(opts *bind.WatchOpts, sink chan<- *WhbarSetControllerAddress) (event.Subscription, error) {
+
+	logs, sub, err := _Whbar.contract.WatchLogs(opts, "SetControllerAddress")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(WhbarSetControllerAddress)
+				if err := _Whbar.contract.UnpackLog(event, "SetControllerAddress", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSetControllerAddress is a log parse operation binding the contract event 0xe0d83b4732480120032fa3f120c21e746becaa19fe924d56c59a7d85166e2aac.
+//
+// Solidity: event SetControllerAddress(address newControllerAddress)
+func (_Whbar *WhbarFilterer) ParseSetControllerAddress(log types.Log) (*WhbarSetControllerAddress, error) {
+	event := new(WhbarSetControllerAddress)
+	if err := _Whbar.contract.UnpackLog(event, "SetControllerAddress", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // WhbarTransferIterator is returned from FilterTransfer and is used to iterate over the raw logs and unpacked data for Transfer events raised by the Whbar contract.
 type WhbarTransferIterator struct {
 	Event *WhbarTransfer // Event containing the contract specifics and raw log
@@ -1032,6 +1425,140 @@ func (_Whbar *WhbarFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *Wh
 func (_Whbar *WhbarFilterer) ParseTransfer(log types.Log) (*WhbarTransfer, error) {
 	event := new(WhbarTransfer)
 	if err := _Whbar.contract.UnpackLog(event, "Transfer", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// WhbarUnpausedIterator is returned from FilterUnpaused and is used to iterate over the raw logs and unpacked data for Unpaused events raised by the Whbar contract.
+type WhbarUnpausedIterator struct {
+	Event *WhbarUnpaused // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *WhbarUnpausedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(WhbarUnpaused)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(WhbarUnpaused)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *WhbarUnpausedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *WhbarUnpausedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// WhbarUnpaused represents a Unpaused event raised by the Whbar contract.
+type WhbarUnpaused struct {
+	Account common.Address
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterUnpaused is a free log retrieval operation binding the contract event 0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa.
+//
+// Solidity: event Unpaused(address account)
+func (_Whbar *WhbarFilterer) FilterUnpaused(opts *bind.FilterOpts) (*WhbarUnpausedIterator, error) {
+
+	logs, sub, err := _Whbar.contract.FilterLogs(opts, "Unpaused")
+	if err != nil {
+		return nil, err
+	}
+	return &WhbarUnpausedIterator{contract: _Whbar.contract, event: "Unpaused", logs: logs, sub: sub}, nil
+}
+
+// WatchUnpaused is a free log subscription operation binding the contract event 0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa.
+//
+// Solidity: event Unpaused(address account)
+func (_Whbar *WhbarFilterer) WatchUnpaused(opts *bind.WatchOpts, sink chan<- *WhbarUnpaused) (event.Subscription, error) {
+
+	logs, sub, err := _Whbar.contract.WatchLogs(opts, "Unpaused")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(WhbarUnpaused)
+				if err := _Whbar.contract.UnpackLog(event, "Unpaused", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseUnpaused is a log parse operation binding the contract event 0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa.
+//
+// Solidity: event Unpaused(address account)
+func (_Whbar *WhbarFilterer) ParseUnpaused(log types.Log) (*WhbarUnpaused, error) {
+	event := new(WhbarUnpaused)
+	if err := _Whbar.contract.UnpackLog(event, "Unpaused", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
