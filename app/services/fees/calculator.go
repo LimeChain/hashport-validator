@@ -85,7 +85,11 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 }
 
 func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
-	return new(big.Float).Quo(new(big.Float).Mul(new(big.Float).SetInt(weiTxFee), big.NewFloat(1e-10)), big.NewFloat(exchangeRate))
+	bigExchangeRate := big.NewFloat(exchangeRate)
+	multiplicationRatio := big.NewFloat(1e-10)
+	bigWeiTxFee := new(big.Float).SetInt(weiTxFee)
+	ratioTxFee := new(big.Float).Mul(bigWeiTxFee, multiplicationRatio)
+	return new(big.Float).Quo(ratioTxFee, bigExchangeRate)
 }
 
 func (fc FeeCalculator) getEstimatedGas() uint64 {
