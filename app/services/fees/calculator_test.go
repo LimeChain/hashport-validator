@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	testConfigAddress = "../../../config/application.yml"
-	exchangeRate      = 0.0000764
-	validGasPrice     = "130"
+	exchangeRate  = 0.0000764
+	validGasPrice = "130"
 
 	invalidValue = "someinvalidvalue"
 
@@ -37,15 +36,11 @@ func validHederaConfig() config.Hedera {
 }
 
 func addMoreValidatorsTo(config config.Hedera, additional uint) config.Hedera {
-	for {
+	for additional != 0 {
 		config.Handler.ConsensusMessage.Addresses =
 			append(config.Handler.ConsensusMessage.Addresses,
 				fmt.Sprintf("0xsomeaddress%d", len(config.Handler.ConsensusMessage.Addresses)+1))
-
 		additional--
-		if additional == 0 {
-			break
-		}
 	}
 
 	return config
