@@ -44,22 +44,22 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 		return false, InvalidTransferAmount
 	}
 
-	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
-	bigServiceFee := new(big.Int).Mul(bigTransferAmount, serviceFeePercent)
-	bigServiceFee = new(big.Int).Div(bigServiceFee, new(big.Int).SetInt64(100))
-
 	bigTxFee, err := helper.ToBigInt(transferFee)
 	if err != nil {
 		return false, InvalidTransferFee
 	}
 
+	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
+	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), serviceFeePercent)
+	bigServiceFee = new(big.Int).Div(bigServiceFee, new(big.Int).SetInt64(100))
+
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
-	if bigTransferAmount.Cmp(estimatedFee) < 0 {
-		return false, Insane
+	if bigTransferAmount.Cmp(estimatedFee) <= 0 {
+		return false, InsufficientFee
 	}
 
-	bigGasPrice, err := helper.ToBigInt(gasPriceGwei)
+	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
 	if err != nil {
 		return false, InvalidGasPrice
 	}
@@ -71,9 +71,9 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 
 	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
 
-	bigGasPrice = gweiToWei(bigGasPrice)
+	bigGasPriceWei := gweiToWei(bigGasPriceGWei)
 
-	weiTxFee := calculateWeiTxFee(bigGasPrice, estimatedGas)
+	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
 
 	ethTxFee := weiToEther(weiTxFee)
 

@@ -56,17 +56,6 @@ func LoadTestConfig() *Config {
 	return &configuration
 }
 
-func LoadConfigTest(customConfigFile string) *Config {
-	var configuration Config
-	GetConfig(&configuration, customConfigFile)
-
-	if err := env.Parse(&configuration); err != nil {
-		panic(err)
-	}
-
-	return &configuration
-}
-
 func GetConfig(config *Config, path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return

@@ -23,7 +23,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
@@ -169,8 +168,13 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
 
 	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-	if e != nil || len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+	if e != nil {
 		ctw.logger.Errorf("Could not parse transaction memo for Transaction with ID [%s] - Error: [%s]", tx.TransactionID, e)
+		return
+	}
+
+	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+		ctw.logger.Errorf("Transaction memo for Transaction with ID [%s] provides invalid or insufficient data", tx.TransactionID)
 		return
 	}
 
@@ -178,18 +182,6 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	ethAddress := memo[0]
 	fee := memo[1]
 	gasPriceGwei := memo[2]
-
-	_, e = helper.ToBigInt(fee)
-	if e != nil {
-		ctw.logger.Errorf("Could not parse transaction fee [%s], for Transaction with ID [%s]", fee, tx.TransactionID)
-		return
-	}
-
-	_, e = helper.ToBigInt(gasPriceGwei)
-	if e != nil {
-		ctw.logger.Errorf("Could not parse gas price [%s], for Transaction with ID [%s]", gasPriceGwei, tx.TransactionID)
-		return
-	}
 
 	_, e = ctw.client.GetStateProof(tx.TransactionID)
 	if e != nil {
