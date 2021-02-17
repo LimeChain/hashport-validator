@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
-	"io/ioutil"
-	"net/http"
 )
 
 type HederaMirrorClient struct {
@@ -43,20 +44,20 @@ func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(acco
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
-	return c.getTransactionsByQuery(transactionsDownloadQuery)
+	return c.GetTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c HederaMirrorClient) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
-	return c.getTransactionsByQuery(transactionsDownloadQuery)
+	return c.GetTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions",
 		fmt.Sprintf("/%s/stateproof", transactionID))
 
-	response, e := c.get(query)
+	response, e := c.Get(query)
 	if e != nil {
 		return nil, e
 	}
@@ -68,14 +69,14 @@ func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) 
 	return readResponseBody(response)
 }
 
-func (c HederaMirrorClient) get(query string) (*http.Response, error) {
+func (c HederaMirrorClient) Get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
+func (c HederaMirrorClient) GetTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 
-	response, e := c.get(transactionsQuery)
+	response, e := c.Get(transactionsQuery)
 	if e != nil {
 		return nil, e
 	}
