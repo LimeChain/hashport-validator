@@ -39,10 +39,13 @@ func NewHederaMirrorClient(mirrorNodeAPIAddress string) *HederaMirrorClient {
 	}
 }
 
-func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error) {
+func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64, until int64) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
+	if until != 0 {
+		transactionsDownloadQuery += fmt.Sprintf("&timestamp=lte:%s", until)
+	}
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 

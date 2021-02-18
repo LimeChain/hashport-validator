@@ -126,7 +126,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 	ctw.logger.Infof("Started watcher")
 	for {
-		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
+		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp, 0)
 		if e != nil {
 			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
@@ -157,33 +157,11 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
-	var amount int64
-	for _, tr := range tx.Transfers {
-		if tr.Account == ctw.accountID.String() {
-			amount = tr.Amount
-			break
-		}
-	}
+	amount := ExtractAmount(tx, ctw.accountID)
 
-	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
-	if e != nil || len(decodedMemo) < 42 {
-		ctw.logger.Errorf("Could not verify transaction memo - Error: [%s]", e)
-		return
-	}
-
-	ethAddress := decodedMemo[:42]
-	feeString := string(decodedMemo[42:])
-
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(string(ethAddress)) {
-		ctw.logger.Errorf("Could not verify Ethereum Address - [%s]", ethAddress)
-		return
-	}
-
-	_, e = helper.ToBigInt(feeString)
+	memoInfo, e := DecodeMemo(tx.MemoBase64)
 	if e != nil {
-		ctw.logger.Errorf("Could not verify transaction fee - [%s]", feeString)
-		return
+		ctw.logger.Errorf("Could not decode memo, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
 	}
 
 	_, e = ctw.client.GetStateProof(tx.TransactionID)
@@ -206,9 +184,9 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
-		EthAddress:    string(ethAddress),
+		EthAddress:    memoInfo.EthAddress,
 		Amount:        uint64(amount),
-		Fee:           feeString,
+		Fee:           memoInfo.FeeString,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
@@ -221,4 +199,41 @@ func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
 		return
 	}
 	ctw.logger.Errorf("Watcher failed: [Too many retries]")
+}
+
+func DecodeMemo(memo string) (*MemoInfo, error) {
+	decodedMemo, e := base64.StdEncoding.DecodeString(memo)
+	if e != nil || len(decodedMemo) < 42 {
+		return nil, errors.New(fmt.Sprintf("Could not verify transaction memo - Error: [%s]", e))
+	}
+
+	ethAddress := decodedMemo[:42]
+	feeString := string(decodedMemo[42:])
+
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	if !re.MatchString(string(ethAddress)) {
+		return nil, errors.New(fmt.Sprintf("Could not verify Ethereum Address - [%s]", ethAddress))
+	}
+
+	_, e = helper.ToBigInt(feeString)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("Could not verify transaction fee - [%s]", feeString))
+	}
+	return &MemoInfo{EthAddress: string(ethAddress), FeeString: feeString}, nil
+}
+
+func ExtractAmount(tx transaction.HederaTransaction, accountID hedera.AccountID) int64 {
+	var amount int64
+	for _, tr := range tx.Transfers {
+		if tr.Account == accountID.String() {
+			amount = tr.Amount
+			break
+		}
+	}
+	return amount
+}
+
+type MemoInfo struct {
+	EthAddress string
+	FeeString  string
 }

@@ -25,6 +25,7 @@ type TransactionRepository interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
 	Create(ct *proto.CryptoTransferMessage) error
+	Skip(ct *proto.CryptoTransferMessage) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusInsufficientFee(txId string) error
 	UpdateStatusSignatureProvided(txId string) error

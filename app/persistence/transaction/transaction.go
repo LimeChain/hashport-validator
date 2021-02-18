@@ -32,6 +32,7 @@ const (
 	StatusSignatureFailed    = "SIGNATURE_FAILED"
 	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
 	StatusEthTxReverted      = "ETH_TX_REVERTED"
+	StatusSkipped            = "SKIPPED"
 )
 
 type Transaction struct {
@@ -97,6 +98,17 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 	}).Error
 }
 
+func (tr *TransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
+	return tr.dbClient.Create(&Transaction{
+		Model:         gorm.Model{},
+		TransactionId: ct.TransactionId,
+		EthAddress:    ct.EthAddress,
+		Amount:        ct.Amount,
+		Fee:           ct.Fee,
+		Status:        StatusInitial,
+	}).Error
+}
+
 func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
@@ -123,6 +135,10 @@ func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash st
 
 func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {
 	return tr.updateStatus(txId, StatusEthTxReverted)
+}
+
+func (tr *TransactionRepository) UpdateStatusSkipped(txId string) error {
+	return tr.updateStatus(txId, StatusSkipped)
 }
 
 func (tr *TransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
