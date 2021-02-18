@@ -69,6 +69,7 @@ func TestFeeCalculatorHappyPath(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.Nil(t, err)
 	assert.True(t, valid)
 }
@@ -79,6 +80,7 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooBigTransferFee, invalidTransferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
@@ -91,6 +93,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
@@ -102,6 +105,7 @@ func TestFeeCalculatorFailsWithInvalidTransferFee(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(invalidValue, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InvalidTransferFee)
 	assert.False(t, valid)
@@ -114,6 +118,7 @@ func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, invalidValue)
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InvalidGasPrice)
 	assert.False(t, valid)
@@ -126,6 +131,7 @@ func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, invalidValue, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InvalidTransferAmount)
 	assert.False(t, valid)
@@ -138,6 +144,7 @@ func TestFeeCalculatorWithInvalidRateProvider(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, RateProviderFailure)
 	assert.False(t, valid)
@@ -151,6 +158,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.Nil(t, err)
 	assert.True(t, valid)
 
@@ -158,6 +166,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 	feeCalculator = NewFeeCalculator(mocks.MExchangeRateProvider, config)
 
 	valid, err = feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 2)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
@@ -172,6 +181,7 @@ func TestFeeCalculatorWithZeroServiceFee(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config)
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooBigTransferFee, transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
@@ -184,6 +194,7 @@ func TestFeeCalculatorWithZeroTransferFee(t *testing.T) {
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
 
 	valid, err := feeCalculator.ValidateExecutionFee("0", transferAmount, validGasPrice)
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, InsufficientFee)
 	assert.False(t, valid)
