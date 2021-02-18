@@ -19,7 +19,6 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -42,10 +41,6 @@ const (
 const (
 	MintFunction                = "mint"
 	MintFunctionParametersCount = 5
-)
-
-const (
-	InvalidMintFunctionPropertyMessage = "invalid Mint function property: [%s]."
 )
 
 var (
@@ -131,30 +126,11 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 		return nil, nil, ErrorInvalidMintFunctionParameters
 	}
 
-	transactionId, ok := decodedParameters[MintFunctionParameterTransactionId].([]byte)
-	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterTransactionId))
-	}
-
-	receiver, ok := decodedParameters[MintFunctionParameterReceiver].(common.Address)
-	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterReceiver))
-	}
-
-	amount, ok := decodedParameters[MintFunctionParameterAmount].(*big.Int)
-	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterAmount))
-	}
-
-	fee, ok := decodedParameters[MintFunctionParameterFee].(*big.Int)
-	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterFee))
-	}
-
-	signatures, ok = decodedParameters[MintFunctionParameterSignatures].([][]byte)
-	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterAmount))
-	}
+	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
+	receiver := decodedParameters[MintFunctionParameterReceiver].(common.Address)
+	amount := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+	fee := decodedParameters[MintFunctionParameterFee].(*big.Int)
+	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
 	var decodedSignatures [][]byte
 	for _, sig := range signatures {
