@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package crypto_transfer
+package cryptotransfer
 
 import (
 	"encoding/hex"
@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/domain/hedera"
+	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -43,8 +43,8 @@ type CryptoTransferHandler struct {
 	pollingInterval    time.Duration
 	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
-	hederaMirrorClient hederaClient.HederaMirrorClient
-	hederaNodeClient   hederaClient.HederaNodeClient
+	hederaMirrorClient clients.HederaMirrorClient
+	hederaNodeClient   clients.HederaNodeClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
@@ -53,8 +53,8 @@ type CryptoTransferHandler struct {
 func NewCryptoTransferHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
-	hederaMirrorClient hederaClient.HederaMirrorClient,
-	hederaNodeClient hederaClient.HederaNodeClient,
+	hederaMirrorClient clients.HederaMirrorClient,
+	hederaNodeClient clients.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
 	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)

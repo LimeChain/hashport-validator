@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package hederaInterface
+package clients
 
 import (
-	"net/http"
-
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
-type HederaMirrorClient interface {
-	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
-	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
-	GetStateProof(transactionID string) ([]byte, error)
-	Get(query string) (*http.Response, error)
-	GetTransactionsByQuery(query string) (*transaction.HederaTransactions, error)
-	AccountExists(accountID hedera.AccountID) bool
+type HederaNodeClient interface {
+	GetClient() *hedera.Client
+	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
 }
