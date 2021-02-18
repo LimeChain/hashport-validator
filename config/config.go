@@ -128,8 +128,11 @@ type ID struct {
 }
 
 type Client struct {
-	NetworkType string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator    Operator `yaml:"operator"`
+	NetworkType       string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator          Operator `yaml:"operator"`
+	ServiceFeePercent uint64   `yaml:"service_fee_percent"`
+	BaseGasUsage      uint64   `yaml:"base_gas_usage"`
+	GasPerValidator   uint64   `yaml:"gas_per_validator"`
 }
 
 type Operator struct {

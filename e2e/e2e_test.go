@@ -38,10 +38,10 @@ import (
 func Test_E2E(t *testing.T) {
 	configuration := config.LoadTestConfig()
 
-	memo := "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD1126221237211"
+	memo := "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD-600000000-1"
 	whbarReceiverAddress := common.HexToAddress("0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD")
 
-	hBarAmount := 0.0001
+	hBarAmount := float64(10)
 	validatorsCount := 3
 
 	whbarContractAddress := common.HexToAddress(configuration.Hedera.Eth.WhbarContractAddress)
@@ -115,7 +115,7 @@ func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.Ac
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf(`Successfully sent HBAR to custodian adress, Status: [%s]`, transactionReceipt.Status))
+	fmt.Println(fmt.Sprintf(`Successfully sent HBAR to custodian address, Status: [%s]`, transactionReceipt.Status))
 
 	// Get custodian hbar balance after transfer
 	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
@@ -173,7 +173,7 @@ func verifyTopicMessages(topicID hedera.TopicID, client *hedera.Client, transact
 
 	// Check that all the validators have submitted a message with authorisation signature
 	if ethSignaturesCollected != validatorsCount {
-		t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v]`, validatorsCount)
+		t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, validatorsCount, ethSignaturesCollected)
 	}
 
 	// Verify the exactly on eth transaction hash has been submitted

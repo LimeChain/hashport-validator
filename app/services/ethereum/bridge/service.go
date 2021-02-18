@@ -17,7 +17,6 @@
 package bridge
 
 import (
-	"strconv"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -59,7 +58,7 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
-	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
+	amountBn, err := helper.ToBigInt(ctm.Amount)
 	if err != nil {
 		return nil, err
 	}
