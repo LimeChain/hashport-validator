@@ -17,7 +17,10 @@
 package bridge
 
 import (
+<<<<<<< HEAD
 	"strconv"
+=======
+>>>>>>> b54f2c1996e016dddf90856cc82e1a589a49d604
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
