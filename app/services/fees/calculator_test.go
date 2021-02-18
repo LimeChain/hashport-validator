@@ -34,10 +34,9 @@ const (
 	transferAmount        = "100000000000"
 	invalidTransferAmount = "100"
 
-	transferFee           = "60000000000"
-	tooSmallTransferFee   = "2"
-	tooBigTransferFee     = "100000000001"
-	justEnoughTransferFee = "50000000000"
+	transferFee         = "60000000000"
+	tooSmallTransferFee = "2"
+	tooBigTransferFee   = "100000000001"
 )
 
 func validHederaConfig() config.Hedera {
