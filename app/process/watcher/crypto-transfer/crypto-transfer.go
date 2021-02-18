@@ -174,7 +174,7 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 	}
 
 	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
-		ctw.logger.Errorf("Transaction memo for Transaction with ID [%s] provides invalid or insufficient data", tx.TransactionID)
+		ctw.logger.Errorf("Transaction memo for Transaction with ID [%s] provides invalid or insufficient data - Memo: [%s]", tx.TransactionID, string(decodedMemo))
 		return
 	}
 

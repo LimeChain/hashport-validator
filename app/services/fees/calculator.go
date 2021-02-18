@@ -53,7 +53,7 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
-	if bigTransferAmount.Cmp(estimatedFee) <= 0 {
+	if bigTransferAmount.Cmp(estimatedFee) < 0 {
 		return false, InsufficientFee
 	}
 
@@ -75,7 +75,7 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 
 	tinyBarTxFee := weiToTinyBar(weiTxFee, exchangeRate)
 
-	floatTxFee := new(big.Float).SetInt(bigTxFee)
+	floatTxFee := new(big.Float).SetInt(estimatedFee)
 
 	if tinyBarTxFee.Cmp(floatTxFee) >= 0 {
 		return false, InsufficientFee
