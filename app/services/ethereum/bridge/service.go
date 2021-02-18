@@ -17,6 +17,8 @@
 package bridge
 
 import (
+	"sync"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -27,7 +29,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 type BridgeContractService struct {
@@ -77,5 +78,6 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 }
 
 func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridge.BridgeBurn) (event.Subscription, error) {
-	return bsc.contractInstance.WatchBurn(opts, sink)
+	var addresses []common.Address
+	return bsc.contractInstance.WatchBurn(opts, sink, addresses, [][]byte{})
 }
