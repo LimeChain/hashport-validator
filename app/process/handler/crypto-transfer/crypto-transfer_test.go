@@ -112,9 +112,11 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 
 	ctHandler.Handle(cryptoTransferPayload)
+	time.Sleep(time.Second * pollingInterval)
 
 	transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
 	hederaNodeClient.AssertCalled(t, "SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes)
+	hederaMirrorClient.AssertCalled(t, "GetAccountTransaction", submissionTxID)
 }
 
 func Test_Handle_Failed(t *testing.T) {
@@ -162,4 +164,22 @@ func Test_HandleTopicSubmission(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, submissionTxn.String(), submissionTxID)
+}
+
+func Test_CheckForTransactionCompletion(t *testing.T) {
+	ctm, _, _, cryptoTransferPayload, _ := GetTestData()
+	ctHandler, _, _, hederaMirrorClient := InitializeHandler()
+
+	proto.Unmarshal(cryptoTransferPayload, &ctm)
+
+	txs := txn.HederaTransactions{
+		Transactions: []txn.HederaTransaction{},
+	}
+
+	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
+
+	go ctHandler.checkForTransactionCompletion(ctm.TransactionId, submissionTxID)
+	time.Sleep(time.Second * pollingInterval)
+
+	hederaMirrorClient.AssertCalled(t, "GetAccountTransaction", submissionTxID)
 }
