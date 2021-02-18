@@ -192,26 +192,27 @@ func TestFeeCalculatorConsidersServiceFee(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	config := validHederaConfig()
+	config.Client.BaseGasUsage = 1
+	config.Client.GasPerValidator = 1
 	config.Client.ServiceFeePercent = 0
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config)
 
+	// Based on the mocked information above + exchange rate. This is the lowest possible transaction cost provided
 	lowerEnd := "4286"
 
-	valid, err := feeCalculator.ValidateExecutionFee(lowerEnd, "350000000", smallGasPrice)
+	valid, err := feeCalculator.ValidateExecutionFee(lowerEnd, transferAmount, smallGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.Nil(t, err)
 	assert.True(t, valid)
 
-	config.Client.ServiceFeePercent = 10
+	insufficientFee := "4285"
 
-	// 340000000 + 10/100*(350000000-4286) >= 350000000
-
-	feeCalculator = NewFeeCalculator(mocks.MExchangeRateProvider, config)
-	valid, err = feeCalculator.ValidateExecutionFee(lowerEnd, "350000000", smallGasPrice)
+	valid, err = feeCalculator.ValidateExecutionFee(insufficientFee, transferAmount, smallGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 2)
-	assert.Nil(t, err)
-	assert.True(t, valid)
+	assert.NotNil(t, err)
+	assert.Equal(t, InsufficientFee, err)
+	assert.False(t, valid)
 }
 
 func TestFeeCalculatorWithZeroTransferFee(t *testing.T) {
