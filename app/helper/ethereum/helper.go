@@ -40,7 +40,16 @@ const (
 )
 
 const (
-	InvalidMintFunctionPropertyMessage = "Invalid Mint function property: [%s]."
+	MintFunction                = "mint"
+	MintFunctionParametersCount = 5
+)
+
+const (
+	InvalidMintFunctionPropertyMessage = "invalid Mint function property: [%s]."
+)
+
+var (
+	ErrorInvalidMintFunctionParameters = errors.New("invalid mint function parameters length")
 )
 
 func generateArguments() (abi.Arguments, error) {
@@ -113,9 +122,13 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
-	err = bridgeAbi.Methods["mint"].Inputs.UnpackIntoMap(decodedParameters, data[4:])
+	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:])
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if len(decodedParameters) != MintFunctionParametersCount {
+		return nil, nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId, ok := decodedParameters[MintFunctionParameterTransactionId].([]byte)
