@@ -163,9 +163,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
-	hash := crypto.Keccak256(encodedData)
-	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
-	ethHash := crypto.Keccak256(toEthSignedMsg, hash)
+	ethHash := ethhelper.SignETHTransaction(encodedData)
 
 	hexHash := hex.EncodeToString(ethHash)
 

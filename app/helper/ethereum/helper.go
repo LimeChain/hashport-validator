@@ -19,8 +19,10 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
@@ -99,4 +101,10 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	}
 
 	return decodedSig, hex.EncodeToString(ethSig), nil
+}
+
+func SignETHTransaction(encodedData []byte) []byte {
+	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
+	hash := crypto.Keccak256(encodedData)
+	return crypto.Keccak256(toEthSignedMsg, hash)
 }
