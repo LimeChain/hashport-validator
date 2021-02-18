@@ -151,7 +151,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		return
 	}
 
-	ethHash := ethhelper.SignETHTransaction(encodedData)
+	ethHash := ethhelper.KeccakData(encodedData)
 
 	signature, err := cth.ethSigner.Sign(ethHash)
 	if err != nil {

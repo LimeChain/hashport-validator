@@ -103,7 +103,7 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return decodedSig, hex.EncodeToString(ethSig), nil
 }
 
-func SignETHTransaction(encodedData []byte) []byte {
+func KeccakData(encodedData []byte) []byte {
 	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
 	hash := crypto.Keccak256(encodedData)
 	return crypto.Keccak256(toEthSignedMsg, hash)
