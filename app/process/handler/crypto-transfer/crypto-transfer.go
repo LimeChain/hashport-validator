@@ -155,7 +155,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 
 	signature, err := cth.ethSigner.Sign(ethHash)
 	if err != nil {
-		cth.logger.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, hash, err)
+		cth.logger.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, ethHash, err)
 		return
 	}
 
