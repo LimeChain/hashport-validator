@@ -19,11 +19,28 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
+	"math/big"
 	"strconv"
+	"strings"
+)
+
+const (
+	MintFunctionParameterAmount        = "amount"
+	MintFunctionParameterFee           = "fee"
+	MintFunctionParameterReceiver      = "receiver"
+	MintFunctionParameterSignatures    = "signatures"
+	MintFunctionParameterTransactionId = "transactionId"
+)
+
+const (
+	InvalidMintFunctionPropertyMessage = "Invalid Mint function property: [%s]."
 )
 
 func generateArguments() (abi.Arguments, error) {
@@ -85,6 +102,81 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 		return nil, "", err
 	}
 
+	return switchSignatureValueV(decodedSig)
+}
+
+func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransferMessage, signatures [][]byte, err error) {
+	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
+	decodedParameters := make(map[string]interface{})
+	err = bridgeAbi.Methods["mint"].Inputs.UnpackIntoMap(decodedParameters, data[4:])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	transactionId, ok := decodedParameters[MintFunctionParameterTransactionId].([]byte)
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterTransactionId))
+	}
+
+	receiver, ok := decodedParameters[MintFunctionParameterReceiver].(common.Address)
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterReceiver))
+	}
+
+	amount, ok := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterAmount))
+	}
+
+	fee, ok := decodedParameters[MintFunctionParameterFee].(*big.Int)
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterFee))
+	}
+
+	signatures, ok = decodedParameters[MintFunctionParameterSignatures].([][]byte)
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf(InvalidMintFunctionPropertyMessage, MintFunctionParameterAmount))
+	}
+
+	var decodedSignatures [][]byte
+	for _, sig := range signatures {
+		decodedSig, _, err := switchSignatureValueV(sig)
+		if err != nil {
+			return nil, nil, err
+		}
+		decodedSignatures = append(decodedSignatures, decodedSig)
+	}
+
+	transferMessage = &proto.CryptoTransferMessage{
+		TransactionId: string(transactionId),
+		EthAddress:    receiver.String(),
+		Amount:        amount.Uint64(),
+		Fee:           fee.String(),
+	}
+
+	return transferMessage, signatures, nil
+}
+
+func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
+	key, err := crypto.Ecrecover(hash, signature)
+	if err != nil {
+		return "", err
+	}
+
+	pubKey, err := crypto.UnmarshalPubkey(key)
+	if err != nil {
+		return "", err
+	}
+
+	return crypto.PubkeyToAddress(*pubKey).String(), nil
+}
+
+func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSignature string, err error) {
 	if len(decodedSig) != 65 {
 		return nil, "", errors.New("invalid signature length")
 	}
