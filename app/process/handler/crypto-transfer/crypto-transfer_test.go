@@ -86,9 +86,7 @@ func Test_Handle_Not_Initial_Transaction(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	if transactionRepo.AssertNotCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature) != true {
-		t.Fatalf("Method should not have been called when transaction status is completed")
-	}
+	transactionRepo.AssertNotCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
 }
 
 func Test_Handle_Initial_Transaction(t *testing.T) {
@@ -124,9 +122,7 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	if transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature) != true {
-		t.Fatalf("Method should have been called when transaction status is initial")
-	}
+	transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
 }
 
 func Test_HandleTopicSubmission(t *testing.T) {
