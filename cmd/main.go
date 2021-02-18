@@ -20,6 +20,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
@@ -70,7 +71,6 @@ func main() {
 	server.AddHandler(process.CryptoTransferMessageType, cth.NewCryptoTransferHandler(
 		configuration.Hedera.Handler.CryptoTransfer,
 		ethSigner,
-		ethClient,
 		hederaMirrorClient,
 		hederaNodeClient,
 		transactionRepository,

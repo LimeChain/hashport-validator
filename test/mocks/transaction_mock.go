@@ -40,6 +40,9 @@ func (m *MockTransactionRepository) UpdateStatusCompleted(txId string) error {
 
 func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) error {
 	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(error)
 
 }
