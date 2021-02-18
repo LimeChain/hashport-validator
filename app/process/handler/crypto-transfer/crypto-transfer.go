@@ -49,15 +49,17 @@ type CryptoTransferHandler struct {
 	ethereumClient     *ethereum.EthereumClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
+	feeCalculator      *fees.FeeCalculator
 }
 
 func NewCryptoTransferHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
+	ethereumClient *ethereum.EthereumClient,
 	hederaMirrorClient *hederaClient.HederaMirrorClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
-	ethereumClient *ethereum.EthereumClient) *CryptoTransferHandler {
+	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -71,6 +73,7 @@ func NewCryptoTransferHandler(
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
+		feeCalculator:      feeCalculator,
 		ethereumClient:     ethereumClient,
 	}
 }
@@ -127,10 +130,9 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	validFee, err := fees.ValidateExecutionFee(ctm.Fee)
+	validFee, err := cth.feeCalculator.ValidateExecutionFee(ctm.Fee, ctm.Amount, ctm.GasPriceGwei)
 	if err != nil {
 		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
-		return
 	}
 
 	if !validFee {
@@ -147,6 +149,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	encodedData, err := ethhelper.EncodeData(&ctm)
 	if err != nil {
 		cth.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		return
 	}
 
 	hash := crypto.Keccak256(encodedData)
