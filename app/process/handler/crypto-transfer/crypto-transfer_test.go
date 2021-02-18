@@ -55,15 +55,10 @@ func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.Accou
 }
 
 func Test_Handle_Not_Initial_Transaction(t *testing.T) {
-	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
+	ctm, topicID, _, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
 	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
-	expectedTransaction := hedera.TransactionID{
-		AccountID:  accID,
-		ValidStart: time.Time{},
-	}
 
 	tx := &transaction.Transaction{
 		Model:          gorm.Model{},
@@ -76,18 +71,13 @@ func Test_Handle_Not_Initial_Transaction(t *testing.T) {
 		Status:         txRepo.StatusCompleted,
 	}
 
-	txs := txn.HederaTransactions{
-		Transactions: []txn.HederaTransaction{},
-	}
-
 	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, nil)
-	transactionRepo.On("UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature).Return(nil)
-	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
-	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 
 	ctHandler.Handle(cryptoTransferPayload)
 
 	transactionRepo.AssertNotCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
+	hederaNodeClient.AssertNotCalled(t, "SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes)
+	hederaMirrorClient.AssertNotCalled(t, "GetAccountTransaction", submissionTxID)
 }
 
 func Test_Handle_Initial_Transaction(t *testing.T) {
@@ -124,18 +114,14 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	ctHandler.Handle(cryptoTransferPayload)
 
 	transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
+	hederaNodeClient.AssertCalled(t, "SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes)
 }
 
 func Test_Handle_Failed(t *testing.T) {
-	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
+	ctm, topicID, _, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
 	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
-	expectedTransaction := hedera.TransactionID{
-		AccountID:  accID,
-		ValidStart: time.Time{},
-	}
 
 	tx := &transaction.Transaction{
 		Model:          gorm.Model{},
@@ -148,14 +134,7 @@ func Test_Handle_Failed(t *testing.T) {
 		Status:         txRepo.StatusInitial,
 	}
 
-	txs := txn.HederaTransactions{
-		Transactions: []txn.HederaTransaction{},
-	}
-
 	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, errors.New("Failed to get record by transaction id"))
-	transactionRepo.On("UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature).Return(nil)
-	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
-	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 
 	ctHandler.Handle(cryptoTransferPayload)
 
@@ -167,7 +146,7 @@ func Test_Handle_Failed(t *testing.T) {
 
 func Test_HandleTopicSubmission(t *testing.T) {
 	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
-	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
+	ctHandler, _, hederaNodeClient, _ := InitializeHandler()
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
@@ -176,13 +155,7 @@ func Test_HandleTopicSubmission(t *testing.T) {
 		ValidStart: time.Time{},
 	}
 
-	txs := txn.HederaTransactions{
-		Transactions: []txn.HederaTransaction{},
-	}
-
-	transactionRepo.On("UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature).Return(nil)
 	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
-	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 
 	transactionID, err := ctHandler.handleTopicSubmission(&ctm, signature)
 	submissionTxn := txn.FromHederaTransactionID(transactionID)
