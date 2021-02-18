@@ -29,7 +29,7 @@ func GetLoggerFor(ctx string) *log.Entry {
 }
 
 // InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) {
+func InitLogger(debugMode *bool) *log.Level {
 	log.SetOutput(os.Stdout)
 
 	if *debugMode == true {
@@ -42,4 +42,8 @@ func InitLogger(debugMode *bool) {
 		FullTimestamp:   true,
 		TimestampFormat: time.RFC3339Nano,
 	})
+
+	debugLevel := log.GetLevel()
+
+	return &debugLevel
 }
