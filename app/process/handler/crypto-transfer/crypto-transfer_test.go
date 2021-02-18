@@ -1,6 +1,7 @@
 package crypto_transfer
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -123,6 +124,45 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	ctHandler.Handle(cryptoTransferPayload)
 
 	transactionRepo.AssertCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
+}
+
+func Test_Handle_Failed(t *testing.T) {
+	ctm, topicID, accID, cryptoTransferPayload, topicSubmissionMessageBytes := GetTestData()
+	ctHandler, transactionRepo, hederaNodeClient, hederaMirrorClient := InitializeHandler()
+
+	proto.Unmarshal(cryptoTransferPayload, &ctm)
+
+	expectedTransaction := hedera.TransactionID{
+		AccountID:  accID,
+		ValidStart: time.Time{},
+	}
+
+	tx := &transaction.Transaction{
+		Model:          gorm.Model{},
+		TransactionId:  ctm.TransactionId,
+		EthAddress:     ctm.EthAddress,
+		Amount:         ctm.Amount,
+		Fee:            ctm.Fee,
+		Signature:      signature,
+		SubmissionTxId: submissionTxID,
+		Status:         txRepo.StatusInitial,
+	}
+
+	txs := txn.HederaTransactions{
+		Transactions: []txn.HederaTransaction{},
+	}
+
+	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, errors.New("Failed to get record by transaction id"))
+	transactionRepo.On("UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature).Return(nil)
+	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
+	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
+
+	ctHandler.Handle(cryptoTransferPayload)
+
+	transactionRepo.AssertNotCalled(t, "UpdateStatusSignatureSubmitted", ctm.TransactionId, submissionTxID, signature)
+	transactionRepo.AssertNotCalled(t, "UpdateStatusInsufficientFee", ctm.TransactionId)
+	hederaNodeClient.AssertNotCalled(t, "SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes)
+	hederaMirrorClient.AssertNotCalled(t, "GetAccountTransaction", submissionTxID)
 }
 
 func Test_HandleTopicSubmission(t *testing.T) {
