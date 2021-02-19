@@ -1,11 +1,15 @@
 package recovery
 
 import (
+	"errors"
+	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
+	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"time"
 )
 
@@ -91,6 +95,19 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (interface{}, err
 			rs.nodeClient.GetClient(),
 			func(response hederasdk.TopicMessage) {
 				// TODO: Process Topic Message properly
+				m, err := consensusmessage.PrepareMessage(response.Contents, response.ConsensusTimestamp.UnixNano())
+				if err != nil {
+					//ctw.logger.Errorf("Could not prepare message - [%s]. Skipping the processing of this message - Error: [%s]", message, err)
+					return
+				}
+				switch m.Type {
+				case validatorproto.TopicSubmissionType_EthSignature:
+					//err = cmh.handleSignatureMessage(m)
+				case validatorproto.TopicSubmissionType_EthTransaction:
+					//err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
+				default:
+					err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
+				}
 				// 1. Parse Message Type
 				// 2. Query TX Status
 				// 2.1 If Pending in Mempool -> ETH_TX_SUBMITTED

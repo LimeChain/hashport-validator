@@ -102,19 +102,27 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 }
 
 func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64, q *queue.Queue) {
-	msg := &validatorproto.TopicSubmissionMessage{}
-	err := proto.Unmarshal(message, msg)
+	msg, err := PrepareMessage(message, timestamp)
 	if err != nil {
-		ctw.logger.Errorf("Could not unmarshal message - [%s]. Skipping the processing of this message -  [%s]", message, err)
+		ctw.logger.Errorf("Could not prepare message - [%s]. Skipping the processing of this message - Error: [%s]", message, err)
 		return
 	}
-	msg.TransactionTimestamp = timestamp
 
 	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
 	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
 	if err != nil {
 		ctw.logger.Errorf("Could not update last fetched timestamp - [%d]", timestamp)
 	}
+}
+
+func PrepareMessage(message []byte, timestamp int64) (*validatorproto.TopicSubmissionMessage, error) {
+	msg := &validatorproto.TopicSubmissionMessage{}
+	err := proto.Unmarshal(message, msg)
+	if err != nil {
+		return nil, err
+	}
+	msg.TransactionTimestamp = timestamp
+	return msg, nil
 }
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
