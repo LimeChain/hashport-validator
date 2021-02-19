@@ -131,13 +131,11 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 	fee := decodedParameters[MintFunctionParameterFee].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
-	var decodedSignatures [][]byte
 	for _, sig := range signatures {
-		decodedSig, _, err := switchSignatureValueV(sig)
+		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
 			return nil, nil, err
 		}
-		decodedSignatures = append(decodedSignatures, decodedSig)
 	}
 
 	transferMessage = &proto.CryptoTransferMessage{
