@@ -19,22 +19,24 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+
+	"math/big"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
-	"math/big"
-	"strings"
 )
 
 const (
 	MintFunctionParameterAmount        = "amount"
-	MintFunctionParameterFee           = "fee"
 	MintFunctionParameterReceiver      = "receiver"
 	MintFunctionParameterSignatures    = "signatures"
 	MintFunctionParameterTransactionId = "transactionId"
+	MintFunctionParameterTxCost        = "txCost"
 )
 
 const (
@@ -128,7 +130,7 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
 	receiver := decodedParameters[MintFunctionParameterReceiver].(common.Address)
 	amount := decodedParameters[MintFunctionParameterAmount].(*big.Int)
-	fee := decodedParameters[MintFunctionParameterFee].(*big.Int)
+	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
 	for _, sig := range signatures {
@@ -142,7 +144,7 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 		TransactionId: string(transactionId),
 		EthAddress:    receiver.String(),
 		Amount:        amount.String(),
-		Fee:           fee.String(),
+		Fee:           txCost.String(),
 	}
 
 	return transferMessage, signatures, nil
@@ -178,4 +180,10 @@ func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSigna
 	}
 
 	return decodedSig, hex.EncodeToString(ethSig), nil
+}
+
+func KeccakData(encodedData []byte) []byte {
+	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
+	hash := crypto.Keccak256(encodedData)
+	return crypto.Keccak256(toEthSignedMsg, hash)
 }
