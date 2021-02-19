@@ -17,6 +17,7 @@
 package consensusmessage
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -45,6 +46,7 @@ import (
 type ConsensusMessageHandler struct {
 	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
+	bridgeContractAddress string
 	operatorsEthAddresses []string
 	messageRepository     repositories.MessageRepository
 	transactionRepository repositories.TransactionRepository
@@ -56,6 +58,7 @@ type ConsensusMessageHandler struct {
 
 func NewConsensusMessageHandler(
 	configuration config.ConsensusMessageHandler,
+	bridgeContractAddress string,
 	messageRepository repositories.MessageRepository,
 	transactionRepository repositories.TransactionRepository,
 	ethereumClient *ethereum.EthereumClient,
@@ -72,6 +75,7 @@ func NewConsensusMessageHandler(
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
 		operatorsEthAddresses: configuration.Addresses,
+		bridgeContractAddress: bridgeContractAddress,
 		hederaNodeClient:      hederaNodeClient,
 		ethereumClient:        ethereumClient,
 		topicID:               topicID,
@@ -108,9 +112,18 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 }
 
 func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
-	// TODO: verify authenticity of transaction hash
+	isValid, err := cmh.verifyEthTxAuthenticity(m)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - ETH TX [%s] - Error while trying to verify TX authenticity.", m.TransactionId, m.EthTxHash)
+		return err
+	}
 
-	err := cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
+	if !isValid {
+		cmh.logger.Infof("[%s] - Eth TX [%s] - Invalid authenticity.", m.TransactionId, m.EthTxHash)
+		return nil
+	}
+
+	err = cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
 	if err != nil {
 		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
 		return err
@@ -119,6 +132,70 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 	go cmh.acknowledgeTransactionSuccess(m)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
+}
+
+func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
+	tx, _, err := cmh.ethereumClient.Client.TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
+	if err != nil {
+		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", m.TransactionId, m.EthTxHash, err)
+		return false, err
+	}
+
+	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridgeContractAddress) {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
+		return false, nil
+	}
+
+	txMessage, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	if err != nil {
+		return false, err
+	}
+
+	if txMessage.TransactionId != m.TransactionId {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", m.TransactionId, m.EthTxHash, txMessage.TransactionId)
+		return false, nil
+	}
+
+	dbTx, err := cmh.transactionRepository.GetByTransactionId(m.TransactionId)
+	if err != nil {
+		return false, err
+	}
+	if dbTx == nil {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", m.TransactionId, m.EthTxHash)
+		return false, nil
+	}
+
+	if dbTx.Amount != txMessage.Amount ||
+		dbTx.EthAddress != txMessage.EthAddress ||
+		dbTx.Fee != txMessage.Fee {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", m.TransactionId, m.EthTxHash)
+		return false, nil
+	}
+
+	encodedData, err := ethhelper.EncodeData(txMessage)
+	if err != nil {
+		return false, err
+	}
+	hash := crypto.Keccak256(encodedData)
+
+	checkedAddresses := make(map[string]bool)
+	for _, signature := range signatures {
+		address, err := ethhelper.GetAddressBySignature(hash, signature)
+		if err != nil {
+			return false, err
+		}
+		if checkedAddresses[address] {
+			return false, err
+		}
+
+		if !cmh.isValidAddress(address) {
+			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator address - [%s].", m.TransactionId, m.EthTxHash, address)
+			return false, nil
+		}
+		checkedAddresses[address] = true
+	}
+
+	return true, nil
 }
 
 func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
