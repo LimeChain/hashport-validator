@@ -14,36 +14,16 @@
  * limitations under the License.
  */
 
-package config
+package clients
 
 import (
-	"os"
-	"time"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
-// GetLoggerFor returns a logger defined with a context
-func GetLoggerFor(ctx string) *log.Entry {
-	return log.WithField("context", ctx)
-}
-
-// InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) *log.Level {
-	log.SetOutput(os.Stdout)
-
-	if *debugMode == true {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339Nano,
-	})
-
-	debugLevel := log.GetLevel()
-
-	return &debugLevel
+type HederaMirrorClient interface {
+	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
+	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
+	GetStateProof(transactionID string) ([]byte, error)
+	AccountExists(accountID hedera.AccountID) bool
 }
