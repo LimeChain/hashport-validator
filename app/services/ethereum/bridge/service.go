@@ -27,7 +27,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"sync"
 )
 
@@ -58,7 +57,7 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
-	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
+	amountBn, err := helper.ToBigInt(ctm.Amount)
 	if err != nil {
 		return nil, err
 	}

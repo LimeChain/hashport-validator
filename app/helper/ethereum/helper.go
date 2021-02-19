@@ -26,7 +26,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -84,7 +83,7 @@ func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
 		return nil, err
 	}
 
-	amountBn, err := helper.ToBigInt(strconv.Itoa(int(ctm.Amount)))
+	amountBn, err := helper.ToBigInt(ctm.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +143,7 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 	transferMessage = &proto.CryptoTransferMessage{
 		TransactionId: string(transactionId),
 		EthAddress:    receiver.String(),
-		Amount:        amount.Uint64(),
+		Amount:        amount.String(),
 		Fee:           fee.String(),
 	}
 
