@@ -160,7 +160,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 		return false, err
 	}
 	if dbTx == nil {
-		cmh.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found.", m.TransactionId, m.EthTxHash)
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", m.TransactionId, m.EthTxHash)
 		return false, nil
 	}
 
