@@ -116,7 +116,7 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
-	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:])
+	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
 		return nil, nil, err
 	}
