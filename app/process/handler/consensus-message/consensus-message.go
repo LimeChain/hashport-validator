@@ -136,11 +136,12 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
 	tx, _, err := cmh.ethereumClient.Client.TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
 	if err != nil {
-		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s]", m.TransactionId, m.EthTxHash, err)
+		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", m.TransactionId, m.EthTxHash, err)
 		return false, err
 	}
 
 	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridgeContractAddress) {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
 		return false, nil
 	}
 
@@ -150,6 +151,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 	}
 
 	if txMessage.TransactionId != m.TransactionId {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", m.TransactionId, m.EthTxHash, txMessage.TransactionId)
 		return false, nil
 	}
 
@@ -158,12 +160,14 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 		return false, err
 	}
 	if dbTx == nil {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found.", m.TransactionId, m.EthTxHash)
 		return false, nil
 	}
 
 	if dbTx.Amount != txMessage.Amount ||
 		dbTx.EthAddress != txMessage.EthAddress ||
 		dbTx.Fee != txMessage.Fee {
+		cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", m.TransactionId, m.EthTxHash)
 		return false, nil
 	}
 
@@ -184,6 +188,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 		}
 
 		if !cmh.isValidAddress(address) {
+			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator address - [%s].", m.TransactionId, m.EthTxHash, address)
 			return false, nil
 		}
 		checkedAddresses[address] = true
