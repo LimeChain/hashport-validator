@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package crypto_transfer
+package cryptotransfer
 
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -35,7 +36,6 @@ import (
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Crypto Transfer event handler
@@ -43,9 +43,8 @@ type CryptoTransferHandler struct {
 	pollingInterval    time.Duration
 	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
-	hederaMirrorClient *hederaClient.HederaMirrorClient
-	hederaNodeClient   *hederaClient.HederaNodeClient
-	ethereumClient     *ethereum.EthereumClient
+	hederaMirrorClient clients.HederaMirrorClient
+	hederaNodeClient   clients.HederaNodeClient
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
@@ -54,9 +53,8 @@ type CryptoTransferHandler struct {
 func NewCryptoTransferHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
-	ethereumClient *ethereum.EthereumClient,
-	hederaMirrorClient *hederaClient.HederaMirrorClient,
-	hederaNodeClient *hederaClient.HederaNodeClient,
+	hederaMirrorClient clients.HederaMirrorClient,
+	hederaNodeClient clients.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
 	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
@@ -73,7 +71,6 @@ func NewCryptoTransferHandler(
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
 		feeCalculator:      feeCalculator,
-		ethereumClient:     ethereumClient,
 	}
 }
 
