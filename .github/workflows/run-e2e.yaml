@@ -28,23 +28,29 @@ jobs:
       - uses: jakejarvis/wait-action@master
         name: Sleep for 45 seconds
         with:
-          time: '45s'
-      - uses: actions/setup-go@v2
-        name: Setup GO Env
-        with:
-          go-version: '1.13'
-      - name: Cache Go E2E Test modules
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-e2e-test-
-      - name: Create e2e run test config
+          time: '10s'
+#      - uses: actions/setup-go@v2
+#        name: Setup GO Env
+#        with:
+#          go-version: '1.13'
+#      - name: Cache Go E2E Test modules
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/go/pkg/mod
+#          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+#          restore-keys: |
+#            ${{ runner.os }}-go-e2e-test-
+#      - name: Create e2e run test config
+#        shell: bash
+#        run: |
+#          echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/config/application.yml
+#      - name: Run E2E Tests
+#        run: go test ./e2e/
+      - name: Prepare container logs
         shell: bash
         run: |
-          echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/config/application.yml
-      - name: Run E2E Tests
-        run: go test ./e2e/
-      - name: Prepare container logs
-        run: cd examples/three-validators/ && docker-compose logs
+          cd examples/three-validators/ &&
+          touch alice.log && docker-compose logs alice > alice.log &&
+          touch bob.log && docker-compose logs bob > bob.log &&
+          touch carol.log && docker-compose logs carol > carol.log
+
