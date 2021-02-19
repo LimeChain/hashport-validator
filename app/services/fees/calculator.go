@@ -84,6 +84,25 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 	return true, nil
 }
 
+func (fc *FeeCalculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
+	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+	if err != nil {
+		return "", InvalidGasPrice
+	}
+
+	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
+	if err != nil {
+		return "", err
+	}
+
+	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
+	bigGasPriceWei := gweiToWei(bigGasPriceGWei)
+	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
+	tinyBarTxFee := weiToTinyBar(weiTxFee, exchangeRate)
+
+	return tinyBarTxFee.String(), nil
+}
+
 func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
 	bigExchangeRate := big.NewFloat(exchangeRate)
 	multiplicationRatio := big.NewFloat(1e-10)
