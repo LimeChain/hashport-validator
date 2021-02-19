@@ -1,8 +1,6 @@
 package mocks
 
 import (
-	"net/http"
-
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/stretchr/testify/mock"
@@ -37,26 +35,6 @@ func (m *MockHederaMirrorClient) GetStateProof(transactionID string) ([]byte, er
 		return args.Get(0).([]byte), nil
 	}
 	return args.Get(0).([]byte), args.Get(1).(error)
-
-}
-
-func (m *MockHederaMirrorClient) Get(query string) (*http.Response, error) {
-	args := m.Called(query)
-
-	if args.Get(1) == nil {
-		return args.Get(0).(*http.Response), nil
-	}
-	return args.Get(0).(*http.Response), args.Get(1).(error)
-
-}
-
-func (m *MockHederaMirrorClient) GetTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
-	args := m.Called(query)
-
-	if args.Get(1) == nil {
-		return args.Get(0).(*transaction.HederaTransactions), nil
-	}
-	return args.Get(0).(*transaction.HederaTransactions), args.Get(1).(error)
 
 }
 

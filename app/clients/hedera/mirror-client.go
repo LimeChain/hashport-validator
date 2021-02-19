@@ -44,20 +44,20 @@ func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(acco
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
-	return c.GetTransactionsByQuery(transactionsDownloadQuery)
+	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c HederaMirrorClient) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
-	return c.GetTransactionsByQuery(transactionsDownloadQuery)
+	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions",
 		fmt.Sprintf("/%s/stateproof", transactionID))
 
-	response, e := c.Get(query)
+	response, e := c.get(query)
 	if e != nil {
 		return nil, e
 	}
@@ -69,14 +69,14 @@ func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) 
 	return readResponseBody(response)
 }
 
-func (c HederaMirrorClient) Get(query string) (*http.Response, error) {
+func (c HederaMirrorClient) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c HederaMirrorClient) GetTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
+func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 
-	response, e := c.Get(transactionsQuery)
+	response, e := c.get(transactionsQuery)
 	if e != nil {
 		return nil, e
 	}
