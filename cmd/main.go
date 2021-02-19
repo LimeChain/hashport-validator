@@ -83,6 +83,7 @@ func main() {
 
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		configuration.Hedera.Handler.ConsensusMessage,
+		configuration.Hedera.Eth.BridgeContractAddress,
 		*messageRepository,
 		transactionRepository,
 		ethClient,
