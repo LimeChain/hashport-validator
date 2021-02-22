@@ -56,9 +56,9 @@ func LoadTestConfig() *Config {
 	return &configuration
 }
 
-func GetConfig(config *Config, path string) {
+func GetConfig(config *Config, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return
+		return err
 	}
 
 	filename, _ := filepath.Abs(path)
@@ -71,6 +71,8 @@ func GetConfig(config *Config, path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return err
 }
 
 type Config struct {

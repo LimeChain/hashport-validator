@@ -17,33 +17,30 @@
 package config
 
 import (
-	"os"
-	"time"
+	"testing"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// GetLoggerFor returns a logger defined with a context
-func GetLoggerFor(ctx string) *log.Entry {
-	return log.WithField("context", ctx)
+func Test_GetLoggerFor(t *testing.T) {
+	ctx := "testContext"
+	logEntry := GetLoggerFor(ctx)
+
+	if logEntry.Data["context"] != ctx {
+		t.Fatalf(`Expected to return logger with context: [%s]`, ctx)
+	}
 }
 
-// InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) *log.Level {
-	log.SetOutput(os.Stdout)
-
-	if *debugMode == true {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
+func Test_InitLogger(t *testing.T) {
+	debugMode := false
+	debugLevel := InitLogger(&debugMode)
+	if *debugLevel != log.InfoLevel {
+		t.Fatalf(`Expected to return log level with context: [%s]`, log.InfoLevel)
 	}
 
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339Nano,
-	})
-
-	debugLevel := log.GetLevel()
-
-	return &debugLevel
+	debugMode = true
+	debugLevel = InitLogger(&debugMode)
+	if *debugLevel != log.DebugLevel {
+		t.Fatalf(`Expected to return log level with context: [%s]`, log.DebugLevel)
+	}
 }
