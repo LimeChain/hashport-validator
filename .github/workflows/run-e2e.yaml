@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -51,9 +51,10 @@ jobs:
           cd examples/three-validators/ && mkdir logs &&
           touch ./logs/alice.log && docker-compose logs alice > alice.log &&
           touch ./logs/bob.log && docker-compose logs bob > bob.log &&
-          touch ./logs/carol.log && docker-compose logs carol > carol.log
+          touch ./logs/carol.log && docker-compose logs carol > carol.log &&
+          ls -la
       - name: Upload Logs
         uses: actions/upload-artifact@v2
         with:
           name: validator-logs
-          path: ./logs
+          path: ./examples/three-validators/logs
