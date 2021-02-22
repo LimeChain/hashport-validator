@@ -98,12 +98,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
+	apiRouter := initializeAPIRouter(feeCalculator)
 
 	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
 
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+}
+
+func initializeAPIRouter(feeCalculator *fees.FeeCalculator) *apirouter.APIRouter {
+	apiRouter := apirouter.NewAPIRouter()
+	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
+
+	return apiRouter
 }
 
 func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {

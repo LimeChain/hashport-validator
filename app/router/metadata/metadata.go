@@ -21,13 +21,14 @@ var (
 )
 
 var (
-	metadataRoute = fmt.Sprintf("/metadata/{%s}", GasPriceGweiParam)
+	metadataRoute = "/metadata" //
 	logger        = config.GetLoggerFor(fmt.Sprintf("Router [%s]", metadataRoute))
 )
 
+// /metadata?gasPriceGwei=${gasPriceGwei}
 func getMetadata(calculator *fees.FeeCalculator) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		gasPriceGwei := chi.URLParam(r, GasPriceGweiParam)
+		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
 		txFee, err := calculator.GetEstimatedTxFee(gasPriceGwei)
 		if err != nil {
@@ -35,7 +36,7 @@ func getMetadata(calculator *fees.FeeCalculator) func(w http.ResponseWriter, r *
 				render.Status(r, http.StatusBadRequest)
 				render.JSON(w, r, response.ErrorResponse(err))
 
-				logger.Debugf("Invalid provided value: [%s]", gasPriceGwei)
+				logger.Debugf("Invalid provided value: [%s].", gasPriceGwei)
 			} else {
 				render.Status(r, http.StatusInternalServerError)
 				render.JSON(w, r, response.ErrorResponse(ErrorInternalServerError))
