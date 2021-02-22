@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	defaultConfigFile     = "config/application.yml"
-	mainConfigFile        = "application.yml"
-	defaultTestConfigFile = "config/application.yml"
+	defaultConfigFile = "config/application.yml"
+	mainConfigFile    = "application.yml"
 )
 
 func LoadConfig() *Config {
@@ -45,20 +44,9 @@ func LoadConfig() *Config {
 	return &configuration
 }
 
-func LoadTestConfig() *Config {
-	var configuration Config
-	GetConfig(&configuration, defaultTestConfigFile)
-
-	if err := env.Parse(&configuration); err != nil {
-		panic(err)
-	}
-
-	return &configuration
-}
-
-func GetConfig(config *Config, path string) error {
+func GetConfig(config interface{}, path string) (interface{}, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return err
+		return nil, err
 	}
 
 	filename, _ := filepath.Abs(path)
@@ -72,7 +60,7 @@ func GetConfig(config *Config, path string) error {
 		log.Fatal(err)
 	}
 
-	return err
+	return nil, err
 }
 
 type Config struct {
