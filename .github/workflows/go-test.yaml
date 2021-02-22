@@ -3,7 +3,7 @@ name: Go Test
 on: push
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
