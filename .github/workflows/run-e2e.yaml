@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - cicd/upload-container-logs
   pull_request:
 
 jobs:
