@@ -17,7 +17,7 @@ type APIRouter struct {
 	Router *chi.Mux
 }
 
-func NewAPIRouter() (*APIRouter, error) {
+func NewAPIRouter() *APIRouter {
 	router := chi.NewRouter()
 
 	c := cors.New(cors.Options{
@@ -35,7 +35,7 @@ func NewAPIRouter() (*APIRouter, error) {
 
 	return &APIRouter{
 		Router: router,
-	}, nil
+	}
 }
 
 func (api *APIRouter) AddV1Router(router http.Handler) {

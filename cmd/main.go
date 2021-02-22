@@ -98,11 +98,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	apiRouter, err := apirouter.NewAPIRouter()
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
 
 	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
