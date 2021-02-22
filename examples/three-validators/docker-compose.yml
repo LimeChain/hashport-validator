@@ -50,7 +50,7 @@ services:
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: alice_db
     volumes:
-      - ./alice/config/application.yml:/src/hedera-eth-bridge-validator/config/application.yml
+      - ./alice/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped
     tty: true
     ports:
@@ -62,7 +62,7 @@ services:
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: bob_db
     volumes:
-      - ./bob/config/application.yml:/src/hedera-eth-bridge-validator/config/application.yml
+      - ./bob/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped
     tty: true
     ports:
@@ -74,7 +74,7 @@ services:
     environment:
       HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: carol_db
     volumes:
-      - ./carol/config/application.yml:/src/hedera-eth-bridge-validator/config/application.yml
+      - ./carol/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped
     tty: true
     ports:

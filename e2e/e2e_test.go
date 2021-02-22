@@ -40,9 +40,10 @@ import (
 )
 
 var (
-	incrementFloat, _ = new(big.Int).SetString("1", 10)
-	hBarAmount        = hedera.HbarFrom(100, "hbar")
-	precision         = new(big.Int).SetInt64(100000)
+	incrementFloat, _    = new(big.Int).SetString("1", 10)
+	hBarAmount           = hedera.HbarFrom(100, "hbar")
+	precision            = new(big.Int).SetInt64(100000)
+	whbarReceiverAddress = common.HexToAddress(receiverAddress)
 )
 
 const (
@@ -84,11 +85,6 @@ func Test_E2E(t *testing.T) {
 	}
 
 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
-	whbarReceiverAddress := common.HexToAddress("0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD")
-	fmt.Println(memo)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	bridgeInstance, err := bridge.NewBridge(bridgeContractAddress, ethClient.Client)
 	if err != nil {
@@ -117,13 +113,10 @@ func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("could not parse txn fee [%s].", txFee))
 	}
-	fmt.Println(bnTxFee)
 
 	bnHbarAmount := new(big.Int).SetInt64(hBarAmount.AsTinybar())
 	bnAmount := new(big.Int).Sub(bnHbarAmount, bnTxFee)
-	fmt.Println(bnAmount.String())
 	serviceFee := new(big.Int).Mul(bnAmount, percentage)
-	fmt.Println(serviceFee.String())
 	precisionedServiceFee := new(big.Int).Div(serviceFee, precision)
 
 	return new(big.Int).Sub(bnAmount, precisionedServiceFee), nil
