@@ -47,12 +47,14 @@ jobs:
       - name: Run E2E Tests
         run: go test ./e2e/
       - name: Prepare container logs
+        if: ${{ always() }}
         run: |
           cd examples/three-validators/ && mkdir logs &&
           touch ./logs/alice.log && docker-compose logs alice > ./logs/alice.log &&
           touch ./logs/bob.log && docker-compose logs bob > ./logs/bob.log &&
           touch ./logs/carol.log && docker-compose logs carol > ./logs/carol.log
       - name: Upload Logs
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: validator-logs
