@@ -51,7 +51,7 @@ jobs:
           cd examples/three-validators/ && mkdir logs &&
           touch ./logs/alice.log && docker-compose logs alice > ./logs/alice.log &&
           touch ./logs/bob.log && docker-compose logs bob > ./logs/bob.log &&
-          touch ./logs/carol.log && docker-compose logs carol > ./logs/carol.log &&
+          touch ./logs/carol.log && docker-compose logs carol > ./logs/carol.log
       - name: Upload Logs
         uses: actions/upload-artifact@v2
         with:
