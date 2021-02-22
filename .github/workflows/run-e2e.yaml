@@ -47,10 +47,13 @@ jobs:
 #      - name: Run E2E Tests
 #        run: go test ./e2e/
       - name: Prepare container logs
-        shell: bash
         run: |
           cd examples/three-validators/ && mkdir logs &&
           touch ./logs/alice.log && docker-compose logs alice > alice.log &&
           touch ./logs/bob.log && docker-compose logs bob > bob.log &&
           touch ./logs/carol.log && docker-compose logs carol > carol.log
-
+      - name: Upload Logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: validator-logs
+          path: ./logs
