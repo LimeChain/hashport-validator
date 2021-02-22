@@ -21,7 +21,7 @@ var (
 )
 
 var (
-	metadataRoute = "/metadata" //
+	metadataRoute = "/metadata"
 	logger        = config.GetLoggerFor(fmt.Sprintf("Router [%s]", metadataRoute))
 )
 
