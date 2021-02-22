@@ -49,8 +49,8 @@ jobs:
       - name: Prepare container logs
         shell: bash
         run: |
-          cd examples/three-validators/ &&
-          touch alice.log && docker-compose logs alice > alice.log &&
-          touch bob.log && docker-compose logs bob > bob.log &&
-          touch carol.log && docker-compose logs carol > carol.log
+          cd examples/three-validators/ && mkdir logs &&
+          touch ./logs/alice.log && docker-compose logs alice > alice.log &&
+          touch ./logs/bob.log && docker-compose logs bob > bob.log &&
+          touch ./logs/carol.log && docker-compose logs carol > carol.log
 
