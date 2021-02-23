@@ -21,26 +21,51 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 const (
 	// The configuration file for the e2e tests. Placed at ./e2e/config/application.yml
-	defaultConfigFile = "config/application.yml"
+	e2eConfigPath = "config/application.yml"
 )
 
 // LoadE2EConfig loads the e2e application.yml from the ./e2e/config folder and parses it to suitable working struct for the e2e tests
 func LoadE2EConfig() *Setup {
-	configuration, err := config.GetConfig(testConfig{}, defaultConfigFile)
+	var configuration Config
+	err := getConfig(&configuration, e2eConfigPath)
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
 	}
-	setup, err := newSetup(configuration.(testConfig))
+	setup, err := newSetup(configuration)
 	if err != nil {
 		panic(err)
 	}
 	return setup
+}
+
+// getConfig parses the application.yml file from the provided path and unmarshalls it to the provided config struct
+func getConfig(config *Config, path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return err
+	}
+
+	filename, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(yamlFile, config)
+	return err
 }
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
@@ -52,7 +77,7 @@ type Setup struct {
 }
 
 // newSetup instantiates new Setup struct
-func newSetup(config testConfig) (*Setup, error) {
+func newSetup(config Config) (*Setup, error) {
 	bridgeAccount, err := hederaSDK.AccountIDFromString(config.Hedera.BridgeAccount)
 	if err != nil {
 		return nil, err
@@ -75,13 +100,14 @@ func newSetup(config testConfig) (*Setup, error) {
 
 // clients used by teh e2e tests
 type clients struct {
-	Hedera        *hederaSDK.Client
-	EthClient     *ethereum.EthereumClient
-	WHbarContract *whbar.Whbar
+	Hedera         *hederaSDK.Client
+	EthClient      *ethereum.EthereumClient
+	WHbarContract  *whbar.Whbar
+	BridgeContract *bridge.Bridge
 }
 
 // newClients instantiates the clients for the e2e tests
-func newClients(config testConfig) (*clients, error) {
+func newClients(config Config) (*clients, error) {
 	hederaClient, err := initHederaClient(config.Hedera.Sender)
 	if err != nil {
 		return nil, err
@@ -92,10 +118,12 @@ func newClients(config testConfig) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &clients{Hedera: hederaClient, EthClient: ethClient, WHbarContract: whbarInstance}, nil
+	bridgeContractAddress := common.HexToAddress(config.Ethereum.BridgeContractAddress)
+	bridgeInstance, err := bridge.NewBridge(bridgeContractAddress, ethClient.Client)
+	return &clients{Hedera: hederaClient, EthClient: ethClient, WHbarContract: whbarInstance, BridgeContract: bridgeInstance}, nil
 }
 
-func initHederaClient(sender sender) (*hederaSDK.Client, error) {
+func initHederaClient(sender Sender) (*hederaSDK.Client, error) {
 	client := hederaSDK.ClientForTestnet()
 	senderAccount, err := hederaSDK.AccountIDFromString(sender.Account)
 	if err != nil {
@@ -110,21 +138,21 @@ func initHederaClient(sender sender) (*hederaSDK.Client, error) {
 	return client, nil
 }
 
-// testConfig used to load and parse from application.yml
-type testConfig struct {
-	Hedera   hedera          `yaml:"hedera"`
+// e2eConfig used to load and parse from application.yml
+type Config struct {
+	Hedera   Hedera          `yaml:"hedera"`
 	Ethereum config.Ethereum `yaml:"ethereum"`
 }
 
 // hedera props from the application.yml
-type hedera struct {
+type Hedera struct {
 	BridgeAccount string `yaml:"bridge_account"`
 	TopicID       string `yaml:"topic_id"`
-	Sender        sender `yaml:"sender"`
+	Sender        Sender `yaml:"sender"`
 }
 
 // sender props from the application.yml
-type sender struct {
+type Sender struct {
 	Account    string `yaml:"account"`
 	PrivateKey string `yaml:"private_key"`
 }

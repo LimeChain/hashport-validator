@@ -44,9 +44,9 @@ func LoadConfig() *Config {
 	return &configuration
 }
 
-func GetConfig(config interface{}, path string) (interface{}, error) {
+func GetConfig(config *Config, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, err
+		return err
 	}
 
 	filename, _ := filepath.Abs(path)
@@ -60,7 +60,7 @@ func GetConfig(config interface{}, path string) (interface{}, error) {
 		log.Fatal(err)
 	}
 
-	return nil, err
+	return err
 }
 
 type Config struct {
