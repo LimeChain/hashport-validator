@@ -141,7 +141,6 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 		t.Fatal(err)
 	}
 	transactionReceipt, err := transactionResponse.GetReceipt(setup.Clients.Hedera)
-
 	if err != nil {
 		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
 		t.Fatal(err)
@@ -160,8 +159,10 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 
 	fmt.Println(fmt.Sprintf(`Bridge Account HBAR balance after transaction: [%d]`, receiverBalanceNew.Hbars.AsTinybar()))
 
+	// Verify that the custodial address has receive exactly the amount sent
+	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
 	// Verify that the bridge account has received exactly the amount sent
-	if (receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()) != hBarAmount.AsTinybar() {
+	if amount != hBarAmount.AsTinybar() {
 		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hBarAmount.AsTinybar())
 	}
 
