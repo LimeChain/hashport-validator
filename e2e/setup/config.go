@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package config
+package setup
 
 import (
 	"github.com/caarlos0/env/v6"
@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -31,12 +32,12 @@ import (
 )
 
 const (
-	// The configuration file for the e2e tests. Placed at ./e2e/config/application.yml
-	e2eConfigPath = "config/application.yml"
+	// The configuration file for the e2e tests. Placed at ./e2e/setup/application.yml
+	e2eConfigPath = "setup/application.yml"
 )
 
-// LoadE2EConfig loads the e2e application.yml from the ./e2e/config folder and parses it to suitable working struct for the e2e tests
-func LoadE2EConfig() *Setup {
+// Load loads the e2e application.yml from the ./e2e/setup folder and parses it to suitable working struct for the e2e tests
+func Load() *Setup {
 	var configuration Config
 	err := getConfig(&configuration, e2eConfigPath)
 	if err := env.Parse(&configuration); err != nil {
@@ -95,15 +96,21 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Setup{BridgeAccount: bridgeAccount, SenderAccount: senderAccount, TopicID: topicID, Clients: clients}, nil
+	return &Setup{
+		BridgeAccount: bridgeAccount,
+		SenderAccount: senderAccount,
+		TopicID:       topicID,
+		Clients:       clients,
+	}, nil
 }
 
 // clients used by teh e2e tests
 type clients struct {
-	Hedera         *hederaSDK.Client
-	EthClient      *ethereum.EthereumClient
-	WHbarContract  *whbar.Whbar
-	BridgeContract *bridge.Bridge
+	Hedera          *hederaSDK.Client
+	EthClient       *ethereum.EthereumClient
+	WHbarContract   *whbar.Whbar
+	BridgeContract  *bridge.Bridge
+	ValidatorClient *e2eClients.Validator
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -113,14 +120,25 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 	ethClient := ethereum.NewEthereumClient(config.Ethereum)
+
 	whbarContractAddress := common.HexToAddress(config.Ethereum.WhbarContractAddress)
 	whbarInstance, err := whbar.NewWhbar(whbarContractAddress, ethClient.Client)
 	if err != nil {
 		return nil, err
 	}
+
 	bridgeContractAddress := common.HexToAddress(config.Ethereum.BridgeContractAddress)
 	bridgeInstance, err := bridge.NewBridge(bridgeContractAddress, ethClient.Client)
-	return &clients{Hedera: hederaClient, EthClient: ethClient, WHbarContract: whbarInstance, BridgeContract: bridgeInstance}, nil
+
+	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
+
+	return &clients{
+		Hedera:          hederaClient,
+		EthClient:       ethClient,
+		WHbarContract:   whbarInstance,
+		BridgeContract:  bridgeInstance,
+		ValidatorClient: validatorClient,
+	}, nil
 }
 
 func initHederaClient(sender Sender) (*hederaSDK.Client, error) {
@@ -140,8 +158,9 @@ func initHederaClient(sender Sender) (*hederaSDK.Client, error) {
 
 // e2eConfig used to load and parse from application.yml
 type Config struct {
-	Hedera   Hedera          `yaml:"hedera"`
-	Ethereum config.Ethereum `yaml:"ethereum"`
+	Hedera       Hedera          `yaml:"hedera"`
+	Ethereum     config.Ethereum `yaml:"ethereum"`
+	ValidatorUrl string          `yaml:"validator_url"`
 }
 
 // hedera props from the application.yml
