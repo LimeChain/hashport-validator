@@ -103,8 +103,6 @@ func txFeeToBigInt(transactionFee string) (string, error) {
 	if !ok {
 		return "", errors.New(fmt.Sprintf("Cannot parse amount value [%s] to big.Float", transactionFee))
 	}
-	// Increase the transaction Fee with 20%. The provided TX fee is the ABSOLUTE minimum TODO discuss it and fix it in the API
-	amount.Mul(amount, big.NewFloat(1.2))
 
 	bnAmount := new(big.Int)
 	bnAmount, accuracy := amount.Int(bnAmount)
