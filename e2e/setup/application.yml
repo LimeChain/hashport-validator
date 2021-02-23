@@ -1,0 +1,12 @@
+# Template configuration for the e2e tests
+hedera:
+  bridge_account:
+  topic_id:
+  sender:
+    account:
+    private_key:
+ethereum:
+  node_url:
+  whbar_contract_address:
+  bridge_contract_address:
+validator_url:
