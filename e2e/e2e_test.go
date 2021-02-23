@@ -17,34 +17,47 @@
 package e2e
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
-	"math/big"
-	"testing"
-	"time"
-
-	whbar "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	common "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	apiresponse "github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
+	"io/ioutil"
+	"log"
+	"math/big"
+	"net/http"
+	"testing"
+	"time"
+)
+
+var (
+	incrementFloat, _    = new(big.Int).SetString("1", 10)
+	hBarAmount           = hedera.HbarFrom(100, "hbar")
+	precision            = new(big.Int).SetInt64(100000)
+	whbarReceiverAddress = common.HexToAddress(receiverAddress)
+)
+
+const (
+	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
+	gasPriceGwei            = "1"
+	apiMetadataUrl          = "http://localhost:%s/api/v1/metadata?gasPriceGwei=%s"
+	expectedValidatorsCount = 3
 )
 
 func Test_E2E(t *testing.T) {
 	configuration := config.LoadTestConfig()
 
-	memo := "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD-600000000-1"
-	whbarReceiverAddress := common.HexToAddress("0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD")
-
-	hBarAmount := float64(10)
-	validatorsCount := 3
-
 	whbarContractAddress := common.HexToAddress(configuration.Hedera.Eth.WhbarContractAddress)
+	bridgeContractAddress := common.HexToAddress(configuration.Hedera.Eth.BridgeContractAddress)
 	acc, _ := hedera.AccountIDFromString(configuration.Hedera.Client.Operator.AccountId)
 	receiving, _ := hedera.AccountIDFromString(configuration.Hedera.Watcher.CryptoTransfer.Accounts[0].Id)
 	topicID, _ := hedera.TopicIDFromString(configuration.Hedera.Watcher.ConsensusMessage.Topics[0].Id)
@@ -57,23 +70,101 @@ func Test_E2E(t *testing.T) {
 	ethClient := ethclient.NewEthereumClient(ethConfig)
 	whbarInstance, err := whbar.NewWhbar(whbarContractAddress, ethClient.Client)
 
+	metadataResponse, err := getMetadata(
+		fmt.Sprintf(
+			apiMetadataUrl,
+			configuration.Hedera.Validator.Port,
+			gasPriceGwei))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	transactionResponse, whbarBalanceBefore := verifyCryptoTransfer(memo, acc, receiving, hBarAmount, whbarInstance, whbarReceiverAddress, client, t)
+	txFee, err := txFeeToBigInt(metadataResponse.TransactionFee)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	ethTransactionHash := verifyTopicMessages(topicID, client, transactionResponse, validatorsCount, t)
+	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 
-	verifyEthereumTXExecution(ethTransactionHash, whbarInstance, whbarReceiverAddress, hBarAmount, whbarBalanceBefore, ethClient, t)
+	bridgeInstance, err := bridge.NewBridge(bridgeContractAddress, ethClient.Client)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	serviceFeePercentage, err := bridgeInstance.ServiceFee(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	whbarAmount, err := calculateWHBarAmount(txFee, serviceFeePercentage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	transactionResponse, whbarBalanceBefore := verifyCryptoTransfer(memo, acc, receiving, whbarInstance, whbarReceiverAddress, client, t)
+
+	ethTransactionHash := verifyTopicMessages(topicID, client, transactionResponse, expectedValidatorsCount, t)
+
+	verifyEthereumTXExecution(ethTransactionHash, whbarInstance, whbarReceiverAddress, whbarAmount.Int64(), whbarBalanceBefore, ethClient, t)
 }
 
-func sendTransactionToCustodialAccount(senderAccount hedera.AccountID, custodialAccount hedera.AccountID, memo string, hBarAmount float64, client *hedera.Client) (hedera.TransactionResponse, error) {
+func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
+	bnTxFee, ok := new(big.Int).SetString(txFee, 10)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("could not parse txn fee [%s].", txFee))
+	}
+
+	bnHbarAmount := new(big.Int).SetInt64(hBarAmount.AsTinybar())
+	bnAmount := new(big.Int).Sub(bnHbarAmount, bnTxFee)
+	serviceFee := new(big.Int).Mul(bnAmount, percentage)
+	precisionedServiceFee := new(big.Int).Div(serviceFee, precision)
+
+	return new(big.Int).Sub(bnAmount, precisionedServiceFee), nil
+}
+
+func txFeeToBigInt(transactionFee string) (string, error) {
+	amount := new(big.Float)
+	amount, ok := amount.SetString(transactionFee)
+	if !ok {
+		return "", errors.New(fmt.Sprintf("Cannot parse amount value [%s] to big.Float", transactionFee))
+	}
+	bnAmount := new(big.Int)
+	bnAmount, accuracy := amount.Int(bnAmount)
+	if accuracy == big.Below {
+		bnAmount = bnAmount.Add(bnAmount, incrementFloat)
+	}
+
+	return bnAmount.String(), nil
+}
+
+func getMetadata(url string) (*apiresponse.MetadataResponse, error) {
+	httpClient := http.Client{}
+
+	response, err := httpClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("Get Metadata resolved with status [%d].", response.StatusCode))
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+
+	var metadataResponse *apiresponse.MetadataResponse
+	err = json.Unmarshal(bodyBytes, &metadataResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadataResponse, nil
+}
+
+func sendTransactionToCustodialAccount(senderAccount hedera.AccountID, custodialAccount hedera.AccountID, memo string, client *hedera.Client) (hedera.TransactionResponse, error) {
 	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarAmount, memo))
 
-	res, _ := hedera.NewTransferTransaction().AddHbarSender(senderAccount, hedera.HbarFrom(hBarAmount, "hbar")).
-		AddHbarRecipient(custodialAccount, hedera.HbarFrom(hBarAmount, "hbar")).
+	res, _ := hedera.NewTransferTransaction().AddHbarSender(senderAccount, hBarAmount).
+		AddHbarRecipient(custodialAccount, hBarAmount).
 		SetTransactionMemo(memo).
 		Execute(client)
 	rec, err := res.GetReceipt(client)
@@ -91,7 +182,7 @@ func initClient(accID hedera.AccountID, pK hedera.PrivateKey) *hedera.Client {
 	return client
 }
 
-func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.AccountID, hBarAmount float64, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, client *hedera.Client, t *testing.T) (hedera.TransactionResponse, *big.Int) {
+func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.AccountID, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, client *hedera.Client, t *testing.T) (hedera.TransactionResponse, *big.Int) {
 	// Get the wrapped hbar balance of the receiver before the transfer
 	whbarBalanceBefore, err := whbarInstance.BalanceOf(&bind.CallOpts{}, whbarReceiverAddress)
 	if err != nil {
@@ -107,7 +198,7 @@ func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.Ac
 	fmt.Println(fmt.Sprintf(`HBAR custodian balance before transaction: [%d]`, receiverBalance.Hbars.AsTinybar()))
 
 	// Get the transaction receipt to verify the transaction was executed
-	transactionResponse, err := sendTransactionToCustodialAccount(acc, receiving, memo, hBarAmount, client)
+	transactionResponse, err := sendTransactionToCustodialAccount(acc, receiving, memo, client)
 	transactionReceipt, err := transactionResponse.GetReceipt(client)
 
 	if err != nil {
@@ -124,9 +215,10 @@ func verifyCryptoTransfer(memo string, acc hedera.AccountID, receiving hedera.Ac
 
 	fmt.Println(fmt.Sprintf(`HBAR custodian balance after transaction: [%d]`, receiverBalanceNew.Hbars.AsTinybar()))
 
-	// Verify that the custodial address has recieved exactly the amount sent
-	if (receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()) != hedera.HbarFrom(hBarAmount, "hbar").AsTinybar() {
-		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hedera.HbarFrom(hBarAmount, "hbar").AsTinybar())
+	// Verify that the custodial address has receive exactly the amount sent
+	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
+	if amount != hBarAmount.AsTinybar() {
+		t.Fatalf(`Expected to receive [%v] transfer amount of hbar, but got [%v].`, hBarAmount.AsTinybar(), amount)
 	}
 
 	return transactionResponse, whbarBalanceBefore
@@ -168,6 +260,7 @@ func verifyTopicMessages(topicID hedera.TopicID, client *hedera.Client, transact
 			},
 		)
 
+	fmt.Println("Sleeping 60s...")
 	// Wait for topic consensus messages to arrive
 	time.Sleep(60 * time.Second)
 
@@ -184,7 +277,7 @@ func verifyTopicMessages(topicID hedera.TopicID, client *hedera.Client, transact
 	return ethTransactionHash
 }
 
-func verifyEthereumTXExecution(ethTransactionHash string, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, hBarAmount float64, whbarBalanceBefore *big.Int, ethClient *ethclient.EthereumClient, t *testing.T) {
+func verifyEthereumTXExecution(ethTransactionHash string, whbarInstance *whbar.Whbar, whbarReceiverAddress common.Address, wHbarAmount int64, whbarBalanceBefore *big.Int, ethClient *ethclient.EthereumClient, t *testing.T) {
 	fmt.Printf("Waiting for transaction [%s] to succeed...\n", ethTransactionHash)
 
 	success, err := ethClient.WaitForTransactionSuccess(common.HexToHash(ethTransactionHash))
@@ -209,8 +302,9 @@ func verifyEthereumTXExecution(ethTransactionHash string, whbarInstance *whbar.W
 
 	fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
 
-	// Verify that the ethereum address hass recieved the exact transfer amount of WHBARs
-	if (whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()) != hedera.HbarFrom(hBarAmount, "hbar").AsTinybar() {
-		t.Fatalf(`Expected to recieve the exact transfer amount of WHBAR: [%v]`, hedera.HbarFrom(hBarAmount, "hbar").AsTinybar())
+	// Verify that the ethereum address has received the exact transfer amount of WHBARs
+	amount := whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()
+	if amount != wHbarAmount {
+		t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, wHbarAmount, amount)
 	}
 }
