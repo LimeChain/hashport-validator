@@ -20,10 +20,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/recovery"
 
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -36,6 +39,7 @@ import (
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -44,7 +48,7 @@ import (
 )
 
 func main() {
-	debugMode := flag.Bool("debug", true, "run in debug mode")
+	debugMode := flag.Bool("debug", false, "run in debug mode")
 	flag.Parse()
 	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
@@ -61,6 +65,9 @@ func main() {
 	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
+	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
+
+	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
 
 	now, err := recoverLostProgress(configuration.Hedera,
 		transactionRepository,
@@ -82,7 +89,7 @@ func main() {
 		hederaMirrorClient,
 		hederaNodeClient,
 		transactionRepository,
-		ethClient))
+		feeCalculator))
 
 	err = addCryptoTransferWatcher(configuration, hederaMirrorClient, statusCryptoTransferRepository, server, now)
 	if err != nil {
@@ -91,6 +98,7 @@ func main() {
 
 	server.AddHandler(process.HCSMessageType, cmh.NewConsensusMessageHandler(
 		configuration.Hedera.Handler.ConsensusMessage,
+		configuration.Hedera.Eth.BridgeContractAddress,
 		*messageRepository,
 		transactionRepository,
 		ethClient,
@@ -103,9 +111,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	apiRouter := initializeAPIRouter(feeCalculator)
+
 	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
 
-	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+}
+
+func initializeAPIRouter(feeCalculator *fees.FeeCalculator) *apirouter.APIRouter {
+	apiRouter := apirouter.NewAPIRouter()
+	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
+
+	return apiRouter
 }
 
 func addCryptoTransferWatcher(configuration *config.Config,

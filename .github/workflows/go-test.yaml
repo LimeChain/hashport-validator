@@ -3,7 +3,7 @@ name: Go Test
 on: push
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,10 +18,6 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-test-
-      - name: Create e2e run test config
-        shell: bash
-        run: |
-          echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/config/application.yml
       - name: Run Unit Tests
         run: go test $(go list ./... | grep -v e2e)
       # TODO: uncomment after CodeCov config is added

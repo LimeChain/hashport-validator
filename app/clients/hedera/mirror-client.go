@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
-	"io/ioutil"
-	"net/http"
 )
 
 type HederaMirrorClient struct {

@@ -14,36 +14,28 @@
  * limitations under the License.
  */
 
-package config
+package mocks
 
 import (
-	"os"
-	"time"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/stretchr/testify/mock"
 )
 
-// GetLoggerFor returns a logger defined with a context
-func GetLoggerFor(ctx string) *log.Entry {
-	return log.WithField("context", ctx)
+type MockHederaNodeClient struct {
+	mock.Mock
 }
 
-// InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) *log.Level {
-	log.SetOutput(os.Stdout)
+func (m *MockHederaNodeClient) GetClient() *hedera.Client {
+	args := m.Called()
 
-	if *debugMode == true {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
+	return args.Get(0).(*hedera.Client)
+}
+
+func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+	args := m.Called(topicId, message)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionID), nil
 	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339Nano,
-	})
-
-	debugLevel := log.GetLevel()
-
-	return &debugLevel
+	return args.Get(0).(*hedera.TransactionID), args.Get(1).(error)
 }

@@ -14,36 +14,20 @@
  * limitations under the License.
  */
 
-package config
+package mocks
 
 import (
-	"os"
-	"time"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/mock"
 )
 
-// GetLoggerFor returns a logger defined with a context
-func GetLoggerFor(ctx string) *log.Entry {
-	return log.WithField("context", ctx)
+type MockExchangeRateProvider struct {
+	mock.Mock
 }
 
-// InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) *log.Level {
-	log.SetOutput(os.Stdout)
-
-	if *debugMode == true {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
+func (m *MockExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
+	args := m.Called()
+	if args.Get(1) == nil {
+		return args.Get(0).(float64), nil
 	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339Nano,
-	})
-
-	debugLevel := log.GetLevel()
-
-	return &debugLevel
+	return args.Get(0).(float64), args.Get(1).(error)
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
@@ -34,6 +33,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -157,12 +157,31 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
-	amount := ExtractAmount(tx, ctw.accountID)
-
-	memoInfo, e := DecodeMemo(tx.MemoBase64)
-	if e != nil {
-		ctw.logger.Errorf("Could not decode memo, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
+	var amount string
+	for _, tr := range tx.Transfers {
+		if tr.Account == ctw.accountID.String() {
+			amount = fmt.Sprint(tr.Amount)
+			break
+		}
 	}
+
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
+
+	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
+	if e != nil {
+		ctw.logger.Errorf("Could not parse transaction memo for Transaction with ID [%s] - Error: [%s]", tx.TransactionID, e)
+		return
+	}
+
+	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+		ctw.logger.Errorf("Transaction memo for Transaction with ID [%s] provides invalid or insufficient data - Memo: [%s]", tx.TransactionID, string(decodedMemo))
+		return
+	}
+
+	memo := strings.Split(string(decodedMemo), "-")
+	ethAddress := memo[0]
+	fee := memo[1]
+	gasPriceGwei := memo[2]
 
 	_, e = ctw.client.GetStateProof(tx.TransactionID)
 	if e != nil {
@@ -184,9 +203,10 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
-		EthAddress:    memoInfo.EthAddress,
-		Amount:        uint64(amount),
-		Fee:           memoInfo.FeeString,
+		EthAddress:    ethAddress,
+		Amount:        amount,
+		Fee:           fee,
+		GasPriceGwei:  gasPriceGwei,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }

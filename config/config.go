@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	defaultConfigFile     = "config/application.yml"
-	mainConfigFile        = "application.yml"
-	defaultTestConfigFile = "config/application.yml"
+	defaultConfigFile = "config/application.yml"
+	mainConfigFile    = "application.yml"
 )
 
 func LoadConfig() *Config {
@@ -45,20 +44,9 @@ func LoadConfig() *Config {
 	return &configuration
 }
 
-func LoadTestConfig() *Config {
-	var configuration Config
-	GetConfig(&configuration, defaultTestConfigFile)
-
-	if err := env.Parse(&configuration); err != nil {
-		panic(err)
-	}
-
-	return &configuration
-}
-
-func GetConfig(config *Config, path string) {
+func GetConfig(config *Config, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return
+		return err
 	}
 
 	filename, _ := filepath.Abs(path)
@@ -71,6 +59,8 @@ func GetConfig(config *Config, path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return err
 }
 
 type Config struct {
@@ -128,8 +118,11 @@ type ID struct {
 }
 
 type Client struct {
-	NetworkType string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator    Operator `yaml:"operator"`
+	NetworkType       string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator          Operator `yaml:"operator"`
+	ServiceFeePercent uint64   `yaml:"service_fee_percent"`
+	BaseGasUsage      uint64   `yaml:"base_gas_usage"`
+	GasPerValidator   uint64   `yaml:"gas_per_validator"`
 }
 
 type Operator struct {
