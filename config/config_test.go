@@ -28,12 +28,6 @@ func Test_LoadConfig(t *testing.T) {
 	}
 }
 
-func Test_LoadTestConfig(t *testing.T) {
-	configuration := LoadTestConfig()
-	if reflect.TypeOf(configuration).String() != "*config.Config" {
-		t.Fatalf(`Expected to return configuration type *config.Config, but returned: [%s]`, reflect.TypeOf(configuration).String())
-	}
-}
 func Test_GetConfig(t *testing.T) {
 	var configuration Config
 
