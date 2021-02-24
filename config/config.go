@@ -28,26 +28,14 @@ import (
 )
 
 const (
-	defaultConfigFile     = "config/application.yml"
-	mainConfigFile        = "application.yml"
-	defaultTestConfigFile = "config/application.yml"
+	defaultConfigFile = "config/application.yml"
+	mainConfigFile    = "application.yml"
 )
 
 func LoadConfig() *Config {
 	var configuration Config
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
-
-	if err := env.Parse(&configuration); err != nil {
-		panic(err)
-	}
-
-	return &configuration
-}
-
-func LoadTestConfig() *Config {
-	var configuration Config
-	GetConfig(&configuration, defaultTestConfigFile)
 
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)

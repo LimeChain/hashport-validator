@@ -68,18 +68,10 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 		return false, InvalidGasPrice
 	}
 
-	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
+	tinyBarTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
 	if err != nil {
 		return false, err
 	}
-
-	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
-
-	bigGasPriceWei := gweiToWei(bigGasPriceGWei)
-
-	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
-
-	tinyBarTxFee := weiToTinyBar(weiTxFee, exchangeRate)
 
 	floatTxFee := new(big.Float).SetInt(estimatedFee)
 
@@ -88,6 +80,33 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 	}
 
 	return true, nil
+}
+
+func (fc *FeeCalculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
+	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+	if err != nil {
+		return "", InvalidGasPrice
+	}
+
+	bigEstimatedTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
+	if err != nil {
+		return "", err
+	}
+
+	return bigEstimatedTxFee.String(), nil
+}
+
+func (fc *FeeCalculator) getEstimatedTxFee(gasPriceGwei *big.Int) (*big.Float, error) {
+	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
+	if err != nil {
+		return nil, err
+	}
+
+	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
+	bigGasPriceWei := gweiToWei(gasPriceGwei)
+	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
+
+	return weiToTinyBar(weiTxFee, exchangeRate), nil
 }
 
 func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {

@@ -178,7 +178,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 	if err != nil {
 		return false, err
 	}
-	hash := crypto.Keccak256(encodedData)
+	hash := ethhelper.KeccakData(encodedData)
 
 	checkedAddresses := make(map[string]bool)
 	for _, signature := range signatures {

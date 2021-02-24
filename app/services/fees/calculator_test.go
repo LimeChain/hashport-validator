@@ -38,6 +38,8 @@ const (
 	transferFee         = "60000000000"
 	tooSmallTransferFee = "2"
 	tooBigTransferFee   = "100000000001"
+
+	expectedTxFee = "4.42e+10"
 )
 
 var (
@@ -68,6 +70,41 @@ func addMoreValidatorsTo(additional uint) []string {
 	}
 
 	return newAddresses
+}
+
+func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
+	mocks.Setup()
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config.Hedera{})
+
+	invalid, err := feeCalculator.GetEstimatedTxFee(invalidValue)
+
+	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
+	assert.Equal(t, "", invalid)
+	assert.Equal(t, InvalidGasPrice, err)
+}
+
+func TestGetEstimatedTxFeeFailedToRetrieveRate(t *testing.T) {
+	mocks.Setup()
+	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config.Hedera{})
+
+	invalid, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
+
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
+	assert.Equal(t, "", invalid)
+	assert.Equal(t, RateProviderFailure, err)
+}
+
+func TestGetEstimatedTxFeeHappyPath(t *testing.T) {
+	mocks.Setup()
+	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig())
+
+	txFee, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
+
+	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
+	assert.Equal(t, expectedTxFee, txFee)
+	assert.Nil(t, err)
 }
 
 func TestFeeCalculatorHappyPath(t *testing.T) {

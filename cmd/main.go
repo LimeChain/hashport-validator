@@ -20,6 +20,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
@@ -97,9 +99,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	apiRouter := initializeAPIRouter(feeCalculator)
+
 	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
 
-	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+}
+
+func initializeAPIRouter(feeCalculator *fees.FeeCalculator) *apirouter.APIRouter {
+	apiRouter := apirouter.NewAPIRouter()
+	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
+
+	return apiRouter
 }
 
 func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
