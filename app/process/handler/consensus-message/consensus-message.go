@@ -29,7 +29,7 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/handler"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -128,7 +128,7 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		return err
 	}
 
-	go handler.AcknowledgeTransactionSuccess(m, cmh.logger, cmh.ethereumClient, cmh.transactionRepository)
+	go process.AcknowledgeTransactionSuccess(m, cmh.logger, cmh.ethereumClient, cmh.transactionRepository)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
@@ -187,7 +187,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 			return false, err
 		}
 
-		if !cmh.isValidAddress(address) {
+		if !process.IsValidAddress(address, cmh.operatorsEthAddresses) {
 			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator address - [%s].", m.TransactionId, m.EthTxHash, address)
 			return false, nil
 		}
@@ -249,7 +249,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
 
-	exists, err := handler.AlreadyExists(cmh.messageRepository, m, ethSig, hexHash)
+	exists, err := process.AlreadyExists(cmh.messageRepository, m, ethSig, hexHash)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 
 	address := crypto.PubkeyToAddress(*pubKey)
 
-	if !handler.IsValidAddress(address.String(), cmh.operatorsEthAddresses) {
+	if !process.IsValidAddress(address.String(), cmh.operatorsEthAddresses) {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 

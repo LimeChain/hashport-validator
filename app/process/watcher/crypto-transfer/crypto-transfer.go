@@ -33,6 +33,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -157,31 +158,13 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
-	var amount string
-	for _, tr := range tx.Transfers {
-		if tr.Account == ctw.accountID.String() {
-			amount = fmt.Sprint(tr.Amount)
-			break
-		}
-	}
+	amount := ExtractAmount(tx, ctw.accountID)
 
-	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
-
-	decodedMemo, e := base64.StdEncoding.DecodeString(tx.MemoBase64)
+	decodedMemo, e := DecodeMemo(tx.MemoBase64)
 	if e != nil {
 		ctw.logger.Errorf("Could not parse transaction memo for Transaction with ID [%s] - Error: [%s]", tx.TransactionID, e)
 		return
 	}
-
-	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
-		ctw.logger.Errorf("Transaction memo for Transaction with ID [%s] provides invalid or insufficient data - Memo: [%s]", tx.TransactionID, string(decodedMemo))
-		return
-	}
-
-	memo := strings.Split(string(decodedMemo), "-")
-	ethAddress := memo[0]
-	fee := memo[1]
-	gasPriceGwei := memo[2]
 
 	_, e = ctw.client.GetStateProof(tx.TransactionID)
 	if e != nil {
@@ -203,10 +186,10 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
-		EthAddress:    ethAddress,
-		Amount:        amount,
-		Fee:           fee,
-		GasPriceGwei:  gasPriceGwei,
+		EthAddress:    decodedMemo.EthAddress,
+		Amount:        strconv.Itoa(int(amount)),
+		Fee:           decodedMemo.Fee,
+		GasPriceGwei:  decodedMemo.GasPriceGwei,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
@@ -222,24 +205,23 @@ func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
 }
 
 func DecodeMemo(memo string) (*MemoInfo, error) {
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
+
 	decodedMemo, e := base64.StdEncoding.DecodeString(memo)
-	if e != nil || len(decodedMemo) < 42 {
-		return nil, errors.New(fmt.Sprintf("Could not verify transaction memo - Error: [%s]", e))
-	}
-
-	ethAddress := decodedMemo[:42]
-	feeString := string(decodedMemo[42:])
-
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(string(ethAddress)) {
-		return nil, errors.New(fmt.Sprintf("Could not verify Ethereum Address - [%s]", ethAddress))
-	}
-
-	_, e = helper.ToBigInt(feeString)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("Could not verify transaction fee - [%s]", feeString))
+		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo: [%s]", e))
 	}
-	return &MemoInfo{EthAddress: string(ethAddress), FeeString: feeString}, nil
+
+	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+		return nil, errors.New(fmt.Sprintf("Transaction memo provides invalid or insufficient data - Memo: [%s]", string(decodedMemo)))
+	}
+
+	memoSplit := strings.Split(string(decodedMemo), "-")
+	ethAddress := memoSplit[0]
+	fee := memoSplit[1]
+	gasPriceGwei := memoSplit[2]
+
+	return &MemoInfo{EthAddress: ethAddress, Fee: fee, GasPriceGwei: gasPriceGwei}, nil
 }
 
 func ExtractAmount(tx transaction.HederaTransaction, accountID hedera.AccountID) int64 {
@@ -254,6 +236,7 @@ func ExtractAmount(tx transaction.HederaTransaction, accountID hedera.AccountID)
 }
 
 type MemoInfo struct {
-	EthAddress string
-	FeeString  string
+	EthAddress   string
+	Fee          string
+	GasPriceGwei string
 }

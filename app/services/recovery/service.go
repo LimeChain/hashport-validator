@@ -10,7 +10,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/handler"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
@@ -61,7 +61,7 @@ func NewRecoveryService(
 		nodeClient:              nodeClient,
 		accountID:               accountID,
 		topicID:                 topicID,
-		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery Service", topicID.String())),
+		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery Service")),
 	}
 }
 
@@ -112,8 +112,8 @@ func (rs *RecoveryService) cryptoTransferRecovery() (int64, error) {
 
 		memoInfo, err := cryptotransfer.DecodeMemo(tr.MemoBase64)
 		if err != nil {
-			// TODO: Log error properly
-			return 0, err
+			rs.logger.Errorf("Could not decode memo for Transaction with ID [%s] - Error: [%s]", tr.TransactionID, err)
+			continue
 		}
 
 		rs.logger.Debugf("Adding a transaction with ID [%s] unprocessed transactions with status [%s]", tr.TransactionID, transaction.StatusSkipped)
@@ -121,8 +121,8 @@ func (rs *RecoveryService) cryptoTransferRecovery() (int64, error) {
 		err = rs.transactionRepository.Skip(&proto.CryptoTransferMessage{
 			TransactionId: tr.TransactionID,
 			EthAddress:    memoInfo.EthAddress,
-			Amount:        uint64(cryptotransfer.ExtractAmount(tr, rs.accountID)),
-			Fee:           memoInfo.FeeString,
+			Amount:        strconv.Itoa(int(cryptotransfer.ExtractAmount(tr, rs.accountID))),
+			Fee:           memoInfo.Fee,
 		})
 
 		if err != nil {
@@ -194,7 +194,7 @@ func (rs *RecoveryService) validateAndSaveSignature(msg *validatorproto.TopicSub
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
 
-	exists, err := handler.AlreadyExists(rs.messageRepository, m, ethSig, hexHash)
+	exists, err := process.AlreadyExists(rs.messageRepository, m, ethSig, hexHash)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (rs *RecoveryService) validateAndSaveSignature(msg *validatorproto.TopicSub
 
 	address := crypto.PubkeyToAddress(*pubKey)
 
-	if handler.IsValidAddress(address.String(), rs.operatorsEthAddresses) {
+	if process.IsValidAddress(address.String(), rs.operatorsEthAddresses) {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
@@ -256,6 +256,6 @@ func (rs *RecoveryService) checkStatusAndUpdate(m *validatorproto.TopicEthTransa
 		return err
 	}
 
-	go handler.AcknowledgeTransactionSuccess(m, rs.logger, rs.ethereumClient, rs.transactionRepository)
+	go process.AcknowledgeTransactionSuccess(m, rs.logger, rs.ethereumClient, rs.transactionRepository)
 	return nil
 }
