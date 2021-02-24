@@ -20,6 +20,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/recovery"
 
 	"github.com/hashgraph/hedera-sdk-go"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
@@ -43,7 +44,7 @@ import (
 )
 
 func main() {
-	debugMode := flag.Bool("debug", false, "run in debug mode")
+	debugMode := flag.Bool("debug", true, "run in debug mode")
 	flag.Parse()
 	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
@@ -61,6 +62,18 @@ func main() {
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 
+	now, err := recoverLostProgress(configuration.Hedera,
+		transactionRepository,
+		statusCryptoTransferRepository,
+		statusConsensusMessageRepository,
+		messageRepository,
+		hederaMirrorClient,
+		ethClient,
+		hederaNodeClient)
+	if err != nil {
+		log.Fatalf("Could not recover last records of topics or accounts: Error - [%s]", err)
+	}
+
 	server := server.NewServer()
 
 	server.AddHandler(process.CryptoTransferMessageType, cth.NewCryptoTransferHandler(
@@ -71,7 +84,7 @@ func main() {
 		transactionRepository,
 		ethClient))
 
-	err := addCryptoTransferWatchers(configuration, hederaMirrorClient, statusCryptoTransferRepository, server)
+	err = addCryptoTransferWatcher(configuration, hederaMirrorClient, statusCryptoTransferRepository, server, now)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +98,7 @@ func main() {
 		schedulerService,
 		ethSigner))
 
-	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
+	err = addConsensusTopicWatcher(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server, now)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,34 +108,77 @@ func main() {
 	server.Run(fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func addCryptoTransferWatchers(configuration *config.Config, hederaClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
-	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
-		log.Warnln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
+func addCryptoTransferWatcher(configuration *config.Config,
+	hederaClient *hederaClients.HederaMirrorClient,
+	repository *status.StatusRepository,
+	server *server.HederaWatcherServer,
+	startTimestamp int64,
+) error {
+	account := configuration.Hedera.Watcher.CryptoTransfer.Account
+	id, e := hedera.AccountIDFromString(account.Id)
+	if e != nil {
+		return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 	}
-	for _, account := range configuration.Hedera.Watcher.CryptoTransfer.Accounts {
-		id, e := hedera.AccountIDFromString(account.Id)
-		if e != nil {
-			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
-		}
 
-		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
-		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
-	}
+	server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, startTimestamp))
+	log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	return nil
 }
 
-func addConsensusTopicWatchers(configuration *config.Config, hederaNodeClient *hederaClients.HederaNodeClient, hederaMirrorClient *hederaClients.HederaMirrorClient, repository *status.StatusRepository, server *server.HederaWatcherServer) error {
-	if len(configuration.Hedera.Watcher.ConsensusMessage.Topics) == 0 {
-		log.Warnln("Consensus Message Topics list is empty. No Consensus Topic Watchers will be started")
+func addConsensusTopicWatcher(configuration *config.Config,
+	hederaNodeClient *hederaClients.HederaNodeClient,
+	hederaMirrorClient *hederaClients.HederaMirrorClient,
+	repository *status.StatusRepository,
+	server *server.HederaWatcherServer,
+	startTimestamp int64,
+) error {
+	topic := configuration.Hedera.Watcher.ConsensusMessage.Topic
+	id, e := hedera.TopicIDFromString(topic.Id)
+	if e != nil {
+		return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 	}
-	for _, topic := range configuration.Hedera.Watcher.ConsensusMessage.Topics {
-		id, e := hedera.TopicIDFromString(topic.Id)
-		if e != nil {
-			return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
-		}
 
-		server.AddWatcher(cmw.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, topic.StartTimestamp))
-		log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
-	}
+	server.AddWatcher(cmw.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, startTimestamp))
+	log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 	return nil
+}
+
+func recoverLostProgress(configuration config.Hedera,
+	transactionRepository *transaction.TransactionRepository,
+	statusCryptoTransferRepository *status.StatusRepository,
+	statusConsensusMessageRepository *status.StatusRepository,
+	messageRepository *message.MessageRepository,
+	hederaMirrorClient *hederaClients.HederaMirrorClient,
+	ethClient *ethclient.EthereumClient,
+	hederaNodeClient *hederaClients.HederaNodeClient,
+) (int64, error) {
+	log.Infof("Initializing Recovery Service for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
+	account, err := hedera.AccountIDFromString(configuration.Watcher.CryptoTransfer.Account.Id)
+	if err != nil {
+		return 0, err
+	}
+
+	topic, err := hedera.TopicIDFromString(configuration.Watcher.ConsensusMessage.Topic.Id)
+	if err != nil {
+		return 0, err
+	}
+
+	recoveryService := recovery.NewRecoveryService(
+		transactionRepository,
+		statusConsensusMessageRepository,
+		statusCryptoTransferRepository,
+		messageRepository,
+		hederaMirrorClient,
+		ethClient,
+		hederaNodeClient,
+		account,
+		topic)
+
+	log.Infof("Starting Recovery Process for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
+	now, err := recoveryService.Recover()
+	if err != nil {
+		return 0, err
+	}
+
+	return now, nil
 }

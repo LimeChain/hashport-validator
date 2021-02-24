@@ -76,23 +76,6 @@ func NewCryptoTransferHandler(
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
-	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
-	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
-
-	transactions, err := cth.transactionRepo.GetInitialAndSignatureSubmittedTx()
-	if err != nil {
-		cth.logger.Errorf("[Recovery] Failed to Database GET transactions. Error [%s]", err)
-		return
-	}
-
-	for _, transaction := range transactions {
-		if transaction.Status == txRepo.StatusInitial {
-			cth.logger.Infof("[Recovery] Submit TransactionID [%s] to Handler.", transaction.TransactionId)
-			go cth.submitTx(transaction, q)
-		} else {
-			go cth.checkForTransactionCompletion(transaction.TransactionId, transaction.SubmissionTxId)
-		}
-	}
 }
 
 func (cth *CryptoTransferHandler) Handle(payload []byte) {

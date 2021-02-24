@@ -46,8 +46,8 @@ func Test_E2E(t *testing.T) {
 
 	whbarContractAddress := common.HexToAddress(configuration.Hedera.Eth.WhbarContractAddress)
 	acc, _ := hedera.AccountIDFromString(configuration.Hedera.Client.Operator.AccountId)
-	receiving, _ := hedera.AccountIDFromString(configuration.Hedera.Watcher.CryptoTransfer.Accounts[0].Id)
-	topicID, _ := hedera.TopicIDFromString(configuration.Hedera.Watcher.ConsensusMessage.Topics[0].Id)
+	receiving, _ := hedera.AccountIDFromString(configuration.Hedera.Watcher.CryptoTransfer.Account.Id)
+	topicID, _ := hedera.TopicIDFromString(configuration.Hedera.Watcher.ConsensusMessage.Topic.Id)
 	ethConfig := configuration.Hedera.Eth
 
 	accID, _ := hedera.AccountIDFromString(configuration.Hedera.Client.Operator.AccountId)

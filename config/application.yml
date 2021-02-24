@@ -21,17 +21,20 @@ hedera:
       account_id:
       private_key:
       eth_private_key:
+    service_fee_percent:
+    base_gas_usage:
+    gas_per_validator:
   watcher:
     crypto-transfer:
-      accounts:
-        - id:
-          max_retries: 10
-          start_timestamp:
+      account:
+        id:
+        max_retries: 10
+        start_timestamp:
     consensus-message:
-      topics:
-        - id:
-          max_retries: 10
-          start_timestamp:
+      topic:
+        id:
+        max_retries: 10
+        start_timestamp:
   handler:
     crypto-transfer:
       topic_id:
@@ -40,4 +43,4 @@ hedera:
       topic_id:
       addresses:
         -
-      send_deadline: 300
+      send_deadline: 5

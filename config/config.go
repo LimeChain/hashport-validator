@@ -114,11 +114,11 @@ type Ethereum struct {
 }
 
 type CryptoTransfer struct {
-	Accounts []ID `yaml:"accounts" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
+	Account ID `yaml:"account" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
 }
 
 type ConsensusMessage struct {
-	Topics []ID `yaml:"topics" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
+	Topic ID `yaml:"topic" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
 }
 
 type ID struct {

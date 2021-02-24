@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
@@ -28,6 +27,7 @@ import (
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/handler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -37,7 +37,6 @@ import (
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"strings"
 )
 
@@ -115,35 +114,9 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		return err
 	}
 
-	go cmh.acknowledgeTransactionSuccess(m)
+	go handler.AcknowledgeTransactionSuccess(m, cmh.logger, cmh.ethereumClient, cmh.transactionRepository)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
-}
-
-func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
-	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
-
-	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
-	if err != nil {
-		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
-		return
-	}
-
-	if !isSuccessful {
-		cmh.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
-		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
-		if err != nil {
-			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
-			return
-		}
-	} else {
-		cmh.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
-		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
-		if err != nil {
-			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-			return
-		}
-	}
 }
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
@@ -171,7 +144,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
 
-	exists, err := cmh.alreadyExists(m, ethSig, hexHash)
+	exists, err := handler.AlreadyExists(cmh.messageRepository, m, ethSig, hexHash)
 	if err != nil {
 		return err
 	}
@@ -191,7 +164,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 
 	address := crypto.PubkeyToAddress(*pubKey)
 
-	if !cmh.isValidAddress(address.String()) {
+	if !handler.IsValidAddress(address.String(), cmh.operatorsEthAddresses) {
 		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
@@ -241,16 +214,6 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
-	_, err := cmh.messageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
-	notFound := errors.Is(err, gorm.ErrRecordNotFound)
-
-	if err != nil && !notFound {
-		return false, errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
-	}
-	return !notFound, nil
-}
-
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
 	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
 	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.operatorsEthAddresses), transactionId)
@@ -267,13 +230,4 @@ func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.Trans
 	}
 
 	return -1, false
-}
-
-func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
-	for _, k := range cmh.operatorsEthAddresses {
-		if strings.ToLower(k) == strings.ToLower(key) {
-			return true
-		}
-	}
-	return false
 }

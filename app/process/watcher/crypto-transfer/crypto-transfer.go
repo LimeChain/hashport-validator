@@ -126,7 +126,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 
 	ctw.logger.Infof("Started watcher")
 	for {
-		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp, 0)
+		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
 		if e != nil {
 			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
