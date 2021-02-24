@@ -102,7 +102,7 @@ func (bsc *BridgeContractService) GetServiceFee() *big.Int {
 func (bsc *BridgeContractService) UpdateServiceFee(opts *bind.CallOpts) {
 	newFee, err := bsc.contractInstance.ServiceFee(opts)
 	if err != nil {
-		log.Errorf("Failed to get service fee.", err)
+		log.Error("Failed to get service fee.", err)
 	}
 	bsc.servicefee.Set(*newFee)
 }
@@ -110,14 +110,14 @@ func (bsc *BridgeContractService) UpdateServiceFee(opts *bind.CallOpts) {
 func (bsc *BridgeContractService) UpdateMembers(opts *bind.CallOpts) {
 	membersCount, err := bsc.contractInstance.MembersCount(opts)
 	if err != nil {
-		log.Errorf("Failed to get members count.", err)
+		log.Error("Failed to get members count.", err)
 	}
 
 	var newCustodiansArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
 		addr, err := bsc.contractInstance.MemberAt(opts, big.NewInt(int64(i)))
 		if err != nil {
-			log.Errorf("Failed to get member address.", err)
+			log.Error("Failed to get member address.", err)
 		}
 		newCustodiansArray = append(newCustodiansArray, addr.String())
 	}
