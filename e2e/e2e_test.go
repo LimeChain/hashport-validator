@@ -35,7 +35,7 @@ import (
 
 var (
 	incrementFloat, _    = new(big.Int).SetString("1", 10)
-	hBarAmount           = hedera.HbarFrom(10, "hbar")
+	hBarAmount           = hedera.HbarFrom(100, "hbar")
 	precision            = new(big.Int).SetInt64(100000)
 	whbarReceiverAddress = common.HexToAddress(receiverAddress)
 )
