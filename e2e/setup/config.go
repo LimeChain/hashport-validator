@@ -104,7 +104,7 @@ func newSetup(config Config) (*Setup, error) {
 	}, nil
 }
 
-// clients used by teh e2e tests
+// clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
 	EthClient       *ethereum.EthereumClient

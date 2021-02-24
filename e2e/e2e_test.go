@@ -42,7 +42,7 @@ var (
 
 const (
 	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
-	gasPriceGwei            = "1"
+	gasPriceGwei            = "100"
 	expectedValidatorsCount = 3
 )
 
