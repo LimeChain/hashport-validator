@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package mocks
+package bridge
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import "math/big"
 
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+type BridgeContractService interface {
+	GetServiceFee() *big.Int
+	GetCustodians() []string
 }

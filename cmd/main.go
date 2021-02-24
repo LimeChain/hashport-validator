@@ -64,7 +64,7 @@ func main() {
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
 
-	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
+	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera, contractService)
 
 	server := server.NewServer()
 
@@ -89,6 +89,7 @@ func main() {
 		ethClient,
 		hederaNodeClient,
 		schedulerService,
+		contractService,
 		ethSigner))
 
 	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)

@@ -17,22 +17,28 @@
 package fees
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"math/big"
 )
+
+var precision = new(big.Int).SetInt64(100000)
 
 type FeeCalculator struct {
 	rateProvider  provider.ExchangeRateProvider
 	configuration config.Hedera
+	bridge        bridge.BridgeContractService
 }
 
-func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration config.Hedera) *FeeCalculator {
+func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration config.Hedera, bridge bridge.BridgeContractService) *FeeCalculator {
 	return &FeeCalculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,
+		bridge:        bridge,
 	}
 }
 
@@ -47,10 +53,10 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 		return false, InvalidTransferFee
 	}
 
-	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
+	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
+	serviceFeePercent := new(big.Int).SetUint64(fc.bridge.GetServiceFee().Uint64())
 	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), serviceFeePercent)
-	bigServiceFee = new(big.Int).Div(bigServiceFee, new(big.Int).SetInt64(100))
-
+	bigServiceFee = new(big.Int).Div(bigServiceFee, precision)
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
 	if bigTransferAmount.Cmp(estimatedFee) < 0 {
@@ -93,7 +99,7 @@ func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
 }
 
 func (fc FeeCalculator) getEstimatedGas() uint64 {
-	majorityValidatorsCount := len(fc.configuration.Handler.ConsensusMessage.Addresses)/2 + 1
+	majorityValidatorsCount := len(fc.bridge.GetCustodians())/2 + 1
 	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
 	return estimatedGas
 }

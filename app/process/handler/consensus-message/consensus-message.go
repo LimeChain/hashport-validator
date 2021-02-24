@@ -34,6 +34,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -47,13 +48,13 @@ type ConsensusMessageHandler struct {
 	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	bridgeContractAddress string
-	operatorsEthAddresses []string
 	messageRepository     repositories.MessageRepository
 	transactionRepository repositories.TransactionRepository
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
+	bridge                *bridge.BridgeContractService
 }
 
 func NewConsensusMessageHandler(
@@ -64,6 +65,7 @@ func NewConsensusMessageHandler(
 	ethereumClient *ethereum.EthereumClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,
+	bridge *bridge.BridgeContractService,
 	signer *eth.Signer,
 ) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
@@ -74,7 +76,6 @@ func NewConsensusMessageHandler(
 	return &ConsensusMessageHandler{
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		operatorsEthAddresses: configuration.Addresses,
 		bridgeContractAddress: bridgeContractAddress,
 		hederaNodeClient:      hederaNodeClient,
 		ethereumClient:        ethereumClient,
@@ -82,6 +83,7 @@ func NewConsensusMessageHandler(
 		scheduler:             scheduler,
 		signer:                signer,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		bridge:                bridge,
 	}
 }
 
@@ -331,8 +333,8 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.operatorsEthAddresses), transactionId)
+	requiredSigCount := len(cmh.bridge.GetCustodians())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetCustodians()), transactionId)
 	return len(txSignatures) >= requiredSigCount
 }
 
@@ -349,7 +351,7 @@ func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.Trans
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
-	for _, k := range cmh.operatorsEthAddresses {
+	for _, k := range cmh.bridge.GetCustodians() {
 		if strings.ToLower(k) == strings.ToLower(key) {
 			return true
 		}
