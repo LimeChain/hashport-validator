@@ -19,7 +19,7 @@ package hedera
 import (
 	"errors"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,6 +27,12 @@ import (
 type HederaNodeClient struct {
 	client *hedera.Client
 }
+
+var (
+	// TODO: remove
+	hederaNodeID, _ = hedera.AccountIDFromString("0.0.4")
+	hederaNodeIDs   = []hedera.AccountID{hederaNodeID}
+)
 
 func NewNodeClient(config config.Client) *HederaNodeClient {
 	var client *hedera.Client
@@ -61,7 +67,7 @@ func (hc *HederaNodeClient) GetClient() *hedera.Client {
 }
 
 func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	id, err := hedera.NewTopicMessageSubmitTransaction().
+	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
@@ -70,14 +76,60 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, 
 		return nil, err
 	}
 
-	receipt, err := id.GetReceipt(hc.client)
+	return hc.checkTransactionReceipt(txResponse)
+}
+
+func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, recipient, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, error) {
+	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
+	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
+
+	// todo: create TransactionID with nonce and set it in TransferTransaction
+	txnId := hedera.TransactionID{
+		AccountID: payerAccountID,
+	}
+
+	transferTransaction, err := hedera.NewTransferTransaction().
+		SetTransactionID(txnId).
+		AddHbarTransfer(recipient, receiveAmount).
+		AddHbarTransfer(payerAccountID, subtractedAmount).
+		SetNodeAccountIDs(hederaNodeIDs).
+		FreezeWith(hc.GetClient())
+
+	if err != nil {
+		return nil, err
+	}
+
+	signedTransaction, err := transferTransaction.
+		SignWithOperator(hc.GetClient())
+
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledTx := hedera.NewScheduleCreateTransaction().
+		SetTransaction(&signedTransaction.Transaction).
+		// todo: we can set some kind of memo to showcase bridge transfers (e.g. "Bridge ETH -> Hedera Transfer")
+		SetMemo(nonce). // todo: replace when TransactionID nonce is introduced
+		SetPayerAccountID(payerAccountID)
+
+	scheduledTx = scheduledTx.SetTransactionID(hedera.TransactionIDGenerate(hc.client.GetOperatorAccountID()))
+	txResponse, err := scheduledTx.Execute(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.checkTransactionReceipt(txResponse)
+}
+
+func (hc *HederaNodeClient) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionID, error) {
+	receipt, err := txResponse.GetReceipt(hc.client)
 	if err != nil {
 		return nil, err
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status))
 	}
 
-	return &id.TransactionID, err
+	return &txResponse.TransactionID, err
 }

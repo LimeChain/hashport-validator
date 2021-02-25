@@ -19,7 +19,7 @@ package setup
 import (
 	"github.com/caarlos0/env/v6"
 	"github.com/ethereum/go-ethereum/common"
-	hederaSDK "github.com/hashgraph/hedera-sdk-go"
+	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"

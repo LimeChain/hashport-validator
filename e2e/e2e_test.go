@@ -27,7 +27,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
@@ -170,8 +170,8 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
 	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarAmount, memo))
 
-	res, err := hedera.NewTransferTransaction().AddHbarSender(setup.SenderAccount, hBarAmount).
-		AddHbarRecipient(setup.BridgeAccount, hBarAmount).
+	res, err := hedera.NewTransferTransaction().AddHbarTransfer(setup.SenderAccount, hBarAmount).
+		AddHbarTransfer(setup.BridgeAccount, hBarAmount).
 		SetTransactionMemo(memo).
 		Execute(setup.Clients.Hedera)
 	if err != nil {

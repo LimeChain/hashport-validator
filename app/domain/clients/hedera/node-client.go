@@ -17,7 +17,7 @@
 package clients
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 type HederaNodeClient interface {

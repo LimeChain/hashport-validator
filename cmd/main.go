@@ -23,7 +23,7 @@ import (
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	exchangerate "github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	hederaClients "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
@@ -100,7 +100,7 @@ func main() {
 
 	apiRouter := initializeAPIRouter(feeCalculator)
 
-	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
+	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth, hederaNodeClient))
 
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
