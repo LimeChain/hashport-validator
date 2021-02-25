@@ -193,7 +193,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
 
-	fmt.Println(fmt.Printf(`Waiting for Signatures & TX Hash to be published to Topic [%s]`, setup.TopicID.String()))
+	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
 	c1 := make(chan bool, 1)
 	// Subscribe to Topic
@@ -216,7 +216,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
 					}
 					ethSignaturesCollected++
-					fmt.Println("Received Auth Signature")
+					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 				}
 
 				if msg.GetType() == validatorproto.TopicSubmissionType_EthTransaction {
@@ -227,7 +227,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()
 					ethTransMsgCollected++
-					fmt.Println("Received Ethereum Transaction Hash")
+					fmt.Println(fmt.Sprintf("Received Ethereum Transaction Hash [%s]", msg.GetTopicEthTransactionMessage().EthTxHash))
 				}
 
 				// Check whether we collected everything
