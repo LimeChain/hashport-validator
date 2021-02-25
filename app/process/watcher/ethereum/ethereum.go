@@ -79,7 +79,7 @@ func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Qu
 		eventLog.ServiceFee.String(),
 		eventLog.Receiver.String())
 
-	recipientAccountID, err := hedera.AccountIDFromString("0.0.2678")
+	recipientAccountID, err := hedera.AccountIDFromString("0.0.1018")
 	if err != nil {
 		ew.logger.Warnf("[%s] - Failed to parse receiver account [%s]. Error [%s].", eventLog.Account.String(), eventLog.Receiver.String(), err)
 		return
