@@ -59,7 +59,6 @@ var (
 
 func getHederaConfig() config.Hedera {
 	hederaConfig := config.Hedera{}
-	// hederaConfig.Client.ServiceFeePercent = 10
 	hederaConfig.Client.BaseGasUsage = 130000
 	hederaConfig.Client.GasPerValidator = 54000
 	return hederaConfig
