@@ -75,6 +75,7 @@ func NewCryptoTransferHandler(
 
 // Recover mechanism
 func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
+
 }
 
 func (cth *CryptoTransferHandler) Handle(payload []byte) {

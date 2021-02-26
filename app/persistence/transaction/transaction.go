@@ -87,6 +87,20 @@ func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transac
 	return transactions, nil
 }
 
+func (tr *TransactionRepository) GetSkipped() ([]*Transaction, error) {
+	var transactions []*Transaction
+
+	err := tr.dbClient.
+		Model(Transaction{}).
+		Where("status = ?", StatusSkipped).
+		Find(&transactions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
 func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
 		Model:         gorm.Model{},

@@ -18,9 +18,11 @@ package consensusmessage
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
@@ -87,7 +89,34 @@ func NewConsensusMessageHandler(
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	cmh.logger.Println("Recovery method not implemented yet.")
+	// TODO: Move this whole function before start of any watchers / handlers
+
+	skippedTransactions, err := cmh.transactionRepository.GetSkipped()
+	if err != nil {
+		// TODO: Log error properly
+	}
+
+	for _, tx := range skippedTransactions {
+		ctm := &validatorproto.CryptoTransferMessage{
+			TransactionId: tx.TransactionId,
+			EthAddress:    tx.EthAddress,
+			Amount:        tx.Amount,
+			Fee:           tx.Fee,
+		}
+
+		encodedData, err := ethhelper.EncodeData(ctm)
+		if err != nil {
+			cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		}
+
+		hash := crypto.Keccak256(encodedData)
+		hexHash := hex.EncodeToString(hash)
+
+		err = cmh.scheduleIfReady(tx.TransactionId, hexHash, ctm)
+		if err != nil {
+			// TODO: Log error properly
+		}
+	}
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {
@@ -227,18 +256,26 @@ func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorpro
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
 	hash, message, err := cmh.processingService.ValidateAndSaveSignature(msg)
-
-	txMessages, err := cmh.messageRepository.GetTransactions(message.TransactionId, hash)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", message.TransactionId, err))
+		// TODO: Log error properly
+		return err
 	}
 
-	if cmh.enoughSignaturesCollected(txMessages, message.TransactionId) {
-		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", message.TransactionId)
+	return cmh.scheduleIfReady(message.TransactionId, hash, message)
+}
+
+func (cmh ConsensusMessageHandler) scheduleIfReady(txId string, hash string, message *validatorproto.CryptoTransferMessage) error {
+	txMessages, err := cmh.messageRepository.GetTransactions(txId, hash)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", txId, err))
+	}
+
+	if cmh.enoughSignaturesCollected(txMessages, txId) {
+		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", txId)
 
 		slot, isFound := cmh.computeExecutionSlot(txMessages)
 		if !isFound {
-			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", message.TransactionId, cmh.signer.Address())
+			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", txId, cmh.signer.Address())
 			return nil
 		}
 
@@ -249,12 +286,11 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 			TransactOps:           cmh.signer.NewKeyTransactor(),
 		}
 
-		err := cmh.scheduler.Schedule(message.TransactionId, *submission)
+		err := cmh.scheduler.Schedule(txId, *submission)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
