@@ -18,21 +18,20 @@ package consensusmessage
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
+	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -43,6 +42,7 @@ import (
 )
 
 type ConsensusMessageHandler struct {
+	processingService     *process.ProcessingService
 	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	bridgeContractAddress string
@@ -64,6 +64,7 @@ func NewConsensusMessageHandler(
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,
 	signer *eth.Signer,
+	processingService *process.ProcessingService,
 ) *ConsensusMessageHandler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
@@ -71,6 +72,7 @@ func NewConsensusMessageHandler(
 	}
 
 	return &ConsensusMessageHandler{
+		processingService:     processingService,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
 		operatorsEthAddresses: configuration.Addresses,
@@ -128,7 +130,7 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 		return err
 	}
 
-	go process.AcknowledgeTransactionSuccess(m, cmh.logger, cmh.ethereumClient, cmh.transactionRepository)
+	go cmh.processingService.AcknowledgeTransactionSuccess(m)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
@@ -187,8 +189,8 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 			return false, err
 		}
 
-		if !process.IsValidAddress(address, cmh.operatorsEthAddresses) {
-			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator address - [%s].", m.TransactionId, m.EthTxHash, address)
+		if !processutils.IsValidAddress(address, cmh.operatorsEthAddresses) {
+			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator process - [%s].", m.TransactionId, m.EthTxHash, address)
 			return false, nil
 		}
 		checkedAddresses[address] = true
@@ -224,93 +226,30 @@ func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorpro
 }
 
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
-	m := msg.GetTopicSignatureMessage()
-	ctm := &validatorproto.CryptoTransferMessage{
-		TransactionId: m.TransactionId,
-		EthAddress:    m.EthAddress,
-		Amount:        m.Amount,
-		Fee:           m.Fee,
-	}
+	hash, message, err := cmh.processingService.ValidateAndSaveSignature(msg)
 
-	cmh.logger.Debugf("Signature for TX ID [%s] was received", m.TransactionId)
-
-	encodedData, err := ethhelper.EncodeData(ctm)
+	txMessages, err := cmh.messageRepository.GetTransactions(message.TransactionId, hash)
 	if err != nil {
-		cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", message.TransactionId, err))
 	}
 
-	ethHash := ethhelper.KeccakData(encodedData)
-
-	hexHash := hex.EncodeToString(ethHash)
-
-	decodedSig, ethSig, err := ethhelper.DecodeSignature(m.GetSignature())
-	m.Signature = ethSig
-	if err != nil {
-		return errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
-	}
-
-	exists, err := process.AlreadyExists(cmh.messageRepository, m, ethSig, hexHash)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return errors.New(fmt.Sprintf("Duplicated Transaction Id and Signature - [%s]-[%s]", m.TransactionId, m.Signature))
-	}
-
-	key, err := crypto.Ecrecover(ethHash, decodedSig)
-	if err != nil {
-		return errors.New(fmt.Sprintf("[%s] - Failed to recover public key. Hash - [%s] - [%s]", m.TransactionId, hexHash, err))
-	}
-
-	pubKey, err := crypto.UnmarshalPubkey(key)
-	if err != nil {
-		return errors.New(fmt.Sprintf("[%s] - Failed to unmarshal public key. - [%s]", m.TransactionId, err))
-	}
-
-	address := crypto.PubkeyToAddress(*pubKey)
-
-	if !process.IsValidAddress(address.String(), cmh.operatorsEthAddresses) {
-		return errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
-	}
-
-	err = cmh.messageRepository.Create(&message.TransactionMessage{
-		TransactionId:        m.TransactionId,
-		EthAddress:           m.EthAddress,
-		Amount:               m.Amount,
-		Fee:                  m.Fee,
-		Signature:            ethSig,
-		Hash:                 hexHash,
-		SignerAddress:        address.String(),
-		TransactionTimestamp: msg.TransactionTimestamp,
-	})
-	if err != nil {
-		return errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
-	}
-
-	cmh.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
-
-	txMessages, err := cmh.messageRepository.GetTransactions(m.TransactionId, hexHash)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", m.TransactionId, err))
-	}
-
-	if cmh.enoughSignaturesCollected(txMessages, m.TransactionId) {
-		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", m.TransactionId)
+	if cmh.enoughSignaturesCollected(txMessages, message.TransactionId) {
+		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", message.TransactionId)
 
 		slot, isFound := cmh.computeExecutionSlot(txMessages)
 		if !isFound {
-			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", m.TransactionId, cmh.signer.Address())
+			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", message.TransactionId, cmh.signer.Address())
 			return nil
 		}
 
 		submission := &ethsubmission.Submission{
-			CryptoTransferMessage: ctm,
+			CryptoTransferMessage: message,
 			Messages:              txMessages,
 			Slot:                  slot,
 			TransactOps:           cmh.signer.NewKeyTransactor(),
 		}
 
-		err := cmh.scheduler.Schedule(m.TransactionId, *submission)
+		err := cmh.scheduler.Schedule(message.TransactionId, *submission)
 		if err != nil {
 			return err
 		}

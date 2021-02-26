@@ -1,43 +1,14 @@
 package process
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
-	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"regexp"
 	"strings"
 )
-
-func AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage, logger *log.Entry, ethereumClient *ethereum.EthereumClient, transactionRepository repositories.TransactionRepository) {
-	logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
-
-	isSuccessful, err := ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
-	if err != nil {
-		logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
-		return
-	}
-
-	if !isSuccessful {
-		logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
-		err = transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
-		if err != nil {
-			logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
-			return
-		}
-	} else {
-		logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
-		err = transactionRepository.UpdateStatusCompleted(m.TransactionId)
-		if err != nil {
-			logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-			return
-		}
-	}
-}
 
 func IsValidAddress(key string, operatorsEthAddresses []string) bool {
 	for _, k := range operatorsEthAddresses {
@@ -48,12 +19,39 @@ func IsValidAddress(key string, operatorsEthAddresses []string) bool {
 	return false
 }
 
-func AlreadyExists(messageRepository repositories.MessageRepository, m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
-	_, err := messageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
-	notFound := errors.Is(err, gorm.ErrRecordNotFound)
+func DecodeMemo(memo string) (*MemoInfo, error) {
+	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
 
-	if err != nil && !notFound {
-		return false, errors.New(fmt.Sprintf("Failed to retrieve messages for TxId [%s], with signature [%s]. - [%s]", m.TransactionId, m.Signature, err))
+	decodedMemo, e := base64.StdEncoding.DecodeString(memo)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo: [%s]", e))
 	}
-	return !notFound, nil
+
+	if len(decodedMemo) < 46 || !wholeMemoCheck.MatchString(string(decodedMemo)) {
+		return nil, errors.New(fmt.Sprintf("Transaction memo provides invalid or insufficient data - Memo: [%s]", string(decodedMemo)))
+	}
+
+	memoSplit := strings.Split(string(decodedMemo), "-")
+	ethAddress := memoSplit[0]
+	fee := memoSplit[1]
+	gasPriceGwei := memoSplit[2]
+
+	return &MemoInfo{EthAddress: ethAddress, Fee: fee, GasPriceGwei: gasPriceGwei}, nil
+}
+
+func ExtractAmount(tx transaction.HederaTransaction, accountID hedera.AccountID) int64 {
+	var amount int64
+	for _, tr := range tx.Transfers {
+		if tr.Account == accountID.String() {
+			amount = tr.Amount
+			break
+		}
+	}
+	return amount
+}
+
+type MemoInfo struct {
+	EthAddress   string
+	Fee          string
+	GasPriceGwei string
 }

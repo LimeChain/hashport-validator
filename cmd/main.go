@@ -22,6 +22,7 @@ import (
 	"fmt"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
+	processutils "github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/recovery"
 
 	"github.com/hashgraph/hedera-sdk-go"
@@ -67,16 +68,17 @@ func main() {
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
 
+	processingService := processutils.NewProcessingService(ethClient, transactionRepository, messageRepository, configuration.Hedera.Handler.ConsensusMessage.Addresses)
+
 	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
 
 	now, err := recoverLostProgress(configuration.Hedera,
 		transactionRepository,
 		statusCryptoTransferRepository,
 		statusConsensusMessageRepository,
-		messageRepository,
 		hederaMirrorClient,
-		ethClient,
-		hederaNodeClient)
+		hederaNodeClient,
+		processingService)
 	if err != nil {
 		log.Fatalf("Could not recover last records of topics or accounts: Error - [%s]", err)
 	}
@@ -104,7 +106,8 @@ func main() {
 		ethClient,
 		hederaNodeClient,
 		schedulerService,
-		ethSigner))
+		ethSigner,
+		processingService))
 
 	err = addConsensusTopicWatcher(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server, now)
 	if err != nil {
@@ -164,10 +167,9 @@ func recoverLostProgress(configuration config.Hedera,
 	transactionRepository *transaction.TransactionRepository,
 	statusCryptoTransferRepository *status.StatusRepository,
 	statusConsensusMessageRepository *status.StatusRepository,
-	messageRepository *message.MessageRepository,
 	hederaMirrorClient *hederaClients.HederaMirrorClient,
-	ethClient *ethclient.EthereumClient,
 	hederaNodeClient *hederaClients.HederaNodeClient,
+	processingService *processutils.ProcessingService,
 ) (int64, error) {
 	log.Infof("Initializing Recovery Service for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
 	account, err := hedera.AccountIDFromString(configuration.Watcher.CryptoTransfer.Account.Id)
@@ -181,12 +183,11 @@ func recoverLostProgress(configuration config.Hedera,
 	}
 
 	recoveryService := recovery.NewRecoveryService(
+		processingService,
 		transactionRepository,
 		statusConsensusMessageRepository,
 		statusCryptoTransferRepository,
-		messageRepository,
 		hederaMirrorClient,
-		ethClient,
 		hederaNodeClient,
 		account,
 		topic)

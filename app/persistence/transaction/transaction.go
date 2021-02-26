@@ -105,7 +105,7 @@ func (tr *TransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
 		EthAddress:    ct.EthAddress,
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
-		Status:        StatusInitial,
+		Status:        StatusSkipped,
 	}).Error
 }
 
