@@ -80,7 +80,6 @@ func (rs *RecoveryService) cryptoTransferRecovery() (int64, error) {
 	now := time.Now().UnixNano()
 	result, err := rs.mirrorClient.GetSuccessfulAccountCreditTransactionsAfterDate(rs.accountID, rs.getStartTimestampFor(rs.accountStatusRepository, rs.accountID.String()))
 	if err != nil {
-		// TODO: Log error properly
 		return 0, err
 	}
 

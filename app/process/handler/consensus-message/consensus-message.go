@@ -257,7 +257,7 @@ func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorpro
 func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
 	hash, message, err := cmh.processingService.ValidateAndSaveSignature(msg)
 	if err != nil {
-		// TODO: Log error properly
+		cmh.logger.Errorf("Could not Validate and Save Signature for Transaction with ID [%s] and hash [%s] - Error: [%s]", message.TransactionId, hash, err)
 		return err
 	}
 
