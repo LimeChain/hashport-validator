@@ -89,11 +89,11 @@ func NewConsensusMessageHandler(
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	// TODO: Move this whole function before start of any watchers / handlers
+	// TODO: (Suggestion) Move this whole function before start of any watchers / handlers
 
 	skippedTransactions, err := cmh.transactionRepository.GetSkipped()
 	if err != nil {
-		// TODO: Log error properly
+		cmh.logger.Fatalf("Failed to retrieve transactions with status [%s] - Error: [%s]", transaction.StatusSkipped, err)
 	}
 
 	for _, tx := range skippedTransactions {
@@ -114,7 +114,7 @@ func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
 
 		err = cmh.scheduleIfReady(tx.TransactionId, hexHash, ctm)
 		if err != nil {
-			// TODO: Log error properly
+			cmh.logger.Fatalf("Failed to schedule execution of Transaction with ID [%s] and hash [%s] - Error: [%s]", tx.TransactionId, hexHash, err)
 		}
 	}
 }
