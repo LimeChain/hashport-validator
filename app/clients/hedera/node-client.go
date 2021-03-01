@@ -29,7 +29,7 @@ type HederaNodeClient struct {
 }
 
 var (
-	// TODO: remove
+	// TODO: clarify node ids
 	hederaNodeID, _ = hedera.AccountIDFromString("0.0.4")
 	hederaNodeIDs   = []hedera.AccountID{hederaNodeID}
 )
@@ -57,7 +57,7 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey)
 	}
 
-	client.SetOperator(accID, privateKey)
+	client = client.SetOperator(accID, privateKey)
 
 	return &HederaNodeClient{client}
 }
@@ -76,10 +76,12 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, 
 		return nil, err
 	}
 
-	return hc.checkTransactionReceipt(txResponse)
+	_, err = hc.checkTransactionReceipt(txResponse)
+
+	return &txResponse.TransactionID, err
 }
 
-func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, recipient, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, error) {
+func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
 	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
 	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
 
@@ -91,19 +93,17 @@ func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, reci
 	transferTransaction, err := hedera.NewTransferTransaction().
 		SetTransactionID(txnId).
 		AddHbarTransfer(recipient, receiveAmount).
-		AddHbarTransfer(payerAccountID, subtractedAmount).
+		AddHbarTransfer(bridgeThresholdAccountID, subtractedAmount).
 		SetNodeAccountIDs(hederaNodeIDs).
 		FreezeWith(hc.GetClient())
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	signedTransaction, err := transferTransaction.
 		SignWithOperator(hc.GetClient())
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	scheduledTx := hedera.NewScheduleCreateTransaction().
@@ -115,13 +115,18 @@ func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, reci
 	scheduledTx = scheduledTx.SetTransactionID(hedera.TransactionIDGenerate(hc.client.GetOperatorAccountID()))
 	txResponse, err := scheduledTx.Execute(hc.GetClient())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return hc.checkTransactionReceipt(txResponse)
+	receipt, err := hc.checkTransactionReceipt(txResponse)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &txResponse.TransactionID, receipt.ScheduleID, nil
 }
 
-func (hc *HederaNodeClient) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionID, error) {
+func (hc *HederaNodeClient) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
 	receipt, err := txResponse.GetReceipt(hc.client)
 	if err != nil {
 		return nil, err
@@ -131,5 +136,5 @@ func (hc *HederaNodeClient) checkTransactionReceipt(txResponse hedera.Transactio
 		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status))
 	}
 
-	return &txResponse.TransactionID, err
+	return &receipt, err
 }

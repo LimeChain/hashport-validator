@@ -77,8 +77,9 @@ type Hedera struct {
 }
 
 type Handler struct {
-	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
-	ConsensusMessage ConsensusMessageHandler `yaml:"consensus-message"`
+	CryptoTransfer              CryptoTransferHandler       `yaml:"crypto-transfer"`
+	ConsensusMessage            ConsensusMessageHandler     `yaml:"consensus-message"`
+	ScheduledTransactionHandler ScheduledTransactionHandler `yaml:"scheduled-transaction"`
 }
 
 type ConsensusMessageHandler struct {
@@ -92,6 +93,11 @@ type CryptoTransferHandler struct {
 	PollingInterval time.Duration `yaml:"polling_interval"`
 }
 
+type ScheduledTransactionHandler struct {
+	BridgeThresholdAccount string `yaml:"bridge_threshold_account" env:"HEDERA_ETH_BRIDGE_HANDLER_SCHEDULED_TX_BRIDGE_THRESHOLD_ACCOUNT"`
+	PayerAccount           string `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_HANDLER_SCHEDULED_TX_PAYER_ACCOUNT"`
+}
+
 type Watcher struct {
 	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
 	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
@@ -101,7 +107,6 @@ type Ethereum struct {
 	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
 	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_BRIDGE_CONTRACT_ADDRESS"`
 	WhbarContractAddress  string `yaml:"whbar_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_WHBAR_CONTRACT_ADDRESS"`
-	CustodialAccount      string `yaml:"custodial_account" env:"HEDERA_ETH_BRIDGE_ETH_CUSTODIAL_ACCOUNT"`
 }
 
 type CryptoTransfer struct {

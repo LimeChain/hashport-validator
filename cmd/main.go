@@ -20,6 +20,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/scheduled"
+	scheduledtx "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/scheduled-transaction"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 
@@ -64,8 +66,9 @@ func main() {
 	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
-	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
+	scheduledRepository := scheduled.NewScheduledRepository(db)
 
+	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
 	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
 
 	server := server.NewServer()
@@ -93,6 +96,10 @@ func main() {
 		schedulerService,
 		ethSigner))
 
+	server.AddHandler(process.HCSSheduledTxMessage, scheduledtx.NewScheduledMessageHandler(
+		configuration.Hedera.Handler.ScheduledTransactionHandler,
+		hederaNodeClient, scheduledRepository))
+
 	err = addConsensusTopicWatchers(configuration, hederaNodeClient, hederaMirrorClient, statusConsensusMessageRepository, server)
 	if err != nil {
 		log.Fatal(err)
@@ -100,7 +107,7 @@ func main() {
 
 	apiRouter := initializeAPIRouter(feeCalculator)
 
-	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth, hederaNodeClient))
+	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
 
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }

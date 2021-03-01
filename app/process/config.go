@@ -20,4 +20,5 @@ package process
 var (
 	CryptoTransferMessageType = "HCS_CRYPTO_TRANSFER"
 	HCSMessageType            = "HCS_TOPIC_MSG"
+	HCSSheduledTxMessage      = "HCS_SCHEDULED_TX_MSG"
 )

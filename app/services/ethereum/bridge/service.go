@@ -79,5 +79,5 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 
 func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridge.BridgeBurn) (event.Subscription, error) {
 	var addresses []common.Address
-	return bsc.contractInstance.WatchBurn(opts, sink, addresses, [][]byte{})
+	return bsc.contractInstance.WatchBurn(opts, sink, addresses)
 }

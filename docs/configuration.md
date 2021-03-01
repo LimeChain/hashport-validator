@@ -44,5 +44,6 @@ Name                                                                | Default   
 `hedera.handler.consensus-message.topic_id`                         | ""                                                  | The Hedera topic id to which the consensus message handler will publish messages.
 `hedera.handler.consensus-message.addresses[]`                      | []                                                  | The Ethereum addresses of all validators in the bridge network.
 `hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
-
+`hedera.handler.scheduled-transaction.bridge_threshold_account`     | ""                                                  | The Hedera Bridge Threshold account id, which will send to recipients their unwrapped amounts
+`hedera.handler.scheduled-transaction.payer_account`                | ""                                                  | The Hedera Payer account id, which will pay for scheduled transactions (unwrapping) fees
 

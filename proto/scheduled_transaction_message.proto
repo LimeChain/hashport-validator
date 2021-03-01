@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package clients
+syntax = "proto3";
 
-import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
-)
+package proto;
 
-type HederaNodeClient interface {
-	GetClient() *hedera.Client
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
-	SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error)
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+message ScheduledTransactionMessage {
+  int64 amount = 1; // in tinybars
+  string recipient = 2; // hedera.AccountID
+  string nonce = 3; // {ethereumTxHash}-{eventLogIndex}
 }

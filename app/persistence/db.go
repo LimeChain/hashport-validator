@@ -19,6 +19,7 @@ package persistence
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -47,7 +48,11 @@ func connectToDb(dbConfig config.Db) *gorm.DB {
 
 // Migrate tables
 func migrateDb(db *gorm.DB) {
-	err := db.AutoMigrate(status.Status{}, transaction.Transaction{}, message.TransactionMessage{})
+	err := db.AutoMigrate(
+		status.Status{},
+		transaction.Transaction{},
+		message.TransactionMessage{},
+		scheduled.Scheduled{})
 	if err != nil {
 		log.Fatal(err)
 	}
