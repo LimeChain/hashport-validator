@@ -54,8 +54,7 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 	}
 
 	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
-	serviceFeePercent := new(big.Int).SetUint64(fc.bridge.GetServiceFee().Uint64())
-	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), serviceFeePercent)
+	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), fc.bridge.GetServiceFee())
 	bigServiceFee = new(big.Int).Div(bigServiceFee, precision)
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
