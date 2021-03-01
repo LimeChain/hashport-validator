@@ -139,7 +139,7 @@ func (bsc *BridgeContractService) listenForChangeFeeEvent() {
 	events := make(chan *bridgecontract.BridgeServiceFeeSet)
 	sub, err := bsc.contractInstance.WatchServiceFeeSet(nil, events)
 	if err != nil {
-		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error [%s].", err)
+		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error ", err)
 	}
 
 	for {
@@ -158,7 +158,7 @@ func (bsc *BridgeContractService) listenForMemberUpdatedEvent() {
 	events := make(chan *bridgecontract.BridgeMemberUpdated)
 	sub, err := bsc.contractInstance.WatchMemberUpdated(nil, events)
 	if err != nil {
-		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error [%s].", err)
+		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
 	}
 
 	for {
