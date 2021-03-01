@@ -159,7 +159,7 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 
 	fmt.Println(fmt.Sprintf(`Bridge Account HBAR balance after transaction: [%d]`, receiverBalanceNew.Hbars.AsTinybar()))
 
-	// Verify that the custodial address has receive exactly the amount sent
+	// Verify that the bridge threshold address has receive exactly the amount sent
 	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
 	// Verify that the bridge account has received exactly the amount sent
 	if amount != hbarAmountReceiver.AsTinybar() {
