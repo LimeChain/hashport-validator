@@ -35,7 +35,7 @@ func NewProcessingService(ethereumClient *ethereum.EthereumClient,
 		transactionRepository: transactionRepository,
 		ethereumClient:        ethereumClient,
 		operatorsEthAddresses: operatorsEthAddresses,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Recovery Service")),
+		logger:                config.GetLoggerFor(fmt.Sprintf("Processing Service")),
 	}
 }
 

@@ -73,6 +73,12 @@ func (rs *RecoveryService) Recover() (int64, error) {
 	}
 	log.Infof("[SUCCESSFUL] Consensus Message Recovery for Topic [%s]", rs.topicID.String())
 
+	// TODO Handle unprocessed TXs
+	// 1. Get all Skipped TX
+	// 2. Get all message records for the set of TX IDs (from the Skipped TX records)
+	// 3. Group messages and TX IDs into a map (TX ID->Messages)
+	// 4. Go through all TX ID -> Messages. If current validator node haven't submitted a signature message -> sign and submit signature message to topic
+
 	return now, nil
 }
 
@@ -112,6 +118,7 @@ func (rs *RecoveryService) cryptoTransferRecovery() (int64, error) {
 	return now, nil
 }
 
+// TODO -> have blocking channel in order for the recovery to complete before starting the node
 func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 	_, err := hederasdk.NewTopicMessageQuery().
 		SetStartTime(time.Unix(0, rs.getStartTimestampFor(rs.topicStatusRepository, rs.topicID.String()))).
