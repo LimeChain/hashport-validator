@@ -41,29 +41,31 @@ type BridgeContractService struct {
 	mutex            sync.Mutex
 	custodians       custodians.Custodians
 	servicefee       servicefee.Servicefee
+	logger           *log.Entry
 }
 
-func NewBridgeContractService(client *ethclient.EthereumClient, config config.Ethereum) *BridgeContractService {
-	bridgeContractAddress, err := client.ValidateContractAddress(config.BridgeContractAddress)
+func NewBridgeContractService(client *ethclient.EthereumClient, c config.Ethereum) *BridgeContractService {
+	bridgeContractAddress, err := client.ValidateContractAddress(c.BridgeContractAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	contractInstance, err := bridge.NewBridge(*bridgeContractAddress, client.Client)
 	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", config.BridgeContractAddress, err)
+		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", c.BridgeContractAddress, err)
 	}
 
 	bridge := &BridgeContractService{
 		Client:           client,
 		contractInstance: contractInstance,
+		logger:           config.GetLoggerFor("Bridge Contract Service"),
 	}
 
-	bridge.UpdateMembers(nil)
-	bridge.UpdateServiceFee(nil)
+	bridge.updateMembers()
+	bridge.updateServiceFee()
 
-	go bridge.listenForMemberUpdatedEvent(nil)
-	go bridge.listenForChangeFeeEvent(nil)
+	go bridge.listenForMemberUpdatedEvent()
+	go bridge.listenForChangeFeeEvent()
 
 	return bridge
 }
@@ -99,29 +101,33 @@ func (bsc *BridgeContractService) GetServiceFee() *big.Int {
 	return bsc.servicefee.Get()
 }
 
-func (bsc *BridgeContractService) UpdateServiceFee(opts *bind.CallOpts) {
-	newFee, err := bsc.contractInstance.ServiceFee(opts)
+func (bsc *BridgeContractService) updateServiceFee() {
+	newFee, err := bsc.contractInstance.ServiceFee(nil)
 	if err != nil {
-		log.Error("Failed to get service fee.", err)
+		bsc.logger.Fatal("Failed to get service fee.", err)
 	}
 	bsc.servicefee.Set(*newFee)
+	bsc.logger.Infof("Updating service fee [%s]...", newFee)
+
 }
 
-func (bsc *BridgeContractService) UpdateMembers(opts *bind.CallOpts) {
-	membersCount, err := bsc.contractInstance.MembersCount(opts)
+func (bsc *BridgeContractService) updateMembers() {
+	membersCount, err := bsc.contractInstance.MembersCount(nil)
 	if err != nil {
-		log.Error("Failed to get members count.", err)
+		bsc.logger.Fatal("Failed to get members count.", err)
 	}
 
 	var newCustodiansArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
-		addr, err := bsc.contractInstance.MemberAt(opts, big.NewInt(int64(i)))
+		addr, err := bsc.contractInstance.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
-			log.Error("Failed to get member address.", err)
+			bsc.logger.Fatal("Failed to get member address.", err)
 		}
 		newCustodiansArray = append(newCustodiansArray, addr.String())
 	}
 	bsc.custodians.Set(newCustodiansArray)
+	bsc.logger.Infof("Updating custodians list with [%s]", newCustodiansArray)
+
 }
 
 func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridge.BridgeBurn) (event.Subscription, error) {
@@ -129,38 +135,39 @@ func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink 
 	return bsc.contractInstance.WatchBurn(opts, sink, addresses, [][]byte{})
 }
 
-func (bsc *BridgeContractService) listenForChangeFeeEvent(opts *bind.WatchOpts) {
+func (bsc *BridgeContractService) listenForChangeFeeEvent() {
 	events := make(chan *bridgecontract.BridgeServiceFeeSet)
-	sub, err := bsc.contractInstance.WatchServiceFeeSet(opts, events)
+	sub, err := bsc.contractInstance.WatchServiceFeeSet(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error [%s].", err)
+		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error [%s].", err)
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("ServiceFeeSet Event Logs subscription failed. Error [%s].", err)
+			bsc.logger.Errorf("ServiceFeeSet Event Logs subscription failed. Error [%s].", err)
 			return
 		case eventLog := <-events:
 			bsc.servicefee.Set(*eventLog.NewServiceFee)
+			bsc.logger.Infof("Updating service fee [%s]...", eventLog.NewServiceFee)
 		}
 	}
 }
 
-func (bsc *BridgeContractService) listenForMemberUpdatedEvent(opts *bind.WatchOpts) {
+func (bsc *BridgeContractService) listenForMemberUpdatedEvent() {
 	events := make(chan *bridgecontract.BridgeMemberUpdated)
-	sub, err := bsc.contractInstance.WatchMemberUpdated(opts, events)
+	sub, err := bsc.contractInstance.WatchMemberUpdated(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error [%s].", err)
+		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error [%s].", err)
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("MemberUpdated Event Logs subscription failed. Error [%s].", err)
+			bsc.logger.Errorf("MemberUpdated Event Logs subscription failed. Error [%s].", err)
 			return
 		case <-events:
-			bsc.UpdateMembers(nil)
+			bsc.updateMembers()
 		}
 	}
 }
