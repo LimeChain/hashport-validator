@@ -118,7 +118,7 @@ func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
 }
 
 func (fc FeeCalculator) getEstimatedGas() uint64 {
-	majorityValidatorsCount := len(fc.bridge.GetCustodians())/2 + 1
+	majorityValidatorsCount := len(fc.bridge.GetMembers())/2 + 1
 	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
 	return estimatedGas
 }

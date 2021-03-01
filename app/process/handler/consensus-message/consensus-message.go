@@ -333,8 +333,8 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.bridge.GetCustodians())/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetCustodians()), transactionId)
+	requiredSigCount := len(cmh.bridge.GetMembers())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetMembers()), transactionId)
 	return len(txSignatures) >= requiredSigCount
 }
 
@@ -351,7 +351,7 @@ func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.Trans
 }
 
 func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
-	for _, k := range cmh.bridge.GetCustodians() {
+	for _, k := range cmh.bridge.GetMembers() {
 		if strings.ToLower(k) == strings.ToLower(key) {
 			return true
 		}

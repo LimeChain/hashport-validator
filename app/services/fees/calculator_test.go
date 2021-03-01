@@ -99,7 +99,7 @@ func TestGetEstimatedTxFeeHappyPath(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -114,7 +114,7 @@ func TestFeeCalculatorHappyPath(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -128,7 +128,7 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -143,7 +143,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -170,7 +170,7 @@ func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -185,7 +185,7 @@ func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -200,7 +200,7 @@ func TestFeeCalculatorWithInvalidRateProvider(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
@@ -215,7 +215,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses).Once()
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses).Once()
 
 	config := validHederaConfig()
 
@@ -227,7 +227,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 	assert.True(t, valid)
 
 	newAddresses := addMoreValidatorsTo(10)
-	mocks.MBridgeContractService.On("GetCustodians").Return(newAddresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(newAddresses)
 	feeCalculator = NewFeeCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
 
 	valid, err = feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
@@ -240,7 +240,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 func TestFeeCalculatorWithZeroServiceFee(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	config := validHederaConfig()
 	serviceFeePercent = 0
@@ -257,7 +257,7 @@ func TestFeeCalculatorWithZeroServiceFee(t *testing.T) {
 func TestFeeCalculatorConsidersServiceFee(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	config := validHederaConfig()
 	config.Client.BaseGasUsage = 1
@@ -288,7 +288,7 @@ func TestFeeCalculatorWithZeroTransferFee(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 

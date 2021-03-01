@@ -150,7 +150,7 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
 
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
-	mocks.MBridgeContractService.On("GetCustodians").Return(addresses)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	ctHandler.Handle(cryptoTransferPayload)
 	time.Sleep(time.Second * pollingInterval)

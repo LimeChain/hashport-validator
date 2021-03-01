@@ -31,7 +31,7 @@ func (m *MockBridgeContract) GetServiceFee() *big.Int {
 	return new(big.Int).SetUint64(args.Get(0).(uint64))
 }
 
-func (m *MockBridgeContract) GetCustodians() []string {
+func (m *MockBridgeContract) GetMembers() []string {
 	args := m.Called()
 	return args.Get(0).([]string)
 }

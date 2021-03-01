@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package custodians
+package members
 
 import "sync"
 
-type Custodians struct {
-	custodians []string
-	mutex      sync.RWMutex
+type Members struct {
+	members []string
+	mutex   sync.RWMutex
 }
 
-func (c *Custodians) Get() []string {
+func (c *Members) Get() []string {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	return c.custodians
+	return c.members
 }
 
-func (c *Custodians) Set(addresses []string) {
+func (c *Members) Set(addresses []string) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	c.custodians = addresses
+	c.members = addresses
 }

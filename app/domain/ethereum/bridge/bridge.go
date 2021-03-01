@@ -20,5 +20,5 @@ import "math/big"
 
 type BridgeContractService interface {
 	GetServiceFee() *big.Int
-	GetCustodians() []string
+	GetMembers() []string
 }

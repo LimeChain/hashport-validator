@@ -28,7 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	bridgecontract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/custodians"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/members"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/servicefee"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -39,8 +39,8 @@ type BridgeContractService struct {
 	contractInstance *bridge.Bridge
 	Client           *ethclient.EthereumClient
 	mutex            sync.Mutex
-	custodians       custodians.Custodians
-	servicefee       servicefee.Servicefee
+	members          members.Members
+	serviceFee       servicefee.Servicefee
 	logger           *log.Entry
 }
 
@@ -52,7 +52,7 @@ func NewBridgeContractService(client *ethclient.EthereumClient, c config.Ethereu
 
 	contractInstance, err := bridge.NewBridge(*bridgeContractAddress, client.Client)
 	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s].", c.BridgeContractAddress, err)
+		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
 	}
 
 	bridge := &BridgeContractService{
@@ -93,40 +93,41 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 		signatures)
 }
 
-func (bsc *BridgeContractService) GetCustodians() []string {
-	return bsc.custodians.Get()
+func (bsc *BridgeContractService) GetMembers() []string {
+	return bsc.members.Get()
 }
 
 func (bsc *BridgeContractService) GetServiceFee() *big.Int {
-	return bsc.servicefee.Get()
+	return bsc.serviceFee.Get()
 }
 
 func (bsc *BridgeContractService) updateServiceFee() {
 	newFee, err := bsc.contractInstance.ServiceFee(nil)
 	if err != nil {
-		bsc.logger.Fatal("Failed to get service fee.", err)
+		bsc.logger.Fatal("Failed to get service fee", err)
 	}
-	bsc.servicefee.Set(*newFee)
-	bsc.logger.Infof("Updating service fee [%s]...", newFee)
+
+	bsc.serviceFee.Set(*newFee)
+	bsc.logger.Infof("Set service fee to [%s]", newFee)
 
 }
 
 func (bsc *BridgeContractService) updateMembers() {
 	membersCount, err := bsc.contractInstance.MembersCount(nil)
 	if err != nil {
-		bsc.logger.Fatal("Failed to get members count.", err)
+		bsc.logger.Fatal("Failed to get members count", err)
 	}
 
-	var newCustodiansArray []string
+	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
 		addr, err := bsc.contractInstance.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
-			bsc.logger.Fatal("Failed to get member address.", err)
+			bsc.logger.Fatal("Failed to get member address", err)
 		}
-		newCustodiansArray = append(newCustodiansArray, addr.String())
+		membersArray = append(membersArray, addr.String())
 	}
-	bsc.custodians.Set(newCustodiansArray)
-	bsc.logger.Infof("Updating custodians list with [%s]", newCustodiansArray)
+	bsc.members.Set(membersArray)
+	bsc.logger.Infof("Set members list to %s", membersArray)
 
 }
 
@@ -148,8 +149,8 @@ func (bsc *BridgeContractService) listenForChangeFeeEvent() {
 			bsc.logger.Errorf("ServiceFeeSet Event Logs subscription failed. Error [%s].", err)
 			return
 		case eventLog := <-events:
-			bsc.servicefee.Set(*eventLog.NewServiceFee)
-			bsc.logger.Infof("Updating service fee [%s]...", eventLog.NewServiceFee)
+			bsc.serviceFee.Set(*eventLog.NewServiceFee)
+			bsc.logger.Infof(`Set service fee to [%s]`, eventLog.NewServiceFee)
 		}
 	}
 }
