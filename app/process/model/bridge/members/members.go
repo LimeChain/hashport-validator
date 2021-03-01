@@ -14,13 +14,23 @@
  * limitations under the License.
  */
 
-package mocks
+package members
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import "sync"
 
-var MBridgeContractService *MockBridgeContract
+type Members struct {
+	members []string
+	mutex   sync.RWMutex
+}
 
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+func (c *Members) Get() []string {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.members
+}
+
+func (c *Members) Set(addresses []string) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	c.members = addresses
 }

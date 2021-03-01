@@ -14,13 +14,26 @@
  * limitations under the License.
  */
 
-package mocks
+package servicefee
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"math/big"
+	"sync"
+)
 
-var MBridgeContractService *MockBridgeContract
+type Servicefee struct {
+	serviceFee big.Int
+	mutex      sync.RWMutex
+}
 
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+func (s *Servicefee) Get() *big.Int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return &s.serviceFee
+}
+
+func (s *Servicefee) Set(serviceFee big.Int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.serviceFee = serviceFee
 }
