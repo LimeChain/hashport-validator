@@ -21,7 +21,6 @@ hedera:
       account_id:
       private_key:
       eth_private_key:
-    service_fee_percent: 10
     base_gas_usage: 130000
     gas_per_validator: 54000
   watcher:
@@ -41,6 +40,4 @@ hedera:
       polling_interval: 5
     consensus-message:
       topic_id:
-      addresses:
-        -
       send_deadline: 300

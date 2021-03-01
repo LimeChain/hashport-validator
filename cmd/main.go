@@ -70,7 +70,7 @@ func main() {
 
 	processingService := processutils.NewProcessingService(ethClient, transactionRepository, messageRepository, configuration.Hedera.Handler.ConsensusMessage.Addresses)
 
-	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
+	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera, contractService)
 
 	now, err := recoverLostProgress(configuration.Hedera,
 		transactionRepository,
@@ -106,6 +106,7 @@ func main() {
 		ethClient,
 		hederaNodeClient,
 		schedulerService,
+		contractService,
 		ethSigner,
 		processingService))
 

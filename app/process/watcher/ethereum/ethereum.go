@@ -55,6 +55,7 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 		select {
 		case err := <-sub.Err():
 			log.Errorf("Burn Event Logs subscription failed. Error [%s].", err)
+			return
 		case eventLog := <-events:
 			ew.handleLog(eventLog, q)
 		}
@@ -65,6 +66,6 @@ func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Qu
 	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
-		eventLog.ReceiverAddress)
+		eventLog.Receiver)
 	// TODO: push to queue with message type, corresponding to ETH Handler
 }

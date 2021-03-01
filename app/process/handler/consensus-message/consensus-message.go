@@ -34,6 +34,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -48,13 +49,13 @@ type ConsensusMessageHandler struct {
 	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	bridgeContractAddress string
-	operatorsEthAddresses []string
 	messageRepository     repositories.MessageRepository
 	transactionRepository repositories.TransactionRepository
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
+	bridge                *bridge.BridgeContractService
 }
 
 func NewConsensusMessageHandler(
@@ -65,6 +66,7 @@ func NewConsensusMessageHandler(
 	ethereumClient *ethereum.EthereumClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,
+	bridge *bridge.BridgeContractService,
 	signer *eth.Signer,
 	processingService *process.ProcessingService,
 ) *ConsensusMessageHandler {
@@ -77,7 +79,6 @@ func NewConsensusMessageHandler(
 		processingService:     processingService,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		operatorsEthAddresses: configuration.Addresses,
 		bridgeContractAddress: bridgeContractAddress,
 		hederaNodeClient:      hederaNodeClient,
 		ethereumClient:        ethereumClient,
@@ -85,6 +86,7 @@ func NewConsensusMessageHandler(
 		scheduler:             scheduler,
 		signer:                signer,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		bridge:                bridge,
 	}
 }
 
@@ -295,8 +297,8 @@ func (cmh ConsensusMessageHandler) scheduleIfReady(txId string, hash string, mes
 }
 
 func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.operatorsEthAddresses)/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.operatorsEthAddresses), transactionId)
+	requiredSigCount := len(cmh.bridge.GetMembers())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetMembers()), transactionId)
 	return len(txSignatures) >= requiredSigCount
 }
 
