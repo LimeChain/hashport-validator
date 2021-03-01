@@ -68,7 +68,7 @@ func main() {
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
 
-	processingService := processutils.NewProcessingService(ethClient, transactionRepository, messageRepository, configuration.Hedera.Handler.ConsensusMessage.Addresses)
+	processingService := processutils.NewProcessingService(ethClient, transactionRepository, messageRepository, contractService.GetMembers())
 
 	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera, contractService)
 
