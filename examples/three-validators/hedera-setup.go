@@ -28,6 +28,13 @@ func main() {
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
 	flag.Parse()
 
+	if *prKey == "0x0" {
+		panic("Private key was not provided")
+	}
+	if *accountID == "0.0" {
+		panic("Account id was not provided")
+	}
+
 	client := previewClient(*prKey, *accountID)
 	privKey1, err := cryptoCreate(client)
 	if err != nil {
@@ -59,18 +66,33 @@ func main() {
 	fmt.Println("TopicID: ", topicReceipt.TopicID)
 	custodialKey := hedera.KeyListWithThreshold(3)
 	custodialKey = custodialKey.Add(privKey1.PublicKey()).Add(privKey2.PublicKey()).Add(privKey3.PublicKey())
-	custodialAcc, err := hedera.NewAccountCreateTransaction().
+	// Creating Bridge theshhold account
+	bridgeAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(custodialKey).
 		SetInitialBalance(hedera.NewHbar(100)).
 		Execute(client)
 	if err != nil {
 		panic(err)
 	}
-	custodialAccReceipt, err := custodialAcc.GetReceipt(client)
+	bridgeAccountReceipt, err := bridgeAccount.GetReceipt(client)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Custodial Account: ", custodialAccReceipt.AccountID)
+	fmt.Println("Bridge Account: ", bridgeAccountReceipt.AccountID)
+
+	// Creating Scheduled transaction payer theshhold account
+	scheduledTxPayerAccount, err := hedera.NewAccountCreateTransaction().
+		SetKey(custodialKey).
+		SetInitialBalance(hedera.NewHbar(100)).
+		Execute(client)
+	if err != nil {
+		panic(err)
+	}
+	scheduledTxPayerAccountReceipt, err := scheduledTxPayerAccount.GetReceipt(client)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Scheduled Tx Payer Account: ", scheduledTxPayerAccountReceipt.AccountID)
 }
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.GeneratePrivateKey()
@@ -93,9 +115,7 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 }
 func previewClient(prKey, accountID string) *hedera.Client {
 	client := hedera.ClientForPreviewnet()
-	// Set your account ID for PreviewNet
 	accID, _ := hedera.AccountIDFromString(accountID)
-	// Set your Private Key for PreviewNet
 	pK, _ := hedera.PrivateKeyFromString(prKey)
 	client.SetOperator(accID, pK)
 	return client
