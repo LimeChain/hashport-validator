@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mocks
+package hedera_mirror_client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go"

@@ -16,8 +16,10 @@
 
 package mocks
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import "github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+
+var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
 
 func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
+	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
 }

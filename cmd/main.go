@@ -67,10 +67,17 @@ func main() {
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
-
-	processingService := processutils.NewProcessingService(ethClient, transactionRepository, messageRepository, configuration.Hedera.Handler.ConsensusMessage.Addresses)
-
 	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
+
+	processingService := processutils.NewProcessingService(
+		ethClient,
+		transactionRepository,
+		messageRepository,
+		configuration.Hedera.Handler.ConsensusMessage.Addresses,
+		feeCalculator,
+		ethSigner,
+		hederaNodeClient,
+		configuration.Hedera.Watcher.ConsensusMessage.Topic.Id)
 
 	now, err := recoverLostProgress(configuration.Hedera,
 		transactionRepository,
@@ -91,7 +98,7 @@ func main() {
 		hederaMirrorClient,
 		hederaNodeClient,
 		transactionRepository,
-		feeCalculator))
+		processingService))
 
 	err = addCryptoTransferWatcher(configuration, hederaMirrorClient, statusCryptoTransferRepository, server, now)
 	if err != nil {
@@ -190,7 +197,8 @@ func recoverLostProgress(configuration config.Hedera,
 		hederaMirrorClient,
 		hederaNodeClient,
 		account,
-		topic)
+		topic,
+		configuration.Watcher.CryptoTransfer.Account.StartTimestamp)
 
 	log.Infof("Starting Recovery Process for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
 	now, err := recoveryService.Recover()

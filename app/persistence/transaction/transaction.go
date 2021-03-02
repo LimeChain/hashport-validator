@@ -18,6 +18,8 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"gorm.io/gorm"
 )
@@ -45,6 +47,7 @@ type Transaction struct {
 	SubmissionTxId string
 	Status         string
 	EthHash        string
+	GasPriceGwei   string
 }
 
 type TransactionRepository struct {
@@ -87,18 +90,48 @@ func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transac
 	return transactions, nil
 }
 
-func (tr *TransactionRepository) GetSkipped() ([]*Transaction, error) {
-	var transactions []*Transaction
+type JoinedTxnMessage struct {
+	TransactionId string
+	EthAddress    string
+	Amount        string
+	Fee           string
+	Signature     string
+	Hash          string
+	SignerAddress string
+	GasPriceGwei  string
+}
 
-	err := tr.dbClient.
-		Model(Transaction{}).
-		Where("status = ?", StatusSkipped).
-		Find(&transactions).Error
+func (tr *TransactionRepository) GetSkippedTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
+	var messages []*message.TransactionMessage
+
+	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
+		"transactions.transaction_id, " +
+		"transaction_messages.eth_address, " +
+		"transaction_messages.amount, " +
+		"transaction_messages.fee, " +
+		"transaction_messages.signature, " +
+		"transaction_messages.hash, " +
+		"transaction_messages.signer_address " +
+		"FROM transactions " +
+		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
+		"WHERE transactions.status = 'SKIPPED' ").
+		Scan(&messages).Error
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
-	return transactions, nil
+	result := make(map[string][]*message.TransactionMessage)
+
+	fmt.Println("Skipped Transactions Result")
+	fmt.Println(len(messages))
+
+	for _, txnMessage := range messages {
+		result[txnMessage.TransactionId] = append(result[txnMessage.TransactionId], txnMessage)
+		fmt.Println(txnMessage)
+	}
+
+	return result, nil
 }
 
 func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
@@ -109,6 +142,7 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
 		Status:        StatusInitial,
+		GasPriceGwei:  ct.GasPriceGwei,
 	}).Error
 }
 
@@ -120,6 +154,7 @@ func (tr *TransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
 		Status:        StatusSkipped,
+		GasPriceGwei:  ct.GasPriceGwei,
 	}).Error
 }
 

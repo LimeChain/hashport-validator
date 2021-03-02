@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/golang/protobuf/proto"
+	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -22,21 +27,85 @@ type ProcessingService struct {
 	logger                *log.Entry
 	ethereumClient        *ethereum.EthereumClient
 	transactionRepository repositories.TransactionRepository
-	messageRepository     repositories.MessageRepository
+	MessageRepository     repositories.MessageRepository
 	operatorsEthAddresses []string
+	feeCalculator         *fees.FeeCalculator
+	ethSigner             *eth.Signer
+	hederaNodeClient      clients.HederaNodeClient
+	topicID               hedera.TopicID
 }
 
-func NewProcessingService(ethereumClient *ethereum.EthereumClient,
-	transactionRepository repositories.TransactionRepository,
-	messageRepository repositories.MessageRepository,
-	operatorsEthAddresses []string) *ProcessingService {
+func NewProcessingService(ethereumClient *ethereum.EthereumClient, transactionRepository repositories.TransactionRepository, messageRepository repositories.MessageRepository, operatorsEthAddresses []string, feeCalculator *fees.FeeCalculator, ethSigner *eth.Signer, hederaNodeClient clients.HederaNodeClient, topicID string) *ProcessingService {
+	tID, e := hedera.TopicIDFromString(topicID)
+	if e != nil {
+		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))
+	}
+
 	return &ProcessingService{
-		messageRepository:     messageRepository,
+		MessageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
 		ethereumClient:        ethereumClient,
 		operatorsEthAddresses: operatorsEthAddresses,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Processing Service")),
+		feeCalculator:         feeCalculator,
+		ethSigner:             ethSigner,
+		hederaNodeClient:      hederaNodeClient,
+		topicID:               tID,
 	}
+}
+
+func (ps *ProcessingService) HandleTopicSubmission(message *validatorproto.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
+	topicSigMessage := &validatorproto.TopicEthSignatureMessage{
+		TransactionId: message.TransactionId,
+		EthAddress:    message.EthAddress,
+		Amount:        message.Amount,
+		Fee:           message.Fee,
+		Signature:     signature,
+	}
+
+	topicSubmissionMessage := &validatorproto.TopicSubmissionMessage{
+		Type:    validatorproto.TopicSubmissionType_EthSignature,
+		Message: &validatorproto.TopicSubmissionMessage_TopicSignatureMessage{TopicSignatureMessage: topicSigMessage},
+	}
+
+	topicSubmissionMessageBytes, err := proto.Marshal(topicSubmissionMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.logger.Infof("Submitting Signature for TX ID [%s] on Topic [%s]", message.TransactionId, ps.topicID)
+	return ps.hederaNodeClient.SubmitTopicConsensusMessage(ps.topicID, topicSubmissionMessageBytes)
+}
+
+func (ps *ProcessingService) ValidateAndSignTxn(ctm *validatorproto.CryptoTransferMessage) (string, error) {
+	validFee, err := ps.feeCalculator.ValidateExecutionFee(ctm.Fee, ctm.Amount, ctm.GasPriceGwei)
+	if err != nil {
+		ps.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+	}
+
+	if !validFee {
+		ps.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
+		err = ps.transactionRepository.UpdateStatusInsufficientFee(ctm.TransactionId)
+		if err != nil {
+			ps.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, err)
+		}
+
+		return "", errors.New(fmt.Sprintf("Calculated fee for Transaction with ID [%s] was invalid. Error [%s]", ctm.TransactionId, err))
+	}
+
+	encodedData, err := ethhelper.EncodeData(ctm)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err))
+	}
+
+	ethHash := ethhelper.KeccakData(encodedData)
+
+	signature, err := ps.ethSigner.Sign(ethHash)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, ethHash, err))
+	}
+
+	return hex.EncodeToString(signature), nil
 }
 
 func (ps *ProcessingService) AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
@@ -66,7 +135,7 @@ func (ps *ProcessingService) AcknowledgeTransactionSuccess(m *validatorproto.Top
 }
 
 func (ps *ProcessingService) AlreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
-	_, err := ps.messageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
+	_, err := ps.MessageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
 	if err != nil && !notFound {
@@ -124,7 +193,7 @@ func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicS
 		return "", nil, errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
 	}
 
-	err = ps.messageRepository.Create(&message.TransactionMessage{
+	err = ps.MessageRepository.Create(&message.TransactionMessage{
 		TransactionId:        m.TransactionId,
 		EthAddress:           m.EthAddress,
 		Amount:               m.Amount,

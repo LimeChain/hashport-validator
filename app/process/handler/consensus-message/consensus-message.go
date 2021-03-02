@@ -18,11 +18,9 @@ package consensusmessage
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
@@ -89,34 +87,7 @@ func NewConsensusMessageHandler(
 }
 
 func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-	// TODO: (Suggestion) Move this whole function before start of any watchers / handlers
 
-	skippedTransactions, err := cmh.transactionRepository.GetSkipped()
-	if err != nil {
-		cmh.logger.Fatalf("Failed to retrieve transactions with status [%s] - Error: [%s]", transaction.StatusSkipped, err)
-	}
-
-	for _, tx := range skippedTransactions {
-		ctm := &validatorproto.CryptoTransferMessage{
-			TransactionId: tx.TransactionId,
-			EthAddress:    tx.EthAddress,
-			Amount:        tx.Amount,
-			Fee:           tx.Fee,
-		}
-
-		encodedData, err := ethhelper.EncodeData(ctm)
-		if err != nil {
-			cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
-		}
-
-		hash := crypto.Keccak256(encodedData)
-		hexHash := hex.EncodeToString(hash)
-
-		err = cmh.scheduleIfReady(tx.TransactionId, hexHash, ctm)
-		if err != nil {
-			cmh.logger.Fatalf("Failed to schedule execution of Transaction with ID [%s] and hash [%s] - Error: [%s]", tx.TransactionId, hexHash, err)
-		}
-	}
 }
 
 func (cmh ConsensusMessageHandler) Handle(payload []byte) {

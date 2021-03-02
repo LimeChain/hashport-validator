@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
-package mocks
+package rate_provider
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockHederaNodeClient struct {
+type MockExchangeRateProvider struct {
 	mock.Mock
 }
 
-func (m *MockHederaNodeClient) GetClient() *hedera.Client {
+func (m *MockExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
 	args := m.Called()
-
-	return args.Get(0).(*hedera.Client)
-}
-
-func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	args := m.Called(topicId, message)
-
 	if args.Get(1) == nil {
-		return args.Get(0).(*hedera.TransactionID), nil
+		return args.Get(0).(float64), nil
 	}
-	return args.Get(0).(*hedera.TransactionID), args.Get(1).(error)
+	return args.Get(0).(float64), args.Get(1).(error)
 }

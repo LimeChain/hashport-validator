@@ -18,6 +18,12 @@ package cryptotransfer
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/message"
+	transaction2 "github.com/limechain/hedera-eth-bridge-validator/test/mocks/transaction"
 	"testing"
 	"time"
 
@@ -52,22 +58,44 @@ func getHederaConfig() config.Hedera {
 	hederaConfig.Client.ServiceFeePercent = 10
 	hederaConfig.Client.BaseGasUsage = 130000
 	hederaConfig.Client.GasPerValidator = 54000
+	hederaConfig.Handler.ConsensusMessage.Addresses = []string{
+		"someaddress1",
+		"someaddress2",
+		"someaddress3",
+	}
 	return hederaConfig
 }
 
-func InitializeHandler() (*CryptoTransferHandler, *mocks.MockTransactionRepository, *mocks.MockHederaNodeClient, *mocks.MockHederaMirrorClient, *fees.FeeCalculator) {
+func getEthereumConfig() config.Ethereum {
+	ethereumConfig := config.Ethereum{
+		NodeUrl: "wss://ropsten.infura.io/ws/v3/8b64d65996d24dc0aae2e0c6029e5a9b",
+	}
+	return ethereumConfig
+}
+
+func InitializeHandler() (*CryptoTransferHandler, *transaction2.MockTransactionRepository, *hedera_node_client.MockHederaNodeClient, *hedera_mirror_client.MockHederaMirrorClient, *fees.FeeCalculator) {
 	cthConfig := config.CryptoTransferHandler{
 		TopicId:         topicID,
 		PollingInterval: pollingInterval,
 	}
 	mocks.Setup()
 	ethSigner := eth.NewEthSigner(ethPrivateKey)
-	transactionRepo := &mocks.MockTransactionRepository{}
-	hederaNodeClient := &mocks.MockHederaNodeClient{}
-	hederaMirrorClient := &mocks.MockHederaMirrorClient{}
+	ethClient := ethereum.NewEthereumClient(getEthereumConfig())
+	transactionRepo := &transaction2.MockTransactionRepository{}
+	messageRepo := &message.MockMessageRepository{}
+	hederaNodeClient := &hedera_node_client.MockHederaNodeClient{}
+	hederaMirrorClient := &hedera_mirror_client.MockHederaMirrorClient{}
 	feeCalculator := fees.NewFeeCalculator(mocks.MExchangeRateProvider, getHederaConfig())
+	processingService := process.NewProcessingService(ethClient,
+		transactionRepo,
+		messageRepo,
+		getHederaConfig().Handler.ConsensusMessage.Addresses,
+		feeCalculator,
+		ethSigner,
+		hederaNodeClient,
+		topicID)
 
-	return NewCryptoTransferHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, feeCalculator), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
+	return NewCryptoTransferHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, processingService), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
 }
 
 func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {
@@ -188,7 +216,7 @@ func Test_HandleTopicSubmission(t *testing.T) {
 
 	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
 
-	transactionID, err := ctHandler.handleTopicSubmission(&ctm, signature)
+	transactionID, err := ctHandler.processingService.HandleTopicSubmission(&ctm, signature)
 	submissionTxn := txn.FromHederaTransactionID(transactionID)
 
 	assert.Nil(t, err)

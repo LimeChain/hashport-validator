@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package mocks
+package transaction
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
@@ -40,7 +41,6 @@ func (m *MockTransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*tran
 		return args.Get(0).([]*transaction.Transaction), nil
 	}
 	return args.Get(0).([]*transaction.Transaction), args.Get(1).(error)
-
 }
 
 func (m *MockTransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
@@ -51,7 +51,6 @@ func (m *MockTransactionRepository) Create(ct *proto.CryptoTransferMessage) erro
 func (m *MockTransactionRepository) UpdateStatusCompleted(txId string) error {
 	args := m.Called(txId)
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) error {
@@ -60,31 +59,26 @@ func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) err
 		return nil
 	}
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusSignatureProvided(txId string) error {
 	args := m.Called(txId)
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusSignatureFailed(txId string) error {
 	args := m.Called(txId)
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
 	args := m.Called(txId, hash)
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusEthTxReverted(txId string) error {
 	args := m.Called(txId)
 	return args.Get(0).(error)
-
 }
 
 func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
@@ -98,4 +92,9 @@ func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, 
 func (m *MockTransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
 	args := m.Called(ct)
 	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) GetSkippedTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
+	args := m.Called()
+	return args.Get(0).(map[string][]*message.TransactionMessage), args.Get(1).(error)
 }

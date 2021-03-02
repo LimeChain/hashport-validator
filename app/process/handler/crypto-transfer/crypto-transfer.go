@@ -17,15 +17,14 @@
 package cryptotransfer
 
 import (
-	"encoding/hex"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
@@ -47,6 +46,7 @@ type CryptoTransferHandler struct {
 	transactionRepo    repositories.TransactionRepository
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
+	processingService  *process.ProcessingService
 }
 
 func NewCryptoTransferHandler(
@@ -55,7 +55,7 @@ func NewCryptoTransferHandler(
 	hederaMirrorClient clients.HederaMirrorClient,
 	hederaNodeClient clients.HederaNodeClient,
 	transactionRepository repositories.TransactionRepository,
-	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
+	processingService *process.ProcessingService) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -69,7 +69,7 @@ func NewCryptoTransferHandler(
 		hederaNodeClient:   hederaNodeClient,
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
-		feeCalculator:      feeCalculator,
+		processingService:  processingService,
 	}
 }
 
@@ -109,39 +109,12 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 		}
 	}
 
-	validFee, err := cth.feeCalculator.ValidateExecutionFee(ctm.Fee, ctm.Amount, ctm.GasPriceGwei)
+	encodedSignature, err := cth.processingService.ValidateAndSignTxn(&ctm)
 	if err != nil {
-		cth.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		cth.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
-	if !validFee {
-		cth.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
-		err = cth.transactionRepo.UpdateStatusInsufficientFee(ctm.TransactionId)
-		if err != nil {
-			cth.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", txRepo.StatusInsufficientFee, ctm.TransactionId, err)
-			return
-		}
-
-		return
-	}
-
-	encodedData, err := ethhelper.EncodeData(&ctm)
-	if err != nil {
-		cth.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
-		return
-	}
-
-	ethHash := ethhelper.KeccakData(encodedData)
-
-	signature, err := cth.ethSigner.Sign(ethHash)
-	if err != nil {
-		cth.logger.Errorf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, ethHash, err)
-		return
-	}
-
-	encodedSignature := hex.EncodeToString(signature)
-
-	topicMessageSubmissionTx, err := cth.handleTopicSubmission(&ctm, encodedSignature)
+	topicMessageSubmissionTx, err := cth.processingService.HandleTopicSubmission(&ctm, encodedSignature)
 	if err != nil {
 		cth.logger.Errorf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return
