@@ -14,26 +14,16 @@
  * limitations under the License.
  */
 
-package servicefee
+package clients
 
 import (
-	"math/big"
-	"sync"
+	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
-type Servicefee struct {
-	serviceFee big.Int
-	mutex      sync.RWMutex
-}
-
-func (s *Servicefee) Get() *big.Int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return &s.serviceFee
-}
-
-func (s *Servicefee) Set(serviceFee big.Int) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	s.serviceFee = serviceFee
+type MirrorNode interface {
+	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
+	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
+	GetStateProof(transactionID string) ([]byte, error)
+	AccountExists(accountID hedera.AccountID) bool
 }

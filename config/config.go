@@ -32,7 +32,7 @@ const (
 	mainConfigFile    = "application.yml"
 )
 
-func LoadConfig() *Config {
+func LoadConfig() Config {
 	var configuration Config
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
@@ -41,7 +41,7 @@ func LoadConfig() *Config {
 		panic(err)
 	}
 
-	return &configuration
+	return configuration
 }
 
 func GetConfig(config *Config, path string) error {

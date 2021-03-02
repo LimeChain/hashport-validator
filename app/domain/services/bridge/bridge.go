@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package members
+package bridge
 
-import "sync"
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
+)
 
-type Members struct {
-	members []string
-	mutex   sync.RWMutex
-}
-
-func (c *Members) Get() []string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.members
-}
-
-func (c *Members) Set(addresses []string) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	c.members = addresses
+type ContractService interface {
+	GetContractAddress() common.Address
+	GetServiceFee() *big.Int
+	GetMembers() []string
 }

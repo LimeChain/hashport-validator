@@ -17,11 +17,11 @@
 package fees
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/ethereum/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
@@ -29,12 +29,12 @@ import (
 var precision = new(big.Int).SetInt64(100000)
 
 type FeeCalculator struct {
-	rateProvider  provider.ExchangeRateProvider
+	rateProvider  clients.ExchangeRate
 	configuration config.Hedera
-	bridge        bridge.BridgeContractService
+	bridge        bridge.ContractService
 }
 
-func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration config.Hedera, bridge bridge.BridgeContractService) *FeeCalculator {
+func NewFeeCalculator(rateProvider clients.ExchangeRate, configuration config.Hedera, bridge bridge.ContractService) *FeeCalculator {
 	return &FeeCalculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,

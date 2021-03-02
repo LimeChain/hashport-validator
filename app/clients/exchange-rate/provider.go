@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-type ExchangeRateProvider struct {
+type Provider struct {
 	httpClient *http.Client
 	rateURL    string
 	coin       string
@@ -31,8 +31,8 @@ type ExchangeRateProvider struct {
 	rate       float64
 }
 
-func NewExchangeRateProvider(coin string, currency string) ExchangeRateProvider {
-	return ExchangeRateProvider{
+func NewProvider(coin string, currency string) *Provider {
+	return &Provider{
 		httpClient: &http.Client{},
 		rateURL:    fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=%s", coin, currency),
 		coin:       coin,
@@ -40,7 +40,7 @@ func NewExchangeRateProvider(coin string, currency string) ExchangeRateProvider 
 	}
 }
 
-func (erp *ExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
+func (erp *Provider) GetEthVsHbarRate() (float64, error) {
 	response, err := erp.httpClient.Get(erp.rateURL)
 	if err != nil {
 		return 0, err

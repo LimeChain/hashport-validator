@@ -19,11 +19,11 @@ package cryptotransfer
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -38,30 +38,30 @@ import (
 )
 
 // Crypto Transfer event handler
-type CryptoTransferHandler struct {
+type Handler struct {
 	pollingInterval    time.Duration
 	topicID            hedera.TopicID
 	ethSigner          *eth.Signer
-	hederaMirrorClient clients.HederaMirrorClient
-	hederaNodeClient   clients.HederaNodeClient
+	hederaMirrorClient clients.MirrorNode
+	hederaNodeClient   clients.HederaNode
 	transactionRepo    repositories.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
 }
 
-func NewCryptoTransferHandler(
+func NewHandler(
 	c config.CryptoTransferHandler,
 	ethSigner *eth.Signer,
-	hederaMirrorClient clients.HederaMirrorClient,
-	hederaNodeClient clients.HederaNodeClient,
+	hederaMirrorClient clients.MirrorNode,
+	hederaNodeClient clients.HederaNode,
 	transactionRepository repositories.Transaction,
-	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
+	feeCalculator *fees.FeeCalculator) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
 	}
 
-	return &CryptoTransferHandler{
+	return &Handler{
 		pollingInterval:    c.PollingInterval,
 		topicID:            topicID,
 		ethSigner:          ethSigner,
@@ -74,7 +74,7 @@ func NewCryptoTransferHandler(
 }
 
 // Recover mechanism
-func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
+func (cth *Handler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
 	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
@@ -94,7 +94,7 @@ func (cth *CryptoTransferHandler) Recover(q *queue.Queue) {
 	}
 }
 
-func (cth *CryptoTransferHandler) Handle(payload []byte) {
+func (cth *Handler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
@@ -173,7 +173,7 @@ func (cth *CryptoTransferHandler) Handle(payload []byte) {
 	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId.String())
 }
 
-func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
+func (cth *Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
 	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))
@@ -214,7 +214,7 @@ func (cth *CryptoTransferHandler) checkForTransactionCompletion(transactionId st
 	}
 }
 
-func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
+func (cth *Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
 	ctm := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionId,
 		EthAddress:    tx.EthAddress,
@@ -224,7 +224,7 @@ func (cth *CryptoTransferHandler) submitTx(tx *txRepo.Transaction, q *queue.Queu
 	publisher.Publish(ctm, "HCS_CRYPTO_TRANSFER", cth.topicID, q)
 }
 
-func (cth *CryptoTransferHandler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
+func (cth *Handler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
 	topicSigMessage := &protomsg.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,

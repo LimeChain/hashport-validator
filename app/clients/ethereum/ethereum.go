@@ -29,27 +29,31 @@ import (
 	"time"
 )
 
-// Ethereum Node Client
-type EthereumClient struct {
-	Client *ethclient.Client
+// Client Ethereum JSON RPC Client
+type Client struct {
 	config config.Ethereum
+	*ethclient.Client
 }
 
-func NewEthereumClient(config config.Ethereum) *EthereumClient {
+func NewClient(config config.Ethereum) *Client {
 	client, err := ethclient.Dial(config.NodeUrl)
 	if err != nil {
-		log.Fatalf("Failed to initialize EthereumClient. Error [%s]", err)
+		log.Fatalf("Failed to initialize Client. Error [%s]", err)
 	}
 
-	ethereumClient := &EthereumClient{
-		Client: client,
-		config: config,
+	return &Client{
+		config,
+		client,
 	}
-
-	return ethereumClient
 }
 
-func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*common.Address, error) {
+// GetClients returns the instance of a ethclient already established connection to a JSON RPC Ethereum Node
+func (ec *Client) GetClient() *ethclient.Client {
+	return ec.Client
+}
+
+// ValidateContractDeployedAt performs validation that a smart contract is deployed at the provided address
+func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
 	address := common.HexToAddress(contractAddress)
 
 	bytecode, err := ec.Client.CodeAt(context.Background(), address, nil)
@@ -64,7 +68,8 @@ func (ec *EthereumClient) ValidateContractAddress(contractAddress string) (*comm
 	return &address, nil
 }
 
-func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
+// WaitForTransactionSuccess polls the JSON RPC node every 5 seconds for any updates (whether TX is mined) for the provided Hash
+func (ec *Client) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
 	receipt, err := ec.waitForTransactionReceipt(hash)
 	if err != nil {
 		return false, err
@@ -74,7 +79,7 @@ func (ec *EthereumClient) WaitForTransactionSuccess(hash common.Hash) (isSuccess
 	return receipt.Status == 1, nil
 }
 
-func (ec *EthereumClient) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
+func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
 		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
 

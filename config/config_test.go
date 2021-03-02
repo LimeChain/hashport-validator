@@ -23,7 +23,7 @@ import (
 
 func Test_LoadConfig(t *testing.T) {
 	configuration := LoadConfig()
-	if reflect.TypeOf(configuration).String() != "*config.Config" {
+	if reflect.TypeOf(configuration).String() != "config.Config" {
 		t.Fatalf(`Expected to return configuration type *config.Config, but returned: [%s]`, reflect.TypeOf(configuration).String())
 	}
 }

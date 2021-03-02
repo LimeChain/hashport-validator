@@ -223,7 +223,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					//Verify that the eth transaction message has been submitted
 					topicSubmissionMessageTrans := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicEthTransactionMessage().TransactionId != topicSubmissionMessageTrans.String() {
-						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
+						t.Fatalf(`Expected services transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()
 					ethTransMsgCollected++
@@ -248,7 +248,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
 		if ethTransMsgCollected != 1 {
-			t.Fatal(`Expected to submit exactly 1 ethereum transaction in topic`)
+			t.Fatal(`Expected to submit exactly 1 services transaction in topic`)
 		}
 	}
 	// Not possible end-case
@@ -262,7 +262,7 @@ func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, wh
 
 	// Verify that the eth transaction has been mined and succeeded
 	if success == false {
-		t.Fatalf(`Expected to mine successfully the broadcasted ethereum transaction: [%s]`, ethTransactionHash)
+		t.Fatalf(`Expected to mine successfully the broadcasted services transaction: [%s]`, ethTransactionHash)
 	}
 
 	if err != nil {
@@ -280,7 +280,7 @@ func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, wh
 
 	fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
 
-	// Verify that the ethereum address has received the exact transfer amount of WHBARs
+	// Verify that the services address has received the exact transfer amount of WHBARs
 	amount := whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()
 	if amount != expectedWHBarAmount {
 		t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, expectedWHBarAmount, amount)
