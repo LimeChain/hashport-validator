@@ -17,12 +17,14 @@
 package recovery
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
+	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
@@ -93,6 +95,7 @@ func (rs *RecoveryService) Recover() (int64, error) {
 	log.Infof("[SUCCESSFUL] Crypto Transfer Recovery for Account [%s]", rs.accountID.String())
 
 	log.Infof("Consensus Message Recovery for Topic [%s]", rs.topicID.String())
+
 	now, err = rs.consensusMessageRecovery(now)
 	if err != nil {
 		rs.logger.Errorf("Error - could not finish consensus message recovery process: [%s]", err)
@@ -106,6 +109,7 @@ func (rs *RecoveryService) Recover() (int64, error) {
 	// 3. Group messages and TX IDs into a map (TX ID->Messages) (DONE)
 	// 4. Go through all TX ID -> Messages. If current validator node haven't submitted a signature message -> sign and submit signature message to topic (DONE)
 
+	log.Infof("Starting to process skipped Transactions")
 	err = rs.processSkipped()
 	if err != nil {
 		rs.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
@@ -175,7 +179,7 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 		return 0, err
 	}
 
-	rs.logger.Debugf("Found [%d] unprocessed transactions", len(result.Transactions))
+	rs.logger.Infof("Found [%d] unprocessed transactions", len(result.Transactions))
 	for _, tr := range result.Transactions {
 		if recent(tr, to) {
 			break
@@ -205,51 +209,59 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 	return to, nil
 }
 
-// TODO -> have blocking channel in order for the recovery to complete before starting the node
 func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
-	_, err := hederasdk.NewTopicMessageQuery().
-		SetStartTime(time.Unix(0, rs.getStartTimestampFor(rs.topicStatusRepository, rs.topicID.String()))).
-		SetEndTime(time.Unix(0, now)).
-		SetTopicID(rs.topicID).
-		Subscribe(
-			rs.nodeClient.GetClient(),
-			func(response hederasdk.TopicMessage) {
-				m, err := consensusmessage.PrepareMessage(response.Contents, response.ConsensusTimestamp.UnixNano())
-				if err != nil {
-					return
-				}
-				switch m.Type {
-				case validatorproto.TopicSubmissionType_EthSignature:
-					_, _, err = rs.processingService.ValidateAndSaveSignature(m)
-				case validatorproto.TopicSubmissionType_EthTransaction:
-					err = rs.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
-				default:
-					err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
-				}
-
-				if err != nil {
-					rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
-					return
-				}
-			},
-		)
-
+	result, err := rs.mirrorClient.GetHederaTopicMessagesAfterTimestamp(rs.topicID, rs.getStartTimestampFor(rs.topicStatusRepository, rs.topicID.String()))
 	if err != nil {
 		rs.logger.Errorf("Error - could not retrieve messages for recovery: [%s]", err)
 		return 0, err
+	}
+
+	rs.logger.Infof("Found [%d] unprocessed topic messages", len(result.Messages))
+	for _, msg := range result.Messages {
+		timestamp, err := timestampHelper.FromString(msg.ConsensusTimestamp)
+		if err != nil {
+			rs.logger.Errorf("Error - could not parse timestamp string to int64: [%s]", err)
+			continue
+		}
+
+		contents, err := base64.StdEncoding.DecodeString(msg.Contents)
+		if err != nil {
+			rs.logger.Errorf("Error - could not decode contents of topic message: [%s]", err)
+			continue
+		}
+
+		m, err := consensusmessage.PrepareMessage(contents, timestamp)
+		if err != nil {
+			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
+			continue
+		}
+
+		switch m.Type {
+		case validatorproto.TopicSubmissionType_EthSignature:
+			_, _, err = rs.processingService.ValidateAndSaveSignature(m)
+		case validatorproto.TopicSubmissionType_EthTransaction:
+			err = rs.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
+		default:
+			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
+		}
+
+		if err != nil {
+			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
+			continue
+		}
 	}
 
 	return now, nil
 }
 
 func (rs *RecoveryService) getStartTimestampFor(repository repositories.StatusRepository, address string) int64 {
-	if rs.cryptoTransferTS > 0 {
-		return rs.cryptoTransferTS
-	}
-
 	timestamp, err := repository.GetLastFetchedTimestamp(address)
 	if err == nil {
 		return timestamp
+	}
+
+	if rs.cryptoTransferTS > 0 {
+		return rs.cryptoTransferTS
 	}
 
 	return -1

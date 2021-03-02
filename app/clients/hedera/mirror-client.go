@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/message"
 	"io/ioutil"
 	"net/http"
 
@@ -45,6 +46,13 @@ func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(acco
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+func (c HederaMirrorClient) GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error) {
+	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gte:%s",
+		topicId.String(),
+		timestampHelper.ToString(timestamp))
+	return c.getTopicMessagesByQuery(transactionsDownloadQuery)
 }
 
 func (c HederaMirrorClient) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
@@ -92,6 +100,26 @@ func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.H
 	}
 
 	return transactions, nil
+}
+
+func (c HederaMirrorClient) getTopicMessagesByQuery(query string) (*message.HederaMessages, error) {
+	messagesQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics", query)
+	response, e := c.get(messagesQuery)
+	if e != nil {
+		return nil, e
+	}
+
+	bodyBytes, e := readResponseBody(response)
+	if e != nil {
+		return nil, e
+	}
+
+	var messages *message.HederaMessages
+	e = json.Unmarshal(bodyBytes, &messages)
+	if e != nil {
+		return nil, e
+	}
+	return messages, nil
 }
 
 func (c HederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
