@@ -8,7 +8,7 @@ Example uses `Docker Compose`.
 
 ## How to run?
 
-1. Run hedera-setup.go to generate the configurations
+1. Run hedera-setup.go with prKey and accountId as flags to generate the configurations
 2. Set necessary configurations for [Alice](./alice/config/application.yml), [Bob](./bob/config/application.yml)
    and [Carol](./carol/config/application.yml)
 3. Run `docker-compose up`
