@@ -13,6 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
  */
+
 package main
 
 import (
@@ -115,8 +116,14 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 }
 func previewClient(prKey, accountID string) *hedera.Client {
 	client := hedera.ClientForPreviewnet()
-	accID, _ := hedera.AccountIDFromString(accountID)
-	pK, _ := hedera.PrivateKeyFromString(prKey)
+	accID, err := hedera.AccountIDFromString(accountID)
+	if err != nil {
+		panic(err)
+	}
+	pK, err := hedera.PrivateKeyFromString(prKey)
+	if err != nil {
+		panic(err)
+	}
 	client.SetOperator(accID, pK)
 	return client
 }
