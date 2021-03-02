@@ -16,13 +16,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go"
 )
 
 func main() {
-	client := previewClient()
+
+	prKey := flag.String("prKey", "0x0", "Hedera Private Key")
+	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
+	flag.Parse()
+
+	client := previewClient(*prKey, *accountID)
 	privKey1, err := cryptoCreate(client)
 	if err != nil {
 		panic(err)
@@ -85,12 +91,12 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	fmt.Println("--------------------->")
 	return privateKey, nil
 }
-func previewClient() *hedera.Client {
+func previewClient(prKey, accountId string) *hedera.Client {
 	client := hedera.ClientForPreviewnet()
 	// Set your account ID for PreviewNet
-	accId, _ := hedera.AccountIDFromString("0.0.6526")
+	accId, _ := hedera.AccountIDFromString(accountId)
 	// Set your Private Key for PreviewNet
-	pK, _ := hedera.PrivateKeyFromString("302e020100300506032b6570042204203425f0b39dc6d80345b08b65fb4ec6296871ecb6244e9dcc258c482106ca4414")
+	pK, _ := hedera.PrivateKeyFromString(prKey)
 	client.SetOperator(accId, pK)
 	return client
 }
