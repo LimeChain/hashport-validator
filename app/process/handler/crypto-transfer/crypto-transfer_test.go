@@ -53,16 +53,20 @@ const (
 	exchangeRate    = 0.00007
 )
 
+var (
+	addresses = []string{
+		"0xsomeaddress",
+		"0xsomeaddress2",
+		"0xsomeaddress3",
+	}
+	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
+	serviceFeePercent uint64 = 10000
+)
+
 func getHederaConfig() config.Hedera {
 	hederaConfig := config.Hedera{}
-	hederaConfig.Client.ServiceFeePercent = 10
 	hederaConfig.Client.BaseGasUsage = 130000
 	hederaConfig.Client.GasPerValidator = 54000
-	hederaConfig.Handler.ConsensusMessage.Addresses = []string{
-		"someaddress1",
-		"someaddress2",
-		"someaddress3",
-	}
 	return hederaConfig
 }
 
@@ -85,11 +89,12 @@ func InitializeHandler() (*CryptoTransferHandler, *transaction2.MockTransactionR
 	messageRepo := &message.MockMessageRepository{}
 	hederaNodeClient := &hedera_node_client.MockHederaNodeClient{}
 	hederaMirrorClient := &hedera_mirror_client.MockHederaMirrorClient{}
-	feeCalculator := fees.NewFeeCalculator(mocks.MExchangeRateProvider, getHederaConfig())
+	contractService := mocks.MBridgeContractService
+	feeCalculator := fees.NewFeeCalculator(mocks.MExchangeRateProvider, getHederaConfig(), contractService)
 	processingService := process.NewProcessingService(ethClient,
 		transactionRepo,
 		messageRepo,
-		getHederaConfig().Handler.ConsensusMessage.Addresses,
+		addresses,
 		feeCalculator,
 		ethSigner,
 		hederaNodeClient,
@@ -167,6 +172,9 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
 	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+
+	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	ctHandler.Handle(cryptoTransferPayload)
 	time.Sleep(time.Second * pollingInterval)

@@ -67,13 +67,14 @@ func main() {
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
-	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)
+
+	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera, contractService)
 
 	processingService := processutils.NewProcessingService(
 		ethClient,
 		transactionRepository,
 		messageRepository,
-		configuration.Hedera.Handler.ConsensusMessage.Addresses,
+		contractService.GetMembers(),
 		feeCalculator,
 		ethSigner,
 		hederaNodeClient,
@@ -113,6 +114,7 @@ func main() {
 		ethClient,
 		hederaNodeClient,
 		schedulerService,
+		contractService,
 		ethSigner,
 		processingService))
 

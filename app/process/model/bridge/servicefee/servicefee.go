@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-package mocks
+package servicefee
 
-import "github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+import (
+	"math/big"
+	"sync"
+)
 
-var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
+type Servicefee struct {
+	serviceFee big.Int
+	mutex      sync.RWMutex
+}
 
-var MBridgeContractService *MockBridgeContract
+func (s *Servicefee) Get() *big.Int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return &s.serviceFee
+}
 
-func Setup() {
-	MBridgeContractService = &MockBridgeContract{}
-	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
+func (s *Servicefee) Set(serviceFee big.Int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.serviceFee = serviceFee
 }

@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-package mocks
+package bridge
 
-import "github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+import "math/big"
 
-var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
-
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MBridgeContractService = &MockBridgeContract{}
-	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
+type BridgeContractService interface {
+	GetServiceFee() *big.Int
+	GetMembers() []string
 }

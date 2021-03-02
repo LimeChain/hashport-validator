@@ -16,13 +16,22 @@
 
 package mocks
 
-import "github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+import (
+	"math/big"
 
-var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
+	"github.com/stretchr/testify/mock"
+)
 
-var MBridgeContractService *MockBridgeContract
+type MockBridgeContract struct {
+	mock.Mock
+}
 
-func Setup() {
-	MBridgeContractService = &MockBridgeContract{}
-	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
+func (m *MockBridgeContract) GetServiceFee() *big.Int {
+	args := m.Called()
+	return new(big.Int).SetUint64(args.Get(0).(uint64))
+}
+
+func (m *MockBridgeContract) GetMembers() []string {
+	args := m.Called()
+	return args.Get(0).([]string)
 }
