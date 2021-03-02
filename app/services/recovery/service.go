@@ -111,7 +111,7 @@ func (rs *RecoveryService) Recover() (int64, error) {
 		rs.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
 		return 0, err
 	}
-	log.Infof("[SUCCESSFUL] Process of Skipped Transactions", rs.topicID.String())
+	log.Infof("[SUCCESSFUL] Process of Skipped Transactions")
 
 	return now, nil
 }
