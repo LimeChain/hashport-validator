@@ -46,13 +46,13 @@ func main() {
 		Add(privKey1.PublicKey()).
 		Add(privKey2.PublicKey()).
 		Add(privKey3.PublicKey())
-	txId, err := hedera.NewTopicCreateTransaction().
+	txID, err := hedera.NewTopicCreateTransaction().
 		SetSubmitKey(topicKey).
 		Execute(client)
 	if err != nil {
 		panic(err)
 	}
-	topicReceipt, err := txId.GetReceipt(client)
+	topicReceipt, err := txID.GetReceipt(client)
 	if err != nil {
 		panic(err)
 	}
@@ -91,12 +91,12 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	fmt.Println("--------------------->")
 	return privateKey, nil
 }
-func previewClient(prKey, accountId string) *hedera.Client {
+func previewClient(prKey, accountID string) *hedera.Client {
 	client := hedera.ClientForPreviewnet()
 	// Set your account ID for PreviewNet
-	accId, _ := hedera.AccountIDFromString(accountId)
+	accID, _ := hedera.AccountIDFromString(accountID)
 	// Set your Private Key for PreviewNet
 	pK, _ := hedera.PrivateKeyFromString(prKey)
-	client.SetOperator(accId, pK)
+	client.SetOperator(accID, pK)
 	return client
 }
