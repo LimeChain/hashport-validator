@@ -39,13 +39,13 @@ type ConsensusTopicWatcher struct {
 	topicID          hedera.TopicID
 	typeMessage      string
 	maxRetries       int
-	statusRepository repositories.StatusRepository
+	statusRepository repositories.Status
 	startTimestamp   int64
 	started          bool
 	logger           *log.Entry
 }
 
-func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.StatusRepository, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(nodeClient *hederaClient.HederaNodeClient, mirrorClient *hederaClient.HederaMirrorClient, topicID hedera.TopicID, repository repositories.Status, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
 		nodeClient:       nodeClient,
 		mirrorClient:     mirrorClient,

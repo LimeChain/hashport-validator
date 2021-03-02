@@ -21,7 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
-type TransactionRepository interface {
+type Transaction interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
 	Create(ct *proto.CryptoTransferMessage) error

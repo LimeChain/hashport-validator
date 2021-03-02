@@ -44,7 +44,7 @@ type CryptoTransferHandler struct {
 	ethSigner          *eth.Signer
 	hederaMirrorClient clients.HederaMirrorClient
 	hederaNodeClient   clients.HederaNodeClient
-	transactionRepo    repositories.TransactionRepository
+	transactionRepo    repositories.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.FeeCalculator
 }
@@ -54,7 +54,7 @@ func NewCryptoTransferHandler(
 	ethSigner *eth.Signer,
 	hederaMirrorClient clients.HederaMirrorClient,
 	hederaNodeClient clients.HederaNodeClient,
-	transactionRepository repositories.TransactionRepository,
+	transactionRepository repositories.Transaction,
 	feeCalculator *fees.FeeCalculator) *CryptoTransferHandler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {

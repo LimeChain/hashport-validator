@@ -48,8 +48,8 @@ type ConsensusMessageHandler struct {
 	ethereumClient        *ethereum.EthereumClient
 	hederaNodeClient      *hederaClient.HederaNodeClient
 	bridgeContractAddress string
-	messageRepository     repositories.MessageRepository
-	transactionRepository repositories.TransactionRepository
+	messageRepository     repositories.Message
+	transactionRepository repositories.Transaction
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
@@ -60,8 +60,8 @@ type ConsensusMessageHandler struct {
 func NewConsensusMessageHandler(
 	configuration config.ConsensusMessageHandler,
 	bridgeContractAddress string,
-	messageRepository repositories.MessageRepository,
-	transactionRepository repositories.TransactionRepository,
+	messageRepository repositories.Message,
+	transactionRepository repositories.Transaction,
 	ethereumClient *ethereum.EthereumClient,
 	hederaNodeClient *hederaClient.HederaNodeClient,
 	scheduler *scheduler.Scheduler,

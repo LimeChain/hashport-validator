@@ -42,7 +42,7 @@ type CryptoTransferWatcher struct {
 	accountID        hedera.AccountID
 	typeMessage      string
 	pollingInterval  time.Duration
-	statusRepository repositories.StatusRepository
+	statusRepository repositories.Status
 	maxRetries       int
 	startTimestamp   int64
 	started          bool
@@ -53,7 +53,7 @@ func NewCryptoTransferWatcher(
 	client *hederaClient.HederaMirrorClient,
 	accountID hedera.AccountID,
 	pollingInterval time.Duration,
-	repository repositories.StatusRepository,
+	repository repositories.Status,
 	maxRetries int,
 	startTimestamp int64,
 ) *CryptoTransferWatcher {
