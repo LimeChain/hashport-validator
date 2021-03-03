@@ -25,18 +25,18 @@ import (
 
 func main() {
 
-	prKey := flag.String("prKey", "0x0", "Hedera Private Key")
+	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
 	flag.Parse()
 
-	if *prKey == "0x0" {
+	if *privateKey == "0x0" {
 		panic("Private key was not provided")
 	}
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
 	}
 
-	client := previewClient(*prKey, *accountID)
+	client := previewClient(*privateKey, *accountID)
 	privKey1, err := cryptoCreate(client)
 	if err != nil {
 		panic(err)
@@ -114,13 +114,13 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	fmt.Println("--------------------->")
 	return privateKey, nil
 }
-func previewClient(prKey, accountID string) *hedera.Client {
+func previewClient(privateKey, accountID string) *hedera.Client {
 	client := hedera.ClientForPreviewnet()
 	accID, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
 		panic(err)
 	}
-	pK, err := hedera.PrivateKeyFromString(prKey)
+	pK, err := hedera.PrivateKeyFromString(privateKey)
 	if err != nil {
 		panic(err)
 	}
