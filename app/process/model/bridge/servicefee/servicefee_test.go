@@ -24,10 +24,10 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	servicefeeInstance := servicefee.Servicefee{}
-	newBigInt := big.NewInt(int64(5))
-	servicefeeInstance.Set(*newBigInt)
+	serviceFeeInstance := servicefee.Servicefee{}
+	newServiceFee := big.NewInt(int64(5))
+	serviceFeeInstance.Set(*newServiceFee)
 
-	serviceFee := servicefeeInstance.Get()
-	assert.Assert(t, serviceFee.Cmp(newBigInt) == 0, "Service fee was not set correctly")
+	serviceFee := serviceFeeInstance.Get()
+	assert.Assert(t, serviceFee.Cmp(newServiceFee) == 0, "Service fee was not set correctly")
 }
