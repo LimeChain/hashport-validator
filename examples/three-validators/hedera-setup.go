@@ -24,9 +24,9 @@ import (
 )
 
 func main() {
-
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
+	network := flag.String("network", "", "Hedera Network Type")
 	flag.Parse()
 
 	if *privateKey == "0x0" {
@@ -35,8 +35,8 @@ func main() {
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
 	}
-
-	client := previewClient(*privateKey, *accountID)
+	fmt.Println("-----------Start-----------")
+	client := previewClient(*privateKey, *accountID, *network)
 	privKey1, err := cryptoCreate(client)
 	if err != nil {
 		panic(err)
@@ -64,7 +64,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("TopicID: ", topicReceipt.TopicID)
+	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	custodialKey := hedera.KeyListWithThreshold(3)
 	custodialKey = custodialKey.Add(privKey1.PublicKey()).Add(privKey2.PublicKey()).Add(privKey3.PublicKey())
 	// Creating Bridge theshhold account
@@ -79,7 +79,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Bridge Account: ", bridgeAccountReceipt.AccountID)
+	fmt.Printf("Bridge Account: %v\n", bridgeAccountReceipt.AccountID)
 
 	// Creating Scheduled transaction payer theshhold account
 	scheduledTxPayerAccount, err := hedera.NewAccountCreateTransaction().
@@ -93,29 +93,48 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Scheduled Tx Payer Account: ", scheduledTxPayerAccountReceipt.AccountID)
+	fmt.Printf("Scheduled Tx Payer Account: %v\n", scheduledTxPayerAccountReceipt.AccountID)
+	fmt.Println("---Executed Successfully---")
 }
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.GeneratePrivateKey()
-	fmt.Println("Hedera Private Key: ", privateKey.String())
+	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
 	publicKey := privateKey.PublicKey()
 	newAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(publicKey).
 		SetInitialBalance(hedera.NewHbar(100)).
 		Execute(client)
 	if err != nil {
-		panic(err)
+		return hedera.PrivateKey{}, err
 	}
 	receipt, err := newAccount.GetReceipt(client)
 	if err != nil {
-		panic(err)
+		return hedera.PrivateKey{}, err
 	}
-	fmt.Println("AccountID: ", receipt.AccountID)
-	fmt.Println("--------------------->")
+	fmt.Printf("AccountID: %v\n", receipt.AccountID)
+
+	balance, err := hedera.NewAccountBalanceQuery().
+		SetAccountID(*receipt.AccountID).
+		Execute(client)
+	if err != nil {
+		return hedera.PrivateKey{}, err
+	}
+	fmt.Printf("Balance = %v\n", balance.Hbars.String())
+	fmt.Println("--------------------------")
 	return privateKey, nil
 }
-func previewClient(privateKey, accountID string) *hedera.Client {
-	client := hedera.ClientForPreviewnet()
+func previewClient(privateKey, accountID, network string) *hedera.Client {
+	var client *hedera.Client
+
+	if network == "previewnet" {
+		client = hedera.ClientForPreviewnet()
+	} else if network == "testnet" {
+		client = hedera.ClientForTestnet()
+	} else if network == "mainnet" {
+		client = hedera.ClientForMainnet()
+	} else {
+		panic("Unknown Network Type!")
+	}
 	accID, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
 		panic(err)
