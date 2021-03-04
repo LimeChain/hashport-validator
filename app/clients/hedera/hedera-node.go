@@ -71,7 +71,7 @@ func (hc Node) GetClient() *hedera.Client {
 
 // SubmitTopicConsensusMessage submits the provided message bytes to the specified HCS topicId
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	id, err := hedera.NewTopicMessageSubmitTransaction().
+	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
@@ -80,16 +80,9 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 		return nil, err
 	}
 
-	receipt, err := id.GetReceipt(hc.client)
-	if err != nil {
-		return nil, err
-	}
+	_, err = hc.checkTransactionReceipt(txResponse)
 
-	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
-	}
-
-	return &id.TransactionID, err
+	return &txResponse.TransactionID, err
 }
 
 // SubmitScheduledTransaction submits a scheduled transaction based on input parameters
