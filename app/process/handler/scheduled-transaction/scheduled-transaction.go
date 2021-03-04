@@ -80,13 +80,13 @@ func (sth Handler) Handle(payload []byte) {
 
 	err = sth.scheduledRepository.Create(stm.Amount, stm.Nonce, stm.Recipient, sth.bridgeThresholdAccount.String(), sth.payerAccount.String())
 	if err != nil {
-		sth.logger.Errorf("Failed to create a scheduled record for [%s]. Error [%s]", stm.Nonce, err)
+		sth.logger.Errorf("Failed to create a scheduled record for [%s]. Error [%s].", stm.Nonce, err)
 		return
 	}
 
 	transactionID, scheduleID, err := sth.hederaNodeClient.SubmitScheduledTransaction(stm.Amount, recipient, sth.bridgeThresholdAccount, sth.payerAccount, stm.Nonce)
 	if err != nil {
-		sth.logger.Errorf("Failed to submit scheduled transaction. Error [%s]", err)
+		sth.logger.Errorf("Failed to submit scheduled transaction. Error [%s].", err)
 		return
 	}
 
