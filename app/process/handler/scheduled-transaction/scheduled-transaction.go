@@ -28,18 +28,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ScheduledTransactionHandler struct {
+type Handler struct {
 	bridgeThresholdAccount hedera.AccountID
 	payerAccount           hedera.AccountID
 	hederaNodeClient       clients.HederaNodeClient
-	scheduledRepository    repositories.ScheduledRepository
+	scheduledRepository    repositories.Scheduled
 	logger                 *log.Entry
 }
 
 func NewScheduledMessageHandler(
 	c config.ScheduledTransactionHandler,
 	hederaNodeClient clients.HederaNodeClient,
-	scheduledRepository repositories.ScheduledRepository) *ScheduledTransactionHandler {
+	scheduledRepository repositories.Scheduled) *Handler {
 	bridgeThresholdAccount, err := hedera.AccountIDFromString(c.BridgeThresholdAccount)
 	if err != nil {
 		log.Fatalf("Invalid bridge threshold account: [%s]", c.BridgeThresholdAccount)
@@ -50,7 +50,7 @@ func NewScheduledMessageHandler(
 		log.Fatalf("Invalid payer account: [%s]", c.PayerAccount)
 	}
 
-	return &ScheduledTransactionHandler{
+	return &Handler{
 		bridgeThresholdAccount: bridgeThresholdAccount,
 		payerAccount:           payerAccount,
 		hederaNodeClient:       hederaNodeClient,
@@ -60,11 +60,11 @@ func NewScheduledMessageHandler(
 }
 
 // Recover mechanism
-func (sth *ScheduledTransactionHandler) Recover(q *queue.Queue) {
+func (sth Handler) Recover(q *queue.Queue) {
 	// todo:
 }
 
-func (sth *ScheduledTransactionHandler) Handle(payload []byte) {
+func (sth Handler) Handle(payload []byte) {
 	var stm protomsg.ScheduledTransactionMessage
 	err := proto.Unmarshal(payload, &stm)
 	if err != nil {

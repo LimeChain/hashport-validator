@@ -66,7 +66,7 @@ func main() {
 	statusCryptoTransferRepository := status.NewStatusRepository(db, process.CryptoTransferMessageType)
 	statusConsensusMessageRepository := status.NewStatusRepository(db, process.HCSMessageType)
 	messageRepository := message.NewMessageRepository(db)
-	scheduledRepository := scheduled.NewScheduledRepository(db)
+	scheduledRepository := scheduled.NewRepository(db)
 
 	exchangeRateService := exchangerate.NewExchangeRateProvider("hedera-hashgraph", "eth")
 	feeCalculator := fees.NewFeeCalculator(&exchangeRateService, configuration.Hedera)

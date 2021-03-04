@@ -1,6 +1,6 @@
 package repositories
 
-type ScheduledRepository interface {
+type Scheduled interface {
 	Create(amount int64, nonce, recipient, bridgeThresholdAccountID, payerAccountID string) error
 	UpdateStatusSubmitted(nonce, scheduleID, submissionTxId string) error
 	UpdateStatusCompleted(txId string) error

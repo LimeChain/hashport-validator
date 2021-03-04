@@ -40,17 +40,17 @@ type Scheduled struct {
 	SubmissionTxId           string `gorm:"unique"`
 }
 
-type ScheduledRepository struct {
+type Repository struct {
 	dbClient *gorm.DB
 }
 
-func NewScheduledRepository(dbClient *gorm.DB) *ScheduledRepository {
-	return &ScheduledRepository{
+func NewRepository(dbClient *gorm.DB) *Repository {
+	return &Repository{
 		dbClient: dbClient,
 	}
 }
 
-func (sr *ScheduledRepository) Create(amount int64, nonce, recipient, bridgeThresholdAccountID, payerAccountID string) error {
+func (sr Repository) Create(amount int64, nonce, recipient, bridgeThresholdAccountID, payerAccountID string) error {
 	return sr.dbClient.Create(&Scheduled{
 		Model:                    gorm.Model{},
 		Amount:                   amount,
@@ -62,7 +62,7 @@ func (sr *ScheduledRepository) Create(amount int64, nonce, recipient, bridgeThre
 	}).Error
 }
 
-func (sr *ScheduledRepository) UpdateStatusSubmitted(nonce, scheduleID, submissionTxId string) error {
+func (sr Repository) UpdateStatusSubmitted(nonce, scheduleID, submissionTxId string) error {
 	return sr.dbClient.
 		Model(Scheduled{}).
 		Where("nonce = ?", nonce).
@@ -70,15 +70,15 @@ func (sr *ScheduledRepository) UpdateStatusSubmitted(nonce, scheduleID, submissi
 		Error
 }
 
-func (sr *ScheduledRepository) UpdateStatusCompleted(txId string) error {
+func (sr Repository) UpdateStatusCompleted(txId string) error {
 	return sr.updateStatus(txId, StatusCompleted)
 }
 
-func (sr *ScheduledRepository) UpdateStatusFailed(txId string) error {
+func (sr Repository) UpdateStatusFailed(txId string) error {
 	return sr.updateStatus(txId, StatusFailed)
 }
 
-func (sr *ScheduledRepository) updateStatus(txId string, status string) error {
+func (sr Repository) updateStatus(txId string, status string) error {
 	return sr.dbClient.
 		Model(Scheduled{}).
 		Where("submission_tx_id = ?", txId).
