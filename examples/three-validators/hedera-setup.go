@@ -36,7 +36,7 @@ func main() {
 		panic("Account id was not provided")
 	}
 	fmt.Println("-----------Start-----------")
-	client := previewClient(*privateKey, *accountID, *network)
+	client := initClient(*privateKey, *accountID, *network)
 	privKey1, err := cryptoCreate(client)
 	if err != nil {
 		panic(err)
@@ -65,6 +65,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
+	fmt.Println("--------------------------")
 	custodialKey := hedera.KeyListWithThreshold(3)
 	custodialKey = custodialKey.Add(privKey1.PublicKey()).Add(privKey2.PublicKey()).Add(privKey3.PublicKey())
 	// Creating Bridge theshhold account
@@ -80,6 +81,8 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Bridge Account: %v\n", bridgeAccountReceipt.AccountID)
+	fmt.Printf("Balance: %v\n", "100 HBars")
+	fmt.Println("--------------------------")
 
 	// Creating Scheduled transaction payer theshhold account
 	scheduledTxPayerAccount, err := hedera.NewAccountCreateTransaction().
@@ -94,6 +97,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Scheduled Tx Payer Account: %v\n", scheduledTxPayerAccountReceipt.AccountID)
+	fmt.Printf("Balance: %v\n", "100 HBars")
 	fmt.Println("---Executed Successfully---")
 }
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
@@ -112,18 +116,11 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 		return hedera.PrivateKey{}, err
 	}
 	fmt.Printf("AccountID: %v\n", receipt.AccountID)
-
-	balance, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(*receipt.AccountID).
-		Execute(client)
-	if err != nil {
-		return hedera.PrivateKey{}, err
-	}
-	fmt.Printf("Balance = %v\n", balance.Hbars.String())
+	fmt.Printf("Balance: %v\n", "100 HBars")
 	fmt.Println("--------------------------")
 	return privateKey, nil
 }
-func previewClient(privateKey, accountID, network string) *hedera.Client {
+func initClient(privateKey, accountID, network string) *hedera.Client {
 	var client *hedera.Client
 
 	if network == "previewnet" {
