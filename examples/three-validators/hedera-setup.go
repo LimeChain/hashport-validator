@@ -70,7 +70,7 @@ func main() {
 	fmt.Println("--------------------------")
 	custodialKey := hedera.KeyListWithThreshold(3)
 	custodialKey = custodialKey.Add(privKey1.PublicKey()).Add(privKey2.PublicKey()).Add(privKey3.PublicKey())
-	// Creating Bridge theshhold account
+	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(custodialKey).
 		Execute(client)
