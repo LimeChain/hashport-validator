@@ -23,6 +23,8 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 )
 
+var balance = hedera.NewHbar(100)
+
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
@@ -71,7 +73,6 @@ func main() {
 	// Creating Bridge theshhold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(custodialKey).
-		SetInitialBalance(hedera.NewHbar(100)).
 		Execute(client)
 	if err != nil {
 		panic(err)
@@ -81,13 +82,12 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Bridge Account: %v\n", bridgeAccountReceipt.AccountID)
-	fmt.Printf("Balance: %v\n", "100 HBars")
 	fmt.Println("--------------------------")
 
 	// Creating Scheduled transaction payer theshhold account
 	scheduledTxPayerAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(custodialKey).
-		SetInitialBalance(hedera.NewHbar(100)).
+		SetInitialBalance(balance).
 		Execute(client)
 	if err != nil {
 		panic(err)
@@ -97,7 +97,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Scheduled Tx Payer Account: %v\n", scheduledTxPayerAccountReceipt.AccountID)
-	fmt.Printf("Balance: %v\n", "100 HBars")
+	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("---Executed Successfully---")
 }
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
@@ -106,7 +106,7 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	publicKey := privateKey.PublicKey()
 	newAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(publicKey).
-		SetInitialBalance(hedera.NewHbar(100)).
+		SetInitialBalance(balance).
 		Execute(client)
 	if err != nil {
 		return hedera.PrivateKey{}, err
@@ -116,7 +116,7 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 		return hedera.PrivateKey{}, err
 	}
 	fmt.Printf("AccountID: %v\n", receipt.AccountID)
-	fmt.Printf("Balance: %v\n", "100 HBars")
+	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("--------------------------")
 	return privateKey, nil
 }
