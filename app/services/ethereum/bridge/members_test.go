@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package servicefee_test
+package bridge
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/servicefee"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"testing"
 )
 
-func TestSet(t *testing.T) {
-	serviceFeeInstance := servicefee.Servicefee{}
-	newServiceFee := big.NewInt(int64(5))
-	serviceFeeInstance.Set(*newServiceFee)
-
-	serviceFee := serviceFeeInstance.Get()
-	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
+func TestMembersSet(t *testing.T) {
+	membersService := Members{}
+	newMembers := []string{"0x1aSd", "0x2dSa", "0x3qWe", "0x4eWq"}
+	membersService.Set(newMembers)
+	membersList := membersService.Get()
+	assert.Equal(t, len(newMembers), len(membersList), "Different array length")
+	for i, v := range membersList {
+		assert.Equal(t, newMembers[i], v, "Members not set correctly")
+	}
 }
