@@ -62,7 +62,7 @@ func main() {
 	schedulerService := scheduler.NewScheduler(configuration.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
 		configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, client.hederaNode)
 
-	feeCalculator := fees.NewFeeCalculator(client.exchangeRate, configuration.Hedera, contractService)
+	feeCalculator := fees.NewCalculator(client.exchangeRate, configuration.Hedera, contractService)
 
 	// Prepare Node
 	server := server.NewServer()
@@ -103,7 +103,7 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func initializeAPIRouter(feeCalculator *fees.FeeCalculator) *apirouter.APIRouter {
+func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
 

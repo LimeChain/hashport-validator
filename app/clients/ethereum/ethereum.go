@@ -35,6 +35,7 @@ type Client struct {
 	*ethclient.Client
 }
 
+// NewClient creates new instance of an Ethereum client
 func NewClient(config config.Ethereum) *Client {
 	client, err := ethclient.Dial(config.NodeUrl)
 	if err != nil {
@@ -79,6 +80,7 @@ func (ec *Client) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool
 	return receipt.Status == 1, nil
 }
 
+// waitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
 func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
 		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)

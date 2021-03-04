@@ -46,7 +46,7 @@ type Handler struct {
 	hederaNodeClient   clients.HederaNode
 	transactionRepo    repositories.Transaction
 	logger             *log.Entry
-	feeCalculator      *fees.FeeCalculator
+	feeCalculator      *fees.Calculator
 }
 
 func NewHandler(
@@ -55,7 +55,7 @@ func NewHandler(
 	hederaMirrorClient clients.MirrorNode,
 	hederaNodeClient clients.HederaNode,
 	transactionRepository repositories.Transaction,
-	feeCalculator *fees.FeeCalculator) *Handler {
+	feeCalculator *fees.Calculator) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -74,7 +74,7 @@ func NewHandler(
 }
 
 // Recover mechanism
-func (cth *Handler) Recover(q *queue.Queue) {
+func (cth Handler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
 	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
@@ -94,7 +94,7 @@ func (cth *Handler) Recover(q *queue.Queue) {
 	}
 }
 
-func (cth *Handler) Handle(payload []byte) {
+func (cth Handler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
@@ -173,7 +173,7 @@ func (cth *Handler) Handle(payload []byte) {
 	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId.String())
 }
 
-func (cth *Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
+func (cth Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
 	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))
@@ -214,7 +214,7 @@ func (cth *Handler) checkForTransactionCompletion(transactionId string, topicMes
 	}
 }
 
-func (cth *Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
+func (cth Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
 	ctm := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionId,
 		EthAddress:    tx.EthAddress,
@@ -224,7 +224,7 @@ func (cth *Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
 	publisher.Publish(ctm, "HCS_CRYPTO_TRANSFER", cth.topicID, q)
 }
 
-func (cth *Handler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
+func (cth Handler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
 	topicSigMessage := &protomsg.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,

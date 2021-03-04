@@ -34,7 +34,7 @@ func Test_GetConfig(t *testing.T) {
 	// Test we get an error when wrong path is provided
 	err := GetConfig(&configuration, "non-existing-path/application.yml")
 	if err == nil {
-		t.Fatalf(err.Error())
+		t.Fatalf(`Expected GetConfig to return error when loading non-existing application.yml file`)
 	}
 
 	// Test we get no error when existing path is provided

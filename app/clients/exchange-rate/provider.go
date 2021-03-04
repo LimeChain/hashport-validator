@@ -23,6 +23,7 @@ import (
 	"net/http"
 )
 
+// Provider struct representing the ExchangeRate provider client. Used for currency pairs (e.g HBAR/ETH)
 type Provider struct {
 	httpClient *http.Client
 	rateURL    string
@@ -31,6 +32,7 @@ type Provider struct {
 	rate       float64
 }
 
+// NewProvider creates new instance of the Exchange rate provider client
 func NewProvider(coin string, currency string) *Provider {
 	return &Provider{
 		httpClient: &http.Client{},
@@ -40,7 +42,8 @@ func NewProvider(coin string, currency string) *Provider {
 	}
 }
 
-func (erp *Provider) GetEthVsHbarRate() (float64, error) {
+// GetEthVsHbarRate retrieves the current ETH/HBAR rate from the 3rd party API
+func (erp Provider) GetEthVsHbarRate() (float64, error) {
 	response, err := erp.httpClient.Get(erp.rateURL)
 	if err != nil {
 		return 0, err
@@ -60,6 +63,7 @@ func (erp *Provider) GetEthVsHbarRate() (float64, error) {
 	return float64(rates[erp.coin][erp.currency]), nil
 }
 
+// readResponseBody parses the http.Response into byte array
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
