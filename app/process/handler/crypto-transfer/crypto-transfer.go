@@ -19,6 +19,7 @@ package cryptotransfer
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"time"
 
 	"github.com/golang/protobuf/proto"

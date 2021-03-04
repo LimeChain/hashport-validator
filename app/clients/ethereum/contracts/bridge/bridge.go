@@ -241,10 +241,10 @@ func (_Bridge *BridgeCaller) ClaimableFeesFor(opts *bind.CallOpts, _address comm
 	err := _Bridge.contract.Call(opts, &out, "claimableFeesFor", _address)
 
 	if err != nil {
-		return *new(*big.Int), err
+		return *new(common.Address), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
 
 	return out0, err
 
