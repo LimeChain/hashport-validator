@@ -25,7 +25,7 @@ import (
 type TransactionRepository interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
-	GetSkippedTransactionsAndMessages() (map[string][]*message.TransactionMessage, error)
+	GetSkippedOrInitialTransactionsAndMessages() (map[string][]*message.TransactionMessage, error)
 	Create(ct *proto.CryptoTransferMessage) error
 	Skip(ct *proto.CryptoTransferMessage) error
 	UpdateStatusCompleted(txId string) error

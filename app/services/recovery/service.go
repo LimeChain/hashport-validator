@@ -27,7 +27,6 @@ import (
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -121,7 +120,7 @@ func (rs *RecoveryService) Recover() (int64, error) {
 }
 
 func (rs *RecoveryService) processSkipped() error {
-	unprocessed, err := rs.transactionRepository.GetSkippedTransactionsAndMessages()
+	unprocessed, err := rs.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
 	}
@@ -181,7 +180,7 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 
 	rs.logger.Infof("Found [%d] unprocessed transactions", len(result.Transactions))
 	for _, tr := range result.Transactions {
-		if recent(tr, to) {
+		if recent(tr.ConsensusTimestamp, to) {
 			break
 		}
 
@@ -218,6 +217,10 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 
 	rs.logger.Infof("Found [%d] unprocessed topic messages", len(result.Messages))
 	for _, msg := range result.Messages {
+		if recent(msg.ConsensusTimestamp, now) {
+			break
+		}
+
 		timestamp, err := timestampHelper.FromString(msg.ConsensusTimestamp)
 		if err != nil {
 			rs.logger.Errorf("Error - could not parse timestamp string to int64: [%s]", err)
@@ -278,8 +281,8 @@ func (rs *RecoveryService) checkStatusAndUpdate(m *validatorproto.TopicEthTransa
 	return nil
 }
 
-func recent(tr tx.HederaTransaction, now int64) bool {
-	consensusTimestampParams := strings.Split(tr.ConsensusTimestamp, ".")
+func recent(timestamp string, now int64) bool {
+	consensusTimestampParams := strings.Split(timestamp, ".")
 	microseconds, _ := strconv.ParseInt(consensusTimestampParams[0], 10, 64)
 	nanoseconds, _ := strconv.ParseInt(consensusTimestampParams[1], 10, 64)
 	ct := microseconds*1000 + nanoseconds

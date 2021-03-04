@@ -94,7 +94,7 @@ func (m *MockTransactionRepository) Skip(ct *proto.CryptoTransferMessage) error 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) GetSkippedTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
+func (m *MockTransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
 	args := m.Called()
 	return args.Get(0).(map[string][]*message.TransactionMessage), args.Get(1).(error)
 }

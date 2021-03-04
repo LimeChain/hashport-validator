@@ -101,7 +101,7 @@ type JoinedTxnMessage struct {
 	GasPriceGwei  string
 }
 
-func (tr *TransactionRepository) GetSkippedTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
+func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
 	var messages []*message.TransactionMessage
 
 	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
@@ -114,7 +114,7 @@ func (tr *TransactionRepository) GetSkippedTransactionsAndMessages() (map[string
 		"transaction_messages.signer_address " +
 		"FROM transactions " +
 		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
-		"WHERE transactions.status = 'SKIPPED' ").
+		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
 		Scan(&messages).Error
 	if err != nil {
 		fmt.Println(err)

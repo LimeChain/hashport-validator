@@ -49,7 +49,7 @@ func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(acco
 }
 
 func (c HederaMirrorClient) GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error) {
-	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gte:%s",
+	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.ToString(timestamp))
 	return c.getTopicMessagesByQuery(transactionsDownloadQuery)
