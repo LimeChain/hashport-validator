@@ -31,14 +31,14 @@ type Status struct {
 	Timestamp int64
 }
 
-type StatusRepository struct {
+type Repository struct {
 	dbClient                 *gorm.DB
 	lastFetchedTimestampCode string //"LAST_FETCHED_TIMESTAMP"
 }
 
-func NewStatusRepository(dbClient *gorm.DB, statusType string) *StatusRepository {
+func NewRepositoryForStatus(dbClient *gorm.DB, statusType string) *Repository {
 	typeCheck(statusType)
-	return &StatusRepository{
+	return &Repository{
 		dbClient:                 dbClient,
 		lastFetchedTimestampCode: fmt.Sprintf("LAST_%s_TIMESTAMP", statusType),
 	}
@@ -54,7 +54,7 @@ func typeCheck(statusType string) {
 	}
 }
 
-func (s StatusRepository) GetLastFetchedTimestamp(entityID string) (int64, error) {
+func (s Repository) GetLastFetchedTimestamp(entityID string) (int64, error) {
 	lastFetchedStatus := &Status{}
 	err := s.dbClient.
 		Model(&Status{}).
@@ -66,7 +66,7 @@ func (s StatusRepository) GetLastFetchedTimestamp(entityID string) (int64, error
 	return lastFetchedStatus.Timestamp, nil
 }
 
-func (s StatusRepository) CreateTimestamp(entityID string, timestamp int64) error {
+func (s Repository) CreateTimestamp(entityID string, timestamp int64) error {
 	return s.dbClient.Create(Status{
 		Name:      "Last fetched timestamp",
 		EntityID:  entityID,
@@ -75,7 +75,7 @@ func (s StatusRepository) CreateTimestamp(entityID string, timestamp int64) erro
 	}).Error
 }
 
-func (s StatusRepository) UpdateLastFetchedTimestamp(entityID string, timestamp int64) error {
+func (s Repository) UpdateLastFetchedTimestamp(entityID string, timestamp int64) error {
 	return s.dbClient.
 		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
 		Save(Status{

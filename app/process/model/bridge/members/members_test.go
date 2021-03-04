@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-package clients
+package members_test
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/members"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type HederaMirrorClient interface {
-	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
-	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
-	GetStateProof(transactionID string) ([]byte, error)
-	AccountExists(accountID hedera.AccountID) bool
+func TestSet(t *testing.T) {
+	membersService := members.Members{}
+	newMembers := []string{"0x1aSd", "0x2dSa", "0x3qWe", "0x4eWq"}
+	membersService.Set(newMembers)
+	membersList := membersService.Get()
+	assert.Equal(t, len(newMembers), len(membersList), "Different array length")
+	for i, v := range membersList {
+		assert.Equal(t, newMembers[i], v, "Members not set correctly")
+	}
 }

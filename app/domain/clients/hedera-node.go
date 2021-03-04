@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package mocks
+package clients
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
+)
 
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+type HederaNode interface {
+	GetClient() *hedera.Client
+	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
+	SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error)
 }

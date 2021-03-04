@@ -14,14 +14,26 @@
  * limitations under the License.
  */
 
-package clients
+package bridge
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
+	"math/big"
+	"sync"
 )
 
-type HederaNodeClient interface {
-	GetClient() *hedera.Client
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
-	SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error)
+type ServiceFee struct {
+	serviceFee big.Int
+	mutex      sync.RWMutex
+}
+
+func (s *ServiceFee) Get() *big.Int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return &s.serviceFee
+}
+
+func (s *ServiceFee) Set(serviceFee big.Int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.serviceFee = serviceFee
 }

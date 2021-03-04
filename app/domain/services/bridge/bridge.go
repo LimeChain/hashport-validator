@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-package provider
+package bridge
 
-type ExchangeRateProvider interface {
-	GetEthVsHbarRate() (float64, error)
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
+)
+
+type ContractService interface {
+	GetContractAddress() common.Address
+	GetServiceFee() *big.Int
+	GetMembers() []string
 }

@@ -47,15 +47,24 @@ const (
 	exchangeRate    = 0.00007
 )
 
+var (
+	addresses = []string{
+		"0xsomeaddress",
+		"0xsomeaddress2",
+		"0xsomeaddress3",
+	}
+	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
+	serviceFeePercent uint64 = 10000
+)
+
 func getHederaConfig() config.Hedera {
 	hederaConfig := config.Hedera{}
-	hederaConfig.Client.ServiceFeePercent = 10
 	hederaConfig.Client.BaseGasUsage = 130000
 	hederaConfig.Client.GasPerValidator = 54000
 	return hederaConfig
 }
 
-func InitializeHandler() (*CryptoTransferHandler, *mocks.MockTransactionRepository, *mocks.MockHederaNodeClient, *mocks.MockHederaMirrorClient, *fees.FeeCalculator) {
+func InitializeHandler() (*Handler, *mocks.MockTransactionRepository, *mocks.MockHederaNodeClient, *mocks.MockHederaMirrorClient, *fees.Calculator) {
 	cthConfig := config.CryptoTransferHandler{
 		TopicId:         topicID,
 		PollingInterval: pollingInterval,
@@ -65,9 +74,9 @@ func InitializeHandler() (*CryptoTransferHandler, *mocks.MockTransactionReposito
 	transactionRepo := &mocks.MockTransactionRepository{}
 	hederaNodeClient := &mocks.MockHederaNodeClient{}
 	hederaMirrorClient := &mocks.MockHederaMirrorClient{}
-	feeCalculator := fees.NewFeeCalculator(mocks.MExchangeRateProvider, getHederaConfig())
+	feeCalculator := fees.NewCalculator(mocks.MExchangeRateProvider, getHederaConfig(), mocks.MBridgeContractService)
 
-	return NewCryptoTransferHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, feeCalculator), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
+	return NewHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, feeCalculator), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
 }
 
 func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {
@@ -139,6 +148,9 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
 	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(exchangeRate, nil)
+
+	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
+	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	ctHandler.Handle(cryptoTransferPayload)
 	time.Sleep(time.Second * pollingInterval)

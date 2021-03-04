@@ -19,7 +19,7 @@ package scheduledtx
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -31,14 +31,14 @@ import (
 type Handler struct {
 	bridgeThresholdAccount hedera.AccountID
 	payerAccount           hedera.AccountID
-	hederaNodeClient       clients.HederaNodeClient
+	hederaNodeClient       clients.HederaNode
 	scheduledRepository    repositories.Scheduled
 	logger                 *log.Entry
 }
 
-func NewScheduledMessageHandler(
+func NewHandler(
 	c config.ScheduledTransactionHandler,
-	hederaNodeClient clients.HederaNodeClient,
+	hederaNodeClient clients.HederaNode,
 	scheduledRepository repositories.Scheduled) *Handler {
 	bridgeThresholdAccount, err := hedera.AccountIDFromString(c.BridgeThresholdAccount)
 	if err != nil {

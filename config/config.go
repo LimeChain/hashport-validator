@@ -32,7 +32,7 @@ const (
 	mainConfigFile    = "application.yml"
 )
 
-func LoadConfig() *Config {
+func LoadConfig() Config {
 	var configuration Config
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
@@ -41,7 +41,7 @@ func LoadConfig() *Config {
 		panic(err)
 	}
 
-	return &configuration
+	return configuration
 }
 
 func GetConfig(config *Config, path string) error {
@@ -83,9 +83,8 @@ type Handler struct {
 }
 
 type ConsensusMessageHandler struct {
-	TopicId      string   `yaml:"topic_id"`
-	Addresses    []string `yaml:"addresses"`
-	SendDeadline int64    `yaml:"send_deadline"`
+	TopicId      string `yaml:"topic_id"`
+	SendDeadline int64  `yaml:"send_deadline"`
 }
 
 type CryptoTransferHandler struct {
@@ -124,11 +123,10 @@ type ID struct {
 }
 
 type Client struct {
-	NetworkType       string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator          Operator `yaml:"operator"`
-	ServiceFeePercent uint64   `yaml:"service_fee_percent"`
-	BaseGasUsage      uint64   `yaml:"base_gas_usage"`
-	GasPerValidator   uint64   `yaml:"gas_per_validator"`
+	NetworkType     string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator        Operator `yaml:"operator"`
+	BaseGasUsage    uint64   `yaml:"base_gas_usage"`
+	GasPerValidator uint64   `yaml:"gas_per_validator"`
 }
 
 type Operator struct {

@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package mocks
+package clients
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+)
 
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+type MirrorNode interface {
+	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
+	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
+	GetStateProof(transactionID string) ([]byte, error)
+	AccountExists(accountID hedera.AccountID) bool
 }

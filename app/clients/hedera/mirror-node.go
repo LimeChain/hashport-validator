@@ -28,32 +28,32 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
-type HederaMirrorClient struct {
+type MirrorNode struct {
 	mirrorAPIAddress string
 	httpClient       *http.Client
 }
 
-func NewHederaMirrorClient(mirrorNodeAPIAddress string) *HederaMirrorClient {
-	return &HederaMirrorClient{
+func NewMirrorNodeClient(mirrorNodeAPIAddress string) *MirrorNode {
+	return &MirrorNode{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
 		httpClient:       &http.Client{},
 	}
 }
 
-func (c HederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c HederaMirrorClient) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) {
+func (c MirrorNode) GetStateProof(transactionID string) ([]byte, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions",
 		fmt.Sprintf("/%s/stateproof", transactionID))
 
@@ -69,11 +69,11 @@ func (c HederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) 
 	return readResponseBody(response)
 }
 
-func (c HederaMirrorClient) get(query string) (*http.Response, error) {
+func (c MirrorNode) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) getTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 
 	response, e := c.get(transactionsQuery)
@@ -95,7 +95,7 @@ func (c HederaMirrorClient) getTransactionsByQuery(query string) (*transaction.H
 	return transactions, nil
 }
 
-func (c HederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
+func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 	accountQuery := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,

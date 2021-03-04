@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package mocks
+package servicefee_test
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/servicefee"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
+)
 
-var MBridgeContractService *MockBridgeContract
+func TestSet(t *testing.T) {
+	serviceFeeInstance := servicefee.Servicefee{}
+	newServiceFee := big.NewInt(int64(5))
+	serviceFeeInstance.Set(*newServiceFee)
 
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+	serviceFee := serviceFeeInstance.Get()
+	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
 }

@@ -32,11 +32,11 @@ import (
 
 type EthWatcher struct {
 	config          config.Ethereum
-	contractService *bridge.BridgeContractService
+	contractService *bridge.ContractService
 	logger          *log.Entry
 }
 
-func NewEthereumWatcher(contractService *bridge.BridgeContractService, config config.Ethereum) *EthWatcher {
+func NewEthereumWatcher(contractService *bridge.ContractService, config config.Ethereum) *EthWatcher {
 	return &EthWatcher{
 		config:          config,
 		contractService: contractService,
@@ -60,6 +60,7 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 		select {
 		case err := <-sub.Err():
 			log.Errorf("Burn Event Logs subscription failed. Error [%s].", err)
+			return
 		case eventLog := <-events:
 			ew.handleLog(eventLog, q)
 		}

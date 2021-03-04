@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-package mocks
+package clients
 
-var MExchangeRateProvider *MockExchangeRateProvider
-
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+type ExchangeRate interface {
+	GetEthVsHbarRate() (float64, error)
 }

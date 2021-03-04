@@ -24,17 +24,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type HederaNodeClient struct {
+var (
+	// TODO: clarify node ids
+	nodeID, _ = hedera.AccountIDFromString("0.0.4")
+	nodeIDs   = []hedera.AccountID{nodeID}
+)
+
+// Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
+type Node struct {
 	client *hedera.Client
 }
 
-var (
-	// TODO: clarify node ids
-	hederaNodeID, _ = hedera.AccountIDFromString("0.0.4")
-	hederaNodeIDs   = []hedera.AccountID{hederaNodeID}
-)
-
-func NewNodeClient(config config.Client) *HederaNodeClient {
+// NewNodeClient creates new instance of hedera.Client based on the provided client configuration
+func NewNodeClient(config config.Client) *Node {
 	var client *hedera.Client
 	switch config.NetworkType {
 	case "mainnet":
@@ -57,17 +59,19 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey)
 	}
 
-	client = client.SetOperator(accID, privateKey)
+	client.SetOperator(accID, privateKey)
 
-	return &HederaNodeClient{client}
+	return &Node{client}
 }
 
-func (hc *HederaNodeClient) GetClient() *hedera.Client {
+// GetClient returns the hedera.Client
+func (hc Node) GetClient() *hedera.Client {
 	return hc.client
 }
 
-func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
+// SubmitTopicConsensusMessage submits the provided message bytes to the specified HCS topicId
+func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+	id, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
@@ -76,12 +80,20 @@ func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, 
 		return nil, err
 	}
 
-	_, err = hc.checkTransactionReceipt(txResponse)
+	receipt, err := id.GetReceipt(hc.client)
+	if err != nil {
+		return nil, err
+	}
 
-	return &txResponse.TransactionID, err
+	if receipt.Status != hedera.StatusSuccess {
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
+	}
+
+	return &id.TransactionID, err
 }
 
-func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+// SubmitScheduledTransaction submits a scheduled transaction based on input parameters
+func (hc Node) SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
 	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
 	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
 
@@ -94,7 +106,7 @@ func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, reci
 		SetTransactionID(txnId).
 		AddHbarTransfer(recipient, receiveAmount).
 		AddHbarTransfer(bridgeThresholdAccountID, subtractedAmount).
-		SetNodeAccountIDs(hederaNodeIDs).
+		SetNodeAccountIDs(nodeIDs).
 		FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, nil, err
@@ -126,7 +138,7 @@ func (hc *HederaNodeClient) SubmitScheduledTransaction(tinybarAmount int64, reci
 	return &txResponse.TransactionID, receipt.ScheduleID, nil
 }
 
-func (hc *HederaNodeClient) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
+func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
 	receipt, err := txResponse.GetReceipt(hc.client)
 	if err != nil {
 		return nil, err

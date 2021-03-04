@@ -107,7 +107,7 @@ func newSetup(config Config) (*Setup, error) {
 // clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
-	EthClient       *ethereum.EthereumClient
+	EthClient       *ethereum.Client
 	WHbarContract   *whbar.Whbar
 	BridgeContract  *bridge.Bridge
 	ValidatorClient *e2eClients.Validator
@@ -119,7 +119,7 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := ethereum.NewEthereumClient(config.Ethereum)
+	ethClient := ethereum.NewClient(config.Ethereum)
 
 	whbarContractAddress := common.HexToAddress(config.Ethereum.WhbarContractAddress)
 	whbarInstance, err := whbar.NewWhbar(whbarContractAddress, ethClient.Client)

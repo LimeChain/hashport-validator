@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package mocks
+package clients
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
-var MBridgeContractService *MockBridgeContract
-
-func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
-	MBridgeContractService = &MockBridgeContract{}
+type Ethereum interface {
+	GetClient() *ethclient.Client
+	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
+	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
 }

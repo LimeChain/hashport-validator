@@ -17,26 +17,32 @@
 package fees
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/provider"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"math/big"
 )
 
-type FeeCalculator struct {
-	rateProvider  provider.ExchangeRateProvider
+var precision = new(big.Int).SetInt64(100000)
+
+type Calculator struct {
+	rateProvider  clients.ExchangeRate
 	configuration config.Hedera
+	bridge        bridge.ContractService
 }
 
-func NewFeeCalculator(rateProvider provider.ExchangeRateProvider, configuration config.Hedera) *FeeCalculator {
-	return &FeeCalculator{
+func NewCalculator(rateProvider clients.ExchangeRate, configuration config.Hedera, bridge bridge.ContractService) *Calculator {
+	return &Calculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,
+		bridge:        bridge,
 	}
 }
 
-func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error) {
+func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
 		return false, InvalidTransferAmount
@@ -47,10 +53,9 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 		return false, InvalidTransferFee
 	}
 
-	serviceFeePercent := new(big.Int).SetUint64(fc.configuration.Client.ServiceFeePercent)
-	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), serviceFeePercent)
-	bigServiceFee = new(big.Int).Div(bigServiceFee, new(big.Int).SetInt64(100))
-
+	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
+	bigServiceFee := new(big.Int).Mul(new(big.Int).Sub(bigTransferAmount, bigTxFee), fc.bridge.GetServiceFee())
+	bigServiceFee = new(big.Int).Div(bigServiceFee, precision)
 	estimatedFee := getFee(bigTxFee, bigServiceFee)
 
 	if bigTransferAmount.Cmp(estimatedFee) < 0 {
@@ -76,7 +81,7 @@ func (fc FeeCalculator) ValidateExecutionFee(transferFee string, transferAmount 
 	return true, nil
 }
 
-func (fc *FeeCalculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
+func (fc Calculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
 	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
 	if err != nil {
 		return "", InvalidGasPrice
@@ -90,7 +95,7 @@ func (fc *FeeCalculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) 
 	return bigEstimatedTxFee.String(), nil
 }
 
-func (fc *FeeCalculator) getEstimatedTxFee(gasPriceGwei *big.Int) (*big.Float, error) {
+func (fc Calculator) getEstimatedTxFee(gasPriceGwei *big.Int) (*big.Float, error) {
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
 	if err != nil {
 		return nil, err
@@ -111,8 +116,8 @@ func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
 	return new(big.Float).Quo(ratioTxFee, bigExchangeRate)
 }
 
-func (fc FeeCalculator) getEstimatedGas() uint64 {
-	majorityValidatorsCount := len(fc.configuration.Handler.ConsensusMessage.Addresses)/2 + 1
+func (fc Calculator) getEstimatedGas() uint64 {
+	majorityValidatorsCount := len(fc.bridge.GetMembers())/2 + 1
 	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
 	return estimatedGas
 }
