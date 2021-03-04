@@ -14,8 +14,26 @@
  * limitations under the License.
  */
 
-package provider
+package bridge
 
-type ExchangeRateProvider interface {
-	GetEthVsHbarRate() (float64, error)
+import (
+	"math/big"
+	"sync"
+)
+
+type ServiceFee struct {
+	serviceFee big.Int
+	mutex      sync.RWMutex
+}
+
+func (s *ServiceFee) Get() *big.Int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return &s.serviceFee
+}
+
+func (s *ServiceFee) Set(serviceFee big.Int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.serviceFee = serviceFee
 }

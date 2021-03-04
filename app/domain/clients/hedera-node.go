@@ -20,7 +20,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 )
 
-type HederaNodeClient interface {
+type HederaNode interface {
 	GetClient() *hedera.Client
 	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
 }

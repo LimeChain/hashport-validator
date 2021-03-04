@@ -14,29 +14,23 @@
  * limitations under the License.
  */
 
-package mocks
+package bridge
 
-import (
-	"github.com/ethereum/go-ethereum/common"
-	"math/big"
+import "sync"
 
-	"github.com/stretchr/testify/mock"
-)
-
-type MockBridgeContract struct {
-	mock.Mock
+type Members struct {
+	members []string
+	mutex   sync.RWMutex
 }
 
-func (m *MockBridgeContract) GetContractAddress() common.Address {
-	return common.HexToAddress("0x0000000000000000000000000000000000000000")
+func (c *Members) Get() []string {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.members
 }
 
-func (m *MockBridgeContract) GetServiceFee() *big.Int {
-	args := m.Called()
-	return new(big.Int).SetUint64(args.Get(0).(uint64))
-}
-
-func (m *MockBridgeContract) GetMembers() []string {
-	args := m.Called()
-	return args.Get(0).([]string)
+func (c *Members) Set(addresses []string) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	c.members = addresses
 }

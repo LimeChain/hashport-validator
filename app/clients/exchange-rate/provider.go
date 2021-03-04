@@ -23,7 +23,8 @@ import (
 	"net/http"
 )
 
-type ExchangeRateProvider struct {
+// Provider struct representing the ExchangeRate provider client. Used for currency pairs (e.g HBAR/ETH)
+type Provider struct {
 	httpClient *http.Client
 	rateURL    string
 	coin       string
@@ -31,8 +32,9 @@ type ExchangeRateProvider struct {
 	rate       float64
 }
 
-func NewExchangeRateProvider(coin string, currency string) ExchangeRateProvider {
-	return ExchangeRateProvider{
+// NewProvider creates new instance of the Exchange rate provider client
+func NewProvider(coin string, currency string) *Provider {
+	return &Provider{
 		httpClient: &http.Client{},
 		rateURL:    fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=%s", coin, currency),
 		coin:       coin,
@@ -40,7 +42,8 @@ func NewExchangeRateProvider(coin string, currency string) ExchangeRateProvider 
 	}
 }
 
-func (erp *ExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
+// GetEthVsHbarRate retrieves the current ETH/HBAR rate from the 3rd party API
+func (erp Provider) GetEthVsHbarRate() (float64, error) {
 	response, err := erp.httpClient.Get(erp.rateURL)
 	if err != nil {
 		return 0, err
@@ -60,6 +63,7 @@ func (erp *ExchangeRateProvider) GetEthVsHbarRate() (float64, error) {
 	return float64(rates[erp.coin][erp.currency]), nil
 }
 
+// readResponseBody parses the http.Response into byte array
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
