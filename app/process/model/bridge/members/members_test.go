@@ -18,7 +18,7 @@ package members_test
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/members"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 

@@ -18,7 +18,7 @@ package servicefee_test
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/servicefee"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 )
@@ -29,5 +29,5 @@ func TestSet(t *testing.T) {
 	serviceFeeInstance.Set(*newServiceFee)
 
 	serviceFee := serviceFeeInstance.Get()
-	assert.Assert(t, serviceFee.Cmp(newServiceFee) == 0, "Service fee was not set correctly")
+	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
 }
