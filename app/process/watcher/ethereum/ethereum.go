@@ -27,11 +27,11 @@ import (
 
 type EthWatcher struct {
 	config          config.Ethereum
-	contractService *bridge.BridgeContractService
+	contractService *bridge.ContractService
 	logger          *log.Entry
 }
 
-func NewEthereumWatcher(contractService *bridge.BridgeContractService, config config.Ethereum) *EthWatcher {
+func NewEthereumWatcher(contractService *bridge.ContractService, config config.Ethereum) *EthWatcher {
 	return &EthWatcher{
 		config:          config,
 		contractService: contractService,

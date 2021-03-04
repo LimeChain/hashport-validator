@@ -24,11 +24,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type HederaNodeClient struct {
+// Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
+type Node struct {
 	client *hedera.Client
 }
 
-func NewNodeClient(config config.Client) *HederaNodeClient {
+// NewNodeClient creates new instance of hedera.Client based on the provided client configuration
+func NewNodeClient(config config.Client) *Node {
 	var client *hedera.Client
 	switch config.NetworkType {
 	case "mainnet":
@@ -53,14 +55,16 @@ func NewNodeClient(config config.Client) *HederaNodeClient {
 
 	client.SetOperator(accID, privateKey)
 
-	return &HederaNodeClient{client}
+	return &Node{client}
 }
 
-func (hc *HederaNodeClient) GetClient() *hedera.Client {
+// GetClient returns the hedera.Client
+func (hc Node) GetClient() *hedera.Client {
 	return hc.client
 }
 
-func (hc *HederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+// SubmitTopicConsensusMessage submits the provided message bytes to the specified HCS topicId
+func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
 	id, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).

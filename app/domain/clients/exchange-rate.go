@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package bridge
+package clients
 
-import "math/big"
-
-type BridgeContractService interface {
-	GetServiceFee() *big.Int
-	GetMembers() []string
+type ExchangeRate interface {
+	GetEthVsHbarRate() (float64, error)
 }

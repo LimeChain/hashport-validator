@@ -21,14 +21,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -44,39 +43,36 @@ import (
 	"gorm.io/gorm"
 )
 
-type ConsensusMessageHandler struct {
-	ethereumClient        *ethereum.EthereumClient
-	hederaNodeClient      *hederaClient.HederaNodeClient
-	bridgeContractAddress string
-	messageRepository     repositories.MessageRepository
-	transactionRepository repositories.TransactionRepository
+type Handler struct {
+	ethereumClient        clients.Ethereum
+	hederaNodeClient      clients.HederaNode
+	messageRepository     repositories.Message
+	transactionRepository repositories.Transaction
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
-	bridge                *bridge.BridgeContractService
+	bridge                *bridge.ContractService
 }
 
-func NewConsensusMessageHandler(
+func NewHandler(
 	configuration config.ConsensusMessageHandler,
-	bridgeContractAddress string,
-	messageRepository repositories.MessageRepository,
-	transactionRepository repositories.TransactionRepository,
-	ethereumClient *ethereum.EthereumClient,
-	hederaNodeClient *hederaClient.HederaNodeClient,
+	messageRepository repositories.Message,
+	transactionRepository repositories.Transaction,
+	ethereumClient clients.Ethereum,
+	hederaNodeClient clients.HederaNode,
 	scheduler *scheduler.Scheduler,
-	bridge *bridge.BridgeContractService,
+	bridge *bridge.ContractService,
 	signer *eth.Signer,
-) *ConsensusMessageHandler {
+) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid topic id: [%v]", configuration.TopicId)
 	}
 
-	return &ConsensusMessageHandler{
+	return &Handler{
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		bridgeContractAddress: bridgeContractAddress,
 		hederaNodeClient:      hederaNodeClient,
 		ethereumClient:        ethereumClient,
 		topicID:               topicID,
@@ -87,11 +83,11 @@ func NewConsensusMessageHandler(
 	}
 }
 
-func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
+func (cmh Handler) Recover(queue *queue.Queue) {
 	cmh.logger.Println("Recovery method not implemented yet.")
 }
 
-func (cmh ConsensusMessageHandler) Handle(payload []byte) {
+func (cmh Handler) Handle(payload []byte) {
 	m := &validatorproto.TopicSubmissionMessage{}
 	err := proto.Unmarshal(payload, m)
 	if err != nil {
@@ -113,7 +109,7 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 	}
 }
 
-func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
+func (cmh Handler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
 	isValid, err := cmh.verifyEthTxAuthenticity(m)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - ETH TX [%s] - Error while trying to verify TX authenticity.", m.TransactionId, m.EthTxHash)
@@ -136,14 +132,14 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
 
-func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
-	tx, _, err := cmh.ethereumClient.Client.TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
+func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
+	tx, _, err := cmh.ethereumClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
 	if err != nil {
 		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", m.TransactionId, m.EthTxHash, err)
 		return false, err
 	}
 
-	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridgeContractAddress) {
+	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridge.GetContractAddress().String()) {
 		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
 		return false, nil
 	}
@@ -200,7 +196,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 	return true, nil
 }
 
-func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
+func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
 	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
 
 	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
@@ -226,7 +222,7 @@ func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorpro
 	}
 }
 
-func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
+func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
 	m := msg.GetTopicSignatureMessage()
 	ctm := &validatorproto.CryptoTransferMessage{
 		TransactionId: m.TransactionId,
@@ -322,7 +318,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
+func (cmh Handler) alreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
 	_, err := cmh.messageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
@@ -332,7 +328,7 @@ func (cmh ConsensusMessageHandler) alreadyExists(m *validatorproto.TopicEthSigna
 	return !notFound, nil
 }
 
-func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
+func (cmh Handler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
 	requiredSigCount := len(cmh.bridge.GetMembers())/2 + 1
 	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetMembers()), transactionId)
 	return len(txSignatures) >= requiredSigCount
@@ -340,7 +336,7 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 
 // computeExecutionSlot - computes the slot order in which the TX will execute
 // Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
+func (cmh Handler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
 	for i := 0; i < len(messages); i++ {
 		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(cmh.signer.Address()) {
 			return int64(i), true
@@ -350,7 +346,7 @@ func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.Trans
 	return -1, false
 }
 
-func (cmh ConsensusMessageHandler) isValidAddress(key string) bool {
+func (cmh Handler) isValidAddress(key string) bool {
 	for _, k := range cmh.bridge.GetMembers() {
 		if strings.ToLower(k) == strings.ToLower(key) {
 			return true

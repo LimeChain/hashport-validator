@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -35,14 +35,15 @@ import (
 	"time"
 )
 
+// Scheduler implements the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
 type Scheduler struct {
 	topicID         hedera.TopicID
 	logger          *log.Entry
 	tasks           *sync.Map
 	operator        string
 	executionWindow int64
-	contractService *bridge.BridgeContractService
-	hederaClient    *hederaClient.HederaNodeClient
+	contractService *bridge.ContractService
+	hederaClient    clients.HederaNode
 }
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
@@ -125,8 +126,8 @@ func NewScheduler(
 	topicId string,
 	operator string,
 	executionWindow int64,
-	contractService *bridge.BridgeContractService,
-	hederaClient *hederaClient.HederaNodeClient,
+	contractService *bridge.ContractService,
+	hederaClient clients.HederaNode,
 ) *Scheduler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
