@@ -106,7 +106,7 @@ func (bsc *ContractService) GetServiceFee() *big.Int {
 
 func (bsc *ContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error) {
 	var addresses []common.Address
-	return bsc.contract.WatchBurn(opts, sink, addresses, [][]byte{})
+	return bsc.contract.WatchBurn(opts, sink, addresses)
 }
 
 func (bsc *ContractService) updateServiceFee() {

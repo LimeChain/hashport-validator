@@ -35,7 +35,7 @@ go build cmd/*
 
 After you have run the database, you need to have the necessary [configuration](configuration.md) populated and run:
 ```
-go run cmd/main.go
+go run cmd/*
 ```
 
 or use the built executable:
@@ -47,7 +47,7 @@ or use the built executable:
 ### Run in debug mode
 
 ```
-go run cmd/main.go -debug=true
+go run cmd/* -debug=true
 ```
 
 ### Unit Tests
