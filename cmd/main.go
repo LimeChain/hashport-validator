@@ -199,7 +199,7 @@ func recoverLostProgress(configuration config.Hedera,
 		hederaNodeClient,
 		account,
 		topic,
-		configuration.Watcher.CryptoTransfer.Account.StartTimestamp)
+		configuration.Recovery.Timestamp)
 
 	log.Infof("Starting Recovery Process for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
 	now, err := recoveryService.Recover()

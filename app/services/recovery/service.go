@@ -25,8 +25,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -125,26 +125,15 @@ func (rs *RecoveryService) processSkipped() error {
 		return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
 	}
 
-	for txnId, txnMessages := range unprocessed {
-		txn, err := rs.transactionRepository.GetByTransactionId(txnId)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Could not retrieve Transaction ID [%s] - Error: [%s]", txnId, err))
-		}
+	for txn, txnSignatures := range unprocessed {
+		hasSubmittedSignature, ctm := rs.hasSubmittedSignature(txn, txnSignatures)
 
-		ctm := &validatorproto.CryptoTransferMessage{
-			TransactionId: txn.TransactionId,
-			EthAddress:    txn.EthAddress,
-			Amount:        txn.Amount,
-			Fee:           txn.Fee,
-			GasPriceGwei:  txn.GasPriceGwei,
-		}
-
-		if !rs.hasSubmittedSignature(txnMessages, ctm) {
-			rs.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txnId)
+		if !hasSubmittedSignature {
+			rs.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
 
 			signature, err := rs.processingService.ValidateAndSignTxn(ctm)
 			if err != nil {
-				rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txnId, err)
+				rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
 			}
 
 			_, err = rs.processingService.HandleTopicSubmission(ctm, signature)
@@ -157,19 +146,26 @@ func (rs *RecoveryService) processSkipped() error {
 	return nil
 }
 
-func (rs *RecoveryService) hasSubmittedSignature(txnMessage []*message.TransactionMessage, ctm *validatorproto.CryptoTransferMessage) bool {
-	for _, msg := range txnMessage {
-		// TODO: Ask whether we should validate and not just sign at this point
-		signature, err := rs.processingService.ValidateAndSignTxn(ctm)
-		if err != nil {
-			rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", msg.TransactionId, err)
-		}
+func (rs *RecoveryService) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.CryptoTransferMessage) {
+	ctm := &validatorproto.CryptoTransferMessage{
+		TransactionId: data.TransactionId,
+		EthAddress:    data.EthAddress,
+		Amount:        data.Amount,
+		Fee:           data.Fee,
+		GasPriceGwei:  data.GasPriceGwei,
+	}
 
-		if signature == msg.Signature {
-			return true
+	signature, err := rs.processingService.ValidateAndSignTxn(ctm)
+	if err != nil {
+		rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
+	}
+
+	for _, s := range signatures {
+		if signature == s {
+			return true, nil
 		}
 	}
-	return false
+	return false, ctm
 }
 
 func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, error) {
@@ -200,6 +196,16 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 			GasPriceGwei:  memoInfo.GasPriceGwei,
 		})
 
+		if err != nil {
+			return 0, err
+		}
+
+		timestamp, err := timestampHelper.FromString(tr.ConsensusTimestamp)
+		if err != nil {
+			return 0, err
+		}
+
+		err = rs.accountStatusRepository.UpdateLastFetchedTimestamp(rs.accountID.String(), timestamp)
 		if err != nil {
 			return 0, err
 		}
@@ -248,6 +254,11 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 		}
 
+		err = rs.topicStatusRepository.UpdateLastFetchedTimestamp(rs.topicID.String(), timestamp)
+		if err != nil {
+			return 0, err
+		}
+
 		if err != nil {
 			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
 			continue
@@ -258,13 +269,13 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 }
 
 func (rs *RecoveryService) getStartTimestampFor(repository repositories.StatusRepository, address string) int64 {
+	if rs.cryptoTransferTS > 0 {
+		return rs.cryptoTransferTS
+	}
+
 	timestamp, err := repository.GetLastFetchedTimestamp(address)
 	if err == nil {
 		return timestamp
-	}
-
-	if rs.cryptoTransferTS > 0 {
-		return rs.cryptoTransferTS
 	}
 
 	return -1

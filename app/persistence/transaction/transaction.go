@@ -19,7 +19,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"gorm.io/gorm"
 )
@@ -90,28 +90,16 @@ func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transac
 	return transactions, nil
 }
 
-type JoinedTxnMessage struct {
-	TransactionId string
-	EthAddress    string
-	Amount        string
-	Fee           string
-	Signature     string
-	Hash          string
-	SignerAddress string
-	GasPriceGwei  string
-}
-
-func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
-	var messages []*message.TransactionMessage
+func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
+	var messages []*transaction.JoinedTxnMessage
 
 	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
 		"transactions.transaction_id, " +
-		"transaction_messages.eth_address, " +
-		"transaction_messages.amount, " +
-		"transaction_messages.fee, " +
+		"transactions.eth_address, " +
+		"transactions.amount, " +
+		"transactions.fee, " +
 		"transaction_messages.signature, " +
-		"transaction_messages.hash, " +
-		"transaction_messages.signer_address " +
+		"transactions.gas_price_gwei " +
 		"FROM transactions " +
 		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
 		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
@@ -121,14 +109,17 @@ func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (m
 		return nil, err
 	}
 
-	result := make(map[string][]*message.TransactionMessage)
-
-	fmt.Println("Skipped Transactions Result")
-	fmt.Println(len(messages))
+	result := make(map[transaction.CTMKey][]string)
 
 	for _, txnMessage := range messages {
-		result[txnMessage.TransactionId] = append(result[txnMessage.TransactionId], txnMessage)
-		fmt.Println(txnMessage)
+		t := transaction.CTMKey{
+			TransactionId: txnMessage.TransactionId,
+			EthAddress:    txnMessage.EthAddress,
+			Amount:        txnMessage.Amount,
+			Fee:           txnMessage.Fee,
+			GasPriceGwei:  txnMessage.GasPriceGwei,
+		}
+		result[t] = append(result[t], txnMessage.Signature)
 	}
 
 	return result, nil

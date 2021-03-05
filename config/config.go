@@ -74,6 +74,7 @@ type Hedera struct {
 	Client     Client     `yaml:"client"`
 	Watcher    Watcher    `yaml:"watcher"`
 	Handler    Handler    `yaml:"handler"`
+	Recovery   Recovery   `yaml:"recovery"`
 }
 
 type Handler struct {
@@ -111,9 +112,8 @@ type ConsensusMessage struct {
 }
 
 type ID struct {
-	Id             string `yaml:"id"`
-	MaxRetries     int    `yaml:"max_retries"`
-	StartTimestamp int64  `yaml:"start_timestamp"`
+	Id         string `yaml:"id"`
+	MaxRetries int    `yaml:"max_retries"`
 }
 
 type Client struct {
@@ -146,4 +146,8 @@ type Db struct {
 	Password string `yaml:"password" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PASSWORD"`
 	Port     string `yaml:"port" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PORT"`
 	Username string `yaml:"username" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_USERNAME"`
+}
+
+type Recovery struct {
+	Timestamp int64 `yaml:"timestamp" env:"HEDERA_ETH_BRIDGE_VALIDATOR_RECOVERY_TIMESTAMP"`
 }
