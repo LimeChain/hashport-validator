@@ -17,8 +17,8 @@
 package transaction
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
 )
@@ -94,7 +94,7 @@ func (m *MockTransactionRepository) Skip(ct *proto.CryptoTransferMessage) error 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[string][]*message.TransactionMessage, error) {
+func (m *MockTransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[joined.CTMKey][]string, error) {
 	args := m.Called()
-	return args.Get(0).(map[string][]*message.TransactionMessage), args.Get(1).(error)
+	return args.Get(0).(map[joined.CTMKey][]string), args.Get(1).(error)
 }

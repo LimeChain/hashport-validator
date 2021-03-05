@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -39,11 +39,11 @@ import (
 )
 
 type RecoveryService struct {
-	transactionRepository   repositories.TransactionRepository
-	topicStatusRepository   repositories.StatusRepository
-	accountStatusRepository repositories.StatusRepository
-	mirrorClient            *hedera.HederaMirrorClient
-	nodeClient              *hedera.HederaNodeClient
+	transactionRepository   repositories.Transaction
+	topicStatusRepository   repositories.Status
+	accountStatusRepository repositories.Status
+	mirrorClient            clients.MirrorNode
+	nodeClient              clients.HederaNode
 	accountID               hederasdk.AccountID
 	topicID                 hederasdk.TopicID
 	cryptoTransferTS        int64
@@ -53,11 +53,11 @@ type RecoveryService struct {
 
 func NewRecoveryService(
 	processingService *process.ProcessingService,
-	transactionRepository repositories.TransactionRepository,
-	topicStatusRepository repositories.StatusRepository,
-	accountStatusRepository repositories.StatusRepository,
-	mirrorClient *hedera.HederaMirrorClient,
-	nodeClient *hedera.HederaNodeClient,
+	transactionRepository repositories.Transaction,
+	topicStatusRepository repositories.Status,
+	accountStatusRepository repositories.Status,
+	mirrorClient clients.MirrorNode,
+	nodeClient clients.HederaNode,
 	accountID hederasdk.AccountID,
 	topicID hederasdk.TopicID,
 	cryptoTS int64,
@@ -174,7 +174,7 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 		return 0, err
 	}
 
-	rs.logger.Infof("Found [%d] unprocessed transactions", len(result.Transactions))
+	rs.logger.Infof("Unprocessed transactions found: [%d]", len(result.Transactions))
 	for _, tr := range result.Transactions {
 		if recent(tr.ConsensusTimestamp, to) {
 			break
@@ -221,7 +221,7 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 		return 0, err
 	}
 
-	rs.logger.Infof("Found [%d] unprocessed topic messages", len(result.Messages))
+	rs.logger.Infof("Unprocessed topic messages: [%d]", len(result.Messages))
 	for _, msg := range result.Messages {
 		if recent(msg.ConsensusTimestamp, now) {
 			break
@@ -268,7 +268,7 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 	return now, nil
 }
 
-func (rs *RecoveryService) getStartTimestampFor(repository repositories.StatusRepository, address string) int64 {
+func (rs *RecoveryService) getStartTimestampFor(repository repositories.Status, address string) int64 {
 	if rs.cryptoTransferTS > 0 {
 		return rs.cryptoTransferTS
 	}

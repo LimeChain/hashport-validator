@@ -77,20 +77,19 @@ func getEthereumConfig() config.Ethereum {
 	return ethereumConfig
 }
 
-func InitializeHandler() (*CryptoTransferHandler, *transaction2.MockTransactionRepository, *hedera_node_client.MockHederaNodeClient, *hedera_mirror_client.MockHederaMirrorClient, *fees.FeeCalculator) {
+func InitializeHandler() (*Handler, *transaction2.MockTransactionRepository, *hedera_node_client.MockHederaNodeClient, *hedera_mirror_client.MockHederaMirrorClient, *fees.Calculator) {
 	cthConfig := config.CryptoTransferHandler{
 		TopicId:         topicID,
 		PollingInterval: pollingInterval,
 	}
 	mocks.Setup()
 	ethSigner := eth.NewEthSigner(ethPrivateKey)
-	ethClient := ethereum.NewEthereumClient(getEthereumConfig())
+	feeCalculator := fees.NewCalculator(mocks.MExchangeRateProvider, getHederaConfig(), mocks.MBridgeContractService)
+	ethClient := ethereum.NewClient(getEthereumConfig())
 	transactionRepo := &transaction2.MockTransactionRepository{}
 	messageRepo := &message.MockMessageRepository{}
 	hederaNodeClient := &hedera_node_client.MockHederaNodeClient{}
 	hederaMirrorClient := &hedera_mirror_client.MockHederaMirrorClient{}
-	contractService := mocks.MBridgeContractService
-	feeCalculator := fees.NewFeeCalculator(mocks.MExchangeRateProvider, getHederaConfig(), contractService)
 	processingService := process.NewProcessingService(ethClient,
 		transactionRepo,
 		messageRepo,
@@ -100,7 +99,7 @@ func InitializeHandler() (*CryptoTransferHandler, *transaction2.MockTransactionR
 		hederaNodeClient,
 		topicID)
 
-	return NewCryptoTransferHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, processingService), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
+	return NewHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, processingService), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
 }
 
 func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {

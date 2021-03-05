@@ -24,8 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	clients "github.com/limechain/hedera-eth-bridge-validator/app/domain/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
@@ -41,17 +40,17 @@ import (
 
 type ProcessingService struct {
 	logger                *log.Entry
-	ethereumClient        *ethereum.EthereumClient
-	transactionRepository repositories.TransactionRepository
-	MessageRepository     repositories.MessageRepository
+	ethereumClient        clients.Ethereum
+	transactionRepository repositories.Transaction
+	MessageRepository     repositories.Message
 	operatorsEthAddresses []string
-	feeCalculator         *fees.FeeCalculator
+	feeCalculator         *fees.Calculator
 	ethSigner             *eth.Signer
-	hederaNodeClient      clients.HederaNodeClient
+	hederaNodeClient      clients.HederaNode
 	topicID               hedera.TopicID
 }
 
-func NewProcessingService(ethereumClient *ethereum.EthereumClient, transactionRepository repositories.TransactionRepository, messageRepository repositories.MessageRepository, operatorsEthAddresses []string, feeCalculator *fees.FeeCalculator, ethSigner *eth.Signer, hederaNodeClient clients.HederaNodeClient, topicID string) *ProcessingService {
+func NewProcessingService(ethereumClient clients.Ethereum, transactionRepository repositories.Transaction, messageRepository repositories.Message, operatorsEthAddresses []string, feeCalculator *fees.Calculator, ethSigner *eth.Signer, hederaNodeClient clients.HederaNode, topicID string) *ProcessingService {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
 		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))

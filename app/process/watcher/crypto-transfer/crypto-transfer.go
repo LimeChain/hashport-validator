@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -37,11 +37,11 @@ import (
 )
 
 type CryptoTransferWatcher struct {
-	client           *hederaClient.HederaMirrorClient
+	client           clients.MirrorNode
 	accountID        hedera.AccountID
 	typeMessage      string
 	pollingInterval  time.Duration
-	statusRepository repositories.StatusRepository
+	statusRepository repositories.Status
 	maxRetries       int
 	startTimestamp   int64
 	started          bool
@@ -49,10 +49,10 @@ type CryptoTransferWatcher struct {
 }
 
 func NewCryptoTransferWatcher(
-	client *hederaClient.HederaMirrorClient,
+	client clients.MirrorNode,
 	accountID hedera.AccountID,
 	pollingInterval time.Duration,
-	repository repositories.StatusRepository,
+	repository repositories.Status,
 	maxRetries int,
 	startTimestamp int64,
 ) *CryptoTransferWatcher {

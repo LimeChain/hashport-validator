@@ -27,7 +27,7 @@ var (
 )
 
 // BridgeABI is the input ABI used to generate the binding from.
-const BridgeABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_whbarToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deprecate\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"claimableFees\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalClaimableFees\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"whbarToken\",\"outputs\":[{\"internalType\":\"contractWHBAR\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deprecate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const BridgeABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_whbarToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deprecate\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"checkpointServiceFeesAccrued\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"claimableFees\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_address\",\"type\":\"address\"}],\"name\":\"claimableFeesFor\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalCheckpoints\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalClaimableFees\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"whbarToken\",\"outputs\":[{\"internalType\":\"contractWHBAR\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deprecate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // Bridge is an auto generated Go binding around an Ethereum contract.
 type Bridge struct {
@@ -171,6 +171,37 @@ func (_Bridge *BridgeTransactorRaw) Transact(opts *bind.TransactOpts, method str
 	return _Bridge.Contract.contract.Transact(opts, method, params...)
 }
 
+// CheckpointServiceFeesAccrued is a free data retrieval call binding the contract method 0x80444c32.
+//
+// Solidity: function checkpointServiceFeesAccrued(uint256 ) view returns(uint256)
+func (_Bridge *BridgeCaller) CheckpointServiceFeesAccrued(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var out []interface{}
+	err := _Bridge.contract.Call(opts, &out, "checkpointServiceFeesAccrued", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// CheckpointServiceFeesAccrued is a free data retrieval call binding the contract method 0x80444c32.
+//
+// Solidity: function checkpointServiceFeesAccrued(uint256 ) view returns(uint256)
+func (_Bridge *BridgeSession) CheckpointServiceFeesAccrued(arg0 *big.Int) (*big.Int, error) {
+	return _Bridge.Contract.CheckpointServiceFeesAccrued(&_Bridge.CallOpts, arg0)
+}
+
+// CheckpointServiceFeesAccrued is a free data retrieval call binding the contract method 0x80444c32.
+//
+// Solidity: function checkpointServiceFeesAccrued(uint256 ) view returns(uint256)
+func (_Bridge *BridgeCallerSession) CheckpointServiceFeesAccrued(arg0 *big.Int) (*big.Int, error) {
+	return _Bridge.Contract.CheckpointServiceFeesAccrued(&_Bridge.CallOpts, arg0)
+}
+
 // ClaimableFees is a free data retrieval call binding the contract method 0x7e0b2492.
 //
 // Solidity: function claimableFees(address ) view returns(uint256)
@@ -200,6 +231,37 @@ func (_Bridge *BridgeSession) ClaimableFees(arg0 common.Address) (*big.Int, erro
 // Solidity: function claimableFees(address ) view returns(uint256)
 func (_Bridge *BridgeCallerSession) ClaimableFees(arg0 common.Address) (*big.Int, error) {
 	return _Bridge.Contract.ClaimableFees(&_Bridge.CallOpts, arg0)
+}
+
+// ClaimableFeesFor is a free data retrieval call binding the contract method 0xa88684b0.
+//
+// Solidity: function claimableFeesFor(address _address) view returns(uint256)
+func (_Bridge *BridgeCaller) ClaimableFeesFor(opts *bind.CallOpts, _address common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _Bridge.contract.Call(opts, &out, "claimableFeesFor", _address)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// ClaimableFeesFor is a free data retrieval call binding the contract method 0xa88684b0.
+//
+// Solidity: function claimableFeesFor(address _address) view returns(uint256)
+func (_Bridge *BridgeSession) ClaimableFeesFor(_address common.Address) (*big.Int, error) {
+	return _Bridge.Contract.ClaimableFeesFor(&_Bridge.CallOpts, _address)
+}
+
+// ClaimableFeesFor is a free data retrieval call binding the contract method 0xa88684b0.
+//
+// Solidity: function claimableFeesFor(address _address) view returns(uint256)
+func (_Bridge *BridgeCallerSession) ClaimableFeesFor(_address common.Address) (*big.Int, error) {
+	return _Bridge.Contract.ClaimableFeesFor(&_Bridge.CallOpts, _address)
 }
 
 // IsMember is a free data retrieval call binding the contract method 0xa230c524.
@@ -419,6 +481,37 @@ func (_Bridge *BridgeCallerSession) ServiceFee() (*big.Int, error) {
 	return _Bridge.Contract.ServiceFee(&_Bridge.CallOpts)
 }
 
+// TotalCheckpoints is a free data retrieval call binding the contract method 0xf332687d.
+//
+// Solidity: function totalCheckpoints() view returns(uint256)
+func (_Bridge *BridgeCaller) TotalCheckpoints(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Bridge.contract.Call(opts, &out, "totalCheckpoints")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TotalCheckpoints is a free data retrieval call binding the contract method 0xf332687d.
+//
+// Solidity: function totalCheckpoints() view returns(uint256)
+func (_Bridge *BridgeSession) TotalCheckpoints() (*big.Int, error) {
+	return _Bridge.Contract.TotalCheckpoints(&_Bridge.CallOpts)
+}
+
+// TotalCheckpoints is a free data retrieval call binding the contract method 0xf332687d.
+//
+// Solidity: function totalCheckpoints() view returns(uint256)
+func (_Bridge *BridgeCallerSession) TotalCheckpoints() (*big.Int, error) {
+	return _Bridge.Contract.TotalCheckpoints(&_Bridge.CallOpts)
+}
+
 // TotalClaimableFees is a free data retrieval call binding the contract method 0xe96c344d.
 //
 // Solidity: function totalClaimableFees() view returns(uint256)
@@ -502,25 +595,25 @@ func (_Bridge *BridgeTransactorSession) Burn(amount *big.Int, receiver []byte) (
 	return _Bridge.Contract.Burn(&_Bridge.TransactOpts, amount, receiver)
 }
 
-// Claim is a paid mutator transaction binding the contract method 0x4e71d92d.
+// Claim is a paid mutator transaction binding the contract method 0x379607f5.
 //
-// Solidity: function claim() returns()
-func (_Bridge *BridgeTransactor) Claim(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Bridge.contract.Transact(opts, "claim")
+// Solidity: function claim(uint256 _amount) returns()
+func (_Bridge *BridgeTransactor) Claim(opts *bind.TransactOpts, _amount *big.Int) (*types.Transaction, error) {
+	return _Bridge.contract.Transact(opts, "claim", _amount)
 }
 
-// Claim is a paid mutator transaction binding the contract method 0x4e71d92d.
+// Claim is a paid mutator transaction binding the contract method 0x379607f5.
 //
-// Solidity: function claim() returns()
-func (_Bridge *BridgeSession) Claim() (*types.Transaction, error) {
-	return _Bridge.Contract.Claim(&_Bridge.TransactOpts)
+// Solidity: function claim(uint256 _amount) returns()
+func (_Bridge *BridgeSession) Claim(_amount *big.Int) (*types.Transaction, error) {
+	return _Bridge.Contract.Claim(&_Bridge.TransactOpts, _amount)
 }
 
-// Claim is a paid mutator transaction binding the contract method 0x4e71d92d.
+// Claim is a paid mutator transaction binding the contract method 0x379607f5.
 //
-// Solidity: function claim() returns()
-func (_Bridge *BridgeTransactorSession) Claim() (*types.Transaction, error) {
-	return _Bridge.Contract.Claim(&_Bridge.TransactOpts)
+// Solidity: function claim(uint256 _amount) returns()
+func (_Bridge *BridgeTransactorSession) Claim(_amount *big.Int) (*types.Transaction, error) {
+	return _Bridge.Contract.Claim(&_Bridge.TransactOpts, _amount)
 }
 
 // Deprecate is a paid mutator transaction binding the contract method 0x0fcc0c28.
@@ -718,50 +811,41 @@ func (it *BridgeBurnIterator) Close() error {
 
 // BridgeBurn represents a Burn event raised by the Bridge contract.
 type BridgeBurn struct {
-	Account  common.Address
-	Amount   *big.Int
-	Receiver common.Hash
-	Raw      types.Log // Blockchain specific contextual infos
+	Account    common.Address
+	Amount     *big.Int
+	ServiceFee *big.Int
+	Receiver   []byte
+	Raw        types.Log // Blockchain specific contextual infos
 }
 
-// FilterBurn is a free log retrieval operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// FilterBurn is a free log retrieval operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, bytes indexed receiver)
-func (_Bridge *BridgeFilterer) FilterBurn(opts *bind.FilterOpts, account []common.Address, receiver [][]byte) (*BridgeBurnIterator, error) {
+// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
+func (_Bridge *BridgeFilterer) FilterBurn(opts *bind.FilterOpts, account []common.Address) (*BridgeBurnIterator, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
 
-	var receiverRule []interface{}
-	for _, receiverItem := range receiver {
-		receiverRule = append(receiverRule, receiverItem)
-	}
-
-	logs, sub, err := _Bridge.contract.FilterLogs(opts, "Burn", accountRule, receiverRule)
+	logs, sub, err := _Bridge.contract.FilterLogs(opts, "Burn", accountRule)
 	if err != nil {
 		return nil, err
 	}
 	return &BridgeBurnIterator{contract: _Bridge.contract, event: "Burn", logs: logs, sub: sub}, nil
 }
 
-// WatchBurn is a free log subscription operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// WatchBurn is a free log subscription operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, bytes indexed receiver)
-func (_Bridge *BridgeFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *BridgeBurn, account []common.Address, receiver [][]byte) (event.Subscription, error) {
+// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
+func (_Bridge *BridgeFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *BridgeBurn, account []common.Address) (event.Subscription, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
 
-	var receiverRule []interface{}
-	for _, receiverItem := range receiver {
-		receiverRule = append(receiverRule, receiverItem)
-	}
-
-	logs, sub, err := _Bridge.contract.WatchLogs(opts, "Burn", accountRule, receiverRule)
+	logs, sub, err := _Bridge.contract.WatchLogs(opts, "Burn", accountRule)
 	if err != nil {
 		return nil, err
 	}
@@ -793,9 +877,9 @@ func (_Bridge *BridgeFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *Brid
 	}), nil
 }
 
-// ParseBurn is a log parse operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// ParseBurn is a log parse operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, bytes indexed receiver)
+// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
 func (_Bridge *BridgeFilterer) ParseBurn(log types.Log) (*BridgeBurn, error) {
 	event := new(BridgeBurn)
 	if err := _Bridge.contract.UnpackLog(event, "Burn", log); err != nil {
@@ -1292,13 +1376,14 @@ type BridgeMint struct {
 	Account       common.Address
 	Amount        *big.Int
 	TxCost        *big.Int
+	ServiceFee    *big.Int
 	TransactionId common.Hash
 	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterMint is a free log retrieval operation binding the contract event 0x6f22b1e1e34475d2453ef65c35f74a9b1e2183b5038d895d7f439cc9121a8c82.
+// FilterMint is a free log retrieval operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, bytes indexed transactionId)
+// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, uint256 serviceFee, bytes indexed transactionId)
 func (_Bridge *BridgeFilterer) FilterMint(opts *bind.FilterOpts, account []common.Address, transactionId [][]byte) (*BridgeMintIterator, error) {
 
 	var accountRule []interface{}
@@ -1318,9 +1403,9 @@ func (_Bridge *BridgeFilterer) FilterMint(opts *bind.FilterOpts, account []commo
 	return &BridgeMintIterator{contract: _Bridge.contract, event: "Mint", logs: logs, sub: sub}, nil
 }
 
-// WatchMint is a free log subscription operation binding the contract event 0x6f22b1e1e34475d2453ef65c35f74a9b1e2183b5038d895d7f439cc9121a8c82.
+// WatchMint is a free log subscription operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, bytes indexed transactionId)
+// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, uint256 serviceFee, bytes indexed transactionId)
 func (_Bridge *BridgeFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *BridgeMint, account []common.Address, transactionId [][]byte) (event.Subscription, error) {
 
 	var accountRule []interface{}
@@ -1365,9 +1450,9 @@ func (_Bridge *BridgeFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *Brid
 	}), nil
 }
 
-// ParseMint is a log parse operation binding the contract event 0x6f22b1e1e34475d2453ef65c35f74a9b1e2183b5038d895d7f439cc9121a8c82.
+// ParseMint is a log parse operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, bytes indexed transactionId)
+// Solidity: event Mint(address indexed account, uint256 amount, uint256 txCost, uint256 serviceFee, bytes indexed transactionId)
 func (_Bridge *BridgeFilterer) ParseMint(log types.Log) (*BridgeMint, error) {
 	event := new(BridgeMint)
 	if err := _Bridge.contract.UnpackLog(event, "Mint", log); err != nil {

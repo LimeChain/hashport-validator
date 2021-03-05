@@ -50,17 +50,17 @@ type Transaction struct {
 	GasPriceGwei   string
 }
 
-type TransactionRepository struct {
+type Repository struct {
 	dbClient *gorm.DB
 }
 
-func NewTransactionRepository(dbClient *gorm.DB) *TransactionRepository {
-	return &TransactionRepository{
+func NewRepository(dbClient *gorm.DB) *Repository {
+	return &Repository{
 		dbClient: dbClient,
 	}
 }
 
-func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Transaction, error) {
+func (tr Repository) GetByTransactionId(transactionId string) (*Transaction, error) {
 	tx := &Transaction{}
 	result := tr.dbClient.
 		Model(Transaction{}).
@@ -76,7 +76,7 @@ func (tr *TransactionRepository) GetByTransactionId(transactionId string) (*Tran
 	return tx, nil
 }
 
-func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error) {
+func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error) {
 	var transactions []*Transaction
 
 	err := tr.dbClient.
@@ -90,7 +90,7 @@ func (tr *TransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*Transac
 	return transactions, nil
 }
 
-func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
+func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
 	var messages []*transaction.JoinedTxnMessage
 
 	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
@@ -125,7 +125,7 @@ func (tr *TransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (m
 	return result, nil
 }
 
-func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
+func (tr Repository) Create(ct *proto.CryptoTransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
 		Model:         gorm.Model{},
 		TransactionId: ct.TransactionId,
@@ -137,7 +137,7 @@ func (tr *TransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
 	}).Error
 }
 
-func (tr *TransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
+func (tr *Repository) Skip(ct *proto.CryptoTransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
 		Model:         gorm.Model{},
 		TransactionId: ct.TransactionId,
@@ -149,23 +149,23 @@ func (tr *TransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
 	}).Error
 }
 
-func (tr *TransactionRepository) UpdateStatusCompleted(txId string) error {
+func (tr Repository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, StatusCompleted)
 }
 
-func (tr *TransactionRepository) UpdateStatusInsufficientFee(txId string) error {
+func (tr Repository) UpdateStatusInsufficientFee(txId string) error {
 	return tr.updateStatus(txId, StatusInsufficientFee)
 }
 
-func (tr *TransactionRepository) UpdateStatusSignatureProvided(txId string) error {
+func (tr Repository) UpdateStatusSignatureProvided(txId string) error {
 	return tr.updateStatus(txId, StatusSignatureProvided)
 }
 
-func (tr *TransactionRepository) UpdateStatusSignatureFailed(txId string) error {
+func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
 	return tr.updateStatus(txId, StatusSignatureFailed)
 }
 
-func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
+func (tr Repository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
@@ -173,15 +173,15 @@ func (tr *TransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash st
 		Error
 }
 
-func (tr *TransactionRepository) UpdateStatusEthTxReverted(txId string) error {
+func (tr Repository) UpdateStatusEthTxReverted(txId string) error {
 	return tr.updateStatus(txId, StatusEthTxReverted)
 }
 
-func (tr *TransactionRepository) UpdateStatusSkipped(txId string) error {
+func (tr *Repository) UpdateStatusSkipped(txId string) error {
 	return tr.updateStatus(txId, StatusSkipped)
 }
 
-func (tr *TransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
+func (tr Repository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
@@ -189,7 +189,7 @@ func (tr *TransactionRepository) UpdateStatusSignatureSubmitted(txId string, sub
 		Error
 }
 
-func (tr *TransactionRepository) updateStatus(txId string, status string) error {
+func (tr Repository) updateStatus(txId string, status string) error {
 	return tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).

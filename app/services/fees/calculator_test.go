@@ -74,7 +74,7 @@ func addMoreValidatorsTo(additional uint) []string {
 
 func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
 	mocks.Setup()
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
 
 	invalid, err := feeCalculator.GetEstimatedTxFee(invalidValue)
 
@@ -86,7 +86,7 @@ func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
 func TestGetEstimatedTxFeeFailedToRetrieveRate(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
 
 	invalid, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
 
@@ -101,7 +101,7 @@ func TestGetEstimatedTxFeeHappyPath(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	txFee, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
 
@@ -116,7 +116,7 @@ func TestFeeCalculatorHappyPath(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
@@ -130,7 +130,7 @@ func TestFeeCalculatorSanityCheckWorks(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooBigTransferFee, invalidTransferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
@@ -145,7 +145,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(tooSmallTransferFee, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
@@ -157,7 +157,7 @@ func TestFeeCalculatorFailsWithInsufficientFee(t *testing.T) {
 func TestFeeCalculatorFailsWithInvalidTransferFee(t *testing.T) {
 	mocks.Setup()
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(invalidValue, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
@@ -172,7 +172,7 @@ func TestFeeCalculatorFailsWithInvalidGasPrice(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, invalidValue)
 	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
@@ -187,7 +187,7 @@ func TestFeeCalculatorFailsWithInvalidTransferAmount(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, invalidValue, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
@@ -202,7 +202,7 @@ func TestFeeCalculatorWithInvalidRateProvider(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
@@ -219,7 +219,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 
 	config := validHederaConfig()
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
@@ -228,7 +228,7 @@ func TestFeeCalculatorWithManyValidators(t *testing.T) {
 
 	newAddresses := addMoreValidatorsTo(10)
 	mocks.MBridgeContractService.On("GetMembers").Return(newAddresses)
-	feeCalculator = NewFeeCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
+	feeCalculator = NewCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
 
 	valid, err = feeCalculator.ValidateExecutionFee(transferFee, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 2)
@@ -246,7 +246,7 @@ func TestFeeCalculatorWithZeroServiceFee(t *testing.T) {
 	serviceFeePercent = 0
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee(transferAmount, transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
@@ -265,7 +265,7 @@ func TestFeeCalculatorConsidersServiceFee(t *testing.T) {
 	serviceFeePercent = 0
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config, mocks.MBridgeContractService)
 
 	// Based on the mocked information above + exchange rate. This is the lowest possible transaction cost provided
 	lowerEnd := "4286"
@@ -290,7 +290,7 @@ func TestFeeCalculatorWithZeroTransferFee(t *testing.T) {
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
-	feeCalculator := NewFeeCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
 	valid, err := feeCalculator.ValidateExecutionFee("0", transferAmount, validGasPrice)
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)

@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package bridge
+package clients
 
-import "math/big"
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
-type BridgeContractService interface {
-	GetServiceFee() *big.Int
-	GetMembers() []string
+type Ethereum interface {
+	GetClient() *ethclient.Client
+	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
+	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
 }

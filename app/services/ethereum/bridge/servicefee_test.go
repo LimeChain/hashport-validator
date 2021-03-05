@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package clients
+package bridge
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
-type HederaMirrorClient interface {
-	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
-	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
-	GetStateProof(transactionID string) ([]byte, error)
-	AccountExists(accountID hedera.AccountID) bool
+func TestServiceFeeSet(t *testing.T) {
+	serviceFeeInstance := ServiceFee{}
+	newServiceFee := big.NewInt(int64(5))
+	serviceFeeInstance.Set(*newServiceFee)
+
+	serviceFee := serviceFeeInstance.Get()
+	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
 }

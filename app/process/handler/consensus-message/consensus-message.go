@@ -20,11 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	hederaClient "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
@@ -39,45 +40,41 @@ import (
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
-type ConsensusMessageHandler struct {
+type Handler struct {
+	ethereumClient        clients.Ethereum
+	hederaNodeClient      clients.HederaNode
+	messageRepository     repositories.Message
+	transactionRepository repositories.Transaction
 	processingService     *process.ProcessingService
-	ethereumClient        *ethereum.EthereumClient
-	hederaNodeClient      *hederaClient.HederaNodeClient
-	bridgeContractAddress string
-	messageRepository     repositories.MessageRepository
-	transactionRepository repositories.TransactionRepository
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
-	bridge                *bridge.BridgeContractService
+	bridge                *bridge.ContractService
 }
 
-func NewConsensusMessageHandler(
+func NewHandler(
 	configuration config.ConsensusMessageHandler,
-	bridgeContractAddress string,
-	messageRepository repositories.MessageRepository,
-	transactionRepository repositories.TransactionRepository,
-	ethereumClient *ethereum.EthereumClient,
-	hederaNodeClient *hederaClient.HederaNodeClient,
+	messageRepository repositories.Message,
+	transactionRepository repositories.Transaction,
+	ethereumClient clients.Ethereum,
+	hederaNodeClient clients.HederaNode,
 	scheduler *scheduler.Scheduler,
-	bridge *bridge.BridgeContractService,
+	bridge *bridge.ContractService,
 	signer *eth.Signer,
 	processingService *process.ProcessingService,
-) *ConsensusMessageHandler {
+) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid topic id: [%v]", configuration.TopicId)
 	}
 
-	return &ConsensusMessageHandler{
+	return &Handler{
 		processingService:     processingService,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		bridgeContractAddress: bridgeContractAddress,
 		hederaNodeClient:      hederaNodeClient,
 		ethereumClient:        ethereumClient,
 		topicID:               topicID,
@@ -88,11 +85,10 @@ func NewConsensusMessageHandler(
 	}
 }
 
-func (cmh ConsensusMessageHandler) Recover(queue *queue.Queue) {
-
+func (cmh Handler) Recover(queue *queue.Queue) {
 }
 
-func (cmh ConsensusMessageHandler) Handle(payload []byte) {
+func (cmh Handler) Handle(payload []byte) {
 	m := &validatorproto.TopicSubmissionMessage{}
 	err := proto.Unmarshal(payload, m)
 	if err != nil {
@@ -114,7 +110,7 @@ func (cmh ConsensusMessageHandler) Handle(payload []byte) {
 	}
 }
 
-func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
+func (cmh Handler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
 	isValid, err := cmh.verifyEthTxAuthenticity(m)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - ETH TX [%s] - Error while trying to verify TX authenticity.", m.TransactionId, m.EthTxHash)
@@ -137,14 +133,14 @@ func (cmh ConsensusMessageHandler) handleEthTxMessage(m *validatorproto.TopicEth
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
 
-func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
-	tx, _, err := cmh.ethereumClient.Client.TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
+func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
+	tx, _, err := cmh.ethereumClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
 	if err != nil {
 		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", m.TransactionId, m.EthTxHash, err)
 		return false, err
 	}
 
-	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridgeContractAddress) {
+	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridge.GetContractAddress().String()) {
 		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
 		return false, nil
 	}
@@ -201,7 +197,7 @@ func (cmh ConsensusMessageHandler) verifyEthTxAuthenticity(m *validatorproto.Top
 	return true, nil
 }
 
-func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
+func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
 	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
 
 	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
@@ -227,7 +223,7 @@ func (cmh ConsensusMessageHandler) acknowledgeTransactionSuccess(m *validatorpro
 	}
 }
 
-func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
+func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
 	hash, message, err := cmh.processingService.ValidateAndSaveSignature(msg)
 	if err != nil {
 		cmh.logger.Errorf("Could not Validate and Save Signature for Transaction with ID [%s] and hash [%s] - Error: [%s]", message.TransactionId, hash, err)
@@ -237,7 +233,7 @@ func (cmh ConsensusMessageHandler) handleSignatureMessage(msg *validatorproto.To
 	return cmh.scheduleIfReady(message.TransactionId, hash, message)
 }
 
-func (cmh ConsensusMessageHandler) scheduleIfReady(txId string, hash string, message *validatorproto.CryptoTransferMessage) error {
+func (cmh Handler) scheduleIfReady(txId string, hash string, message *validatorproto.CryptoTransferMessage) error {
 	txMessages, err := cmh.messageRepository.GetTransactions(txId, hash)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", txId, err))
@@ -267,7 +263,7 @@ func (cmh ConsensusMessageHandler) scheduleIfReady(txId string, hash string, mes
 	return nil
 }
 
-func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
+func (cmh Handler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
 	requiredSigCount := len(cmh.bridge.GetMembers())/2 + 1
 	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetMembers()), transactionId)
 	return len(txSignatures) >= requiredSigCount
@@ -275,7 +271,7 @@ func (cmh ConsensusMessageHandler) enoughSignaturesCollected(txSignatures []mess
 
 // computeExecutionSlot - computes the slot order in which the TX will execute
 // Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
+func (cmh Handler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
 	for i := 0; i < len(messages); i++ {
 		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(cmh.signer.Address()) {
 			return int64(i), true
@@ -283,4 +279,13 @@ func (cmh ConsensusMessageHandler) computeExecutionSlot(messages []message.Trans
 	}
 
 	return -1, false
+}
+
+func (cmh Handler) isValidAddress(key string) bool {
+	for _, k := range cmh.bridge.GetMembers() {
+		if strings.ToLower(k) == strings.ToLower(key) {
+			return true
+		}
+	}
+	return false
 }

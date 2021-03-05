@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-package servicefee
+package bridge
 
 import (
-	"math/big"
-	"sync"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type Servicefee struct {
-	serviceFee big.Int
-	mutex      sync.RWMutex
-}
-
-func (s *Servicefee) Get() *big.Int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return &s.serviceFee
-}
-
-func (s *Servicefee) Set(serviceFee big.Int) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	s.serviceFee = serviceFee
+func TestMembersSet(t *testing.T) {
+	membersService := Members{}
+	newMembers := []string{"0x1aSd", "0x2dSa", "0x3qWe", "0x4eWq"}
+	membersService.Set(newMembers)
+	membersList := membersService.Get()
+	assert.Equal(t, len(newMembers), len(membersList), "Different array length")
+	for i, v := range membersList {
+		assert.Equal(t, newMembers[i], v, "Members not set correctly")
+	}
 }

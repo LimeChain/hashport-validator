@@ -18,9 +18,14 @@ package clients
 
 import (
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
-type HederaNodeClient interface {
-	GetClient() *hedera.Client
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
+type MirrorNode interface {
+	GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error)
+	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
+	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
+	GetStateProof(transactionID string) ([]byte, error)
+	AccountExists(accountID hedera.AccountID) bool
 }

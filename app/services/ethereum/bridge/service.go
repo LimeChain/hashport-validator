@@ -17,60 +17,63 @@
 package bridge
 
 import (
+	"github.com/ethereum/go-ethereum/event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	ethclient "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	bridgecontract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/members"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/bridge/servicefee"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
-type BridgeContractService struct {
-	contractInstance *bridge.Bridge
-	Client           *ethclient.EthereumClient
-	mutex            sync.Mutex
-	members          members.Members
-	serviceFee       servicefee.Servicefee
-	logger           *log.Entry
+type ContractService struct {
+	address    common.Address
+	contract   *abi.Bridge
+	Client     clients.Ethereum
+	mutex      sync.Mutex
+	members    Members
+	serviceFee ServiceFee
+	logger     *log.Entry
 }
 
-func NewBridgeContractService(client *ethclient.EthereumClient, c config.Ethereum) *BridgeContractService {
-	bridgeContractAddress, err := client.ValidateContractAddress(c.BridgeContractAddress)
+func NewContractService(client clients.Ethereum, c config.Ethereum) *ContractService {
+	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	contractInstance, err := bridge.NewBridge(*bridgeContractAddress, client.Client)
+	contractInstance, err := abi.NewBridge(*contractAddress, client.GetClient())
 	if err != nil {
 		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
 	}
 
-	bridge := &BridgeContractService{
-		Client:           client,
-		contractInstance: contractInstance,
-		logger:           config.GetLoggerFor("Bridge Contract Service"),
+	contractService := &ContractService{
+		address:  *contractAddress,
+		Client:   client,
+		contract: contractInstance,
+		logger:   config.GetLoggerFor("Bridge Contract ContractService"),
 	}
 
-	bridge.updateMembers()
-	bridge.updateServiceFee()
+	contractService.updateMembers()
+	contractService.updateServiceFee()
 
-	go bridge.listenForMemberUpdatedEvent()
-	go bridge.listenForChangeFeeEvent()
+	go contractService.listenForMemberUpdatedEvent()
+	go contractService.listenForChangeFeeEvent()
 
-	return bridge
+	return contractService
 }
 
-func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
+func (bsc *ContractService) GetContractAddress() common.Address {
+	return bsc.address
+}
+
+func (bsc *ContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
@@ -84,7 +87,7 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 		return nil, err
 	}
 
-	return bsc.contractInstance.Mint(
+	return bsc.contract.Mint(
 		opts,
 		[]byte(ctm.TransactionId),
 		common.HexToAddress(ctm.EthAddress),
@@ -93,16 +96,21 @@ func (bsc *BridgeContractService) SubmitSignatures(opts *bind.TransactOpts, ctm 
 		signatures)
 }
 
-func (bsc *BridgeContractService) GetMembers() []string {
+func (bsc *ContractService) GetMembers() []string {
 	return bsc.members.Get()
 }
 
-func (bsc *BridgeContractService) GetServiceFee() *big.Int {
+func (bsc *ContractService) GetServiceFee() *big.Int {
 	return bsc.serviceFee.Get()
 }
 
-func (bsc *BridgeContractService) updateServiceFee() {
-	newFee, err := bsc.contractInstance.ServiceFee(nil)
+func (bsc *ContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error) {
+	var addresses []common.Address
+	return bsc.contract.WatchBurn(opts, sink, addresses)
+}
+
+func (bsc *ContractService) updateServiceFee() {
+	newFee, err := bsc.contract.ServiceFee(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get service fee", err)
 	}
@@ -112,15 +120,15 @@ func (bsc *BridgeContractService) updateServiceFee() {
 
 }
 
-func (bsc *BridgeContractService) updateMembers() {
-	membersCount, err := bsc.contractInstance.MembersCount(nil)
+func (bsc *ContractService) updateMembers() {
+	membersCount, err := bsc.contract.MembersCount(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get members count", err)
 	}
 
 	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
-		addr, err := bsc.contractInstance.MemberAt(nil, big.NewInt(int64(i)))
+		addr, err := bsc.contract.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
 			bsc.logger.Fatal("Failed to get member address", err)
 		}
@@ -131,14 +139,9 @@ func (bsc *BridgeContractService) updateMembers() {
 
 }
 
-func (bsc *BridgeContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridge.BridgeBurn) (event.Subscription, error) {
-	var addresses []common.Address
-	return bsc.contractInstance.WatchBurn(opts, sink, addresses, [][]byte{})
-}
-
-func (bsc *BridgeContractService) listenForChangeFeeEvent() {
-	events := make(chan *bridgecontract.BridgeServiceFeeSet)
-	sub, err := bsc.contractInstance.WatchServiceFeeSet(nil, events)
+func (bsc *ContractService) listenForChangeFeeEvent() {
+	events := make(chan *abi.BridgeServiceFeeSet)
+	sub, err := bsc.contract.WatchServiceFeeSet(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error ", err)
 	}
@@ -155,9 +158,9 @@ func (bsc *BridgeContractService) listenForChangeFeeEvent() {
 	}
 }
 
-func (bsc *BridgeContractService) listenForMemberUpdatedEvent() {
-	events := make(chan *bridgecontract.BridgeMemberUpdated)
-	sub, err := bsc.contractInstance.WatchMemberUpdated(nil, events)
+func (bsc *ContractService) listenForMemberUpdatedEvent() {
+	events := make(chan *abi.BridgeMemberUpdated)
+	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
 	}

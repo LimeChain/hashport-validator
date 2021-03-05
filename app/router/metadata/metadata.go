@@ -26,7 +26,7 @@ var (
 )
 
 // /metadata?gasPriceGwei=${gasPriceGwei}
-func getMetadata(calculator *fees.FeeCalculator) func(w http.ResponseWriter, r *http.Request) {
+func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
@@ -54,7 +54,7 @@ func getMetadata(calculator *fees.FeeCalculator) func(w http.ResponseWriter, r *
 	}
 }
 
-func NewMetadataRouter(feeCalculator *fees.FeeCalculator) http.Handler {
+func NewMetadataRouter(feeCalculator *fees.Calculator) http.Handler {
 	r := chi.NewRouter()
 	r.Get(metadataRoute, getMetadata(feeCalculator))
 
