@@ -27,6 +27,7 @@ var (
 	HealthCheckRoute = "/health"
 )
 
+//Router for health check
 func NewHealthCheckRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", healthResponse())
