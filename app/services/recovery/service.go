@@ -254,11 +254,6 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 		}
 
-		err = rs.topicStatusRepository.UpdateLastFetchedTimestamp(rs.topicID.String(), timestamp)
-		if err != nil {
-			return 0, err
-		}
-
 		if err != nil {
 			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
 			continue
