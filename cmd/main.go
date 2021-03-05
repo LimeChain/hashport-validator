@@ -20,18 +20,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
-
-	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
@@ -105,8 +105,8 @@ func main() {
 
 func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
-
+	apiRouter.AddV1Router(metadata.MetadataRoute, metadata.NewMetadataRouter(feeCalculator))
+	apiRouter.AddV1Router(healthcheck.HealthCheckRoute, healthcheck.NewHealthCheckRouter())
 	return apiRouter
 }
 
