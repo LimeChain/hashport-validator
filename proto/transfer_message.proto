@@ -4,7 +4,8 @@ package proto;
 
 option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
-message CryptoTransferMessage {
+// TransferMessage used by the Transfer watchers and handlers to pass the necessary metadata when processing new incoming Transfer
+message TransferMessage {
   string transactionId = 1;
   string ethAddress = 2;
   string amount = 3;

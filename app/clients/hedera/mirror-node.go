@@ -26,7 +26,6 @@ import (
 
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
 type MirrorNode struct {
@@ -41,14 +40,14 @@ func NewMirrorNodeClient(mirrorNodeAPIAddress string) *MirrorNode {
 	}
 }
 
-func (c MirrorNode) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*Transactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c MirrorNode) GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) GetAccountTransaction(transactionID string) (*Transactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -81,7 +80,7 @@ func (c MirrorNode) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c MirrorNode) getTransactionsByQuery(query string) (*transaction.HederaTransactions, error) {
+func (c MirrorNode) getTransactionsByQuery(query string) (*Transactions, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 	response, e := c.get(transactionsQuery)
 	if e != nil {
@@ -93,7 +92,7 @@ func (c MirrorNode) getTransactionsByQuery(query string) (*transaction.HederaTra
 		return nil, e
 	}
 
-	var transactions *transaction.HederaTransactions
+	var transactions *Transactions
 	e = json.Unmarshal(bodyBytes, &transactions)
 	if e != nil {
 		return nil, e

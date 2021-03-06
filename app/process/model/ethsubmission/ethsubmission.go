@@ -22,6 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
+// TODO should remove once refactored
 type Submission struct {
 	TransactOps           *bind.TransactOpts
 	CryptoTransferMessage *proto.CryptoTransferMessage

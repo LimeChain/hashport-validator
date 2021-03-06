@@ -17,8 +17,8 @@
 package ethereum
 
 import (
-	bridgecontract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	bridgeContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -27,14 +27,14 @@ import (
 
 type EthWatcher struct {
 	config          config.Ethereum
-	contractService *bridge.ContractService
+	contractService services.Contracts
 	logger          *log.Entry
 }
 
-func NewEthereumWatcher(contractService *bridge.ContractService, config config.Ethereum) *EthWatcher {
+func NewEthereumWatcher(contractsService services.Contracts, config config.Ethereum) *EthWatcher {
 	return &EthWatcher{
 		config:          config,
-		contractService: contractService,
+		contractService: contractsService,
 		logger:          c.GetLoggerFor("Ethereum Watcher"),
 	}
 }
@@ -45,7 +45,7 @@ func (ew *EthWatcher) Watch(queue *queue.Queue) {
 }
 
 func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
-	events := make(chan *bridgecontract.BridgeBurn)
+	events := make(chan *bridgeContract.BridgeBurn)
 	sub, err := ew.contractService.WatchBurnEventLogs(nil, events)
 	if err != nil {
 		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.BridgeContractAddress, err)
@@ -62,7 +62,7 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 	}
 }
 
-func (ew *EthWatcher) handleLog(eventLog *bridgecontract.BridgeBurn, q *queue.Queue) {
+func (ew *EthWatcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue) {
 	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.13.0
-// source: topic_submission_type.proto
+// source: topic_message_type.proto
 
 package proto
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package process
+package bridge
 
 import (
 	"encoding/hex"
@@ -24,10 +24,12 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
+	//"github.com/hashgraph/hedera-state-proof-verifier-go"
+	hederaAPIModel "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
@@ -38,38 +40,61 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProcessingService struct {
+type Service struct {
 	logger                *log.Entry
-	ethereumClient        clients.Ethereum
 	transactionRepository repositories.Transaction
 	MessageRepository     repositories.Message
-	operatorsEthAddresses []string
 	feeCalculator         *fees.Calculator
 	ethSigner             *eth.Signer
-	hederaNodeClient      clients.HederaNode
 	topicID               hedera.TopicID
+	clients               clients.Clients
 }
 
-func NewProcessingService(ethereumClient clients.Ethereum, transactionRepository repositories.Transaction, messageRepository repositories.Message, operatorsEthAddresses []string, feeCalculator *fees.Calculator, ethSigner *eth.Signer, hederaNodeClient clients.HederaNode, topicID string) *ProcessingService {
+func NewService(clients clients.Clients, transactionRepository repositories.Transaction, messageRepository repositories.Message, operatorsEthAddresses []string, feeCalculator *fees.Calculator, ethSigner *eth.Signer, topicID string) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
 		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))
 	}
 
-	return &ProcessingService{
+	return &Service{
 		MessageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		ethereumClient:        ethereumClient,
-		operatorsEthAddresses: operatorsEthAddresses,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Processing Service")),
 		feeCalculator:         feeCalculator,
 		ethSigner:             ethSigner,
-		hederaNodeClient:      hederaNodeClient,
 		topicID:               tID,
+		clients:               clients,
 	}
 }
 
-func (ps *ProcessingService) HandleTopicSubmission(message *validatorproto.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
+// SanityCheck performs validation on the memo and state proof for the transaction
+func (bs *Service) SanityCheck(tx hederaAPIModel.Transaction) (*memo.Memo, error) {
+	m, e := memo.FromBase64String(tx.MemoBase64)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
+	}
+
+	// TODO
+	//stateProof, e = bs.clients.MirrorNode.GetStateProof(tx.TransactionID)
+	//if e != nil {
+	//	return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+	//}
+
+	//verified, e := proof.Verify(tx.TransactionID, stateProof)
+	//if e != nil {
+	//	return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]"), e))
+	//}
+	//
+	//if !verified {
+	//	return nil, errors.New("State proof not valid")
+	//}
+
+	return m, nil
+}
+
+// TODO ->
+
+func (bs *Service) HandleTopicSubmission(message *validatorproto.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
 	topicSigMessage := &validatorproto.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,
@@ -88,21 +113,21 @@ func (ps *ProcessingService) HandleTopicSubmission(message *validatorproto.Crypt
 		return nil, err
 	}
 
-	ps.logger.Infof("Submitting Signature for TX ID [%s] on Topic [%s]", message.TransactionId, ps.topicID)
-	return ps.hederaNodeClient.SubmitTopicConsensusMessage(ps.topicID, topicSubmissionMessageBytes)
+	bs.logger.Infof("Submitting Signature for TX ID [%s] on Topic [%s]", message.TransactionId, bs.topicID)
+	return bs.clients.HederaNode.SubmitTopicConsensusMessage(bs.topicID, topicSubmissionMessageBytes)
 }
 
-func (ps *ProcessingService) ValidateAndSignTxn(ctm *validatorproto.CryptoTransferMessage) (string, error) {
-	validFee, err := ps.feeCalculator.ValidateExecutionFee(ctm.Fee, ctm.Amount, ctm.GasPriceGwei)
+func (bs *Service) ValidateAndSignTxn(ctm *validatorproto.CryptoTransferMessage) (string, error) {
+	validFee, err := bs.feeCalculator.ValidateExecutionFee(ctm.Fee, ctm.Amount, ctm.GasPriceGwei)
 	if err != nil {
-		ps.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		bs.logger.Errorf("Failed to validate fee for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
 	if !validFee {
-		ps.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
-		err = ps.transactionRepository.UpdateStatusInsufficientFee(ctm.TransactionId)
+		bs.logger.Debugf("Updating status to [%s] for TX ID [%s] with fee [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, ctm.Fee)
+		err = bs.transactionRepository.UpdateStatusInsufficientFee(ctm.TransactionId)
 		if err != nil {
-			ps.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, err)
+			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusInsufficientFee, ctm.TransactionId, err)
 		}
 
 		return "", errors.New(fmt.Sprintf("Calculated fee for Transaction with ID [%s] was invalid. Error [%s]", ctm.TransactionId, err))
@@ -115,7 +140,7 @@ func (ps *ProcessingService) ValidateAndSignTxn(ctm *validatorproto.CryptoTransf
 
 	ethHash := ethhelper.KeccakData(encodedData)
 
-	signature, err := ps.ethSigner.Sign(ethHash)
+	signature, err := bs.ethSigner.Sign(ethHash)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("Failed to sign transaction data for TransactionID [%s], Hash [%s]. Error [%s].", ctm.TransactionId, ethHash, err))
 	}
@@ -123,34 +148,34 @@ func (ps *ProcessingService) ValidateAndSignTxn(ctm *validatorproto.CryptoTransf
 	return hex.EncodeToString(signature), nil
 }
 
-func (ps *ProcessingService) AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
-	ps.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
+func (bs *Service) AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
+	bs.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
 
-	isSuccessful, err := ps.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
+	isSuccessful, err := bs.clients.Ethereum.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
 	if err != nil {
-		ps.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
+		bs.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
 		return
 	}
 
 	if !isSuccessful {
-		ps.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
-		err = ps.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
+		bs.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
+		err = bs.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
 		if err != nil {
-			ps.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
+			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
 			return
 		}
 	} else {
-		ps.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
-		err = ps.transactionRepository.UpdateStatusCompleted(m.TransactionId)
+		bs.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
+		err = bs.transactionRepository.UpdateStatusCompleted(m.TransactionId)
 		if err != nil {
-			ps.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
+			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
 			return
 		}
 	}
 }
 
-func (ps *ProcessingService) AlreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
-	_, err := ps.MessageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
+func (bs *Service) AlreadyExists(m *validatorproto.TopicEthSignatureMessage, ethSig, hexHash string) (bool, error) {
+	_, err := bs.MessageRepository.GetTransaction(m.TransactionId, ethSig, hexHash)
 	notFound := errors.Is(err, gorm.ErrRecordNotFound)
 
 	if err != nil && !notFound {
@@ -159,7 +184,7 @@ func (ps *ProcessingService) AlreadyExists(m *validatorproto.TopicEthSignatureMe
 	return !notFound, nil
 }
 
-func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicSubmissionMessage) (string, *validatorproto.CryptoTransferMessage, error) {
+func (bs *Service) ValidateAndSaveSignature(msg *validatorproto.TopicSubmissionMessage) (string, *validatorproto.CryptoTransferMessage, error) {
 	m := msg.GetTopicSignatureMessage()
 	ctm := &validatorproto.CryptoTransferMessage{
 		TransactionId: m.TransactionId,
@@ -168,11 +193,11 @@ func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicS
 		Fee:           m.Fee,
 	}
 
-	ps.logger.Debugf("Signature for TX ID [%s] was received", m.TransactionId)
+	bs.logger.Debugf("Signature for TX ID [%s] was received", m.TransactionId)
 
 	encodedData, err := ethhelper.EncodeData(ctm)
 	if err != nil {
-		ps.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
+		bs.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}
 
 	hash := crypto.Keccak256(encodedData)
@@ -184,7 +209,7 @@ func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicS
 		return "", nil, errors.New(fmt.Sprintf("[%s] - Failed to decode signature. - [%s]", m.TransactionId, err))
 	}
 
-	exists, err := ps.AlreadyExists(m, ethSig, hexHash)
+	exists, err := bs.AlreadyExists(m, ethSig, hexHash)
 	if err != nil {
 		return "", nil, err
 	}
@@ -204,11 +229,12 @@ func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicS
 
 	address := crypto.PubkeyToAddress(*pubKey)
 
-	if processutils.IsValidAddress(address.String(), ps.operatorsEthAddresses) {
-		return "", nil, errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
-	}
+	// TODO
+	//if processutils.IsValidAddress(address.String(), bs.operatorsEthAddresses) {
+	//	return "", nil, errors.New(fmt.Sprintf("[%s] - Address is not valid - [%s]", m.TransactionId, address.String()))
+	//}
 
-	err = ps.MessageRepository.Create(&message.TransactionMessage{
+	err = bs.MessageRepository.Create(&message.TransactionMessage{
 		TransactionId:        m.TransactionId,
 		EthAddress:           m.EthAddress,
 		Amount:               m.Amount,
@@ -222,6 +248,6 @@ func (ps *ProcessingService) ValidateAndSaveSignature(msg *validatorproto.TopicS
 		return "", nil, errors.New(fmt.Sprintf("Could not add Transaction Message with Transaction Id and Signature - [%s]-[%s] - [%s]", m.TransactionId, ethSig, err))
 	}
 
-	ps.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
+	bs.logger.Debugf("Verified and saved signature for TX ID [%s]", m.TransactionId)
 	return hexHash, ctm, nil
 }

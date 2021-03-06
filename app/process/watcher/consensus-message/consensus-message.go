@@ -115,6 +115,7 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64,
 	}
 }
 
+// TODO extract new package. Used by the crypto-transfer handler and consensus-message watchers for encoding decoding of the messages
 func PrepareMessage(message []byte, timestamp int64) (*validatorproto.TopicSubmissionMessage, error) {
 	msg := &validatorproto.TopicSubmissionMessage{}
 	err := proto.Unmarshal(message, msg)

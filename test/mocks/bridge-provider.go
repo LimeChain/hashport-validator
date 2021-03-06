@@ -27,7 +27,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) GetContractAddress() common.Address {
+func (m *MockBridgeContract) GetBridgeContractAddress() common.Address {
 	return common.HexToAddress("0x0000000000000000000000000000000000000000")
 }
 

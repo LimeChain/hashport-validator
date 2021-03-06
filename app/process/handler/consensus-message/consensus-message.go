@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -32,8 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -47,12 +46,12 @@ type Handler struct {
 	hederaNodeClient      clients.HederaNode
 	messageRepository     repositories.Message
 	transactionRepository repositories.Transaction
-	processingService     *process.ProcessingService
 	scheduler             *scheduler.Scheduler
 	signer                *eth.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
-	bridge                *bridge.ContractService
+	bridgeService         services.Bridge
+	contractsService      services.Contracts
 }
 
 func NewHandler(
@@ -62,9 +61,9 @@ func NewHandler(
 	ethereumClient clients.Ethereum,
 	hederaNodeClient clients.HederaNode,
 	scheduler *scheduler.Scheduler,
-	bridge *bridge.ContractService,
 	signer *eth.Signer,
-	processingService *process.ProcessingService,
+	contractsService services.Contracts,
+	bridgeService services.Bridge,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
@@ -72,7 +71,7 @@ func NewHandler(
 	}
 
 	return &Handler{
-		processingService:     processingService,
+		bridgeService:         bridgeService,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
 		hederaNodeClient:      hederaNodeClient,
@@ -81,7 +80,7 @@ func NewHandler(
 		scheduler:             scheduler,
 		signer:                signer,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
-		bridge:                bridge,
+		contractsService:      contractsService,
 	}
 }
 
@@ -128,7 +127,7 @@ func (cmh Handler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessa
 		return err
 	}
 
-	go cmh.processingService.AcknowledgeTransactionSuccess(m)
+	//go cmh.bridgeService.AcknowledgeTransactionSuccess(m)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
@@ -140,7 +139,7 @@ func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransaction
 		return false, err
 	}
 
-	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.bridge.GetContractAddress().String()) {
+	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.contractsService.GetBridgeContractAddress().String()) {
 		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
 		return false, nil
 	}
@@ -187,7 +186,7 @@ func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransaction
 			return false, err
 		}
 
-		if !processutils.IsValidAddress(address, cmh.bridge.GetMembers()) {
+		if !cmh.contractsService.IsMember(address) {
 			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator process - [%s].", m.TransactionId, m.EthTxHash, address)
 			return false, nil
 		}
@@ -224,7 +223,7 @@ func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTrans
 }
 
 func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
-	hash, message, err := cmh.processingService.ValidateAndSaveSignature(msg)
+	hash, message, err := cmh.bridgeService.ValidateAndSaveSignature(msg)
 	if err != nil {
 		cmh.logger.Errorf("Could not Validate and Save Signature for Transaction with ID [%s] and hash [%s] - Error: [%s]", message.TransactionId, hash, err)
 		return err
@@ -264,8 +263,8 @@ func (cmh Handler) scheduleIfReady(txId string, hash string, message *validatorp
 }
 
 func (cmh Handler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.bridge.GetMembers())/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.bridge.GetMembers()), transactionId)
+	requiredSigCount := len(cmh.contractsService.GetMembers())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.contractsService.GetMembers()), transactionId)
 	return len(txSignatures) >= requiredSigCount
 }
 
@@ -282,7 +281,7 @@ func (cmh Handler) computeExecutionSlot(messages []message.TransactionMessage) (
 }
 
 func (cmh Handler) isValidAddress(key string) bool {
-	for _, k := range cmh.bridge.GetMembers() {
+	for _, k := range cmh.contractsService.GetMembers() {
 		if strings.ToLower(k) == strings.ToLower(key) {
 			return true
 		}

@@ -58,7 +58,7 @@ func Test_E2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("Estimated TX Fee: [%s]\n", txFee)
+	fmt.Printf("Estimated TX TxReimbursementFee: [%s]\n", txFee)
 
 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 

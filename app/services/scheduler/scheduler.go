@@ -23,11 +23,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/scheduler"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -37,13 +37,13 @@ import (
 
 // Scheduler implements the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
 type Scheduler struct {
-	topicID         hedera.TopicID
-	logger          *log.Entry
-	tasks           *sync.Map
-	operator        string
-	executionWindow int64
-	contractService *bridge.ContractService
-	hederaClient    clients.HederaNode
+	topicID          hedera.TopicID
+	logger           *log.Entry
+	tasks            *sync.Map
+	operator         string
+	executionWindow  int64
+	contractsService services.Contracts
+	hederaClient     clients.HederaNode
 }
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
@@ -126,7 +126,7 @@ func NewScheduler(
 	topicId string,
 	operator string,
 	executionWindow int64,
-	contractService *bridge.ContractService,
+	contractsService services.Contracts,
 	hederaClient clients.HederaNode,
 ) *Scheduler {
 	topicID, err := hedera.TopicIDFromString(topicId)
@@ -135,13 +135,13 @@ func NewScheduler(
 	}
 
 	return &Scheduler{
-		logger:          config.GetLoggerFor("Scheduler"),
-		tasks:           new(sync.Map),
-		operator:        operator,
-		executionWindow: executionWindow,
-		contractService: contractService,
-		hederaClient:    hederaClient,
-		topicID:         topicID,
+		logger:           config.GetLoggerFor("Scheduler"),
+		tasks:            new(sync.Map),
+		operator:         operator,
+		executionWindow:  executionWindow,
+		contractsService: contractsService,
+		hederaClient:     hederaClient,
+		topicID:          topicID,
 	}
 }
 
@@ -157,7 +157,7 @@ func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transac
 	if err != nil {
 		return nil, err
 	}
-	return s.contractService.SubmitSignatures(submission.TransactOps, submission.CryptoTransferMessage, signatures)
+	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.CryptoTransferMessage, signatures)
 }
 
 func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.Submission, ethTxHash string) (*hedera.TransactionID, error) {
@@ -177,11 +177,14 @@ func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.
 		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash, err)
 	}
 
+	// TODO refactor such that the "waitForEthTxMined" is performed inside the bridge service and scheduler only reacts to that
 	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)
 }
 
+// TODO
 func (s *Scheduler) waitForEthTxMined(ethTx common.Hash) (bool, error) {
-	return s.contractService.Client.WaitForTransactionSuccess(ethTx)
+	//return s.contractsService.Client.WaitForTransactionSuccess(ethTx)
+	return true, nil
 }
 
 func getSignatures(messages []message.TransactionMessage) ([][]byte, error) {

@@ -23,12 +23,13 @@ import (
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	consensusmessage "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -38,7 +39,8 @@ import (
 	"time"
 )
 
-type RecoveryService struct {
+type Recovery struct {
+	bridgeService           services.Bridge
 	transactionRepository   repositories.Transaction
 	topicStatusRepository   repositories.Status
 	accountStatusRepository repositories.Status
@@ -48,11 +50,10 @@ type RecoveryService struct {
 	topicID                 hederasdk.TopicID
 	cryptoTransferTS        int64
 	logger                  *log.Entry
-	processingService       *process.ProcessingService
 }
 
-func NewRecoveryService(
-	processingService *process.ProcessingService,
+func NewRecoveryProcess(
+	bridgeService services.Bridge,
 	transactionRepository repositories.Transaction,
 	topicStatusRepository repositories.Status,
 	accountStatusRepository repositories.Status,
@@ -61,9 +62,9 @@ func NewRecoveryService(
 	accountID hederasdk.AccountID,
 	topicID hederasdk.TopicID,
 	cryptoTS int64,
-) *RecoveryService {
-	return &RecoveryService{
-		processingService:       processingService,
+) *Recovery {
+	return &Recovery{
+		bridgeService:           bridgeService,
 		transactionRepository:   transactionRepository,
 		topicStatusRepository:   topicStatusRepository,
 		accountStatusRepository: accountStatusRepository,
@@ -76,31 +77,31 @@ func NewRecoveryService(
 	}
 }
 
-func (rs *RecoveryService) Recover() (int64, error) {
-	from := rs.getStartTimestampFor(rs.accountStatusRepository, rs.accountID.String())
-	fmt.Println(from)
+// Recover starts the main recovery process
+func (r *Recovery) Recover() (int64, error) {
+	from := r.getStartTimestampFor(r.accountStatusRepository, r.accountID.String())
 	to := time.Now().UnixNano()
 	if from < 0 {
 		log.Info("Nothing to recover. Proceeding to start watchers and handlers.")
 		return to, nil
 	}
 
-	log.Infof("Crypto Transfer Recovery for Account [%s]", rs.accountID.String())
-	now, err := rs.cryptoTransferRecovery(from, to)
+	log.Infof("Crypto Transfer Recovery for Account [%s]", r.accountID.String())
+	now, err := r.transfersRecovery(from, to)
 	if err != nil {
-		rs.logger.Errorf("Error - could not finish crypto transfer recovery process: [%s]", err)
+		r.logger.Errorf("Error - could not finish crypto transfer recovery process: [%s]", err)
 		return 0, err
 	}
-	log.Infof("[SUCCESSFUL] Crypto Transfer Recovery for Account [%s]", rs.accountID.String())
+	log.Infof("[SUCCESSFUL] Crypto Transfer Recovery for Account [%s]", r.accountID.String())
 
-	log.Infof("Consensus Message Recovery for Topic [%s]", rs.topicID.String())
+	log.Infof("Consensus Message Recovery for Topic [%s]", r.topicID.String())
 
-	now, err = rs.consensusMessageRecovery(now)
+	now, err = r.consensusMessageRecovery(now)
 	if err != nil {
-		rs.logger.Errorf("Error - could not finish consensus message recovery process: [%s]", err)
+		r.logger.Errorf("Error - could not finish consensus message recovery process: [%s]", err)
 		return 0, err
 	}
-	log.Infof("[SUCCESSFUL] Consensus Message Recovery for Topic [%s]", rs.topicID.String())
+	log.Infof("[SUCCESSFUL] Consensus Message Recovery for Topic [%s]", r.topicID.String())
 
 	// TODO Handle unprocessed TXs
 	// 1. Get all Skipped TX (DONE)
@@ -109,9 +110,9 @@ func (rs *RecoveryService) Recover() (int64, error) {
 	// 4. Go through all TX ID -> Messages. If current validator node haven't submitted a signature message -> sign and submit signature message to topic (DONE)
 
 	log.Infof("Starting to process skipped Transactions")
-	err = rs.processSkipped()
+	err = r.processSkipped()
 	if err != nil {
-		rs.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
+		r.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
 		return 0, err
 	}
 	log.Infof("[SUCCESSFUL] Process of Skipped Transactions")
@@ -119,34 +120,34 @@ func (rs *RecoveryService) Recover() (int64, error) {
 	return now, nil
 }
 
-func (rs *RecoveryService) processSkipped() error {
-	unprocessed, err := rs.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
+func (r *Recovery) processSkipped() error {
+	unprocessed, err := r.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
 	}
 
 	for txn, txnSignatures := range unprocessed {
-		hasSubmittedSignature, ctm := rs.hasSubmittedSignature(txn, txnSignatures)
+		hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
 
 		if !hasSubmittedSignature {
-			rs.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
+			r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
 
-			signature, err := rs.processingService.ValidateAndSignTxn(ctm)
+			signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
 			if err != nil {
-				rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
+				r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
 			}
 
-			_, err = rs.processingService.HandleTopicSubmission(ctm, signature)
+			_, err = r.bridgeService.HandleTopicSubmission(ctm, signature)
 			if err != nil {
-				return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, rs.topicID, err))
+				return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
 			}
-			rs.logger.Infof("Successfully Validated")
+			r.logger.Infof("Successfully Validated")
 		}
 	}
 	return nil
 }
 
-func (rs *RecoveryService) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.CryptoTransferMessage) {
+func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.CryptoTransferMessage) {
 	ctm := &validatorproto.CryptoTransferMessage{
 		TransactionId: data.TransactionId,
 		EthAddress:    data.EthAddress,
@@ -155,9 +156,9 @@ func (rs *RecoveryService) hasSubmittedSignature(data joined.CTMKey, signatures 
 		GasPriceGwei:  data.GasPriceGwei,
 	}
 
-	signature, err := rs.processingService.ValidateAndSignTxn(ctm)
+	signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
 	if err != nil {
-		rs.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
+		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
 	}
 
 	for _, s := range signatures {
@@ -168,44 +169,50 @@ func (rs *RecoveryService) hasSubmittedSignature(data joined.CTMKey, signatures 
 	return false, ctm
 }
 
-func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, error) {
-	result, err := rs.mirrorClient.GetSuccessfulAccountCreditTransactionsAfterDate(rs.accountID, from)
+func (r *Recovery) transfersRecovery(from int64, to int64) (int64, error) {
+	result, err := r.mirrorClient.GetSuccessfulAccountCreditTransactionsAfterDate(r.accountID, from)
 	if err != nil {
 		return 0, err
 	}
+	// TODO filter all TX after `to`
+	//if recent(tx.ConsensusTimestamp, to) {
+	//	break
+	//}
 
-	rs.logger.Infof("Unprocessed transactions found: [%d]", len(result.Transactions))
-	for _, tr := range result.Transactions {
-		if recent(tr.ConsensusTimestamp, to) {
-			break
-		}
-
-		memoInfo, err := processutils.DecodeMemo(tr.MemoBase64)
+	r.logger.Infof("Unprocessed transactions found: [%d]", len(result.Transactions))
+	for _, tx := range result.Transactions {
+		amount, err := tx.GetIncomingAmountFor(r.accountID.String())
 		if err != nil {
-			rs.logger.Errorf("Could not decode memo for Transaction with ID [%s] - Error: [%s]", tr.TransactionID, err)
+			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
+			continue
+		}
+		m, err := r.bridgeService.SanityCheck(tx)
+		if err != nil {
+			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 
-		rs.logger.Debugf("Adding a transaction with ID [%s] unprocessed transactions with status [%s]", tr.TransactionID, transaction.StatusSkipped)
-
-		err = rs.transactionRepository.Skip(&proto.CryptoTransferMessage{
-			TransactionId: tr.TransactionID,
-			EthAddress:    memoInfo.EthAddress,
-			Amount:        strconv.Itoa(int(processutils.ExtractAmount(tr, rs.accountID))),
-			Fee:           memoInfo.Fee,
-			GasPriceGwei:  memoInfo.GasPriceGwei,
+		r.logger.Debugf("Adding a transaction with ID [%s] unprocessed transactions with status [%s]", tx.TransactionID, transaction.StatusSkipped)
+		// TODO use bridge.persistTransfer
+		err = r.transactionRepository.Skip(&proto.CryptoTransferMessage{
+			TransactionId: tx.TransactionID,
+			EthAddress:    m.EthereumAddress,
+			Amount:        amount,
+			Fee:           m.TxReimbursementFee,
+			GasPriceGwei:  m.GasPriceGwei,
 		})
+		if err != nil {
+			return 0, err
+		}
+		// TODO end
 
+		// TODO at the end, update the last fetched timestamp (no need for updates on every TX)
+		timestamp, err := timestampHelper.FromString(tx.ConsensusTimestamp)
 		if err != nil {
 			return 0, err
 		}
 
-		timestamp, err := timestampHelper.FromString(tr.ConsensusTimestamp)
-		if err != nil {
-			return 0, err
-		}
-
-		err = rs.accountStatusRepository.UpdateLastFetchedTimestamp(rs.accountID.String(), timestamp)
+		err = r.accountStatusRepository.UpdateLastFetchedTimestamp(r.accountID.String(), timestamp)
 		if err != nil {
 			return 0, err
 		}
@@ -214,14 +221,15 @@ func (rs *RecoveryService) cryptoTransferRecovery(from int64, to int64) (int64, 
 	return to, nil
 }
 
-func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
-	result, err := rs.mirrorClient.GetHederaTopicMessagesAfterTimestamp(rs.topicID, rs.getStartTimestampFor(rs.topicStatusRepository, rs.topicID.String()))
+func (r *Recovery) consensusMessageRecovery(now int64) (int64, error) {
+	result, err := r.mirrorClient.GetHederaTopicMessagesAfterTimestamp(r.topicID, r.getStartTimestampFor(r.topicStatusRepository, r.topicID.String()))
 	if err != nil {
-		rs.logger.Errorf("Error - could not retrieve messages for recovery: [%s]", err)
+		r.logger.Errorf("Error - could not retrieve messages for recovery: [%s]", err)
 		return 0, err
 	}
+	// TODO filter all TX after `to`
 
-	rs.logger.Infof("Unprocessed topic messages: [%d]", len(result.Messages))
+	r.logger.Infof("Unprocessed topic messages: [%d]", len(result.Messages))
 	for _, msg := range result.Messages {
 		if recent(msg.ConsensusTimestamp, now) {
 			break
@@ -229,33 +237,33 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 
 		timestamp, err := timestampHelper.FromString(msg.ConsensusTimestamp)
 		if err != nil {
-			rs.logger.Errorf("Error - could not parse timestamp string to int64: [%s]", err)
+			r.logger.Errorf("Error - could not parse timestamp string to int64: [%s]", err)
 			continue
 		}
 
 		contents, err := base64.StdEncoding.DecodeString(msg.Contents)
 		if err != nil {
-			rs.logger.Errorf("Error - could not decode contents of topic message: [%s]", err)
+			r.logger.Errorf("Error - could not decode contents of topic message: [%s]", err)
 			continue
 		}
 
 		m, err := consensusmessage.PrepareMessage(contents, timestamp)
 		if err != nil {
-			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
+			r.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
 			continue
 		}
 
 		switch m.Type {
 		case validatorproto.TopicSubmissionType_EthSignature:
-			_, _, err = rs.processingService.ValidateAndSaveSignature(m)
+			_, _, err = r.bridgeService.ValidateAndSaveSignature(m)
 		case validatorproto.TopicSubmissionType_EthTransaction:
-			err = rs.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
+			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
 		default:
 			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 		}
 
 		if err != nil {
-			rs.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
+			r.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
 			continue
 		}
 	}
@@ -263,9 +271,9 @@ func (rs *RecoveryService) consensusMessageRecovery(now int64) (int64, error) {
 	return now, nil
 }
 
-func (rs *RecoveryService) getStartTimestampFor(repository repositories.Status, address string) int64 {
-	if rs.cryptoTransferTS > 0 {
-		return rs.cryptoTransferTS
+func (r *Recovery) getStartTimestampFor(repository repositories.Status, address string) int64 {
+	if r.cryptoTransferTS > 0 {
+		return r.cryptoTransferTS
 	}
 
 	timestamp, err := repository.GetLastFetchedTimestamp(address)
@@ -276,14 +284,14 @@ func (rs *RecoveryService) getStartTimestampFor(repository repositories.Status, 
 	return -1
 }
 
-func (rs *RecoveryService) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
-	err := rs.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
+func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
+	err := r.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
 	if err != nil {
-		rs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
+		r.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
 		return err
 	}
 
-	go rs.processingService.AcknowledgeTransactionSuccess(m)
+	go r.bridgeService.AcknowledgeTransactionSuccess(m)
 	return nil
 }
 

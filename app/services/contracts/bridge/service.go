@@ -17,22 +17,23 @@
 package bridge
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
-type ContractService struct {
+type Service struct {
 	address    common.Address
 	contract   *abi.Bridge
 	Client     clients.Ethereum
@@ -42,38 +43,38 @@ type ContractService struct {
 	logger     *log.Entry
 }
 
-func NewContractService(client clients.Ethereum, c config.Ethereum) *ContractService {
-	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	contractInstance, err := abi.NewBridge(*contractAddress, client.GetClient())
-	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
-	}
-
-	contractService := &ContractService{
-		address:  *contractAddress,
-		Client:   client,
-		contract: contractInstance,
-		logger:   config.GetLoggerFor("Bridge Contract ContractService"),
-	}
-
-	contractService.updateMembers()
-	contractService.updateServiceFee()
-
-	go contractService.listenForMemberUpdatedEvent()
-	go contractService.listenForChangeFeeEvent()
-
-	return contractService
-}
-
-func (bsc *ContractService) GetContractAddress() common.Address {
+func (bsc *Service) GetBridgeContractAddress() common.Address {
 	return bsc.address
 }
 
-func (bsc *ContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
+// GetServiceFee returns the current service fee configured in the Bridge contract
+func (bsc *Service) GetServiceFee() *big.Int {
+	return bsc.serviceFee.Get()
+}
+
+// GetMembers returns the array of bridge members currently set in the Bridge contract
+func (bsc *Service) GetMembers() []string {
+	return bsc.members.Get()
+}
+
+// IsMember returns true/false depending on whether the provided address is a Bridge member or not
+func (bsc *Service) IsMember(address string) bool {
+	for _, k := range bsc.members.Get() {
+		if strings.ToLower(k) == strings.ToLower(address) {
+			return true
+		}
+	}
+	return false
+}
+
+// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
+func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error) {
+	var addresses []common.Address
+	return bsc.contract.WatchBurn(opts, sink, addresses)
+}
+
+// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
+func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
@@ -96,20 +97,7 @@ func (bsc *ContractService) SubmitSignatures(opts *bind.TransactOpts, ctm *proto
 		signatures)
 }
 
-func (bsc *ContractService) GetMembers() []string {
-	return bsc.members.Get()
-}
-
-func (bsc *ContractService) GetServiceFee() *big.Int {
-	return bsc.serviceFee.Get()
-}
-
-func (bsc *ContractService) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error) {
-	var addresses []common.Address
-	return bsc.contract.WatchBurn(opts, sink, addresses)
-}
-
-func (bsc *ContractService) updateServiceFee() {
+func (bsc *Service) updateServiceFee() {
 	newFee, err := bsc.contract.ServiceFee(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get service fee", err)
@@ -120,7 +108,7 @@ func (bsc *ContractService) updateServiceFee() {
 
 }
 
-func (bsc *ContractService) updateMembers() {
+func (bsc *Service) updateMembers() {
 	membersCount, err := bsc.contract.MembersCount(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get members count", err)
@@ -139,7 +127,7 @@ func (bsc *ContractService) updateMembers() {
 
 }
 
-func (bsc *ContractService) listenForChangeFeeEvent() {
+func (bsc *Service) listenForChangeFeeEvent() {
 	events := make(chan *abi.BridgeServiceFeeSet)
 	sub, err := bsc.contract.WatchServiceFeeSet(nil, events)
 	if err != nil {
@@ -158,7 +146,7 @@ func (bsc *ContractService) listenForChangeFeeEvent() {
 	}
 }
 
-func (bsc *ContractService) listenForMemberUpdatedEvent() {
+func (bsc *Service) listenForMemberUpdatedEvent() {
 	events := make(chan *abi.BridgeMemberUpdated)
 	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
 	if err != nil {
@@ -174,4 +162,32 @@ func (bsc *ContractService) listenForMemberUpdatedEvent() {
 			bsc.updateMembers()
 		}
 	}
+}
+
+// NewContractService creates new instance of a Contract Services based on the provided configuration
+func NewContractService(client clients.Ethereum, c config.Ethereum) *Service {
+	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	contractInstance, err := abi.NewBridge(*contractAddress, client.GetClient())
+	if err != nil {
+		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
+	}
+
+	contractService := &Service{
+		address:  *contractAddress,
+		Client:   client,
+		contract: contractInstance,
+		logger:   config.GetLoggerFor("Bridge Contract Service"),
+	}
+
+	contractService.updateMembers()
+	contractService.updateServiceFee()
+
+	go contractService.listenForMemberUpdatedEvent()
+	go contractService.listenForChangeFeeEvent()
+
+	return contractService
 }

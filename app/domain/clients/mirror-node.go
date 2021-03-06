@@ -18,14 +18,15 @@ package clients
 
 import (
 	"github.com/hashgraph/hedera-sdk-go"
+	hedera2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
 type MirrorNode interface {
+	// TODO rename to `GetTopicMessagesAfterTimestamp`
 	GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error)
-	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error)
-	GetAccountTransaction(transactionID string) (*transaction.HederaTransactions, error)
+	GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*hedera2.Transactions, error)
+	GetAccountTransaction(transactionID string) (*hedera2.Transactions, error)
 	GetStateProof(transactionID string) ([]byte, error)
 	AccountExists(accountID hedera.AccountID) bool
 }

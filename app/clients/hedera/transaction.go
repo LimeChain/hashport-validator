@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-package transaction
+package hedera
+
+import (
+	"errors"
+	"strconv"
+)
 
 type (
-	HederaTransaction struct {
+	// Transaction struct used by the Hedera Mirror node REST API
+	Transaction struct {
 		ConsensusTimestamp   string `json:"consensus_timestamp"`
 		TransactionHash      string `json:"transaction_hash"`
 		ValidStartTimestamp  string `json:"valid_start_timestamp"`
@@ -31,11 +37,23 @@ type (
 		TransactionID        string `json:"transaction_id"`
 		Transfers            []Transfer
 	}
+	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 	}
-	HederaTransactions struct {
-		Transactions []HederaTransaction
+	// Transactions struct used by the Hedera Mirror node REST API and returned once account transactions are queried
+	Transactions struct {
+		Transactions []Transaction
 	}
 )
+
+// GetIncomingAmountFor returns the amount that is credited to the specified account for the given transaction
+func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
+	for _, tr := range t.Transfers {
+		if tr.Account == account {
+			return strconv.Itoa(int(tr.Amount)), nil
+		}
+	}
+	return "", errors.New("no incoming transfer found")
+}

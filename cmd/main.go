@@ -27,15 +27,15 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	processutils "github.com/limechain/hedera-eth-bridge-validator/app/services/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
-	processutils "github.com/limechain/hedera-eth-bridge-validator/app/services/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -56,7 +56,7 @@ func main() {
 	repository := PrepareRepositories(configuration.Hedera.Validator.Db)
 
 	// Prepare Clients
-	client := PrepareClients(configuration)
+	client := clients.PrepareClients(configuration)
 
 	// Prepare Services
 	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
@@ -67,7 +67,7 @@ func main() {
 	feeCalculator := fees.NewCalculator(client.exchangeRate, configuration.Hedera, contractService)
 
 	// Prepare Node
-	processingService := processutils.NewProcessingService(
+	processingService := processutils.NewService(
 		client.ethereum,
 		repository.transaction,
 		repository.message,
@@ -146,7 +146,7 @@ func addCryptoTransferWatcher(configuration *config.Config,
 		return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 	}
 
-	server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(*hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, *repository, account.MaxRetries, startTimestamp))
+	server.AddWatcher(cryptotransfer.NewWatcher(*hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, *repository, account.MaxRetries, startTimestamp))
 	log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	return nil
 }
@@ -175,7 +175,7 @@ func recoverLostProgress(configuration config.Hedera,
 	statusConsensusMessageRepository *repositories.Status,
 	hederaMirrorClient *clients.MirrorNode,
 	hederaNodeClient *clients.HederaNode,
-	processingService *processutils.ProcessingService,
+	processingService *processutils.Service,
 ) (int64, error) {
 	log.Infof("Initializing Recovery Service for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
 	account, err := hedera.AccountIDFromString(configuration.Watcher.CryptoTransfer.Account.Id)
@@ -188,7 +188,7 @@ func recoverLostProgress(configuration config.Hedera,
 		return 0, err
 	}
 
-	recoveryService := recovery.NewRecoveryService(
+	recoveryService := recovery.NewRecoveryProcess(
 		processingService,
 		*transactionRepository,
 		*statusConsensusMessageRepository,

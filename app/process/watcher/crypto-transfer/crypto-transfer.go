@@ -20,23 +20,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
+	hederaAPIModel "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"strconv"
 	"time"
 )
 
-type CryptoTransferWatcher struct {
+type Watcher struct {
+	bridgeService    services.Bridge
 	client           clients.MirrorNode
 	accountID        hedera.AccountID
 	typeMessage      string
@@ -48,15 +48,17 @@ type CryptoTransferWatcher struct {
 	logger           *log.Entry
 }
 
-func NewCryptoTransferWatcher(
+func NewWatcher(
+	bridgeService services.Bridge,
 	client clients.MirrorNode,
 	accountID hedera.AccountID,
 	pollingInterval time.Duration,
 	repository repositories.Status,
 	maxRetries int,
 	startTimestamp int64,
-) *CryptoTransferWatcher {
-	return &CryptoTransferWatcher{
+) *Watcher {
+	return &Watcher{
+		bridgeService:    bridgeService,
 		client:           client,
 		accountID:        accountID,
 		typeMessage:      process.CryptoTransferMessageType,
@@ -69,11 +71,11 @@ func NewCryptoTransferWatcher(
 	}
 }
 
-func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
+func (ctw Watcher) Watch(q *queue.Queue) {
 	go ctw.beginWatching(q)
 }
 
-func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
+func (ctw Watcher) getTimestamp(q *queue.Queue) int64 {
 	accountAddress := ctw.accountID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
@@ -111,19 +113,18 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
 	return milestoneTimestamp
 }
 
-func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
+func (ctw Watcher) beginWatching(q *queue.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
 		return
 	}
-	ctw.logger.Info("Starting watcher")
 
+	// TODO start from `now` (from recovery)
 	milestoneTimestamp := ctw.getTimestamp(q)
 	if milestoneTimestamp == 0 {
 		ctw.logger.Fatalf("Could not start watcher - Could not generate a milestone timestamp.")
 	}
 
-	ctw.logger.Infof("Started watcher")
 	for {
 		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
 		if e != nil {
@@ -153,46 +154,31 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	}
 }
 
-func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
+func (ctw Watcher) processTransaction(tx hederaAPIModel.Transaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-
-	amount := processutils.ExtractAmount(tx, ctw.accountID)
-
-	decodedMemo, e := processutils.DecodeMemo(tx.MemoBase64)
-	if e != nil {
-		ctw.logger.Errorf("Could not parse transaction memo for Transaction with ID [%s] - Error: [%s]", tx.TransactionID, e)
+	amount, err := tx.GetIncomingAmountFor(ctw.accountID.String())
+	if err != nil {
+		ctw.logger.Errorf("Could not extract incoming amount for TX [%s]. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	_, e = ctw.client.GetStateProof(tx.TransactionID)
-	if e != nil {
-		ctw.logger.Errorf("Could not GET state proof, TransactionID [%s]. Error [%s]", tx.TransactionID, e)
+	m, err := ctw.bridgeService.SanityCheck(tx)
+	if err != nil {
+		ctw.logger.Errorf("Sanity check for TX [%s] failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-
-	// TODO: Uncomment after support for V5 record and signature files has been added
-	//verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-	//if e != nil {
-	//	ctw.logger.Errorf("Error while trying to verify state proof for TransactionID [%s]. Error [%s]", tx.TransactionID, e)
-	//	return
-	//}
-	//
-	//if !verified {
-	//	ctw.logger.Errorf("Failed to verify state proof for TransactionID [%s]", tx.TransactionID)
-	//	return
-	//}
 
 	information := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionID,
-		EthAddress:    decodedMemo.EthAddress,
-		Amount:        strconv.Itoa(int(amount)),
-		Fee:           decodedMemo.Fee,
-		GasPriceGwei:  decodedMemo.GasPriceGwei,
+		EthAddress:    m.EthereumAddress,
+		Amount:        amount,
+		Fee:           m.TxReimbursementFee,
+		GasPriceGwei:  m.GasPriceGwei,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
 
-func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
+func (ctw Watcher) restart(q *queue.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")

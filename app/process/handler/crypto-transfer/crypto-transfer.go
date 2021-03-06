@@ -19,7 +19,7 @@ package cryptotransfer
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/process"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/bridge"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -46,7 +46,7 @@ type Handler struct {
 	transactionRepo    repositories.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.Calculator
-	processingService  *process.ProcessingService
+	processingService  *bridge.Service
 }
 
 func NewHandler(
@@ -55,7 +55,7 @@ func NewHandler(
 	hederaMirrorClient clients.MirrorNode,
 	hederaNodeClient clients.HederaNode,
 	transactionRepository repositories.Transaction,
-	processingService *process.ProcessingService) *Handler {
+	processingService *bridge.Service) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
