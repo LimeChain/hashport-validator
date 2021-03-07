@@ -79,7 +79,7 @@ func generateArguments() (abi.Arguments, error) {
 		}}, nil
 }
 
-func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
+func EncodeData(ctm *proto.TransferMessage) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransferMessage, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.TransferMessage, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
 		return nil, nil, err
@@ -140,7 +140,7 @@ func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransfe
 		}
 	}
 
-	transferMessage = &proto.CryptoTransferMessage{
+	transferMessage = &proto.TransferMessage{
 		TransactionId: string(transactionId),
 		EthAddress:    receiver.String(),
 		Amount:        amount.String(),

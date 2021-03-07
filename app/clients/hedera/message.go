@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package message
+package hedera
 
 type (
-	HederaMessage struct {
+	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
+	Message struct {
 		ConsensusTimestamp string `json:"consensus_timestamp"`
 		TopicId            string `json:"topic_id"`
 		Contents           string `json:"message"`
 		RunningHash        string `json:"running_hash"`
 		SequenceNumber     int    `json:"sequence_number"`
 	}
-	HederaMessages struct {
-		Messages []HederaMessage
+	// Messages struct used by the Hedera Mirror node REST API and returned once
+	// Topic Messages are queried
+	Messages struct {
+		Messages []Message
 	}
 )

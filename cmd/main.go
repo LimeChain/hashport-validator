@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"time"
 
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
@@ -77,6 +78,12 @@ func main() {
 		client.hederaNode,
 		configuration.Hedera.Watcher.ConsensusMessage.Topic.Id)
 
+	//from := r.getStartTimestampFor(r.accountStatusRepository, r.accountID.String())
+	//to := time.Now().UnixNano()
+	//if from < 0 {
+	//	log.Info("Nothing to recover. Proceeding to start watchers and handlers.")
+	//	return to, nil
+	//}
 	now, err := recoverLostProgress(configuration.Hedera,
 		&repository.transaction,
 		&repository.cryptoTransferStatus,

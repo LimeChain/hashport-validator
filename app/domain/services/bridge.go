@@ -18,11 +18,18 @@ package services
 
 import (
 	hederaAPIModel "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 )
 
 // Bridge is the major service used for processing Bridge operations
 type Bridge interface {
-	// SanityCheck performs any validation required prior to handling the transaction (memo, state proof verification)
-	SanityCheck(tx hederaAPIModel.Transaction) (*memo.Memo, error)
+	// SanityCheck performs any validation required prior to handling the transaction
+	// (memo, state proof verification)
+	SanityCheck(tx hederaAPIModel.Transaction) (*encoding.Memo, error)
+	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
+	SaveRecoveredTxn(txId, amount string, m encoding.Memo) error
+	// InitiateNewTransfer Stores the incoming transfer message into the Database
+	// aware of already processed transactions
+	InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error)
 }

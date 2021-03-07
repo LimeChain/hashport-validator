@@ -19,14 +19,13 @@ package consensusmessage
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -102,9 +101,9 @@ func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
 }
 
 func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64, q *queue.Queue) {
-	msg, err := PrepareMessage(message, timestamp)
+	msg, err := encoding.NewTopicMessageFromBytesWithTS(message, timestamp)
 	if err != nil {
-		ctw.logger.Errorf("Could not prepare message - [%s]. Skipping the processing of this message - Error: [%s]", message, err)
+		ctw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", message, err)
 		return
 	}
 
@@ -113,17 +112,6 @@ func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64,
 	if err != nil {
 		ctw.logger.Errorf("Could not update last fetched timestamp - [%d]", timestamp)
 	}
-}
-
-// TODO extract new package. Used by the crypto-transfer handler and consensus-message watchers for encoding decoding of the messages
-func PrepareMessage(message []byte, timestamp int64) (*validatorproto.TopicSubmissionMessage, error) {
-	msg := &validatorproto.TopicSubmissionMessage{}
-	err := proto.Unmarshal(message, msg)
-	if err != nil {
-		return nil, err
-	}
-	msg.TransactionTimestamp = timestamp
-	return msg, nil
 }
 
 func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {

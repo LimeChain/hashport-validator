@@ -89,7 +89,7 @@ func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) Skip(ct *proto.CryptoTransferMessage) error {
+func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.CryptoTransferMessage) error {
 	args := m.Called(ct)
 	return args.Get(0).(error)
 }

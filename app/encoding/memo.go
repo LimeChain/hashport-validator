@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package memo
+package encoding
 
 import (
 	"encoding/base64"

@@ -39,5 +39,5 @@ type Contracts interface {
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error)
 	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-	SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error)
+	SubmitSignatures(opts *bind.TransactOpts, ctm *proto.TransferMessage, signatures [][]byte) (*types.Transaction, error)
 }

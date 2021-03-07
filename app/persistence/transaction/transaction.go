@@ -34,7 +34,7 @@ const (
 	StatusSignatureFailed    = "SIGNATURE_FAILED"
 	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
 	StatusEthTxReverted      = "ETH_TX_REVERTED"
-	StatusSkipped            = "SKIPPED"
+	StatusRecovered          = "RECOVERED"
 )
 
 type Transaction struct {
@@ -125,8 +125,8 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 	return result, nil
 }
 
-func (tr Repository) Create(ct *proto.CryptoTransferMessage) error {
-	return tr.dbClient.Create(&Transaction{
+func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
+	tx := &Transaction{
 		Model:         gorm.Model{},
 		TransactionId: ct.TransactionId,
 		EthAddress:    ct.EthAddress,
@@ -134,17 +134,19 @@ func (tr Repository) Create(ct *proto.CryptoTransferMessage) error {
 		Fee:           ct.Fee,
 		Status:        StatusInitial,
 		GasPriceGwei:  ct.GasPriceGwei,
-	}).Error
+	}
+	err := tr.dbClient.Create(tx).Error
+	return tx, err
 }
 
-func (tr *Repository) Skip(ct *proto.CryptoTransferMessage) error {
+func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
 		Model:         gorm.Model{},
 		TransactionId: ct.TransactionId,
 		EthAddress:    ct.EthAddress,
 		Amount:        ct.Amount,
 		Fee:           ct.Fee,
-		Status:        StatusSkipped,
+		Status:        StatusRecovered,
 		GasPriceGwei:  ct.GasPriceGwei,
 	}).Error
 }
@@ -178,7 +180,7 @@ func (tr Repository) UpdateStatusEthTxReverted(txId string) error {
 }
 
 func (tr *Repository) UpdateStatusSkipped(txId string) error {
-	return tr.updateStatus(txId, StatusSkipped)
+	return tr.updateStatus(txId, StatusRecovered)
 }
 
 func (tr Repository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {

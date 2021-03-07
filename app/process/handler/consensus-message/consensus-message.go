@@ -22,14 +22,13 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	processutils "github.com/limechain/hedera-eth-bridge-validator/app/helper/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -88,16 +87,16 @@ func (cmh Handler) Recover(queue *queue.Queue) {
 }
 
 func (cmh Handler) Handle(payload []byte) {
-	m := &validatorproto.TopicSubmissionMessage{}
-	err := proto.Unmarshal(payload, m)
+	m, err := encoding.NewTopicMessageFromBytes(payload)
 	if err != nil {
 		log.Errorf("Error could not unmarshal payload. Error [%s].", err)
+		return
 	}
 
 	switch m.Type {
-	case validatorproto.TopicSubmissionType_EthSignature:
-		err = cmh.handleSignatureMessage(m)
-	case validatorproto.TopicSubmissionType_EthTransaction:
+	case validatorproto.TopicMessageType_EthSignature:
+		err = cmh.handleSignatureMessage(m.TopicMessage)
+	case validatorproto.TopicMessageType_EthTransaction:
 		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
 	default:
 		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
@@ -127,7 +126,7 @@ func (cmh Handler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessa
 		return err
 	}
 
-	//go cmh.bridgeService.AcknowledgeTransactionSuccess(m)
+	go cmh.bridgeService.AcknowledgeTransactionSuccess(m)
 
 	return cmh.scheduler.Cancel(m.TransactionId)
 }
@@ -222,7 +221,7 @@ func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTrans
 	}
 }
 
-func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMessage) error {
+func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicMessage) error {
 	hash, message, err := cmh.bridgeService.ValidateAndSaveSignature(msg)
 	if err != nil {
 		cmh.logger.Errorf("Could not Validate and Save Signature for Transaction with ID [%s] and hash [%s] - Error: [%s]", message.TransactionId, hash, err)
@@ -232,7 +231,7 @@ func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMes
 	return cmh.scheduleIfReady(message.TransactionId, hash, message)
 }
 
-func (cmh Handler) scheduleIfReady(txId string, hash string, message *validatorproto.CryptoTransferMessage) error {
+func (cmh Handler) scheduleIfReady(txId string, hash string, message *validatorproto.TransferMessage) error {
 	txMessages, err := cmh.messageRepository.GetTransactions(txId, hash)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", txId, err))

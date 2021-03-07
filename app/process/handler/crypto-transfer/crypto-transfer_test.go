@@ -223,7 +223,7 @@ func Test_HandleTopicSubmission(t *testing.T) {
 
 	hederaNodeClient.On("SubmitTopicConsensusMessage", topicID, topicSubmissionMessageBytes).Return(&expectedTransaction, nil)
 
-	transactionID, err := ctHandler.processingService.HandleTopicSubmission(&ctm, signature)
+	transactionID, err := ctHandler.bridgeService.HandleTopicSubmission(&ctm, signature)
 	submissionTxn := txn.FromHederaTransactionID(transactionID)
 
 	assert.Nil(t, err)

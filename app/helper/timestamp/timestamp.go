@@ -27,22 +27,24 @@ const (
 	nanosInSecond = 1000000000
 )
 
+// FromString parses a string in the format `{seconds}.{nanos}` into int64 timestamp
 func FromString(timestamp string) (int64, error) {
 	var err error
 	stringTimestamp := strings.Split(timestamp, ".")
 
 	seconds, err := strconv.ParseInt(stringTimestamp[0], 10, 64)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Could not parse the whole part of a timestamp: [%s] - [%s]", timestamp, err))
+		return 0, errors.New("invalid timestamp seconds provided")
 	}
 	nano, err := strconv.ParseInt(stringTimestamp[1], 10, 64)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Could not parse the decimal part of a timestamp: [%s] - [%s]", timestamp, err))
+		return 0, errors.New("invalid timestamp nanos provided")
 	}
 
 	return seconds*nanosInSecond + nano, nil
 }
 
+// ToString parses int64 timestamp into `{seconds}.{nanos}` string
 func ToString(timestamp int64) string {
 	seconds := timestamp / nanosInSecond
 	nano := timestamp % nanosInSecond

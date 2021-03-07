@@ -18,6 +18,7 @@ package hedera
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"strconv"
 )
 
@@ -42,13 +43,15 @@ type (
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 	}
-	// Transactions struct used by the Hedera Mirror node REST API and returned once account transactions are queried
+	// Transactions struct used by the Hedera Mirror node REST API and returned once
+	// account transactions are queried
 	Transactions struct {
 		Transactions []Transaction
 	}
 )
 
-// GetIncomingAmountFor returns the amount that is credited to the specified account for the given transaction
+// GetIncomingAmountFor returns the amount that is credited to the specified
+// account for the given transaction
 func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
@@ -56,4 +59,19 @@ func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
 		}
 	}
 	return "", errors.New("no incoming transfer found")
+}
+
+// GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one
+func (tns Transactions) GetLatestTxnConsensusTime() (int64, error) {
+	var max int64 = 0
+	for _, t := range tns.Transactions {
+		ts, err := timestamp.FromString(t.ConsensusTimestamp)
+		if err != nil {
+			return 0, err
+		}
+		if ts > max {
+			max = ts
+		}
+	}
+	return max, nil
 }

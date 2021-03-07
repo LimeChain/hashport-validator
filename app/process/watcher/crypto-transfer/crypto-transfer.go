@@ -24,11 +24,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -126,7 +126,7 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 	}
 
 	for {
-		transactions, e := ctw.client.GetSuccessfulAccountCreditTransactionsAfterDate(ctw.accountID, milestoneTimestamp)
+		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
 			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
@@ -168,14 +168,8 @@ func (ctw Watcher) processTransaction(tx hederaAPIModel.Transaction, q *queue.Qu
 		return
 	}
 
-	information := &protomsg.CryptoTransferMessage{
-		TransactionId: tx.TransactionID,
-		EthAddress:    m.EthereumAddress,
-		Amount:        amount,
-		Fee:           m.TxReimbursementFee,
-		GasPriceGwei:  m.GasPriceGwei,
-	}
-	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
+	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 
 func (ctw Watcher) restart(q *queue.Queue) {

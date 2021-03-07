@@ -20,12 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/message"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"io/ioutil"
+	"net/http"
 )
 
 type MirrorNode struct {
@@ -40,24 +38,61 @@ func NewMirrorNodeClient(mirrorNodeAPIAddress string) *MirrorNode {
 	}
 }
 
-func (c MirrorNode) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*Transactions, error) {
+func (c MirrorNode) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Transactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
-		timestampHelper.ToString(milestoneTimestamp))
+		timestampHelper.ToString(from))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+// GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
+func (c MirrorNode) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]Transaction, error) {
+	transactions, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, from)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []Transaction
+	for _, t := range transactions.Transactions {
+		ts, err := timestampHelper.FromString(t.ConsensusTimestamp)
+		if err != nil {
+			return nil, err
+		}
+		if ts < to {
+			res = append(res, t)
+		}
+	}
+	return res, nil
+}
+
+// GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
+func (c MirrorNode) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
+	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
+		topicId.String(),
+		timestampHelper.ToString(from))
+	msgs, err := c.getTopicMessagesByQuery(transactionsDownloadQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO refactor into 1 function (reuse code above)
+	var res []Message
+	for _, m := range msgs {
+		ts, err := timestampHelper.FromString(m.ConsensusTimestamp)
+		if err != nil {
+			return nil, err
+		}
+		if ts < to {
+			res = append(res, m)
+		}
+	}
+	return res, nil
 }
 
 func (c MirrorNode) GetAccountTransaction(transactionID string) (*Transactions, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
-}
-
-func (c MirrorNode) GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error) {
-	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
-		topicId.String(),
-		timestampHelper.ToString(timestamp))
-	return c.getTopicMessagesByQuery(transactionsDownloadQuery)
 }
 
 func (c MirrorNode) GetStateProof(transactionID string) ([]byte, error) {
@@ -101,7 +136,7 @@ func (c MirrorNode) getTransactionsByQuery(query string) (*Transactions, error) 
 	return transactions, nil
 }
 
-func (c MirrorNode) getTopicMessagesByQuery(query string) (*message.HederaMessages, error) {
+func (c MirrorNode) getTopicMessagesByQuery(query string) ([]Message, error) {
 	messagesQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics", query)
 	response, e := c.get(messagesQuery)
 	if e != nil {
@@ -113,12 +148,12 @@ func (c MirrorNode) getTopicMessagesByQuery(query string) (*message.HederaMessag
 		return nil, e
 	}
 
-	var messages *message.HederaMessages
+	var messages *Messages
 	e = json.Unmarshal(bodyBytes, &messages)
 	if e != nil {
 		return nil, e
 	}
-	return messages, nil
+	return messages.Messages, nil
 }
 
 func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {

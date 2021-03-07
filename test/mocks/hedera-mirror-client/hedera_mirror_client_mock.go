@@ -19,7 +19,6 @@ package hedera_mirror_client
 import (
 	"github.com/hashgraph/hedera-sdk-go"
 	hedera2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/message"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -27,16 +26,16 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
-func (m *MockHederaMirrorClient) GetHederaTopicMessagesAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*message.HederaMessages, error) {
+func (m *MockHederaMirrorClient) GetMessagesForTopicAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*hedera2.Messages, error) {
 	args := m.Called(topicId, timestamp)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*message.HederaMessages), nil
+		return args.Get(0).(*hedera2.Messages), nil
 	}
-	return args.Get(0).(*message.HederaMessages), args.Get(1).(error)
+	return args.Get(0).(*hedera2.Messages), args.Get(1).(error)
 }
 
-func (m *MockHederaMirrorClient) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*hedera2.Transactions, error) {
+func (m *MockHederaMirrorClient) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*hedera2.Transactions, error) {
 	args := m.Called(accountId, milestoneTimestamp)
 
 	if args.Get(1) == nil {
