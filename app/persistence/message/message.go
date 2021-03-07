@@ -17,6 +17,7 @@
 package message
 
 import (
+	"errors"
 	"gorm.io/gorm"
 )
 
@@ -51,6 +52,18 @@ func (m Repository) GetTransaction(txId, signature, hash string) (*TransactionMe
 		return nil, err
 	}
 	return &message, nil
+}
+
+func (m Repository) Exist(txId, signature, hash string) (bool, error) {
+	_, err := m.GetTransaction(txId, signature, hash)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (m Repository) Create(message *TransactionMessage) error {

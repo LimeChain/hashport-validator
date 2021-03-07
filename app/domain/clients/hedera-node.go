@@ -21,6 +21,10 @@ import (
 )
 
 type HederaNode interface {
+	// GetClient returns the underlying Hedera SDK client
 	GetClient() *hedera.Client
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
+	// SubmitTopicConsensusMessage submits the provided message bytes to the
+	// specified HCS `topicId`. Depending on the result of the TX execution, the
+	// corresponding `onSuccess` and `onFailure` functions are called
+	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte, onSuccess func(), onFailure func()) (*hedera.TransactionID, error)
 }

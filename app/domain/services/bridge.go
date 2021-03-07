@@ -32,4 +32,12 @@ type Bridge interface {
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transactions
 	InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error)
+	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
+	// If no error is returned the TX can be processed
+	VerifyFee(tm encoding.TransferMessage) error
+	// ProcessTransfer processes the transfer message by signing the required
+	// authorisation signature submitting it into the required HCS Topic
+	ProcessTransfer(tm encoding.TransferMessage) error
+	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
+	ProcessSignature(tm encoding.TopicMessage) error
 }

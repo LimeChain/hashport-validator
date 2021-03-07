@@ -95,7 +95,7 @@ func (cmh Handler) Handle(payload []byte) {
 
 	switch m.Type {
 	case validatorproto.TopicMessageType_EthSignature:
-		err = cmh.handleSignatureMessage(m.TopicMessage)
+		err = cmh.handleSignatureMessage(*m)
 	case validatorproto.TopicMessageType_EthTransaction:
 		err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
 	default:
@@ -221,14 +221,15 @@ func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTrans
 	}
 }
 
-func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicMessage) error {
-	hash, message, err := cmh.bridgeService.ValidateAndSaveSignature(msg)
+// TODO
+func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
+	tsm := tm.GetTopicSignatureMessage()
+	hash, msg, err := cmh.bridgeService.ProcessSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Could not Validate and Save Signature for Transaction with ID [%s] and hash [%s] - Error: [%s]", message.TransactionId, hash, err)
-		return err
+		cmh.logger.Errorf("[%s] - Could not process Signature [%s]", tsm.TransactionId, tsm.GetSignature())
+		return
 	}
-
-	return cmh.scheduleIfReady(message.TransactionId, hash, message)
+	err := cmh.scheduleIfReady(tsm.TransactionId, hash, message)
 }
 
 func (cmh Handler) scheduleIfReady(txId string, hash string, message *validatorproto.TransferMessage) error {

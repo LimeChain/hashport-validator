@@ -17,7 +17,6 @@
 package recovery
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
@@ -25,15 +24,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Recovery struct {
@@ -156,7 +151,7 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 
 		switch m.Type {
 		case validatorproto.TopicMessageType_EthSignature:
-			_, _, err = r.bridgeService.ValidateAndSaveSignature(m)
+			err = r.bridgeService.ProcessSignature(*m)
 		case validatorproto.TopicMessageType_EthTransaction:
 			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
 		default:
@@ -183,6 +178,11 @@ func (r *Recovery) processSkipped() error {
 
 		if !hasSubmittedSignature {
 			r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
+			// TODO
+			err = r.bridgeService.VerifyFee(ctm)
+			if err != nil {
+				r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+			}
 
 			signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
 			if err != nil {
@@ -199,7 +199,7 @@ func (r *Recovery) processSkipped() error {
 	return nil
 }
 
-func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.CryptoTransferMessage) {
+func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
 	ctm := &validatorproto.TransferMessage{
 		TransactionId: data.TransactionId,
 		EthAddress:    data.EthAddress,

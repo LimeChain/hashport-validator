@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
@@ -47,59 +46,6 @@ const (
 var (
 	ErrorInvalidMintFunctionParameters = errors.New("invalid mint function parameters length")
 )
-
-func generateArguments() (abi.Arguments, error) {
-	bytesType, err := abi.NewType("bytes", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	uint256Type, err := abi.NewType("uint256", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return abi.Arguments{
-		{
-			Type: bytesType,
-		},
-		{
-			Type: addressType,
-		},
-		{
-			Type: uint256Type,
-		},
-		{
-			Type: uint256Type,
-		}}, nil
-}
-
-func EncodeData(ctm *proto.TransferMessage) ([]byte, error) {
-	args, err := generateArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	amountBn, err := helper.ToBigInt(ctm.Amount)
-	if err != nil {
-		return nil, err
-	}
-	feeBn, err := helper.ToBigInt(ctm.Fee)
-	if err != nil {
-		return nil, err
-	}
-
-	return args.Pack(
-		[]byte(ctm.TransactionId),
-		common.HexToAddress(ctm.EthAddress),
-		amountBn,
-		feeBn)
-}
 
 func DecodeSignature(signature string) (decodedSignature []byte, ethSignature string, err error) {
 	decodedSig, err := hex.DecodeString(signature)
@@ -180,10 +126,4 @@ func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSigna
 	}
 
 	return decodedSig, hex.EncodeToString(ethSig), nil
-}
-
-func KeccakData(encodedData []byte) []byte {
-	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
-	hash := crypto.Keccak256(encodedData)
-	return crypto.Keccak256(toEthSignedMsg, hash)
 }

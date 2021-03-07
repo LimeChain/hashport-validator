@@ -17,7 +17,6 @@
 package cryptotransfer
 
 import (
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
@@ -27,7 +26,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -95,65 +93,13 @@ func (cth Handler) Handle(payload []byte) {
 		return
 	}
 
-	// TODO
-	encodedSignature, err := cth.bridgeService.ValidateAndSignTxn(*transferMsg)
+	err = cth.bridgeService.VerifyFee(*transferMsg)
 	if err != nil {
-		cth.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", transferMsg.TransactionId, err)
+		cth.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 	}
 
-	topicMessageSubmissionTx, err := cth.bridgeService.HandleTopicSubmission(transferMsg, encodedSignature)
+	err = cth.bridgeService.ProcessTransfer(*transferMsg)
 	if err != nil {
-		cth.logger.Errorf("Failed to submit topic consensus message for TransactionID [%s]. Error [%s].", transferMsg.TransactionId, err)
-		return
-	}
-	topicMessageSubmissionTxId := tx.FromHederaTransactionID(topicMessageSubmissionTx)
-
-	err = cth.transactionRepo.UpdateStatusSignatureSubmitted(transferMsg.TransactionId, topicMessageSubmissionTxId.String(), encodedSignature)
-	if err != nil {
-		cth.logger.Errorf("Failed to update submitted status for TransactionID [%s]. Error [%s].", transferMsg.TransactionId, err)
-		return
-	}
-
-	go cth.checkForTransactionCompletion(transferMsg.TransactionId, topicMessageSubmissionTxId.String())
-}
-
-func (cth Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
-	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
-		transactionId,
-		fmt.Sprintf(topicMessageSubmissionTxId))
-
-	for {
-		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTxId)
-		if err != nil {
-			cth.logger.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", topicMessageSubmissionTxId, err.Error())
-			return
-		}
-
-		if len(txs.Transactions) > 0 {
-			success := false
-			for _, transaction := range txs.Transactions {
-				if transaction.Result == hedera.StatusSuccess.String() {
-					success = true
-					break
-				}
-			}
-
-			if success {
-				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureProvided, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
-				if err != nil {
-					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
-				}
-			} else {
-				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureFailed, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
-				if err != nil {
-					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
-				}
-			}
-			return
-		}
-
-		time.Sleep(cth.pollingInterval * time.Second)
+		cth.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
 	}
 }
