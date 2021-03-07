@@ -84,7 +84,7 @@ func (r *Recovery) Recover(from, to int64) error {
 		return err
 	}
 
-	_, err = r.topicMessagesRecovery(from, to)
+	err = r.topicMessagesRecovery(from, to)
 	if err != nil {
 		r.logger.Errorf("Topic Messages Recovery failed", err)
 		return err
@@ -200,7 +200,7 @@ func (r *Recovery) processSkipped() error {
 }
 
 func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.CryptoTransferMessage) {
-	ctm := &validatorproto.CryptoTransferMessage{
+	ctm := &validatorproto.TransferMessage{
 		TransactionId: data.TransactionId,
 		EthAddress:    data.EthAddress,
 		Amount:        data.Amount,
