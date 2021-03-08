@@ -28,7 +28,7 @@ var (
 )
 
 //Router for health check
-func NewHealthCheckRouter() http.Handler {
+func NewRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", healthResponse())
 	return r

@@ -70,7 +70,7 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func NewMetadataRouter(feeCalculator *fees.Calculator) chi.Router {
+func NewRouter(feeCalculator *fees.Calculator) chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", getMetadata(feeCalculator))
 	return r

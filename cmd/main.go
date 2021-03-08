@@ -105,8 +105,8 @@ func main() {
 
 func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.MetadataRoute, metadata.NewMetadataRouter(feeCalculator))
-	apiRouter.AddV1Router(healthcheck.HealthCheckRoute, healthcheck.NewHealthCheckRouter())
+	apiRouter.AddV1Router(metadata.MetadataRoute, metadata.NewRouter(feeCalculator))
+	apiRouter.AddV1Router(healthcheck.HealthCheckRoute, healthcheck.NewRouter())
 	return apiRouter
 }
 
