@@ -44,7 +44,6 @@ import (
 func main() {
 	// Parse Flags
 	debugMode := flag.Bool("debug", false, "run in debug mode")
-	restApiOnlyMode := *flag.Bool("rest-api", false, "run in rest api only mode")
 	flag.Parse()
 
 	// Config
@@ -63,7 +62,7 @@ func main() {
 	// Prepare Node
 	server := server.NewServer()
 
-	if !restApiOnlyMode {
+	if configuration.Hedera.RestApiOnly {
 		initializeWatchersAndHandlers(server, configuration, contractService, clients, feeCalculator)
 	}
 
