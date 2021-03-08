@@ -27,7 +27,7 @@ jobs:
       - name: Health Check all nodes before running e2e tests
         uses: Jtalk/url-health-check-action@v1.5
         with:
-          url: http://localhost:5200/api/v1/health | http://localhost:5200/api/v1/health | http://localhost:5200/api/v1/health
+          url: http://localhost:6200/api/v1/health | http://localhost:7200/api/v1/health | http://localhost:8200/api/v1/health
           follow-redirect: no
           max-attempts: 12
           retry-delay: 5s
