@@ -2,7 +2,7 @@ name: E2E Tests
 on:
   push:
     branches:
-      - main
+      - update/e2e-workflow
   pull_request:
 
 jobs:
@@ -24,10 +24,13 @@ jobs:
          echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
-      - uses: jakejarvis/wait-action@master
-        name: Sleep for 45 seconds
+      - name: Health Check all nodes before running e2e tests
+        uses: Jtalk/url-health-check-action@v1.5
         with:
-          time: '45s'
+          url: http://localhost:5200/api/v1/health | http://localhost:5200/api/v1/health | http://localhost:5200/api/v1/health
+          follow-redirect: no
+          max-attempts: 12
+          retry-delay: 5s
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
