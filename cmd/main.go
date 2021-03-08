@@ -61,8 +61,7 @@ func main() {
 
 	// Prepare Node
 	server := server.NewServer()
-
-	if configuration.Hedera.RestApiOnly {
+	if !configuration.Hedera.RestApiOnly {
 		initializeWatchersAndHandlers(server, configuration, contractService, clients, feeCalculator)
 	}
 
