@@ -21,7 +21,8 @@ jobs:
       - name: Export carol application config
         shell: bash
         run: |
-         echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
+         echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml &&
+         curl --version
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
       - name: Health Check all nodes before running e2e tests
