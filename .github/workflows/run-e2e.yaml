@@ -25,12 +25,8 @@ jobs:
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
       - name: Health Check all nodes before running e2e tests
-        uses: nev7n/wait_for_response@v1
-        with:
-          url: '127.0.0.1:6200/api/v1/health'
-          responseCode: 200
-          timeout: 20000
-          interval: 500
+        run: |
+          bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:6200/api/v1/health)" != "200" ]]; do sleep 5; done'
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
