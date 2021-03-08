@@ -44,28 +44,40 @@ import (
 func main() {
 	// Parse Flags
 	debugMode := flag.Bool("debug", false, "run in debug mode")
+	restApiOnlyMode := *flag.Bool("rest-api", false, "run in rest api only mode")
 	flag.Parse()
 
 	// Config
 	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
 
-	// Prepare repositories
-	repository := PrepareRepositories(configuration.Hedera.Validator.Db)
-
 	// Prepare Clients
-	client := PrepareClients(configuration)
+	clients := PrepareClients(configuration)
 
 	// Prepare Services
-	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
-	contractService := bridge.NewContractService(client.ethereum, configuration.Hedera.Eth)
-	schedulerService := scheduler.NewScheduler(configuration.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
-		configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, client.hederaNode)
+	contractService := bridge.NewContractService(clients.ethereum, configuration.Hedera.Eth)
+	feeCalculator := fees.NewCalculator(clients.exchangeRate, configuration.Hedera, contractService)
 
-	feeCalculator := fees.NewCalculator(client.exchangeRate, configuration.Hedera, contractService)
+	apiRouter := initializeAPIRouter(feeCalculator)
 
 	// Prepare Node
 	server := server.NewServer()
+
+	if !restApiOnlyMode {
+		initializeWatchersAndHandlers(server, configuration, contractService, clients, feeCalculator)
+	}
+
+	// Start
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+}
+
+func initializeWatchersAndHandlers(server *server.HederaWatcherServer, configuration config.Config, contractService *bridge.ContractService, client *Clients, feeCalculator *fees.Calculator) {
+	// Prepare repositories
+	repository := PrepareRepositories(configuration.Hedera.Validator.Db)
+
+	ethSigner := eth.NewEthSigner(configuration.Hedera.Client.Operator.EthPrivateKey)
+	schedulerService := scheduler.NewScheduler(configuration.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
+		configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, client.hederaNode)
 
 	server.AddHandler(process.CryptoTransferMessageType, cth.NewHandler(
 		configuration.Hedera.Handler.CryptoTransfer,
@@ -95,12 +107,6 @@ func main() {
 		log.Fatal(err)
 	}
 	server.AddWatcher(ethereum.NewEthereumWatcher(contractService, configuration.Hedera.Eth))
-
-	// Register API
-	apiRouter := initializeAPIRouter(feeCalculator)
-
-	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
 func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
