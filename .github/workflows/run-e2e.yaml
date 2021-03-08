@@ -31,6 +31,7 @@ jobs:
           follow-redirect: no
           max-attempts: 12
           retry-delay: 5s
+          retry-all: yes
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
