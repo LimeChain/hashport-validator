@@ -14,27 +14,34 @@
  * limitations under the License.
  */
 
-package response
+package healthcheck
 
-type ErrResponse struct {
-	Err error `json:"-"` // low-level runtime error
+import (
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
+	"net/http"
+)
 
-	ErrorMessage string `json:"error,omitempty"` // application-level error message, for debugging
+var (
+	HealthCheckRoute = "/health"
+)
+
+//Router for health check
+func NewRouter() http.Handler {
+	r := chi.NewRouter()
+	r.Get("/", healthResponse())
+	return r
 }
 
-func ErrorResponse(err error) *ErrResponse {
-	return &ErrResponse{
-		Err:          err,
-		ErrorMessage: err.Error(),
+// GET: .../health
+func healthResponse() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		render.JSON(w, r, &response.HealthResponse{
+			Status: "OK",
+		})
 	}
 }
 
-type MetadataResponse struct {
-	TransactionFee         string `json:"txFee"`
-	TransactionFeeCurrency string `json:"txFeeCurrency"`
-	GasPriceGwei           string `json:"gasPriceGwei"`
-}
 
-type HealthResponse struct {
-	Status string `json:"status"`
-}
+
