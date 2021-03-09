@@ -27,7 +27,10 @@ import (
 type Bridge interface {
 	// SanityCheck performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
-	SanityCheck(tx mirror_node.Transaction) (*memo.Memo, error)
+	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
+	// SanityCheckSignature performs any validation required prior handling the topic message
+	// (verifies metadata against the corresponding Transaction record)
+	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
 	SaveRecoveredTxn(txId, amount string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database

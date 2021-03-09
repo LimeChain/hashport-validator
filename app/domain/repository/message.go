@@ -19,8 +19,8 @@ package repository
 import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 
 type Message interface {
-	GetTransaction(txId, signature, hash string) (*message.TransactionMessage, error)
-	Exist(txId, signature, hash string) (bool, error)
 	Create(message *message.TransactionMessage) error
-	GetTransactions(txId string, txHash string) ([]message.TransactionMessage, error)
+	Exist(txId, signature, hash string) (bool, error)
+	GetMessageWith(txId, signature, hash string) (*message.TransactionMessage, error)
+	GetMessagesFor(txId string) ([]message.TransactionMessage, error)
 }

@@ -140,7 +140,7 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		m, err := r.bridgeService.SanityCheck(tx)
+		m, err := r.bridgeService.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue

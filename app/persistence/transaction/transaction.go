@@ -26,14 +26,14 @@ import (
 
 // Enum Transaction Status
 const (
-	StatusCompleted          = "COMPLETED"
-	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
 	StatusInitial            = "INITIAL"
 	StatusInsufficientFee    = "INSUFFICIENT_FEE"
+	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
 	StatusSignatureProvided  = "SIGNATURE_PROVIDED"
 	StatusSignatureFailed    = "SIGNATURE_FAILED"
 	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
 	StatusEthTxReverted      = "ETH_TX_REVERTED"
+	StatusCompleted          = "COMPLETED"
 	StatusRecovered          = "RECOVERED"
 )
 

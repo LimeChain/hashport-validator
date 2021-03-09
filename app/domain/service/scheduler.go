@@ -16,7 +16,9 @@
 
 package service
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
+)
 
 // Scheduler provides the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
 type Scheduler interface {

@@ -32,6 +32,7 @@ type ServicesContext struct {
 	scheduler service.Scheduler
 	contracts service.Contracts
 	bridge    service.Bridge
+	fees      service.Fees
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -40,13 +41,13 @@ func PrepareServices(c config.Config, clients client.Clients, repositories Repos
 	contractService := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
 	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
 		c.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, clients.HederaNode)
-	feeCalculator := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contractService)
+	feeService := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contractService)
 	bridgeService := bridge.NewService(
 		clients,
 		repositories.transaction,
 		repositories.message,
 		contractService,
-		feeCalculator,
+		feeService,
 		ethSigner,
 		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
 
@@ -55,5 +56,6 @@ func PrepareServices(c config.Config, clients client.Clients, repositories Repos
 		scheduler: schedulerService,
 		contracts: contractService,
 		bridge:    bridgeService,
+		fees:      feeService,
 	}
 }

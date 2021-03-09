@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -26,7 +27,7 @@ var (
 )
 
 // /metadata?gasPriceGwei=${gasPriceGwei}
-func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *http.Request) {
+func getMetadata(calculator service.Fees) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
@@ -54,7 +55,7 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func NewMetadataRouter(feeCalculator *fees.Calculator) http.Handler {
+func NewMetadataRouter(feeCalculator service.Fees) http.Handler {
 	r := chi.NewRouter()
 	r.Get(metadataRoute, getMetadata(feeCalculator))
 

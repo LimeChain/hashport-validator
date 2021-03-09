@@ -33,7 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
 	log "github.com/sirupsen/logrus"
@@ -85,14 +84,14 @@ func main() {
 		services.contracts,
 		services.bridge))
 
-	err = addConsensusTopicWatcher(&configuration, clients.HederaNode, clients.MirrorNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
+	err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
 	if err != nil {
 		log.Fatal(err)
 	}
 	server.AddWatcher(ethereum.NewEthereumWatcher(services.contracts, configuration.Hedera.Eth))
 
 	// Register API
-	apiRouter := initializeAPIRouter(feeCalculator)
+	apiRouter := initializeAPIRouter(services.fees)
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
@@ -118,7 +117,7 @@ func executeRecoveryProcess(configuration config.Config, bridgeService service.B
 	return err, recoveryTo
 }
 
-func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
+func initializeAPIRouter(feeCalculator service.Fees) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
 
@@ -147,13 +146,12 @@ func addCryptoTransferWatcher(configuration *config.Config,
 			*repository,
 			account.MaxRetries,
 			startTimestamp))
-	log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
+	log.Infof("Added Transfer Watcher for account [%s]", account.Id)
 	return nil
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
 	hederaNodeClient client.HederaNode,
-	hederaMirrorClient client.MirrorNode,
 	repository repository.Status,
 	server *server.HederaWatcherServer,
 	startTimestamp int64,
@@ -164,7 +162,7 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 	}
 
-	server.AddWatcher(cmw.NewConsensusTopicWatcher(hederaNodeClient, hederaMirrorClient, id, repository, topic.MaxRetries, startTimestamp))
-	log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
+	server.AddWatcher(cmw.NewWatcher(hederaNodeClient, id, repository, topic.MaxRetries, startTimestamp))
+	log.Infof("Added Topic Watcher for topic [%s]\n", topic.Id)
 	return nil
 }

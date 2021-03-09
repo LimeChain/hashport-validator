@@ -20,9 +20,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"math/big"
 	"strings"
 	"sync"
@@ -74,7 +74,7 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.Br
 }
 
 // SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.TransferMessage, signatures [][]byte) (*types.Transaction, error) {
+func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm encoding.TransferMessage, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 

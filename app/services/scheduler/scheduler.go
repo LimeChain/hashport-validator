@@ -27,7 +27,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -54,7 +53,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
 
-	storedValue, alreadyExisted := s.tasks.LoadOrStore(id, &scheduler.Storage{
+	storedValue, alreadyExisted := s.tasks.LoadOrStore(id, &Storage{
 		Executed: false,
 		Timer:    timer,
 	})
@@ -66,7 +65,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 
 	go func() {
 		<-timer.C
-		storedValue.(*scheduler.Storage).Executed = true
+		storedValue.(*Storage).Executed = true
 
 		ethTx, err := s.execute(submission)
 		if err != nil {
@@ -109,7 +108,7 @@ func (s *Scheduler) Cancel(id string) error {
 		return nil
 	}
 
-	storage := t.(*scheduler.Storage)
+	storage := t.(*Storage)
 
 	if !storage.Executed {
 		storage.Timer.Stop()
@@ -157,7 +156,7 @@ func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transac
 	if err != nil {
 		return nil, err
 	}
-	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.CryptoTransferMessage, signatures)
+	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.TransferMessage, signatures)
 }
 
 func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.Submission, ethTxHash string) (*hedera.TransactionID, error) {

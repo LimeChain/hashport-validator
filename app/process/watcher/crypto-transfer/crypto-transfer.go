@@ -44,7 +44,6 @@ type Watcher struct {
 	statusRepository repository.Status
 	maxRetries       int
 	startTimestamp   int64
-	started          bool
 	logger           *log.Entry
 }
 
@@ -66,7 +65,6 @@ func NewWatcher(
 		statusRepository: repository,
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
-		started:          false,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID.String())),
 	}
 }
@@ -76,7 +74,7 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctw.logger.Debugf("[%s] No Transfer Watcher Timestamp found in DB", accountAddress)
+			ctw.logger.Debug("No Transfer Watcher Timestamp found in DB")
 			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
 			if err != nil {
 				ctw.logger.Fatalf("[%s] Failed to create Transfer Watcher Status timestamp. Error %s", accountAddress, err)
@@ -135,7 +133,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	m, err := ctw.bridgeService.SanityCheck(tx)
+	m, err := ctw.bridgeService.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("Sanity check for TX [%s] failed. Error: [%s]", tx.TransactionID, err)
 		return

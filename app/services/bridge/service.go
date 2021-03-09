@@ -34,8 +34,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -43,13 +41,13 @@ import (
 
 type Service struct {
 	logger                *log.Entry
-	transactionRepository repository.Transaction
-	MessageRepository     repository.Message
-	feeCalculator         *fees.Calculator
-	ethSigner             *eth.Signer
-	topicID               hedera.TopicID
 	clients               client.Clients
+	transactionRepository repository.Transaction
+	messageRepository     repository.Message
+	topicID               hedera.TopicID
+	ethSigner             service.Signer
 	contractsService      service.Contracts
+	feeCalculator         service.Fees
 }
 
 func NewService(
@@ -57,8 +55,8 @@ func NewService(
 	transactionRepository repository.Transaction,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
-	feeCalculator *fees.Calculator,
-	ethSigner *eth.Signer,
+	feeCalculator service.Fees,
+	ethSigner service.Signer,
 	topicID string,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
@@ -67,7 +65,7 @@ func NewService(
 	}
 
 	return &Service{
-		MessageRepository:     messageRepository,
+		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
 		logger:                config.GetLoggerFor(fmt.Sprintf("Bridge Service")),
 		feeCalculator:         feeCalculator,
@@ -79,7 +77,7 @@ func NewService(
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (bs *Service) SanityCheck(tx mirror_node.Transaction) (*memo.Memo, error) {
+func (bs *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
 	m, e := memo.FromBase64String(tx.MemoBase64)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
@@ -101,6 +99,21 @@ func (bs *Service) SanityCheck(tx mirror_node.Transaction) (*memo.Memo, error) {
 	//}
 
 	return m, nil
+}
+
+// SanityCheckSignature performs validation on the topic message metadata.
+// Validates it against the Transaction Record metadata from DB
+func (bs *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) {
+	topicMessage := tm.GetTopicSignatureMessage()
+	t, err := bs.transactionRepository.GetByTransactionId(topicMessage.TransactionId)
+	if err != nil {
+		bs.logger.Errorf("Failed to retrieve Transaction Record for TX ID [%s]. Error: %s", topicMessage.TransactionId, err)
+		return false, err
+	}
+	match := t.EthAddress == topicMessage.EthAddress &&
+		t.Amount == topicMessage.Amount &&
+		t.Fee == topicMessage.Fee
+	return match, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transactions
@@ -205,8 +218,8 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
 	onSuccessfulAuthMessage := func() {
-		bs.logger.Infof("Publish Authorisation signature TX successfully executed for TX [%s]", txId)
-		err := bs.transactionRepository.UpdateStatusCompleted(txId)
+		bs.logger.Infof("Authorisation Signature TX successfully executed for TX [%s]", txId)
+		err := bs.transactionRepository.UpdateStatusSignatureProvided(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -214,8 +227,8 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 	}
 
 	onFailedAuthMessage := func() {
-		bs.logger.Infof("Publish Authorisation signature TX failed for TX ID [%s]", txId)
-		err := bs.transactionRepository.UpdateStatusEthTxReverted(txId)
+		bs.logger.Infof("Authorisation Signature TX failed for TX ID [%s]", txId)
+		err := bs.transactionRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -242,7 +255,7 @@ func (bs *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 
 	// Check for duplicated signature
-	exists, err := bs.MessageRepository.Exist(topicMessage.TransactionId, signatureHex, authMessageStr)
+	exists, err := bs.messageRepository.Exist(topicMessage.TransactionId, signatureHex, authMessageStr)
 	if err != nil {
 		bs.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", topicMessage.TransactionId, err)
 	}
@@ -258,7 +271,7 @@ func (bs *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	}
 
 	// Persist in DB
-	err = bs.MessageRepository.Create(&message.TransactionMessage{
+	err = bs.messageRepository.Create(&message.TransactionMessage{
 		TransactionId:        topicMessage.TransactionId,
 		EthAddress:           topicMessage.EthAddress,
 		Amount:               topicMessage.Amount,

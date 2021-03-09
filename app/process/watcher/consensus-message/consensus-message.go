@@ -32,121 +32,75 @@ import (
 	"time"
 )
 
-type ConsensusTopicWatcher struct {
+type Watcher struct {
 	nodeClient       client.HederaNode
-	mirrorClient     client.MirrorNode
 	topicID          hedera.TopicID
 	typeMessage      string
-	maxRetries       int
 	statusRepository repository.Status
+	maxRetries       int
 	startTimestamp   int64
-	started          bool
 	logger           *log.Entry
 }
 
-func NewConsensusTopicWatcher(nodeClient client.HederaNode, mirrorClient client.MirrorNode, topicID hedera.TopicID, repository repository.Status, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
-	return &ConsensusTopicWatcher{
+func NewWatcher(nodeClient client.HederaNode, topicID hedera.TopicID, repository repository.Status, maxRetries int, startTimestamp int64) *Watcher {
+	return &Watcher{
 		nodeClient:       nodeClient,
-		mirrorClient:     mirrorClient,
 		topicID:          topicID,
 		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
-		started:          false,
 		logger:           config.GetLoggerFor(fmt.Sprintf("Topic [%s] Watcher", topicID.String())),
 	}
 }
 
-func (ctw ConsensusTopicWatcher) Watch(q *queue.Queue) {
-	go ctw.subscribeToTopic(q)
+func (cmw Watcher) Watch(q *queue.Queue) {
+	topic := cmw.topicID.String()
+	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			cmw.logger.Debug("No Topic Watcher Timestamp found in DB")
+			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
+			if err != nil {
+				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error %s", err)
+			}
+		} else {
+			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Err: %s", err)
+		}
+	}
+	cmw.subscribeToTopic(q)
 }
 
-func (ctw ConsensusTopicWatcher) getTimestamp(q *queue.Queue) int64 {
-	topicAddress := ctw.topicID.String()
-	milestoneTimestamp := ctw.startTimestamp
-	var err error
-
-	if !ctw.started {
-		if milestoneTimestamp > 0 {
-			return milestoneTimestamp
-		}
-
-		ctw.logger.Warn("Starting Timestamp was empty, proceeding to get [timestamp] from database.")
-		milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
-		if err == nil && milestoneTimestamp > 0 {
-			return milestoneTimestamp
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			ctw.logger.Fatal(err)
-		}
-
-		ctw.logger.Warn("Database Timestamp was empty, proceeding with [timestamp] from current moment.")
-		milestoneTimestamp = time.Now().UnixNano()
-		e := ctw.statusRepository.CreateTimestamp(topicAddress, milestoneTimestamp)
-		if e != nil {
-			ctw.logger.Fatal(e)
-		}
-		return milestoneTimestamp
-	}
-
-	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(topicAddress)
-	if err != nil {
-		ctw.logger.Warnf("Database Timestamp was empty. Restarting. Error - [%s]", err)
-		ctw.started = false
-		ctw.restart(q)
-	}
-
-	return milestoneTimestamp
-}
-
-func (ctw ConsensusTopicWatcher) processMessage(message []byte, timestamp int64, q *queue.Queue) {
-	msg, err := encoding.NewTopicMessageFromBytesWithTS(message, timestamp)
-	if err != nil {
-		ctw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", message, err)
-		return
-	}
-
-	publisher.Publish(msg, ctw.typeMessage, ctw.topicID, q)
-	err = ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.topicID.String(), timestamp)
-	if err != nil {
-		ctw.logger.Errorf("Could not update last fetched timestamp - [%d]", timestamp)
-	}
-}
-
-func (ctw ConsensusTopicWatcher) subscribeToTopic(q *queue.Queue) {
-	ctw.logger.Info("Starting watcher")
-	milestoneTimestamp := ctw.getTimestamp(q)
-	if milestoneTimestamp == 0 {
-		ctw.logger.Fatalf("Could not start Consensus Message Watcher for topic [%s] - Could not generate a milestone timestamp.", ctw.topicID)
-	}
-
-	ctw.started = true
-
+func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
 	_, err := hedera.NewTopicMessageQuery().
-		SetStartTime(time.Unix(0, milestoneTimestamp)).
-		SetTopicID(ctw.topicID).
+		SetStartTime(time.Unix(0, cmw.startTimestamp)).
+		SetTopicID(cmw.topicID).
 		Subscribe(
-			ctw.nodeClient.GetClient(),
-			func(response hedera.TopicMessage) {
-				ctw.logger.Debugf("Consensus Topic [%s] - Message incoming: [%s] - Contents: [%s]", response.ConsensusTimestamp, ctw.topicID, response.Contents)
-				ctw.processMessage(response.Contents, response.ConsensusTimestamp.UnixNano(), q)
+			cmw.nodeClient.GetClient(),
+			func(topicMsg hedera.TopicMessage) {
+				cmw.processMessage(topicMsg, q)
 			},
 		)
 
 	if err != nil {
-		ctw.logger.Errorf("Did not subscribe to [%s].", ctw.topicID)
+		cmw.logger.Error("Failed to subscribe to topic")
 		return
 	}
-	ctw.logger.Infof("Subscribed to [%s] successfully.", ctw.topicID)
+	cmw.logger.Infof("Subscribed to Topic successfully.")
 }
 
-func (ctw ConsensusTopicWatcher) restart(q *queue.Queue) {
-	if ctw.maxRetries > 0 {
-		ctw.maxRetries--
-		ctw.logger.Infof("Watcher is trying to reconnect")
-		go ctw.Watch(q)
+func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) {
+	cmw.logger.Debugf("Received new Message for Topic. Timestamp: [%s] Contents: [%s]", topicMsg.ConsensusTimestamp, topicMsg.Contents)
+	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
+	msg, err := encoding.NewTopicMessageFromBytesWithTS(topicMsg.Contents, messageTimestamp)
+	if err != nil {
+		cmw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", topicMsg.Contents, err)
 		return
 	}
-	ctw.logger.Errorf("Watcher failed: [Too many retries]")
+
+	publisher.Publish(msg, cmw.typeMessage, cmw.topicID, q)
+	err = cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), messageTimestamp)
+	if err != nil {
+		cmw.logger.Errorf("Could not update last fetched timestamp - [%d]", messageTimestamp)
+	}
 }

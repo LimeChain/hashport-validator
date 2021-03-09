@@ -43,7 +43,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (m Repository) GetTransaction(txId, signature, hash string) (*TransactionMessage, error) {
+func (m Repository) GetMessageWith(txId, signature, hash string) (*TransactionMessage, error) {
 	var message TransactionMessage
 	err := m.dbClient.Model(&TransactionMessage{}).
 		Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).
@@ -55,7 +55,7 @@ func (m Repository) GetTransaction(txId, signature, hash string) (*TransactionMe
 }
 
 func (m Repository) Exist(txId, signature, hash string) (bool, error) {
-	_, err := m.GetTransaction(txId, signature, hash)
+	_, err := m.GetMessageWith(txId, signature, hash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -70,9 +70,9 @@ func (m Repository) Create(message *TransactionMessage) error {
 	return m.dbClient.Create(message).Error
 }
 
-func (m Repository) GetTransactions(txId string, hash string) ([]TransactionMessage, error) {
+func (m Repository) GetMessagesFor(txId string) ([]TransactionMessage, error) {
 	var messages []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Order("transaction_timestamp").Find(&messages).Error
+	err := m.dbClient.Where("transaction_id = ?", txId).Order("transaction_timestamp").Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
