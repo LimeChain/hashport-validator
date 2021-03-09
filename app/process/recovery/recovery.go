@@ -67,7 +67,7 @@ func NewProcess(
 		accountID:               account,
 		topicID:                 topic,
 		configRecoveryTimestamp: c.Recovery.Timestamp,
-		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery Service")),
+		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 	}, nil
 }
 
