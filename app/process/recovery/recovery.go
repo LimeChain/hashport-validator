@@ -28,49 +28,68 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Recovery struct {
 	bridgeService           services.Bridge
-	transactionRepository   repositories.Transaction
-	topicStatusRepository   repositories.Status
-	accountStatusRepository repositories.Status
+	statusTransferRepo      repositories.Status
 	mirrorClient            clients.MirrorNode
 	nodeClient              clients.HederaNode
 	accountID               hederasdk.AccountID
 	topicID                 hederasdk.TopicID
-	cryptoTransferTS        int64
+	configRecoveryTimestamp int64
 	logger                  *log.Entry
 }
 
-func NewRecoveryProcess(
+func NewProcess(
+	c config.Hedera,
 	bridgeService services.Bridge,
-	transactionRepository repositories.Transaction,
-	topicStatusRepository repositories.Status,
-	accountStatusRepository repositories.Status,
+	statusTransferRepo repositories.Status,
 	mirrorClient clients.MirrorNode,
 	nodeClient clients.HederaNode,
-	accountID hederasdk.AccountID,
-	topicID hederasdk.TopicID,
-	cryptoTS int64,
-) *Recovery {
+) (*Recovery, error) {
+	account, err := hederasdk.AccountIDFromString(c.Watcher.CryptoTransfer.Account.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	topic, err := hederasdk.TopicIDFromString(c.Watcher.ConsensusMessage.Topic.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Recovery{
 		bridgeService:           bridgeService,
-		transactionRepository:   transactionRepository,
-		topicStatusRepository:   topicStatusRepository,
-		accountStatusRepository: accountStatusRepository,
+		statusTransferRepo:      statusTransferRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
-		accountID:               accountID,
-		topicID:                 topicID,
+		accountID:               account,
+		topicID:                 topic,
+		configRecoveryTimestamp: c.Recovery.Timestamp,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery Service")),
-		cryptoTransferTS:        cryptoTS,
-	}
+	}, nil
 }
 
-// Recover starts the main recovery process
-func (r *Recovery) Recover(from, to int64) error {
-	r.logger.Infof("Starting Recovery Process")
+// ComputeInterval calculates the `from` and `to` unix nano timestamps to be used for the recovery process
+func (r *Recovery) ComputeInterval() (int64, int64, error) {
+	var from int64 = 0
+	to := time.Now().UnixNano()
+	if r.configRecoveryTimestamp > 0 {
+		from = r.configRecoveryTimestamp
+	} else {
+		lastFetched, err := r.statusTransferRepo.GetLastFetchedTimestamp(r.accountID.String())
+		if err != nil {
+			return 0, 0, err
+		}
+		from = lastFetched
+	}
+	return from, to, nil
+}
+
+// Start starts the main recovery process
+func (r *Recovery) Start(from, to int64) error {
+	r.logger.Infof("Starting Recovery Process for interval [%d; %d]", from, to)
 
 	err := r.transfersRecovery(from, to)
 	if err != nil {
@@ -78,11 +97,11 @@ func (r *Recovery) Recover(from, to int64) error {
 		return err
 	}
 
-	err = r.topicMessagesRecovery(from, to)
-	if err != nil {
-		r.logger.Errorf("Topic Messages Recovery failed", err)
-		return err
-	}
+	//err = r.topicMessagesRecovery(from, to)
+	//if err != nil {
+	//	r.logger.Errorf("Topic Messages Recovery failed", err)
+	//	return err
+	//}
 
 	// TODO Handle unprocessed TXs
 	// 1. Get all Skipped TX (DONE)
@@ -90,13 +109,13 @@ func (r *Recovery) Recover(from, to int64) error {
 	// 3. Group messages and TX IDs into a map (TX ID->Messages) (DONE)
 	// 4. Go through all TX ID -> Messages. If current validator node haven't submitted a signature message -> sign and submit signature message to topic (DONE)
 
-	log.Infof("Starting to process skipped Transactions")
-	err = r.processSkipped()
-	if err != nil {
-		r.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
-		return err
-	}
-	log.Infof("[SUCCESSFUL] Process of Skipped Transactions")
+	//log.Infof("Starting to process skipped Transactions")
+	//err = r.processSkipped()
+	//if err != nil {
+	//	r.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
+	//	return err
+	//}
+	//log.Infof("[SUCCESSFUL] Process of Skipped Transactions")
 
 	return nil
 }
@@ -222,8 +241,8 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 }
 
 func (r *Recovery) getStartTimestampFor(repository repositories.Status, address string) int64 {
-	if r.cryptoTransferTS > 0 {
-		return r.cryptoTransferTS
+	if r.configRecoveryTimestamp > 0 {
+		return r.configRecoveryTimestamp
 	}
 
 	timestamp, err := repository.GetLastFetchedTimestamp(address)

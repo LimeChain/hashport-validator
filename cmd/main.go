@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
@@ -37,7 +38,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func main() {
@@ -61,7 +61,6 @@ func main() {
 	//_ := scheduler.NewScheduler(configuration.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
 	//	configuration.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, client.HederaNode)
 	feeCalculator := fees.NewCalculator(client.ExchangeRate, configuration.Hedera, contractService)
-
 	bridgeService := bridge.NewService(
 		*client,
 		repository.transaction,
@@ -71,12 +70,16 @@ func main() {
 		ethSigner,
 		configuration.Hedera.Watcher.ConsensusMessage.Topic.Id)
 
+	// Execute Recovery Process. Computing Watchers starting timestamp
+	err, recoveryTo := executeRecoveryProcess(configuration, bridgeService, repository, client)
+
 	//from := r.getStartTimestampFor(r.accountStatusRepository, r.accountID.String())
 	//to := time.Now().UnixNano()
 	//if from < 0 {
 	//	log.Info("Nothing to recover. Proceeding to start watchers and handlers.")
 	//	return to, nil
 	//}
+
 	//now, err := recoverLostProgress(configuration.Hedera,
 	//	&repository.transaction,
 	//	&repository.cryptoTransferStatus,
@@ -98,8 +101,7 @@ func main() {
 		repository.transaction,
 		bridgeService))
 
-	now := time.Now().UnixNano()
-	err := addCryptoTransferWatcher(&configuration, bridgeService, client.MirrorNode, &repository.cryptoTransferStatus, server, now)
+	err = addCryptoTransferWatcher(&configuration, bridgeService, client.MirrorNode, &repository.cryptoTransferStatus, server, recoveryTo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,6 +128,26 @@ func main() {
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+}
+
+func executeRecoveryProcess(configuration config.Config, bridgeService *bridge.Service, repository *Repositories, client *clients.Clients) (error, int64) {
+	r, err := recovery.NewProcess(configuration.Hedera, bridgeService, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
+	if err != nil {
+		log.Fatalf("Could not prepare Recovery process. Err %s", err)
+	}
+	recoveryFrom, recoveryTo, err := r.ComputeInterval()
+	if err != nil {
+		log.Fatalf("Could not compute recovery interval. Error %s", err)
+	}
+	if recoveryFrom <= 0 {
+		log.Infof("Skipping Recovery process. Nothing to recover")
+	} else {
+		err = r.Start(recoveryFrom, recoveryTo)
+		if err != nil {
+			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: %s", recoveryFrom, recoveryTo, err)
+		}
+	}
+	return err, recoveryTo
 }
 
 func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
@@ -177,43 +199,4 @@ func addCryptoTransferWatcher(configuration *config.Config,
 //	server.AddWatcher(cmw.NewConsensusTopicWatcher(*hederaNodeClient, *hederaMirrorClient, id, *repository, topic.MaxRetries, startTimestamp))
 //	log.Infof("Added a Consensus Topic Watcher for topic [%s]\n", topic.Id)
 //	return nil
-//}
-
-//func recoverLostProgress(configuration config.Hedera,
-//	transactionRepository *repositories.Transaction,
-//	statusCryptoTransferRepository *repositories.Status,
-//	statusConsensusMessageRepository *repositories.Status,
-//	hederaMirrorClient *clients.MirrorNode,
-//	hederaNodeClient *clients.HederaNode,
-//	processingService *processutils.Service,
-//) (int64, error) {
-//	log.Infof("Initializing Recovery Service for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
-//	account, err := hedera.AccountIDFromString(configuration.Watcher.CryptoTransfer.Account.Id)
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	topic, err := hedera.TopicIDFromString(configuration.Watcher.ConsensusMessage.Topic.Id)
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	recoveryService := recovery.NewRecoveryProcess(
-//		processingService,
-//		*transactionRepository,
-//		*statusConsensusMessageRepository,
-//		*statusCryptoTransferRepository,
-//		*hederaMirrorClient,
-//		*hederaNodeClient,
-//		account,
-//		topic,
-//		configuration.Recovery.Timestamp)
-//
-//	log.Infof("Starting Recovery Process for Account [%s] and Topic [%s]", configuration.Watcher.CryptoTransfer.Account.Id, configuration.Watcher.ConsensusMessage.Topic.Id)
-//	now, err := recoveryService.Recover()
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	return now, nil
 //}
