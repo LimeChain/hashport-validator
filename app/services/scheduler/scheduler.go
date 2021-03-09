@@ -22,8 +22,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
@@ -42,8 +42,8 @@ type Scheduler struct {
 	tasks            *sync.Map
 	operator         string
 	executionWindow  int64
-	contractsService services.Contracts
-	hederaClient     clients.HederaNode
+	contractsService service.Contracts
+	hederaClient     client.HederaNode
 }
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
@@ -126,8 +126,8 @@ func NewScheduler(
 	topicId string,
 	operator string,
 	executionWindow int64,
-	contractsService services.Contracts,
-	hederaClient clients.HederaNode,
+	contractsService service.Contracts,
+	hederaClient client.HederaNode,
 ) *Scheduler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {

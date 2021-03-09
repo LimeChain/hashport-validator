@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
@@ -36,12 +36,12 @@ import (
 )
 
 type Watcher struct {
-	bridgeService    services.Bridge
-	client           clients.MirrorNode
+	bridgeService    service.Bridge
+	client           client.MirrorNode
 	accountID        hedera.AccountID
 	typeMessage      string
 	pollingInterval  time.Duration
-	statusRepository repositories.Status
+	statusRepository repository.Status
 	maxRetries       int
 	startTimestamp   int64
 	started          bool
@@ -49,11 +49,11 @@ type Watcher struct {
 }
 
 func NewWatcher(
-	bridgeService services.Bridge,
-	client clients.MirrorNode,
+	bridgeService service.Bridge,
+	client client.MirrorNode,
 	accountID hedera.AccountID,
 	pollingInterval time.Duration,
-	repository repositories.Status,
+	repository repository.Status,
 	maxRetries int,
 	startTimestamp int64,
 ) *Watcher {

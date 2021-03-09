@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package clients
+package client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go"

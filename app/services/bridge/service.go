@@ -24,15 +24,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -43,20 +43,20 @@ import (
 
 type Service struct {
 	logger                *log.Entry
-	transactionRepository repositories.Transaction
-	MessageRepository     repositories.Message
+	transactionRepository repository.Transaction
+	MessageRepository     repository.Message
 	feeCalculator         *fees.Calculator
 	ethSigner             *eth.Signer
 	topicID               hedera.TopicID
-	clients               clients.Clients
-	contractsService      services.Contracts
+	clients               client.Clients
+	contractsService      service.Contracts
 }
 
 func NewService(
-	clients clients.Clients,
-	transactionRepository repositories.Transaction,
-	messageRepository repositories.Message,
-	contractsService services.Contracts,
+	clients client.Clients,
+	transactionRepository repository.Transaction,
+	messageRepository repository.Message,
+	contractsService service.Contracts,
 	feeCalculator *fees.Calculator,
 	ethSigner *eth.Signer,
 	topicID string,

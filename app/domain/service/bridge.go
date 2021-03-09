@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package services
+package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"

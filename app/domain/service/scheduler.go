@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package clients
+package service
 
-import (
-	"github.com/hashgraph/hedera-sdk-go"
-)
+import "github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 
-type HederaNode interface {
-	// GetClient returns the underlying Hedera SDK client
-	GetClient() *hedera.Client
-	// SubmitTopicConsensusMessage submits the provided message bytes to the
-	// specified HCS `topicId`
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
+// Scheduler provides the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
+type Scheduler interface {
+	// Schedule - Schedules new Transaction for execution at the right leader elected slot
+	Schedule(id string, submission ethsubmission.Submission) error
+	// Cancel - Removes and cancels an already scheduled Transaction
+	Cancel(id string) error
 }

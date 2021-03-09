@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package services
+package service
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"

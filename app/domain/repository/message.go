@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
-package clients
+package repository
 
-type ExchangeRate interface {
-	GetEthVsHbarRate() (float64, error)
+import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+
+type Message interface {
+	GetTransaction(txId, signature, hash string) (*message.TransactionMessage, error)
+	Exist(txId, signature, hash string) (bool, error)
+	Create(message *message.TransactionMessage) error
+	GetTransactions(txId string, txHash string) ([]message.TransactionMessage, error)
 }

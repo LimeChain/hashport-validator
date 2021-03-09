@@ -18,7 +18,7 @@ package ethereum
 
 import (
 	bridgeContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -27,11 +27,11 @@ import (
 
 type EthWatcher struct {
 	config          config.Ethereum
-	contractService services.Contracts
+	contractService service.Contracts
 	logger          *log.Entry
 }
 
-func NewEthereumWatcher(contractsService services.Contracts, config config.Ethereum) *EthWatcher {
+func NewEthereumWatcher(contractsService service.Contracts, config config.Ethereum) *EthWatcher {
 	return &EthWatcher{
 		config:          config,
 		contractService: contractsService,

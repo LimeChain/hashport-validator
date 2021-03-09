@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package repositories
+package client
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
-type Message interface {
-	GetTransaction(txId, signature, hash string) (*message.TransactionMessage, error)
-	Exist(txId, signature, hash string) (bool, error)
-	Create(message *message.TransactionMessage) error
-	GetTransactions(txId string, txHash string) ([]message.TransactionMessage, error)
+type Ethereum interface {
+	GetClient() *ethclient.Client
+	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
+	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
 }

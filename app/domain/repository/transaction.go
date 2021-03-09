@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package repositories
+package repository
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"

@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
@@ -33,18 +33,18 @@ import (
 )
 
 type ConsensusTopicWatcher struct {
-	nodeClient       clients.HederaNode
-	mirrorClient     clients.MirrorNode
+	nodeClient       client.HederaNode
+	mirrorClient     client.MirrorNode
 	topicID          hedera.TopicID
 	typeMessage      string
 	maxRetries       int
-	statusRepository repositories.Status
+	statusRepository repository.Status
 	startTimestamp   int64
 	started          bool
 	logger           *log.Entry
 }
 
-func NewConsensusTopicWatcher(nodeClient clients.HederaNode, mirrorClient clients.MirrorNode, topicID hedera.TopicID, repository repositories.Status, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
+func NewConsensusTopicWatcher(nodeClient client.HederaNode, mirrorClient client.MirrorNode, topicID hedera.TopicID, repository repository.Status, maxRetries int, startTimestamp int64) *ConsensusTopicWatcher {
 	return &ConsensusTopicWatcher{
 		nodeClient:       nodeClient,
 		mirrorClient:     mirrorClient,

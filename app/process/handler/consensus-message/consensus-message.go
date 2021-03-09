@@ -19,19 +19,17 @@ package consensusmessage
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -39,28 +37,28 @@ import (
 )
 
 type Handler struct {
-	ethereumClient        clients.Ethereum
-	hederaNodeClient      clients.HederaNode
-	messageRepository     repositories.Message
-	transactionRepository repositories.Transaction
-	scheduler             *scheduler.Scheduler
-	signer                *eth.Signer
+	ethereumClient        client.Ethereum
+	hederaNodeClient      client.HederaNode
+	messageRepository     repository.Message
+	transactionRepository repository.Transaction
+	scheduler             service.Scheduler
+	signer                service.Signer
 	topicID               hedera.TopicID
 	logger                *log.Entry
-	bridgeService         services.Bridge
-	contractsService      services.Contracts
+	bridgeService         service.Bridge
+	contractsService      service.Contracts
 }
 
 func NewHandler(
 	configuration config.ConsensusMessageHandler,
-	messageRepository repositories.Message,
-	transactionRepository repositories.Transaction,
-	ethereumClient clients.Ethereum,
-	hederaNodeClient clients.HederaNode,
-	scheduler *scheduler.Scheduler,
-	signer *eth.Signer,
-	contractsService services.Contracts,
-	bridgeService services.Bridge,
+	messageRepository repository.Message,
+	transactionRepository repository.Transaction,
+	ethereumClient client.Ethereum,
+	hederaNodeClient client.HederaNode,
+	scheduler service.Scheduler,
+	signer service.Signer,
+	contractsService service.Contracts,
+	bridgeService service.Bridge,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {

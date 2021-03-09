@@ -19,7 +19,7 @@ package contracts
 import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -36,7 +36,7 @@ import (
 type Service struct {
 	address    common.Address
 	contract   *abi.Bridge
-	Client     clients.Ethereum
+	Client     client.Ethereum
 	mutex      sync.Mutex
 	members    Members
 	serviceFee ServiceFee
@@ -165,7 +165,7 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client clients.Ethereum, c config.Ethereum) *Service {
+func NewService(client client.Ethereum, c config.Ethereum) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
 	if err != nil {
 		log.Fatal(err)

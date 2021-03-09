@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -29,10 +29,10 @@ import (
 
 // Repositories struct holding the referenced repositories
 type Repositories struct {
-	cryptoTransferStatus   repositories.Status
-	consensusMessageStatus repositories.Status
-	transaction            repositories.Transaction
-	message                repositories.Message
+	cryptoTransferStatus   repository.Status
+	consensusMessageStatus repository.Status
+	transaction            repository.Transaction
+	message                repository.Message
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories

@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package clients
+package client
 
-import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-)
-
-type Ethereum interface {
-	GetClient() *ethclient.Client
-	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
-	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
+type ExchangeRate interface {
+	GetEthVsHbarRate() (float64, error)
 }

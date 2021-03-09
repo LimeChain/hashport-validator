@@ -17,17 +17,15 @@
 package cryptotransfer
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/bridge"
 	"time"
 
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -37,22 +35,22 @@ import (
 type Handler struct {
 	pollingInterval    time.Duration
 	topicID            hedera.TopicID
-	ethSigner          *eth.Signer
-	hederaMirrorClient clients.MirrorNode
-	hederaNodeClient   clients.HederaNode
-	transactionRepo    repositories.Transaction
+	ethSigner          service.Signer
+	hederaMirrorClient client.MirrorNode
+	hederaNodeClient   client.HederaNode
+	transactionRepo    repository.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.Calculator
-	bridgeService      services.Bridge
+	bridgeService      service.Bridge
 }
 
 func NewHandler(
 	c config.CryptoTransferHandler,
-	ethSigner *eth.Signer,
-	hederaMirrorClient clients.MirrorNode,
-	hederaNodeClient clients.HederaNode,
-	transactionRepository repositories.Transaction,
-	processingService *bridge.Service) *Handler {
+	ethSigner service.Signer,
+	hederaMirrorClient client.MirrorNode,
+	hederaNodeClient client.HederaNode,
+	transactionRepository repository.Transaction,
+	processingService service.Bridge) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)

@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 	hederasdk "github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -33,10 +33,10 @@ import (
 )
 
 type Recovery struct {
-	bridgeService           services.Bridge
-	statusTransferRepo      repositories.Status
-	mirrorClient            clients.MirrorNode
-	nodeClient              clients.HederaNode
+	bridgeService           service.Bridge
+	statusTransferRepo      repository.Status
+	mirrorClient            client.MirrorNode
+	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
 	topicID                 hederasdk.TopicID
 	configRecoveryTimestamp int64
@@ -45,10 +45,10 @@ type Recovery struct {
 
 func NewProcess(
 	c config.Hedera,
-	bridgeService services.Bridge,
-	statusTransferRepo repositories.Status,
-	mirrorClient clients.MirrorNode,
-	nodeClient clients.HederaNode,
+	bridgeService service.Bridge,
+	statusTransferRepo repository.Status,
+	mirrorClient client.MirrorNode,
+	nodeClient client.HederaNode,
 ) (*Recovery, error) {
 	account, err := hederasdk.AccountIDFromString(c.Watcher.CryptoTransfer.Account.Id)
 	if err != nil {
@@ -245,7 +245,7 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 	return false, nil
 }
 
-func (r *Recovery) getStartTimestampFor(repository repositories.Status, address string) int64 {
+func (r *Recovery) getStartTimestampFor(repository repository.Status, address string) int64 {
 	if r.configRecoveryTimestamp > 0 {
 		return r.configRecoveryTimestamp
 	}

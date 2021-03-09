@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package repositories
+package repository
 
 type Status interface {
 	GetLastFetchedTimestamp(entityID string) (int64, error)
