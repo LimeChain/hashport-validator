@@ -22,19 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
-// Enum Transaction Status
-const (
-	StatusCompleted          = "COMPLETED"
-	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
-	StatusInitial            = "INITIAL"
-	StatusInsufficientFee    = "INSUFFICIENT_FEE"
-	StatusSignatureProvided  = "SIGNATURE_PROVIDED"
-	StatusSignatureFailed    = "SIGNATURE_FAILED"
-	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
-	StatusEthTxReverted      = "ETH_TX_REVERTED"
-	StatusRecovered          = "RECOVERED"
-)
-
 type Transaction interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
