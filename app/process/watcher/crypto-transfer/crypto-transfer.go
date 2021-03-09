@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	hederaAPIModel "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
@@ -67,7 +67,7 @@ func NewWatcher(
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		started:          false,
-		logger:           config.GetLoggerFor(fmt.Sprintf("Account [%s] Transfer Watcher", accountID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID.String())),
 	}
 }
 
@@ -119,12 +119,8 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 		return
 	}
 
-	// TODO start from `now` (from recovery)
-	milestoneTimestamp := ctw.getTimestamp(q)
-	if milestoneTimestamp == 0 {
-		ctw.logger.Fatalf("Could not start watcher - Could not generate a milestone timestamp.")
-	}
-
+	ctw.logger.Debugf("Starting Transfer Watcher for Account [%s] after Timestamp [%d]", ctw.accountID, ctw.startTimestamp)
+	milestoneTimestamp := ctw.startTimestamp
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
@@ -133,6 +129,7 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 			return
 		}
 
+		ctw.logger.Debugf("Found [%d] TX for AccountID [%s]", len(transactions.Transactions), ctw.accountID)
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
 				go ctw.processTransaction(tx, q)
@@ -154,7 +151,7 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx hederaAPIModel.Transaction, q *queue.Queue) {
+func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, err := tx.GetIncomingAmountFor(ctw.accountID.String())
 	if err != nil {

@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package hedera
+package contracts
 
-type (
-	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
-	Message struct {
-		ConsensusTimestamp string `json:"consensus_timestamp"`
-		TopicId            string `json:"topic_id"`
-		Contents           string `json:"message"`
-		RunningHash        string `json:"running_hash"`
-		SequenceNumber     int    `json:"sequence_number"`
-	}
-	// Messages struct used by the Hedera Mirror node REST API and returned once
-	// Topic Messages are queried
-	Messages struct {
-		Messages []Message
-	}
+import (
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
+
+func TestServiceFeeSet(t *testing.T) {
+	serviceFeeInstance := ServiceFee{}
+	newServiceFee := big.NewInt(int64(5))
+	serviceFeeInstance.Set(*newServiceFee)
+
+	serviceFee := serviceFeeInstance.Get()
+	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
+}

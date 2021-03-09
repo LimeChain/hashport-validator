@@ -44,8 +44,8 @@ func FromString(timestamp string) (int64, error) {
 	return seconds*nanosInSecond + nano, nil
 }
 
-// ToString parses int64 timestamp into `{seconds}.{nanos}` string
-func ToString(timestamp int64) string {
+// String parses int64 timestamp into `{seconds}.{nanos}` string
+func String(timestamp int64) string {
 	seconds := timestamp / nanosInSecond
 	nano := timestamp % nanosInSecond
 	return fmt.Sprintf("%d.%d", seconds, nano)

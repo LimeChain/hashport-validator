@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-package clients
+package contracts
 
-import (
-	"github.com/hashgraph/hedera-sdk-go"
-)
+import "sync"
 
-type HederaNode interface {
-	// GetClient returns the underlying Hedera SDK client
-	GetClient() *hedera.Client
-	// SubmitTopicConsensusMessage submits the provided message bytes to the
-	// specified HCS `topicId`
-	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
+type Members struct {
+	members []string
+	mutex   sync.RWMutex
+}
+
+func (c *Members) Get() []string {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.members
+}
+
+func (c *Members) Set(addresses []string) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	c.members = addresses
 }

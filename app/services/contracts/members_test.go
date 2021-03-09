@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package bridge
+package contracts
 
-import "sync"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
-type Members struct {
-	members []string
-	mutex   sync.RWMutex
-}
-
-func (c *Members) Get() []string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.members
-}
-
-func (c *Members) Set(addresses []string) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	c.members = addresses
+func TestMembersSet(t *testing.T) {
+	membersService := Members{}
+	newMembers := []string{"0x1aSd", "0x2dSa", "0x3qWe", "0x4eWq"}
+	membersService.Set(newMembers)
+	membersList := membersService.Get()
+	assert.Equal(t, len(newMembers), len(membersList), "Different array length")
+	for i, v := range membersList {
+		assert.Equal(t, newMembers[i], v, "Members not set correctly")
+	}
 }

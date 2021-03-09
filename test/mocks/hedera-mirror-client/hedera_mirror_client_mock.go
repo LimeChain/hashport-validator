@@ -18,7 +18,7 @@ package hedera_mirror_client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go"
-	hedera2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -26,31 +26,31 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
-func (m *MockHederaMirrorClient) GetMessagesForTopicAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*hedera2.Messages, error) {
+func (m *MockHederaMirrorClient) GetMessagesForTopicAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*mirror_node.Messages, error) {
 	args := m.Called(topicId, timestamp)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*hedera2.Messages), nil
+		return args.Get(0).(*mirror_node.Messages), nil
 	}
-	return args.Get(0).(*hedera2.Messages), args.Get(1).(error)
+	return args.Get(0).(*mirror_node.Messages), args.Get(1).(error)
 }
 
-func (m *MockHederaMirrorClient) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*hedera2.Transactions, error) {
+func (m *MockHederaMirrorClient) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*mirror_node.Response, error) {
 	args := m.Called(accountId, milestoneTimestamp)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*hedera2.Transactions), nil
+		return args.Get(0).(*mirror_node.Response), nil
 	}
-	return args.Get(0).(*hedera2.Transactions), args.Get(1).(error)
+	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
 }
 
-func (m *MockHederaMirrorClient) GetAccountTransaction(transactionID string) (*hedera2.Transactions, error) {
+func (m *MockHederaMirrorClient) GetAccountTransaction(transactionID string) (*mirror_node.Response, error) {
 	args := m.Called(transactionID)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*hedera2.Transactions), nil
+		return args.Get(0).(*mirror_node.Response), nil
 	}
-	return args.Get(0).(*hedera2.Transactions), args.Get(1).(error)
+	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
 }
 
 func (m *MockHederaMirrorClient) GetStateProof(transactionID string) ([]byte, error) {

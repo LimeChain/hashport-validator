@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hedera
+package mirror_node
 
 import (
 	"errors"
@@ -43,10 +43,11 @@ type (
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 	}
-	// Transactions struct used by the Hedera Mirror node REST API and returned once
+	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried
-	Transactions struct {
+	Response struct {
 		Transactions []Transaction
+		Status       `json:"_status"`
 	}
 )
 
@@ -62,7 +63,7 @@ func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one
-func (tns Transactions) GetLatestTxnConsensusTime() (int64, error) {
+func (tns Response) GetLatestTxnConsensusTime() (int64, error) {
 	var max int64 = 0
 	for _, t := range tns.Transactions {
 		ts, err := timestamp.FromString(t.ConsensusTimestamp)

@@ -23,14 +23,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 
-	//"github.com/hashgraph/hedera-state-proof-verifier-go"
-	hederaAPIModel "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -52,7 +52,15 @@ type Service struct {
 	contractsService      services.Contracts
 }
 
-func NewService(clients clients.Clients, transactionRepository repositories.Transaction, messageRepository repositories.Message, contractsService services.Contracts, feeCalculator *fees.Calculator, ethSigner *eth.Signer, topicID string) *Service {
+func NewService(
+	clients clients.Clients,
+	transactionRepository repositories.Transaction,
+	messageRepository repositories.Message,
+	contractsService services.Contracts,
+	feeCalculator *fees.Calculator,
+	ethSigner *eth.Signer,
+	topicID string,
+) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
 		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))
@@ -61,7 +69,7 @@ func NewService(clients clients.Clients, transactionRepository repositories.Tran
 	return &Service{
 		MessageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Processing Service")),
+		logger:                config.GetLoggerFor(fmt.Sprintf("Bridge Service")),
 		feeCalculator:         feeCalculator,
 		ethSigner:             ethSigner,
 		contractsService:      contractsService,
@@ -71,8 +79,8 @@ func NewService(clients clients.Clients, transactionRepository repositories.Tran
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (bs *Service) SanityCheck(tx hederaAPIModel.Transaction) (*encoding.Memo, error) {
-	m, e := encoding.FromBase64String(tx.MemoBase64)
+func (bs *Service) SanityCheck(tx mirror_node.Transaction) (*memo.Memo, error) {
+	m, e := memo.FromBase64String(tx.MemoBase64)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
 	}
@@ -104,7 +112,7 @@ func (bs *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 	}
 
 	if dbTransaction != nil {
-		bs.logger.Debugf("Transaction with ID [%s] already added", tm.TransactionId)
+		bs.logger.Infof("Transaction with ID [%s] already added", tm.TransactionId)
 		return dbTransaction, err
 	}
 
@@ -118,7 +126,7 @@ func (bs *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (bs *Service) SaveRecoveredTxn(txId, amount string, m encoding.Memo) error {
+func (bs *Service) SaveRecoveredTxn(txId, amount string, m memo.Memo) error {
 	err := bs.transactionRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
 		TransactionId: txId,
 		EthAddress:    m.EthereumAddress,
@@ -176,9 +184,7 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	messageTxId, err := bs.clients.HederaNode.SubmitTopicConsensusMessage(
 		bs.topicID,
-		sigMsgBytes,
-		bs.onSuccessfulAuthMessage,
-		bs.onFailedAuthMessage)
+		sigMsgBytes)
 	if err != nil {
 		bs.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tm.TransactionId, err)
 	}
@@ -190,26 +196,32 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		return err
 	}
 
+	onSuccessfulAuthMessage, onFailedAuthMessage := bs.authMessageSubmissionCallbacks(tm.TransactionId)
+	bs.clients.MirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
+
 	bs.logger.Infof("Successfully processed Transfer with ID [%s]", tm.TransactionId)
 	return nil
 }
 
-func (bs *Service) onSuccessfulAuthMessage() {
-	bs.logger.Infof("Auth message submission TX for TX ID [%s] executed successfully", "TODO ID")
-	err := bs.transactionRepository.UpdateStatusCompleted("TODO ID")
-	if err != nil {
-		bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", "TODO ID", err)
-		return
+func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
+	onSuccessfulAuthMessage := func() {
+		bs.logger.Infof("Successfully published Authorisation signature for TX [%s]", txId)
+		err := bs.transactionRepository.UpdateStatusCompleted(txId)
+		if err != nil {
+			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			return
+		}
 	}
-}
 
-func (bs *Service) onFailedAuthMessage() {
-	bs.logger.Infof("Auth message submission TX for TX ID [%s] failed", "TODO ID")
-	err := bs.transactionRepository.UpdateStatusEthTxReverted("TODO ID")
-	if err != nil {
-		bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", "TODO ID", err)
-		return
+	onFailedAuthMessage := func() {
+		bs.logger.Infof("Publishing Authorisation signature for TX ID [%s] failed. Transaction reverted.", txId)
+		err := bs.transactionRepository.UpdateStatusEthTxReverted(txId)
+		if err != nil {
+			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			return
+		}
 	}
+	return onSuccessfulAuthMessage, onFailedAuthMessage
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
@@ -285,49 +297,6 @@ func (bs *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 }
 
 // TODO ->
-
-//go cth.checkForTransactionCompletion(transferMsg.TransactionId, topicMessageSubmissionTxId.String())
-
-//func (cth Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
-//	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
-//		transactionId,
-//		fmt.Sprintf(topicMessageSubmissionTxId))
-//
-//	for {
-//		txs, err := cth.hederaMirrorClient.GetAccountTransaction(topicMessageSubmissionTxId)
-//		if err != nil {
-//			cth.logger.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", topicMessageSubmissionTxId, err.Error())
-//			return
-//		}
-//
-//		if len(txs.Transactions) > 0 {
-//			success := false
-//			for _, transaction := range txs.Transactions {
-//				if transaction.Result == hedera.StatusSuccess.String() {
-//					success = true
-//					break
-//				}
-//			}
-//
-//			if success {
-//				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureProvided, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-//				err := cth.transactionRepo.UpdateStatusSignatureProvided(transactionId)
-//				if err != nil {
-//					cth.logger.Errorf("Failed to update status to [%s] status for TransactionID [%s]. Error [%s].", txRepo.StatusSignatureProvided, transactionId, err)
-//				}
-//			} else {
-//				cth.logger.Debugf("Updating status to [%s] for TX ID [%s] and Topic Submission ID [%s].", txRepo.StatusSignatureFailed, transactionId, fmt.Sprintf(topicMessageSubmissionTxId))
-//				err := cth.transactionRepo.UpdateStatusSignatureFailed(transactionId)
-//				if err != nil {
-//					cth.logger.Errorf("Failed to update status to [%s] transaction with TransactionID [%s]. Error [%s].", txRepo.StatusSignatureFailed, transactionId, err)
-//				}
-//			}
-//			return
-//		}
-//
-//		time.Sleep(cth.pollingInterval * time.Second)
-//	}
-//}
 
 //func (bs *Service) AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
 //	bs.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)

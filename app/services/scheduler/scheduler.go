@@ -70,7 +70,7 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 
 		ethTx, err := s.execute(submission)
 		if err != nil {
-			s.logger.Errorf("Failed to execute Scheduled TX for [%s]. Error [%s].", submission.CryptoTransferMessage.TransactionId, err)
+			s.logger.Errorf("Failed to execute Scheduled TX for [%s]. Error [%s].", id, err)
 			return
 		}
 		ethTxHashString := ethTx.Hash().String()
@@ -167,9 +167,9 @@ func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.
 		EthTxHash:     ethTxHash,
 	}
 
-	msg := &protomsg.TopicSubmissionMessage{
-		Type: protomsg.TopicSubmissionType_EthTransaction,
-		Message: &protomsg.TopicSubmissionMessage_TopicEthTransactionMessage{
+	msg := &protomsg.TopicMessage{
+		Type: protomsg.TopicMessageType_EthTransaction,
+		Message: &protomsg.TopicMessage_TopicEthTransactionMessage{
 			TopicEthTransactionMessage: ethTxMsg}}
 
 	msgBytes, err := proto.Marshal(msg)

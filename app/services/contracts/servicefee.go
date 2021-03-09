@@ -14,19 +14,26 @@
  * limitations under the License.
  */
 
-package bridge
+package contracts
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/big"
-	"testing"
+	"sync"
 )
 
-func TestServiceFeeSet(t *testing.T) {
-	serviceFeeInstance := ServiceFee{}
-	newServiceFee := big.NewInt(int64(5))
-	serviceFeeInstance.Set(*newServiceFee)
+type ServiceFee struct {
+	serviceFee big.Int
+	mutex      sync.RWMutex
+}
 
-	serviceFee := serviceFeeInstance.Get()
-	assert.Equal(t, serviceFee, newServiceFee, "Service fee was not set correctly")
+func (s *ServiceFee) Get() *big.Int {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return &s.serviceFee
+}
+
+func (s *ServiceFee) Set(serviceFee big.Int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	s.serviceFee = serviceFee
 }

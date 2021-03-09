@@ -24,7 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -168,57 +167,58 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 }
 
 func (r *Recovery) processSkipped() error {
-	unprocessed, err := r.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
-	}
-
-	for txn, txnSignatures := range unprocessed {
-		hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
-
-		if !hasSubmittedSignature {
-			r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
-			// TODO
-			err = r.bridgeService.VerifyFee(ctm)
-			if err != nil {
-				r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
-			}
-
-			signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
-			if err != nil {
-				r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
-			}
-
-			_, err = r.bridgeService.HandleTopicSubmission(ctm, signature)
-			if err != nil {
-				return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
-			}
-			r.logger.Infof("Successfully Validated")
-		}
-	}
+	//unprocessed, err := r.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
+	//if err != nil {
+	//	return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
+	//}
+	//
+	//for txn, txnSignatures := range unprocessed {
+	//	hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
+	//
+	//	if !hasSubmittedSignature {
+	//		r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
+	//		// TODO
+	//		err = r.bridgeService.VerifyFee(ctm)
+	//		if err != nil {
+	//			r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+	//		}
+	//
+	//		signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
+	//		if err != nil {
+	//			r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
+	//		}
+	//
+	//		_, err = r.bridgeService.HandleTopicSubmission(ctm, signature)
+	//		if err != nil {
+	//			return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
+	//		}
+	//		r.logger.Infof("Successfully Validated")
+	//	}
+	//}
 	return nil
 }
 
 func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
-	ctm := &validatorproto.TransferMessage{
-		TransactionId: data.TransactionId,
-		EthAddress:    data.EthAddress,
-		Amount:        data.Amount,
-		Fee:           data.Fee,
-		GasPriceGwei:  data.GasPriceGwei,
-	}
-
-	signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
-	if err != nil {
-		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
-	}
-
-	for _, s := range signatures {
-		if signature == s {
-			return true, nil
-		}
-	}
-	return false, ctm
+	//ctm := &validatorproto.TransferMessage{
+	//	TransactionId: data.TransactionId,
+	//	EthAddress:    data.EthAddress,
+	//	Amount:        data.Amount,
+	//	Fee:           data.Fee,
+	//	GasPriceGwei:  data.GasPriceGwei,
+	//}
+	//
+	//signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
+	//if err != nil {
+	//	r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
+	//}
+	//
+	//for _, s := range signatures {
+	//	if signature == s {
+	//		return true, nil
+	//	}
+	//}
+	//return false, ctm
+	return false, nil
 }
 
 func (r *Recovery) getStartTimestampFor(repository repositories.Status, address string) int64 {
@@ -235,12 +235,12 @@ func (r *Recovery) getStartTimestampFor(repository repositories.Status, address 
 }
 
 func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
-	err := r.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
-	if err != nil {
-		r.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
-		return err
-	}
-
-	go r.bridgeService.AcknowledgeTransactionSuccess(m)
+	//err := r.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
+	//if err != nil {
+	//	r.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
+	//	return err
+	//}
+	//
+	//go r.bridgeService.AcknowledgeTransactionSuccess(m)
 	return nil
 }

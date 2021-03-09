@@ -19,7 +19,7 @@ package cryptotransfer
 import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	hedera2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/message"
@@ -161,8 +161,8 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 		Status:         txRepo.StatusInitial,
 	}
 
-	txs := hedera2.Transactions{
-		Transactions: []hedera2.Transaction{},
+	txs := mirror_node.Response{
+		Transactions: []mirror_node.Transaction{},
 	}
 
 	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, nil)
@@ -236,8 +236,8 @@ func Test_CheckForTransactionCompletion(t *testing.T) {
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
-	txs := hedera2.Transactions{
-		Transactions: []hedera2.Transaction{},
+	txs := mirror_node.Response{
+		Transactions: []mirror_node.Transaction{},
 	}
 
 	hederaMirrorClient.On("GetAccountTransaction", submissionTxID).Return(&txs, nil)

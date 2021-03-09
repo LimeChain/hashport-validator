@@ -20,6 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
@@ -35,7 +36,7 @@ type Clients struct {
 func PrepareClients(config config.Config) *Clients {
 	return &Clients{
 		HederaNode:   hedera.NewNodeClient(config.Hedera.Client),
-		MirrorNode:   hedera.NewMirrorNodeClient(config.Hedera.MirrorNode.ApiAddress),
+		MirrorNode:   mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress),
 		Ethereum:     ethereum.NewClient(config.Hedera.Eth),
 		ExchangeRate: exchangerate.NewProvider("hedera-hashgraph", "eth"),
 	}

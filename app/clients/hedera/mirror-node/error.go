@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-package bridge
+package mirror_node
 
-import (
-	"math/big"
-	"sync"
+type (
+	ErrorMessage struct {
+		Message string `json:"message"`
+	}
+	Status struct {
+		Messages []ErrorMessage
+	}
 )
 
-type ServiceFee struct {
-	serviceFee big.Int
-	mutex      sync.RWMutex
-}
-
-func (s *ServiceFee) Get() *big.Int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return &s.serviceFee
-}
-
-func (s *ServiceFee) Set(serviceFee big.Int) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	s.serviceFee = serviceFee
+func (s *Status) String() string {
+	// TODO implement string function
+	return "TODO"
 }

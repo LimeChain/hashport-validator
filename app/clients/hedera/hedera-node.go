@@ -64,9 +64,8 @@ func (hc Node) GetClient() *hedera.Client {
 }
 
 // SubmitTopicConsensusMessage submits the provided message bytes to the
-// specified HCS `topicId`. Depending on the result of the TX execution, the
-// corresponding `onSuccess` and `onFailure` functions are called
-func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte, onSuccess func(), onFailure func()) (*hedera.TransactionID, error) {
+// specified HCS `topicId`
+func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
 	id, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
@@ -84,8 +83,6 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	if receipt.Status != hedera.StatusSuccess {
 		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
 	}
-
-	// TODO start monitoring for the TX ID and resolve onSuccess & onFailure
 
 	return &id.TransactionID, err
 }

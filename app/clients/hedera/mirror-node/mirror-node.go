@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hedera
+package mirror_node
 
 import (
 	"encoding/json"
@@ -22,26 +22,37 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"strings"
+	"time"
+)
+
+var (
+	// pollingInterval the interval at which the mirror node will poll for the result of a given transaction
+	pollingInterval = 5
 )
 
 type MirrorNode struct {
 	mirrorAPIAddress string
 	httpClient       *http.Client
+	logger           *log.Entry
 }
 
-func NewMirrorNodeClient(mirrorNodeAPIAddress string) *MirrorNode {
+func NewClient(mirrorNodeAPIAddress string) *MirrorNode {
 	return &MirrorNode{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
 		httpClient:       &http.Client{},
+		logger:           config.GetLoggerFor("Mirror Node Client"),
 	}
 }
 
-func (c MirrorNode) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Transactions, error) {
+func (c MirrorNode) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
-		timestampHelper.ToString(from))
+		timestampHelper.String(from))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
@@ -69,7 +80,7 @@ func (c MirrorNode) GetAccountCreditTransactionsBetween(accountId hedera.Account
 func (c MirrorNode) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
-		timestampHelper.ToString(from))
+		timestampHelper.String(from))
 	msgs, err := c.getTopicMessagesByQuery(transactionsDownloadQuery)
 	if err != nil {
 		return nil, err
@@ -89,7 +100,7 @@ func (c MirrorNode) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to 
 	return res, nil
 }
 
-func (c MirrorNode) GetAccountTransaction(transactionID string) (*Transactions, error) {
+func (c MirrorNode) GetAccountTransaction(transactionID string) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -111,29 +122,86 @@ func (c MirrorNode) GetStateProof(transactionID string) ([]byte, error) {
 	return readResponseBody(response)
 }
 
+func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
+	accountQuery := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		accountID.String())
+	response, e := c.httpClient.Get(accountQuery)
+	if e != nil {
+		return false
+	}
+
+	if response.StatusCode != 200 {
+		return false
+	}
+
+	return true
+}
+
+// WaitForTransaction Polls the transaction at intervals. Depending on the
+// result, the corresponding `onSuccess` and `onFailure` functions are called
+func (c MirrorNode) WaitForTransaction(txId string, onSuccess, onFailure func()) {
+	queryableTxId := parseIntoQueryableTx(txId)
+	go func() {
+		for {
+			txs, err := c.GetAccountTransaction(queryableTxId)
+			if err != nil {
+				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", txId, err.Error())
+				return
+			}
+
+			if len(txs.Transactions) > 0 {
+				success := false
+				for _, transaction := range txs.Transactions {
+					if transaction.Result == hedera.StatusSuccess.String() {
+						success = true
+						break
+					}
+				}
+
+				if success {
+					c.logger.Debugf("TX [%s] was successfully mined", queryableTxId)
+					onSuccess()
+				} else {
+					c.logger.Debugf("TX [%s] has failed", queryableTxId)
+					onFailure()
+				}
+				return
+			}
+			c.logger.Debugf("Pinged Mirror Node for TX [%s]. No result", queryableTxId)
+			time.Sleep(time.Duration(pollingInterval) * time.Second)
+		}
+	}()
+	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
+}
+
 func (c MirrorNode) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c MirrorNode) getTransactionsByQuery(query string) (*Transactions, error) {
+func (c MirrorNode) getTransactionsByQuery(query string) (*Response, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
-	response, e := c.get(transactionsQuery)
+	httpResponse, e := c.get(transactionsQuery)
 	if e != nil {
 		return nil, e
 	}
 
-	bodyBytes, e := readResponseBody(response)
+	bodyBytes, e := readResponseBody(httpResponse)
 	if e != nil {
 		return nil, e
 	}
 
-	var transactions *Transactions
-	e = json.Unmarshal(bodyBytes, &transactions)
+	var response *Response
+	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
 	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String()))
+	}
 
-	return transactions, nil
+	return response, nil
 }
 
 func (c MirrorNode) getTopicMessagesByQuery(query string) ([]Message, error) {
@@ -156,25 +224,16 @@ func (c MirrorNode) getTopicMessagesByQuery(query string) ([]Message, error) {
 	return messages.Messages, nil
 }
 
-func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {
-	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
-	accountQuery := fmt.Sprintf("%s/%s",
-		mirrorNodeApiTransactionAddress,
-		accountID.String())
-	response, e := c.httpClient.Get(accountQuery)
-	if e != nil {
-		return false
-	}
-
-	if response.StatusCode != 200 {
-		return false
-	}
-
-	return true
-}
-
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
 	return ioutil.ReadAll(response.Body)
+}
+
+// parseIntoQueryableTx parses TX with format `0.0.X@{seconds}.{nanos}` to format `0.0.X-{seconds}-{nanos}`
+func parseIntoQueryableTx(txId string) string {
+	split := strings.Split(txId, "@")
+	accId := split[0]
+	split = strings.Split(split[1], ".")
+	return fmt.Sprintf("%s-%s-%s", accId, split[0], split[1])
 }

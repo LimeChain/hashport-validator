@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package bridge
+package mirror_node
 
-import (
-	"github.com/stretchr/testify/assert"
-	"testing"
-)
-
-func TestMembersSet(t *testing.T) {
-	membersService := Members{}
-	newMembers := []string{"0x1aSd", "0x2dSa", "0x3qWe", "0x4eWq"}
-	membersService.Set(newMembers)
-	membersList := membersService.Get()
-	assert.Equal(t, len(newMembers), len(membersList), "Different array length")
-	for i, v := range membersList {
-		assert.Equal(t, newMembers[i], v, "Members not set correctly")
+type (
+	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
+	Message struct {
+		ConsensusTimestamp string `json:"consensus_timestamp"`
+		TopicId            string `json:"topic_id"`
+		Contents           string `json:"message"`
+		RunningHash        string `json:"running_hash"`
+		SequenceNumber     int    `json:"sequence_number"`
 	}
-}
+	// Messages struct used by the Hedera Mirror node REST API and returned once
+	// Topic Messages are queried
+	Messages struct {
+		Messages []Message
+	}
+)

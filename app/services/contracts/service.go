@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package bridge
+package contracts
 
 import (
 	"github.com/ethereum/go-ethereum/core/types"
@@ -74,7 +74,7 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.Br
 }
 
 // SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.CryptoTransferMessage, signatures [][]byte) (*types.Transaction, error) {
+func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm *proto.TransferMessage, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
@@ -164,8 +164,8 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 	}
 }
 
-// NewContractService creates new instance of a Contract Services based on the provided configuration
-func NewContractService(client clients.Ethereum, c config.Ethereum) *Service {
+// NewService creates new instance of a Contract Services based on the provided configuration
+func NewService(client clients.Ethereum, c config.Ethereum) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
 	if err != nil {
 		log.Fatal(err)
