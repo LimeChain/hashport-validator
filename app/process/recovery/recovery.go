@@ -102,11 +102,11 @@ func (r *Recovery) Start(from, to int64) error {
 		return err
 	}
 
-	//err = r.topicMessagesRecovery(from, to)
-	//if err != nil {
-	//	r.logger.Errorf("Topic Messages Recovery failed", err)
-	//	return err
-	//}
+	err = r.topicMessagesRecovery(from, to)
+	if err != nil {
+		r.logger.Errorf("Topic Messages Recovery failed", err)
+		return err
+	}
 
 	// TODO Handle unprocessed TXs
 	// 1. Get all Skipped TX (DONE)
@@ -243,19 +243,6 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 	//}
 	//return false, ctm
 	return false, nil
-}
-
-func (r *Recovery) getStartTimestampFor(repository repository.Status, address string) int64 {
-	if r.configRecoveryTimestamp > 0 {
-		return r.configRecoveryTimestamp
-	}
-
-	timestamp, err := repository.GetLastFetchedTimestamp(address)
-	if err == nil {
-		return timestamp
-	}
-
-	return -1
 }
 
 func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
