@@ -302,14 +302,19 @@ func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMes
 			return nil
 		}
 
+		keyTransactor, err := cmh.signer.NewKeyTransactor(cmh.ethereumClient.ChainID())
+		if err != nil {
+			cmh.logger.Errorf("Failed to establish key transactor. Error [%s].", err)
+		}
+
 		submission := &ethsubmission.Submission{
 			CryptoTransferMessage: ctm,
 			Messages:              txMessages,
 			Slot:                  slot,
-			TransactOps:           cmh.signer.NewKeyTransactor(),
+			TransactOps:           keyTransactor,
 		}
 
-		err := cmh.scheduler.Schedule(m.TransactionId, *submission)
+		err = cmh.scheduler.Schedule(m.TransactionId, *submission)
 		if err != nil {
 			return err
 		}
