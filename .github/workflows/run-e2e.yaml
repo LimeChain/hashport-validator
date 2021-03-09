@@ -24,9 +24,20 @@ jobs:
          echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
-      - name: Health Check all nodes before running e2e tests
+      - name: Perform health check on nodes
+        shell: bash
         run: |
-          bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:6200/api/v1/health)" != "200" ]]; do sleep 5; done'
+            declare -a ports=("5200" "7200" "8200")
+            for port in "${ports[@]}"
+            do
+            MAX_TIMEOUT=15; # 15sec per node (45sec max for three nodes)
+            while [[ "$(curl -s localhost:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
+            sleep 5; ((MAX_TIMEOUT-=5));
+            if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi
+            done
+            if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for localhost:$port"
+            else echo "Confirmed health check for localhost:$port"; fi
+            done
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
