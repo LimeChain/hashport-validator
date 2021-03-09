@@ -16,6 +16,10 @@
 
 package mirror_node
 
+import (
+	"fmt"
+)
+
 type (
 	ErrorMessage struct {
 		Message string `json:"message"`
@@ -25,7 +29,20 @@ type (
 	}
 )
 
+// String converts ErrorMessage struct to human readable string
+func (m *ErrorMessage) String() string {
+	return fmt.Sprintf("message: %s", m.Message)
+}
+
+// String converts the Status struct to human readable string
 func (s *Status) String() string {
-	// TODO implement string function
-	return "TODO"
+	r := "["
+	for i, m := range s.Messages {
+		r += m.String()
+		if i != len(s.Messages)-1 {
+			r += ", "
+		}
+	}
+	r += "]"
+	return r
 }

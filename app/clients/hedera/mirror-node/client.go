@@ -35,21 +35,21 @@ var (
 	pollingInterval = 5
 )
 
-type MirrorNode struct {
+type Client struct {
 	mirrorAPIAddress string
 	httpClient       *http.Client
 	logger           *log.Entry
 }
 
-func NewClient(mirrorNodeAPIAddress string) *MirrorNode {
-	return &MirrorNode{
+func NewClient(mirrorNodeAPIAddress string) *Client {
+	return &Client{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
 		httpClient:       &http.Client{},
 		logger:           config.GetLoggerFor("Mirror Node Client"),
 	}
 }
 
-func (c MirrorNode) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
 		accountId.String(),
 		timestampHelper.String(from))
@@ -57,7 +57,7 @@ func (c MirrorNode) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
-func (c MirrorNode) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]Transaction, error) {
+func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]Transaction, error) {
 	transactions, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, from)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (c MirrorNode) GetAccountCreditTransactionsBetween(accountId hedera.Account
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
-func (c MirrorNode) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
+func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.String(from))
@@ -100,13 +100,13 @@ func (c MirrorNode) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to 
 	return res, nil
 }
 
-func (c MirrorNode) GetAccountTransaction(transactionID string) (*Response, error) {
+func (c Client) GetAccountTransaction(transactionID string) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c MirrorNode) GetStateProof(transactionID string) ([]byte, error) {
+func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions",
 		fmt.Sprintf("/%s/stateproof", transactionID))
 
@@ -122,7 +122,7 @@ func (c MirrorNode) GetStateProof(transactionID string) ([]byte, error) {
 	return readResponseBody(response)
 }
 
-func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {
+func (c Client) AccountExists(accountID hedera.AccountID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 	accountQuery := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,
@@ -141,13 +141,13 @@ func (c MirrorNode) AccountExists(accountID hedera.AccountID) bool {
 
 // WaitForTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
-func (c MirrorNode) WaitForTransaction(txId string, onSuccess, onFailure func()) {
+func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	queryableTxId := parseIntoQueryableTx(txId)
 	go func() {
 		for {
 			txs, err := c.GetAccountTransaction(queryableTxId)
 			if err != nil {
-				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error [%s].", txId, err.Error())
+				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error: %s.", txId, err.Error())
 				return
 			}
 
@@ -176,11 +176,11 @@ func (c MirrorNode) WaitForTransaction(txId string, onSuccess, onFailure func())
 	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
 }
 
-func (c MirrorNode) get(query string) (*http.Response, error) {
+func (c Client) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c MirrorNode) getTransactionsByQuery(query string) (*Response, error) {
+func (c Client) getTransactionsByQuery(query string) (*Response, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 	httpResponse, e := c.get(transactionsQuery)
 	if e != nil {
@@ -204,7 +204,7 @@ func (c MirrorNode) getTransactionsByQuery(query string) (*Response, error) {
 	return response, nil
 }
 
-func (c MirrorNode) getTopicMessagesByQuery(query string) ([]Message, error) {
+func (c Client) getTopicMessagesByQuery(query string) ([]Message, error) {
 	messagesQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics", query)
 	response, e := c.get(messagesQuery)
 	if e != nil {
