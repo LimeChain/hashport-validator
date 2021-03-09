@@ -72,45 +72,21 @@ func NewWatcher(
 }
 
 func (ctw Watcher) Watch(q *queue.Queue) {
-	go ctw.beginWatching(q)
-}
-
-func (ctw Watcher) getTimestamp(q *queue.Queue) int64 {
 	accountAddress := ctw.accountID.String()
-	milestoneTimestamp := ctw.startTimestamp
-	var err error
-
-	if !ctw.started {
-		if milestoneTimestamp > 0 {
-			return milestoneTimestamp
-		}
-
-		ctw.logger.Warnf("[%s] Starting Timestamp was empty, proceeding to get [timestamp] from database.", accountAddress)
-		milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
-		if err == nil && milestoneTimestamp > 0 {
-			return milestoneTimestamp
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			ctw.logger.Fatal(err)
-		}
-
-		ctw.logger.Warnf("[%s] Database Timestamp was empty, proceeding with [timestamp] from current moment.", accountAddress)
-		milestoneTimestamp = time.Now().UnixNano()
-		e := ctw.statusRepository.CreateTimestamp(accountAddress, milestoneTimestamp)
-		if e != nil {
-			ctw.logger.Fatal(e)
-		}
-		return milestoneTimestamp
-	}
-
-	milestoneTimestamp, err = ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
+	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 	if err != nil {
-		ctw.logger.Warnf("[%s] Database Timestamp was empty. Restarting. Error - [%s]", accountAddress, err)
-		ctw.started = false
-		ctw.restart(q)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctw.logger.Debugf("[%s] No Transfer Watcher Timestamp found in DB", accountAddress)
+			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
+			if err != nil {
+				ctw.logger.Fatalf("[%s] Failed to create Transfer Watcher Status timestamp. Error %s", accountAddress, err)
+			}
+		} else {
+			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Err: %s", err)
+		}
 	}
 
-	return milestoneTimestamp
+	go ctw.beginWatching(q)
 }
 
 func (ctw Watcher) beginWatching(q *queue.Queue) {
