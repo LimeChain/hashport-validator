@@ -205,7 +205,7 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
 	onSuccessfulAuthMessage := func() {
-		bs.logger.Infof("Successfully published Authorisation signature for TX [%s]", txId)
+		bs.logger.Infof("Publish Authorisation signature TX successfully executed for TX [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusCompleted(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
@@ -214,7 +214,7 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 	}
 
 	onFailedAuthMessage := func() {
-		bs.logger.Infof("Publishing Authorisation signature for TX ID [%s] failed. Transaction reverted.", txId)
+		bs.logger.Infof("Publish Authorisation signature TX failed for TX ID [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusEthTxReverted(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)

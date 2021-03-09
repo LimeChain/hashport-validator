@@ -145,15 +145,18 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	queryableTxId := parseIntoQueryableTx(txId)
 	go func() {
 		for {
-			txs, err := c.GetAccountTransaction(queryableTxId)
+			response, err := c.GetAccountTransaction(queryableTxId)
+			if response != nil && response.isNotFound() {
+				continue
+			}
 			if err != nil {
 				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error: %s.", txId, err.Error())
 				return
 			}
 
-			if len(txs.Transactions) > 0 {
+			if len(response.Transactions) > 0 {
 				success := false
-				for _, transaction := range txs.Transactions {
+				for _, transaction := range response.Transactions {
 					if transaction.Result == hedera.StatusSuccess.String() {
 						success = true
 						break
@@ -198,7 +201,7 @@ func (c Client) getTransactionsByQuery(query string) (*Response, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String()))
+		return response, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String()))
 	}
 
 	return response, nil

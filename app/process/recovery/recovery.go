@@ -28,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -80,7 +81,11 @@ func (r *Recovery) ComputeInterval() (int64, int64, error) {
 	} else {
 		lastFetched, err := r.statusTransferRepo.GetLastFetchedTimestamp(r.accountID.String())
 		if err != nil {
-			return 0, 0, err
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, to, nil
+			} else {
+				return 0, to, err
+			}
 		}
 		from = lastFetched
 	}

@@ -34,6 +34,11 @@ func (m *ErrorMessage) String() string {
 	return fmt.Sprintf("message: %s", m.Message)
 }
 
+// IsNotFound returns true/false whether the message is equal to "not found" or not
+func (m *ErrorMessage) IsNotFound() bool {
+	return m.Message == "Not found"
+}
+
 // String converts the Status struct to human readable string
 func (s *Status) String() string {
 	r := "["

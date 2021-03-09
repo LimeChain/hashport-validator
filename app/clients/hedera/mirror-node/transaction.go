@@ -63,9 +63,9 @@ func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one
-func (tns Response) GetLatestTxnConsensusTime() (int64, error) {
+func (r Response) GetLatestTxnConsensusTime() (int64, error) {
 	var max int64 = 0
-	for _, t := range tns.Transactions {
+	for _, t := range r.Transactions {
 		ts, err := timestamp.FromString(t.ConsensusTimestamp)
 		if err != nil {
 			return 0, err
@@ -75,4 +75,14 @@ func (tns Response) GetLatestTxnConsensusTime() (int64, error) {
 		}
 	}
 	return max, nil
+}
+
+// isNotFound traverses all Error messages and searches for Not Found message
+func (r Response) isNotFound() bool {
+	for _, m := range r.Messages {
+		if m.IsNotFound() {
+			return true
+		}
+	}
+	return false
 }
