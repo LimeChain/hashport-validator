@@ -27,7 +27,7 @@ jobs:
       - name: Perform health check on nodes
         shell: bash
         run: |
-            declare -a ports=("5200" "7200" "8200") \
+            ports=("5200" "7200" "8200") \
             for port in "${ports[@]}" \
             do \
             MAX_TIMEOUT=15; # 15sec per node (45sec max for three nodes) \
