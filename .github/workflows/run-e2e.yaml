@@ -2,7 +2,7 @@ name: E2E Tests
 on:
   push:
     branches:
-      - update/e2e-workflow
+      - main
   pull_request:
 
 jobs:
@@ -35,8 +35,8 @@ jobs:
             sleep 5; ((MAX_TIMEOUT-=5));
             if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
             done ;
-            if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for localhost:$port" ;
-            else echo "Confirmed health check for localhost:$port"; fi ;
+            if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for 127.0.0.1:$port" ;
+            else echo "Confirmed health check for 127.0.0.1:$port"; fi ;
             done ;
             end=`date +%s` ;
             echo "Total: $((end-start)) seconds"
