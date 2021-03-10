@@ -64,6 +64,8 @@ func main() {
 
 	if !configuration.Hedera.RestApiOnly {
 		initializeWatchersAndHandlers(server, configuration, contractService, clients, feeCalculator)
+	} else {
+		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 	}
 
 	// Start
