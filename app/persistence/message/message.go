@@ -30,6 +30,7 @@ type TransactionMessage struct {
 	Hash                 string
 	SignerAddress        string
 	TransactionTimestamp int64
+	ERC20ContractAddress string
 }
 
 type Repository struct {

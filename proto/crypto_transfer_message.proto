@@ -10,4 +10,5 @@ message CryptoTransferMessage {
   string amount = 3;
   string fee = 4;
   string gasPriceGwei = 5;
+  string asset = 6;
 }

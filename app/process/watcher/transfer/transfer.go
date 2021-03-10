@@ -37,7 +37,7 @@ import (
 	"time"
 )
 
-type CryptoTransferWatcher struct {
+type TransferWatcher struct {
 	client           clients.MirrorNode
 	accountID        hedera.AccountID
 	typeMessage      string
@@ -56,8 +56,8 @@ func NewCryptoTransferWatcher(
 	repository repositories.Status,
 	maxRetries int,
 	startTimestamp int64,
-) *CryptoTransferWatcher {
-	return &CryptoTransferWatcher{
+) *TransferWatcher {
+	return &TransferWatcher{
 		client:           client,
 		accountID:        accountID,
 		typeMessage:      process.CryptoTransferMessageType,
@@ -70,11 +70,11 @@ func NewCryptoTransferWatcher(
 	}
 }
 
-func (ctw CryptoTransferWatcher) Watch(q *queue.Queue) {
+func (ctw TransferWatcher) Watch(q *queue.Queue) {
 	go ctw.beginWatching(q)
 }
 
-func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
+func (ctw TransferWatcher) getTimestamp(q *queue.Queue) int64 {
 	accountAddress := ctw.accountID.String()
 	milestoneTimestamp := ctw.startTimestamp
 	var err error
@@ -112,7 +112,7 @@ func (ctw CryptoTransferWatcher) getTimestamp(q *queue.Queue) int64 {
 	return milestoneTimestamp
 }
 
-func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
+func (ctw TransferWatcher) beginWatching(q *queue.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
 		return
@@ -154,7 +154,7 @@ func (ctw CryptoTransferWatcher) beginWatching(q *queue.Queue) {
 	}
 }
 
-func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
+func (ctw TransferWatcher) processTransaction(tx transaction.HederaTransaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
 	var amount string
@@ -164,6 +164,9 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 			break
 		}
 	}
+
+	// TODO: Modify Method to check Token_Transfers object as well
+	// TODO: Figure out whether we are processing a token or coin
 
 	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
 
@@ -207,11 +210,12 @@ func (ctw CryptoTransferWatcher) processTransaction(tx transaction.HederaTransac
 		Amount:        amount,
 		Fee:           fee,
 		GasPriceGwei:  gasPriceGwei,
+		Asset:         "HBAR", // TODO: Remove hard-coded part later
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }
 
-func (ctw CryptoTransferWatcher) restart(q *queue.Queue) {
+func (ctw TransferWatcher) restart(q *queue.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")

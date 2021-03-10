@@ -79,7 +79,7 @@ func generateArguments() (abi.Arguments, error) {
 		}}, nil
 }
 
-func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
+func EncodeData(ctm *proto.CryptoTransferMessage, erc20ContractAddress string) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err

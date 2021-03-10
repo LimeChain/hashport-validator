@@ -27,8 +27,8 @@ import (
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
-	cryptotransfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
@@ -120,7 +120,7 @@ func addCryptoTransferWatchers(configuration config.Config, hederaClient clients
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(cryptotransfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
+		server.AddWatcher(transfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil

@@ -141,7 +141,10 @@ func (cth Handler) Handle(payload []byte) {
 		return
 	}
 
-	encodedData, err := ethhelper.EncodeData(&ctm)
+	// TODO: Use Contract Service to retrieve address of ERC20ContractAddress by the Token ID in asset field
+	erc20address := ""
+
+	encodedData, err := ethhelper.EncodeData(&ctm, erc20address)
 	if err != nil {
 		cth.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 		return

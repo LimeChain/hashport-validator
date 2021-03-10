@@ -77,7 +77,7 @@ type Hedera struct {
 }
 
 type Handler struct {
-	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
+	CryptoTransfer   CryptoTransferHandler   `yaml:"transfer"`
 	ConsensusMessage ConsensusMessageHandler `yaml:"consensus-message"`
 }
 
@@ -92,7 +92,7 @@ type CryptoTransferHandler struct {
 }
 
 type Watcher struct {
-	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
+	CryptoTransfer   CryptoTransfer   `yaml:"transfer"`
 	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
 }
 

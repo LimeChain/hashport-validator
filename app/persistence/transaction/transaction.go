@@ -36,14 +36,16 @@ const (
 
 type Transaction struct {
 	gorm.Model
-	TransactionId  string `gorm:"unique"`
-	EthAddress     string
-	Amount         string
-	Fee            string
-	Signature      string
-	SubmissionTxId string
-	Status         string
-	EthHash        string
+	TransactionId        string `gorm:"unique"`
+	EthAddress           string
+	Amount               string
+	Fee                  string
+	Signature            string
+	SubmissionTxId       string
+	Status               string
+	EthHash              string
+	ERC20ContractAddress string
+	Asset                string
 }
 
 type Repository struct {
@@ -87,13 +89,16 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error)
 }
 
 func (tr Repository) Create(ct *proto.CryptoTransferMessage) error {
+	// TODO: Add necessary Fields to the constructor below after protobuf modification
 	return tr.dbClient.Create(&Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusInitial,
+		Model:                gorm.Model{},
+		TransactionId:        ct.TransactionId,
+		EthAddress:           ct.EthAddress,
+		Amount:               ct.Amount,
+		Fee:                  ct.Fee,
+		Status:               StatusInitial,
+		ERC20ContractAddress: nil,
+		Asset:                nil,
 	}).Error
 }
 
