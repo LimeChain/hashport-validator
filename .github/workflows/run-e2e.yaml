@@ -29,14 +29,14 @@ jobs:
         run: >
             ports=("5200" "7200" "8200") ;
             for port in "${ports[@]}" ; do
-            MAX_TIMEOUT=15; # 15sec per node (45sec max for three nodes)
+            MAX_TIMEOUT=15;
             while [[ "$(curl -s localhost:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
             sleep 5; ((MAX_TIMEOUT-=5));
             if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
             done ;
             if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for localhost:$port" ;
             else echo "Confirmed health check for localhost:$port"; fi ;
-            done ;
+            done
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
