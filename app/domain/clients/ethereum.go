@@ -19,9 +19,11 @@ package clients
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"math/big"
 )
 
 type Ethereum interface {
+	ChainID() *big.Int
 	GetClient() *ethclient.Client
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
 	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
