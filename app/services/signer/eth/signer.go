@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 )
 
 type Signer struct {
@@ -46,8 +47,8 @@ func (s *Signer) Sign(msg []byte) ([]byte, error) {
 	return signature, nil
 }
 
-func (s *Signer) NewKeyTransactor() *bind.TransactOpts {
-	return bind.NewKeyedTransactor(s.privateKey)
+func (s *Signer) NewKeyTransactor(chainId *big.Int) (*bind.TransactOpts, error) {
+	return bind.NewKeyedTransactorWithChainID(s.privateKey, chainId)
 }
 
 func (s *Signer) Address() string {

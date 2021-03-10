@@ -44,5 +44,6 @@ Name                                                                | Default   
 `hedera.handler.consensus-message.topic_id`                         | ""                                                  | The Hedera topic id to which the consensus message handler will publish messages.
 `hedera.handler.consensus-message.addresses[]`                      | []                                                  | The Ethereum addresses of all validators in the bridge network.
 `hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
+`hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
 
 
