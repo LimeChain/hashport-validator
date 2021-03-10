@@ -37,7 +37,7 @@ type Scheduled struct {
 	Recipient                string
 	Status                   string
 	ScheduleID               string
-	SubmissionTxId           string `gorm:"unique"`
+	SubmissionTxId           string
 }
 
 type Repository struct {
