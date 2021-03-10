@@ -27,10 +27,10 @@ jobs:
       - name: Perform health check on nodes
         shell: bash
         run: >
-            ports=("5200" "7200" "8200") ;
+            ports=("6200" "7200" "8200") ;
             for port in "${ports[@]}" ; do
             MAX_TIMEOUT=15;
-            while [[ "$(curl localhost:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
+            while [[ "$(curl 127.0.0.1:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
             sleep 5; ((MAX_TIMEOUT-=5));
             if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
             done ;
