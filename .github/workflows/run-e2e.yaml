@@ -27,7 +27,7 @@ jobs:
       - name: Perform health check on nodes
         shell: bash
         run: |
-            bash -c ' \
+            #! /bin/bash \
             ports=("5200" "7200" "8200") \
             for port in "${ports[@]}" \
             do \
@@ -38,7 +38,7 @@ jobs:
             done \
             if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for localhost:$port" \
             else echo "Confirmed health check for localhost:$port"; fi \
-            done' \
+            done \
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
