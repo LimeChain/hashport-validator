@@ -96,13 +96,10 @@ func EncodeData(ctm *proto.CryptoTransferMessage, erc20ContractAddress string) (
 
 	elements := []interface{}{
 		[]byte(ctm.TransactionId),
+		common.HexToAddress(erc20ContractAddress),
 		common.HexToAddress(ctm.EthAddress),
 		amountBn,
 		feeBn,
-	}
-
-	if erc20ContractAddress != "" {
-		elements = append(elements, common.HexToAddress(erc20ContractAddress))
 	}
 
 	return args.Pack(elements)
