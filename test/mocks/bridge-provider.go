@@ -40,3 +40,8 @@ func (m *MockBridgeContract) GetMembers() []string {
 	args := m.Called()
 	return args.Get(0).([]string)
 }
+
+func (m *MockBridgeContract) IsValidBridgeToken() bool {
+	args := m.Called()
+	return args.Get(0).(bool)
+}
