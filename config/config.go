@@ -75,6 +75,7 @@ type Hedera struct {
 	Watcher    Watcher    `yaml:"watcher"`
 	Handler    Handler    `yaml:"handler"`
 	Recovery   Recovery   `yaml:"recovery"`
+	RestApiOnly bool       `yaml:"rest_api_only"`
 }
 
 type Handler struct {

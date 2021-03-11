@@ -1,5 +1,6 @@
 # This file contains application defaults
 hedera:
+  rest_api_only: false
   validator:
     db:
       host: 127.0.0.1

@@ -26,12 +26,14 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 	"time"
 )
 
 // Client Ethereum JSON RPC Client
 type Client struct {
-	config config.Ethereum
+	chainId *big.Int
+	config  config.Ethereum
 	*ethclient.Client
 	logger *log.Entry
 }
@@ -44,11 +46,21 @@ func NewClient(c config.Ethereum) *Client {
 		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
 	}
 
+	chainId, err := client.ChainID(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to get ChainID. Error [%s]", err)
+	}
+
 	return &Client{
+		chainId,
 		c,
 		client,
 		logger,
 	}
+}
+
+func (ec *Client) ChainID() *big.Int {
+	return ec.chainId
 }
 
 // GetClients returns the instance of a ethclient already established connection to a JSON RPC Ethereum Node

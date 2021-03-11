@@ -14,17 +14,34 @@
  * limitations under the License.
  */
 
-package client
+package healthcheck
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"math/big"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
+	"net/http"
 )
 
-type Ethereum interface {
-	ChainID() *big.Int
-	GetClient() *ethclient.Client
-	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
-	WaitForTransaction(hash string, onSuccess, onRevert func())
+var (
+	HealthCheckRoute = "/health"
+)
+
+//Router for health check
+func NewRouter() http.Handler {
+	r := chi.NewRouter()
+	r.Get("/", healthResponse())
+	return r
 }
+
+// GET: .../health
+func healthResponse() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		render.JSON(w, r, &response.HealthResponse{
+			Status: "OK",
+		})
+	}
+}
+
+
+

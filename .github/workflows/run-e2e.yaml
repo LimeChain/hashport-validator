@@ -24,10 +24,22 @@ jobs:
          echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
-      - uses: jakejarvis/wait-action@master
-        name: Sleep for 45 seconds
-        with:
-          time: '45s'
+      - name: Perform health check on nodes
+        shell: bash
+        run: >
+            start=`date +%s` ;
+            ports=("6200" "7200" "8200") ;
+            for port in "${ports[@]}" ; do
+            MAX_TIMEOUT=15;
+            while [[ "$(curl -s 127.0.0.1:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
+            sleep 5; ((MAX_TIMEOUT-=5));
+            if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
+            done ;
+            if [ "$MAX_TIMEOUT" -eq "0" ]; then echo "Unconfirmed health check for 127.0.0.1:$port" ;
+            else echo "Confirmed health check for 127.0.0.1:$port"; fi ;
+            done ;
+            end=`date +%s` ;
+            echo "Total: $((end-start)) seconds"
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:

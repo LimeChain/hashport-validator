@@ -24,6 +24,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
@@ -31,6 +34,13 @@ import (
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -56,34 +66,39 @@ func main() {
 	// Prepare Services
 	services := PrepareServices(configuration, *clients, *repositories)
 
-	// Execute Recovery Process. Computing Watchers starting timestamp
-	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
-
-	server := server.NewServer()
-	server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
-
-	err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	server.AddHandler(process.HCSMessageType, cmh.NewHandler(
-		configuration.Hedera.Handler.ConsensusMessage,
-		repositories.message,
-		services.contracts,
-		services.signatures))
-
-	err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
-	if err != nil {
-		log.Fatal(err)
-	}
-	server.AddWatcher(ethereum.NewEthereumWatcher(services.contracts, configuration.Hedera.Eth))
-
-	// Register API
 	apiRouter := initializeAPIRouter(services.fees)
+
+	// Prepare Node
+	server := server.NewServer()
+
+	if !configuration.Hedera.RestApiOnly {
+		// Execute Recovery Process. Computing Watchers starting timestamp
+		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
+		server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
+
+		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		server.AddHandler(process.HCSMessageType, cmh.NewHandler(
+			configuration.Hedera.Handler.ConsensusMessage,
+			repositories.message,
+			services.contracts,
+			services.signatures))
+
+		err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
+		if err != nil {
+			log.Fatal(err)
+		}
+		server.AddWatcher(ethereum.NewEthereumWatcher(services.contracts, configuration.Hedera.Eth))
+	} else {
+		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
+	}
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
@@ -108,8 +123,8 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 
 func initializeAPIRouter(feeCalculator service.Fees) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.NewMetadataRouter(feeCalculator))
-
+	apiRouter.AddV1Router(metadata.MetadataRoute, metadata.NewRouter(feeCalculator))
+	apiRouter.AddV1Router(healthcheck.HealthCheckRoute, healthcheck.NewRouter())
 	return apiRouter
 }
 
