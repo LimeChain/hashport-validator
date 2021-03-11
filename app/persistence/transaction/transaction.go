@@ -29,10 +29,14 @@ const (
 	StatusInitial            = "INITIAL"
 	StatusInsufficientFee    = "INSUFFICIENT_FEE"
 	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
-	StatusSignatureProvided  = "SIGNATURE_PROVIDED"
+	StatusSignatureMined     = "SIGNATURE_MINED"
 	StatusSignatureFailed    = "SIGNATURE_FAILED"
 	StatusEthTxSubmitted     = "ETH_TX_SUBMITTED"
+	StatusEthTxMined         = "ETH_TX_MINED"
 	StatusEthTxReverted      = "ETH_TX_REVERTED"
+	StatusEthTxMsgSubmitted  = "ETH_TX_MSG_SUBMITTED"
+	StatusEthTxMsgMined      = "ETH_TX_MSG_MINED"
+	StatusEthTxMsgFailed     = "ETH_TX_MSG_FAILED"
 	StatusCompleted          = "COMPLETED"
 	StatusRecovered          = "RECOVERED"
 )
@@ -159,8 +163,8 @@ func (tr Repository) UpdateStatusInsufficientFee(txId string) error {
 	return tr.updateStatus(txId, StatusInsufficientFee)
 }
 
-func (tr Repository) UpdateStatusSignatureProvided(txId string) error {
-	return tr.updateStatus(txId, StatusSignatureProvided)
+func (tr Repository) UpdateStatusSignatureMined(txId string) error {
+	return tr.updateStatus(txId, StatusSignatureMined)
 }
 
 func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
@@ -175,8 +179,24 @@ func (tr Repository) UpdateStatusEthTxSubmitted(txId string, hash string) error 
 		Error
 }
 
+func (tr Repository) UpdateStatusEthTxMined(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxMined)
+}
+
 func (tr Repository) UpdateStatusEthTxReverted(txId string) error {
 	return tr.updateStatus(txId, StatusEthTxReverted)
+}
+
+func (tr Repository) UpdateStatusEthTxMsgSubmitted(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxMsgSubmitted)
+}
+
+func (tr Repository) UpdateStatusEthTxMsgMined(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxMsgMined)
+}
+
+func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
+	return tr.updateStatus(txId, StatusEthTxMsgFailed)
 }
 
 func (tr *Repository) UpdateStatusSkipped(txId string) error {

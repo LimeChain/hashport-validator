@@ -22,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"math/big"
 )
 
@@ -39,5 +38,5 @@ type Contracts interface {
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error)
 	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-	SubmitSignatures(opts *bind.TransactOpts, ctm encoding.TransferMessage, signatures [][]byte) (*types.Transaction, error)
+	SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
 }

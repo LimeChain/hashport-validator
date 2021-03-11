@@ -170,7 +170,7 @@ func (cmh Handler) Handle(payload []byte) {
 //func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
 //	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
 //
-//	isSuccessful, err := cmh.ethereumClient.WaitForTransactionSuccess(common.HexToHash(m.EthTxHash))
+//	isSuccessful, err := cmh.ethereumClient.WaitForTransaction(common.HexToHash(m.EthTxHash))
 //	if err != nil {
 //		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
 //		return
@@ -237,40 +237,3 @@ func (cmh *Handler) hasReachedMajority(txId string) (bool, error) {
 	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(signatureMessages), len(cmh.contractsService.GetMembers()), txId)
 	return len(signatureMessages) >= requiredSigCount, nil
 }
-
-//
-//func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transaction, error) {
-//	signatures, err := getSignatures(submission.Messages)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.TransferMessage, signatures)
-//}
-//
-//func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.Submission, ethTxHash string) (*hedera.TransactionID, error) {
-//	ethTxMsg := &protomsg.TopicEthTransactionMessage{
-//		TransactionId: id,
-//		Hash:          submission.Messages[0].Hash,
-//		EthTxHash:     ethTxHash,
-//	}
-//
-//	msg := &protomsg.TopicMessage{
-//		Type: protomsg.TopicMessageType_EthTransaction,
-//		Message: &protomsg.TopicMessage_TopicEthTransactionMessage{
-//			TopicEthTransactionMessage: ethTxMsg}}
-//
-//	msgBytes, err := proto.Marshal(msg)
-//	if err != nil {
-//		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash, err)
-//	}
-//
-//	// TODO refactor such that the "waitForEthTxMined" is performed inside the signatures service and scheduler only reacts to that
-//	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)
-//}
-//
-//// TODO
-//func (s *Scheduler) waitForEthTxMined(ethTx common.Hash) (bool, error) {
-//	//return s.contractsService.Client.WaitForTransactionSuccess(ethTx)
-//	return true, nil
-//}
-//

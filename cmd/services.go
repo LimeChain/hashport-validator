@@ -42,6 +42,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	contractService := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
 	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.SendDeadline)
 	feeService := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contractService)
+
 	transfersService := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
@@ -49,11 +50,16 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		ethSigner,
 		repositories.transaction,
 		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+
 	signaturesService := signatures.NewService(
 		ethSigner,
 		contractService,
+		schedulerService,
 		repositories.transaction,
 		repositories.message,
+		clients.HederaNode,
+		clients.MirrorNode,
+		clients.Ethereum,
 		c.Hedera.Handler.ConsensusMessage.TopicId)
 
 	return &Services{

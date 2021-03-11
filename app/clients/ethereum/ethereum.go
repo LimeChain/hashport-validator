@@ -33,18 +33,21 @@ import (
 type Client struct {
 	config config.Ethereum
 	*ethclient.Client
+	logger *log.Entry
 }
 
 // NewClient creates new instance of an Ethereum client
-func NewClient(config config.Ethereum) *Client {
-	client, err := ethclient.Dial(config.NodeUrl)
+func NewClient(c config.Ethereum) *Client {
+	logger := config.GetLoggerFor(fmt.Sprintf("Ethereum Client"))
+	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
-		log.Fatalf("Failed to initialize Client. Error [%s]", err)
+		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
 	}
 
 	return &Client{
-		config,
+		c,
 		client,
+		logger,
 	}
 }
 
@@ -70,14 +73,24 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 }
 
 // WaitForTransactionSuccess polls the JSON RPC node every 5 seconds for any updates (whether TX is mined) for the provided Hash
-func (ec *Client) WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error) {
-	receipt, err := ec.waitForTransactionReceipt(hash)
-	if err != nil {
-		return false, err
-	}
+func (ec *Client) WaitForTransaction(hash common.Hash, onSuccess, onRevert func()) {
+	go func() {
+		receipt, err := ec.waitForTransactionReceipt(hash)
+		if err != nil {
+			ec.logger.Errorf("Error occurred while monitoring TX [%s]. Error: %s", hash.String(), err)
+			return
+		}
 
-	// 1 == success
-	return receipt.Status == 1, nil
+		if receipt.Status == 1 {
+			ec.logger.Debugf("TX [%s] was successfully mined", hash.String())
+			onSuccess()
+		} else {
+			ec.logger.Debugf("TX [%s] reverted", hash.String())
+			onRevert()
+		}
+		return
+	}()
+	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hash.String())
 }
 
 // waitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)

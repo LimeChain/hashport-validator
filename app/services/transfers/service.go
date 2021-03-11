@@ -172,11 +172,16 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		signature)
 
 	sigMsgBytes, err := signatureMessage.ToBytes()
+	if err != nil {
+		bs.logger.Error("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tm.TransactionId)
+		return err
+	}
 	messageTxId, err := bs.hederaNode.SubmitTopicConsensusMessage(
 		bs.topicID,
 		sigMsgBytes)
 	if err != nil {
 		bs.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tm.TransactionId, err)
+		return err
 	}
 	bs.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tm.TransactionId, bs.topicID)
 
@@ -188,7 +193,6 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 	onSuccessfulAuthMessage, onFailedAuthMessage := bs.authMessageSubmissionCallbacks(tm.TransactionId)
 	bs.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
-
 	bs.logger.Infof("Successfully processed Transfer with ID [%s]", tm.TransactionId)
 	return nil
 }
@@ -196,7 +200,7 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
 	onSuccessfulAuthMessage := func() {
 		bs.logger.Infof("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := bs.transactionRepository.UpdateStatusSignatureProvided(txId)
+		err := bs.transactionRepository.UpdateStatusSignatureMined(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return

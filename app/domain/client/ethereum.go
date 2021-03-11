@@ -24,5 +24,5 @@ import (
 type Ethereum interface {
 	GetClient() *ethclient.Client
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
-	WaitForTransactionSuccess(hash common.Hash) (isSuccessful bool, err error)
+	WaitForTransaction(hash common.Hash, onSuccess, onRevert func())
 }

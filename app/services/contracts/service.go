@@ -20,7 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math/big"
@@ -74,24 +73,24 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.Br
 }
 
 // SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, ctm encoding.TransferMessage, signatures [][]byte) (*types.Transaction, error) {
+func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
-	amountBn, err := helper.ToBigInt(ctm.Amount)
+	amountBn, err := helper.ToBigInt(amount)
 	if err != nil {
 		return nil, err
 	}
 
-	feeBn, err := helper.ToBigInt(ctm.Fee)
+	feeBn, err := helper.ToBigInt(fee)
 	if err != nil {
 		return nil, err
 	}
 
 	return bsc.contract.Mint(
 		opts,
-		[]byte(ctm.TransactionId),
-		common.HexToAddress(ctm.EthAddress),
+		[]byte(txId),
+		common.HexToAddress(ethAddress),
 		amountBn,
 		feeBn,
 		signatures)
