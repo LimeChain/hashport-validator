@@ -17,6 +17,7 @@
 package scheduled
 
 import (
+	"database/sql"
 	"gorm.io/gorm"
 )
 
@@ -37,7 +38,7 @@ type Scheduled struct {
 	Recipient                string
 	Status                   string
 	ScheduleID               string
-	SubmissionTxId           string
+	SubmissionTxId           sql.NullString `gorm:"unique"`
 }
 
 type Repository struct {
@@ -66,7 +67,10 @@ func (sr Repository) UpdateStatusSubmitted(nonce, scheduleID, submissionTxId str
 	return sr.dbClient.
 		Model(Scheduled{}).
 		Where("nonce = ?", nonce).
-		Updates(Scheduled{Status: StatusSubmitted, ScheduleID: scheduleID, SubmissionTxId: submissionTxId}).
+		Updates(Scheduled{Status: StatusSubmitted, ScheduleID: scheduleID, SubmissionTxId: sql.NullString{
+			String: submissionTxId,
+			Valid:  true,
+		}}).
 		Error
 }
 
