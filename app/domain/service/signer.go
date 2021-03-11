@@ -16,10 +16,13 @@
 
 package service
 
-import "github.com/ethereum/go-ethereum/accounts/abi/bind"
+import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"math/big"
+)
 
 type Signer interface {
 	Sign(msg []byte) ([]byte, error)
-	NewKeyTransactor() *bind.TransactOpts
+	NewKeyTransactor(chainId *big.Int) (*bind.TransactOpts, error)
 	Address() string
 }

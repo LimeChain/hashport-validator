@@ -186,7 +186,12 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 	// TODO once the new 3 statuses are introduces, update the correct one only! Atm statuses are overlapping
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
-		ethTx, err := ss.contractsService.SubmitSignatures(ss.ethSigner.NewKeyTransactor(), txId, ethAddress, amount, fee, signatures)
+		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
+		if err != nil {
+			ss.logger.Errorf("Failed to establish key transactor. Error %s", err)
+			return
+		}
+		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, txId, ethAddress, amount, fee, signatures)
 		if err != nil {
 			ss.logger.Errorf("Failed to Submit Signatures for TX [%s]. Error: %s", txId, err)
 			return

@@ -24,9 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
@@ -36,12 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
-	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
-	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
@@ -57,21 +48,22 @@ func main() {
 	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
 
-	// Prepare repositories
-	repositories := PrepareRepositories(configuration.Hedera.Validator.Db)
-
 	// Prepare Clients
 	clients := PrepareClients(configuration)
-
-	// Prepare Services
-	services := PrepareServices(configuration, *clients, *repositories)
-
-	apiRouter := initializeAPIRouter(services.fees)
 
 	// Prepare Node
 	server := server.NewServer()
 
-	if !configuration.Hedera.RestApiOnly {
+	var services *Services = nil
+	if configuration.Hedera.RestApiOnly {
+		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
+		services = PrepareApiOnlyServices(configuration, *clients)
+	} else {
+		// Prepare repositories
+		repositories := PrepareRepositories(configuration.Hedera.Validator.Db)
+		// Prepare Services
+		services = PrepareServices(configuration, *clients, *repositories)
+
 		// Execute Recovery Process. Computing Watchers starting timestamp
 		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
 		server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
@@ -92,9 +84,9 @@ func main() {
 			log.Fatal(err)
 		}
 		server.AddWatcher(ethereum.NewEthereumWatcher(services.contracts, configuration.Hedera.Eth))
-	} else {
-		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 	}
+
+	apiRouter := initializeAPIRouter(services.fees)
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))

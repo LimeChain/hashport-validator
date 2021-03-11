@@ -12,7 +12,7 @@ require (
 	github.com/hashgraph/hedera-sdk-go v0.9.2-0.20201119035034-eb12bcfaed24
 	github.com/jackc/pgx/v4 v4.9.2 // indirect
 	github.com/limechain/hedera-watcher-sdk v0.0.0-20210219143218-2592d3168472
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.7.0
