@@ -27,6 +27,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
+// TODO extract new service only for Ethereum TX handling
 type Services struct {
 	signer     service.Signer
 	scheduler  service.Scheduler

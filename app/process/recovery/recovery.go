@@ -179,6 +179,7 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 		case validatorproto.TopicMessageType_EthSignature:
 			err = r.signaturesService.ProcessSignature(*m)
 		case validatorproto.TopicMessageType_EthTransaction:
+			// TODO resolve the recovery
 			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
 		default:
 			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))

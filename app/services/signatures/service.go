@@ -183,6 +183,7 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
 func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, fee string, signatures [][]byte, messageHash string) func() {
+	// TODO once the new 3 statuses are introduces, update the correct one only! Atm statuses are overlapping
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTx, err := ss.contractsService.SubmitSignatures(ss.ethSigner.NewKeyTransactor(), txId, ethAddress, amount, fee, signatures)

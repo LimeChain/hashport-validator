@@ -24,6 +24,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO add 3 new status properties for `SignatureMsg`, `EthTxMsg` and `EthTx`
 // Enum Transaction Status
 const (
 	StatusInitial            = "INITIAL"
