@@ -25,4 +25,5 @@ type ContractService interface {
 	GetContractAddress() common.Address
 	GetServiceFee() *big.Int
 	GetMembers() []string
+	IsValidBridgeToken() bool
 }

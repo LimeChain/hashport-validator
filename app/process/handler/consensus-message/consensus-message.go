@@ -170,7 +170,10 @@ func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransaction
 		return false, nil
 	}
 
-	encodedData, err := ethhelper.EncodeData(txMessage)
+	// TODO: Use Contract Service for ERC20 Contract Address
+	erc20address := ""
+
+	encodedData, err := ethhelper.EncodeData(txMessage, erc20address)
 	if err != nil {
 		return false, err
 	}
@@ -229,11 +232,15 @@ func (cmh Handler) handleSignatureMessage(msg *validatorproto.TopicSubmissionMes
 		EthAddress:    m.EthAddress,
 		Amount:        m.Amount,
 		Fee:           m.Fee,
+		Asset:         m.Asset,
 	}
 
 	cmh.logger.Debugf("Signature for TX ID [%s] was received", m.TransactionId)
 
-	encodedData, err := ethhelper.EncodeData(ctm)
+	// TODO: Use Contract Service for ERC20 Contract Address
+	erc20address := ""
+
+	encodedData, err := ethhelper.EncodeData(ctm, erc20address)
 	if err != nil {
 		cmh.logger.Errorf("Failed to encode data for TransactionID [%s]. Error [%s].", ctm.TransactionId, err)
 	}

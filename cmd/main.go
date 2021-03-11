@@ -25,7 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
-	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
+	cth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
 	transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
@@ -86,9 +86,10 @@ func initializeWatchersAndHandlers(server *server.HederaWatcherServer, configura
 		client.mirrorNode,
 		client.hederaNode,
 		repository.transaction,
-		feeCalculator))
+		feeCalculator,
+		contractService))
 
-	err := addCryptoTransferWatchers(configuration, client.mirrorNode, repository.cryptoTransferStatus, server)
+	err := addCryptoTransferWatchers(configuration, client.mirrorNode, contractService, repository.cryptoTransferStatus, server)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,7 +118,7 @@ func initializeAPIRouter(feeCalculator *fees.Calculator) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func addCryptoTransferWatchers(configuration config.Config, hederaClient clients.MirrorNode, repository repositories.Status, server *server.HederaWatcherServer) error {
+func addCryptoTransferWatchers(configuration config.Config, hederaClient clients.MirrorNode, contractService *bridge.ContractService, repository repositories.Status, server *server.HederaWatcherServer) error {
 	if len(configuration.Hedera.Watcher.CryptoTransfer.Accounts) == 0 {
 		log.Warnln("CryptoTransfer Accounts list is empty. No Crypto Transfer Watchers will be started")
 	}
@@ -127,7 +128,7 @@ func addCryptoTransferWatchers(configuration config.Config, hederaClient clients
 			return errors.New(fmt.Sprintf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", account.Id, e))
 		}
 
-		server.AddWatcher(transfer.NewCryptoTransferWatcher(hederaClient, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
+		server.AddWatcher(transfer.NewCryptoTransferWatcher(hederaClient, contractService, id, configuration.Hedera.MirrorNode.PollingInterval, repository, account.MaxRetries, account.StartTimestamp))
 		log.Infof("Added a Crypto Transfer Watcher for account [%s]\n", account.Id)
 	}
 	return nil

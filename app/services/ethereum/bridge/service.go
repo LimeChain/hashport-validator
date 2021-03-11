@@ -69,6 +69,11 @@ func NewContractService(client clients.Ethereum, c config.Ethereum) *ContractSer
 	return contractService
 }
 
+func (bsc *ContractService) IsValidBridgeToken() bool {
+	// TODO: Do magic here
+	return true
+}
+
 func (bsc *ContractService) GetContractAddress() common.Address {
 	return bsc.address
 }

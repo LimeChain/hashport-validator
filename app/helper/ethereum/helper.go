@@ -94,11 +94,18 @@ func EncodeData(ctm *proto.CryptoTransferMessage, erc20ContractAddress string) (
 		return nil, err
 	}
 
-	return args.Pack(
+	elements := []interface{}{
 		[]byte(ctm.TransactionId),
 		common.HexToAddress(ctm.EthAddress),
 		amountBn,
-		feeBn)
+		feeBn,
+	}
+
+	if erc20ContractAddress != "" {
+		elements = append(elements, common.HexToAddress(erc20ContractAddress))
+	}
+
+	return args.Pack(elements)
 }
 
 func DecodeSignature(signature string) (decodedSignature []byte, ethSignature string, err error) {

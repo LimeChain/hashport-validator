@@ -23,6 +23,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
@@ -39,6 +40,7 @@ import (
 
 type TransferWatcher struct {
 	client           clients.MirrorNode
+	contractService  bridge.ContractService
 	accountID        hedera.AccountID
 	typeMessage      string
 	pollingInterval  time.Duration
@@ -49,16 +51,10 @@ type TransferWatcher struct {
 	logger           *log.Entry
 }
 
-func NewCryptoTransferWatcher(
-	client clients.MirrorNode,
-	accountID hedera.AccountID,
-	pollingInterval time.Duration,
-	repository repositories.Status,
-	maxRetries int,
-	startTimestamp int64,
-) *TransferWatcher {
+func NewCryptoTransferWatcher(client clients.MirrorNode, contractService bridge.ContractService, accountID hedera.AccountID, pollingInterval time.Duration, repository repositories.Status, maxRetries int, startTimestamp int64) *TransferWatcher {
 	return &TransferWatcher{
 		client:           client,
+		contractService:  contractService,
 		accountID:        accountID,
 		typeMessage:      process.CryptoTransferMessageType,
 		pollingInterval:  pollingInterval,
@@ -158,15 +154,30 @@ func (ctw TransferWatcher) processTransaction(tx transaction.HederaTransaction, 
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
 	var amount string
-	for _, tr := range tx.Transfers {
-		if tr.Account == ctw.accountID.String() {
-			amount = fmt.Sprint(tr.Amount)
+	var asset string
+
+	for _, tokenTr := range tx.TokenTransfers {
+		// TODO: check if contract contains current token id
+		if !ctw.contractService.IsValidBridgeToken() {
+			continue
+		}
+
+		if tokenTr.Account == ctw.accountID.String() {
+			amount = fmt.Sprint(tokenTr.Amount)
+			asset = tokenTr.Asset
 			break
 		}
 	}
 
-	// TODO: Modify Method to check Token_Transfers object as well
-	// TODO: Figure out whether we are processing a token or coin
+	if asset == "" {
+		for _, tr := range tx.Transfers {
+			if tr.Account == ctw.accountID.String() {
+				amount = fmt.Sprint(tr.Amount)
+				asset = "HBAR"
+				break
+			}
+		}
+	}
 
 	wholeMemoCheck := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
 
@@ -210,7 +221,7 @@ func (ctw TransferWatcher) processTransaction(tx transaction.HederaTransaction, 
 		Amount:        amount,
 		Fee:           fee,
 		GasPriceGwei:  gasPriceGwei,
-		Asset:         "HBAR", // TODO: Remove hard-coded part later
+		Asset:         asset,
 	}
 	publisher.Publish(information, ctw.typeMessage, ctw.accountID, q)
 }

@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package cryptotransfer
+package transfer
 
 import (
 	"encoding/hex"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -47,15 +48,10 @@ type Handler struct {
 	transactionRepo    repositories.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.Calculator
+	contractService    *bridge.ContractService
 }
 
-func NewHandler(
-	c config.CryptoTransferHandler,
-	ethSigner *eth.Signer,
-	hederaMirrorClient clients.MirrorNode,
-	hederaNodeClient clients.HederaNode,
-	transactionRepository repositories.Transaction,
-	feeCalculator *fees.Calculator) *Handler {
+func NewHandler(c config.CryptoTransferHandler, ethSigner *eth.Signer, hederaMirrorClient clients.MirrorNode, hederaNodeClient clients.HederaNode, transactionRepository repositories.Transaction, feeCalculator *fees.Calculator, contractService *bridge.ContractService) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
@@ -70,11 +66,12 @@ func NewHandler(
 		transactionRepo:    transactionRepository,
 		logger:             config.GetLoggerFor("Account Transfer Handler"),
 		feeCalculator:      feeCalculator,
+		contractService:    contractService,
 	}
 }
 
 // Recover mechanism
-func (cth Handler) Recover(q *queue.Queue) {
+func (cth *Handler) Recover(q *queue.Queue) {
 	cth.logger.Info("[Recovery] Executing Recovery mechanism for CryptoTransfer Handler.")
 	cth.logger.Infof("[Recovery] Database GET [%s] [%s] transactions.", txRepo.StatusInitial, txRepo.StatusSignatureSubmitted)
 
@@ -94,7 +91,7 @@ func (cth Handler) Recover(q *queue.Queue) {
 	}
 }
 
-func (cth Handler) Handle(payload []byte) {
+func (cth *Handler) Handle(payload []byte) {
 	var ctm protomsg.CryptoTransferMessage
 	err := proto.Unmarshal(payload, &ctm)
 	if err != nil {
@@ -142,6 +139,7 @@ func (cth Handler) Handle(payload []byte) {
 	}
 
 	// TODO: Use Contract Service to retrieve address of ERC20ContractAddress by the Token ID in asset field
+	//erc20address := cth.contractService.GetContractAddress()
 	erc20address := ""
 
 	encodedData, err := ethhelper.EncodeData(&ctm, erc20address)
@@ -176,7 +174,7 @@ func (cth Handler) Handle(payload []byte) {
 	go cth.checkForTransactionCompletion(ctm.TransactionId, topicMessageSubmissionTxId.String())
 }
 
-func (cth Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
+func (cth *Handler) checkForTransactionCompletion(transactionId string, topicMessageSubmissionTxId string) {
 	cth.logger.Debugf("Checking for mirror node completion for TransactionID [%s] and Topic Submission TransactionID [%s].",
 		transactionId,
 		fmt.Sprintf(topicMessageSubmissionTxId))
@@ -217,7 +215,7 @@ func (cth Handler) checkForTransactionCompletion(transactionId string, topicMess
 	}
 }
 
-func (cth Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
+func (cth *Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
 	ctm := &protomsg.CryptoTransferMessage{
 		TransactionId: tx.TransactionId,
 		EthAddress:    tx.EthAddress,
@@ -227,7 +225,7 @@ func (cth Handler) submitTx(tx *txRepo.Transaction, q *queue.Queue) {
 	publisher.Publish(ctm, "HCS_CRYPTO_TRANSFER", cth.topicID, q)
 }
 
-func (cth Handler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
+func (cth *Handler) handleTopicSubmission(message *protomsg.CryptoTransferMessage, signature string) (*hedera.TransactionID, error) {
 	topicSigMessage := &protomsg.TopicEthSignatureMessage{
 		TransactionId: message.TransactionId,
 		EthAddress:    message.EthAddress,
