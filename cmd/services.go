@@ -17,45 +17,51 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signatures"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
-type ServicesContext struct {
-	ethSigner service.Signer
-	scheduler service.Scheduler
-	contracts service.Contracts
-	bridge    service.Bridge
-	fees      service.Fees
+type Services struct {
+	signer     service.Signer
+	scheduler  service.Scheduler
+	contracts  service.Contracts
+	transfers  service.Transfers
+	signatures service.Signatures
+	fees       service.Fees
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c config.Config, clients client.Clients, repositories Repositories) *ServicesContext {
+func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
 	ethSigner := eth.NewEthSigner(c.Hedera.Client.Operator.EthPrivateKey)
 	contractService := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
-	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.TopicId, ethSigner.Address(),
-		c.Hedera.Handler.ConsensusMessage.SendDeadline, contractService, clients.HederaNode)
+	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.SendDeadline)
 	feeService := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contractService)
-	bridgeService := bridge.NewService(
-		clients,
-		repositories.transaction,
-		repositories.message,
-		contractService,
+	transfersService := transfers.NewService(
+		clients.HederaNode,
+		clients.MirrorNode,
 		feeService,
 		ethSigner,
+		repositories.transaction,
 		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+	signaturesService := signatures.NewService(
+		ethSigner,
+		contractService,
+		repositories.transaction,
+		repositories.message,
+		c.Hedera.Handler.ConsensusMessage.TopicId)
 
-	return &ServicesContext{
-		ethSigner: ethSigner,
-		scheduler: schedulerService,
-		contracts: contractService,
-		bridge:    bridgeService,
-		fees:      feeService,
+	return &Services{
+		signer:     ethSigner,
+		scheduler:  schedulerService,
+		contracts:  contractService,
+		transfers:  transfersService,
+		signatures: signaturesService,
+		fees:       feeService,
 	}
 }

@@ -17,18 +17,8 @@
 package scheduler
 
 import (
-	"encoding/hex"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/golang/protobuf/proto"
-	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/ethsubmission"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -36,19 +26,15 @@ import (
 
 // Scheduler implements the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
 type Scheduler struct {
-	topicID          hedera.TopicID
-	logger           *log.Entry
-	tasks            *sync.Map
-	operator         string
-	executionWindow  int64
-	contractsService service.Contracts
-	hederaClient     client.HederaNode
+	logger          *log.Entry
+	tasks           *sync.Map
+	executionWindow int64
 }
 
 // Schedule - Schedules new Transaction for execution at the right leader elected slot
-func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) error {
-	// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-	et := s.computeExecutionTime(submission.Messages[0].TransactionTimestamp, submission.Slot)
+func (s *Scheduler) Schedule(id string, firstTimestamp, slot int64, task func()) error {
+	// TODO in the future we should move the calculation of the slot in the scheduler for better cohesion
+	et := s.computeExecutionTime(firstTimestamp, slot)
 
 	executeIn := time.Until(et)
 	timer := time.NewTimer(executeIn)
@@ -59,43 +45,18 @@ func (s *Scheduler) Schedule(id string, submission ethsubmission.Submission) err
 	})
 
 	if alreadyExisted {
-		s.logger.Infof("TX with ID [%s] already scheduled for execution/executed.", id)
+		s.logger.Infof("Job for TX [%s] already scheduled for execution/executed.", id)
 		return nil
 	}
 
 	go func() {
 		<-timer.C
 		storedValue.(*Storage).Executed = true
-
-		ethTx, err := s.execute(submission)
-		if err != nil {
-			s.logger.Errorf("Failed to execute Scheduled TX for [%s]. Error [%s].", id, err)
-			return
-		}
-		ethTxHashString := ethTx.Hash().String()
-
-		s.logger.Infof("Executed Scheduled TX [%s], Eth TX Hash [%s].", id, ethTxHashString)
-		tx, err := s.submitEthTxTopicMessage(id, submission, ethTxHashString)
-		if err != nil {
-			s.logger.Errorf("Failed to submit topic consensus eth tx message for TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHashString, err)
-			return
-		}
-		s.logger.Infof("Submitted Eth TX Hash [%s] for TX [%s] at HCS Transaction ID [%s]", ethTxHashString, id, tx.String())
-
-		success, err := s.waitForEthTxMined(ethTx.Hash())
-		if err != nil {
-			s.logger.Errorf("Waiting for execution for TX [%s] and Hash [%s] failed. Error [%s].", id, ethTxHashString, err)
-			return
-		}
-
-		if success {
-			s.logger.Infof("Successful execution of TX [%s] with TX Hash [%s].", id, ethTxHashString)
-		} else {
-			s.logger.Warnf("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxHashString)
-		}
+		task()
+		s.logger.Infof("Execution for TX [%s] completed", id)
 	}()
 
-	s.logger.Infof("Scheduled new TX with ID [%s] for execution in [%s]", id, executeIn)
+	s.logger.Infof("Scheduled new Job for TX [%s] for execution in [%s]", id, executeIn)
 
 	return nil
 }
@@ -121,81 +82,16 @@ func (s *Scheduler) Cancel(id string) error {
 }
 
 // NewScheduler - Creates new instance of Scheduler
-func NewScheduler(
-	topicId string,
-	operator string,
-	executionWindow int64,
-	contractsService service.Contracts,
-	hederaClient client.HederaNode,
-) *Scheduler {
-	topicID, err := hedera.TopicIDFromString(topicId)
-	if err != nil {
-		log.Fatalf("Invalid topic id: [%v]", topicID)
-	}
-
+func NewScheduler(executionWindow int64) *Scheduler {
 	return &Scheduler{
-		logger:           config.GetLoggerFor("Scheduler"),
-		tasks:            new(sync.Map),
-		operator:         operator,
-		executionWindow:  executionWindow,
-		contractsService: contractsService,
-		hederaClient:     hederaClient,
-		topicID:          topicID,
+		logger:          config.GetLoggerFor("Scheduler"),
+		tasks:           new(sync.Map),
+		executionWindow: executionWindow,
 	}
 }
 
-// computeExecutionTime - computes the time at which the TX must be executed based on message timestamp and slot provided
-func (s *Scheduler) computeExecutionTime(messageTimestamp int64, slot int64) time.Time {
-	executionTimeNanos := messageTimestamp + timestamp.ToNanos(slot*s.executionWindow)
-
+// computeExecutionTime - computes the time at which the TX must be executed based on first message timestamp and slot provided
+func (s *Scheduler) computeExecutionTime(firstTimestamp, slot int64) time.Time {
+	executionTimeNanos := firstTimestamp + timestamp.ToNanos(slot*s.executionWindow)
 	return time.Unix(0, executionTimeNanos)
-}
-
-func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transaction, error) {
-	signatures, err := getSignatures(submission.Messages)
-	if err != nil {
-		return nil, err
-	}
-	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.TransferMessage, signatures)
-}
-
-func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.Submission, ethTxHash string) (*hedera.TransactionID, error) {
-	ethTxMsg := &protomsg.TopicEthTransactionMessage{
-		TransactionId: id,
-		Hash:          submission.Messages[0].Hash,
-		EthTxHash:     ethTxHash,
-	}
-
-	msg := &protomsg.TopicMessage{
-		Type: protomsg.TopicMessageType_EthTransaction,
-		Message: &protomsg.TopicMessage_TopicEthTransactionMessage{
-			TopicEthTransactionMessage: ethTxMsg}}
-
-	msgBytes, err := proto.Marshal(msg)
-	if err != nil {
-		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash, err)
-	}
-
-	// TODO refactor such that the "waitForEthTxMined" is performed inside the bridge service and scheduler only reacts to that
-	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)
-}
-
-// TODO
-func (s *Scheduler) waitForEthTxMined(ethTx common.Hash) (bool, error) {
-	//return s.contractsService.Client.WaitForTransactionSuccess(ethTx)
-	return true, nil
-}
-
-func getSignatures(messages []message.TransactionMessage) ([][]byte, error) {
-	var signatures [][]byte
-
-	for _, msg := range messages {
-		signature, err := hex.DecodeString(msg.Signature)
-		if err != nil {
-			return nil, err
-		}
-		signatures = append(signatures, signature)
-	}
-
-	return signatures, nil
 }

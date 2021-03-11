@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package bridge
+package signatures
 
 import (
 	"encoding/hex"
@@ -23,40 +23,33 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"strings"
 
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
-	logger                *log.Entry
-	clients               client.Clients
+	ethSigner             service.Signer
+	contractsService      service.Contracts
 	transactionRepository repository.Transaction
 	messageRepository     repository.Message
 	topicID               hedera.TopicID
-	ethSigner             service.Signer
-	contractsService      service.Contracts
-	feeCalculator         service.Fees
+	logger                *log.Entry
 }
 
 func NewService(
-	clients client.Clients,
+	ethSigner service.Signer,
+	contractsService service.Contracts,
 	transactionRepository repository.Transaction,
 	messageRepository repository.Message,
-	contractsService service.Contracts,
-	feeCalculator service.Fees,
-	ethSigner service.Signer,
 	topicID string,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
@@ -65,40 +58,13 @@ func NewService(
 	}
 
 	return &Service{
-		messageRepository:     messageRepository,
-		transactionRepository: transactionRepository,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Bridge Service")),
-		feeCalculator:         feeCalculator,
 		ethSigner:             ethSigner,
 		contractsService:      contractsService,
+		messageRepository:     messageRepository,
+		transactionRepository: transactionRepository,
+		logger:                config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
 		topicID:               tID,
-		clients:               clients,
 	}
-}
-
-// SanityCheck performs validation on the memo and state proof for the transaction
-func (bs *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
-	m, e := memo.FromBase64String(tx.MemoBase64)
-	if e != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
-	}
-
-	// TODO
-	//stateProof, e = bs.clients.MirrorNode.GetStateProof(tx.TransactionID)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	//}
-
-	//verified, e := proof.Verify(tx.TransactionID, stateProof)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]"), e))
-	//}
-	//
-	//if !verified {
-	//	return nil, errors.New("State proof not valid")
-	//}
-
-	return m, nil
 }
 
 // SanityCheckSignature performs validation on the topic message metadata.
@@ -114,127 +80,6 @@ func (bs *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		t.Amount == topicMessage.Amount &&
 		t.Fee == topicMessage.Fee
 	return match, nil
-}
-
-// InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transactions
-func (bs *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error) {
-	dbTransaction, err := bs.transactionRepository.GetByTransactionId(tm.TransactionId)
-	if err != nil {
-		bs.logger.Errorf("Failed to get record with TransactionID [%s]. Error [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-
-	if dbTransaction != nil {
-		bs.logger.Infof("Transaction with ID [%s] already added", tm.TransactionId)
-		return dbTransaction, err
-	}
-
-	bs.logger.Debugf("Adding new Transaction Record with Txn ID [%s]", tm.TransactionId)
-	tx, err := bs.transactionRepository.Create(tm.TransferMessage)
-	if err != nil {
-		bs.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", tm.TransactionId, err)
-		return nil, err
-	}
-	return tx, nil
-}
-
-// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (bs *Service) SaveRecoveredTxn(txId, amount string, m memo.Memo) error {
-	err := bs.transactionRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
-		TransactionId: txId,
-		EthAddress:    m.EthereumAddress,
-		Amount:        amount,
-		Fee:           m.TxReimbursementFee,
-		GasPriceGwei:  m.GasPriceGwei,
-	})
-	if err != nil {
-		bs.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Err: [%s]", txId, err)
-		return err
-	}
-
-	bs.logger.Infof("Added new Transaction Record with Txn ID [%s]", txId)
-	return err
-}
-
-// VerifyFee verifies that the provided TX reimbursement fee is enough using the
-// Fee Calculator and updates the Transaction Record to Insufficient Fee if necessary
-func (bs *Service) VerifyFee(tm encoding.TransferMessage) error {
-	isSufficient, err := bs.feeCalculator.ValidateExecutionFee(tm.Fee, tm.Amount, tm.GasPriceGwei)
-	if !isSufficient {
-		bs.logger.Errorf("Fee validation for TX ID [%s] failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s]", tm.TransactionId, err)
-		err = bs.transactionRepository.UpdateStatusInsufficientFee(tm.TransactionId)
-		if err != nil {
-			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusInsufficientFee, tm.TransactionId, err)
-			return err
-		}
-		bs.logger.Debugf("TX with ID [%s] was updated to [%s]. Provided fee [%s]", tm.TransactionId, transaction.StatusInsufficientFee, tm.Fee)
-		return err
-	}
-	return nil
-}
-
-// ProcessTransfer processes the transfer message by signing the required
-// authorisation signature submitting it into the required HCS Topic
-func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	authMsgHash, err := auth_message.FromTransferMessage(tm)
-	if err != nil {
-		bs.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
-		return err
-	}
-	signatureBytes, err := bs.ethSigner.Sign(authMsgHash)
-	if err != nil {
-		bs.logger.Errorf("Failed to sign the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-	signatureMessage := encoding.NewSignatureMessage(
-		tm.TransactionId,
-		tm.EthAddress,
-		tm.Amount,
-		tm.Fee,
-		signature)
-
-	sigMsgBytes, err := signatureMessage.ToBytes()
-	messageTxId, err := bs.clients.HederaNode.SubmitTopicConsensusMessage(
-		bs.topicID,
-		sigMsgBytes)
-	if err != nil {
-		bs.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tm.TransactionId, err)
-	}
-	bs.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tm.TransactionId, bs.topicID)
-
-	err = bs.transactionRepository.UpdateStatusSignatureSubmitted(tm.TransactionId, messageTxId.String(), signature)
-	if err != nil {
-		bs.logger.Errorf("Failed to update Status for TX [%s]. Error [%s].", tm.TransactionId, err)
-		return err
-	}
-
-	onSuccessfulAuthMessage, onFailedAuthMessage := bs.authMessageSubmissionCallbacks(tm.TransactionId)
-	bs.clients.MirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
-
-	bs.logger.Infof("Successfully processed Transfer with ID [%s]", tm.TransactionId)
-	return nil
-}
-
-func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
-	onSuccessfulAuthMessage := func() {
-		bs.logger.Infof("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := bs.transactionRepository.UpdateStatusSignatureProvided(txId)
-		if err != nil {
-			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
-			return
-		}
-	}
-
-	onFailedAuthMessage := func() {
-		bs.logger.Infof("Authorisation Signature TX failed for TX ID [%s]", txId)
-		err := bs.transactionRepository.UpdateStatusSignatureFailed(txId)
-		if err != nil {
-			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
-			return
-		}
-	}
-	return onSuccessfulAuthMessage, onFailedAuthMessage
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
@@ -290,6 +135,80 @@ func (bs *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	return nil
 }
 
+// ScheduleForSubmission computes the execution slot and schedules the Eth TX for submission
+func (bs *Service) ScheduleForSubmission(txId string) error {
+	//signatureMessages, err := bs.messageRepository.GetMessagesFor(txId)
+	//if err != nil {
+	//	bs.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
+	//	return err
+	//}
+	//
+	//slot, isFound := bs.computeExecutionSlot(signatureMessages)
+	//if !isFound {
+	//	bs.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", txId, bs.services.EthSigner.Address())
+	//	return nil
+	//}
+	//
+	//amount := signatureMessages[0].Amount
+	//fee := signatureMessages[0].Fee
+	//ethAddress := signatureMessages[0].EthAddress
+	//signatures, err := getSignatures(signatureMessages)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//// TODO
+	//submitEthTx := func() error {
+	//
+	//	tx, err = bs.services.Contracts.SubmitSignatures(bs.services.EthSigner.NewKeyTransactor(), submission.TransferMessage, signatures)
+	//	if err != nil {
+	//		bs.logger.Errorf("Failed to execute Scheduled TX for [%s]. Error [%s].", id, err)
+	//		return err
+	//	}
+	//	ethTxHashString := ethTx.Hash().String()
+	//
+	//	s.logger.Infof("Executed Scheduled TX [%s], Eth TX Hash [%s].", id, ethTxHashString)
+	//	tx, err := s.submitEthTxTopicMessage(id, submission, ethTxHashString)
+	//	if err != nil {
+	//		s.logger.Errorf("Failed to submit topic consensus eth tx message for TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHashString, err)
+	//		return
+	//	}
+	//	s.logger.Infof("Submitted Eth TX Hash [%s] for TX [%s] at HCS Transaction ID [%s]", ethTxHashString, id, tx.String())
+	//
+	//	success, err := s.waitForEthTxMined(ethTx.Hash())
+	//	if err != nil {
+	//		s.logger.Errorf("Waiting for execution for TX [%s] and Hash [%s] failed. Error [%s].", id, ethTxHashString, err)
+	//		return
+	//	}
+	//
+	//	if success {
+	//		s.logger.Infof("Successful execution of TX [%s] with TX Hash [%s].", id, ethTxHashString)
+	//	} else {
+	//		s.logger.Warnf("Execution for TX [%s] with TX Hash [%s] was not successful.", id, ethTxHashString)
+	//	}
+	//}
+	//
+	//err = bs.services.Scheduler.Schedule(txId, signatureMessages[0].TransactionTimestamp, slot, submitEthTx)
+	//if err != nil {
+	//	return err
+	//}
+	return nil
+}
+
+func getSignatures(messages []message.TransactionMessage) ([][]byte, error) {
+	var signatures [][]byte
+
+	for _, msg := range messages {
+		signature, err := hex.DecodeString(msg.Signature)
+		if err != nil {
+			return nil, err
+		}
+		signatures = append(signatures, signature)
+	}
+
+	return signatures, nil
+}
+
 func (bs *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, topicMessage *validatorproto.TopicEthSignatureMessage, authMessageStr string) (common.Address, error) {
 	publicKey, err := crypto.Ecrecover(authMsgBytes, signatureBytes)
 	if err != nil {
@@ -304,9 +223,21 @@ func (bs *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 	address := crypto.PubkeyToAddress(*unmarshalledPublicKey)
 	if !bs.contractsService.IsMember(address.String()) {
 		bs.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", topicMessage.TransactionId, authMessageStr)
-		return common.Address{}, errors.New(fmt.Sprintf("signer is not bridge member"))
+		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
 	}
 	return address, nil
+}
+
+// computeExecutionSlot - computes the slot order in which the TX will execute
+// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
+func (bs *Service) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
+	for i := 0; i < len(messages); i++ {
+		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(bs.ethSigner.Address()) {
+			return int64(i), true
+		}
+	}
+
+	return -1, false
 }
 
 // TODO ->

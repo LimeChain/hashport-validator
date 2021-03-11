@@ -17,15 +17,9 @@
 package cryptotransfer
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"time"
-
-	"github.com/hashgraph/hedera-sdk-go"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
@@ -33,38 +27,15 @@ import (
 
 // Crypto Transfer event handler
 type Handler struct {
-	pollingInterval    time.Duration
-	topicID            hedera.TopicID
-	ethSigner          service.Signer
-	hederaMirrorClient client.MirrorNode
-	hederaNodeClient   client.HederaNode
-	transactionRepo    repository.Transaction
-	logger             *log.Entry
-	feeCalculator      *fees.Calculator
-	bridgeService      service.Bridge
+	transfersService service.Transfers
+	logger           *log.Entry
 }
 
-func NewHandler(
-	c config.CryptoTransferHandler,
-	ethSigner service.Signer,
-	hederaMirrorClient client.MirrorNode,
-	hederaNodeClient client.HederaNode,
-	transactionRepository repository.Transaction,
-	processingService service.Bridge) *Handler {
-	topicID, err := hedera.TopicIDFromString(c.TopicId)
-	if err != nil {
-		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)
-	}
+func NewHandler(transfersService service.Transfers) *Handler {
 
 	return &Handler{
-		pollingInterval:    c.PollingInterval,
-		topicID:            topicID,
-		ethSigner:          ethSigner,
-		hederaMirrorClient: hederaMirrorClient,
-		hederaNodeClient:   hederaNodeClient,
-		transactionRepo:    transactionRepository,
-		logger:             config.GetLoggerFor("Account Transfer Handler"),
-		bridgeService:      processingService,
+		logger:           config.GetLoggerFor("Account Transfer Handler"),
+		transfersService: transfersService,
 	}
 }
 
@@ -80,7 +51,7 @@ func (cth Handler) Handle(payload []byte) {
 		return
 	}
 
-	transactionRecord, err := cth.bridgeService.InitiateNewTransfer(*transferMsg)
+	transactionRecord, err := cth.transfersService.InitiateNewTransfer(*transferMsg)
 	if err != nil {
 		cth.logger.Errorf("Error occurred while initiating TX ID [%s] processing", transferMsg.TransactionId)
 		return
@@ -91,12 +62,12 @@ func (cth Handler) Handle(payload []byte) {
 		return
 	}
 
-	err = cth.bridgeService.VerifyFee(*transferMsg)
+	err = cth.transfersService.VerifyFee(*transferMsg)
 	if err != nil {
 		cth.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 	}
 
-	err = cth.bridgeService.ProcessTransfer(*transferMsg)
+	err = cth.transfersService.ProcessTransfer(*transferMsg)
 	if err != nil {
 		cth.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
 	}

@@ -36,7 +36,7 @@ import (
 )
 
 type Watcher struct {
-	bridgeService    service.Bridge
+	transfersService service.Transfers
 	client           client.MirrorNode
 	accountID        hedera.AccountID
 	typeMessage      string
@@ -48,7 +48,7 @@ type Watcher struct {
 }
 
 func NewWatcher(
-	bridgeService service.Bridge,
+	transfersService service.Transfers,
 	client client.MirrorNode,
 	accountID hedera.AccountID,
 	pollingInterval time.Duration,
@@ -57,7 +57,7 @@ func NewWatcher(
 	startTimestamp int64,
 ) *Watcher {
 	return &Watcher{
-		bridgeService:    bridgeService,
+		transfersService: transfersService,
 		client:           client,
 		accountID:        accountID,
 		typeMessage:      process.CryptoTransferMessageType,
@@ -133,7 +133,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	m, err := ctw.bridgeService.SanityCheckTransfer(tx)
+	m, err := ctw.transfersService.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("Sanity check for TX [%s] failed. Error: [%s]", tx.TransactionID, err)
 		return

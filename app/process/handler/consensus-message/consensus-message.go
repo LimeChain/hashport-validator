@@ -19,14 +19,10 @@ package consensusmessage
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"strings"
-
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-watcher-sdk/queue"
@@ -34,28 +30,17 @@ import (
 )
 
 type Handler struct {
-	ethereumClient        client.Ethereum
-	hederaNodeClient      client.HederaNode
-	messageRepository     repository.Message
-	transactionRepository repository.Transaction
-	scheduler             service.Scheduler
-	signer                service.Signer
-	topicID               hedera.TopicID
-	logger                *log.Entry
-	bridgeService         service.Bridge
-	contractsService      service.Contracts
+	messageRepository repository.Message
+	contractsService  service.Contracts
+	signaturesService service.Signatures
+	logger            *log.Entry
 }
 
 func NewHandler(
 	configuration config.ConsensusMessageHandler,
 	messageRepository repository.Message,
-	transactionRepository repository.Transaction,
-	ethereumClient client.Ethereum,
-	hederaNodeClient client.HederaNode,
-	scheduler service.Scheduler,
-	signer service.Signer,
 	contractsService service.Contracts,
-	bridgeService service.Bridge,
+	signaturesService service.Signatures,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
@@ -63,16 +48,10 @@ func NewHandler(
 	}
 
 	return &Handler{
-		bridgeService:         bridgeService,
-		messageRepository:     messageRepository,
-		transactionRepository: transactionRepository,
-		hederaNodeClient:      hederaNodeClient,
-		ethereumClient:        ethereumClient,
-		topicID:               topicID,
-		scheduler:             scheduler,
-		signer:                signer,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
-		contractsService:      contractsService,
+		messageRepository: messageRepository,
+		contractsService:  contractsService,
+		signaturesService: signaturesService,
+		logger:            config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
 
@@ -119,7 +98,7 @@ func (cmh Handler) Handle(payload []byte) {
 //		return err
 //	}
 //
-//	go cmh.bridgeService.AcknowledgeTransactionSuccess(m)
+//	go cmh.transfersService.AcknowledgeTransactionSuccess(m)
 //
 //	return cmh.scheduler.Cancel(m.TransactionId)
 //}
@@ -217,9 +196,9 @@ func (cmh Handler) Handle(payload []byte) {
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
 func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 	tsm := tm.GetTopicSignatureMessage()
-	valid, err := cmh.bridgeService.SanityCheckSignature(tm)
+	valid, err := cmh.signaturesService.SanityCheckSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
+		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
 		return
 	}
 	if !valid {
@@ -227,60 +206,71 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 		return
 	}
 
-	err = cmh.bridgeService.ProcessSignature(tm)
+	err = cmh.signaturesService.ProcessSignature(tm)
 	if err != nil {
 		cmh.logger.Errorf("Could not process Signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
 		return
 	}
 
-	//err := cmh.scheduleIfReady(tsm.TransactionId, tm)
-}
-
-// TODO
-//func (cmh Handler) scheduleIfReady(txId string, message encoding.TopicMessage) error {
-//	signatureMessages, err := cmh.messageRepository.GetMessagesFor(txId)
-//	if err != nil {
-//		return errors.New(fmt.Sprintf("Could not retrieve transaction messages for Transaction ID [%s]. Error [%s]", txId, err))
-//	}
-//
-//	if cmh.enoughSignaturesCollected(signatureMessages, txId) {
-//		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", txId)
-//
-//		slot, isFound := cmh.computeExecutionSlot(signatureMessages)
-//		if !isFound {
-//			cmh.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", txId, cmh.signer.Address())
-//			return nil
-//		}
-//
-//		submission := &scheduler.Job{
-//			TransferMessage: message,
-//			Messages:        signatureMessages,
-//			Slot:            slot,
-//			TransactOps:     cmh.signer.NewKeyTransactor(),
-//		}
-//
-//		err := cmh.scheduler.Schedule(txId, *submission)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
-
-func (cmh Handler) enoughSignaturesCollected(txSignatures []message.TransactionMessage, transactionId string) bool {
-	requiredSigCount := len(cmh.contractsService.GetMembers())/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(txSignatures), len(cmh.contractsService.GetMembers()), transactionId)
-	return len(txSignatures) >= requiredSigCount
-}
-
-// computeExecutionSlot - computes the slot order in which the TX will execute
-// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (cmh Handler) computeExecutionSlot(messages []message.TransactionMessage) (slot int64, isFound bool) {
-	for i := 0; i < len(messages); i++ {
-		if strings.ToLower(messages[i].SignerAddress) == strings.ToLower(cmh.signer.Address()) {
-			return int64(i), true
-		}
+	majorityReached, err := cmh.hasReachedMajority(tsm.TransactionId)
+	if err != nil {
+		cmh.logger.Errorf("Could not determine whether majority was reached for TX [%s]", tsm.TransactionId)
+		return
 	}
 
-	return -1, false
+	if majorityReached {
+		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", tsm.TransactionId)
+		err = cmh.signaturesService.ScheduleForSubmission(tsm.TransactionId)
+		if err != nil {
+			cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
+		}
+	}
 }
+
+func (cmh *Handler) hasReachedMajority(txId string) (bool, error) {
+	signatureMessages, err := cmh.messageRepository.GetMessagesFor(txId)
+	if err != nil {
+		cmh.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
+		return false, err
+	}
+	requiredSigCount := len(cmh.contractsService.GetMembers())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(signatureMessages), len(cmh.contractsService.GetMembers()), txId)
+	return len(signatureMessages) >= requiredSigCount, nil
+}
+
+//
+//func (s *Scheduler) execute(submission ethsubmission.Submission) (*types.Transaction, error) {
+//	signatures, err := getSignatures(submission.Messages)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return s.contractsService.SubmitSignatures(submission.TransactOps, submission.TransferMessage, signatures)
+//}
+//
+//func (s *Scheduler) submitEthTxTopicMessage(id string, submission ethsubmission.Submission, ethTxHash string) (*hedera.TransactionID, error) {
+//	ethTxMsg := &protomsg.TopicEthTransactionMessage{
+//		TransactionId: id,
+//		Hash:          submission.Messages[0].Hash,
+//		EthTxHash:     ethTxHash,
+//	}
+//
+//	msg := &protomsg.TopicMessage{
+//		Type: protomsg.TopicMessageType_EthTransaction,
+//		Message: &protomsg.TopicMessage_TopicEthTransactionMessage{
+//			TopicEthTransactionMessage: ethTxMsg}}
+//
+//	msgBytes, err := proto.Marshal(msg)
+//	if err != nil {
+//		s.logger.Errorf("Failed to marshal protobuf TX [%s], TX Hash [%s]. Error [%s].", id, ethTxHash, err)
+//	}
+//
+//	// TODO refactor such that the "waitForEthTxMined" is performed inside the signatures service and scheduler only reacts to that
+//	return s.hederaClient.SubmitTopicConsensusMessage(s.topicID, msgBytes)
+//}
+//
+//// TODO
+//func (s *Scheduler) waitForEthTxMined(ethTx common.Hash) (bool, error) {
+//	//return s.contractsService.Client.WaitForTransactionSuccess(ethTx)
+//	return true, nil
+//}
+//

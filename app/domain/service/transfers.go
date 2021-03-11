@@ -23,14 +23,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 )
 
-// Bridge is the major service used for processing Bridge operations
-type Bridge interface {
-	// SanityCheck performs any validation required prior to handling the transaction
+// Transfers is the major service used for processing Transfers operations
+type Transfers interface {
+	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
-	// SanityCheckSignature performs any validation required prior handling the topic message
-	// (verifies metadata against the corresponding Transaction record)
-	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
 	SaveRecoveredTxn(txId, amount string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
@@ -42,6 +39,4 @@ type Bridge interface {
 	// ProcessTransfer processes the transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessTransfer(tm encoding.TransferMessage) error
-	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-	ProcessSignature(tm encoding.TopicMessage) error
 }

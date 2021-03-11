@@ -51,24 +51,18 @@ func main() {
 	repositories := PrepareRepositories(configuration.Hedera.Validator.Db)
 
 	// Prepare Clients
-	clients := client.PrepareClients(configuration)
+	clients := PrepareClients(configuration)
 
 	// Prepare Services
 	services := PrepareServices(configuration, *clients, *repositories)
 
 	// Execute Recovery Process. Computing Watchers starting timestamp
-	err, watchersStartTimestamp := executeRecoveryProcess(configuration, services.bridge, repositories, clients)
+	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
 
 	server := server.NewServer()
-	server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(
-		configuration.Hedera.Handler.CryptoTransfer,
-		services.ethSigner,
-		clients.MirrorNode,
-		clients.HederaNode,
-		repositories.transaction,
-		services.bridge))
+	server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
 
-	err = addCryptoTransferWatcher(&configuration, services.bridge, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
+	err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,13 +70,8 @@ func main() {
 	server.AddHandler(process.HCSMessageType, cmh.NewHandler(
 		configuration.Hedera.Handler.ConsensusMessage,
 		repositories.message,
-		repositories.transaction,
-		clients.Ethereum,
-		clients.HederaNode,
-		services.scheduler,
-		services.ethSigner,
 		services.contracts,
-		services.bridge))
+		services.signatures))
 
 	err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
 	if err != nil {
@@ -97,8 +86,8 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
 }
 
-func executeRecoveryProcess(configuration config.Config, bridgeService service.Bridge, repository *Repositories, client *client.Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Hedera, bridgeService, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
+func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
+	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.signatures, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Err %s", err)
 	}
@@ -125,7 +114,7 @@ func initializeAPIRouter(feeCalculator service.Fees) *apirouter.APIRouter {
 }
 
 func addCryptoTransferWatcher(configuration *config.Config,
-	bridgeService service.Bridge,
+	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	server *server.HederaWatcherServer,
@@ -162,7 +151,7 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		return errors.New(fmt.Sprintf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topic.Id, e))
 	}
 
-	server.AddWatcher(cmw.NewWatcher(hederaNodeClient, id, repository, topic.MaxRetries, startTimestamp))
+	server.AddWatcher(cmw.NewWatcher(hederaNodeClient, id, repository, startTimestamp))
 	log.Infof("Added Topic Watcher for topic [%s]\n", topic.Id)
 	return nil
 }

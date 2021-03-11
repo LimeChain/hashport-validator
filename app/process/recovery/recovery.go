@@ -33,7 +33,8 @@ import (
 )
 
 type Recovery struct {
-	bridgeService           service.Bridge
+	transfersService        service.Transfers
+	signaturesService       service.Signatures
 	statusTransferRepo      repository.Status
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
@@ -45,7 +46,8 @@ type Recovery struct {
 
 func NewProcess(
 	c config.Hedera,
-	bridgeService service.Bridge,
+	transfersService service.Transfers,
+	signaturesService service.Signatures,
 	statusTransferRepo repository.Status,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
@@ -61,7 +63,8 @@ func NewProcess(
 	}
 
 	return &Recovery{
-		bridgeService:           bridgeService,
+		transfersService:        transfersService,
+		signaturesService:       signaturesService,
 		statusTransferRepo:      statusTransferRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
@@ -140,12 +143,12 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		m, err := r.bridgeService.SanityCheckTransfer(tx)
+		m, err := r.transfersService.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.bridgeService.SaveRecoveredTxn(tx.TransactionID, amount, *m)
+		err = r.transfersService.SaveRecoveredTxn(tx.TransactionID, amount, *m)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Err: [%s]", tx.TransactionID, err)
 			continue
@@ -174,7 +177,7 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 
 		switch m.Type {
 		case validatorproto.TopicMessageType_EthSignature:
-			err = r.bridgeService.ProcessSignature(*m)
+			err = r.signaturesService.ProcessSignature(*m)
 		case validatorproto.TopicMessageType_EthTransaction:
 			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
 		default:
@@ -202,17 +205,17 @@ func (r *Recovery) processSkipped() error {
 	//	if !hasSubmittedSignature {
 	//		r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
 	//		// TODO
-	//		err = r.bridgeService.VerifyFee(ctm)
+	//		err = r.transfersService.VerifyFee(ctm)
 	//		if err != nil {
 	//			r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 	//		}
 	//
-	//		signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
+	//		signature, err := r.transfersService.ValidateAndSignTxn(ctm)
 	//		if err != nil {
 	//			r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
 	//		}
 	//
-	//		_, err = r.bridgeService.HandleTopicSubmission(ctm, signature)
+	//		_, err = r.transfersService.HandleTopicSubmission(ctm, signature)
 	//		if err != nil {
 	//			return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
 	//		}
@@ -231,7 +234,7 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 	//	GasPriceGwei:  data.GasPriceGwei,
 	//}
 	//
-	//signature, err := r.bridgeService.ValidateAndSignTxn(ctm)
+	//signature, err := r.transfersService.ValidateAndSignTxn(ctm)
 	//if err != nil {
 	//	r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
 	//}
@@ -252,6 +255,6 @@ func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMes
 	//	return err
 	//}
 	//
-	//go r.bridgeService.AcknowledgeTransactionSuccess(m)
+	//go r.transfersService.AcknowledgeTransactionSuccess(m)
 	return nil
 }

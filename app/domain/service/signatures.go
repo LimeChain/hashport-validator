@@ -16,10 +16,16 @@
 
 package service
 
-// Scheduler provides the required scheduling logic for submitting Ethereum transactions using a slot-based algorithm
-type Scheduler interface {
-	// Schedule - Schedules new Transaction for execution at the right leader elected slot
-	Schedule(id string, firstTimestamp, slot int64, task func()) error
-	// Cancel - Removes and cancels an already scheduled Transaction
-	Cancel(id string) error
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+)
+
+type Signatures interface {
+	// SanityCheckSignature performs any validation required prior handling the topic message
+	// (verifies metadata against the corresponding Transaction record)
+	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)
+	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
+	ProcessSignature(tm encoding.TopicMessage) error
+	// ScheduleForSubmission
+	ScheduleForSubmission(txId string) error
 }

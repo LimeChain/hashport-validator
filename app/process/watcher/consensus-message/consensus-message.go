@@ -37,18 +37,16 @@ type Watcher struct {
 	topicID          hedera.TopicID
 	typeMessage      string
 	statusRepository repository.Status
-	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(nodeClient client.HederaNode, topicID hedera.TopicID, repository repository.Status, maxRetries int, startTimestamp int64) *Watcher {
+func NewWatcher(nodeClient client.HederaNode, topicID hedera.TopicID, repository repository.Status, startTimestamp int64) *Watcher {
 	return &Watcher{
 		nodeClient:       nodeClient,
 		topicID:          topicID,
 		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
-		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("Topic [%s] Watcher", topicID.String())),
 	}
