@@ -178,6 +178,8 @@ func (ss *Service) ScheduleForSubmission(txId string) error {
 	return nil
 }
 
+// prepareEthereumMintTask returns the function to be executed for processing the
+// Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
 func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, fee string, signatures [][]byte, messageHash string) func() {
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
@@ -193,8 +195,8 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		}
 		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
 
-		onEthTxSucces, onEthTxRevert := ss.ethTxCallbacks(txId, ethTx.Hash().String())
-		ss.ethClient.WaitForTransaction(ethTx.Hash(), onEthTxSucces, onEthTxRevert)
+		onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(txId, ethTx.Hash().String())
+		ss.ethClient.WaitForTransaction(ethTx.Hash(), onEthTxSuccess, onEthTxRevert)
 
 		// Submit and monitor HCS Message for Ethereum TX Hash
 		hcsTx, err := ss.submitEthTxTopicMessage(txId, messageHash, ethTx.Hash().String())

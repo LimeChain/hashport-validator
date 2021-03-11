@@ -26,6 +26,6 @@ type Signatures interface {
 	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(tm encoding.TopicMessage) error
-	// ScheduleForSubmission
+	// ScheduleForSubmission computes the execution slot and schedules the Ethereum Mint TX for submission
 	ScheduleForSubmission(txId string) error
 }
