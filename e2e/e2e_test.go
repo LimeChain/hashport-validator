@@ -258,7 +258,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, whbarReceiverAddress common.Address, expectedWHBarAmount int64, whbarBalanceBefore *big.Int, t *testing.T) {
 	fmt.Printf("Waiting for transaction [%s] to succeed...\n", ethTransactionHash)
 
-	success, err := setup.Clients.EthClient.WaitForTransactionSuccess(common.HexToHash(ethTransactionHash))
+	success, err := setup.Clients.EthClient.WaitForTransaction(common.HexToHash(ethTransactionHash))
 
 	// Verify that the eth transaction has been mined and succeeded
 	if success == false {

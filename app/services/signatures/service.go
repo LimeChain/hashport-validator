@@ -17,6 +17,7 @@
 package signatures
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -29,6 +30,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"strings"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -97,58 +99,58 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
-	topicMessage := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.FromTopicMessage(topicMessage)
+	tsm := tm.GetTopicSignatureMessage()
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee)
 	if err != nil {
-		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", topicMessage.TransactionId, err)
+		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
 	}
 
 	// Prepare Signature
-	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(topicMessage.GetSignature())
+	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(tsm.GetSignature())
 	if err != nil {
-		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Err: %s", topicMessage.TransactionId, topicMessage.GetSignature(), err)
+		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Err: %s", tsm.TransactionId, tsm.GetSignature(), err)
 		return err
 	}
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 
 	// Check for duplicated signature
-	exists, err := ss.messageRepository.Exist(topicMessage.TransactionId, signatureHex, authMessageStr)
+	exists, err := ss.messageRepository.Exist(tsm.TransactionId, signatureHex, authMessageStr)
 	if err != nil {
-		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", topicMessage.TransactionId, err)
+		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", tsm.TransactionId, err)
 	}
 	if exists {
-		ss.logger.Errorf("Signature already received for TX [%s]", topicMessage.TransactionId)
+		ss.logger.Errorf("Signature already received for TX [%s]", tsm.TransactionId)
 		return err
 	}
 
 	// Verify Signature
-	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, topicMessage.TransactionId, authMessageStr)
+	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransactionId, authMessageStr)
 	if err != nil {
 		return err
 	}
 
 	// Persist in DB
 	err = ss.messageRepository.Create(&message.TransactionMessage{
-		TransactionId:        topicMessage.TransactionId,
-		EthAddress:           topicMessage.EthAddress,
-		Amount:               topicMessage.Amount,
-		Fee:                  topicMessage.Fee,
+		TransactionId:        tsm.TransactionId,
+		EthAddress:           tsm.EthAddress,
+		Amount:               tsm.Amount,
+		Fee:                  tsm.Fee,
 		Signature:            signatureHex,
 		Hash:                 authMessageStr,
 		SignerAddress:        address.String(),
 		TransactionTimestamp: tm.TransactionTimestamp,
 	})
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", topicMessage.TransactionId, signatureHex, err)
+		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransactionId, signatureHex, err)
 		return err
 	}
 
-	ss.logger.Infof("[%s] - Successfully processed Signature Message [%s]", topicMessage.TransactionId, signatureHex)
+	ss.logger.Infof("[%s] - Successfully processed Signature Message [%s]", tsm.TransactionId, signatureHex)
 	return nil
 }
 
 // ScheduleForSubmission computes the execution slot and schedules the Eth TX for submission
-func (ss *Service) ScheduleForSubmission(txId string) error {
+func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 	signatureMessages, err := ss.messageRepository.GetMessagesFor(txId)
 	if err != nil {
 		ss.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
@@ -196,7 +198,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
 
 		onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(txId, ethTx.Hash().String())
-		ss.ethClient.WaitForTransaction(ethTx.Hash(), onEthTxSuccess, onEthTxRevert)
+		ss.ethClient.WaitForTransaction(ethTx.Hash().String(), onEthTxSuccess, onEthTxRevert)
 
 		// Submit and monitor HCS Message for Ethereum TX Hash
 		hcsTx, err := ss.submitEthTxTopicMessage(txId, messageHash, ethTx.Hash().String())
@@ -272,7 +274,7 @@ func (ss *Service) submitEthTxTopicMessage(txId, messageHash, ethereumTxHash str
 func (ss *Service) ethTxCallbacks(txId, hash string) (func(), func()) {
 	onSuccess := func() {
 		ss.logger.Infof("Ethereum TX [%s] for TX [%s] was successfully mined", hash, txId)
-		err := ss.transactionRepository.UpdateStatusEthTxMined(txId)
+		err := ss.transactionRepository.UpdateStatusCompleted(txId)
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -311,30 +313,90 @@ func (ss *Service) hcsTxCallbacks(txId string) (func(), func()) {
 	return onSuccess, onFailure
 }
 
-// TODO ->
+// VerifyEthereumTxAuthenticity performs the validation required prior handling the topic message
+// (verifies the submitted TX against the required target contract and arguments passed)
+func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool, error) {
+	ethTxMessage := tm.GetTopicEthTransactionMessage()
+	tx, _, err := ss.ethClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(ethTxMessage.EthTxHash))
+	if err != nil {
+		ss.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, err)
+		return false, err
+	}
 
-//func (bs *Service) AcknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
-//	bs.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
-//
-//	isSuccessful, err := bs.clients.Ethereum.WaitForTransaction(common.HexToHash(m.EthTxHash))
-//	if err != nil {
-//		bs.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
-//		return
-//	}
-//
-//	if !isSuccessful {
-//		bs.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
-//		err = bs.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
-//		if err != nil {
-//			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
-//			return
-//		}
-//	} else {
-//		bs.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
-//		err = bs.transactionRepository.UpdateStatusCompleted(m.TransactionId)
-//		if err != nil {
-//			bs.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-//			return
-//		}
-//	}
-//}
+	// Verify Ethereum TX `to` property
+	if strings.ToLower(tx.To().String()) != strings.ToLower(ss.contractsService.GetBridgeContractAddress().String()) {
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, tx.To().String())
+		return false, nil
+	}
+	// Verify Ethereum TX `call data`
+	txId, ethAddress, amount, fee, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	if err != nil {
+		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
+			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+			return false, nil
+		}
+		return false, err
+	}
+
+	if txId != ethTxMessage.TransactionId {
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, txId)
+		return false, nil
+	}
+
+	dbTx, err := ss.transactionRepository.GetByTransactionId(ethTxMessage.TransactionId)
+	if err != nil {
+		return false, err
+	}
+	if dbTx == nil {
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+		return false, nil
+	}
+
+	if dbTx.Amount != amount ||
+		dbTx.EthAddress != ethAddress ||
+		dbTx.Fee != fee {
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+		return false, nil
+	}
+
+	// Verify Ethereum TX provided `signatures` authenticity
+	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, amount, fee)
+	if err != nil {
+		ss.logger.Errorf("Failed to encode the authorisation signature to reconstruct required Signature for TX ID [%s]. Error: %s", txId, err)
+		return false, err
+	}
+
+	checkedAddresses := make(map[string]bool)
+	for _, signature := range signatures {
+		address, err := ethhelper.GetAddressBySignature(messageHash, signature)
+		if err != nil {
+			return false, err
+		}
+		if checkedAddresses[address] {
+			return false, err
+		}
+
+		if !ss.contractsService.IsMember(address) {
+			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator process - [%s].", txId, ethTxMessage.EthTxHash, address)
+			return false, nil
+		}
+		checkedAddresses[address] = true
+	}
+
+	return true, nil
+}
+
+func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
+	etm := tm.GetTopicEthTransactionMessage()
+	err := ss.transactionRepository.UpdateStatusEthTxSubmitted(etm.TransactionId, etm.EthTxHash)
+	if err != nil {
+		ss.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, etm.TransactionId, err)
+		return err
+	}
+
+	onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(etm.TransactionId, etm.EthTxHash)
+	ss.ethClient.WaitForTransaction(etm.EthTxHash, onEthTxSuccess, onEthTxRevert)
+
+	ss.scheduler.Cancel(etm.TransactionId)
+	return nil
+}

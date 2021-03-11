@@ -153,7 +153,7 @@ func (bs *Service) VerifyFee(tm encoding.TransferMessage) error {
 // ProcessTransfer processes the transfer message by signing the required
 // authorisation signature submitting it into the required HCS Topic
 func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	authMsgHash, err := auth_message.FromTransferMessage(tm)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee)
 	if err != nil {
 		bs.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
 		return err

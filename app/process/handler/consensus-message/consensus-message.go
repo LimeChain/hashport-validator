@@ -69,7 +69,7 @@ func (cmh Handler) Handle(payload []byte) {
 	case validatorproto.TopicMessageType_EthSignature:
 		cmh.handleSignatureMessage(*m)
 	case validatorproto.TopicMessageType_EthTransaction:
-		//err = cmh.handleEthTxMessage(m.GetTopicEthTransactionMessage())
+		cmh.handleEthTxMessage(*m)
 	default:
 		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 	}
@@ -80,118 +80,25 @@ func (cmh Handler) Handle(payload []byte) {
 	}
 }
 
-//func (cmh Handler) handleEthTxMessage(m *validatorproto.TopicEthTransactionMessage) error {
-//	isValid, err := cmh.verifyEthTxAuthenticity(m)
-//	if err != nil {
-//		cmh.logger.Errorf("[%s] - ETH TX [%s] - Error while trying to verify TX authenticity.", m.TransactionId, m.EthTxHash)
-//		return err
-//	}
-//
-//	if !isValid {
-//		cmh.logger.Infof("[%s] - Eth TX [%s] - Invalid authenticity.", m.TransactionId, m.EthTxHash)
-//		return nil
-//	}
-//
-//	err = cmh.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
-//	if err != nil {
-//		cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
-//		return err
-//	}
-//
-//	go cmh.transfersService.AcknowledgeTransactionSuccess(m)
-//
-//	return cmh.scheduler.Cancel(m.TransactionId)
-//}
+func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
+	ethTxMessage := tm.GetTopicEthTransactionMessage()
+	isValid, err := cmh.signaturesService.VerifyEthereumTxAuthenticity(tm)
+	if err != nil {
+		cmh.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransactionId)
+		return
+	}
+	if !isValid {
+		cmh.logger.Infof("Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.EthTxHash)
+		return
+	}
 
-//func (cmh Handler) verifyEthTxAuthenticity(m *validatorproto.TopicEthTransactionMessage) (bool, error) {
-//	tx, _, err := cmh.ethereumClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(m.EthTxHash))
-//	if err != nil {
-//		cmh.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", m.TransactionId, m.EthTxHash, err)
-//		return false, err
-//	}
-//
-//	if strings.ToLower(tx.To().String()) != strings.ToLower(cmh.contractsService.GetBridgeContractAddress().String()) {
-//		cmh.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", m.TransactionId, m.EthTxHash, tx.To().String())
-//		return false, nil
-//	}
-//
-//	txMessage, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
-//	if err != nil {
-//		return false, err
-//	}
-//
-//	if txMessage.TransactionId != m.TransactionId {
-//		cmh.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", m.TransactionId, m.EthTxHash, txMessage.TransactionId)
-//		return false, nil
-//	}
-//
-//	dbTx, err := cmh.transactionRepository.GetByTransactionId(m.TransactionId)
-//	if err != nil {
-//		return false, err
-//	}
-//	if dbTx == nil {
-//		cmh.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", m.TransactionId, m.EthTxHash)
-//		return false, nil
-//	}
-//
-//	if dbTx.Amount != txMessage.Amount ||
-//		dbTx.EthAddress != txMessage.EthAddress ||
-//		dbTx.Fee != txMessage.Fee {
-//		cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", m.TransactionId, m.EthTxHash)
-//		return false, nil
-//	}
-//
-//	encodedData, err := ethhelper.EncodeData(txMessage)
-//	if err != nil {
-//		return false, err
-//	}
-//	hash := ethhelper.KeccakData(encodedData)
-//
-//	checkedAddresses := make(map[string]bool)
-//	for _, signature := range signatures {
-//		address, err := ethhelper.GetAddressBySignature(hash, signature)
-//		if err != nil {
-//			return false, err
-//		}
-//		if checkedAddresses[address] {
-//			return false, err
-//		}
-//
-//		if !cmh.contractsService.IsMember(address) {
-//			cmh.logger.Debugf("[%s] - ETH TX [%s] - Invalid operator process - [%s].", m.TransactionId, m.EthTxHash, address)
-//			return false, nil
-//		}
-//		checkedAddresses[address] = true
-//	}
-//
-//	return true, nil
-//}
-//
-//func (cmh Handler) acknowledgeTransactionSuccess(m *validatorproto.TopicEthTransactionMessage) {
-//	cmh.logger.Infof("Waiting for Transaction with ID [%s] to be mined.", m.TransactionId)
-//
-//	isSuccessful, err := cmh.ethereumClient.WaitForTransaction(common.HexToHash(m.EthTxHash))
-//	if err != nil {
-//		cmh.logger.Errorf("Failed to await TX ID [%s] with ETH TX [%s] to be mined. Error [%s].", m.TransactionId, m.Hash, err)
-//		return
-//	}
-//
-//	if !isSuccessful {
-//		cmh.logger.Infof("Transaction with ID [%s] was reverted. Updating status to [%s].", m.TransactionId, transaction.StatusEthTxReverted)
-//		err = cmh.transactionRepository.UpdateStatusEthTxReverted(m.TransactionId)
-//		if err != nil {
-//			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxReverted, m.TransactionId, err)
-//			return
-//		}
-//	} else {
-//		cmh.logger.Infof("Transaction with ID [%s] was successfully mined. Updating status to [%s].", m.TransactionId, transaction.StatusCompleted)
-//		err = cmh.transactionRepository.UpdateStatusCompleted(m.TransactionId)
-//		if err != nil {
-//			cmh.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusCompleted, m.TransactionId, err)
-//			return
-//		}
-//	}
-//}
+	// Process Ethereum Transaction Message
+	err = cmh.signaturesService.ProcessEthereumTxMessage(tm)
+	if err != nil {
+		cmh.logger.Errorf("Failed to process Ethereum TX Message for TX[%s]", ethTxMessage.TransactionId)
+		return
+	}
+}
 
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
 func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
@@ -220,7 +127,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 
 	if majorityReached {
 		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", tsm.TransactionId)
-		err = cmh.signaturesService.ScheduleForSubmission(tsm.TransactionId)
+		err = cmh.signaturesService.ScheduleEthereumTxForSubmission(tsm.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
 		}

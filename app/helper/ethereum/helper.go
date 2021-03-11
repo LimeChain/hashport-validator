@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
 const (
@@ -56,44 +55,37 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.TransferMessage, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
-		return nil, nil, err
+		return "", "", "", "", nil, err
 	}
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
-		return nil, nil, err
+		return "", "", "", "", nil, err
 	}
 
 	if len(decodedParameters) != MintFunctionParametersCount {
-		return nil, nil, ErrorInvalidMintFunctionParameters
+		return "", "", "", "", nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
 	receiver := decodedParameters[MintFunctionParameterReceiver].(common.Address)
-	amount := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+	amountBn := decodedParameters[MintFunctionParameterAmount].(*big.Int)
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
-			return nil, nil, err
+			return "", "", "", "", nil, err
 		}
 	}
 
-	transferMessage = &proto.TransferMessage{
-		TransactionId: string(transactionId),
-		EthAddress:    receiver.String(),
-		Amount:        amount.String(),
-		Fee:           txCost.String(),
-	}
-
-	return transferMessage, signatures, nil
+	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), signatures, nil
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {

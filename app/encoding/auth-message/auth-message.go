@@ -20,24 +20,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
-// FromTransferMessage returns the array of bytes representing an
+// EncodeBytesFrom returns the array of bytes representing an
 // authorisation signature ready to be signed by Ethereum Private Key
-func FromTransferMessage(tm encoding.TransferMessage) ([]byte, error) {
-	return encodeData(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee)
-}
-
-// FromTopicMessage returns the array of bytes representing an
-// authorisation signature ready to be signed by Ethereum Private Key
-func FromTopicMessage(tm *proto.TopicEthSignatureMessage) ([]byte, error) {
-	return encodeData(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee)
-}
-
-func encodeData(txId, ethAddress, amount, fee string) ([]byte, error) {
+func EncodeBytesFrom(txId, ethAddress, amount, fee string) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err

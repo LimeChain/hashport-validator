@@ -73,24 +73,24 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 }
 
 // WaitForTransactionSuccess polls the JSON RPC node every 5 seconds for any updates (whether TX is mined) for the provided Hash
-func (ec *Client) WaitForTransaction(hash common.Hash, onSuccess, onRevert func()) {
+func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func()) {
 	go func() {
-		receipt, err := ec.waitForTransactionReceipt(hash)
+		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))
 		if err != nil {
-			ec.logger.Errorf("Error occurred while monitoring TX [%s]. Error: %s", hash.String(), err)
+			ec.logger.Errorf("Error occurred while monitoring TX [%s]. Error: %s", hex, err)
 			return
 		}
 
 		if receipt.Status == 1 {
-			ec.logger.Debugf("TX [%s] was successfully mined", hash.String())
+			ec.logger.Debugf("TX [%s] was successfully mined", hex)
 			onSuccess()
 		} else {
-			ec.logger.Debugf("TX [%s] reverted", hash.String())
+			ec.logger.Debugf("TX [%s] reverted", hex)
 			onRevert()
 		}
 		return
 	}()
-	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hash.String())
+	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hex)
 }
 
 // waitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)

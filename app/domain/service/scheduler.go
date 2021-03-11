@@ -21,5 +21,5 @@ type Scheduler interface {
 	// Schedule - Schedules new Transaction for execution at the right leader elected slot
 	Schedule(id string, firstTimestamp, slot int64, task func()) error
 	// Cancel - Removes and cancels an already scheduled Transaction
-	Cancel(id string) error
+	Cancel(id string)
 }

@@ -62,11 +62,10 @@ func (s *Scheduler) Schedule(id string, firstTimestamp, slot int64, task func())
 }
 
 // Cancel - Removes and cancels an already scheduled Transaction
-func (s *Scheduler) Cancel(id string) error {
+func (s *Scheduler) Cancel(id string) {
 	t, exists := s.tasks.Load(id)
 	if !exists {
 		s.logger.Warnf("Scheduled transaction execution for [%s] not found.", id)
-		return nil
 	}
 
 	storage := t.(*Storage)
@@ -77,8 +76,6 @@ func (s *Scheduler) Cancel(id string) error {
 	} else {
 		s.logger.Infof("TX [%s] was already broadcast/executed.", id)
 	}
-
-	return nil
 }
 
 // NewScheduler - Creates new instance of Scheduler
