@@ -41,7 +41,7 @@ func NewMirrorNodeClient(mirrorNodeAPIAddress string) *MirrorNode {
 }
 
 func (c MirrorNode) GetSuccessfulAccountCreditTransactionsAfterDate(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.HederaTransactions, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		timestampHelper.ToString(milestoneTimestamp))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
