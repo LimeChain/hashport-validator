@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/ethereum/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services/bridge"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -48,10 +48,10 @@ type Handler struct {
 	transactionRepo    repositories.Transaction
 	logger             *log.Entry
 	feeCalculator      *fees.Calculator
-	contractService    *bridge.ContractService
+	contractService    bridge.ContractService
 }
 
-func NewHandler(c config.CryptoTransferHandler, ethSigner *eth.Signer, hederaMirrorClient clients.MirrorNode, hederaNodeClient clients.HederaNode, transactionRepository repositories.Transaction, feeCalculator *fees.Calculator, contractService *bridge.ContractService) *Handler {
+func NewHandler(c config.CryptoTransferHandler, ethSigner *eth.Signer, hederaMirrorClient clients.MirrorNode, hederaNodeClient clients.HederaNode, transactionRepository repositories.Transaction, feeCalculator *fees.Calculator, contractService bridge.ContractService) *Handler {
 	topicID, err := hedera.TopicIDFromString(c.TopicId)
 	if err != nil {
 		log.Fatalf("Invalid Topic ID provided: [%s]", c.TopicId)

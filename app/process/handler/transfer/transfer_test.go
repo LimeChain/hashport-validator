@@ -76,7 +76,7 @@ func InitializeHandler() (*Handler, *mocks.MockTransactionRepository, *mocks.Moc
 	hederaMirrorClient := &mocks.MockHederaMirrorClient{}
 	feeCalculator := fees.NewCalculator(mocks.MExchangeRateProvider, getHederaConfig(), mocks.MBridgeContractService)
 
-	return NewHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, feeCalculator), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
+	return NewHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, feeCalculator, mocks.MBridgeContractService), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
 }
 
 func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {
