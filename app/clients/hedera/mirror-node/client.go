@@ -172,7 +172,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				}
 				return
 			}
-			c.logger.Debugf("Pinged Mirror Node for TX [%s]. No result", queryableTxId)
+			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No result", queryableTxId)
 			time.Sleep(time.Duration(pollingInterval) * time.Second)
 		}
 	}()

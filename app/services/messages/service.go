@@ -73,7 +73,7 @@ func NewService(
 		scheduler:             scheduler,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Signatures Service")),
+		logger:                config.GetLoggerFor(fmt.Sprintf("Messages Service")),
 		topicID:               tID,
 		hederaClient:          hederaClient,
 		mirrorClient:          mirrorClient,
@@ -129,6 +129,8 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		return err
 	}
 
+	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransactionId)
+
 	// Persist in DB
 	err = ss.messageRepository.Create(&message.TransactionMessage{
 		TransactionId:        tsm.TransactionId,
@@ -145,7 +147,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		return err
 	}
 
-	ss.logger.Infof("[%s] - Successfully processed Signature Message [%s]", tsm.TransactionId, signatureHex)
+	ss.logger.Infof("Successfully processed Signature Message from [%s] for TX [%s]", address.String(), tsm.TransactionId)
 	return nil
 }
 

@@ -179,7 +179,7 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 		address:  *contractAddress,
 		Client:   client,
 		contract: contractInstance,
-		logger:   config.GetLoggerFor("Bridge Contract Service"),
+		logger:   config.GetLoggerFor("Contract Service"),
 	}
 
 	contractService.updateMembers()

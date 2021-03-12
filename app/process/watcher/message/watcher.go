@@ -48,7 +48,7 @@ func NewWatcher(nodeClient client.HederaNode, topicID hedera.TopicID, repository
 		typeMessage:      process.HCSMessageType,
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
-		logger:           config.GetLoggerFor(fmt.Sprintf("Topic [%s] Watcher", topicID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID.String())),
 	}
 }
 
@@ -84,11 +84,12 @@ func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
 		cmw.logger.Error("Failed to subscribe to topic")
 		return
 	}
-	cmw.logger.Infof("Subscribed to Topic successfully.")
+	cmw.logger.Infof("Subscribed to Messages after Timestamp [%d]", cmw.startTimestamp)
 }
 
 func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) {
-	cmw.logger.Debugf("Received new Message for Topic. Timestamp: [%s] Contents: [%s]", topicMsg.ConsensusTimestamp, topicMsg.Contents)
+	cmw.logger.Info("New Message Received")
+
 	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
 	msg, err := encoding.NewTopicMessageFromBytesWithTS(topicMsg.Contents, messageTimestamp)
 	if err != nil {

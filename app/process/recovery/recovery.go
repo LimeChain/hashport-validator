@@ -136,6 +136,11 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 		return err
 	}
 
+	if len(txns) == 0 {
+		r.logger.Infof("No Transfers found to recover for Account [%s]", r.accountID)
+		return nil
+	}
+
 	r.logger.Infof("Found [%d] unprocessed TXns for Account [%s]", len(txns), r.accountID)
 	for _, tx := range txns {
 		amount, err := tx.GetIncomingAmountFor(r.accountID.String())
@@ -167,7 +172,12 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 		return err
 	}
 
-	r.logger.Infof("Found [%d] unprocessed messages for Topic [%s]", len(messages), r.topicID)
+	if len(messages) == 0 {
+		r.logger.Infof("No Messages found to recover for Topic [%s]", r.topicID)
+		return nil
+	}
+
+	r.logger.Debugf("Found [%d] unprocessed messages for Topic [%s]", len(messages), r.topicID)
 	for _, msg := range messages {
 		m, err := encoding.NewTopicMessageFromString(msg.Contents, msg.ConsensusTimestamp)
 		if err != nil {

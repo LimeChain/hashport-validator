@@ -18,7 +18,6 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -40,13 +39,9 @@ import (
 )
 
 func main() {
-	// Parse Flags
-	debugMode := flag.Bool("debug", false, "run in debug mode")
-	flag.Parse()
-
 	// Config
-	config.InitLogger(debugMode)
 	configuration := config.LoadConfig()
+	config.InitLogger(configuration.Hedera.LogLevel)
 
 	// Prepare Clients
 	clients := PrepareClients(configuration)
@@ -142,7 +137,7 @@ func addCryptoTransferWatcher(configuration *config.Config,
 			*repository,
 			account.MaxRetries,
 			startTimestamp))
-	log.Infof("Added Transfer Watcher for account [%s]", account.Id)
+	log.Debugf("Added Transfer Watcher for account [%s]", account.Id)
 	return nil
 }
 
@@ -159,6 +154,6 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	}
 
 	server.AddWatcher(cmw.NewWatcher(hederaNodeClient, id, repository, startTimestamp))
-	log.Infof("Added Topic Watcher for topic [%s]\n", topic.Id)
+	log.Debugf("Added Topic Watcher for topic [%s]\n", topic.Id)
 	return nil
 }

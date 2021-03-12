@@ -84,16 +84,16 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 		}
 	}
 
-	go ctw.beginWatching(q)
-}
-
-func (ctw Watcher) beginWatching(q *queue.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
 		return
 	}
 
-	ctw.logger.Debugf("Starting Transfer Watcher for Account [%s] after Timestamp [%d]", ctw.accountID, ctw.startTimestamp)
+	go ctw.beginWatching(q)
+	ctw.logger.Infof("Watching for Transfers after Timestamp [%d]", ctw.startTimestamp)
+}
+
+func (ctw Watcher) beginWatching(q *queue.Queue) {
 	milestoneTimestamp := ctw.startTimestamp
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
@@ -103,7 +103,7 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 			return
 		}
 
-		ctw.logger.Debugf("Found [%d] TX for AccountID [%s]", len(transactions.Transactions), ctw.accountID)
+		ctw.logger.Tracef("Polling found [%d] Transactions", len(transactions.Transactions))
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
 				go ctw.processTransaction(tx, q)
