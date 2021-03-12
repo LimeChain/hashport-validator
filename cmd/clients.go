@@ -37,7 +37,7 @@ type Clients struct {
 func PrepareClients(config config.Config) *Clients {
 	return &Clients{
 		HederaNode:   hedera.NewNodeClient(config.Hedera.Client),
-		MirrorNode:   mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress),
+		MirrorNode:   mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval),
 		Ethereum:     ethereum.NewClient(config.Hedera.Eth),
 		ExchangeRate: exchangerate.NewProvider("hedera-hashgraph", "eth"),
 	}

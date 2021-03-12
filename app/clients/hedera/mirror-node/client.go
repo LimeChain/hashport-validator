@@ -30,20 +30,17 @@ import (
 	"time"
 )
 
-var (
-	// pollingInterval the interval at which the mirror node will poll for the result of a given transaction
-	pollingInterval = 5
-)
-
 type Client struct {
 	mirrorAPIAddress string
 	httpClient       *http.Client
+	pollingInterval  time.Duration
 	logger           *log.Entry
 }
 
-func NewClient(mirrorNodeAPIAddress string) *Client {
+func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Client {
 	return &Client{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
+		pollingInterval:  pollingInterval,
 		httpClient:       &http.Client{},
 		logger:           config.GetLoggerFor("Mirror Node Client"),
 	}
@@ -172,8 +169,8 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				}
 				return
 			}
-			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No result", queryableTxId)
-			time.Sleep(time.Duration(pollingInterval) * time.Second)
+			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No update", queryableTxId)
+			time.Sleep(c.pollingInterval * time.Second)
 		}
 	}()
 	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
