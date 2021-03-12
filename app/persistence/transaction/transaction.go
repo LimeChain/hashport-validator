@@ -53,6 +53,7 @@ type Transaction struct {
 	Status         string
 	EthHash        string
 	GasPriceGwei   string
+	Asset          string
 }
 
 type Repository struct {
@@ -123,6 +124,7 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 			Amount:        txnMessage.Amount,
 			Fee:           txnMessage.Fee,
 			GasPriceGwei:  txnMessage.GasPriceGwei,
+			Asset:         txnMessage.Asset,
 		}
 		result[t] = append(result[t], txnMessage.Signature)
 	}
@@ -139,6 +141,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Fee:           ct.Fee,
 		Status:        StatusInitial,
 		GasPriceGwei:  ct.GasPriceGwei,
+		Asset:         ct.Asset,
 	}
 	err := tr.dbClient.Create(tx).Error
 	return tx, err

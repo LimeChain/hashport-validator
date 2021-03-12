@@ -42,6 +42,7 @@ type Service struct {
 	ethSigner             service.Signer
 	transactionRepository repository.Transaction
 	topicID               hedera.TopicID
+	contractService       service.Contracts
 }
 
 func NewService(
@@ -51,6 +52,7 @@ func NewService(
 	signer service.Signer,
 	transactionRepository repository.Transaction,
 	topicID string,
+	contractService service.Contracts,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -65,6 +67,7 @@ func NewService(
 		ethSigner:             signer,
 		transactionRepository: transactionRepository,
 		topicID:               tID,
+		contractService:       contractService,
 	}
 }
 
@@ -153,7 +156,7 @@ func (bs *Service) VerifyFee(tm encoding.TransferMessage) error {
 // ProcessTransfer processes the transfer message by signing the required
 // authorisation signature submitting it into the required HCS Topic
 func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Asset, tm.Amount, tm.Fee)
 	if err != nil {
 		bs.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
 		return err

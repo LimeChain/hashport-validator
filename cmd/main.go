@@ -68,7 +68,7 @@ func main() {
 		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
 		server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
 
-		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
+		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp, services.contracts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -126,6 +126,7 @@ func addCryptoTransferWatcher(configuration *config.Config,
 	repository *repository.Status,
 	server *server.HederaWatcherServer,
 	startTimestamp int64,
+	contractService service.Contracts,
 ) error {
 	account := configuration.Hedera.Watcher.CryptoTransfer.Account
 	id, e := hedera.AccountIDFromString(account.Id)
@@ -141,7 +142,8 @@ func addCryptoTransferWatcher(configuration *config.Config,
 			configuration.Hedera.MirrorNode.PollingInterval,
 			*repository,
 			account.MaxRetries,
-			startTimestamp))
+			startTimestamp,
+			contractService))
 	log.Infof("Added Transfer Watcher for account [%s]", account.Id)
 	return nil
 }

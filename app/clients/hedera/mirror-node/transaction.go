@@ -37,11 +37,14 @@ type (
 		Node                 string `json:"node"`
 		TransactionID        string `json:"transaction_id"`
 		Transfers            []Transfer
+		TokenTransfers       []Transfer
 	}
 	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
+		// When retrieving ordinary hbar transfers, this field does not get populated
+		Asset string `json:"asset"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried
@@ -53,13 +56,24 @@ type (
 
 // GetIncomingAmountFor returns the amount that is credited to the specified
 // account for the given transaction
-func (t Transaction) GetIncomingAmountFor(account string) (string, error) {
+func (t Transaction) GetIncomingAmountFor(account string) (string, string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
-			return strconv.Itoa(int(tr.Amount)), nil
+			return strconv.Itoa(int(tr.Amount)), "HBAR", nil
 		}
 	}
-	return "", errors.New("no incoming transfer found")
+	return "", "", errors.New("no incoming transfer found")
+}
+
+// GetIncomingTokenAmountFor returns the token amount that is credited to the specified
+// account for the given transaction
+func (t Transaction) GetIncomingTokenAmountFor(account string) (string, string, error) {
+	for _, tr := range t.TokenTransfers {
+		if tr.Account == account {
+			return strconv.Itoa(int(tr.Amount)), tr.Asset, nil
+		}
+	}
+	return "", "", errors.New("no incoming token transfer found")
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one

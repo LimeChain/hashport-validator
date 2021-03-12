@@ -45,6 +45,7 @@ type Watcher struct {
 	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
+	contractService  service.Contracts
 }
 
 func NewWatcher(
@@ -55,6 +56,7 @@ func NewWatcher(
 	repository repository.Status,
 	maxRetries int,
 	startTimestamp int64,
+	contractService service.Contracts,
 ) *Watcher {
 	return &Watcher{
 		transfers:        transfers,
@@ -66,6 +68,7 @@ func NewWatcher(
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID.String())),
+		contractService:  contractService,
 	}
 }
 
@@ -127,10 +130,21 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, err := tx.GetIncomingAmountFor(ctw.accountID.String())
+	amount, asset, err := tx.GetIncomingTokenAmountFor(ctw.accountID.String())
+	if err != nil {
+		ctw.logger.Errorf("Could not extract incoming token amount for TX [%s]. Error: [%s]", tx.TransactionID, err)
+	}
+
+	amount, asset, err = tx.GetIncomingAmountFor(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("Could not extract incoming amount for TX [%s]. Error: [%s]", tx.TransactionID, err)
 		return
+	}
+
+	valid, erc20ContractAddress := ctw.contractService.IsValidBridgeAsset(asset)
+	if !valid {
+		// TODO: Log proper error
+		ctw.logger.Errorf("The specified asset [%s] does not have a valid ERC 20 Contract Address", asset)
 	}
 
 	m, err := ctw.transfers.SanityCheckTransfer(tx)
@@ -139,7 +153,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, erc20ContractAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

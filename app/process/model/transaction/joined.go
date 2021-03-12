@@ -7,6 +7,7 @@ type JoinedTxnMessage struct {
 	Fee           string
 	Signature     string
 	GasPriceGwei  string
+	Asset         string
 }
 
 type CTMKey struct {
@@ -15,4 +16,5 @@ type CTMKey struct {
 	Amount        string
 	Fee           string
 	GasPriceGwei  string
+	Asset         string
 }
