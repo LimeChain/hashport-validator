@@ -26,5 +26,9 @@ type Ethereum interface {
 	ChainID() *big.Int
 	GetClient() *ethclient.Client
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
-	WaitForTransaction(hash string, onSuccess, onRevert func())
+	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
+	// onSuccess is called once the TX is successfully mined
+	// onRevert is called once the TX is mined but it reverted
+	// onError is called if an error occurs while waiting for TX to go into one of the other 2 states
+	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
 }

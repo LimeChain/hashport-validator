@@ -204,7 +204,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
 
 		onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(txId, ethTx.Hash().String())
-		ss.ethClient.WaitForTransaction(ethTx.Hash().String(), onEthTxSuccess, onEthTxRevert)
+		ss.ethClient.WaitForTransaction(ethTx.Hash().String(), onEthTxSuccess, onEthTxRevert, func(err error) {})
 
 		// Submit and monitor HCS Message for Ethereum TX Hash
 		hcsTx, err := ss.submitEthTxTopicMessage(txId, messageHash, ethTx.Hash().String())
@@ -401,7 +401,7 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	}
 
 	onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(etm.TransactionId, etm.EthTxHash)
-	ss.ethClient.WaitForTransaction(etm.EthTxHash, onEthTxSuccess, onEthTxRevert)
+	ss.ethClient.WaitForTransaction(etm.EthTxHash, onEthTxSuccess, onEthTxRevert, func(err error) {})
 
 	ss.scheduler.Cancel(etm.TransactionId)
 	return nil
