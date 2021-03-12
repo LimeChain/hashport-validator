@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Crypto Transfer event handler
+// Handler is transfers event handler
 type Handler struct {
 	transfersService service.Transfers
 	logger           *log.Entry

@@ -84,7 +84,7 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	return &address, nil
 }
 
-// WaitForTransactionSuccess polls the JSON RPC node every 5 seconds for any updates (whether TX is mined) for the provided Hash
+// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
 func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func()) {
 	go func() {
 		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))

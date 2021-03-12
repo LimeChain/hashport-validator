@@ -277,8 +277,8 @@ func (ss *Service) submitEthTxTopicMessage(txId, messageHash, ethereumTxHash str
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
 }
 
-func (ss *Service) ethTxCallbacks(txId, hash string) (func(), func()) {
-	onSuccess := func() {
+func (ss *Service) ethTxCallbacks(txId, hash string) (onSuccess, onRevert func()) {
+	onSuccess = func() {
 		ss.logger.Infof("Ethereum TX [%s] for TX [%s] was successfully mined", hash, txId)
 		err := ss.transactionRepository.UpdateStatusCompleted(txId)
 		if err != nil {
@@ -287,7 +287,7 @@ func (ss *Service) ethTxCallbacks(txId, hash string) (func(), func()) {
 		}
 	}
 
-	onRevert := func() {
+	onRevert = func() {
 		ss.logger.Infof("Ethereum TX [%s] for TX [%s] reverted", hash, txId)
 		err := ss.transactionRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
@@ -298,8 +298,8 @@ func (ss *Service) ethTxCallbacks(txId, hash string) (func(), func()) {
 	return onSuccess, onRevert
 }
 
-func (ss *Service) hcsTxCallbacks(txId string) (func(), func()) {
-	onSuccess := func() {
+func (ss *Service) hcsTxCallbacks(txId string) (onSuccess, onFailure func()) {
+	onSuccess = func() {
 		ss.logger.Infof("Ethereum TX Hash message was successfully mined for TX [%s]", txId)
 		err := ss.transactionRepository.UpdateStatusEthTxMsgMined(txId)
 		if err != nil {
@@ -308,7 +308,7 @@ func (ss *Service) hcsTxCallbacks(txId string) (func(), func()) {
 		}
 	}
 
-	onFailure := func() {
+	onFailure = func() {
 		ss.logger.Infof("Ethereum TX Hash message failed for TX ID [%s]", txId)
 		err := ss.transactionRepository.UpdateStatusEthTxMsgFailed(txId)
 		if err != nil {

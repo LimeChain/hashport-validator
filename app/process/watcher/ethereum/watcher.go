@@ -25,28 +25,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type EthWatcher struct {
-	config          config.Ethereum
-	contractService service.Contracts
-	logger          *log.Entry
+type Watcher struct {
+	config    config.Ethereum
+	contracts service.Contracts
+	logger    *log.Entry
 }
 
-func NewEthereumWatcher(contractsService service.Contracts, config config.Ethereum) *EthWatcher {
-	return &EthWatcher{
-		config:          config,
-		contractService: contractsService,
-		logger:          c.GetLoggerFor("Ethereum Watcher"),
+func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
+	return &Watcher{
+		config:    config,
+		contracts: contracts,
+		logger:    c.GetLoggerFor("Ethereum Watcher"),
 	}
 }
 
-func (ew *EthWatcher) Watch(queue *queue.Queue) {
+func (ew *Watcher) Watch(queue *queue.Queue) {
 	log.Infof("[Ethereum Watcher] - Start listening for events for contract address [%s].", ew.config.BridgeContractAddress)
 	go ew.listenForEvents(queue)
 }
 
-func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
+func (ew *Watcher) listenForEvents(q *queue.Queue) {
 	events := make(chan *bridgeContract.BridgeBurn)
-	sub, err := ew.contractService.WatchBurnEventLogs(nil, events)
+	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
 		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.BridgeContractAddress, err)
 	}
@@ -62,7 +62,7 @@ func (ew *EthWatcher) listenForEvents(q *queue.Queue) {
 	}
 }
 
-func (ew *EthWatcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue) {
+func (ew *Watcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue) {
 	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
