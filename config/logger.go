@@ -18,6 +18,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ func GetLoggerFor(ctx string) *log.Entry {
 func InitLogger(level string) {
 	log.SetOutput(os.Stdout)
 
-	switch level {
+	switch strings.ToLower(level) {
 	case "trace":
 		log.SetLevel(log.TraceLevel)
 	case "debug":
