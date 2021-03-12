@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package consensusmessage
+package message
 
 import (
 	"errors"

@@ -25,12 +25,12 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/consensus-message"
-	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/crypto-transfer"
+	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
+	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
-	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/consensus-message"
-	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/crypto-transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
+	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
@@ -77,7 +77,7 @@ func main() {
 			configuration.Hedera.Handler.ConsensusMessage,
 			repositories.message,
 			services.contracts,
-			services.signatures))
+			services.messages))
 
 		err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
 		if err != nil {
@@ -94,7 +94,7 @@ func main() {
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.signatures, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
+	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.messages, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Err %s", err)
 	}

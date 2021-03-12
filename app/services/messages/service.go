@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package signatures
+package messages
 
 import (
 	"context"

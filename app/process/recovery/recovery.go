@@ -33,8 +33,8 @@ import (
 )
 
 type Recovery struct {
-	transfersService        service.Transfers
-	signaturesService       service.Signatures
+	transfers               service.Transfers
+	messages                service.Messages
 	statusTransferRepo      repository.Status
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
@@ -46,8 +46,8 @@ type Recovery struct {
 
 func NewProcess(
 	c config.Hedera,
-	transfersService service.Transfers,
-	signaturesService service.Signatures,
+	transfers service.Transfers,
+	messagesService service.Messages,
 	statusTransferRepo repository.Status,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
@@ -63,8 +63,8 @@ func NewProcess(
 	}
 
 	return &Recovery{
-		transfersService:        transfersService,
-		signaturesService:       signaturesService,
+		transfers:               transfers,
+		messages:                messagesService,
 		statusTransferRepo:      statusTransferRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
@@ -143,12 +143,12 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		m, err := r.transfersService.SanityCheckTransfer(tx)
+		m, err := r.transfers.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfersService.SaveRecoveredTxn(tx.TransactionID, amount, *m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, *m)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Err: [%s]", tx.TransactionID, err)
 			continue
@@ -177,7 +177,7 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 
 		switch m.Type {
 		case validatorproto.TopicMessageType_EthSignature:
-			err = r.signaturesService.ProcessSignature(*m)
+			err = r.messages.ProcessSignature(*m)
 		case validatorproto.TopicMessageType_EthTransaction:
 			// TODO resolve the recovery
 			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())

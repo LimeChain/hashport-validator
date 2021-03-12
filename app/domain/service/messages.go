@@ -20,7 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 )
 
-type Signatures interface {
+type Messages interface {
 	// SanityCheckSignature performs any validation required prior handling the topic message
 	// (verifies metadata against the corresponding Transaction record)
 	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)

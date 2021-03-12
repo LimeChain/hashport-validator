@@ -43,7 +43,7 @@ func (m *MockTransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*tran
 	return args.Get(0).([]*transaction.Transaction), args.Get(1).(error)
 }
 
-func (m *MockTransactionRepository) Create(ct *proto.CryptoTransferMessage) error {
+func (m *MockTransactionRepository) Create(ct *proto.TransferMessage) error {
 	args := m.Called(ct)
 	return args.Get(0).(error)
 }
@@ -89,7 +89,7 @@ func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.CryptoTransferMessage) error {
+func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	args := m.Called(ct)
 	return args.Get(0).(error)
 }

@@ -31,8 +31,8 @@ import (
 
 type Handler struct {
 	messageRepository repository.Message
-	contractsService  service.Contracts
-	signaturesService service.Signatures
+	contracts         service.Contracts
+	messages          service.Messages
 	logger            *log.Entry
 }
 
@@ -40,7 +40,7 @@ func NewHandler(
 	configuration config.ConsensusMessageHandler,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
-	signaturesService service.Signatures,
+	messages service.Messages,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
 	if err != nil {
@@ -49,8 +49,8 @@ func NewHandler(
 
 	return &Handler{
 		messageRepository: messageRepository,
-		contractsService:  contractsService,
-		signaturesService: signaturesService,
+		contracts:         contractsService,
+		messages:          messages,
 		logger:            config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
@@ -82,7 +82,7 @@ func (cmh Handler) Handle(payload []byte) {
 
 func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
-	isValid, err := cmh.signaturesService.VerifyEthereumTxAuthenticity(tm)
+	isValid, err := cmh.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
 		cmh.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransactionId)
 		return
@@ -93,7 +93,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 	}
 
 	// Process Ethereum Transaction Message
-	err = cmh.signaturesService.ProcessEthereumTxMessage(tm)
+	err = cmh.messages.ProcessEthereumTxMessage(tm)
 	if err != nil {
 		cmh.logger.Errorf("Failed to process Ethereum TX Message for TX[%s]", ethTxMessage.TransactionId)
 		return
@@ -103,7 +103,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
 func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 	tsm := tm.GetTopicSignatureMessage()
-	valid, err := cmh.signaturesService.SanityCheckSignature(tm)
+	valid, err := cmh.messages.SanityCheckSignature(tm)
 	if err != nil {
 		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
 		return
@@ -113,7 +113,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 		return
 	}
 
-	err = cmh.signaturesService.ProcessSignature(tm)
+	err = cmh.messages.ProcessSignature(tm)
 	if err != nil {
 		cmh.logger.Errorf("Could not process Signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
 		return
@@ -127,7 +127,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 
 	if majorityReached {
 		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", tsm.TransactionId)
-		err = cmh.signaturesService.ScheduleEthereumTxForSubmission(tsm.TransactionId)
+		err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
 		}
@@ -140,7 +140,7 @@ func (cmh *Handler) hasReachedMajority(txId string) (bool, error) {
 		cmh.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
 		return false, err
 	}
-	requiredSigCount := len(cmh.contractsService.GetMembers())/2 + 1
-	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(signatureMessages), len(cmh.contractsService.GetMembers()), txId)
+	requiredSigCount := len(cmh.contracts.GetMembers())/2 + 1
+	cmh.logger.Infof("Collected [%d/%d] Signatures for TX ID [%s] ", len(signatureMessages), len(cmh.contracts.GetMembers()), txId)
 	return len(signatureMessages) >= requiredSigCount, nil
 }

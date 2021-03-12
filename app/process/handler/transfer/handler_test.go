@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cryptotransfer
+package transfer
 
 import (
 	"errors"
