@@ -408,3 +408,13 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	ss.scheduler.Cancel(etm.TransactionId)
 	return nil
 }
+
+// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
+func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, error) {
+	t, err := ss.transactionRepository.GetByTransactionId(transactionId)
+	if err != nil {
+		ss.logger.Errorf("Could not load transaction info for TX id [%s]", transactionId)
+		return false, err
+	}
+	return t.ExecuteEthTransaction, nil
+}

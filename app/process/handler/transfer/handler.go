@@ -62,9 +62,11 @@ func (cth Handler) Handle(payload []byte) {
 		return
 	}
 
-	err = cth.transfersService.VerifyFee(*transferMsg)
-	if err != nil {
-		cth.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+	if transferMsg.ExecuteEthTransaction {
+		err = cth.transfersService.VerifyFee(*transferMsg)
+		if err != nil {
+			cth.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+		}
 	}
 
 	err = cth.transfersService.ProcessTransfer(*transferMsg)

@@ -139,7 +139,13 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
+	shouldExecuteEthTransaction := true
+	//Check memo for the format {eth_address-0-0}
+	if m.GasPriceGwei == "0" && m.TxReimbursementFee == "0" {
+		shouldExecuteEthTransaction = false
+	}
+
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, amount, m.TxReimbursementFee, m.GasPriceGwei, shouldExecuteEthTransaction)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

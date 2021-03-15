@@ -44,15 +44,16 @@ const (
 
 type Transaction struct {
 	gorm.Model
-	TransactionId  string `gorm:"unique"`
-	EthAddress     string
-	Amount         string
-	Fee            string
-	Signature      string
-	SubmissionTxId string
-	Status         string
-	EthHash        string
-	GasPriceGwei   string
+	TransactionId         string `gorm:"unique"`
+	EthAddress            string
+	Amount                string
+	Fee                   string
+	Signature             string
+	SubmissionTxId        string
+	Status                string
+	EthHash               string
+	GasPriceGwei          string
+	ExecuteEthTransaction bool
 }
 
 type Repository struct {
@@ -130,15 +131,17 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 	return result, nil
 }
 
+//TODO: Should ExecuteEthTransaction field be added to the other repository functions
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusInitial,
-		GasPriceGwei:  ct.GasPriceGwei,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusInitial,
+		GasPriceGwei:          ct.GasPriceGwei,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
 	return tx, err
