@@ -143,7 +143,6 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 
 	valid, erc20ContractAddress := ctw.contractService.IsValidBridgeAsset(asset)
 	if !valid {
-		// TODO: Log proper error
 		ctw.logger.Errorf("The specified asset [%s] does not have a valid ERC 20 Contract Address", asset)
 	}
 

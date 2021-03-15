@@ -138,7 +138,7 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 
 	r.logger.Infof("Found [%d] unprocessed TXns for Account [%s]", len(txns), r.accountID)
 	for _, tx := range txns {
-		amount, err := tx.GetIncomingAmountFor(r.accountID.String())
+		amount, _, err := tx.GetIncomingAmountFor(r.accountID.String())
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue

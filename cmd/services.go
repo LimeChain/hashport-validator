@@ -50,7 +50,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		fees,
 		ethSigner,
 		repositories.transaction,
-		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+		c.Hedera.Watcher.ConsensusMessage.Topic.Id,
+		contracts)
 
 	messages := messages.NewService(
 		ethSigner,
