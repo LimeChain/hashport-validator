@@ -184,12 +184,24 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		return err
 	}
 
-	err = bs.transactionRepository.UpdateStatusSignatureSubmitted(tm.TransactionId, messageTxId.String(), signature)
+	// Update Transaction Record
+	tx, err := bs.transactionRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
-		bs.logger.Errorf("Failed to update Status for TX [%s]. Error [%s].", tm.TransactionId, err)
+		bs.logger.Errorf("Failed to get TX [%s] from DB", tm.TransactionId)
 		return err
 	}
 
+	tx.Signature = signature
+	tx.SignatureMsgTxId = messageTxId.String()
+	tx.Status = transaction.StatusInProgress
+	tx.SignatureMsgStatus = transaction.StatusSignatureSubmitted
+	err = bs.transactionRepository.Save(tx)
+	if err != nil {
+		bs.logger.Errorf("Failed to update TX [%s]. Error [%s].", tm.TransactionId, err)
+		return err
+	}
+
+	// Attach update callbacks on Signature HCS Message
 	bs.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tm.TransactionId, bs.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := bs.authMessageSubmissionCallbacks(tm.TransactionId)
 	bs.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)

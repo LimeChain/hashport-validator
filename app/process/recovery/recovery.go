@@ -260,7 +260,7 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 }
 
 func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
-	//err := r.transactionRepository.UpdateStatusEthTxSubmitted(m.TransactionId, m.EthTxHash)
+	//err := r.transactionRepository.UpdateEthTxSubmitted(m.TransactionId, m.EthTxHash)
 	//if err != nil {
 	//	r.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
 	//	return err
