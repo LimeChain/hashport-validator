@@ -32,6 +32,7 @@ import (
 	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"regexp"
 	"time"
 )
 
@@ -141,8 +142,9 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 
 	shouldExecuteEthTransaction := true
 	//Check memo for the format {eth_address-0-0}
-	//TODO What if only one of them is zero?
-	if m.GasPriceGwei == "0" && m.TxReimbursementFee == "0" {
+	//TODO What if only one of them is zero or they are invalid format? This validation could be better
+	zeroFeeRegex, _ := regexp.Compile("[0]+")
+	if zeroFeeRegex.MatchString(m.GasPriceGwei) && zeroFeeRegex.MatchString(m.TxReimbursementFee) {
 		shouldExecuteEthTransaction = false
 	}
 
