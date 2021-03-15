@@ -18,11 +18,10 @@ package transfer
 
 import (
 	"errors"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
-	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/message"
 	transaction2 "github.com/limechain/hedera-eth-bridge-validator/test/mocks/transaction"
 	"testing"
 	"time"
@@ -78,32 +77,20 @@ func getEthereumConfig() config.Ethereum {
 }
 
 func InitializeHandler() (*Handler, *transaction2.MockTransactionRepository, *hedera_node_client.MockHederaNodeClient, *hedera_mirror_client.MockHederaMirrorClient, *fees.Calculator) {
-	cthConfig := config.CryptoTransferHandler{
-		TopicId:         topicID,
-		PollingInterval: pollingInterval,
-	}
 	mocks.Setup()
 	ethSigner := eth.NewEthSigner(ethPrivateKey)
 	feeCalculator := fees.NewCalculator(mocks.MExchangeRateProvider, getHederaConfig(), mocks.MBridgeContractService)
-	ethClient := ethereum.NewClient(getEthereumConfig())
 	transactionRepo := &transaction2.MockTransactionRepository{}
-	messageRepo := &message.MockMessageRepository{}
 	hederaNodeClient := &hedera_node_client.MockHederaNodeClient{}
 	hederaMirrorClient := &hedera_mirror_client.MockHederaMirrorClient{}
-	processingService := process.NewProcessingService(ethClient,
-		transactionRepo,
-		messageRepo,
-		addresses,
-		feeCalculator,
-		ethSigner,
-		hederaNodeClient,
-		topicID)
 
-	return NewHandler(cthConfig, ethSigner, hederaMirrorClient, hederaNodeClient, transactionRepo, processingService), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
+	service := transfers.NewService(hederaNodeClient, hederaMirrorClient, feeCalculator, ethSigner, transactionRepo, topicID)
+
+	return NewHandler(service), transactionRepo, hederaNodeClient, hederaMirrorClient, feeCalculator
 }
 
-func GetTestData() (protomsg.CryptoTransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {
-	ctm := protomsg.CryptoTransferMessage{}
+func GetTestData() (protomsg.TransferMessage, hedera.TopicID, hedera.AccountID, []byte, []byte) {
+	ctm := protomsg.TransferMessage{}
 	topicID, _ := hedera.TopicIDFromString(topicID)
 	accID, _ := hedera.AccountIDFromString(accountID)
 
