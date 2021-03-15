@@ -73,7 +73,7 @@ func NewService(
 		scheduler:             scheduler,
 		messageRepository:     messageRepository,
 		transactionRepository: transactionRepository,
-		logger:                config.GetLoggerFor(fmt.Sprintf("Signatures Service")),
+		logger:                config.GetLoggerFor(fmt.Sprintf("Messages Service")),
 		topicID:               tID,
 		hederaClient:          hederaClient,
 		mirrorClient:          mirrorClient,
@@ -129,6 +129,8 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		return err
 	}
 
+	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransactionId)
+
 	// Persist in DB
 	err = ss.messageRepository.Create(&message.TransactionMessage{
 		TransactionId:        tsm.TransactionId,
@@ -145,7 +147,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		return err
 	}
 
-	ss.logger.Infof("[%s] - Successfully processed Signature Message [%s]", tsm.TransactionId, signatureHex)
+	ss.logger.Infof("Successfully processed Signature Message from [%s] for TX [%s]", address.String(), tsm.TransactionId)
 	return nil
 }
 
@@ -183,7 +185,6 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
 func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, fee string, signatures [][]byte, messageHash string) func() {
-	// TODO once the new 3 statuses are introduces, update the correct one only! Atm statuses are overlapping
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
@@ -196,7 +197,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			ss.logger.Errorf("Failed to Submit Signatures for TX [%s]. Error: %s", txId, err)
 			return
 		}
-		err = ss.transactionRepository.UpdateStatusEthTxSubmitted(txId, ethTx.Hash().String())
+		err = ss.transactionRepository.UpdateEthTxSubmitted(txId, ethTx.Hash().String())
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
 			return
@@ -212,7 +213,13 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			ss.logger.Errorf("Failed to submit Ethereum TX Hash to Bridge Topic for TX [%s]. Error %s", txId, err)
 			return
 		}
+		err = ss.transactionRepository.UpdateStatusEthTxMsgSubmitted(txId)
+		if err != nil {
+			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
+			return
+		}
 		ss.logger.Infof("Submitted Ethereum TX Hash [%s] for TX [%s] to HCS. Transaction ID [%s]", ethTx.Hash().String(), txId, hcsTx.String())
+
 		onHcsMessageSuccess, onHcsMessageFail := ss.hcsTxCallbacks(txId)
 		ss.mirrorClient.WaitForTransaction(hcsTx.String(), onHcsMessageSuccess, onHcsMessageFail)
 
@@ -280,7 +287,7 @@ func (ss *Service) submitEthTxTopicMessage(txId, messageHash, ethereumTxHash str
 func (ss *Service) ethTxCallbacks(txId, hash string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		ss.logger.Infof("Ethereum TX [%s] for TX [%s] was successfully mined", hash, txId)
-		err := ss.transactionRepository.UpdateStatusCompleted(txId)
+		err := ss.transactionRepository.UpdateEthTxMined(txId)
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -289,7 +296,7 @@ func (ss *Service) ethTxCallbacks(txId, hash string) (onSuccess, onRevert func()
 
 	onRevert = func() {
 		ss.logger.Infof("Ethereum TX [%s] for TX [%s] reverted", hash, txId)
-		err := ss.transactionRepository.UpdateStatusSignatureFailed(txId)
+		err := ss.transactionRepository.UpdateEthTxReverted(txId)
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -394,7 +401,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 
 func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	etm := tm.GetTopicEthTransactionMessage()
-	err := ss.transactionRepository.UpdateStatusEthTxSubmitted(etm.TransactionId, etm.EthTxHash)
+	err := ss.transactionRepository.UpdateEthTxSubmitted(etm.TransactionId, etm.EthTxHash)
 	if err != nil {
 		ss.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, etm.TransactionId, err)
 		return err

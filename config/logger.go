@@ -18,6 +18,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -29,13 +30,18 @@ func GetLoggerFor(ctx string) *log.Entry {
 }
 
 // InitLogger sets the initial configuration of the used logger
-func InitLogger(debugMode *bool) *log.Level {
+func InitLogger(level string) {
 	log.SetOutput(os.Stdout)
 
-	if *debugMode == true {
+	switch strings.ToLower(level) {
+	case "trace":
+		log.SetLevel(log.TraceLevel)
+	case "debug":
 		log.SetLevel(log.DebugLevel)
-	} else {
+	case "info", "":
 		log.SetLevel(log.InfoLevel)
+	default:
+		log.Fatalf("Unsupported log level: %s", level)
 	}
 
 	log.SetFormatter(&log.TextFormatter{
@@ -43,7 +49,5 @@ func InitLogger(debugMode *bool) *log.Level {
 		TimestampFormat: time.RFC3339Nano,
 	})
 
-	debugLevel := log.GetLevel()
-
-	return &debugLevel
+	log.Infof("Configured Log Level [%s]", log.GetLevel())
 }

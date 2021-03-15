@@ -45,5 +45,6 @@ Name                                                                | Default   
 `hedera.handler.consensus-message.addresses[]`                      | []                                                  | The Ethereum addresses of all validators in the bridge network.
 `hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
 `hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
+`hedera.log_level`                                                  | Info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
 
 

@@ -126,7 +126,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 	}
 
 	if majorityReached {
-		cmh.logger.Debugf("TX [%s] - Enough signatures have been collected.", tsm.TransactionId)
+		cmh.logger.Debugf("Collected Majority of signatures for TX [%s]", tsm.TransactionId)
 		err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransactionId)
 		if err != nil {
 			cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)

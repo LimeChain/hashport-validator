@@ -109,7 +109,7 @@ func (bs *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 		return dbTransaction, err
 	}
 
-	bs.logger.Debugf("Adding new Transaction Record with Txn ID [%s]", tm.TransactionId)
+	bs.logger.Debugf("Adding new Transaction Record TX ID [%s]", tm.TransactionId)
 	tx, err := bs.transactionRepository.Create(tm.TransferMessage)
 	if err != nil {
 		bs.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", tm.TransactionId, err)
@@ -186,23 +186,34 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		bs.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tm.TransactionId, err)
 		return err
 	}
-	bs.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tm.TransactionId, bs.topicID)
 
-	err = bs.transactionRepository.UpdateStatusSignatureSubmitted(tm.TransactionId, messageTxId.String(), signature)
+	// Update Transaction Record
+	tx, err := bs.transactionRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
-		bs.logger.Errorf("Failed to update Status for TX [%s]. Error [%s].", tm.TransactionId, err)
+		bs.logger.Errorf("Failed to get TX [%s] from DB", tm.TransactionId)
 		return err
 	}
 
+	tx.Signature = signature
+	tx.SignatureMsgTxId = messageTxId.String()
+	tx.Status = transaction.StatusInProgress
+	tx.SignatureMsgStatus = transaction.StatusSignatureSubmitted
+	err = bs.transactionRepository.Save(tx)
+	if err != nil {
+		bs.logger.Errorf("Failed to update TX [%s]. Error [%s].", tm.TransactionId, err)
+		return err
+	}
+
+	// Attach update callbacks on Signature HCS Message
+	bs.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tm.TransactionId, bs.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := bs.authMessageSubmissionCallbacks(tm.TransactionId)
 	bs.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
-	bs.logger.Infof("Successfully processed Transfer with ID [%s]", tm.TransactionId)
 	return nil
 }
 
 func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
 	onSuccessfulAuthMessage := func() {
-		bs.logger.Infof("Authorisation Signature TX successfully executed for TX [%s]", txId)
+		bs.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureMined(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
@@ -211,7 +222,7 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 	}
 
 	onFailedAuthMessage := func() {
-		bs.logger.Infof("Authorisation Signature TX failed for TX ID [%s]", txId)
+		bs.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
 			bs.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)

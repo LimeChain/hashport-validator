@@ -1,5 +1,6 @@
 # This file contains application defaults
 hedera:
+  log_level: info
   rest_api_only: false
   validator:
     db:

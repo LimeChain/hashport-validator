@@ -68,13 +68,14 @@ type Config struct {
 }
 
 type Hedera struct {
-	Validator  Validator  `yaml:"validator"`
-	Eth        Ethereum   `yaml:"eth"`
-	MirrorNode MirrorNode `yaml:"mirror_node"`
-	Client     Client     `yaml:"client"`
-	Watcher    Watcher    `yaml:"watcher"`
-	Handler    Handler    `yaml:"handler"`
-	Recovery   Recovery   `yaml:"recovery"`
+	LogLevel    string     `yaml:"log_level"`
+	Validator   Validator  `yaml:"validator"`
+	Eth         Ethereum   `yaml:"eth"`
+	MirrorNode  MirrorNode `yaml:"mirror_node"`
+	Client      Client     `yaml:"client"`
+	Watcher     Watcher    `yaml:"watcher"`
+	Handler     Handler    `yaml:"handler"`
+	Recovery    Recovery   `yaml:"recovery"`
 	RestApiOnly bool       `yaml:"rest_api_only"`
 }
 

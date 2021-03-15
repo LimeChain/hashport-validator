@@ -44,12 +44,6 @@ or use the built executable:
 ./main
 ```
 
-### Run in debug mode
-
-```
-go run cmd/* -debug=true
-```
-
 ### Unit Tests
 
 ```

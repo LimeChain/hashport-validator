@@ -27,20 +27,18 @@ type Transaction interface {
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
 	GetSkippedOrInitialTransactionsAndMessages() (map[joined.CTMKey][]string, error)
 	Create(ct *proto.TransferMessage) (*transaction.Transaction, error)
+	Save(tx *transaction.Transaction) error
+	SaveRecoveredTxn(ct *proto.TransferMessage) error
 	UpdateStatusInsufficientFee(txId string) error
 
-	UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
 
-	UpdateStatusEthTxSubmitted(txId string, hash string) error
-	UpdateStatusEthTxMined(txId string) error
-	UpdateStatusEthTxReverted(txId string) error
+	UpdateEthTxSubmitted(txId string, hash string) error
+	UpdateEthTxMined(txId string) error
+	UpdateEthTxReverted(txId string) error
 
 	UpdateStatusEthTxMsgSubmitted(txId string) error
 	UpdateStatusEthTxMsgMined(txId string) error
 	UpdateStatusEthTxMsgFailed(txId string) error
-
-	SaveRecoveredTxn(ct *proto.TransferMessage) error
-	UpdateStatusCompleted(txId string) error
 }

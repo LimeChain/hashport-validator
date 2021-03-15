@@ -58,7 +58,7 @@ func (cth Handler) Handle(payload []byte) {
 	}
 
 	if transactionRecord.Status != txRepo.StatusInitial {
-		cth.logger.Infof("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionId, transactionRecord.Status)
+		cth.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionId, transactionRecord.Status)
 		return
 	}
 

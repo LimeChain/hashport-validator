@@ -40,8 +40,8 @@ func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
 }
 
 func (ew *Watcher) Watch(queue *queue.Queue) {
-	log.Infof("[Ethereum Watcher] - Start listening for events for contract address [%s].", ew.config.BridgeContractAddress)
 	go ew.listenForEvents(queue)
+	log.Infof("Listening for events at contract [%s]", ew.config.BridgeContractAddress)
 }
 
 func (ew *Watcher) listenForEvents(q *queue.Queue) {

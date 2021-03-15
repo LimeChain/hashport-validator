@@ -120,14 +120,14 @@ func Test_Handle_Not_Initial_Transaction(t *testing.T) {
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
 	tx := &transaction.Transaction{
-		Model:          gorm.Model{},
-		TransactionId:  ctm.TransactionId,
-		EthAddress:     ctm.EthAddress,
-		Amount:         ctm.Amount,
-		Fee:            ctm.Fee,
-		Signature:      signature,
-		SubmissionTxId: submissionTxID,
-		Status:         txRepo.StatusCompleted,
+		Model:            gorm.Model{},
+		TransactionId:    ctm.TransactionId,
+		EthAddress:       ctm.EthAddress,
+		Amount:           ctm.Amount,
+		Fee:              ctm.Fee,
+		Signature:        signature,
+		SignatureMsgTxId: submissionTxID,
+		Status:           txRepo.StatusCompleted,
 	}
 
 	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, nil)
@@ -151,14 +151,14 @@ func Test_Handle_Initial_Transaction(t *testing.T) {
 	}
 
 	tx := &transaction.Transaction{
-		Model:          gorm.Model{},
-		TransactionId:  ctm.TransactionId,
-		EthAddress:     ctm.EthAddress,
-		Amount:         ctm.Amount,
-		Fee:            ctm.Fee,
-		Signature:      signature,
-		SubmissionTxId: submissionTxID,
-		Status:         txRepo.StatusInitial,
+		Model:            gorm.Model{},
+		TransactionId:    ctm.TransactionId,
+		EthAddress:       ctm.EthAddress,
+		Amount:           ctm.Amount,
+		Fee:              ctm.Fee,
+		Signature:        signature,
+		SignatureMsgTxId: submissionTxID,
+		Status:           txRepo.StatusInitial,
 	}
 
 	txs := mirror_node.Response{
@@ -190,14 +190,14 @@ func Test_Handle_Failed(t *testing.T) {
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
 	tx := &transaction.Transaction{
-		Model:          gorm.Model{},
-		TransactionId:  ctm.TransactionId,
-		EthAddress:     ctm.EthAddress,
-		Amount:         ctm.Amount,
-		Fee:            ctm.Fee,
-		Signature:      signature,
-		SubmissionTxId: submissionTxID,
-		Status:         txRepo.StatusInitial,
+		Model:            gorm.Model{},
+		TransactionId:    ctm.TransactionId,
+		EthAddress:       ctm.EthAddress,
+		Amount:           ctm.Amount,
+		Fee:              ctm.Fee,
+		Signature:        signature,
+		SignatureMsgTxId: submissionTxID,
+		Status:           txRepo.StatusInitial,
 	}
 
 	transactionRepo.On("GetByTransactionId", ctm.TransactionId).Return(tx, errors.New("Failed to get record by transaction id"))
