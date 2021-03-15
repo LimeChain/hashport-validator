@@ -143,7 +143,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 	shouldExecuteEthTransaction := true
 	//Check memo for the format {eth_address-0-0}
 	//TODO What if only one of them is zero or they are invalid format? This validation could be better
-	zeroFeeRegex, _ := regexp.Compile("[0]+")
+	zeroFeeRegex, _ := regexp.Compile("^[0]+$")
 	if zeroFeeRegex.MatchString(m.GasPriceGwei) && zeroFeeRegex.MatchString(m.TxReimbursementFee) {
 		shouldExecuteEthTransaction = false
 	}
