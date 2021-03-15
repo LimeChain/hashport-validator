@@ -36,7 +36,7 @@ type Memo struct {
 
 // FromBase64String sanity checks and instantiates new Memo struct from base64 encoded string
 func FromBase64String(base64Str string) (*Memo, error) {
-	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
+	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[0-9]+-[0-9]+$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(base64Str)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))

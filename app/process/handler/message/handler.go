@@ -141,6 +141,8 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 				cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
 			}
 		}
+	} else {
+		cmh.logger.Infof("Transaction [%s] will not be scheduled for submission.", tsm.TransactionId)
 	}
 }
 

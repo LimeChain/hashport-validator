@@ -141,6 +141,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 
 	shouldExecuteEthTransaction := true
 	//Check memo for the format {eth_address-0-0}
+	//TODO What if only one of them is zero?
 	if m.GasPriceGwei == "0" && m.TxReimbursementFee == "0" {
 		shouldExecuteEthTransaction = false
 	}
