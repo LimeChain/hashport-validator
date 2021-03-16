@@ -18,7 +18,6 @@ package transaction
 
 import (
 	"errors"
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -129,9 +128,12 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error)
 	return transactions, nil
 }
 
+// TODO Move to message repo
 func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
 	var messages []*transaction.JoinedTxnMessage
 
+	// TODO
+	// Get all Message records which have TXID = ONE OF (Select TXID where Status = RECOVERED || INITIAL)
 	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
 		"transactions.transaction_id, " +
 		"transactions.eth_address, " +
@@ -144,7 +146,6 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
 		Scan(&messages).Error
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
+	proof "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -75,20 +76,19 @@ func (bs *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
 	}
 
-	// TODO
-	//stateProof, e = bs.clients.MirrorNode.GetStateProof(tx.TransactionID)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	//}
+	stateProof, e := bs.mirrorNode.GetStateProof(tx.TransactionID)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+	}
 
-	//verified, e := proof.Verify(tx.TransactionID, stateProof)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]"), e))
-	//}
-	//
-	//if !verified {
-	//	return nil, errors.New("State proof not valid")
-	//}
+	verified, e := proof.Verify(tx.TransactionID, stateProof)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+	}
+
+	if !verified {
+		return nil, errors.New("State proof not valid")
+	}
 
 	return m, nil
 }
@@ -208,8 +208,8 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	return nil
 }
 
-func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
-	onSuccessfulAuthMessage := func() {
+func (bs *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
+	onSuccess = func() {
 		bs.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureMined(txId)
 		if err != nil {
@@ -218,7 +218,7 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 		}
 	}
 
-	onFailedAuthMessage := func() {
+	onRevert = func() {
 		bs.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
@@ -226,5 +226,5 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 			return
 		}
 	}
-	return onSuccessfulAuthMessage, onFailedAuthMessage
+	return onSuccess, onRevert
 }

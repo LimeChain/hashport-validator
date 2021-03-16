@@ -103,6 +103,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
+		return err
 	}
 
 	// Prepare Signature
@@ -117,6 +118,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	exists, err := ss.messageRepository.Exist(tsm.TransactionId, signatureHex, authMessageStr)
 	if err != nil {
 		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", tsm.TransactionId, err)
+		return err
 	}
 	if exists {
 		ss.logger.Errorf("Signature already received for TX [%s]", tsm.TransactionId)

@@ -74,14 +74,16 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctw.logger.Debug("No Transfer Watcher Timestamp found in DB")
 			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
 			if err != nil {
-				ctw.logger.Fatalf("[%s] Failed to create Transfer Watcher Status timestamp. Error %s", accountAddress, err)
+				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error %s", err)
 			}
+			ctw.logger.Tracef("Cteated new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
 			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Err: %s", err)
 		}
+	} else {
+		ctw.updateStatusTimestamp(ctw.startTimestamp)
 	}
 
 	if !ctw.client.AccountExists(ctw.accountID) {
@@ -90,7 +92,15 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 	}
 
 	go ctw.beginWatching(q)
-	ctw.logger.Infof("Watching for Transfers after Timestamp [%d]", ctw.startTimestamp)
+	ctw.logger.Infof("Watching for Transfers after Timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
+}
+
+func (ctw Watcher) updateStatusTimestamp(ts int64) {
+	err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), ts)
+	if err != nil {
+		ctw.logger.Fatalf("Failed to update Transfer Watcher Status timestamp. Error %s", err)
+	}
+	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
 func (ctw Watcher) beginWatching(q *queue.Queue) {
@@ -114,12 +124,8 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 				ctw.logger.Errorf("Watcher [%s] - Unable to parse latest transaction timestamp. Error - [%s].", ctw.accountID.String(), err)
 				continue
 			}
-		}
 
-		err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), milestoneTimestamp)
-		if err != nil {
-			ctw.logger.Errorf("Error incoming: Failed to update last fetched timestamp - [%s]", e)
-			return
+			ctw.updateStatusTimestamp(milestoneTimestamp)
 		}
 		time.Sleep(ctw.pollingInterval * time.Second)
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -57,16 +58,26 @@ func (cmw Watcher) Watch(q *queue.Queue) {
 	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			cmw.logger.Debug("No Topic Watcher Timestamp found in DB")
 			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
 			if err != nil {
 				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error %s", err)
 			}
+			cmw.logger.Tracef("Cteated new Topic Watcher status timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 		} else {
 			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Err: %s", err)
 		}
+	} else {
+		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
 	cmw.subscribeToTopic(q)
+}
+
+func (cmw Watcher) updateStatusTimestamp(ts int64) {
+	err := cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), ts)
+	if err != nil {
+		cmw.logger.Fatalf("Failed to update Topic Watcher Status timestamp. Error %s", err)
+	}
+	cmw.logger.Tracef("Updated Topic Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
 func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
@@ -77,6 +88,7 @@ func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
 			cmw.nodeClient.GetClient(),
 			func(topicMsg hedera.TopicMessage) {
 				cmw.processMessage(topicMsg, q)
+				cmw.updateStatusTimestamp(topicMsg.ConsensusTimestamp.UnixNano())
 			},
 		)
 
@@ -84,7 +96,7 @@ func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
 		cmw.logger.Error("Failed to subscribe to topic")
 		return
 	}
-	cmw.logger.Infof("Subscribed to Messages after Timestamp [%d]", cmw.startTimestamp)
+	cmw.logger.Infof("Subscribed to Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
 func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) {
@@ -98,8 +110,4 @@ func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) 
 	}
 
 	publisher.Publish(msg, cmw.typeMessage, cmw.topicID, q)
-	err = cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), messageTimestamp)
-	if err != nil {
-		cmw.logger.Errorf("Could not update last fetched timestamp - [%d]", messageTimestamp)
-	}
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -36,6 +37,8 @@ type Recovery struct {
 	transfers               service.Transfers
 	messages                service.Messages
 	statusTransferRepo      repository.Status
+	statusMessagesRepo      repository.Status
+	transactionsRepo        repository.Transaction
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
@@ -49,6 +52,8 @@ func NewProcess(
 	transfers service.Transfers,
 	messagesService service.Messages,
 	statusTransferRepo repository.Status,
+	statusMessagesRepo repository.Status,
+	transactionsRepo repository.Transaction,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
@@ -66,6 +71,8 @@ func NewProcess(
 		transfers:               transfers,
 		messages:                messagesService,
 		statusTransferRepo:      statusTransferRepo,
+		statusMessagesRepo:      statusMessagesRepo,
+		transactionsRepo:        transactionsRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
 		accountID:               account,
@@ -75,62 +82,65 @@ func NewProcess(
 	}, nil
 }
 
-// ComputeInterval calculates the `from` and `to` unix nano timestamps to be used for the recovery process
-func (r *Recovery) ComputeInterval() (int64, int64, error) {
-	var from int64 = 0
-	to := time.Now().UnixNano()
+// ComputeIntervals calculates the `from` and `to` unix nano timestamps to be used for the recovery process for both the transfers and messages recovery
+func (r Recovery) ComputeIntervals() (transfersFrom int64, messagesFrom int64, to int64, err error) {
+	to = time.Now().UnixNano()
 	if r.configRecoveryTimestamp > 0 {
-		from = r.configRecoveryTimestamp
+		transfersFrom = r.configRecoveryTimestamp
+		messagesFrom = r.configRecoveryTimestamp
 	} else {
-		lastFetched, err := r.statusTransferRepo.GetLastFetchedTimestamp(r.accountID.String())
+		lastFetchedTransfer, err := r.statusTransferRepo.GetLastFetchedTimestamp(r.accountID.String())
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return 0, to, nil
+				transfersFrom = 0
 			} else {
-				return 0, to, err
+				return 0, 0, to, err
 			}
 		}
-		from = lastFetched
+		lastFetchedMessage, err := r.statusMessagesRepo.GetLastFetchedTimestamp(r.topicID.String())
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				messagesFrom = 0
+			} else {
+				return 0, 0, to, err
+			}
+		}
+		transfersFrom = lastFetchedTransfer
+		messagesFrom = lastFetchedMessage
 	}
-	return from, to, nil
+	return transfersFrom, messagesFrom, to, nil
 }
 
 // Start starts the main recovery process
-func (r *Recovery) Start(from, to int64) error {
-	r.logger.Infof("Starting Recovery Process for interval [%d; %d]", from, to)
+func (r Recovery) Start(transfersFrom, messagesFrom, to int64) error {
+	r.logger.Infof("Starting Recovery Process for Transfers with interval [%s; %s]", timestamp.ToHumanReadable(transfersFrom), timestamp.ToHumanReadable(to))
+	r.logger.Infof("Starting Recovery Process for Messages with interval [%s; %s]", timestamp.ToHumanReadable(messagesFrom), timestamp.ToHumanReadable(to))
 
-	err := r.transfersRecovery(from, to)
+	err := r.transfersRecovery(transfersFrom, to)
 	if err != nil {
 		r.logger.Errorf("Transfers Recovery failed: [%s]", err)
 		return err
 	}
 
-	err = r.topicMessagesRecovery(from, to)
+	err = r.topicMessagesRecovery(messagesFrom, to)
 	if err != nil {
-		r.logger.Errorf("Topic Messages Recovery failed", err)
+		r.logger.Errorf("Topic Messages Recovery failed: [%s]", err)
 		return err
 	}
 
-	// TODO Handle unprocessed TXs
-	// 1. Get all Skipped TX (DONE)
-	// 2. Get all message records for the set of TX IDs (from the Skipped TX records) (DONE)
-	// 3. Group messages and TX IDs into a map (TX ID->Messages) (DONE)
-	// 4. Go through all TX ID -> Messages. If current validator node haven't submitted a signature message -> sign and submit signature message to topic (DONE)
+	err = r.processUnfinishedOperations()
+	if err != nil {
+		r.logger.Error("Failed to process unfinished operations")
+		return err
+	}
 
-	//log.Infof("Starting to process skipped Transactions")
-	//err = r.processSkipped()
-	//if err != nil {
-	//	r.logger.Errorf("Error - could not finish processing skipped transactions: [%s]", err)
-	//	return err
-	//}
-	//log.Infof("[SUCCESSFUL] Process of Skipped Transactions")
-
+	log.Infof("Recovery process finished successfully")
 	return nil
 }
 
 // transfersRecovery queries all incoming Transfer Transactions for the specified AccountID occurring between `from` and `to`
 // Performs sanity checks and persists them in the database
-func (r *Recovery) transfersRecovery(from int64, to int64) error {
+func (r Recovery) transfersRecovery(from int64, to int64) error {
 	txns, err := r.mirrorClient.GetAccountCreditTransactionsBetween(r.accountID, from, to)
 	if err != nil {
 		return err
@@ -165,8 +175,9 @@ func (r *Recovery) transfersRecovery(from int64, to int64) error {
 	return nil
 }
 
-// topicMessagesRecovery
-func (r *Recovery) topicMessagesRecovery(from, to int64) error {
+// topicMessagesRecovery queries all missed Topic messages between the provided timestamps
+// Performs sanity checks on the missed messages and persists them in the DB
+func (r Recovery) topicMessagesRecovery(from, to int64) error {
 	messages, err := r.mirrorClient.GetMessagesForTopicBetween(r.topicID, from, to)
 	if err != nil {
 		return err
@@ -189,8 +200,7 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 		case validatorproto.TopicMessageType_EthSignature:
 			err = r.messages.ProcessSignature(*m)
 		case validatorproto.TopicMessageType_EthTransaction:
-			// TODO resolve the recovery
-			err = r.checkStatusAndUpdate(m.GetTopicEthTransactionMessage())
+			err = r.recoverEthereumTXMessage(*m)
 		default:
 			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
 		}
@@ -201,42 +211,68 @@ func (r *Recovery) topicMessagesRecovery(from, to int64) error {
 		}
 	}
 
+	r.logger.Infof("Successfully recovered [%d] Messages for TOpic [%s]", len(messages), r.topicID)
 	return nil
 }
 
-func (r *Recovery) processSkipped() error {
-	//unprocessed, err := r.transactionRepository.GetSkippedOrInitialTransactionsAndMessages()
+func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
+	ethTxMessage := tm.GetTopicEthTransactionMessage()
+	isValid, err := r.messages.VerifyEthereumTxAuthenticity(tm)
+	if err != nil {
+		r.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransactionId)
+		return err
+	}
+	if !isValid {
+		r.logger.Infof("Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.EthTxHash)
+		return nil
+	}
+
+	err = r.messages.ProcessEthereumTxMessage(tm)
+	if err != nil {
+		r.logger.Errorf("Failed to process Ethereum TX Message for TX[%s]", ethTxMessage.TransactionId)
+		return nil
+	}
+	return nil
+}
+
+func (r Recovery) processUnfinishedOperations() error {
+	// TODO messagesRepo.getUnprocessedMessages() <- should return all Messages whose TX ID is status INITIAL or RECOVERED
+	//unprocessed, err := r.transactionsRepo.GetSkippedOrInitialTransactionsAndMessages()
 	//if err != nil {
-	//	return errors.New(fmt.Sprintf("Error - could not go through all skipped transactions: [%s]", err))
+	//	r.logger.Fatalf("Failed to get all unprocessed messages. Error: %s", err)
+	//	return err
 	//}
-	//
+
+	// Combine all Messages records into map({txId, amount, fee, gasPrice, etc}, []signatures)
+	// Iterate all keys
+	// 	If validator has not signed -> sign and submit
 	//for txn, txnSignatures := range unprocessed {
-	//	hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
+	//hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
 	//
-	//	if !hasSubmittedSignature {
-	//		r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
-	//		// TODO
-	//		err = r.transfersService.VerifyFee(ctm)
-	//		if err != nil {
-	//			r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
-	//		}
-	//
-	//		signature, err := r.transfersService.ValidateAndSignTxn(ctm)
-	//		if err != nil {
-	//			r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
-	//		}
-	//
-	//		_, err = r.transfersService.HandleTopicSubmission(ctm, signature)
-	//		if err != nil {
-	//			return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
-	//		}
-	//		r.logger.Infof("Successfully Validated")
+	//if !hasSubmittedSignature {
+	//	r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
+	//	// TODO
+	//	err = r.transfersService.VerifyFee(ctm)
+	//	if err != nil {
+	//		r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 	//	}
+	//
+	//	signature, err := r.transfersService.ValidateAndSignTxn(ctm)
+	//	if err != nil {
+	//		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
+	//	}
+	//
+	//	_, err = r.transfersService.HandleTopicSubmission(ctm, signature)
+	//	if err != nil {
+	//		return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
+	//	}
+	//	r.logger.Infof("Successfully Validated")
+	//}
 	//}
 	return nil
 }
 
-func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
+func (r Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
 	//ctm := &validatorproto.TransferMessage{
 	//	TransactionId: data.TransactionId,
 	//	EthAddress:    data.EthAddress,
@@ -255,17 +291,5 @@ func (r *Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string
 	//		return true, nil
 	//	}
 	//}
-	//return false, ctm
 	return false, nil
-}
-
-func (r *Recovery) checkStatusAndUpdate(m *validatorproto.TopicEthTransactionMessage) error {
-	//err := r.transactionRepository.UpdateEthTxSubmitted(m.TransactionId, m.EthTxHash)
-	//if err != nil {
-	//	r.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusEthTxSubmitted, m.TransactionId, err)
-	//	return err
-	//}
-	//
-	//go r.transfersService.AcknowledgeTransactionSuccess(m)
-	return nil
 }

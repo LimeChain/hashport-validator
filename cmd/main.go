@@ -63,7 +63,7 @@ func main() {
 		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
 		server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
 
-		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.cryptoTransferStatus, server, watchersStartTimestamp)
+		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.transferStatus, server, watchersStartTimestamp)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -74,7 +74,7 @@ func main() {
 			services.contracts,
 			services.messages))
 
-		err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.consensusMessageStatus, server, watchersStartTimestamp)
+		err = addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.messageStatus, server, watchersStartTimestamp)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -89,20 +89,20 @@ func main() {
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.messages, repository.cryptoTransferStatus, client.MirrorNode, client.HederaNode)
+	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.messages, repository.transferStatus, repository.messageStatus, repository.transaction, client.MirrorNode, client.HederaNode)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Err %s", err)
 	}
-	recoveryFrom, recoveryTo, err := r.ComputeInterval()
+	transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo, err := r.ComputeIntervals()
 	if err != nil {
 		log.Fatalf("Could not compute recovery interval. Error %s", err)
 	}
-	if recoveryFrom <= 0 {
+	if transfersRecoveryFrom <= 0 {
 		log.Infof("Skipping Recovery process. Nothing to recover")
 	} else {
-		err = r.Start(recoveryFrom, recoveryTo)
+		err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
 		if err != nil {
-			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: %s", recoveryFrom, recoveryTo, err)
+			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: %s", transfersRecoveryFrom, recoveryTo, err)
 		}
 	}
 	return err, recoveryTo
