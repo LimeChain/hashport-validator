@@ -418,7 +418,7 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, error) {
 	t, err := ss.transactionRepository.GetByTransactionId(transactionId)
 	if err != nil {
-		ss.logger.Errorf("Could not load transaction info for TX [%s] Error: [%s]", transactionId, err)
+		ss.logger.Errorf("Could not load transaction info for TX [%s] Error: %s", transactionId, err)
 		return false, err
 	}
 	return t.ExecuteEthTransaction, nil
