@@ -72,18 +72,18 @@ const (
 
 type Transaction struct {
 	gorm.Model
-	TransactionId      string `gorm:"unique"`
-	EthAddress         string
-	Amount             string
-	Fee                string
-	Signature          string
-	SignatureMsgTxId   string
-	Status             string
-	SignatureMsgStatus string
-	EthTxMsgStatus     string
-	EthTxStatus        string
-	EthHash            string
-	GasPriceGwei       string
+	TransactionId         string `gorm:"unique"`
+	EthAddress            string
+	Amount                string
+	Fee                   string
+	Signature             string
+	SignatureMsgTxId      string
+	Status                string
+	SignatureMsgStatus    string
+	EthTxMsgStatus        string
+	EthTxStatus           string
+	EthHash               string
+	GasPriceGwei          string
 	ExecuteEthTransaction bool
 }
 
