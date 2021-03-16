@@ -48,8 +48,15 @@ func FromBase64String(base64Str string) (*Memo, error) {
 
 	memoSplit := strings.Split(string(decodedMemo), "-")
 	ethAddress := memoSplit[0]
-	txReimbursement := memoSplit[1]
-	gasPriceGwei := memoSplit[2]
+	txReimbursement := strings.TrimLeft(memoSplit[1], "0")
+	gasPriceGwei := strings.TrimLeft(memoSplit[2], "0")
+
+	if txReimbursement == "" {
+		txReimbursement = "0"
+	}
+	if gasPriceGwei == "" {
+		gasPriceGwei = "0"
+	}
 
 	return &Memo{
 		EthereumAddress:    ethAddress,
