@@ -66,6 +66,7 @@ func (s *Scheduler) Cancel(id string) {
 	t, exists := s.tasks.Load(id)
 	if !exists {
 		s.logger.Warnf("Scheduled transaction execution for [%s] not found.", id)
+		return
 	}
 
 	storage := t.(*Storage)

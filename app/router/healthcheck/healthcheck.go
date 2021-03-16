@@ -42,6 +42,3 @@ func healthResponse() func(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 }
-
-
-

@@ -40,35 +40,35 @@ func NewHandler(transfersService service.Transfers) *Handler {
 }
 
 // Recover mechanism
-func (cth Handler) Recover(q *queue.Queue) {
+func (th Handler) Recover(q *queue.Queue) {
 
 }
 
-func (cth Handler) Handle(payload []byte) {
+func (th Handler) Handle(payload []byte) {
 	transferMsg, err := encoding.NewTransferMessageFromBytes(payload)
 	if err != nil {
-		cth.logger.Errorf("Failed to parse incoming payload. Error [%s].", err)
+		th.logger.Errorf("Failed to parse incoming payload. Error [%s].", err)
 		return
 	}
 
-	transactionRecord, err := cth.transfersService.InitiateNewTransfer(*transferMsg)
+	transactionRecord, err := th.transfersService.InitiateNewTransfer(*transferMsg)
 	if err != nil {
-		cth.logger.Errorf("Error occurred while initiating TX ID [%s] processing", transferMsg.TransactionId)
+		th.logger.Errorf("Error occurred while initiating TX ID [%s] processing", transferMsg.TransactionId)
 		return
 	}
 
 	if transactionRecord.Status != txRepo.StatusInitial {
-		cth.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionId, transactionRecord.Status)
+		th.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionId, transactionRecord.Status)
 		return
 	}
 
-	err = cth.transfersService.VerifyFee(*transferMsg)
+	err = th.transfersService.VerifyFee(*transferMsg)
 	if err != nil {
-		cth.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+		th.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 	}
 
-	err = cth.transfersService.ProcessTransfer(*transferMsg)
+	err = th.transfersService.ProcessTransfer(*transferMsg)
 	if err != nil {
-		cth.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
+		th.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
 	}
 }

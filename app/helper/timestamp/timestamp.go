@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -54,4 +55,10 @@ func String(timestamp int64) string {
 // ToNanos - converts timestamp in seconds to timestamp in nanos
 func ToNanos(timestampInSec int64) int64 {
 	return timestampInSec * nanosInSecond
+}
+
+// ToHumanReadable converts the timestamp into human readable string
+func ToHumanReadable(timestampNanos int64) string {
+	parsed := time.Unix(timestampNanos/nanosInSecond, timestampNanos&nanosInSecond)
+	return parsed.Format(time.RFC3339Nano)
 }

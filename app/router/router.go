@@ -58,4 +58,3 @@ func NewAPIRouter() *APIRouter {
 func (api *APIRouter) AddV1Router(path string, router http.Handler) {
 	api.Router.Mount(fmt.Sprint(apiV1, path), router)
 }
-

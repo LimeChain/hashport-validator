@@ -22,6 +22,7 @@ import (
 	"strings"
 )
 
+// TODO not necessary -> remove
 type TxId struct {
 	AccountId string
 	Seconds   string
