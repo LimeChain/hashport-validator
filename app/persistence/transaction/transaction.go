@@ -83,7 +83,7 @@ type Transaction struct {
 	EthTxStatus           string
 	EthHash               string
 	GasPriceGwei          string
-	Asset			      string
+	Asset                 string
 	ExecuteEthTransaction bool
 }
 
@@ -170,14 +170,14 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 // Create creates new record of Transaction
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusInitial,
-		GasPriceGwei:  ct.GasPriceGwei,
-		Asset:         ct.Asset,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusInitial,
+		GasPriceGwei:          ct.GasPriceGwei,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
@@ -191,14 +191,14 @@ func (tr Repository) Save(tx *Transaction) error {
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusRecovered,
-		GasPriceGwei:  ct.GasPriceGwei,
-		Asset:         ct.Asset,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusRecovered,
+		GasPriceGwei:          ct.GasPriceGwei,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }
