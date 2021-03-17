@@ -31,6 +31,10 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
+func (m *MockBridgeContract) IsValidBridgeAsset(tokenId string) (bool, string) {
+	panic("implement me")
+}
+
 func (m *MockBridgeContract) IsMember(address string) bool {
 	panic("implement me")
 }
