@@ -48,9 +48,4 @@ func Test_LevelsWorkCorrectly(t *testing.T) {
 	if logEntry.Logger.Level != log.InfoLevel {
 		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.InfoLevel, logEntry.Level)
 	}
-
-	InitLogger("some-random-level")
-	if logEntry.Logger.Level != log.TraceLevel {
-
-	}
 }
