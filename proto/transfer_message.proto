@@ -11,7 +11,7 @@ message TransferMessage {
   string amount = 3;
   string fee = 4;
   string gasPriceGwei = 5;
-  bool executeEthTransaction = 6;
+  bool   executeEthTransaction = 6;
   string asset = 7;
   string erc20Address = 8;
 }
