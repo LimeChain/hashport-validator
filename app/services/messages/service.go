@@ -100,7 +100,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee, tsm.GasPrice)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
 		return err
@@ -143,6 +143,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		Hash:                 authMessageStr,
 		SignerAddress:        address.String(),
 		TransactionTimestamp: tm.TransactionTimestamp,
+		GasPrice:             tsm.GasPrice,
 	})
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransactionId, signatureHex, err)
@@ -344,7 +345,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 	// Verify Ethereum TX `call data`
-	txId, ethAddress, amount, fee, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	txId, ethAddress, amount, fee, gasPrice, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
 	if err != nil {
 		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
 			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
@@ -375,7 +376,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	}
 
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, amount, fee)
+	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, amount, fee, gasPrice)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature to reconstruct required Signature for TX ID [%s]. Error: %s", txId, err)
 		return false, err

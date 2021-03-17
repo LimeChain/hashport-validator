@@ -62,9 +62,9 @@ func (cmw Watcher) Watch(q *queue.Queue) {
 			if err != nil {
 				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error %s", err)
 			}
-			cmw.logger.Tracef("Cteated new Topic Watcher status timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
+			cmw.logger.Tracef("Created new Topic Watcher status timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 		} else {
-			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Err: %s", err)
+			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error %s", err)
 		}
 	} else {
 		cmw.updateStatusTimestamp(cmw.startTimestamp)

@@ -55,21 +55,21 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee string, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, gasPrice string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
-		return "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
-		return "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	if len(decodedParameters) != MintFunctionParametersCount {
-		return "", "", "", "", nil, ErrorInvalidMintFunctionParameters
+		return "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
@@ -78,14 +78,17 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee string
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
+	// TODO: Update Key to Gas Price once contract is ready
+	gasPriceBn := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
-			return "", "", "", "", nil, err
+			return "", "", "", "", "", nil, err
 		}
 	}
 
-	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), signatures, nil
+	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), gasPriceBn.String(), signatures, nil
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {

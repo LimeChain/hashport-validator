@@ -82,7 +82,7 @@ type Transaction struct {
 	EthTxMsgStatus        string
 	EthTxStatus           string
 	EthHash               string
-	GasPriceGwei          string
+	GasPrice              string
 	ExecuteEthTransaction bool
 }
 
@@ -140,7 +140,7 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 		"transactions.amount, " +
 		"transactions.fee, " +
 		"transaction_messages.signature, " +
-		"transactions.gas_price_gwei " +
+		"transactions.gas_price " +
 		"FROM transactions " +
 		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
 		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
@@ -165,6 +165,8 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 	return result, nil
 }
 
+// TODO: Take it from memo in Transfer Watcher as GWEI, Sign as WEI at Transfer Handler, submit it to HCS Topic as WEI, work with WEI from then on
+
 // Create creates new record of Transaction
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
@@ -174,7 +176,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusInitial,
-		GasPriceGwei:          ct.GasPriceGwei,
+		GasPrice:              ct.GasPriceGwei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
@@ -194,7 +196,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusRecovered,
-		GasPriceGwei:          ct.GasPriceGwei,
+		GasPrice:              ct.GasPriceGwei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }

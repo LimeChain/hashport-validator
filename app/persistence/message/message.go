@@ -31,6 +31,7 @@ type TransactionMessage struct {
 	Hash                 string
 	SignerAddress        string
 	TransactionTimestamp int64
+	GasPrice             string
 }
 
 type Repository struct {
