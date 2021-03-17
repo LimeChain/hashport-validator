@@ -17,6 +17,7 @@
 package config
 
 import (
+	log "github.com/sirupsen/logrus"
 	"testing"
 )
 
@@ -26,5 +27,30 @@ func Test_GetLoggerFor(t *testing.T) {
 
 	if logEntry.Data["context"] != ctx {
 		t.Fatalf(`Expected to return logger with context: [%s]`, ctx)
+	}
+}
+
+func Test_LevelsWorkCorrectly(t *testing.T) {
+	ctx := "testContext"
+	logEntry := GetLoggerFor(ctx)
+
+	InitLogger("trace")
+	if logEntry.Logger.Level != log.TraceLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.TraceLevel, logEntry.Level)
+	}
+
+	InitLogger("debug")
+	if logEntry.Logger.Level != log.DebugLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.DebugLevel, logEntry.Level)
+	}
+
+	InitLogger("info")
+	if logEntry.Logger.Level != log.InfoLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.InfoLevel, logEntry.Level)
+	}
+
+	InitLogger("some-random-level")
+	if logEntry.Logger.Level != log.TraceLevel {
+
 	}
 }

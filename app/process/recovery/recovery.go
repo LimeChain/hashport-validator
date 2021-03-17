@@ -107,7 +107,7 @@ func (r *Recovery) Start(from, to int64) error {
 
 	err = r.topicMessagesRecovery(from, to)
 	if err != nil {
-		r.logger.Errorf("Topic Messages Recovery failed", err)
+		r.logger.Errorf("Topic Messages Recovery failed [%s]", err)
 		return err
 	}
 

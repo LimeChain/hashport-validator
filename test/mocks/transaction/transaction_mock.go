@@ -27,8 +27,70 @@ type MockTransactionRepository struct {
 	mock.Mock
 }
 
+func (m *MockTransactionRepository) Create(ct *proto.TransferMessage) (*transaction.Transaction, error) {
+	args := m.Called(ct)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args.Get(1) == nil {
+		return args.Get(0).(*transaction.Transaction), nil
+	}
+	return args.Get(0).(*transaction.Transaction), args.Get(1).(error)
+}
+
+func (m *MockTransactionRepository) Save(tx *transaction.Transaction) error {
+	args := m.Called(tx)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) UpdateStatusSignatureMined(txId string) error {
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) UpdateEthTxMined(txId string) error {
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) UpdateStatusEthTxMsgSubmitted(txId string) error {
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) UpdateStatusEthTxMsgMined(txId string) error {
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (m *MockTransactionRepository) UpdateStatusEthTxMsgFailed(txId string) error {
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
 func (m *MockTransactionRepository) GetByTransactionId(transactionId string) (*transaction.Transaction, error) {
 	args := m.Called(transactionId)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
 	if args.Get(1) == nil {
 		return args.Get(0).(*transaction.Transaction), nil
 	}
@@ -37,20 +99,13 @@ func (m *MockTransactionRepository) GetByTransactionId(transactionId string) (*t
 
 func (m *MockTransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error) {
 	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
 	if args.Get(1) == nil {
 		return args.Get(0).([]*transaction.Transaction), nil
 	}
 	return args.Get(0).([]*transaction.Transaction), args.Get(1).(error)
-}
-
-func (m *MockTransactionRepository) Create(ct *proto.TransferMessage) error {
-	args := m.Called(ct)
-	return args.Get(0).(error)
-}
-
-func (m *MockTransactionRepository) UpdateStatusCompleted(txId string) error {
-	args := m.Called(txId)
-	return args.Get(0).(error)
 }
 
 func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) error {
@@ -61,28 +116,24 @@ func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) err
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusSignatureProvided(txId string) error {
-	args := m.Called(txId)
-	return args.Get(0).(error)
-}
-
 func (m *MockTransactionRepository) UpdateStatusSignatureFailed(txId string) error {
 	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusEthTxSubmitted(txId string, hash string) error {
+func (m *MockTransactionRepository) UpdateEthTxSubmitted(txId string, hash string) error {
 	args := m.Called(txId, hash)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusEthTxReverted(txId string) error {
+func (m *MockTransactionRepository) UpdateEthTxReverted(txId string) error {
 	args := m.Called(txId)
-	return args.Get(0).(error)
-}
-
-func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, submissionTxId string, signature string) error {
-	args := m.Called(txId, submissionTxId, signature)
 	if args.Get(0) == nil {
 		return nil
 	}
@@ -91,10 +142,20 @@ func (m *MockTransactionRepository) UpdateStatusSignatureSubmitted(txId string, 
 
 func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	args := m.Called(ct)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(error)
 }
 
 func (m *MockTransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[joined.CTMKey][]string, error) {
 	args := m.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args.Get(1) == nil {
+		return args.Get(0).(map[joined.CTMKey][]string), nil
+	}
 	return args.Get(0).(map[joined.CTMKey][]string), args.Get(1).(error)
 }

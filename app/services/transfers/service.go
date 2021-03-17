@@ -173,7 +173,7 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
-		bs.logger.Error("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tm.TransactionId)
+		bs.logger.Errorf("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tm.TransactionId)
 		return err
 	}
 	messageTxId, err := bs.hederaNode.SubmitTopicConsensusMessage(
