@@ -39,7 +39,8 @@ func EncodeBytesFrom(txId, receiverEthAddress, erc20Address, amount, fee string)
 		return nil, err
 	}
 
-	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), common.HexToAddress(erc20Address), amountBn, feeBn)
+	// TODO: add common.HexToAddress(erc20Address) after contracts are updated
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), amountBn, feeBn)
 	return keccak(bytesToHash), nil
 }
 
