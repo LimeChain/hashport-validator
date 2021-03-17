@@ -36,7 +36,7 @@ type Memo struct {
 
 // FromBase64String sanity checks and instantiates new Memo struct from base64 encoded string
 func FromBase64String(base64Str string) (*Memo, error) {
-	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[1-9][0-9]*-[1-9][0-9]*$")
+	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[0-9]+-[0-9]+$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(base64Str)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
@@ -48,8 +48,15 @@ func FromBase64String(base64Str string) (*Memo, error) {
 
 	memoSplit := strings.Split(string(decodedMemo), "-")
 	ethAddress := memoSplit[0]
-	txReimbursement := memoSplit[1]
-	gasPriceGwei := memoSplit[2]
+	txReimbursement := strings.TrimLeft(memoSplit[1], "0")
+	gasPriceGwei := strings.TrimLeft(memoSplit[2], "0")
+
+	if txReimbursement == "" {
+		txReimbursement = "0"
+	}
+	if gasPriceGwei == "" {
+		gasPriceGwei = "0"
+	}
 
 	return &Memo{
 		EthereumAddress:    ethAddress,

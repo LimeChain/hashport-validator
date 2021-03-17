@@ -119,18 +119,30 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 		return
 	}
 
-	majorityReached, err := cmh.hasReachedMajority(tsm.TransactionId)
+	//Check if transaction should be scheduled
+	shouldExecuteEthTransaction, err := cmh.messages.ShouldTransactionBeScheduled(tsm.TransactionId)
+
 	if err != nil {
-		cmh.logger.Errorf("Could not determine whether majority was reached for TX [%s]", tsm.TransactionId)
+		cmh.logger.Errorf("There is no info in the database whether TX with id [%s] should be scheduled for execution.", tsm.TransactionId)
 		return
 	}
 
-	if majorityReached {
-		cmh.logger.Debugf("Collected Majority of signatures for TX [%s]", tsm.TransactionId)
-		err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransactionId)
+	if shouldExecuteEthTransaction {
+		majorityReached, err := cmh.hasReachedMajority(tsm.TransactionId)
 		if err != nil {
-			cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
+			cmh.logger.Errorf("Could not determine whether majority was reached for TX [%s]", tsm.TransactionId)
+			return
 		}
+
+		if majorityReached {
+			cmh.logger.Debugf("Collected Majority of signatures for TX [%s]", tsm.TransactionId)
+			err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransactionId)
+			if err != nil {
+				cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
+			}
+		}
+	} else {
+		cmh.logger.Infof("Transaction [%s] will not be scheduled for submission.", tsm.TransactionId)
 	}
 }
 

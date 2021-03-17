@@ -71,18 +71,19 @@ const (
 
 type Transaction struct {
 	gorm.Model
-	TransactionId      string `gorm:"unique"`
-	EthAddress         string
-	Amount             string
-	Fee                string
-	Signature          string
-	SignatureMsgTxId   string
-	Status             string
-	SignatureMsgStatus string
-	EthTxMsgStatus     string
-	EthTxStatus        string
-	EthHash            string
-	GasPriceGwei       string
+	TransactionId         string `gorm:"unique"`
+	EthAddress            string
+	Amount                string
+	Fee                   string
+	Signature             string
+	SignatureMsgTxId      string
+	Status                string
+	SignatureMsgStatus    string
+	EthTxMsgStatus        string
+	EthTxStatus           string
+	EthHash               string
+	GasPriceGwei          string
+	ExecuteEthTransaction bool
 }
 
 type Repository struct {
@@ -167,13 +168,14 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 // Create creates new record of Transaction
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusInitial,
-		GasPriceGwei:  ct.GasPriceGwei,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusInitial,
+		GasPriceGwei:          ct.GasPriceGwei,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
 	return tx, err
@@ -186,13 +188,14 @@ func (tr Repository) Save(tx *Transaction) error {
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusRecovered,
-		GasPriceGwei:  ct.GasPriceGwei,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusRecovered,
+		GasPriceGwei:          ct.GasPriceGwei,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }
 
