@@ -166,7 +166,6 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 }
 
 // Create creates new record of Transaction
-//TODO: Should ExecuteEthTransaction field be added to the other repository functions
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
 		Model:                 gorm.Model{},
@@ -189,13 +188,14 @@ func (tr Repository) Save(tx *Transaction) error {
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	return tr.dbClient.Create(&Transaction{
-		Model:         gorm.Model{},
-		TransactionId: ct.TransactionId,
-		EthAddress:    ct.EthAddress,
-		Amount:        ct.Amount,
-		Fee:           ct.Fee,
-		Status:        StatusRecovered,
-		GasPriceGwei:  ct.GasPriceGwei,
+		Model:                 gorm.Model{},
+		TransactionId:         ct.TransactionId,
+		EthAddress:            ct.EthAddress,
+		Amount:                ct.Amount,
+		Fee:                   ct.Fee,
+		Status:                StatusRecovered,
+		GasPriceGwei:          ct.GasPriceGwei,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }
 
