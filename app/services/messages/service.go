@@ -100,7 +100,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Erc20ContractAddress, tsm.Amount, tsm.Fee)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Erc20Address, tsm.Amount, tsm.Fee)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
 	}
@@ -373,7 +373,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	}
 
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, ethTxMessage.Erc20ContractAddress, amount, fee)
+	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, ethTxMessage.Erc20Address, amount, fee)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature to reconstruct required Signature for TX ID [%s]. Error: %s", txId, err)
 		return false, err
