@@ -26,6 +26,28 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
+func (m *MockHederaMirrorClient) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]mirror_node.Transaction, error) {
+	args := m.Called(accountId, from, to)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]mirror_node.Transaction), nil
+	}
+	return args.Get(0).([]mirror_node.Transaction), args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]mirror_node.Message, error) {
+	args := m.Called(topicId, from, to)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]mirror_node.Message), nil
+	}
+	return args.Get(0).([]mirror_node.Message), args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) WaitForTransaction(txId string, onSuccess, onFailure func()) {
+	m.Called(txId, onSuccess, onFailure)
+}
+
 func (m *MockHederaMirrorClient) GetMessagesForTopicAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*mirror_node.Messages, error) {
 	args := m.Called(topicId, timestamp)
 

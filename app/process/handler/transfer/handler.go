@@ -73,5 +73,6 @@ func (th Handler) Handle(payload []byte) {
 	err = th.transfersService.ProcessTransfer(*transferMsg)
 	if err != nil {
 		th.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
+		return
 	}
 }
