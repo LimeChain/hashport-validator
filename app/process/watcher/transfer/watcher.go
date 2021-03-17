@@ -130,20 +130,16 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, asset, err := tx.GetIncomingTokenAmountFor(ctw.accountID.String())
+	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
-		ctw.logger.Errorf("Could not extract incoming token amount for TX [%s]. Error: [%s]", tx.TransactionID, err)
-	}
-
-	amount, asset, err = tx.GetIncomingAmountFor(ctw.accountID.String())
-	if err != nil {
-		ctw.logger.Errorf("Could not extract incoming amount for TX [%s]. Error: [%s]", tx.TransactionID, err)
+		ctw.logger.Errorf("Could not extract incoming transfer for TX [%s]. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
 	valid, erc20ContractAddress := ctw.contractService.IsValidBridgeAsset(asset)
 	if !valid {
-		ctw.logger.Errorf("The specified asset [%s] does not have a valid ERC 20 Contract Address", asset)
+		ctw.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
+		return
 	}
 
 	m, err := ctw.transfers.SanityCheckTransfer(tx)
@@ -152,7 +148,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, erc20ContractAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, erc20ContractAddress, amount, m.TxReimbursementFee, m.GasPriceGwei)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

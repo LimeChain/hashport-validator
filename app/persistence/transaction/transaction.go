@@ -84,7 +84,7 @@ type Transaction struct {
 	EthTxStatus        string
 	EthHash            string
 	GasPriceGwei       string
-	Asset          string
+	Asset              string
 }
 
 type Repository struct {
@@ -195,6 +195,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Fee:           ct.Fee,
 		Status:        StatusRecovered,
 		GasPriceGwei:  ct.GasPriceGwei,
+		Asset:         ct.Asset,
 	}).Error
 }
 

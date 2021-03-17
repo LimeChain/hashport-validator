@@ -54,9 +54,9 @@ type (
 	}
 )
 
-// GetIncomingAmountFor returns the amount that is credited to the specified
+// getIncomingAmountFor returns the amount that is credited to the specified
 // account for the given transaction
-func (t Transaction) GetIncomingAmountFor(account string) (string, string, error) {
+func (t Transaction) getIncomingAmountFor(account string) (string, string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
 			return strconv.Itoa(int(tr.Amount)), "HBAR", nil
@@ -65,15 +65,31 @@ func (t Transaction) GetIncomingAmountFor(account string) (string, string, error
 	return "", "", errors.New("no incoming transfer found")
 }
 
-// GetIncomingTokenAmountFor returns the token amount that is credited to the specified
+// getIncomingTokenAmountFor returns the token amount that is credited to the specified
 // account for the given transaction
-func (t Transaction) GetIncomingTokenAmountFor(account string) (string, string, error) {
+func (t Transaction) getIncomingTokenAmountFor(account string) (string, string, error) {
 	for _, tr := range t.TokenTransfers {
 		if tr.Account == account {
 			return strconv.Itoa(int(tr.Amount)), tr.Asset, nil
 		}
 	}
 	return "", "", errors.New("no incoming token transfer found")
+}
+
+// GetIncomingTransfer returns the token amount OR the hbar amount that is credited to the specified
+// account for the given transaction. It depends on getIncomingAmountFor() and getIncomingTokenAmountFor()
+func (t Transaction) GetIncomingTransfer(account string) (string, string, error) {
+	amount, asset, err := t.getIncomingTokenAmountFor(account)
+	if err == nil {
+		return amount, asset, err
+	}
+
+	amount, asset, err = t.getIncomingAmountFor(account)
+	if err == nil {
+		return amount, asset, err
+	}
+
+	return amount, asset, err
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one
