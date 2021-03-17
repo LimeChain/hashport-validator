@@ -53,7 +53,7 @@ func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.Acco
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-// GetAccountCreditTransactionsBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
+// GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
 func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]Transaction, error) {
 	transactions, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, from)
 	if err != nil {

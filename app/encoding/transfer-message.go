@@ -26,7 +26,7 @@ type TransferMessage struct {
 }
 
 // NewTransferMessage instantiates Transfer Message struct ready for submission to the handler
-func NewTransferMessage(txId, ethAddress, asset, erc20ContractAddress, amount, fee, gasPriceGwei string) *TransferMessage {
+func NewTransferMessage(txId, ethAddress, asset, erc20Address, amount, fee, gasPriceGwei string, executeEthTransaction bool) *TransferMessage {
 	return &TransferMessage{
 		&model.TransferMessage{
 			TransactionId: txId,
@@ -35,7 +35,8 @@ func NewTransferMessage(txId, ethAddress, asset, erc20ContractAddress, amount, f
 			Fee:           fee,
 			GasPriceGwei:  gasPriceGwei,
 			Asset:         asset,
-			Erc20Address:  erc20ContractAddress,
+			Erc20Address:  erc20Address,
+			ExecuteEthTransaction: executeEthTransaction,
 		},
 	}
 }

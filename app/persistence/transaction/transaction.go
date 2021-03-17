@@ -18,7 +18,6 @@ package transaction
 
 import (
 	"errors"
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -72,19 +71,20 @@ const (
 
 type Transaction struct {
 	gorm.Model
-	TransactionId      string `gorm:"unique"`
-	EthAddress         string
-	Amount             string
-	Fee                string
-	Signature          string
-	SignatureMsgTxId   string
-	Status             string
-	SignatureMsgStatus string
-	EthTxMsgStatus     string
-	EthTxStatus        string
-	EthHash            string
-	GasPriceGwei       string
-	Asset              string
+	TransactionId         string `gorm:"unique"`
+	EthAddress            string
+	Amount                string
+	Fee                   string
+	Signature             string
+	SignatureMsgTxId      string
+	Status                string
+	SignatureMsgStatus    string
+	EthTxMsgStatus        string
+	EthTxStatus           string
+	EthHash               string
+	GasPriceGwei          string
+	Asset			      string
+	ExecuteEthTransaction bool
 }
 
 type Repository struct {
@@ -129,9 +129,12 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error)
 	return transactions, nil
 }
 
+// TODO Move to message repo
 func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
 	var messages []*transaction.JoinedTxnMessage
 
+	// TODO
+	// Get all Message records which have TXID = ONE OF (Select TXID where Status = RECOVERED || INITIAL)
 	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
 		"transactions.transaction_id, " +
 		"transactions.eth_address, " +
@@ -144,7 +147,6 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
 		Scan(&messages).Error
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -176,6 +178,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Status:        StatusInitial,
 		GasPriceGwei:  ct.GasPriceGwei,
 		Asset:         ct.Asset,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
 	return tx, err
@@ -196,6 +199,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Status:        StatusRecovered,
 		GasPriceGwei:  ct.GasPriceGwei,
 		Asset:         ct.Asset,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }
 

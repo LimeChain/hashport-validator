@@ -33,4 +33,6 @@ type Messages interface {
 	ScheduleEthereumTxForSubmission(txId string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
+	// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
+	ShouldTransactionBeScheduled(transactionId string) (bool, error)
 }

@@ -1,5 +1,6 @@
 package transaction
 
+// TODO not necessary anymore - remove
 type JoinedTxnMessage struct {
 	TransactionId string
 	EthAddress    string
@@ -10,6 +11,7 @@ type JoinedTxnMessage struct {
 	Asset         string
 }
 
+// TODO not necessary anymore - remove
 type CTMKey struct {
 	TransactionId string
 	EthAddress    string
