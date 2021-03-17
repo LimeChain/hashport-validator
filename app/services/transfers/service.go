@@ -208,8 +208,8 @@ func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	return nil
 }
 
-func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) {
-	onSuccessfulAuthMessage := func() {
+func (bs *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
+	onSuccess = func() {
 		bs.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureMined(txId)
 		if err != nil {
@@ -218,7 +218,7 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 		}
 	}
 
-	onFailedAuthMessage := func() {
+	onRevert = func() {
 		bs.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
 		err := bs.transactionRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
@@ -226,5 +226,5 @@ func (bs *Service) authMessageSubmissionCallbacks(txId string) (func(), func()) 
 			return
 		}
 	}
-	return onSuccessfulAuthMessage, onFailedAuthMessage
+	return onSuccess, onRevert
 }
