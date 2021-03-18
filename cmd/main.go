@@ -63,7 +63,7 @@ func main() {
 		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
 		server.AddHandler(process.CryptoTransferMessageType, th.NewHandler(services.transfers))
 
-		err = addCryptoTransferWatcher(&configuration, services.transfers, clients.MirrorNode, &repositories.transferStatus, server, watchersStartTimestamp, services.contracts)
+		err = addTransferWatchers(&configuration, services.transfers, clients.MirrorNode, &repositories.transferStatus, server, watchersStartTimestamp, services.contracts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -115,7 +115,7 @@ func initializeAPIRouter(feeCalculator service.Fees) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func addCryptoTransferWatcher(configuration *config.Config,
+func addTransferWatchers(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
