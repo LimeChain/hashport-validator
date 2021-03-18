@@ -240,6 +240,7 @@ type TransferMessageKey struct {
 	Amount        string
 	Fee           string
 	GasPriceWei   string
+	Erc20Address  string
 }
 
 func (r Recovery) processUnfinishedOperations() error {
@@ -258,12 +259,12 @@ func (r Recovery) processUnfinishedOperations() error {
 			Amount:        txnMessage.Amount,
 			Fee:           txnMessage.Fee,
 			GasPriceWei:   txnMessage.GasPriceWei,
+			Erc20Address:  txnMessage.ERC20ContractAddress,
 		}
 		signatureMessagesMap[key] = append(signatureMessagesMap[key], txnMessage.Signature)
 	}
 
 	for txn, txnSignatures := range signatureMessagesMap {
-		encoding.NewTransferMessage(txn.TransactionId, txn.EthAddress, txn.Amount, txn.Fee, txn.GasPriceWei, false)
 		hasSubmittedSignature, topicMessage := r.hasSubmittedSignature(txn, txnSignatures)
 
 		if !hasSubmittedSignature {
@@ -278,7 +279,7 @@ func (r Recovery) processUnfinishedOperations() error {
 }
 
 func (r Recovery) hasSubmittedSignature(data *TransferMessageKey, signatures []string) (bool, *encoding.TopicMessage) {
-	signature, err := r.transfers.SignAuthorizationMessage(data.TransactionId, data.EthAddress, data.Amount, data.Fee, data.GasPriceWei)
+	signature, err := r.transfers.SignAuthorizationMessage(data.TransactionId, data.EthAddress, data.Erc20Address, data.Amount, data.Fee, data.GasPriceWei)
 	if err != nil {
 		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
 	}

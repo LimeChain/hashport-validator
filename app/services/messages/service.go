@@ -29,12 +29,12 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 	"strings"
 )
 
@@ -172,12 +172,13 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 	fee := signatureMessages[0].Fee
 	ethAddress := signatureMessages[0].EthAddress
 	messageHash := signatureMessages[0].Hash
+	gasPriceWei := signatureMessages[0].GasPriceWei
 	signatures, err := getSignatures(signatureMessages)
 	if err != nil {
 		return err
 	}
 
-	ethereumMintTask := ss.prepareEthereumMintTask(txId, ethAddress, amount, fee, signatures, messageHash)
+	ethereumMintTask := ss.prepareEthereumMintTask(txId, ethAddress, amount, fee, gasPriceWei, signatures, messageHash)
 	err = ss.scheduler.Schedule(txId, signatureMessages[0].TransactionTimestamp, slot, ethereumMintTask)
 	if err != nil {
 		return err
@@ -187,7 +188,7 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
-func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, fee string, signatures [][]byte, messageHash string) func() {
+func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, fee string, gasPriceWei string, signatures [][]byte, messageHash string) func() {
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
@@ -196,26 +197,33 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			return
 		}
 
+		// TODO: Refactored according to the comment below
+		ethTransactor.GasPrice, err = helper.ToBigInt(gasPriceWei)
+		if err != nil {
+			ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
+			return
+		}
+
 		//TODO: G.A. comment:
 		//I do not think it is necessary to get the transaction again.
 		//Passing the gasPrice as input parameter and then call ethTransactor.GasPrice = gasPrice would to the trick.
 		//In ScheduleEthereumTxForSubmission GasPriceGwei will be retrieved and converted to wei.
-		if ethTransactor.GasPrice == nil {
-			//Set gas price from memo
-			t, err := ss.transactionRepository.GetByTransactionId(txId)
-			if err != nil {
-				ss.logger.Errorf("Failed to retrive gas price for TX [%s]. Error: %s", txId, err)
-				return
-			}
-			gasPriceGwei, isSuccessful := new(big.Int).SetString(t.GasPriceGwei, 10)
-			if !isSuccessful {
-				ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
-				return
-			}
-			//Convert GWei to Wei
-			mul := new(big.Int).SetUint64(1000000000)
-			ethTransactor.GasPrice = new(big.Int).Mul(gasPriceGwei, mul)
-		}
+		//if ethTransactor.GasPrice == nil {
+		//	//Set gas price from memo
+		//	t, err := ss.transactionRepository.GetByTransactionId(txId)
+		//	if err != nil {
+		//		ss.logger.Errorf("Failed to retrive gas price for TX [%s]. Error: %s", txId, err)
+		//		return
+		//	}
+		//	gasPriceGwei, isSuccessful := new(big.Int).SetString(t.GasPriceGwei, 10)
+		//	if !isSuccessful {
+		//		ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
+		//		return
+		//	}
+		//	//Convert GWei to Wei
+		//	mul := new(big.Int).SetUint64(1000000000)
+		//	ethTransactor.GasPrice = new(big.Int).Mul(gasPriceGwei, mul)
+		//}
 
 		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, txId, ethAddress, amount, fee, signatures)
 		if err != nil {

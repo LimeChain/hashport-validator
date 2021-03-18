@@ -41,7 +41,7 @@ type Transfers interface {
 	ProcessTransfer(tm encoding.TransferMessage) error
 	// SignAuthorizationMessage signs provided message data and returns
 	// a signature string or an error
-	SignAuthorizationMessage(txId, ethAddress, amount, fee, gasPriceWei string) (string, error)
+	SignAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error)
 	// PrepareAndSubmitToTopic takes a transfer message, gas price in wei and a signature from signed data
 	// Then it submits the prepared signature message to the HCS topic
 	PrepareAndSubmitToTopic(tm *encoding.TopicMessage) error

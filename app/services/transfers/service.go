@@ -162,7 +162,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	}
 	gasPriceWei := fees.GweiToWei(gasPriceGWeiBn).String()
 
-	signature, err := ts.SignAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee, gasPriceWei)
+	signature, err := ts.SignAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
 	if err != nil {
 		ts.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", tm.TransactionId, err)
 		return err
@@ -244,8 +244,8 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) SignAuthorizationMessage(txId, ethAddress, amount, fee, gasPriceWei string) (string, error) {
-	authMsgHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, amount, fee, gasPriceWei)
+func (ts *Service) SignAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
+	authMsgHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20Address, amount, fee, gasPriceWei)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", txId, err))
 	}
