@@ -89,7 +89,14 @@ func main() {
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Hedera, services.transfers, services.messages, repository.transferStatus, repository.messageStatus, repository.transaction, client.MirrorNode, client.HederaNode)
+	r, err := recovery.NewProcess(configuration.Hedera,
+		services.transfers,
+		services.messages,
+		repository.transferStatus,
+		repository.messageStatus,
+		repository.message,
+		client.MirrorNode,
+		client.HederaNode)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Err %s", err)
 	}

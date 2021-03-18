@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -38,7 +37,7 @@ type Recovery struct {
 	messages                service.Messages
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
-	transactionsRepo        repository.Transaction
+	messagesRepo            repository.Message
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
@@ -53,7 +52,7 @@ func NewProcess(
 	messagesService service.Messages,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
-	transactionsRepo repository.Transaction,
+	messagesRepo repository.Message,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
@@ -72,7 +71,7 @@ func NewProcess(
 		messages:                messagesService,
 		statusTransferRepo:      statusTransferRepo,
 		statusMessagesRepo:      statusMessagesRepo,
-		transactionsRepo:        transactionsRepo,
+		messagesRepo:            messagesRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
 		accountID:               account,
@@ -235,61 +234,60 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 	return nil
 }
 
-func (r Recovery) processUnfinishedOperations() error {
-	// TODO messagesRepo.getUnprocessedMessages() <- should return all Messages whose TX ID is status INITIAL or RECOVERED
-	//unprocessed, err := r.transactionsRepo.GetSkippedOrInitialTransactionsAndMessages()
-	//if err != nil {
-	//	r.logger.Fatalf("Failed to get all unprocessed messages. Error: %s", err)
-	//	return err
-	//}
+type TransferMessageKey struct {
+	TransactionId string
+	EthAddress    string
+	Amount        string
+	Fee           string
+	GasPriceWei   string
+}
 
-	// Combine all Messages records into map({txId, amount, fee, gasPrice, etc}, []signatures)
-	// Iterate all keys
-	// 	If validator has not signed -> sign and submit
-	//for txn, txnSignatures := range unprocessed {
-	//hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
-	//
-	//if !hasSubmittedSignature {
-	//	r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
-	//	// TODO
-	//	err = r.transfersService.VerifyFee(ctm)
-	//	if err != nil {
-	//		r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
-	//	}
-	//
-	//	signature, err := r.transfersService.ValidateAndSignTxn(ctm)
-	//	if err != nil {
-	//		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
-	//	}
-	//
-	//	_, err = r.transfersService.HandleTopicSubmission(ctm, signature)
-	//	if err != nil {
-	//		return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
-	//	}
-	//	r.logger.Infof("Successfully Validated")
-	//}
-	//}
+func (r Recovery) processUnfinishedOperations() error {
+	unprocessedMessages, err := r.messagesRepo.GetUnprocessedMessages()
+	if err != nil {
+		r.logger.Fatalf("Failed to get all unprocessedMessages messages. Error: %s", err)
+		return err
+	}
+
+	signatureMessagesMap := make(map[*TransferMessageKey][]string)
+
+	for _, txnMessage := range unprocessedMessages {
+		key := &TransferMessageKey{
+			TransactionId: txnMessage.TransactionId,
+			EthAddress:    txnMessage.EthAddress,
+			Amount:        txnMessage.Amount,
+			Fee:           txnMessage.Fee,
+			GasPriceWei:   txnMessage.GasPriceWei,
+		}
+		signatureMessagesMap[key] = append(signatureMessagesMap[key], txnMessage.Signature)
+	}
+
+	for txn, txnSignatures := range signatureMessagesMap {
+		encoding.NewTransferMessage(txn.TransactionId, txn.EthAddress, txn.Amount, txn.Fee, txn.GasPriceWei, false)
+		hasSubmittedSignature, topicMessage := r.hasSubmittedSignature(txn, txnSignatures)
+
+		if !hasSubmittedSignature {
+			err = r.transfers.PrepareAndSubmitToTopic(topicMessage)
+			if err != nil {
+				r.logger.Errorf("Failed to prepare and submit Transaction ID [%s] to the HCS Topic. Error [%s].", txn.TransactionId, err)
+				return err
+			}
+		}
+	}
 	return nil
 }
 
-func (r Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
-	//ctm := &validatorproto.TransferMessage{
-	//	TransactionId: data.TransactionId,
-	//	EthAddress:    data.EthAddress,
-	//	Amount:        data.Amount,
-	//	Fee:           data.Fee,
-	//	GasPriceGwei:  data.GasPriceGwei,
-	//}
-	//
-	//signature, err := r.transfersService.ValidateAndSignTxn(ctm)
-	//if err != nil {
-	//	r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
-	//}
-	//
-	//for _, s := range signatures {
-	//	if signature == s {
-	//		return true, nil
-	//	}
-	//}
-	return false, nil
+func (r Recovery) hasSubmittedSignature(data *TransferMessageKey, signatures []string) (bool, *encoding.TopicMessage) {
+	signature, err := r.transfers.SignAuthorizationMessage(data.TransactionId, data.EthAddress, data.Amount, data.Fee, data.GasPriceWei)
+	if err != nil {
+		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
+	}
+
+	for _, s := range signatures {
+		if signature == s {
+			return true, nil
+		}
+	}
+
+	return false, encoding.NewSignatureMessage(data.TransactionId, data.EthAddress, data.Amount, data.Fee, data.GasPriceWei, signature)
 }

@@ -31,7 +31,7 @@ type TransactionMessage struct {
 	Hash                 string
 	SignerAddress        string
 	TransactionTimestamp int64
-	GasPrice             string
+	GasPriceWei          string
 }
 
 type Repository struct {
@@ -77,5 +77,29 @@ func (m Repository) GetMessagesFor(txId string) ([]TransactionMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	return messages, nil
+}
+
+// TODO Move to message repo
+func (m *Repository) GetUnprocessedMessages() ([]*TransactionMessage, error) {
+	var messages []*TransactionMessage
+
+	// TODO
+	// Get all Message records which have TXID = ONE OF (Select TXID where Status = RECOVERED || INITIAL)
+	err := m.dbClient.Preload("transactions").Raw("SELECT " +
+		"transactions.transaction_id, " +
+		"transaction_messages.eth_address, " +
+		"transaction_messages.amount, " +
+		"transaction_messages.fee, " +
+		"transaction_messages.signature, " +
+		"transaction_messages.gas_price_wei " +
+		"FROM transactions " +
+		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
+		"WHERE transactions.status = 'RECOVERED' OR transactions.status = 'INITIAL' ").
+		Scan(&messages).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return messages, nil
 }

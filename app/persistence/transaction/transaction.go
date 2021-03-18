@@ -18,7 +18,6 @@ package transaction
 
 import (
 	"errors"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -82,7 +81,6 @@ type Transaction struct {
 	EthTxMsgStatus        string
 	EthTxStatus           string
 	EthHash               string
-	GasPrice              string
 	ExecuteEthTransaction bool
 }
 
@@ -128,45 +126,6 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error)
 	return transactions, nil
 }
 
-// TODO Move to message repo
-func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transaction.CTMKey][]string, error) {
-	var messages []*transaction.JoinedTxnMessage
-
-	// TODO
-	// Get all Message records which have TXID = ONE OF (Select TXID where Status = RECOVERED || INITIAL)
-	err := tr.dbClient.Preload("transaction_messages").Raw("SELECT " +
-		"transactions.transaction_id, " +
-		"transactions.eth_address, " +
-		"transactions.amount, " +
-		"transactions.fee, " +
-		"transaction_messages.signature, " +
-		"transactions.gas_price " +
-		"FROM transactions " +
-		"LEFT JOIN transaction_messages ON transactions.transaction_id = transaction_messages.transaction_id " +
-		"WHERE transactions.status = 'SKIPPED' OR transactions.status = 'INITIAL' ").
-		Scan(&messages).Error
-	if err != nil {
-		return nil, err
-	}
-
-	result := make(map[transaction.CTMKey][]string)
-
-	for _, txnMessage := range messages {
-		t := transaction.CTMKey{
-			TransactionId: txnMessage.TransactionId,
-			EthAddress:    txnMessage.EthAddress,
-			Amount:        txnMessage.Amount,
-			Fee:           txnMessage.Fee,
-			GasPriceGwei:  txnMessage.GasPriceGwei,
-		}
-		result[t] = append(result[t], txnMessage.Signature)
-	}
-
-	return result, nil
-}
-
-// TODO: Take it from memo in Transfer Watcher as GWEI, Sign as WEI at Transfer Handler, submit it to HCS Topic as WEI, work with WEI from then on
-
 // Create creates new record of Transaction
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	tx := &Transaction{
@@ -176,7 +135,6 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusInitial,
-		GasPrice:              ct.GasPriceGwei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
@@ -196,7 +154,6 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusRecovered,
-		GasPrice:              ct.GasPriceGwei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }

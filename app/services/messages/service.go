@@ -100,7 +100,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee, tsm.GasPrice)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.EthAddress, tsm.Amount, tsm.Fee, tsm.GasPriceWei)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
 		return err
@@ -143,7 +143,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		Hash:                 authMessageStr,
 		SignerAddress:        address.String(),
 		TransactionTimestamp: tm.TransactionTimestamp,
-		GasPrice:             tsm.GasPrice,
+		GasPriceWei:          tsm.GasPriceWei,
 	})
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransactionId, signatureHex, err)
