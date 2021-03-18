@@ -272,19 +272,8 @@ func (tr Repository) updateStatus(txId string, status string) error {
 	return err
 }
 
-// TODO use baseUpdateStatus function to pass only txId, property to update, new status and possible statuses
-// This will remove the redundant code in updateSignatureStatus, updateEthereumTxStatus and updateEthereumTxMsgStatus
 func (tr Repository) updateSignatureStatus(txId string, status string) error {
-	// Sanity check
-	if status != StatusSignatureSubmitted && status != StatusSignatureMined && status != StatusSignatureFailed {
-		return errors.New("invalid signature status")
-	}
-
-	err := tr.dbClient.
-		Model(Transaction{}).
-		Where("transaction_id = ?", txId).
-		UpdateColumn("signature_msg_status", status).
-		Error
+	err := tr.baseUpdateStatus("signature_msg_status", txId, status, []string{StatusSignatureSubmitted, StatusSignatureMined, StatusSignatureFailed})
 	if err == nil {
 		tr.logger.Debugf("Updated Signature Message Status of TX [%s] to [%s]", txId, status)
 	}
@@ -292,16 +281,7 @@ func (tr Repository) updateSignatureStatus(txId string, status string) error {
 }
 
 func (tr Repository) updateEthereumTxStatus(txId string, status string) error {
-	// Sanity check
-	if status != StatusEthTxSubmitted && status != StatusEthTxMined && status != StatusEthTxReverted {
-		return errors.New("invalid ethereum tx status")
-	}
-
-	err := tr.dbClient.
-		Model(Transaction{}).
-		Where("transaction_id = ?", txId).
-		UpdateColumn("eth_tx_status", status).
-		Error
+	err := tr.baseUpdateStatus("eth_tx_status", txId, status, []string{StatusEthTxSubmitted, StatusEthTxMined, StatusEthTxReverted})
 	if err == nil {
 		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s]", txId, status)
 	}
@@ -309,18 +289,34 @@ func (tr Repository) updateEthereumTxStatus(txId string, status string) error {
 }
 
 func (tr Repository) updateEthereumTxMsgStatus(txId string, status string) error {
-	// Sanity check
-	if status != StatusEthTxMsgSubmitted && status != StatusEthTxMsgMined && status != StatusEthTxMsgFailed {
-		return errors.New("invalid ethereum tx message status")
+	err := tr.baseUpdateStatus("eth_tx_msg_status", txId, status, []string{StatusEthTxMsgSubmitted, StatusEthTxMsgMined, StatusEthTxMsgFailed})
+	if err == nil {
+		tr.logger.Debugf("Updated Ethereum TX Message Status of TX [%s] to [%s]", txId, status)
+	}
+	return err
+}
+
+func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
+	if isValidStatus(status, possibleStatuses) {
+		return errors.New("invalid status")
 	}
 
 	err := tr.dbClient.
 		Model(Transaction{}).
 		Where("transaction_id = ?", txId).
-		UpdateColumn("eth_tx_msg_status", status).
+		UpdateColumn(statusColumn, status).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Message Status of TX [%s] to [%s]", txId, status)
+		tr.logger.Debugf("Updated Signature Message Status of TX [%s] to [%s]", txId, status)
 	}
 	return err
+}
+
+func isValidStatus(status string, possibleStatuses []string) bool {
+	for _, option := range possibleStatuses {
+		if status == option {
+			return true
+		}
+	}
+	return false
 }
