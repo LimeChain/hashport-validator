@@ -195,6 +195,10 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			return
 		}
 
+		//TODO: G.A. comment:
+		//I do not think it is necessary to get the transaction again.
+		//Passing the gasPrice as input parameter and then call ethTransactor.GasPrice = gasPrice would to the trick.
+		//In ScheduleEthereumTxForSubmission GasPriceGwei will be retrieved and converted to wei.
 		if ethTransactor.GasPrice == nil {
 			//Set gas price from memo
 			t, err := ss.transactionRepository.GetByTransactionId(txId)
