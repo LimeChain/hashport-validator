@@ -29,7 +29,7 @@ type Transfers interface {
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transactions
 	InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error)

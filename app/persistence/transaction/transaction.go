@@ -81,6 +81,7 @@ type Transaction struct {
 	EthTxMsgStatus        string
 	EthTxStatus           string
 	EthHash               string
+	Asset                 string
 	ExecuteEthTransaction bool
 }
 
@@ -135,6 +136,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusInitial,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
@@ -154,6 +156,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Amount:                ct.Amount,
 		Fee:                   ct.Fee,
 		Status:                StatusRecovered,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }

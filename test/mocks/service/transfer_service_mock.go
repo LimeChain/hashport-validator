@@ -39,8 +39,8 @@ func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) 
 	return args.Get(0).(*memo.Memo), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) SaveRecoveredTxn(txId, amount string, m memo.Memo) error {
-	args := mts.Called(txId, amount, m)
+func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, asset string, m memo.Memo) error {
+	args := mts.Called(txId, amount, asset, m)
 	if args.Get(0) == nil {
 		return nil
 	}

@@ -118,13 +118,14 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (ts *Service) SaveRecoveredTxn(txId, amount string, m memo.Memo) error {
+func (ts *Service) SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error {
 	err := ts.transactionRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
 		TransactionId: txId,
 		EthAddress:    m.EthereumAddress,
 		Amount:        amount,
 		Fee:           m.TxReimbursementFee,
 		GasPriceGwei:  m.GasPriceGwei,
+		Asset:         asset,
 	})
 	if err != nil {
 		ts.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Err: [%s]", txId, err)

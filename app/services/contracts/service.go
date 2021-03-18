@@ -42,6 +42,11 @@ type Service struct {
 	logger     *log.Entry
 }
 
+func (bsc *Service) IsValidBridgeAsset(tokenId string) (bool, string) {
+	// TODO: Do magic here
+	return true, config.LoadConfig().Hedera.Eth.WhbarContractAddress
+}
+
 func (bsc *Service) GetBridgeContractAddress() common.Address {
 	return bsc.address
 }

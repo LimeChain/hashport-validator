@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,9 +52,6 @@ func NewHandler(
 		messages:          messages,
 		logger:            config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
-}
-
-func (cmh Handler) Recover(queue *queue.Queue) {
 }
 
 func (cmh Handler) Handle(payload []byte) {

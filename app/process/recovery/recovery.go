@@ -152,7 +152,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 
 	r.logger.Infof("Found [%d] unprocessed TXns for Account [%s]", len(txns), r.accountID)
 	for _, tx := range txns {
-		amount, err := tx.GetIncomingAmountFor(r.accountID.String())
+		amount, asset, err := tx.GetIncomingTransfer(r.accountID.String())
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
@@ -162,7 +162,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, *m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, *m)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Err: [%s]", tx.TransactionID, err)
 			continue

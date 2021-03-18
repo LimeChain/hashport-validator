@@ -47,7 +47,7 @@ func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Clie
 }
 
 func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		timestampHelper.String(from))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)

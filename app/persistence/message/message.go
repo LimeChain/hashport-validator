@@ -32,6 +32,7 @@ type TransactionMessage struct {
 	SignerAddress        string
 	TransactionTimestamp int64
 	GasPriceWei          string
+	ERC20ContractAddress string
 }
 
 type Repository struct {
