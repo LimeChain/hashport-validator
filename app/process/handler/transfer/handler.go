@@ -21,7 +21,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,11 +36,6 @@ func NewHandler(transfersService service.Transfers) *Handler {
 		logger:           config.GetLoggerFor("Account Transfer Handler"),
 		transfersService: transfersService,
 	}
-}
-
-// Recover mechanism
-func (th Handler) Recover(q *queue.Queue) {
-
 }
 
 func (th Handler) Handle(payload []byte) {
