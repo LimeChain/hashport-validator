@@ -12,8 +12,8 @@ type MockTransferService struct {
 	mock.Mock
 }
 
-func (mts *MockTransferService) SignAuthorizationMessage(txId, ethAddress, amount, fee, gasPriceWei string) (string, error) {
-	args := mts.Called(txId, ethAddress, amount, fee, gasPriceWei)
+func (mts *MockTransferService) SignAuthorizationMessage(txId, receiverAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
+	args := mts.Called(txId, receiverAddress, erc20Address, amount, fee, gasPriceWei)
 	if args.Get(1) == nil {
 		return args.Get(0).(string), nil
 	}
