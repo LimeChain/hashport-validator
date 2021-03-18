@@ -83,6 +83,7 @@ type Transaction struct {
 	EthTxStatus           string
 	EthHash               string
 	GasPriceGwei          string
+	Asset                 string
 	ExecuteEthTransaction bool
 }
 
@@ -158,6 +159,7 @@ func (tr *Repository) GetSkippedOrInitialTransactionsAndMessages() (map[transact
 			Amount:        txnMessage.Amount,
 			Fee:           txnMessage.Fee,
 			GasPriceGwei:  txnMessage.GasPriceGwei,
+			Asset:         txnMessage.Asset,
 		}
 		result[t] = append(result[t], txnMessage.Signature)
 	}
@@ -175,6 +177,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Fee:                   ct.Fee,
 		Status:                StatusInitial,
 		GasPriceGwei:          ct.GasPriceGwei,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
 	err := tr.dbClient.Create(tx).Error
@@ -195,6 +198,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Fee:                   ct.Fee,
 		Status:                StatusRecovered,
 		GasPriceGwei:          ct.GasPriceGwei,
+		Asset:                 ct.Asset,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }

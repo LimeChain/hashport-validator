@@ -8,6 +8,7 @@ type JoinedTxnMessage struct {
 	Fee           string
 	Signature     string
 	GasPriceGwei  string
+	Asset         string
 }
 
 // TODO not necessary anymore - remove
@@ -17,4 +18,5 @@ type CTMKey struct {
 	Amount        string
 	Fee           string
 	GasPriceGwei  string
+	Asset         string
 }

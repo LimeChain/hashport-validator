@@ -116,13 +116,14 @@ func (bs *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (bs *Service) SaveRecoveredTxn(txId, amount string, m memo.Memo) error {
+func (bs *Service) SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error {
 	err := bs.transactionRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
 		TransactionId: txId,
 		EthAddress:    m.EthereumAddress,
 		Amount:        amount,
 		Fee:           m.TxReimbursementFee,
 		GasPriceGwei:  m.GasPriceGwei,
+		Asset:         asset,
 	})
 	if err != nil {
 		bs.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Err: [%s]", txId, err)
@@ -153,7 +154,7 @@ func (bs *Service) VerifyFee(tm encoding.TransferMessage) error {
 // ProcessTransfer processes the transfer message by signing the required
 // authorisation signature submitting it into the required HCS Topic
 func (bs *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Amount, tm.Fee)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee)
 	if err != nil {
 		bs.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
 		return err
