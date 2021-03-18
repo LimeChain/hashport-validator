@@ -25,17 +25,17 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	"strings"
-
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
+	"strings"
 )
 
 type Service struct {
@@ -194,6 +194,28 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			ss.logger.Errorf("Failed to establish key transactor. Error %s", err)
 			return
 		}
+
+		//TODO: G.A. comment:
+		//I do not think it is necessary to get the transaction again.
+		//Passing the gasPrice as input parameter and then call ethTransactor.GasPrice = gasPrice would to the trick.
+		//In ScheduleEthereumTxForSubmission GasPriceGwei will be retrieved and converted to wei.
+		if ethTransactor.GasPrice == nil {
+			//Set gas price from memo
+			t, err := ss.transactionRepository.GetByTransactionId(txId)
+			if err != nil {
+				ss.logger.Errorf("Failed to retrive gas price for TX [%s]. Error: %s", txId, err)
+				return
+			}
+			gasPriceGwei, isSuccessful := new(big.Int).SetString(t.GasPriceGwei, 10)
+			if !isSuccessful {
+				ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
+				return
+			}
+			//Convert GWei to Wei
+			mul := new(big.Int).SetUint64(1000000000)
+			ethTransactor.GasPrice = new(big.Int).Mul(gasPriceGwei, mul)
+		}
+
 		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, txId, ethAddress, amount, fee, signatures)
 		if err != nil {
 			ss.logger.Errorf("Failed to Submit Signatures for TX [%s]. Error: %s", txId, err)
