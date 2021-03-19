@@ -30,8 +30,8 @@ import (
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -160,7 +160,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	if err != nil {
 		return err
 	}
-	gasPriceWei := fees.GweiToWei(gasPriceGWeiBn).String()
+	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
 
 	signature, err := ts.SignAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
 	if err != nil {

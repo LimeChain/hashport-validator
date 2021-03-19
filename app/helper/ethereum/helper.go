@@ -19,6 +19,7 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/ethereum/go-ethereum/params"
 
 	"math/big"
 	"strings"
@@ -89,6 +90,10 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20
 	}
 
 	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), string(erc20), signatures, nil
+}
+
+func GweiToWei(gwei *big.Int) *big.Int {
+	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {

@@ -19,7 +19,7 @@ package transaction
 import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -136,7 +136,7 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	wei := fees.GweiToWei(gasPriceGweiBn).String()
+	wei := ethereum.GweiToWei(gasPriceGweiBn).String()
 
 	tx := &Transaction{
 		Model:                 gorm.Model{},
@@ -163,7 +163,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	if err != nil {
 		return err
 	}
-	wei := fees.GweiToWei(gasPriceGweiBn).String()
+	wei := ethereum.GweiToWei(gasPriceGweiBn).String()
 
 	return tr.dbClient.Create(&Transaction{
 		Model:                 gorm.Model{},
