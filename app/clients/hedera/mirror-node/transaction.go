@@ -44,7 +44,7 @@ type (
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
-		Asset string `json:"asset"`
+		Asset string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried

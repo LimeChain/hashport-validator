@@ -38,13 +38,14 @@ func EncodeBytesFrom(txId, receiverEthAddress, erc20Address, amount, fee, gasPri
 	if err != nil {
 		return nil, err
 	}
-	gasPriceBn, err := helper.ToBigInt(gasPriceWei)
+	// TODO: add gasPriceBn after contracts are updated
+	_, err = helper.ToBigInt(gasPriceWei)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: add common.HexToAddress(erc20Address) after contracts are updated
-	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), amountBn, feeBn, gasPriceBn)
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), amountBn, feeBn)
 	return keccak(bytesToHash), nil
 }
 
