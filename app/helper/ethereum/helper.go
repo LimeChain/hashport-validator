@@ -55,7 +55,7 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, gasPrice string, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20Address string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
 		return "", "", "", "", "", nil, err
@@ -78,8 +78,8 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, gasPr
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
-	// TODO: Update Key to Gas Price once contract is ready
-	gasPriceBn := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+	// TODO: Update Key to 'MintFunctionParameterErc20Address' once contract is ready
+	erc20 := decodedParameters[MintFunctionParameterTransactionId].([]byte)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
@@ -88,7 +88,7 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, gasPr
 		}
 	}
 
-	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), gasPriceBn.String(), signatures, nil
+	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), string(erc20), signatures, nil
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {

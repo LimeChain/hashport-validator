@@ -90,9 +90,18 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		ss.logger.Errorf("Failed to retrieve Transaction Record for TX ID [%s]. Error: %s", topicMessage.TransactionId, err)
 		return false, err
 	}
+
+	valid, _ := ss.contractsService.IsValidBridgeAsset(t.Asset)
+	if !valid {
+		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.Asset)
+		return false, err
+	}
+
 	match := t.EthAddress == topicMessage.EthAddress &&
 		t.Amount == topicMessage.Amount &&
-		t.Fee == topicMessage.Fee
+		t.Fee == topicMessage.Fee &&
+		t.GasPriceWei == topicMessage.GasPriceWei
+		// TODO: Add this line when functionality supports it -> erc20Address == topicMessage.Erc20Address
 	return match, nil
 }
 
@@ -197,33 +206,11 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 			return
 		}
 
-		// TODO: Refactored according to the comment below
 		ethTransactor.GasPrice, err = helper.ToBigInt(gasPriceWei)
 		if err != nil {
 			ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
 			return
 		}
-
-		//TODO: G.A. comment:
-		//I do not think it is necessary to get the transaction again.
-		//Passing the gasPrice as input parameter and then call ethTransactor.GasPrice = gasPrice would to the trick.
-		//In ScheduleEthereumTxForSubmission GasPriceGwei will be retrieved and converted to wei.
-		//if ethTransactor.GasPrice == nil {
-		//	//Set gas price from memo
-		//	t, err := ss.transactionRepository.GetByTransactionId(txId)
-		//	if err != nil {
-		//		ss.logger.Errorf("Failed to retrive gas price for TX [%s]. Error: %s", txId, err)
-		//		return
-		//	}
-		//	gasPriceGwei, isSuccessful := new(big.Int).SetString(t.GasPriceGwei, 10)
-		//	if !isSuccessful {
-		//		ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
-		//		return
-		//	}
-		//	//Convert GWei to Wei
-		//	mul := new(big.Int).SetUint64(1000000000)
-		//	ethTransactor.GasPrice = new(big.Int).Mul(gasPriceGwei, mul)
-		//}
 
 		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, txId, ethAddress, amount, fee, signatures)
 		if err != nil {
@@ -375,7 +362,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 	// Verify Ethereum TX `call data`
-	txId, ethAddress, amount, fee, gasPrice, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	txId, ethAddress, amount, fee, erc20address, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
 	if err != nil {
 		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
 			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
@@ -400,13 +387,14 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 
 	if dbTx.Amount != amount ||
 		dbTx.EthAddress != ethAddress ||
-		dbTx.Fee != fee {
+		dbTx.Fee != fee ||
+		tx.GasPrice().String() != dbTx.GasPriceWei {
 		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
 		return false, nil
 	}
 
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, ethTxMessage.Erc20Address, amount, fee, gasPrice)
+	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20address, amount, fee, dbTx.GasPriceWei)
 	if err != nil {
 		ss.logger.Errorf("Failed to encode the authorisation signature to reconstruct required Signature for TX ID [%s]. Error: %s", txId, err)
 		return false, err

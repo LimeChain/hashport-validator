@@ -18,6 +18,8 @@ package transaction
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -82,6 +84,7 @@ type Transaction struct {
 	EthTxStatus           string
 	EthHash               string
 	Asset                 string
+	GasPriceWei           string
 	ExecuteEthTransaction bool
 }
 
@@ -129,6 +132,12 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error)
 
 // Create creates new record of Transaction
 func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
+	gasPriceGweiBn, err := helper.ToBigInt(ct.GasPriceGwei)
+	if err != nil {
+		return nil, err
+	}
+	wei := fees.GweiToWei(gasPriceGweiBn).String()
+
 	tx := &Transaction{
 		Model:                 gorm.Model{},
 		TransactionId:         ct.TransactionId,
@@ -137,9 +146,10 @@ func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
 		Fee:                   ct.Fee,
 		Status:                StatusInitial,
 		Asset:                 ct.Asset,
+		GasPriceWei:           wei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
-	err := tr.dbClient.Create(tx).Error
+	err = tr.dbClient.Create(tx).Error
 	return tx, err
 }
 
@@ -149,6 +159,12 @@ func (tr Repository) Save(tx *Transaction) error {
 }
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
+	gasPriceGweiBn, err := helper.ToBigInt(ct.GasPriceGwei)
+	if err != nil {
+		return err
+	}
+	wei := fees.GweiToWei(gasPriceGweiBn).String()
+
 	return tr.dbClient.Create(&Transaction{
 		Model:                 gorm.Model{},
 		TransactionId:         ct.TransactionId,
@@ -157,6 +173,7 @@ func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 		Fee:                   ct.Fee,
 		Status:                StatusRecovered,
 		Asset:                 ct.Asset,
+		GasPriceWei:           wei,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}).Error
 }
