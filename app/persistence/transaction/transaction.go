@@ -273,27 +273,15 @@ func (tr Repository) updateStatus(txId string, status string) error {
 }
 
 func (tr Repository) updateSignatureStatus(txId string, status string) error {
-	err := tr.baseUpdateStatus("signature_msg_status", txId, status, []string{StatusSignatureSubmitted, StatusSignatureMined, StatusSignatureFailed})
-	if err == nil {
-		tr.logger.Debugf("Updated Signature Message Status of TX [%s] to [%s]", txId, status)
-	}
-	return err
+	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{StatusSignatureSubmitted, StatusSignatureMined, StatusSignatureFailed})
 }
 
 func (tr Repository) updateEthereumTxStatus(txId string, status string) error {
-	err := tr.baseUpdateStatus("eth_tx_status", txId, status, []string{StatusEthTxSubmitted, StatusEthTxMined, StatusEthTxReverted})
-	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s]", txId, status)
-	}
-	return err
+	return tr.baseUpdateStatus("eth_tx_status", txId, status, []string{StatusEthTxSubmitted, StatusEthTxMined, StatusEthTxReverted})
 }
 
 func (tr Repository) updateEthereumTxMsgStatus(txId string, status string) error {
-	err := tr.baseUpdateStatus("eth_tx_msg_status", txId, status, []string{StatusEthTxMsgSubmitted, StatusEthTxMsgMined, StatusEthTxMsgFailed})
-	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Message Status of TX [%s] to [%s]", txId, status)
-	}
-	return err
+	return tr.baseUpdateStatus("eth_tx_msg_status", txId, status, []string{StatusEthTxMsgSubmitted, StatusEthTxMsgMined, StatusEthTxMsgFailed})
 }
 
 func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
@@ -307,7 +295,7 @@ func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibl
 		UpdateColumn(statusColumn, status).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Signature Message Status of TX [%s] to [%s]", txId, status)
+		tr.logger.Debugf("Updated TX [%s] Column [%s] status to [%s]", txId, statusColumn, status)
 	}
 	return err
 }
