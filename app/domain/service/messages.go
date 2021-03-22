@@ -35,4 +35,17 @@ type Messages interface {
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
 	// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
 	ShouldTransactionBeScheduled(transactionId string) (bool, error)
+	// TransactionData returns from the database all messages for specific transactionId and
+	// calculates if messages have reached super majority
+	TransactionData(transactionId string) (TransactionData, error)
+}
+
+type TransactionData struct {
+	Recipient    string   `json:"recipient"`
+	Amount       string   `json:"amount"`
+	ERC20Address string   `json:"erc20Address"`
+	Fee          string   `json:"fee"`
+	GasPrice     string   `json:"gasPrice"`
+	Signatures   []string `json:"signatures"`
+	Majority     bool     `json:"majority"`
 }
