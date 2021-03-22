@@ -224,7 +224,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		}
 		err = ss.transactionRepository.UpdateEthTxSubmitted(txId, ethTx.Hash().String())
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
+			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
 		}
 		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
@@ -240,7 +240,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		}
 		err = ss.transactionRepository.UpdateStatusEthTxMsgSubmitted(txId)
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
+			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
 		}
 		ss.logger.Infof("Submitted Ethereum TX Hash [%s] for TX [%s] to HCS. Transaction ID [%s]", ethTx.Hash().String(), txId, hcsTx.String())

@@ -285,7 +285,7 @@ func (tr Repository) updateEthereumTxMsgStatus(txId string, status string) error
 }
 
 func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
-	if isValidStatus(status, possibleStatuses) {
+	if !isValidStatus(status, possibleStatuses) {
 		return errors.New("invalid status")
 	}
 
