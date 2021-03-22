@@ -20,7 +20,7 @@ func (mts *MockTransferService) SignAuthorizationMessage(txId, receiverAddress, 
 	return args.Get(0).(string), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) PrepareAndSubmitToTopic(tm *encoding.TopicMessage) error {
+func (mts *MockTransferService) SubmitAuthorizationMessage(tm encoding.TopicMessage) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil
@@ -59,14 +59,6 @@ func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage)
 }
 
 func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
-	args := mts.Called(tm)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
-func (mts *MockTransferService) ProcessTransfer(tm encoding.TransferMessage) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil

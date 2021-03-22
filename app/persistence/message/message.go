@@ -18,6 +18,8 @@ package message
 
 import (
 	"errors"
+	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"gorm.io/gorm"
 )
 
@@ -81,8 +83,8 @@ func (m Repository) GetMessagesFor(txId string) ([]TransactionMessage, error) {
 	return messages, nil
 }
 
-func (m *Repository) GetUnprocessedMessages() ([]*TransactionMessage, error) {
-	var messages []*TransactionMessage
+func (m *Repository) GetUnprocessedMessages() ([]TransactionMessage, error) {
+	var messages []TransactionMessage
 
 	err := m.dbClient.Preload("transactions").Raw("SELECT " +
 		"transaction_messages.transaction_id, " +
@@ -94,7 +96,7 @@ func (m *Repository) GetUnprocessedMessages() ([]*TransactionMessage, error) {
 		"transaction_messages.gas_price_wei " +
 		"FROM transaction_messages " +
 		"RIGHT JOIN transactions ON transaction_messages.transaction_id = transactions.transaction_id " +
-		"WHERE transactions.status = 'RECOVERED' OR transactions.status = 'INITIAL'").
+		fmt.Sprintf("WHERE transactions.status = '%s' OR transactions.status = '%s'", transaction.StatusInitial, transaction.StatusRecovered)).
 		Scan(&messages).Error
 	if err != nil {
 		return nil, err

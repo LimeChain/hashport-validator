@@ -29,8 +29,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -153,38 +151,7 @@ func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
 	return nil
 }
 
-// ProcessTransfer processes the transfer message by signing the required
-// authorisation signature submitting it into the required HCS Topic
-func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
-	if err != nil {
-		return err
-	}
-	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
-
-	signature, err := ts.SignAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
-	if err != nil {
-		ts.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", tm.TransactionId, err)
-		return err
-	}
-
-	signatureMessage := encoding.NewSignatureMessage(
-		tm.TransactionId,
-		tm.EthAddress,
-		tm.Amount,
-		tm.Fee,
-		gasPriceWei,
-		signature)
-
-	err = ts.PrepareAndSubmitToTopic(signatureMessage)
-	if err != nil {
-		ts.logger.Errorf("Failed to Prepare and Submit TransactionID [%s] to the HCS Topic. Error [%s].", tm.TransactionId, err)
-		return err
-	}
-	return nil
-}
-
-func (ts *Service) PrepareAndSubmitToTopic(tm *encoding.TopicMessage) error {
+func (ts *Service) SubmitAuthorizationMessage(tm encoding.TopicMessage) error {
 	tsm := tm.GetTopicSignatureMessage()
 	sigMsgBytes, err := tm.ToBytes()
 	if err != nil {
@@ -247,11 +214,13 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 func (ts *Service) SignAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
 	authMsgHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20Address, amount, fee, gasPriceWei)
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", txId, err))
+		ts.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", txId, err)
+		return "", err
 	}
 	signatureBytes, err := ts.ethSigner.Sign(authMsgHash)
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to sign the authorisation signature for TX ID [%s]. Error: %s", txId, err))
+		ts.logger.Errorf("Failed to sign the authorisation signature for TX ID [%s]. Error: %s", txId, err)
+		return "", err
 	}
 	signature := hex.EncodeToString(signatureBytes)
 

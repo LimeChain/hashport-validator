@@ -19,6 +19,8 @@ package transfer
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -64,9 +66,39 @@ func (th Handler) Handle(payload []byte) {
 		}
 	}
 
-	err = th.transfersService.ProcessTransfer(*transferMsg)
+	err = th.processTransfer(*transferMsg)
 	if err != nil {
 		th.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
 		return
 	}
+}
+
+func (th Handler) processTransfer(tm encoding.TransferMessage) error {
+	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
+	if err != nil {
+		th.logger.Errorf("Failed to parse Gas Price in Gwei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPriceGwei, err)
+		return err
+	}
+	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
+
+	signature, err := th.transfersService.SignAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
+	if err != nil {
+		th.logger.Errorf("Failed to Sign Authorization Message for TX ID [%s]", tm.TransactionId)
+		return err
+	}
+
+	signatureMessage := encoding.NewSignatureMessage(
+		tm.TransactionId,
+		tm.EthAddress,
+		tm.Amount,
+		tm.Fee,
+		gasPriceWei,
+		signature)
+
+	err = th.transfersService.SubmitAuthorizationMessage(*signatureMessage)
+	if err != nil {
+		th.logger.Errorf("Failed to Submit Authorization Message for TX ID [%s] to the HCS Topic.", tm.TransactionId)
+		return err
+	}
+	return nil
 }

@@ -18,6 +18,7 @@ package transfer
 
 import (
 	"errors"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
@@ -26,6 +27,7 @@ import (
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
 	"gorm.io/gorm"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +36,7 @@ const (
 	accountID      = "0.0.99661"
 	submissionTxID = "0.0.99661--62135596800-0"
 	signature      = "f9f9c16aa2ac71b8341d9187c37c2b8dd8152c4a27fe70f8fcf60d56456166ce704c3f1df4831d66e26879a32cb764d928de346418c1f0f116cba14d78a4dfac1b"
+	gasPriceWei    = "1000000000"
 )
 
 var (
@@ -80,28 +83,38 @@ func Test_Handle(t *testing.T) {
 		Status:           txRepo.StatusInitial,
 	}
 
+	signatureMessage := encoding.NewSignatureMessage(
+		ctm.TransactionId,
+		ctm.EthAddress,
+		ctm.Amount,
+		ctm.Fee,
+		gasPriceWei,
+		signature)
+
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
 	mockedService.On("VerifyFee", ctm).Return(nil)
-	mockedService.On("ProcessTransfer", ctm).Return(nil)
+	mockedService.On("SignAuthorizationMessage", ctm.TransactionId, ctm.EthAddress, ctm.Erc20Address, ctm.Amount, ctm.Fee, gasPriceWei).Return(signature, nil)
+	mockedService.On("SubmitAuthorizationMessage", *signatureMessage).Return(nil)
 
 	ctHandler.Handle(cryptoTransferPayload)
 
 	mockedService.AssertCalled(t, "InitiateNewTransfer", ctm)
 	mockedService.AssertCalled(t, "VerifyFee", ctm)
-	mockedService.AssertCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertCalled(t, "SignAuthorizationMessage", ctm.TransactionId, ctm.EthAddress, ctm.Erc20Address, ctm.Amount, ctm.Fee, gasPriceWei)
+	mockedService.AssertCalled(t, "SubmitAuthorizationMessage", *signatureMessage)
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {
-	ctm, _, _, _, _ := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
 	invalidTransferPayload := []byte{1, 2, 1}
 
 	ctHandler.Handle(invalidTransferPayload)
 
-	mockedService.AssertNotCalled(t, "InitiateNewTransfer", ctm)
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "InitiateNewTransfer")
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "SignAuthorizationMessage")
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
 }
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
@@ -114,8 +127,9 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "SignAuthorizationMessage")
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
 }
 
 func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
@@ -139,8 +153,9 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "SignAuthorizationMessage")
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
 }
 
 func Test_Handle_VerifyFee_Fails(t *testing.T) {
@@ -165,10 +180,11 @@ func Test_Handle_VerifyFee_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "SignAuthorizationMessage")
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
 }
 
-func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
+func Test_Handle_SignAuthorizationMessage_Fails(t *testing.T) {
 	ctm, _, _, cryptoTransferPayload, _ := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
@@ -187,7 +203,83 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
 	mockedService.On("VerifyFee", ctm).Return(nil)
-	mockedService.On("ProcessTransfer", ctm).Return(errors.New("some-error"))
+	mockedService.On("SignAuthorizationMessage", ctm.TransactionId, ctm.EthAddress, ctm.Erc20Address, ctm.Amount, ctm.Fee, gasPriceWei).Return("", errors.New("some-error"))
 
 	ctHandler.Handle(cryptoTransferPayload)
+
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
+}
+
+func Test_Handle_Invalid_GasPriceGwei_Fails(t *testing.T) {
+	ctm, _, _, _, _ := GetTestData()
+	ctHandler, mockedService := InitializeHandler()
+
+	invalidGasPricePayload := []byte{10, 30, 48, 46, 48, 46, 57, 57, 54, 54, 49, 45, 49, 54, 49, 51, 54, 54, 50, 55, 54, 52, 45, 51, 55, 52, 53, 48, 50, 48, 54, 51, 18, 42, 48, 120, 55, 99, 70, 97, 101, 50, 100, 101, 70, 49, 53, 100, 70, 56, 54, 67, 102, 100, 65, 57, 102, 50, 100, 50, 53, 65, 51, 54, 49, 102, 49, 49, 50, 51, 70, 52, 50, 101, 68, 68, 26, 10, 49, 48, 48, 48, 48, 48, 48, 48, 48, 48, 34, 9, 54, 48, 48, 48, 48, 48, 48, 48, 48, 42, 11, 105, 110, 118, 97, 108, 105, 100, 103, 119, 101, 105}
+
+	proto.Unmarshal(invalidGasPricePayload, &ctm)
+
+	tx := &txRepo.Transaction{
+		Model:            gorm.Model{},
+		TransactionId:    ctm.TransactionId,
+		EthAddress:       ctm.EthAddress,
+		Amount:           ctm.Amount,
+		Fee:              ctm.Fee,
+		Signature:        signature,
+		SignatureMsgTxId: submissionTxID,
+		Status:           txRepo.StatusInitial,
+	}
+
+	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
+	mockedService.On("VerifyFee", ctm).Return(nil)
+	mockedService.On("SignAuthorizationMessage", ctm.TransactionId, ctm.EthAddress, ctm.Erc20Address, ctm.Amount, ctm.Fee, gasPriceWei).Return("", errors.New("some-error"))
+
+	ctHandler.Handle(invalidGasPricePayload)
+
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
+}
+
+func stringifyMessageBytes(ctm encoding.TransferMessage) (string, error) {
+	bytes, err := ctm.ToBytes()
+	if err != nil {
+		return "", err
+	}
+	fmt.Println(bytes)
+	spaced := string(bytes)
+	stringArrayed := strings.Split(" ", spaced)
+	return strings.Join(stringArrayed, ", "), nil
+}
+
+func Test_Handle_SubmitAuthorizationMessage_Fails(t *testing.T) {
+	ctm, _, _, cryptoTransferPayload, _ := GetTestData()
+	ctHandler, mockedService := InitializeHandler()
+
+	proto.Unmarshal(cryptoTransferPayload, &ctm)
+
+	tx := &txRepo.Transaction{
+		Model:            gorm.Model{},
+		TransactionId:    ctm.TransactionId,
+		EthAddress:       ctm.EthAddress,
+		Amount:           ctm.Amount,
+		Fee:              ctm.Fee,
+		Signature:        signature,
+		SignatureMsgTxId: submissionTxID,
+		Status:           txRepo.StatusInitial,
+	}
+
+	signatureMessage := encoding.NewSignatureMessage(
+		ctm.TransactionId,
+		ctm.EthAddress,
+		ctm.Amount,
+		ctm.Fee,
+		gasPriceWei,
+		signature)
+
+	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
+	mockedService.On("VerifyFee", ctm).Return(nil)
+	mockedService.On("SignAuthorizationMessage", ctm.TransactionId, ctm.EthAddress, ctm.Erc20Address, ctm.Amount, ctm.Fee, gasPriceWei).Return(signature, nil)
+	mockedService.On("SubmitAuthorizationMessage", *signatureMessage).Return(errors.New("some-error"))
+
+	ctHandler.Handle(cryptoTransferPayload)
+
+	mockedService.AssertNotCalled(t, "SubmitAuthorizationMessage")
 }

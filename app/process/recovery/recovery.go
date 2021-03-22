@@ -234,7 +234,7 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 	return nil
 }
 
-type TransferMessageKey struct {
+type transferMessageKey struct {
 	TransactionId string
 	EthAddress    string
 	Amount        string
@@ -250,10 +250,10 @@ func (r Recovery) processUnfinishedOperations() error {
 		return err
 	}
 
-	signatureMessagesMap := make(map[*TransferMessageKey][]string)
+	signatureMessagesMap := make(map[*transferMessageKey][]string)
 
 	for _, txnMessage := range unprocessedMessages {
-		key := &TransferMessageKey{
+		key := &transferMessageKey{
 			TransactionId: txnMessage.TransactionId,
 			EthAddress:    txnMessage.EthAddress,
 			Amount:        txnMessage.Amount,
@@ -264,31 +264,31 @@ func (r Recovery) processUnfinishedOperations() error {
 		signatureMessagesMap[key] = append(signatureMessagesMap[key], txnMessage.Signature)
 	}
 
-	for txn, txnSignatures := range signatureMessagesMap {
-		hasSubmittedSignature, topicMessage := r.hasSubmittedSignature(txn, txnSignatures)
+	for transfer, txnSignatures := range signatureMessagesMap {
+		expectedSignature, err := r.transfers.SignAuthorizationMessage(transfer.TransactionId, transfer.EthAddress, transfer.Erc20Address, transfer.Amount, transfer.Fee, transfer.GasPriceWei)
+		if err != nil {
+			r.logger.Errorf("Failed to Sign Authorization Message for TransactionID [%s]. Error [%s].", transfer.TransactionId, err)
+			continue
+		}
 
-		if !hasSubmittedSignature {
-			err = r.transfers.PrepareAndSubmitToTopic(topicMessage)
+		if !r.hasSubmittedSignature(expectedSignature, txnSignatures) {
+			topicMessage := encoding.NewSignatureMessage(transfer.TransactionId, transfer.EthAddress, transfer.Amount, transfer.Fee, transfer.GasPriceWei, expectedSignature)
+			err = r.transfers.SubmitAuthorizationMessage(*topicMessage)
 			if err != nil {
-				r.logger.Errorf("Failed to prepare and submit Transaction ID [%s] to the HCS Topic. Error [%s].", txn.TransactionId, err)
-				return err
+				r.logger.Errorf("Failed to prepare and submit Transaction ID [%s] to the HCS Topic. Error [%s].", transfer.TransactionId, err)
+				continue
 			}
 		}
 	}
 	return nil
 }
 
-func (r Recovery) hasSubmittedSignature(data *TransferMessageKey, signatures []string) (bool, *encoding.TopicMessage) {
-	signature, err := r.transfers.SignAuthorizationMessage(data.TransactionId, data.EthAddress, data.Erc20Address, data.Amount, data.Fee, data.GasPriceWei)
-	if err != nil {
-		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
-	}
-
+func (r Recovery) hasSubmittedSignature(signature string, signatures []string) bool {
 	for _, s := range signatures {
 		if signature == s {
-			return true, nil
+			return true
 		}
 	}
 
-	return false, encoding.NewSignatureMessage(data.TransactionId, data.EthAddress, data.Amount, data.Fee, data.GasPriceWei, signature)
+	return false
 }

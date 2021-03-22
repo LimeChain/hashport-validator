@@ -91,7 +91,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		return false, err
 	}
 
-	valid, _ := ss.contractsService.IsValidBridgeAsset(t.Asset)
+	valid, erc20address := ss.contractsService.IsValidBridgeAsset(t.Asset)
 	if !valid {
 		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.Asset)
 		return false, err
@@ -100,8 +100,8 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 	match := t.EthAddress == topicMessage.EthAddress &&
 		t.Amount == topicMessage.Amount &&
 		t.Fee == topicMessage.Fee &&
-		t.GasPriceWei == topicMessage.GasPriceWei
-		// TODO: Add this line when functionality supports it -> erc20Address == topicMessage.Erc20Address
+		t.GasPriceWei == topicMessage.GasPriceWei &&
+		topicMessage.Erc20Address == erc20address
 	return match, nil
 }
 
@@ -388,6 +388,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	if dbTx.Amount != amount ||
 		dbTx.EthAddress != ethAddress ||
 		dbTx.Fee != fee ||
+		// TODO: Add validation for erc20address, once the contracts support it
 		tx.GasPrice().String() != dbTx.GasPriceWei {
 		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
 		return false, nil
