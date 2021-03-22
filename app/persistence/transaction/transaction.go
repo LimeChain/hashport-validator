@@ -18,6 +18,7 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -41,6 +42,8 @@ const (
 	StatusCompleted = "COMPLETED"
 	// StatusRecovered TODO after recovery is completed
 	StatusRecovered = "RECOVERED"
+	// StatusFailed
+	StatusFailed = "FAILED"
 
 	// StatusSignatureSubmitted is a SignatureStatus set once the signature is submitted to HCS
 	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
@@ -215,7 +218,15 @@ func (tr Repository) UpdateEthTxMined(txId string) error {
 }
 
 func (tr Repository) UpdateEthTxReverted(txId string) error {
-	return tr.updateEthereumTxStatus(txId, StatusEthTxReverted)
+	err := tr.dbClient.
+		Model(Transaction{}).
+		Where("transaction_id = ?", txId).
+		Updates(Transaction{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
+		Error
+	if err == nil {
+		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transaction status to [%s]", txId, StatusEthTxReverted, StatusFailed)
+	}
+	return err
 }
 
 func (tr Repository) UpdateStatusEthTxMsgSubmitted(txId string) error {
@@ -298,4 +309,24 @@ func (tr Repository) updateEthereumTxMsgStatus(txId string, status string) error
 		tr.logger.Debugf("Updated Ethereum TX Message Status of TX [%s] to [%s]", txId, status)
 	}
 	return err
+}
+
+func (tr *Repository) GetUnprocessedTransactions() ([]Transaction, error) {
+	var transactions []Transaction
+
+	err := tr.dbClient.Raw("SELECT " +
+		"transaction_id, " +
+		"eth_address, " +
+		"amount, " +
+		"fee, " +
+		"asset, " +
+		"gas_price_wei " +
+		"FROM transactions " +
+		fmt.Sprintf("WHERE status = '%s' OR status = '%s'", StatusInitial, StatusRecovered)).
+		Scan(&transactions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
 }

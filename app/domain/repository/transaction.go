@@ -24,6 +24,8 @@ import (
 type Transaction interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
+	GetUnprocessedTransactions() ([]transaction.Transaction, error)
+
 	Create(ct *proto.TransferMessage) (*transaction.Transaction, error)
 	Save(tx *transaction.Transaction) error
 	SaveRecoveredTxn(ct *proto.TransferMessage) error

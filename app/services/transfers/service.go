@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go"
-	proof "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -29,6 +28,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -76,19 +77,20 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 		return nil, errors.New(fmt.Sprintf("Could not parse transaction memo. Error: [%s]", e))
 	}
 
-	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
-	if e != nil {
-		return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	}
-
-	verified, e := proof.Verify(tx.TransactionID, stateProof)
-	if e != nil {
-		return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
-	}
-
-	if !verified {
-		return nil, errors.New("State proof not valid")
-	}
+	// TODO: Uncomment when State Proof Method gets updated accordingly
+	//stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
+	//if e != nil {
+	//	return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+	//}
+	//
+	//verified, e := proof.Verify(tx.TransactionID, stateProof)
+	//if e != nil {
+	//	return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+	//}
+	//
+	//if !verified {
+	//	return nil, errors.New("State proof not valid")
+	//}
 
 	return m, nil
 }
@@ -151,7 +153,7 @@ func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
 	return nil
 }
 
-func (ts *Service) SubmitAuthorizationMessage(tm encoding.TopicMessage) error {
+func (ts *Service) submitAuthorizationMessage(tm encoding.TopicMessage) error {
 	tsm := tm.GetTopicSignatureMessage()
 	sigMsgBytes, err := tm.ToBytes()
 	if err != nil {
@@ -211,7 +213,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) SignAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
+func (ts *Service) signAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
 	authMsgHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20Address, amount, fee, gasPriceWei)
 	if err != nil {
 		ts.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", txId, err)
@@ -225,4 +227,34 @@ func (ts *Service) SignAuthorizationMessage(txId, ethAddress, erc20Address, amou
 	signature := hex.EncodeToString(signatureBytes)
 
 	return signature, nil
+}
+
+func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
+	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
+	if err != nil {
+		ts.logger.Errorf("Failed to parse Gas Price in Gwei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPriceGwei, err)
+		return err
+	}
+	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
+
+	signature, err := ts.signAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
+	if err != nil {
+		ts.logger.Errorf("Failed to Sign Authorization Message for TX ID [%s]", tm.TransactionId)
+		return err
+	}
+
+	signatureMessage := encoding.NewSignatureMessage(
+		tm.TransactionId,
+		tm.EthAddress,
+		tm.Amount,
+		tm.Fee,
+		gasPriceWei,
+		signature)
+
+	err = ts.submitAuthorizationMessage(*signatureMessage)
+	if err != nil {
+		ts.logger.Errorf("Failed to Submit Authorization Message for TX ID [%s] to the HCS Topic.", tm.TransactionId)
+		return err
+	}
+	return nil
 }

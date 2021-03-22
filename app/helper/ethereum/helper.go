@@ -96,6 +96,10 @@ func GweiToWei(gwei *big.Int) *big.Int {
 	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
 }
 
+func WeiToGwei(wei *big.Int) *big.Int {
+	return new(big.Int).Div(wei, big.NewInt(params.GWei))
+}
+
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
 	key, err := crypto.Ecrecover(hash, signature)
 	if err != nil {

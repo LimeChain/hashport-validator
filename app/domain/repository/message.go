@@ -23,5 +23,4 @@ type Message interface {
 	Exist(txId, signature, hash string) (bool, error)
 	GetMessageWith(txId, signature, hash string) (*message.TransactionMessage, error)
 	GetMessagesFor(txId string) ([]message.TransactionMessage, error)
-	GetUnprocessedMessages() ([]message.TransactionMessage, error)
 }

@@ -36,10 +36,7 @@ type Transfers interface {
 	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
 	// If no error is returned the TX can be processed
 	VerifyFee(tm encoding.TransferMessage) error
-	// SignAuthorizationMessage signs provided message data and returns
-	// a signature string or an error
-	SignAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error)
-	// SubmitAuthorizationMessage takes a transfer message, gas price in wei and a signature from signed data
-	// Then it submits the prepared signature message to the HCS topic
-	SubmitAuthorizationMessage(tm encoding.TopicMessage) error
+	// ProcessTransfer processes the transfer message by signing the required
+	// authorisation signature submitting it into the required HCS Topic
+	ProcessTransfer(tm encoding.TransferMessage) error
 }

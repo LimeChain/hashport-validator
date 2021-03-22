@@ -17,7 +17,6 @@
 package transaction
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
@@ -148,14 +147,14 @@ func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.TransferMessage) 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) GetSkippedOrInitialTransactionsAndMessages() (map[*message.TransactionMessage][]string, error) {
+func (m *MockTransactionRepository) GetUnprocessedTransactions() ([]transaction.Transaction, error) {
 	args := m.Called()
 
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(map[*message.TransactionMessage][]string), nil
+		return args.Get(0).([]transaction.Transaction), nil
 	}
-	return args.Get(0).(map[*message.TransactionMessage][]string), args.Get(1).(error)
+	return args.Get(0).([]transaction.Transaction), args.Get(1).(error)
 }

@@ -24,6 +24,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -35,9 +37,10 @@ import (
 type Recovery struct {
 	transfers               service.Transfers
 	messages                service.Messages
+	contracts               service.Contracts
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
-	messagesRepo            repository.Message
+	transactions            repository.Transaction
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
@@ -49,10 +52,11 @@ type Recovery struct {
 func NewProcess(
 	c config.Hedera,
 	transfers service.Transfers,
-	messagesService service.Messages,
+	messages service.Messages,
+	contracts service.Contracts,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
-	messagesRepo repository.Message,
+	transactionsRepo repository.Transaction,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
@@ -68,10 +72,11 @@ func NewProcess(
 
 	return &Recovery{
 		transfers:               transfers,
-		messages:                messagesService,
+		messages:                messages,
+		contracts:               contracts,
 		statusTransferRepo:      statusTransferRepo,
 		statusMessagesRepo:      statusMessagesRepo,
-		messagesRepo:            messagesRepo,
+		transactions:            transactionsRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
 		accountID:               account,
@@ -244,40 +249,47 @@ type transferMessageKey struct {
 }
 
 func (r Recovery) processUnfinishedOperations() error {
-	unprocessedMessages, err := r.messagesRepo.GetUnprocessedMessages()
+	unprocessedTransactions, err := r.transactions.GetUnprocessedTransactions()
 	if err != nil {
-		r.logger.Fatalf("Failed to get all unprocessedMessages messages. Error: %s", err)
+		r.logger.Fatalf("Failed to get all unprocessedTransactions messages. Error: %s", err)
 		return err
 	}
 
-	signatureMessagesMap := make(map[*transferMessageKey][]string)
-
-	for _, txnMessage := range unprocessedMessages {
-		key := &transferMessageKey{
-			TransactionId: txnMessage.TransactionId,
-			EthAddress:    txnMessage.EthAddress,
-			Amount:        txnMessage.Amount,
-			Fee:           txnMessage.Fee,
-			GasPriceWei:   txnMessage.GasPriceWei,
-			Erc20Address:  txnMessage.ERC20ContractAddress,
-		}
-		signatureMessagesMap[key] = append(signatureMessagesMap[key], txnMessage.Signature)
-	}
-
-	for transfer, txnSignatures := range signatureMessagesMap {
-		expectedSignature, err := r.transfers.SignAuthorizationMessage(transfer.TransactionId, transfer.EthAddress, transfer.Erc20Address, transfer.Amount, transfer.Fee, transfer.GasPriceWei)
+	for _, transfer := range unprocessedTransactions {
+		weiBn, err := helper.ToBigInt(transfer.GasPriceWei)
 		if err != nil {
-			r.logger.Errorf("Failed to Sign Authorization Message for TransactionID [%s]. Error [%s].", transfer.TransactionId, err)
+			r.logger.Errorf("Could not parse GasPriceWei [%s] to a Big Integer for TX [%s]. Skipping further execution", transfer.GasPriceWei, transfer.TransactionId)
+			continue
+		}
+		gwei := ethereum.WeiToGwei(weiBn)
+
+		valid, erc20Address := r.contracts.IsValidBridgeAsset(transfer.Asset)
+		if !valid {
+			r.logger.Errorf("Specified Asset [%s] for TX ID [%s] is not supported.", transfer.Asset, transfer.TransactionId)
 			continue
 		}
 
-		if !r.hasSubmittedSignature(expectedSignature, txnSignatures) {
-			topicMessage := encoding.NewSignatureMessage(transfer.TransactionId, transfer.EthAddress, transfer.Amount, transfer.Fee, transfer.GasPriceWei, expectedSignature)
-			err = r.transfers.SubmitAuthorizationMessage(*topicMessage)
+		transferMsg := encoding.NewTransferMessage(transfer.TransactionId,
+			transfer.EthAddress,
+			transfer.Asset,
+			erc20Address,
+			transfer.Amount,
+			transfer.Fee,
+			gwei.String(),
+			transfer.ExecuteEthTransaction)
+
+		if transferMsg.ExecuteEthTransaction {
+			err = r.transfers.VerifyFee(*transferMsg)
 			if err != nil {
-				r.logger.Errorf("Failed to prepare and submit Transaction ID [%s] to the HCS Topic. Error [%s].", transfer.TransactionId, err)
+				r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
 				continue
 			}
+		}
+
+		err = r.transfers.ProcessTransfer(*transferMsg)
+		if err != nil {
+			r.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
+			continue
 		}
 	}
 	return nil

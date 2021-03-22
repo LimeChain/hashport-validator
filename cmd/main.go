@@ -92,9 +92,10 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 	r, err := recovery.NewProcess(configuration.Hedera,
 		services.transfers,
 		services.messages,
+		services.contracts,
 		repository.transferStatus,
 		repository.messageStatus,
-		repository.message,
+		repository.transaction,
 		client.MirrorNode,
 		client.HederaNode)
 	if err != nil {
