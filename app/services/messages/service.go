@@ -32,7 +32,6 @@ import (
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	dtotx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -449,15 +448,17 @@ func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, err
 	return t.ExecuteEthTransaction, nil
 }
 
-func (ss *Service) TransactionData(transactionId string) (dtotx.Data, error) {
+// TransactionData returns from the database all messages for specific transactionId and
+// calculates if messages have reached super majority
+func (ss *Service) TransactionData(transactionId string) (service.Data, error) {
 	messages, err := ss.messageRepository.GetMessagesFor(transactionId)
 	if err != nil {
 		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
-		return dtotx.Data{}, err
+		return service.Data{}, err
 	}
 
 	if len(messages) == 0 {
-		return dtotx.Data{}, nil
+		return service.Data{}, nil
 	}
 
 	var signatures []string
@@ -468,7 +469,7 @@ func (ss *Service) TransactionData(transactionId string) (dtotx.Data, error) {
 	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
 	reachedMajority := len(messages) >= requiredSigCount
 
-	return dtotx.Data{
+	return service.Data{
 		Recipient:    messages[0].EthAddress,
 		Amount:       messages[0].Amount,
 		Fee:          messages[0].Fee,

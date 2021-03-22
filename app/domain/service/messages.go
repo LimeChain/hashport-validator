@@ -18,7 +18,6 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
 type Messages interface {
@@ -38,5 +37,15 @@ type Messages interface {
 	ShouldTransactionBeScheduled(transactionId string) (bool, error)
 	// TransactionData returns from the database all messages for specific transactionId and
 	// calculates if messages have reached super majority
-	TransactionData(transactionId string) (transaction.Data, error)
+	TransactionData(transactionId string) (Data, error)
+}
+
+type Data struct {
+	Recipient    string   `json:"recipient"`
+	Amount       string   `json:"amount"`
+	ERC20Address string   `json:"erc20Address"`
+	Fee          string   `json:"fee"`
+	GasPrice     string   `json:"gasPrice"`
+	Signatures   []string `json:"signatures"`
+	Majority     bool     `json:"majority"`
 }
