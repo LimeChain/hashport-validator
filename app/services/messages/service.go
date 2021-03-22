@@ -219,7 +219,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		}
 		err = ss.transactionRepository.UpdateEthTxSubmitted(txId, ethTx.Hash().String())
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
+			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
 		}
 		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
@@ -235,7 +235,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 		}
 		err = ss.transactionRepository.UpdateStatusEthTxMsgSubmitted(txId)
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]", txId)
+			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
 		}
 		ss.logger.Infof("Submitted Ethereum TX Hash [%s] for TX [%s] to HCS. Transaction ID [%s]", ethTx.Hash().String(), txId, hcsTx.String())
@@ -444,4 +444,36 @@ func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, err
 		return false, err
 	}
 	return t.ExecuteEthTransaction, nil
+}
+
+// TransactionData returns from the database all messages for specific transactionId and
+// calculates if messages have reached super majority
+func (ss *Service) TransactionData(transactionId string) (service.TransactionData, error) {
+	messages, err := ss.messageRepository.GetMessagesFor(transactionId)
+	if err != nil {
+		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
+		return service.TransactionData{}, err
+	}
+
+	if len(messages) == 0 {
+		return service.TransactionData{}, nil
+	}
+
+	var signatures []string
+	for _, m := range messages {
+		signatures = append(signatures, m.Signature)
+	}
+
+	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
+	reachedMajority := len(messages) >= requiredSigCount
+
+	return service.TransactionData{
+		Recipient:    messages[0].EthAddress,
+		Amount:       messages[0].Amount,
+		Fee:          messages[0].Fee,
+		ERC20Address: messages[0].ERC20ContractAddress,
+		Signatures:   signatures,
+		Majority:     reachedMajority,
+		// TODO: GasPrice: messages[0].GasPrice,
+	}, nil
 }

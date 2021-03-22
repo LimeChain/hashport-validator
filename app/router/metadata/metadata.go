@@ -34,12 +34,8 @@ const (
 )
 
 var (
-	ErrorInternalServerError = errors.New("SOMETHING_WENT_WRONG")
-)
-
-var (
-	MetadataRoute = "/metadata"
-	logger        = config.GetLoggerFor(fmt.Sprintf("Router [%s]", MetadataRoute))
+	Route  = "/metadata"
+	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
 // GET: .../metadata?gasPriceGwei=${gasPriceGwei}
@@ -56,7 +52,7 @@ func getMetadata(calculator service.Fees) func(w http.ResponseWriter, r *http.Re
 				logger.Debugf("Invalid provided value: [%s].", gasPriceGwei)
 			} else {
 				render.Status(r, http.StatusInternalServerError)
-				render.JSON(w, r, response.ErrorResponse(ErrorInternalServerError))
+				render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
 
 				logger.Errorf("Router resolved with an error. Error [%s].", err)
 			}

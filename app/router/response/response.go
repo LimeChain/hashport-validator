@@ -16,6 +16,14 @@
 
 package response
 
+import (
+	"errors"
+)
+
+var (
+	ErrorInternalServerError = errors.New("SOMETHING_WENT_WRONG")
+)
+
 type ErrResponse struct {
 	Err error `json:"-"` // low-level runtime error
 
