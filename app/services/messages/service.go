@@ -450,15 +450,15 @@ func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, err
 
 // TransactionData returns from the database all messages for specific transactionId and
 // calculates if messages have reached super majority
-func (ss *Service) TransactionData(transactionId string) (service.Data, error) {
+func (ss *Service) TransactionData(transactionId string) (service.TransactionData, error) {
 	messages, err := ss.messageRepository.GetMessagesFor(transactionId)
 	if err != nil {
 		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
-		return service.Data{}, err
+		return service.TransactionData{}, err
 	}
 
 	if len(messages) == 0 {
-		return service.Data{}, nil
+		return service.TransactionData{}, nil
 	}
 
 	var signatures []string
@@ -469,7 +469,7 @@ func (ss *Service) TransactionData(transactionId string) (service.Data, error) {
 	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
 	reachedMajority := len(messages) >= requiredSigCount
 
-	return service.Data{
+	return service.TransactionData{
 		Recipient:    messages[0].EthAddress,
 		Amount:       messages[0].Amount,
 		Fee:          messages[0].Fee,

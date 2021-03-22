@@ -37,10 +37,10 @@ type Messages interface {
 	ShouldTransactionBeScheduled(transactionId string) (bool, error)
 	// TransactionData returns from the database all messages for specific transactionId and
 	// calculates if messages have reached super majority
-	TransactionData(transactionId string) (Data, error)
+	TransactionData(transactionId string) (TransactionData, error)
 }
 
-type Data struct {
+type TransactionData struct {
 	Recipient    string   `json:"recipient"`
 	Amount       string   `json:"amount"`
 	ERC20Address string   `json:"erc20Address"`
