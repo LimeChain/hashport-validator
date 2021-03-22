@@ -32,6 +32,7 @@ import (
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	dtotx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -446,4 +447,34 @@ func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, err
 		return false, err
 	}
 	return t.ExecuteEthTransaction, nil
+}
+
+func (ss *Service) TransactionData(transactionId string) (dtotx.Data, error) {
+	messages, err := ss.messageRepository.GetMessagesFor(transactionId)
+	if err != nil {
+		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
+		return dtotx.Data{}, err
+	}
+
+	if len(messages) == 0 {
+		return dtotx.Data{}, nil
+	}
+
+	var signatures []string
+	for _, m := range messages {
+		signatures = append(signatures, m.Signature)
+	}
+
+	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
+	reachedMajority := len(messages) >= requiredSigCount
+
+	return dtotx.Data{
+		Recipient:    messages[0].EthAddress,
+		Amount:       messages[0].Amount,
+		Fee:          messages[0].Fee,
+		ERC20Address: messages[0].ERC20ContractAddress,
+		Signatures:   signatures,
+		Majority:     reachedMajority,
+		// TODO: GasPrice: messages[0].GasPrice,
+	}, nil
 }

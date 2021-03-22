@@ -18,6 +18,7 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 )
 
 type Messages interface {
@@ -35,4 +36,7 @@ type Messages interface {
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
 	// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
 	ShouldTransactionBeScheduled(transactionId string) (bool, error)
+	// TransactionData returns from the database all messages for specific transactionId and
+	// calculates if messages have reached super majority
+	TransactionData(transactionId string) (transaction.Data, error)
 }

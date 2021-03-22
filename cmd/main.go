@@ -33,6 +33,7 @@ import (
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-watcher-sdk/server"
 	log "github.com/sirupsen/logrus"
@@ -81,7 +82,7 @@ func main() {
 		server.AddWatcher(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth))
 	}
 
-	apiRouter := initializeAPIRouter(services.fees)
+	apiRouter := initializeAPIRouter(services)
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
@@ -108,10 +109,11 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 	return err, recoveryTo
 }
 
-func initializeAPIRouter(feeCalculator service.Fees) *apirouter.APIRouter {
+func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.MetadataRoute, metadata.NewRouter(feeCalculator))
-	apiRouter.AddV1Router(healthcheck.HealthCheckRoute, healthcheck.NewRouter())
+	apiRouter.AddV1Router(metadata.Route, metadata.NewRouter(services.fees))
+	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
+	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.messages))
 	return apiRouter
 }
 
