@@ -204,7 +204,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		signature)
 
 	tsm := signatureMessage.GetTopicSignatureMessage()
-	sigMsgBytes, err := tm.ToBytes()
+	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
 		ts.logger.Errorf("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tsm.TransactionId)
 		return err
