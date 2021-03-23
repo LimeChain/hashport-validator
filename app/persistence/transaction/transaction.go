@@ -31,18 +31,19 @@ import (
 const (
 	// StatusInitial is the first status on Transaction Record creation
 	StatusInitial = "INITIAL"
-	// StatusInsufficientFee is status set once transfer is made but the provided TX
+	// StatusInsufficientFee is a status set once transfer is made but the provided TX
 	// reimbursement is not enough for validators to process it. This is a terminal status
 	StatusInsufficientFee = "INSUFFICIENT_FEE"
-	// StatusInProgress is status set once the transfer is accepted and the process
+	// StatusInProgress is a status set once the transfer is accepted and the process
 	// of bridging the asset has started
 	StatusInProgress = "IN_PROGRESS"
-	// StatusCompleted is status set once the Transfer operation is successfully finished.
+	// StatusCompleted is a status set once the Transfer operation is successfully finished.
 	// This is a terminal status
 	StatusCompleted = "COMPLETED"
-	// StatusRecovered TODO after recovery is completed
+	// StatusRecovered is a status set when a transfer has not been processed yet,
+	// but has been found by the recovery service
 	StatusRecovered = "RECOVERED"
-	// StatusFailed
+	// StatusFailed is a status set when an ethereum transaction is reverted
 	StatusFailed = "FAILED"
 
 	// StatusSignatureSubmitted is a SignatureStatus set once the signature is submitted to HCS

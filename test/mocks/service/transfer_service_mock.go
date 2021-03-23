@@ -20,22 +20,6 @@ func (mts *MockTransferService) ProcessTransfer(tm encoding.TransferMessage) err
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SignAuthorizationMessage(txId, receiverAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
-	args := mts.Called(txId, receiverAddress, erc20Address, amount, fee, gasPriceWei)
-	if args.Get(1) == nil {
-		return args.Get(0).(string), nil
-	}
-	return args.Get(0).(string), args.Get(1).(error)
-}
-
-func (mts *MockTransferService) SubmitAuthorizationMessage(tm encoding.TopicMessage) error {
-	args := mts.Called(tm)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
 func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
 	args := mts.Called(tx)
 	if args.Get(0) == nil {

@@ -239,33 +239,24 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 	return nil
 }
 
-type transferMessageKey struct {
-	TransactionId string
-	EthAddress    string
-	Amount        string
-	Fee           string
-	GasPriceWei   string
-	Erc20Address  string
-}
-
 func (r Recovery) processUnfinishedOperations() error {
 	unprocessedTransactions, err := r.transactions.GetUnprocessedTransactions()
 	if err != nil {
-		r.logger.Fatalf("Failed to get all unprocessedTransactions messages. Error: %s", err)
+		r.logger.Errorf("Failed to get all unprocessedTransactions messages. Error: %s", err)
 		return err
 	}
 
 	for _, transfer := range unprocessedTransactions {
 		weiBn, err := helper.ToBigInt(transfer.GasPriceWei)
 		if err != nil {
-			r.logger.Errorf("Could not parse GasPriceWei [%s] to a Big Integer for TX [%s]. Skipping further execution", transfer.GasPriceWei, transfer.TransactionId)
+			r.logger.Errorf("Skipping recovery for TX [%s]. Could not parse gas price [%s wei] to Big Integer.", transfer.TransactionId, transfer.GasPriceWei)
 			continue
 		}
 		gwei := ethereum.WeiToGwei(weiBn)
 
 		valid, erc20Address := r.contracts.IsValidBridgeAsset(transfer.Asset)
 		if !valid {
-			r.logger.Errorf("Specified Asset [%s] for TX ID [%s] is not supported.", transfer.Asset, transfer.TransactionId)
+			r.logger.Errorf("Skipping recovery for TX [%s]. Specified Asset [%s] is not supported.", transfer.TransactionId, transfer.Asset)
 			continue
 		}
 
@@ -281,7 +272,7 @@ func (r Recovery) processUnfinishedOperations() error {
 		if transferMsg.ExecuteEthTransaction {
 			err = r.transfers.VerifyFee(*transferMsg)
 			if err != nil {
-				r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+				r.logger.Errorf("Skipping recovery for TX [%s]. Fee validation failed.", transferMsg.TransactionId)
 				continue
 			}
 		}
@@ -293,14 +284,4 @@ func (r Recovery) processUnfinishedOperations() error {
 		}
 	}
 	return nil
-}
-
-func (r Recovery) hasSubmittedSignature(signature string, signatures []string) bool {
-	for _, s := range signatures {
-		if signature == s {
-			return true
-		}
-	}
-
-	return false
 }

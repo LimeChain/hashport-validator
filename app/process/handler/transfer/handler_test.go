@@ -34,7 +34,6 @@ const (
 	accountID      = "0.0.99661"
 	submissionTxID = "0.0.99661--62135596800-0"
 	signature      = "f9f9c16aa2ac71b8341d9187c37c2b8dd8152c4a27fe70f8fcf60d56456166ce704c3f1df4831d66e26879a32cb764d928de346418c1f0f116cba14d78a4dfac1b"
-	gasPriceWei    = "1000000000"
 )
 
 var (

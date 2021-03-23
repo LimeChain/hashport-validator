@@ -153,13 +153,63 @@ func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
 	return nil
 }
 
-func (ts *Service) submitAuthorizationMessage(tm encoding.TopicMessage) error {
-	tsm := tm.GetTopicSignatureMessage()
+func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
+	onSuccess = func() {
+		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
+		err := ts.transactionRepository.UpdateStatusSignatureMined(txId)
+		if err != nil {
+			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			return
+		}
+	}
+
+	onRevert = func() {
+		ts.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
+		err := ts.transactionRepository.UpdateStatusSignatureFailed(txId)
+		if err != nil {
+			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			return
+		}
+	}
+	return onSuccess, onRevert
+}
+
+func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
+	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
+	if err != nil {
+		ts.logger.Errorf("Failed to parse Gas Price in Gwei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPriceGwei, err)
+		return err
+	}
+	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
+
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
+	if err != nil {
+		ts.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
+		return err
+	}
+
+	signatureBytes, err := ts.ethSigner.Sign(authMsgHash)
+	if err != nil {
+		ts.logger.Errorf("Failed to sign the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
+		return err
+	}
+	signature := hex.EncodeToString(signatureBytes)
+
+	signatureMessage := encoding.NewSignatureMessage(
+		tm.TransactionId,
+		tm.EthAddress,
+		tm.Amount,
+		tm.Fee,
+		gasPriceWei,
+		signature)
+
+	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := tm.ToBytes()
 	if err != nil {
 		ts.logger.Errorf("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tsm.TransactionId)
 		return err
 	}
+
 	messageTxId, err := ts.hederaNode.SubmitTopicConsensusMessage(
 		ts.topicID,
 		sigMsgBytes)
@@ -189,72 +239,5 @@ func (ts *Service) submitAuthorizationMessage(tm encoding.TopicMessage) error {
 	ts.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tsm.TransactionId, ts.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransactionId)
 	ts.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
-	return nil
-}
-
-func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
-	onSuccess = func() {
-		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := ts.transactionRepository.UpdateStatusSignatureMined(txId)
-		if err != nil {
-			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
-			return
-		}
-	}
-
-	onRevert = func() {
-		ts.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
-		err := ts.transactionRepository.UpdateStatusSignatureFailed(txId)
-		if err != nil {
-			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
-			return
-		}
-	}
-	return onSuccess, onRevert
-}
-
-func (ts *Service) signAuthorizationMessage(txId, ethAddress, erc20Address, amount, fee, gasPriceWei string) (string, error) {
-	authMsgHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20Address, amount, fee, gasPriceWei)
-	if err != nil {
-		ts.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", txId, err)
-		return "", err
-	}
-	signatureBytes, err := ts.ethSigner.Sign(authMsgHash)
-	if err != nil {
-		ts.logger.Errorf("Failed to sign the authorisation signature for TX ID [%s]. Error: %s", txId, err)
-		return "", err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	return signature, nil
-}
-
-func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
-	if err != nil {
-		ts.logger.Errorf("Failed to parse Gas Price in Gwei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPriceGwei, err)
-		return err
-	}
-	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
-
-	signature, err := ts.signAuthorizationMessage(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
-	if err != nil {
-		ts.logger.Errorf("Failed to Sign Authorization Message for TX ID [%s]", tm.TransactionId)
-		return err
-	}
-
-	signatureMessage := encoding.NewSignatureMessage(
-		tm.TransactionId,
-		tm.EthAddress,
-		tm.Amount,
-		tm.Fee,
-		gasPriceWei,
-		signature)
-
-	err = ts.submitAuthorizationMessage(*signatureMessage)
-	if err != nil {
-		ts.logger.Errorf("Failed to Submit Authorization Message for TX ID [%s] to the HCS Topic.", tm.TransactionId)
-		return err
-	}
 	return nil
 }
