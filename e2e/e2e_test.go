@@ -19,9 +19,14 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
+	"gorm.io/gorm"
 	"log"
 	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -81,7 +86,35 @@ func Test_E2E(t *testing.T) {
 	// Step 3 - Verify the Ethereum Transaction execution
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
 
-	// TODO: Step 4 - Verify Transaction and Message Records in the database
+	// TODO: Step 4 - Verify Transaction Record in the database
+	bigGasPriceGwei, _ := helper.ToBigInt(gasPriceGwei)
+
+	expectedTxRecord := &transaction.Transaction{
+		Model:                 gorm.Model{},
+		TransactionId:         transactionResponse.TransactionID.String(),
+		EthAddress:            receiverAddress,
+		Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
+		Fee:                   txFee,
+		Signature:             "", // TODO: Figure out how to mock expected signature
+		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id
+		Status:                transaction.StatusCompleted,
+		SignatureMsgStatus:    transaction.StatusSignatureMined,
+		EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
+		EthTxStatus:           transaction.StatusEthTxMined,
+		EthHash:               ethTransactionHash,
+		Asset:                 "hbar",
+		GasPriceWei:           ethereum.GweiToWei(bigGasPriceGwei).String(),
+		ExecuteEthTransaction: true,
+	}
+	exists, err := setupEnv.DBVerifier.TransactionRecordExists(expectedTxRecord)
+	if err != nil {
+		t.Fatalf("Could not figure out if [%s] exists - Error: [%s]", expectedTxRecord.TransactionId, err)
+	}
+	if !exists {
+		t.Fatalf("[%s] does not exist.", expectedTxRecord.TransactionId)
+	}
+
+	// TODO: Step 5 - Verify Message Record in the database
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
