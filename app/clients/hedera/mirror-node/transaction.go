@@ -25,26 +25,26 @@ import (
 type (
 	// Transaction struct used by the Hedera Mirror node REST API
 	Transaction struct {
-		ConsensusTimestamp   string `json:"consensus_timestamp"`
-		TransactionHash      string `json:"transaction_hash"`
-		ValidStartTimestamp  string `json:"valid_start_timestamp"`
-		ChargedTxFee         int    `json:"charged_tx_fee"`
-		MemoBase64           string `json:"memo_base64"`
-		Result               string `json:"result"`
-		Name                 string `json:"name"`
-		MaxFee               string `json:"max_fee"`
-		ValidDurationSeconds string `json:"valid_duration_seconds"`
-		Node                 string `json:"node"`
-		TransactionID        string `json:"transaction_id"`
-		Transfers            []Transfer
-		TokenTransfers       []Transfer
+		ConsensusTimestamp   string     `json:"consensus_timestamp"`
+		TransactionHash      string     `json:"transaction_hash"`
+		ValidStartTimestamp  string     `json:"valid_start_timestamp"`
+		ChargedTxFee         int        `json:"charged_tx_fee"`
+		MemoBase64           string     `json:"memo_base64"`
+		Result               string     `json:"result"`
+		Name                 string     `json:"name"`
+		MaxFee               string     `json:"max_fee"`
+		ValidDurationSeconds string     `json:"valid_duration_seconds"`
+		Node                 string     `json:"node"`
+		TransactionID        string     `json:"transaction_id"`
+		Transfers            []Transfer `json:"transfers"`
+		TokenTransfers       []Transfer `json:"token_transfers"`
 	}
 	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
-		Asset string `json:"asset"`
+		Asset string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried

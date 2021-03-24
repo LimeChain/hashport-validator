@@ -10,5 +10,6 @@ message TopicEthSignatureMessage {
   string amount = 3;
   string fee = 4;
   string signature = 5;
-  string erc20Address = 6;
+  string gasPriceWei = 6;
+  string erc20Address = 7;
 }

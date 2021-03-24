@@ -19,6 +19,7 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/ethereum/go-ethereum/params"
 
 	"math/big"
 	"strings"
@@ -55,21 +56,21 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee string, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20Address string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
-		return "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
-		return "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	if len(decodedParameters) != MintFunctionParametersCount {
-		return "", "", "", "", nil, ErrorInvalidMintFunctionParameters
+		return "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
@@ -78,14 +79,25 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee string
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
+	// TODO: Update Key to 'MintFunctionParameterErc20Address' once contract is ready
+	erc20 := decodedParameters[MintFunctionParameterTransactionId].([]byte)
+
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
-			return "", "", "", "", nil, err
+			return "", "", "", "", "", nil, err
 		}
 	}
 
-	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), signatures, nil
+	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), string(erc20), signatures, nil
+}
+
+func GweiToWei(gwei *big.Int) *big.Int {
+	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
+}
+
+func WeiToGwei(wei *big.Int) *big.Int {
+	return new(big.Int).Div(wei, big.NewInt(params.GWei))
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {

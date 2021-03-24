@@ -63,7 +63,7 @@ func NewTopicMessageFromString(data, ts string) (*TopicMessage, error) {
 }
 
 // NewSignatureMessage instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewSignatureMessage(txId, ethAddress, amount, txReimbursement, signature string) *TopicMessage {
+func NewSignatureMessage(txId, ethAddress, amount, txReimbursement, gasPriceWei, signature string) *TopicMessage {
 	topicMsg := &model.TopicMessage{
 		Type: model.TopicMessageType_EthSignature,
 		Message: &model.TopicMessage_TopicSignatureMessage{
@@ -73,6 +73,7 @@ func NewSignatureMessage(txId, ethAddress, amount, txReimbursement, signature st
 				Amount:        amount,
 				Fee:           txReimbursement,
 				Signature:     signature,
+				GasPriceWei:   gasPriceWei,
 			},
 		},
 	}

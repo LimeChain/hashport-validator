@@ -22,13 +22,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"log"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go"
-	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
 )
@@ -211,7 +211,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 				if msg.GetType() == validatorproto.TopicMessageType_EthSignature {
 					//Verify that all the submitted messages have signed the same transaction
-					topicSubmissionMessageSign := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
 						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
 					}
@@ -221,7 +221,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 				if msg.GetType() == validatorproto.TopicMessageType_EthTransaction {
 					//Verify that the eth transaction message has been submitted
-					topicSubmissionMessageTrans := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					topicSubmissionMessageTrans := fromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicEthTransactionMessage().TransactionId != topicSubmissionMessageTrans.String() {
 						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
 					}
@@ -289,4 +289,32 @@ func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, wh
 	}
 	setup.Clients.EthClient.WaitForTransaction(ethTransactionHash, onSuccess, onRevert, onError)
 	<-c1
+}
+
+type hederaTxId struct {
+	AccountId string
+	Seconds   string
+	Nanos     string
+}
+
+func fromHederaTransactionID(id *hedera.TransactionID) hederaTxId {
+	stringTxId := id.String()
+	split := strings.Split(stringTxId, "@")
+	accId := split[0]
+
+	split = strings.Split(split[1], ".")
+
+	return hederaTxId{
+		AccountId: accId,
+		Seconds:   split[0],
+		Nanos:     split[1],
+	}
+}
+
+func (txId hederaTxId) String() string {
+	return fmt.Sprintf("%s-%s-%s", txId.AccountId, txId.Seconds, txId.Nanos)
+}
+
+func (txId hederaTxId) Timestamp() string {
+	return fmt.Sprintf("%s.%s", txId.Seconds, txId.Nanos)
 }

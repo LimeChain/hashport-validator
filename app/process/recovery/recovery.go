@@ -24,8 +24,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -36,9 +37,10 @@ import (
 type Recovery struct {
 	transfers               service.Transfers
 	messages                service.Messages
+	contracts               service.Contracts
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
-	transactionsRepo        repository.Transaction
+	transactions            repository.Transaction
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
@@ -50,7 +52,8 @@ type Recovery struct {
 func NewProcess(
 	c config.Hedera,
 	transfers service.Transfers,
-	messagesService service.Messages,
+	messages service.Messages,
+	contracts service.Contracts,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
 	transactionsRepo repository.Transaction,
@@ -69,10 +72,11 @@ func NewProcess(
 
 	return &Recovery{
 		transfers:               transfers,
-		messages:                messagesService,
+		messages:                messages,
+		contracts:               contracts,
 		statusTransferRepo:      statusTransferRepo,
 		statusMessagesRepo:      statusMessagesRepo,
-		transactionsRepo:        transactionsRepo,
+		transactions:            transactionsRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
 		accountID:               account,
@@ -236,60 +240,48 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 }
 
 func (r Recovery) processUnfinishedOperations() error {
-	// TODO messagesRepo.getUnprocessedMessages() <- should return all Messages whose TX ID is status INITIAL or RECOVERED
-	//unprocessed, err := r.transactionsRepo.GetSkippedOrInitialTransactionsAndMessages()
-	//if err != nil {
-	//	r.logger.Fatalf("Failed to get all unprocessed messages. Error: %s", err)
-	//	return err
-	//}
+	unprocessedTransactions, err := r.transactions.GetUnprocessedTransactions()
+	if err != nil {
+		r.logger.Errorf("Failed to get all unprocessedTransactions messages. Error: %s", err)
+		return err
+	}
 
-	// Combine all Messages records into map({txId, amount, fee, gasPrice, etc}, []signatures)
-	// Iterate all keys
-	// 	If validator has not signed -> sign and submit
-	//for txn, txnSignatures := range unprocessed {
-	//hasSubmittedSignature, ctm := r.hasSubmittedSignature(txn, txnSignatures)
-	//
-	//if !hasSubmittedSignature {
-	//	r.logger.Infof("Validator has not yet submitted signature for Transaction with ID [%s]. Proceeding now...", txn)
-	//	// TODO
-	//	err = r.transfersService.VerifyFee(ctm)
-	//	if err != nil {
-	//		r.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
-	//	}
-	//
-	//	signature, err := r.transfersService.ValidateAndSignTxn(ctm)
-	//	if err != nil {
-	//		r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", txn, err)
-	//	}
-	//
-	//	_, err = r.transfersService.HandleTopicSubmission(ctm, signature)
-	//	if err != nil {
-	//		return errors.New(fmt.Sprintf("Could not submit Signature [%s] to Topic [%s] - Error: [%s]", signature, r.topicID, err))
-	//	}
-	//	r.logger.Infof("Successfully Validated")
-	//}
-	//}
+	for _, transfer := range unprocessedTransactions {
+		weiBn, err := helper.ToBigInt(transfer.GasPriceWei)
+		if err != nil {
+			r.logger.Errorf("Skipping recovery for TX [%s]. Could not parse gas price [%s wei] to Big Integer.", transfer.TransactionId, transfer.GasPriceWei)
+			continue
+		}
+		gwei := ethereum.WeiToGwei(weiBn)
+
+		valid, erc20Address := r.contracts.IsValidBridgeAsset(transfer.Asset)
+		if !valid {
+			r.logger.Errorf("Skipping recovery for TX [%s]. Specified Asset [%s] is not supported.", transfer.TransactionId, transfer.Asset)
+			continue
+		}
+
+		transferMsg := encoding.NewTransferMessage(transfer.TransactionId,
+			transfer.EthAddress,
+			transfer.Asset,
+			erc20Address,
+			transfer.Amount,
+			transfer.Fee,
+			gwei.String(),
+			transfer.ExecuteEthTransaction)
+
+		if transferMsg.ExecuteEthTransaction {
+			err = r.transfers.VerifyFee(*transferMsg)
+			if err != nil {
+				r.logger.Errorf("Skipping recovery for TX [%s]. Fee validation failed.", transferMsg.TransactionId)
+				continue
+			}
+		}
+
+		err = r.transfers.ProcessTransfer(*transferMsg)
+		if err != nil {
+			r.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
+			continue
+		}
+	}
 	return nil
-}
-
-func (r Recovery) hasSubmittedSignature(data joined.CTMKey, signatures []string) (bool, *validatorproto.TransferMessage) {
-	//ctm := &validatorproto.TransferMessage{
-	//	TransactionId: data.TransactionId,
-	//	EthAddress:    data.EthAddress,
-	//	Amount:        data.Amount,
-	//	Fee:           data.Fee,
-	//	GasPriceGwei:  data.GasPriceGwei,
-	//}
-	//
-	//signature, err := r.transfersService.ValidateAndSignTxn(ctm)
-	//if err != nil {
-	//	r.logger.Errorf("Failed to Validate and Sign TransactionID [%s]. Error [%s].", data.TransactionId, err)
-	//}
-	//
-	//for _, s := range signatures {
-	//	if signature == s {
-	//		return true, nil
-	//	}
-	//}
-	return false, nil
 }

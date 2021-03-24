@@ -18,14 +18,14 @@ package repository
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
-	joined "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
 type Transaction interface {
 	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
 	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
-	GetSkippedOrInitialTransactionsAndMessages() (map[joined.CTMKey][]string, error)
+	GetUnprocessedTransactions() ([]transaction.Transaction, error)
+
 	Create(ct *proto.TransferMessage) (*transaction.Transaction, error)
 	Save(tx *transaction.Transaction) error
 	SaveRecoveredTxn(ct *proto.TransferMessage) error

@@ -92,16 +92,15 @@ func Test_Handle(t *testing.T) {
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {
-	ctm, _, _, _, _ := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
 	invalidTransferPayload := []byte{1, 2, 1}
 
 	ctHandler.Handle(invalidTransferPayload)
 
-	mockedService.AssertNotCalled(t, "InitiateNewTransfer", ctm)
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "InitiateNewTransfer")
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
@@ -114,8 +113,8 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
@@ -139,8 +138,8 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "VerifyFee", ctm)
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "VerifyFee")
+	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_VerifyFee_Fails(t *testing.T) {
@@ -165,7 +164,7 @@ func Test_Handle_VerifyFee_Fails(t *testing.T) {
 
 	ctHandler.Handle(cryptoTransferPayload)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_ProcessTransfer_Fails(t *testing.T) {

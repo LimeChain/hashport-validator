@@ -12,6 +12,14 @@ type MockTransferService struct {
 	mock.Mock
 }
 
+func (mts *MockTransferService) ProcessTransfer(tm encoding.TransferMessage) error {
+	args := mts.Called(tm)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
 func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
 	args := mts.Called(tx)
 	if args.Get(0) == nil {
@@ -43,14 +51,6 @@ func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage)
 }
 
 func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
-	args := mts.Called(tm)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
-func (mts *MockTransferService) ProcessTransfer(tm encoding.TransferMessage) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil
