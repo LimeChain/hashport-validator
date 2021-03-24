@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
+	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/db-validation"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -75,6 +76,7 @@ type Setup struct {
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
 	Clients       *clients
+	DBVerifier    *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -101,6 +103,7 @@ func newSetup(config Config) (*Setup, error) {
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
 		Clients:       clients,
+		DBVerifier:    db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
 }
 
@@ -165,22 +168,14 @@ type Config struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	BridgeAccount     string `yaml:"bridge_account"`
-	TopicID           string `yaml:"topic_id"`
-	DbValidationProps Db     `yaml:"db_validation"`
-	Sender            Sender `yaml:"sender"`
+	BridgeAccount     string    `yaml:"bridge_account"`
+	TopicID           string    `yaml:"topic_id"`
+	DbValidationProps config.Db `yaml:"db_validation"`
+	Sender            Sender    `yaml:"sender"`
 }
 
 // sender props from the application.yml
 type Sender struct {
 	Account    string `yaml:"account"`
 	PrivateKey string `yaml:"private_key"`
-}
-
-type Db struct {
-	Host     string `yaml:"host"`
-	Name     string `yaml:"name"`
-	Password string `yaml:"password"`
-	Port     string `yaml:"port"`
-	Username string `yaml:"username"`
 }

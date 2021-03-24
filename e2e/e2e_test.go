@@ -81,6 +81,7 @@ func Test_E2E(t *testing.T) {
 	// Step 3 - Verify the Ethereum Transaction execution
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
 
+	// TODO: Step 4 - Verify Transaction and Message Records in the database
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
