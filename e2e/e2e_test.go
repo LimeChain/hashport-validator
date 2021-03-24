@@ -254,6 +254,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 		if ethTransMsgCollected != expectedEthTxMessageCount {
 			t.Fatalf(`Expected to submit exactly [%v] ethereum transaction in topic, but was: [%v]`, expectedEthTxMessageCount, ethTransMsgCollected)
 		}
+		return ethTransactionHash
 	}
 	// Not possible end-case
 	return ""
