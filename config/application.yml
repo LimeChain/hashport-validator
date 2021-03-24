@@ -24,6 +24,7 @@ hedera:
       account_id:
       private_key:
       eth_private_key:
+    service_fee_percent: 10
     base_gas_usage: 130000
     gas_per_validator: 54000
   watcher:
