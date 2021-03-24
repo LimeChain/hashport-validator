@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -33,16 +34,12 @@ const (
 )
 
 var (
-	ErrorInternalServerError = errors.New("SOMETHING_WENT_WRONG")
-)
-
-var (
-	MetadataRoute = "/metadata"
-	logger        = config.GetLoggerFor(fmt.Sprintf("Router [%s]", MetadataRoute))
+	Route  = "/metadata"
+	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
 // GET: .../metadata?gasPriceGwei=${gasPriceGwei}
-func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *http.Request) {
+func getMetadata(calculator service.Fees) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
@@ -55,7 +52,7 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 				logger.Debugf("Invalid provided value: [%s].", gasPriceGwei)
 			} else {
 				render.Status(r, http.StatusInternalServerError)
-				render.JSON(w, r, response.ErrorResponse(ErrorInternalServerError))
+				render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
 
 				logger.Errorf("Router resolved with an error. Error [%s].", err)
 			}
@@ -70,7 +67,7 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func NewRouter(feeCalculator *fees.Calculator) chi.Router {
+func NewRouter(feeCalculator service.Fees) chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", getMetadata(feeCalculator))
 	return r

@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	HealthCheckRoute = "/health"
+	Route = "/health"
 )
 
 //Router for health check
@@ -42,6 +42,3 @@ func healthResponse() func(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 }
-
-
-
