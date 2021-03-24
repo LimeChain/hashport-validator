@@ -19,6 +19,7 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/ethereum/go-ethereum/params"
 
 	"math/big"
 	"strings"
@@ -27,8 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
 const (
@@ -48,59 +47,6 @@ var (
 	ErrorInvalidMintFunctionParameters = errors.New("invalid mint function parameters length")
 )
 
-func generateArguments() (abi.Arguments, error) {
-	bytesType, err := abi.NewType("bytes", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	uint256Type, err := abi.NewType("uint256", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return abi.Arguments{
-		{
-			Type: bytesType,
-		},
-		{
-			Type: addressType,
-		},
-		{
-			Type: uint256Type,
-		},
-		{
-			Type: uint256Type,
-		}}, nil
-}
-
-func EncodeData(ctm *proto.CryptoTransferMessage) ([]byte, error) {
-	args, err := generateArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	amountBn, err := helper.ToBigInt(ctm.Amount)
-	if err != nil {
-		return nil, err
-	}
-	feeBn, err := helper.ToBigInt(ctm.Fee)
-	if err != nil {
-		return nil, err
-	}
-
-	return args.Pack(
-		[]byte(ctm.TransactionId),
-		common.HexToAddress(ctm.EthAddress),
-		amountBn,
-		feeBn)
-}
-
 func DecodeSignature(signature string) (decodedSignature []byte, ethSignature string, err error) {
 	decodedSig, err := hex.DecodeString(signature)
 	if err != nil {
@@ -110,44 +56,48 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (transferMessage *proto.CryptoTransferMessage, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20Address string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
 	if err != nil {
-		return nil, nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
-		return nil, nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	if len(decodedParameters) != MintFunctionParametersCount {
-		return nil, nil, ErrorInvalidMintFunctionParameters
+		return "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
 	receiver := decodedParameters[MintFunctionParameterReceiver].(common.Address)
-	amount := decodedParameters[MintFunctionParameterAmount].(*big.Int)
+	amountBn := decodedParameters[MintFunctionParameterAmount].(*big.Int)
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
+
+	// TODO: Update Key to 'MintFunctionParameterErc20Address' once contract is ready
+	erc20 := decodedParameters[MintFunctionParameterTransactionId].([]byte)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
-			return nil, nil, err
+			return "", "", "", "", "", nil, err
 		}
 	}
 
-	transferMessage = &proto.CryptoTransferMessage{
-		TransactionId: string(transactionId),
-		EthAddress:    receiver.String(),
-		Amount:        amount.String(),
-		Fee:           txCost.String(),
-	}
+	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), string(erc20), signatures, nil
+}
 
-	return transferMessage, signatures, nil
+func GweiToWei(gwei *big.Int) *big.Int {
+	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
+}
+
+func WeiToGwei(wei *big.Int) *big.Int {
+	return new(big.Int).Div(wei, big.NewInt(params.GWei))
 }
 
 func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
@@ -180,10 +130,4 @@ func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSigna
 	}
 
 	return decodedSig, hex.EncodeToString(ethSig), nil
-}
-
-func KeccakData(encodedData []byte) []byte {
-	toEthSignedMsg := []byte("\x19Ethereum Signed Message:\n32")
-	hash := crypto.Keccak256(encodedData)
-	return crypto.Keccak256(toEthSignedMsg, hash)
 }

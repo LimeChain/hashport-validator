@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repositories"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
@@ -29,19 +29,19 @@ import (
 
 // Repositories struct holding the referenced repositories
 type Repositories struct {
-	cryptoTransferStatus   repositories.Status
-	consensusMessageStatus repositories.Status
-	transaction            repositories.Transaction
-	message                repositories.Message
+	transferStatus repository.Status
+	messageStatus  repository.Status
+	transaction    repository.Transaction
+	message        repository.Message
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
 func PrepareRepositories(config config.Db) *Repositories {
 	db := persistence.RunDb(config) // TODO handle not living DB. Gracefully retry by restarting the process
 	return &Repositories{
-		cryptoTransferStatus:   status.NewRepositoryForStatus(db, process.CryptoTransferMessageType),
-		consensusMessageStatus: status.NewRepositoryForStatus(db, process.HCSMessageType),
-		transaction:            transaction.NewRepository(db),
-		message:                message.NewRepository(db),
+		transferStatus: status.NewRepositoryForStatus(db, process.CryptoTransferMessageType),
+		messageStatus:  status.NewRepositoryForStatus(db, process.HCSMessageType),
+		transaction:    transaction.NewRepository(db),
+		message:        message.NewRepository(db),
 	}
 }

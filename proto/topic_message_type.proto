@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+enum TopicMessageType {
+  EthSignature = 0;
+  EthTransaction = 1;
+}

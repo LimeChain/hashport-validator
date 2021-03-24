@@ -63,7 +63,8 @@ func (hc Node) GetClient() *hedera.Client {
 	return hc.client
 }
 
-// SubmitTopicConsensusMessage submits the provided message bytes to the specified HCS topicId
+// SubmitTopicConsensusMessage submits the provided message bytes to the
+// specified HCS `topicId`
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
 	id, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).

@@ -22,13 +22,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"log"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go"
-	tx "github.com/limechain/hedera-eth-bridge-validator/app/process/model/transaction"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
 )
@@ -58,7 +58,7 @@ func Test_E2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("Estimated TX Fee: [%s]\n", txFee)
+	fmt.Printf("Estimated TX TxReimbursementFee: [%s]\n", txFee)
 
 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 
@@ -193,7 +193,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
 
-	fmt.Println(fmt.Printf(`Waiting for Signatures & TX Hash to be published to Topic [%s]`, setup.TopicID.String()))
+	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
 	c1 := make(chan bool, 1)
 	// Subscribe to Topic
@@ -203,31 +203,31 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 		Subscribe(
 			setup.Clients.Hedera,
 			func(response hedera.TopicMessage) {
-				msg := &validatorproto.TopicSubmissionMessage{}
+				msg := &validatorproto.TopicMessage{}
 				err := proto.Unmarshal(response.Contents, msg)
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				if msg.GetType() == validatorproto.TopicSubmissionType_EthSignature {
+				if msg.GetType() == validatorproto.TopicMessageType_EthSignature {
 					//Verify that all the submitted messages have signed the same transaction
-					topicSubmissionMessageSign := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
 						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
 					}
 					ethSignaturesCollected++
-					fmt.Println("Received Auth Signature")
+					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 				}
 
-				if msg.GetType() == validatorproto.TopicSubmissionType_EthTransaction {
+				if msg.GetType() == validatorproto.TopicMessageType_EthTransaction {
 					//Verify that the eth transaction message has been submitted
-					topicSubmissionMessageTrans := tx.FromHederaTransactionID(&transactionResponse.TransactionID)
+					topicSubmissionMessageTrans := fromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicEthTransactionMessage().TransactionId != topicSubmissionMessageTrans.String() {
 						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()
 					ethTransMsgCollected++
-					fmt.Println("Received Ethereum Transaction Hash")
+					fmt.Println(fmt.Sprintf("Received Ethereum Transaction Hash [%s]", msg.GetTopicEthTransactionMessage().EthTxHash))
 				}
 
 				// Check whether we collected everything
@@ -258,31 +258,63 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, whbarReceiverAddress common.Address, expectedWHBarAmount int64, whbarBalanceBefore *big.Int, t *testing.T) {
 	fmt.Printf("Waiting for transaction [%s] to succeed...\n", ethTransactionHash)
 
-	success, err := setup.Clients.EthClient.WaitForTransactionSuccess(common.HexToHash(ethTransactionHash))
+	// Make a blocking channel waiting for Ethereum TX success
+	c1 := make(chan bool, 1)
+	onSuccess := func() {
+		fmt.Printf("Transaction [%s] mined successfully\n", ethTransactionHash)
+		// Get the wrapped hbar balance of the receiver after the transfer
+		whbarBalanceAfter, err := setup.Clients.WHbarContract.BalanceOf(&bind.CallOpts{}, whbarReceiverAddress)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// Verify that the eth transaction has been mined and succeeded
-	if success == false {
+		fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
+		// Verify that the ethereum address has received the exact transfer amount of WHBARs
+		amount := whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()
+		if amount != expectedWHBarAmount {
+			t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, expectedWHBarAmount, amount)
+		}
+
+		c1 <- true
+	}
+	onRevert := func() {
 		t.Fatalf(`Expected to mine successfully the broadcasted ethereum transaction: [%s]`, ethTransactionHash)
 	}
 
-	if err != nil {
-		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
-		t.Fatal(err)
+	onError := func(err error) {
+		if err != nil {
+			fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
+			t.Fatal(err)
+		}
 	}
+	setup.Clients.EthClient.WaitForTransaction(ethTransactionHash, onSuccess, onRevert, onError)
+	<-c1
+}
 
-	fmt.Printf("Transaction [%s] mined successfully\n", ethTransactionHash)
+type hederaTxId struct {
+	AccountId string
+	Seconds   string
+	Nanos     string
+}
 
-	// Get the wrapped hbar balance of the receiver after the transfer
-	whbarBalanceAfter, err := setup.Clients.WHbarContract.BalanceOf(&bind.CallOpts{}, whbarReceiverAddress)
-	if err != nil {
-		log.Fatal(err)
+func fromHederaTransactionID(id *hedera.TransactionID) hederaTxId {
+	stringTxId := id.String()
+	split := strings.Split(stringTxId, "@")
+	accId := split[0]
+
+	split = strings.Split(split[1], ".")
+
+	return hederaTxId{
+		AccountId: accId,
+		Seconds:   split[0],
+		Nanos:     split[1],
 	}
+}
 
-	fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
+func (txId hederaTxId) String() string {
+	return fmt.Sprintf("%s-%s-%s", txId.AccountId, txId.Seconds, txId.Nanos)
+}
 
-	// Verify that the ethereum address has received the exact transfer amount of WHBARs
-	amount := whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()
-	if amount != expectedWHBarAmount {
-		t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, expectedWHBarAmount, amount)
-	}
+func (txId hederaTxId) Timestamp() string {
+	return fmt.Sprintf("%s.%s", txId.Seconds, txId.Nanos)
 }
