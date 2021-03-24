@@ -206,7 +206,6 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
-	c1 := make(chan bool, 1)
 	// Subscribe to Topic
 	_, err := hedera.NewTopicMessageQuery().
 		SetStartTime(time.Unix(0, time.Now().UnixNano())).
@@ -241,11 +240,6 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					ethTransMsgCollected++
 					fmt.Println(fmt.Sprintf("Received Ethereum Transaction Hash [%s]", msg.GetTopicEthTransactionMessage().EthTxHash))
 				}
-
-				// Check whether we collected everything
-				if expectedSignaturesCount == ethSignaturesCollected && ethTransMsgCollected == expectedEthTxMessageCount {
-					c1 <- true
-				}
 			},
 		)
 	if err != nil {
@@ -253,8 +247,6 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case _ = <-c1:
-		return ethTransactionHash
 	case <-time.After(60 * time.Second):
 		if ethSignaturesCollected != expectedSignaturesCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
