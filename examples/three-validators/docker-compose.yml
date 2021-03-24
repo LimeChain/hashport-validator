@@ -11,6 +11,7 @@ services:
       POSTGRES_PASSWORD: validator_pass
       POSTGRES_USER: validator
     volumes:
+      - ./init:/docker-entrypoint-initdb.d
       - ./alice/db:/var/lib/postgresql/data
     ports:
       - 6432:5432
@@ -25,6 +26,7 @@ services:
       POSTGRES_PASSWORD: validator_pass
       POSTGRES_USER: validator
     volumes:
+      - ./init:/docker-entrypoint-initdb.d
       - ./bob/db:/var/lib/postgresql/data
     ports:
       - 7432:5432
@@ -39,6 +41,7 @@ services:
       POSTGRES_PASSWORD: validator_pass
       POSTGRES_USER: validator
     volumes:
+      - ./init:/docker-entrypoint-initdb.d
       - ./carol/db:/var/lib/postgresql/data
     ports:
       - 8432:5432

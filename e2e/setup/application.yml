@@ -1,5 +1,11 @@
 # Template configuration for the e2e tests
 hedera:
+  db_validation:
+    host:
+    name:
+    password:
+    port:
+    username:
   bridge_account:
   topic_id:
   sender:

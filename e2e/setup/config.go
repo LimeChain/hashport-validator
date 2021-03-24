@@ -165,13 +165,22 @@ type Config struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	BridgeAccount string `yaml:"bridge_account"`
-	TopicID       string `yaml:"topic_id"`
-	Sender        Sender `yaml:"sender"`
+	BridgeAccount     string `yaml:"bridge_account"`
+	TopicID           string `yaml:"topic_id"`
+	DbValidationProps Db     `yaml:"db_validation"`
+	Sender            Sender `yaml:"sender"`
 }
 
 // sender props from the application.yml
 type Sender struct {
 	Account    string `yaml:"account"`
 	PrivateKey string `yaml:"private_key"`
+}
+
+type Db struct {
+	Host     string `yaml:"host"`
+	Name     string `yaml:"name"`
+	Password string `yaml:"password"`
+	Port     string `yaml:"port"`
+	Username string `yaml:"username"`
 }
