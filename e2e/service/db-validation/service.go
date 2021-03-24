@@ -2,6 +2,7 @@ package db_validation
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -14,10 +15,10 @@ type Service struct {
 	logger       *log.Entry
 }
 
-func NewService(transactions repository.Transaction, messages repository.Message) *Service {
+func NewService(dbConfig config.Db) *Service {
 	return &Service{
-		transactions: transactions,
-		messages:     messages,
+		transactions: transaction.NewRepository(persistence.RunDb(dbConfig)),
+		messages:     message.NewRepository(persistence.RunDb(dbConfig)),
 		logger:       config.GetLoggerFor("DB Validation Service"),
 	}
 }
