@@ -95,8 +95,8 @@ func Test_E2E(t *testing.T) {
 		EthAddress:            receiverAddress,
 		Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
 		Fee:                   txFee,
-		Signature:             "", // TODO: Figure out how to mock expected signature
-		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id
+		Signature:             "", // TODO: Figure out how to mock expected signature (Signing Logic from Process Transfer Maybe?)
+		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from)
 		Status:                transaction.StatusCompleted,
 		SignatureMsgStatus:    transaction.StatusSignatureMined,
 		EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
@@ -108,7 +108,7 @@ func Test_E2E(t *testing.T) {
 	}
 	exists, err := setupEnv.DBVerifier.TransactionRecordExists(expectedTxRecord)
 	if err != nil {
-		t.Fatalf("Could not figure out if [%s] exists - Error: [%s]", expectedTxRecord.TransactionId, err)
+		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxRecord.TransactionId, err)
 	}
 	if !exists {
 		t.Fatalf("[%s] does not exist.", expectedTxRecord.TransactionId)
