@@ -18,21 +18,17 @@ package message
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"gorm.io/gorm"
 )
 
-type TransactionMessage struct {
-	gorm.Model
-	TransactionId        string
-	EthAddress           string
-	Amount               string
-	Fee                  string
-	Signature            string
+type Message struct {
+	TransferID           string
+	Transfer             transfer.Transfer `gorm:"ForeignKey:TransferID;References:TransactionID;"`
+	Signature            string            `gorm:"unique"`
 	Hash                 string
-	SignerAddress        string
+	Signer               string
 	TransactionTimestamp int64
-	GasPriceWei          string
-	ERC20ContractAddress string
 }
 
 type Repository struct {
@@ -45,10 +41,10 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (m Repository) GetMessageWith(txId, signature, hash string) (*TransactionMessage, error) {
-	var message TransactionMessage
-	err := m.dbClient.Model(&TransactionMessage{}).
-		Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).
+func (m Repository) GetMessageWith(txId, signature, hash string) (*Message, error) {
+	var message Message
+	err := m.dbClient.Model(&Message{}).
+		Where("transfer_id = ? and signature = ? and hash = ?", txId, signature, hash).
 		First(&message).Error
 	if err != nil {
 		return nil, err
@@ -68,13 +64,13 @@ func (m Repository) Exist(txId, signature, hash string) (bool, error) {
 	return true, nil
 }
 
-func (m Repository) Create(message *TransactionMessage) error {
+func (m Repository) Create(message *Message) error {
 	return m.dbClient.Create(message).Error
 }
 
-func (m Repository) GetMessagesFor(txId string) ([]TransactionMessage, error) {
-	var messages []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ?", txId).Order("transaction_timestamp").Find(&messages).Error
+func (m Repository) Get(txId string) ([]Message, error) {
+	var messages []Message
+	err := m.dbClient.Where("transfer_id = ?", txId).Order("transaction_timestamp").Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}

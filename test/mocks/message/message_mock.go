@@ -25,17 +25,17 @@ type MockMessageRepository struct {
 	mock.Mock
 }
 
-func (m *MockMessageRepository) Create(message *message.TransactionMessage) error {
+func (m *MockMessageRepository) Create(message *message.Message) error {
 	args := m.Called(message)
 	return args.Get(0).(error)
 }
 
-func (m *MockMessageRepository) GetTransaction(txId, signature, hash string) (*message.TransactionMessage, error) {
+func (m *MockMessageRepository) GetTransaction(txId, signature, hash string) (*message.Message, error) {
 	args := m.Called(txId, signature, hash)
-	return args.Get(0).(*message.TransactionMessage), args.Get(1).(error)
+	return args.Get(0).(*message.Message), args.Get(1).(error)
 }
 
-func (m *MockMessageRepository) GetTransactions(txId string, txHash string) ([]message.TransactionMessage, error) {
+func (m *MockMessageRepository) GetTransactions(txId string, txHash string) ([]message.Message, error) {
 	args := m.Called(txId, txHash)
-	return args.Get(0).([]message.TransactionMessage), args.Get(1).(error)
+	return args.Get(0).([]message.Message), args.Get(1).(error)
 }

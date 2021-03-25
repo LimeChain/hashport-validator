@@ -17,27 +17,27 @@
 package transaction
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockTransactionRepository struct {
+type MockTransferRepository struct {
 	mock.Mock
 }
 
-func (m *MockTransactionRepository) Create(ct *proto.TransferMessage) (*transaction.Transaction, error) {
+func (m *MockTransferRepository) Create(ct *proto.TransferMessage) (*transfer.Transfer, error) {
 	args := m.Called(ct)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transaction.Transaction), nil
+		return args.Get(0).(*transfer.Transfer), nil
 	}
-	return args.Get(0).(*transaction.Transaction), args.Get(1).(error)
+	return args.Get(0).(*transfer.Transfer), args.Get(1).(error)
 }
 
-func (m *MockTransactionRepository) Save(tx *transaction.Transaction) error {
+func (m *MockTransferRepository) Save(tx *transfer.Transfer) error {
 	args := m.Called(tx)
 	if args.Get(0) == nil {
 		return nil
@@ -45,7 +45,7 @@ func (m *MockTransactionRepository) Save(tx *transaction.Transaction) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusSignatureMined(txId string) error {
+func (m *MockTransferRepository) UpdateStatusSignatureMined(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -53,7 +53,7 @@ func (m *MockTransactionRepository) UpdateStatusSignatureMined(txId string) erro
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateEthTxMined(txId string) error {
+func (m *MockTransferRepository) UpdateEthTxMined(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -61,7 +61,7 @@ func (m *MockTransactionRepository) UpdateEthTxMined(txId string) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusEthTxMsgSubmitted(txId string) error {
+func (m *MockTransferRepository) UpdateStatusEthTxMsgSubmitted(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -69,7 +69,7 @@ func (m *MockTransactionRepository) UpdateStatusEthTxMsgSubmitted(txId string) e
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusEthTxMsgMined(txId string) error {
+func (m *MockTransferRepository) UpdateStatusEthTxMsgMined(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -77,7 +77,7 @@ func (m *MockTransactionRepository) UpdateStatusEthTxMsgMined(txId string) error
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusEthTxMsgFailed(txId string) error {
+func (m *MockTransferRepository) UpdateStatusEthTxMsgFailed(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -85,29 +85,29 @@ func (m *MockTransactionRepository) UpdateStatusEthTxMsgFailed(txId string) erro
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) GetByTransactionId(transactionId string) (*transaction.Transaction, error) {
+func (m *MockTransferRepository) GetByTransactionId(transactionId string) (*transfer.Transfer, error) {
 	args := m.Called(transactionId)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transaction.Transaction), nil
+		return args.Get(0).(*transfer.Transfer), nil
 	}
-	return args.Get(0).(*transaction.Transaction), args.Get(1).(error)
+	return args.Get(0).(*transfer.Transfer), args.Get(1).(error)
 }
 
-func (m *MockTransactionRepository) GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error) {
+func (m *MockTransferRepository) GetInitialAndSignatureSubmittedTx() ([]*transfer.Transfer, error) {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).([]*transaction.Transaction), nil
+		return args.Get(0).([]*transfer.Transfer), nil
 	}
-	return args.Get(0).([]*transaction.Transaction), args.Get(1).(error)
+	return args.Get(0).([]*transfer.Transfer), args.Get(1).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) error {
+func (m *MockTransferRepository) UpdateStatusInsufficientFee(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -115,7 +115,7 @@ func (m *MockTransactionRepository) UpdateStatusInsufficientFee(txId string) err
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateStatusSignatureFailed(txId string) error {
+func (m *MockTransferRepository) UpdateStatusSignatureFailed(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -123,7 +123,7 @@ func (m *MockTransactionRepository) UpdateStatusSignatureFailed(txId string) err
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateEthTxSubmitted(txId string, hash string) error {
+func (m *MockTransferRepository) UpdateEthTxSubmitted(txId string, hash string) error {
 	args := m.Called(txId, hash)
 	if args.Get(0) == nil {
 		return nil
@@ -131,7 +131,7 @@ func (m *MockTransactionRepository) UpdateEthTxSubmitted(txId string, hash strin
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) UpdateEthTxReverted(txId string) error {
+func (m *MockTransferRepository) UpdateEthTxReverted(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {
 		return nil
@@ -139,7 +139,7 @@ func (m *MockTransactionRepository) UpdateEthTxReverted(txId string) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
+func (m *MockTransferRepository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
 	args := m.Called(ct)
 	if args.Get(0) == nil {
 		return nil
@@ -147,14 +147,14 @@ func (m *MockTransactionRepository) SaveRecoveredTxn(ct *proto.TransferMessage) 
 	return args.Get(0).(error)
 }
 
-func (m *MockTransactionRepository) GetUnprocessedTransactions() ([]transaction.Transaction, error) {
+func (m *MockTransferRepository) GetUnprocessedTransfers() ([]transfer.Transfer, error) {
 	args := m.Called()
 
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).([]transaction.Transaction), nil
+		return args.Get(0).([]transfer.Transfer), nil
 	}
-	return args.Get(0).([]transaction.Transaction), args.Get(1).(error)
+	return args.Get(0).([]transfer.Transfer), args.Get(1).(error)
 }

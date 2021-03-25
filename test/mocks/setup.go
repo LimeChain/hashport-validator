@@ -22,11 +22,11 @@ import (
 )
 
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
-var MTransactionService *service.MockTransferService
+var MTransferService *service.MockTransferService
 var MBridgeContractService *MockBridgeContract
 
 func Setup() {
 	MBridgeContractService = &MockBridgeContract{}
 	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
-	MTransactionService = &service.MockTransferService{}
+	MTransferService = &service.MockTransferService{}
 }

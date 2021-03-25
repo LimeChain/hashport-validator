@@ -43,7 +43,7 @@ func getMetadata(calculator service.Fees) func(w http.ResponseWriter, r *http.Re
 	return func(w http.ResponseWriter, r *http.Request) {
 		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
-		txFee, err := calculator.GetEstimatedTxFee(gasPriceGwei)
+		txFee, err := calculator.GetEstimatedTxFeeFromGWei(gasPriceGwei)
 		if err != nil {
 			if errors.Is(fees.InvalidGasPrice, err) {
 				render.Status(r, http.StatusBadRequest)

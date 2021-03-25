@@ -96,7 +96,7 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 		services.contracts,
 		repository.transferStatus,
 		repository.messageStatus,
-		repository.transaction,
+		repository.transfer,
 		client.MirrorNode,
 		client.HederaNode)
 	if err != nil {

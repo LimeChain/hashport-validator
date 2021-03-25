@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package transaction
+package transfer
 
 import (
 	"errors"
-	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-// Enum Transaction Statuses
+// Enum Transfer Statuses
 const (
-	// StatusInitial is the first status on Transaction Record creation
+	// StatusInitial is the first status on Transfer Record creation
 	StatusInitial = "INITIAL"
 	// StatusInsufficientFee is a status set once transfer is made but the provided TX
 	// reimbursement is not enough for validators to process it. This is a terminal status
@@ -74,21 +71,19 @@ const (
 	StatusEthTxMsgFailed = "ETH_TX_MSG_FAILED"
 )
 
-type Transaction struct {
-	gorm.Model
-	TransactionId         string `gorm:"unique"`
-	EthAddress            string
+type Transfer struct {
+	TransactionID         string `gorm:"primaryKey; not null; autoIncrement:false"`
+	Receiver              string
+	SourceAsset           string
+	TargetAsset           string
 	Amount                string
-	Fee                   string
-	Signature             string
-	SignatureMsgTxId      string
+	TxReimbursement       string
+	GasPrice              string
 	Status                string
 	SignatureMsgStatus    string
 	EthTxMsgStatus        string
 	EthTxStatus           string
-	EthHash               string
-	Asset                 string
-	GasPriceWei           string
+	EthTxHash             string
 	ExecuteEthTransaction bool
 }
 
@@ -100,14 +95,14 @@ type Repository struct {
 func NewRepository(dbClient *gorm.DB) *Repository {
 	return &Repository{
 		dbClient: dbClient,
-		logger:   config.GetLoggerFor("Transaction Repository"),
+		logger:   config.GetLoggerFor("Transfer Repository"),
 	}
 }
 
-func (tr Repository) GetByTransactionId(transactionId string) (*Transaction, error) {
-	tx := &Transaction{}
+func (tr Repository) GetByTransactionId(transactionId string) (*Transfer, error) {
+	tx := &Transfer{}
 	result := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", transactionId).
 		First(tx)
 
@@ -120,66 +115,33 @@ func (tr Repository) GetByTransactionId(transactionId string) (*Transaction, err
 	return tx, nil
 }
 
-func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transaction, error) {
-	var transactions []*Transaction
+func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transfer, error) {
+	var transfers []*Transfer
 
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted).
-		Find(&transactions).Error
+		Find(&transfers).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return transactions, nil
+	return transfers, nil
 }
 
-// Create creates new record of Transaction
-func (tr Repository) Create(ct *proto.TransferMessage) (*Transaction, error) {
-	gasPriceGweiBn, err := helper.ToBigInt(ct.GasPriceGwei)
-	if err != nil {
-		return nil, err
-	}
-	wei := ethereum.GweiToWei(gasPriceGweiBn).String()
-
-	tx := &Transaction{
-		Model:                 gorm.Model{},
-		TransactionId:         ct.TransactionId,
-		EthAddress:            ct.EthAddress,
-		Amount:                ct.Amount,
-		Fee:                   ct.Fee,
-		Status:                StatusInitial,
-		Asset:                 ct.Asset,
-		GasPriceWei:           wei,
-		ExecuteEthTransaction: ct.ExecuteEthTransaction,
-	}
-	err = tr.dbClient.Create(tx).Error
-	return tx, err
+// Create creates new record of Transfer
+func (tr Repository) Create(ct *proto.TransferMessage) (*Transfer, error) {
+	return tr.create(ct, StatusInitial)
 }
 
-// Save updates the provided Transaction instance
-func (tr Repository) Save(tx *Transaction) error {
+// Save updates the provided Transfer instance
+func (tr Repository) Save(tx *Transfer) error {
 	return tr.dbClient.Save(tx).Error
 }
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
-	gasPriceGweiBn, err := helper.ToBigInt(ct.GasPriceGwei)
-	if err != nil {
-		return err
-	}
-	wei := ethereum.GweiToWei(gasPriceGweiBn).String()
-
-	return tr.dbClient.Create(&Transaction{
-		Model:                 gorm.Model{},
-		TransactionId:         ct.TransactionId,
-		EthAddress:            ct.EthAddress,
-		Amount:                ct.Amount,
-		Fee:                   ct.Fee,
-		Status:                StatusRecovered,
-		Asset:                 ct.Asset,
-		GasPriceWei:           wei,
-		ExecuteEthTransaction: ct.ExecuteEthTransaction,
-	}).Error
+	_, err := tr.create(ct, StatusRecovered)
+	return err
 }
 
 func (tr Repository) UpdateStatusInsufficientFee(txId string) error {
@@ -196,9 +158,9 @@ func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
 
 func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{EthTxStatus: StatusEthTxSubmitted, EthHash: hash}).
+		Updates(Transfer{EthTxStatus: StatusEthTxSubmitted, EthTxHash: hash}).
 		Error
 	if err == nil {
 		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s]", txId, StatusEthTxSubmitted)
@@ -208,24 +170,24 @@ func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 
 func (tr Repository) UpdateEthTxMined(txId string) error {
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
+		Updates(Transfer{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transaction status to [%s]", txId, StatusEthTxMined, StatusCompleted)
+		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxMined, StatusCompleted)
 	}
 	return err
 }
 
 func (tr Repository) UpdateEthTxReverted(txId string) error {
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transaction{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
+		Updates(Transfer{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transaction status to [%s]", txId, StatusEthTxReverted, StatusFailed)
+		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxReverted, StatusFailed)
 	}
 	return err
 }
@@ -242,6 +204,23 @@ func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
 	return tr.updateEthereumTxMsgStatus(txId, StatusEthTxMsgFailed)
 }
 
+func (tr Repository) create(ct *proto.TransferMessage, status string) (*Transfer, error) {
+	tx := &Transfer{
+		TransactionID:         ct.TransactionId,
+		Receiver:              ct.Receiver,
+		Amount:                ct.Amount,
+		TxReimbursement:       ct.TxReimbursement,
+		Status:                status,
+		SourceAsset:           ct.SourceAsset,
+		TargetAsset:           ct.TargetAsset,
+		GasPrice:              ct.GasPrice,
+		ExecuteEthTransaction: ct.ExecuteEthTransaction,
+	}
+	err := tr.dbClient.Create(tx).Error
+
+	return tx, err
+}
+
 func (tr Repository) updateStatus(txId string, status string) error {
 	// Sanity check
 	if status != StatusInitial && status != StatusInsufficientFee && status != StatusInProgress && status != StatusCompleted {
@@ -249,7 +228,7 @@ func (tr Repository) updateStatus(txId string, status string) error {
 	}
 
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
 		Error
@@ -277,7 +256,7 @@ func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibl
 	}
 
 	err := tr.dbClient.
-		Model(Transaction{}).
+		Model(Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn(statusColumn, status).
 		Error
@@ -296,22 +275,15 @@ func isValidStatus(status string, possibleStatuses []string) bool {
 	return false
 }
 
-func (tr *Repository) GetUnprocessedTransactions() ([]Transaction, error) {
-	var transactions []Transaction
+func (tr *Repository) GetUnprocessedTransfers() ([]Transfer, error) {
+	var transfers []Transfer
 
-	err := tr.dbClient.Raw("SELECT " +
-		"transaction_id, " +
-		"eth_address, " +
-		"amount, " +
-		"fee, " +
-		"asset, " +
-		"gas_price_wei " +
-		"FROM transactions " +
-		fmt.Sprintf("WHERE status = '%s' OR status = '%s'", StatusInitial, StatusRecovered)).
-		Scan(&transactions).Error
+	err := tr.dbClient.
+		Where("status IN ?", []string{StatusInitial, StatusRecovered}).
+		Find(&transfers).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return transactions, nil
+	return transfers, nil
 }

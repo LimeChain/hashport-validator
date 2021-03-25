@@ -19,7 +19,7 @@ package transfer
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,7 +41,7 @@ func NewHandler(transfersService service.Transfers) *Handler {
 func (th Handler) Handle(payload []byte) {
 	transferMsg, err := encoding.NewTransferMessageFromBytes(payload)
 	if err != nil {
-		th.logger.Errorf("Failed to parse incoming payload. Error [%s].", err)
+		th.logger.Errorf("Failed to parse incoming payload. Error: [%s].", err)
 		return
 	}
 
@@ -51,8 +51,8 @@ func (th Handler) Handle(payload []byte) {
 		return
 	}
 
-	if transactionRecord.Status != txRepo.StatusInitial {
-		th.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionId, transactionRecord.Status)
+	if transactionRecord.Status != transfer.StatusInitial {
+		th.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 

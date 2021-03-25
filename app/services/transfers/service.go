@@ -29,21 +29,20 @@ import (
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
-	logger                *log.Entry
-	hederaNode            client.HederaNode
-	mirrorNode            client.MirrorNode
-	fees                  service.Fees
-	ethSigner             service.Signer
-	transactionRepository repository.Transaction
-	topicID               hedera.TopicID
+	logger             *log.Entry
+	hederaNode         client.HederaNode
+	mirrorNode         client.MirrorNode
+	fees               service.Fees
+	ethSigner          service.Signer
+	transferRepository repository.Transfer
+	topicID            hedera.TopicID
 }
 
 func NewService(
@@ -51,7 +50,7 @@ func NewService(
 	mirrorNode client.MirrorNode,
 	fees service.Fees,
 	signer service.Signer,
-	transactionRepository repository.Transaction,
+	transferRepository repository.Transfer,
 	topicID string,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
@@ -60,13 +59,13 @@ func NewService(
 	}
 
 	return &Service{
-		logger:                config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
-		hederaNode:            hederaNode,
-		mirrorNode:            mirrorNode,
-		fees:                  fees,
-		ethSigner:             signer,
-		transactionRepository: transactionRepository,
-		topicID:               tID,
+		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
+		hederaNode:         hederaNode,
+		mirrorNode:         mirrorNode,
+		fees:               fees,
+		ethSigner:          signer,
+		transferRepository: transferRepository,
+		topicID:            tID,
 	}
 }
 
@@ -96,8 +95,8 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transactions
-func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error) {
-	dbTransaction, err := ts.transactionRepository.GetByTransactionId(tm.TransactionId)
+func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.Transfer, error) {
+	dbTransaction, err := ts.transferRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
 		ts.logger.Errorf("Failed to get record with TransactionID [%s]. Error [%s]", tm.TransactionId, err)
 		return nil, err
@@ -109,7 +108,7 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 	}
 
 	ts.logger.Debugf("Adding new Transaction Record TX ID [%s]", tm.TransactionId)
-	tx, err := ts.transactionRepository.Create(tm.TransferMessage)
+	tx, err := ts.transferRepository.Create(tm.TransferMessage)
 	if err != nil {
 		ts.logger.Errorf("Failed to create a transaction record for TransactionID [%s]. Error [%s].", tm.TransactionId, err)
 		return nil, err
@@ -118,14 +117,15 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transactio
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (ts *Service) SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error {
-	err := ts.transactionRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
-		TransactionId: txId,
-		EthAddress:    m.EthereumAddress,
-		Amount:        amount,
-		Fee:           m.TxReimbursementFee,
-		GasPriceGwei:  m.GasPriceGwei,
-		Asset:         asset,
+func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error {
+	err := ts.transferRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
+		TransactionId:   txId,
+		Receiver:        m.EthereumAddress,
+		Amount:          amount,
+		TxReimbursement: m.TxReimbursementFee,
+		GasPrice:        m.GasPrice,
+		SourceAsset:     sourceAsset,
+		TargetAsset:     targetAsset,
 	})
 	if err != nil {
 		ts.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Err: [%s]", txId, err)
@@ -139,15 +139,18 @@ func (ts *Service) SaveRecoveredTxn(txId, amount string, asset string, m memo.Me
 // VerifyFee verifies that the provided TX reimbursement fee is enough using the
 // Fee Calculator and updates the Transaction Record to Insufficient Fee if necessary
 func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
-	isSufficient, err := ts.fees.ValidateExecutionFee(tm.Fee, tm.Amount, tm.GasPriceGwei)
+	fmt.Println(tm.TxReimbursement)
+	fmt.Println(tm.Amount)
+	fmt.Println(tm.GasPrice)
+	isSufficient, err := ts.fees.ValidateExecutionFee(tm.TxReimbursement, tm.Amount, tm.GasPrice)
 	if !isSufficient {
-		ts.logger.Errorf("Fee validation for TX ID [%s] failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s]", tm.TransactionId, err)
-		err = ts.transactionRepository.UpdateStatusInsufficientFee(tm.TransactionId)
-		if err != nil {
-			ts.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transaction.StatusInsufficientFee, tm.TransactionId, err)
+		ts.logger.Errorf("Fee validation for TX ID [%s] failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s].", tm.TransactionId, err)
+		if err := ts.transferRepository.UpdateStatusInsufficientFee(tm.TransactionId); err != nil {
+			ts.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transfer.StatusInsufficientFee, tm.TransactionId, err)
 			return err
 		}
-		ts.logger.Debugf("TX with ID [%s] was updated to [%s]. Provided fee [%s]", tm.TransactionId, transaction.StatusInsufficientFee, tm.Fee)
+
+		ts.logger.Debugf("TX with ID [%s] was updated to [%s]. Provided TxReimbursement [%s].", tm.TransactionId, transfer.StatusInsufficientFee, tm.TxReimbursement)
 		return err
 	}
 	return nil
@@ -156,7 +159,7 @@ func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
 func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := ts.transactionRepository.UpdateStatusSignatureMined(txId)
+		err := ts.transferRepository.UpdateStatusSignatureMined(txId)
 		if err != nil {
 			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -165,7 +168,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 
 	onRevert = func() {
 		ts.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
-		err := ts.transactionRepository.UpdateStatusSignatureFailed(txId)
+		err := ts.transferRepository.UpdateStatusSignatureFailed(txId)
 		if err != nil {
 			ts.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
 			return
@@ -175,14 +178,13 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 }
 
 func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
-	gasPriceGWeiBn, err := helper.ToBigInt(tm.GasPriceGwei)
+	gasPriceWeiBn, err := helper.ToBigInt(tm.GasPrice)
 	if err != nil {
-		ts.logger.Errorf("Failed to parse Gas Price in Gwei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPriceGwei, err)
+		ts.logger.Errorf("Failed to parse Gas Price Wei for TX ID [%s] to a big integer [%s]. Error [%s].", tm.TransactionId, tm.GasPrice, err)
 		return err
 	}
-	gasPriceWei := ethereum.GweiToWei(gasPriceGWeiBn).String()
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.EthAddress, tm.Erc20Address, tm.Amount, tm.Fee, gasPriceWei)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.Receiver, tm.TargetAsset, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
 	if err != nil {
 		ts.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tm.TransactionId, err)
 		return err
@@ -197,11 +199,12 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 	signatureMessage := encoding.NewSignatureMessage(
 		tm.TransactionId,
-		tm.EthAddress,
+		tm.Receiver,
 		tm.Amount,
-		tm.Fee,
-		gasPriceWei,
-		signature)
+		tm.TxReimbursement,
+		tm.GasPrice,
+		signature,
+		tm.TargetAsset)
 
 	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := signatureMessage.ToBytes()
@@ -218,18 +221,16 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		return err
 	}
 
-	// Update Transaction Record
-	tx, err := ts.transactionRepository.GetByTransactionId(tsm.TransactionId)
+	// Update Transfer Record
+	tx, err := ts.transferRepository.GetByTransactionId(tsm.TransactionId)
 	if err != nil {
 		ts.logger.Errorf("Failed to get TX [%s] from DB", tsm.TransactionId)
 		return err
 	}
 
-	tx.Signature = tsm.Signature
-	tx.SignatureMsgTxId = messageTxId.String()
-	tx.Status = transaction.StatusInProgress
-	tx.SignatureMsgStatus = transaction.StatusSignatureSubmitted
-	err = ts.transactionRepository.Save(tx)
+	tx.Status = transfer.StatusInProgress
+	tx.SignatureMsgStatus = transfer.StatusSignatureSubmitted
+	err = ts.transferRepository.Save(tx)
 	if err != nil {
 		ts.logger.Errorf("Failed to update TX [%s]. Error [%s].", tsm.TransactionId, err)
 		return err

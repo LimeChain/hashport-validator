@@ -24,8 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -40,7 +38,7 @@ type Recovery struct {
 	contracts               service.Contracts
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
-	transactions            repository.Transaction
+	transferRepo            repository.Transfer
 	mirrorClient            client.MirrorNode
 	nodeClient              client.HederaNode
 	accountID               hederasdk.AccountID
@@ -56,7 +54,7 @@ func NewProcess(
 	contracts service.Contracts,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
-	transactionsRepo repository.Transaction,
+	transferRepo repository.Transfer,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
@@ -76,7 +74,7 @@ func NewProcess(
 		contracts:               contracts,
 		statusTransferRepo:      statusTransferRepo,
 		statusMessagesRepo:      statusMessagesRepo,
-		transactions:            transactionsRepo,
+		transferRepo:            transferRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
 		accountID:               account,
@@ -162,12 +160,19 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
+
+		valid, targetAsset := r.contracts.IsValidBridgeAsset(asset)
+		if !valid {
+			r.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
+			continue
+		}
+
 		m, err := r.transfers.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, *m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, targetAsset, *m)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Err: [%s]", tx.TransactionID, err)
 			continue
@@ -240,33 +245,21 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 }
 
 func (r Recovery) processUnfinishedOperations() error {
-	unprocessedTransactions, err := r.transactions.GetUnprocessedTransactions()
+	unprocessedTransfers, err := r.transferRepo.GetUnprocessedTransfers()
 	if err != nil {
-		r.logger.Errorf("Failed to get all unprocessedTransactions messages. Error: %s", err)
+		r.logger.Errorf("Failed to get unprocessed transfers. Error: %s", err)
 		return err
 	}
 
-	for _, transfer := range unprocessedTransactions {
-		weiBn, err := helper.ToBigInt(transfer.GasPriceWei)
-		if err != nil {
-			r.logger.Errorf("Skipping recovery for TX [%s]. Could not parse gas price [%s wei] to Big Integer.", transfer.TransactionId, transfer.GasPriceWei)
-			continue
-		}
-		gwei := ethereum.WeiToGwei(weiBn)
-
-		valid, erc20Address := r.contracts.IsValidBridgeAsset(transfer.Asset)
-		if !valid {
-			r.logger.Errorf("Skipping recovery for TX [%s]. Specified Asset [%s] is not supported.", transfer.TransactionId, transfer.Asset)
-			continue
-		}
-
-		transferMsg := encoding.NewTransferMessage(transfer.TransactionId,
-			transfer.EthAddress,
-			transfer.Asset,
-			erc20Address,
+	for _, transfer := range unprocessedTransfers {
+		transferMsg := encoding.NewTransferMessage(
+			transfer.TransactionID,
+			transfer.Receiver,
+			transfer.SourceAsset,
+			transfer.TargetAsset,
 			transfer.Amount,
-			transfer.Fee,
-			gwei.String(),
+			transfer.TxReimbursement,
+			transfer.GasPrice,
 			transfer.ExecuteEthTransaction)
 
 		if transferMsg.ExecuteEthTransaction {

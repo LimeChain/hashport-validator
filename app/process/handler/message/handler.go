@@ -143,7 +143,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 }
 
 func (cmh *Handler) hasReachedMajority(txId string) (bool, error) {
-	signatureMessages, err := cmh.messageRepository.GetMessagesFor(txId)
+	signatureMessages, err := cmh.messageRepository.Get(txId)
 	if err != nil {
 		cmh.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
 		return false, err

@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	exchangeRate  = 0.00007
-	validGasPrice = "130"
-	smallGasPrice = "1"
+	exchangeRate      = 0.00007
+	validGasPrice     = "130000000000"
+	validGasPriceGwei = "130"
+	smallGasPrice     = "1000000000"
 
 	invalidValue = "someinvalidvalue"
 
@@ -76,7 +77,7 @@ func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
 	mocks.Setup()
 	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
 
-	invalid, err := feeCalculator.GetEstimatedTxFee(invalidValue)
+	invalid, err := feeCalculator.GetEstimatedTxFeeFromGWei(invalidValue)
 
 	mocks.MExchangeRateProvider.AssertNotCalled(t, "GetEthVsHbarRate")
 	assert.Equal(t, "", invalid)
@@ -88,7 +89,7 @@ func TestGetEstimatedTxFeeFailedToRetrieveRate(t *testing.T) {
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
 	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
 
-	invalid, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
+	invalid, err := feeCalculator.GetEstimatedTxFeeFromGWei(validGasPrice)
 
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.Equal(t, "", invalid)
@@ -103,7 +104,7 @@ func TestGetEstimatedTxFeeHappyPath(t *testing.T) {
 
 	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, validHederaConfig(), mocks.MBridgeContractService)
 
-	txFee, err := feeCalculator.GetEstimatedTxFee(validGasPrice)
+	txFee, err := feeCalculator.GetEstimatedTxFeeFromGWei(validGasPriceGwei)
 
 	mocks.MExchangeRateProvider.AssertNumberOfCalls(t, "GetEthVsHbarRate", 1)
 	assert.Equal(t, expectedTxFee, txFee)

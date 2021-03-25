@@ -6,10 +6,10 @@ option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
 message TopicEthSignatureMessage {
   string transactionId = 1;
-  string ethAddress = 2;
+  string receiver = 2;
   string amount = 3;
-  string fee = 4;
+  string txReimbursement = 4;
   string signature = 5;
   string gasPriceWei = 6;
-  string erc20Address = 7;
+  string targetAsset = 7;
 }

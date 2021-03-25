@@ -81,7 +81,7 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 			if err != nil {
 				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error %s", err)
 			}
-			ctw.logger.Tracef("Cteated new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
+			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
 			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Err: %s", err)
 		}
@@ -142,7 +142,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	valid, erc20Address := ctw.contractService.IsValidBridgeAsset(asset)
+	valid, targetAsset := ctw.contractService.IsValidBridgeAsset(asset)
 	if !valid {
 		ctw.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
 		return
@@ -156,11 +156,11 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 
 	shouldExecuteEthTransaction := true
 	// Check memo for the format {eth_address-0-0}
-	if m.GasPriceGwei == "0" && m.TxReimbursementFee == "0" {
+	if m.GasPrice == "0" && m.TxReimbursementFee == "0" {
 		shouldExecuteEthTransaction = false
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, erc20Address, amount, m.TxReimbursementFee, m.GasPriceGwei, shouldExecuteEthTransaction)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, shouldExecuteEthTransaction)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

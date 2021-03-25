@@ -20,7 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 )
 
 // Transfers is the major service used for processing Transfers operations
@@ -29,10 +29,10 @@ type Transfers interface {
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
-	// aware of already processed transactions
-	InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error)
+	// aware of already processed transfers
+	InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.Transfer, error)
 	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
 	// If no error is returned the TX can be processed
 	VerifyFee(tm encoding.TransferMessage) error
