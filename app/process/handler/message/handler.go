@@ -115,7 +115,7 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 		return
 	}
 
-	//Check if transaction should be scheduled
+	// Check if transaction should be scheduled
 	shouldExecuteEthTransaction, err := cmh.messages.ShouldTransactionBeScheduled(tsm.TransactionId)
 
 	if err != nil {
