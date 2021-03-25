@@ -76,11 +76,22 @@ func Test_E2E(t *testing.T) {
 	transactionResponse, whbarBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
-	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, t)
+	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, 1, t)
 
 	// Step 3 - Verify the Ethereum Transaction execution
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
+}
 
+func Test_E2E_Only_Address_Memo(t *testing.T) {
+	setupEnv := setup.Load()
+
+	memo := fmt.Sprintf("%s-0-0", receiverAddress)
+
+	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+
+	// Step 2 - Verify the submitted topic messages
+	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
@@ -157,7 +168,7 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 
 	fmt.Println(fmt.Sprintf(`Bridge Account HBAR balance after transaction: [%d]`, receiverBalanceNew.Hbars.AsTinybar()))
 
-	// Verify that the custodial address has receive exactly the amount sent
+	// Verify that the custodial address has received exactly the amount sent
 	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
 	// Verify that the bridge account has received exactly the amount sent
 	if amount != hBarAmount.AsTinybar() {
@@ -188,14 +199,13 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	return &res, err
 }
 
-func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, t *testing.T) string {
+func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) string {
 	ethSignaturesCollected := 0
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
 
 	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
-	c1 := make(chan bool, 1)
 	// Subscribe to Topic
 	_, err := hedera.NewTopicMessageQuery().
 		SetStartTime(time.Unix(0, time.Now().UnixNano())).
@@ -213,10 +223,11 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					//Verify that all the submitted messages have signed the same transaction
 					topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
 					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
-						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
+						fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
+					} else {
+						ethSignaturesCollected++
+						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 					}
-					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 				}
 
 				if msg.GetType() == validatorproto.TopicMessageType_EthTransaction {
@@ -229,11 +240,6 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					ethTransMsgCollected++
 					fmt.Println(fmt.Sprintf("Received Ethereum Transaction Hash [%s]", msg.GetTopicEthTransactionMessage().EthTxHash))
 				}
-
-				// Check whether we collected everything
-				if expectedValidatorsCount == ethSignaturesCollected && ethTransMsgCollected == 1 {
-					c1 <- true
-				}
 			},
 		)
 	if err != nil {
@@ -241,15 +247,14 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case _ = <-c1:
-		return ethTransactionHash
 	case <-time.After(60 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
-		if ethTransMsgCollected != 1 {
-			t.Fatal(`Expected to submit exactly 1 ethereum transaction in topic`)
+		if ethTransMsgCollected != expectedEthTxMessageCount {
+			t.Fatalf(`Expected to submit exactly [%v] ethereum transaction in topic, but was: [%v]`, expectedEthTxMessageCount, ethTransMsgCollected)
 		}
+		return ethTransactionHash
 	}
 	// Not possible end-case
 	return ""
