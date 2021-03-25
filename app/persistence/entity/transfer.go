@@ -1,7 +1,7 @@
 package entity
 
 type Transfer struct {
-	TransactionID         string `gorm:"primaryKey; not null; autoIncrement:false"`
+	TransactionID         string `gorm:"primaryKey"`
 	Receiver              string
 	SourceAsset           string
 	TargetAsset           string
