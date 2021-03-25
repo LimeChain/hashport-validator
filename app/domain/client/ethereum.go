@@ -31,4 +31,6 @@ type Ethereum interface {
 	// onRevert is called once the TX is mined but it reverted
 	// onError is called if an error occurs while waiting for TX to go into one of the other 2 states
 	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
+	// WaitBlocks starts a loop which ends either when we reach the target block number or an error occurs with block number retrieval
+	WaitBlocks(numberOfBlocks uint64) error
 }

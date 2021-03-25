@@ -131,3 +131,26 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
+
+func (ec *Client) WaitBlocks(numberOfBlocks uint64) error {
+	if numberOfBlocks < 1 {
+		return errors.New("numberOfBlocks should be a positive number")
+	}
+
+	blockNumber, err := ec.BlockNumber(context.Background())
+	if err != nil {
+		return err
+	}
+
+	target := blockNumber + numberOfBlocks
+	for {
+		blockNumber, err = ec.BlockNumber(context.Background())
+		if err != nil {
+			return err
+		}
+
+		if blockNumber == target {
+			return nil
+		}
+	}
+}

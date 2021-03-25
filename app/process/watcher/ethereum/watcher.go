@@ -18,6 +18,7 @@ package ethereum
 
 import (
 	bridgeContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -28,13 +29,15 @@ import (
 type Watcher struct {
 	config    config.Ethereum
 	contracts service.Contracts
+	ethClient client.Ethereum
 	logger    *log.Entry
 }
 
-func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
+func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config config.Ethereum) *Watcher {
 	return &Watcher{
 		config:    config,
 		contracts: contracts,
+		ethClient: ethClient,
 		logger:    c.GetLoggerFor("Ethereum Watcher"),
 	}
 }
@@ -57,7 +60,7 @@ func (ew *Watcher) listenForEvents(q *queue.Queue) {
 			log.Errorf("Burn Event Logs subscription failed. Error [%s].", err)
 			return
 		case eventLog := <-events:
-			ew.handleLog(eventLog, q)
+			go ew.handleLog(eventLog, q)
 		}
 	}
 }
@@ -67,5 +70,10 @@ func (ew *Watcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		eventLog.Receiver)
+
+	err := ew.ethClient.WaitBlocks(ew.config.WaitingBlocks)
+	if err != nil {
+		ew.logger.Errorf("Could not wait [%s] of ETH Block Numbers. Error: [%s]", ew.config.WaitingBlocks, err)
+	}
 	// TODO: push to queue with message type, corresponding to ETH Handler
 }

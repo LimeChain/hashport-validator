@@ -79,7 +79,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		server.AddWatcher(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth))
+		server.AddWatcher(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Hedera.Eth))
 	}
 
 	apiRouter := initializeAPIRouter(services)

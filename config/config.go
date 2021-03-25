@@ -103,6 +103,7 @@ type Ethereum struct {
 	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
 	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_CONTRACT_ADDRESS"`
 	WhbarContractAddress  string `yaml:"whbar_contract_address" env:"HEDERA_ETH_BRIDGE_WHBAR_CONTRACT_ADDRESS"`
+	WaitingBlocks         uint64 `yaml:"waiting_blocks" env:"HEDERA_ETH_BRIDGE_WAITING_BLOCKS"`
 }
 
 type CryptoTransfer struct {
