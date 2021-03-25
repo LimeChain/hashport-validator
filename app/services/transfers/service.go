@@ -254,10 +254,6 @@ func (s *Service) TransferData(transactionId string) (service.TransferData, erro
 		return service.TransferData{}, err
 	}
 
-	if len(t.Messages) == 0 {
-		return service.TransferData{}, nil
-	}
-
 	var signatures []string
 	for _, m := range t.Messages {
 		signatures = append(signatures, m.Signature)
