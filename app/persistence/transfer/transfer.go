@@ -148,6 +148,10 @@ func (tr Repository) UpdateStatusInsufficientFee(txId string) error {
 	return tr.updateStatus(txId, StatusInsufficientFee)
 }
 
+func (tr Repository) UpdateStatusCompleted(txId string) error {
+	return tr.updateStatus(txId, StatusCompleted)
+}
+
 func (tr Repository) UpdateStatusSignatureMined(txId string) error {
 	return tr.updateSignatureStatus(txId, StatusSignatureMined)
 }

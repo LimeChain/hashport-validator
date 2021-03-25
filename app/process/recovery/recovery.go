@@ -174,7 +174,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 		}
 		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, targetAsset, *m)
 		if err != nil {
-			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Err: [%s]", tx.TransactionID, err)
+			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 		r.logger.Debugf("Recovered transfer with TXn ID [%s]", tx.TransactionID)
@@ -228,7 +228,7 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	isValid, err := r.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
-		r.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransactionId)
+		r.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransferID)
 		return err
 	}
 	if !isValid {
@@ -238,7 +238,7 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 
 	err = r.messages.ProcessEthereumTxMessage(tm)
 	if err != nil {
-		r.logger.Errorf("Failed to process Ethereum TX Message for TX[%s]", ethTxMessage.TransactionId)
+		r.logger.Errorf("Failed to process Ethereum TX Message for TX [%s]", ethTxMessage.TransferID)
 		return nil
 	}
 	return nil

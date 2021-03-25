@@ -83,7 +83,7 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 			}
 			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
-			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Err: %s", err)
+			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: %s", err)
 		}
 	} else {
 		ctw.updateStatusTimestamp(ctw.startTimestamp)
@@ -154,13 +154,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	shouldExecuteEthTransaction := true
-	// Check memo for the format {eth_address-0-0}
-	if m.GasPrice == "0" && m.TxReimbursementFee == "0" {
-		shouldExecuteEthTransaction = false
-	}
-
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, shouldExecuteEthTransaction)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

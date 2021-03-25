@@ -94,7 +94,7 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 	return m, nil
 }
 
-// InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transactions
+// InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
 func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.Transfer, error) {
 	dbTransaction, err := ts.transferRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
@@ -119,16 +119,17 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.T
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
 func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
-		TransactionId:   txId,
-		Receiver:        m.EthereumAddress,
-		Amount:          amount,
-		TxReimbursement: m.TxReimbursementFee,
-		GasPrice:        m.GasPrice,
-		SourceAsset:     sourceAsset,
-		TargetAsset:     targetAsset,
+		TransactionId:         txId,
+		Receiver:              m.EthereumAddress,
+		Amount:                amount,
+		TxReimbursement:       m.TxReimbursementFee,
+		GasPrice:              m.GasPrice,
+		SourceAsset:           sourceAsset,
+		TargetAsset:           targetAsset,
+		ExecuteEthTransaction: m.ExecuteEthTransaction,
 	})
 	if err != nil {
-		ts.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Err: [%s]", txId, err)
+		ts.logger.Errorf("Something went wrong while saving new Recovered Transaction with ID [%s]. Error [%s]", txId, err)
 		return err
 	}
 
@@ -139,9 +140,6 @@ func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset strin
 // VerifyFee verifies that the provided TX reimbursement fee is enough using the
 // Fee Calculator and updates the Transaction Record to Insufficient Fee if necessary
 func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
-	fmt.Println(tm.TxReimbursement)
-	fmt.Println(tm.Amount)
-	fmt.Println(tm.GasPrice)
 	isSufficient, err := ts.fees.ValidateExecutionFee(tm.TxReimbursement, tm.Amount, tm.GasPrice)
 	if !isSufficient {
 		ts.logger.Errorf("Fee validation for TX ID [%s] failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s].", tm.TransactionId, err)
@@ -209,7 +207,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
-		ts.logger.Errorf("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tsm.TransactionId)
+		ts.logger.Errorf("Failed to encode Signature Message to bytes for TX [%s]. Error %s", err, tsm.TransferID)
 		return err
 	}
 
@@ -217,14 +215,14 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		ts.topicID,
 		sigMsgBytes)
 	if err != nil {
-		ts.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tsm.TransactionId, err)
+		ts.logger.Errorf("Failed to submit Signature Message to Topic for TX [%s]. Error: %s", tsm.TransferID, err)
 		return err
 	}
 
 	// Update Transfer Record
-	tx, err := ts.transferRepository.GetByTransactionId(tsm.TransactionId)
+	tx, err := ts.transferRepository.GetByTransactionId(tsm.TransferID)
 	if err != nil {
-		ts.logger.Errorf("Failed to get TX [%s] from DB", tsm.TransactionId)
+		ts.logger.Errorf("Failed to get TX [%s] from DB", tsm.TransferID)
 		return err
 	}
 
@@ -232,13 +230,13 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	tx.SignatureMsgStatus = transfer.StatusSignatureSubmitted
 	err = ts.transferRepository.Save(tx)
 	if err != nil {
-		ts.logger.Errorf("Failed to update TX [%s]. Error [%s].", tsm.TransactionId, err)
+		ts.logger.Errorf("Failed to update TX [%s]. Error [%s].", tsm.TransferID, err)
 		return err
 	}
 
 	// Attach update callbacks on Signature HCS Message
-	ts.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tsm.TransactionId, ts.topicID)
-	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransactionId)
+	ts.logger.Infof("Submitted signature for TX ID [%s] on Topic [%s]", tsm.TransferID, ts.topicID)
+	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransferID)
 	ts.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }

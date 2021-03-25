@@ -71,6 +71,7 @@ func main() {
 
 		server.AddHandler(process.HCSMessageType, cmh.NewHandler(
 			configuration.Hedera.Handler.ConsensusMessage,
+			repositories.transfer,
 			repositories.message,
 			services.contracts,
 			services.messages))

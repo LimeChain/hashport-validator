@@ -30,6 +30,7 @@ type Transfer interface {
 	Save(tx *transfer.Transfer) error
 	SaveRecoveredTxn(ct *proto.TransferMessage) error
 	UpdateStatusInsufficientFee(txId string) error
+	UpdateStatusCompleted(txId string) error
 
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error

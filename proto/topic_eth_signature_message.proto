@@ -5,11 +5,11 @@ package proto;
 option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
 message TopicEthSignatureMessage {
-  string transactionId = 1;
-  string receiver = 2;
-  string amount = 3;
-  string txReimbursement = 4;
-  string signature = 5;
-  string gasPriceWei = 6;
-  string targetAsset = 7;
+  string transferID = 1; // The transaction Id of the initial Hedera Transfer
+  string receiver = 2; // The receiver of the initial Hedera Transfer Memo
+  string amount = 3; // The amount of the initial Hedera Transfer
+  string txReimbursement = 4; // The tx reimbursement of the initial Hedera Transfer Memo
+  string signature = 5; // The signature of the validator
+  string gasPrice = 6; // The gas price of the initial Hedera Transfer Memo
+  string targetAsset = 7; // The target asset
 }

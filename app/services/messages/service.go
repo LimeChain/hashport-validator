@@ -85,9 +85,9 @@ func NewService(
 // Validates it against the Transaction Record metadata from DB
 func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) {
 	topicMessage := tm.GetTopicSignatureMessage()
-	t, err := ss.transferRepository.GetByTransactionId(topicMessage.TransactionId)
+	t, err := ss.transferRepository.GetByTransactionId(topicMessage.TransferID)
 	if err != nil {
-		ss.logger.Errorf("Failed to retrieve Transaction Record for TX ID [%s]. Error: %s", topicMessage.TransactionId, err)
+		ss.logger.Errorf("Failed to retrieve Transaction Record for TX ID [%s]. Error: %s", topicMessage.TransferID, err)
 		return false, err
 	}
 
@@ -100,7 +100,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 	match := t.Receiver == topicMessage.Receiver &&
 		t.Amount == topicMessage.Amount &&
 		t.TxReimbursement == topicMessage.TxReimbursement &&
-		t.GasPrice == topicMessage.GasPriceWei &&
+		t.GasPrice == topicMessage.GasPrice &&
 		topicMessage.TargetAsset == erc20address
 	return match, nil
 }
@@ -109,53 +109,53 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransactionId, tsm.Receiver, tsm.TargetAsset, tsm.Amount, tsm.TxReimbursement, tsm.GasPriceWei)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.Receiver, tsm.TargetAsset, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
 	if err != nil {
-		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransactionId, err)
+		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransferID, err)
 		return err
 	}
 
 	// Prepare Signature
 	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(tsm.GetSignature())
 	if err != nil {
-		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Err: %s", tsm.TransactionId, tsm.GetSignature(), err)
+		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: %s", tsm.TransferID, tsm.GetSignature(), err)
 		return err
 	}
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 
 	// Check for duplicated signature
-	exists, err := ss.messageRepository.Exist(tsm.TransactionId, signatureHex, authMessageStr)
+	exists, err := ss.messageRepository.Exist(tsm.TransferID, signatureHex, authMessageStr)
 	if err != nil {
-		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", tsm.TransactionId, err)
+		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", tsm.TransferID, err)
 		return err
 	}
 	if exists {
-		ss.logger.Errorf("Signature already received for TX [%s]", tsm.TransactionId)
+		ss.logger.Errorf("Signature already received for TX [%s]", tsm.TransferID)
 		return err
 	}
 
 	// Verify Signature
-	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransactionId, authMessageStr)
+	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransferID, authMessageStr)
 	if err != nil {
 		return err
 	}
 
-	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransactionId)
+	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransferID)
 
 	// Persist in DB
 	err = ss.messageRepository.Create(&message.Message{
-		TransferID:           tsm.TransactionId,
+		TransferID:           tsm.TransferID,
 		Signature:            signatureHex,
 		Hash:                 authMessageStr,
 		Signer:               address.String(),
 		TransactionTimestamp: tm.TransactionTimestamp,
 	})
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransactionId, signatureHex, err)
+		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransferID, signatureHex, err)
 		return err
 	}
 
-	ss.logger.Infof("Successfully processed Signature Message from [%s] for TX [%s]", address.String(), tsm.TransactionId)
+	ss.logger.Infof("Successfully processed Signature Message from [%s] for TX [%s]", address.String(), tsm.TransferID)
 	return nil
 }
 
@@ -352,36 +352,36 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	tx, _, err := ss.ethClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(ethTxMessage.EthTxHash))
 	if err != nil {
-		ss.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, err)
+		ss.logger.Warnf("[%s] - Failed to get eth transaction by hash [%s]. Error [%s].", ethTxMessage.TransferID, ethTxMessage.EthTxHash, err)
 		return false, err
 	}
 
 	// Verify Ethereum TX `to` property
 	if strings.ToLower(tx.To().String()) != strings.ToLower(ss.contractsService.GetBridgeContractAddress().String()) {
-		ss.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, tx.To().String())
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Failed authenticity - Different To Address [%s].", ethTxMessage.TransferID, ethTxMessage.EthTxHash, tx.To().String())
 		return false, nil
 	}
 	// Verify Ethereum TX `call data`
 	txId, ethAddress, amount, txReimbursement, erc20address, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
 	if err != nil {
 		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
-			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 			return false, nil
 		}
 		return false, err
 	}
 
-	if txId != ethTxMessage.TransactionId {
-		ss.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", ethTxMessage.TransactionId, ethTxMessage.EthTxHash, txId)
+	if txId != ethTxMessage.TransferID {
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Different txn id [%s].", ethTxMessage.TransferID, ethTxMessage.EthTxHash, txId)
 		return false, nil
 	}
 
-	dbTx, err := ss.transferRepository.GetByTransactionId(ethTxMessage.TransactionId)
+	dbTx, err := ss.transferRepository.GetByTransactionId(ethTxMessage.TransferID)
 	if err != nil {
 		return false, err
 	}
 	if dbTx == nil {
-		ss.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Transaction not found in database.", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return false, nil
 	}
 
@@ -390,7 +390,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		dbTx.TxReimbursement != txReimbursement ||
 		// TODO: Add validation for erc20address, once the contracts support it
 		tx.GasPrice().String() != dbTx.GasPrice {
-		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
+		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return false, nil
 	}
 
@@ -423,16 +423,16 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 
 func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	etm := tm.GetTopicEthTransactionMessage()
-	err := ss.transferRepository.UpdateEthTxSubmitted(etm.TransactionId, etm.EthTxHash)
+	err := ss.transferRepository.UpdateEthTxSubmitted(etm.TransferID, etm.EthTxHash)
 	if err != nil {
-		ss.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transfer.StatusEthTxSubmitted, etm.TransactionId, err)
+		ss.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transfer.StatusEthTxSubmitted, etm.TransferID, err)
 		return err
 	}
 
-	onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(etm.TransactionId, etm.EthTxHash)
+	onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(etm.TransferID, etm.EthTxHash)
 	ss.ethClient.WaitForTransaction(etm.EthTxHash, onEthTxSuccess, onEthTxRevert, func(err error) {})
 
-	ss.scheduler.Cancel(etm.TransactionId)
+	ss.scheduler.Cancel(etm.TransferID)
 	return nil
 }
 

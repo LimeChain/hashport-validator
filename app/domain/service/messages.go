@@ -43,7 +43,7 @@ type Messages interface {
 type TransactionData struct {
 	Recipient   string   `json:"recipient"`
 	Amount      string   `json:"amount"`
-	SourceAsset string   `json:"erc20Address"`
+	SourceAsset string   `json:"sourceAsset"`
 	TargetAsset string   `json:"targetAsset"`
 	Fee         string   `json:"fee"`
 	GasPrice    string   `json:"gasPrice"`

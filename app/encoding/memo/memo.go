@@ -34,6 +34,8 @@ type Memo struct {
 	TxReimbursementFee string
 	// GasPrice the gas price that must be used in the mint transaction, converted to wei
 	GasPrice string
+	// ExecuteEthTransaction returns if transaction will be executed by validators
+	ExecuteEthTransaction bool
 }
 
 // FromBase64String sanity checks and instantiates new Memo struct from base64 encoded string
@@ -67,9 +69,16 @@ func FromBase64String(base64Str string) (*Memo, error) {
 
 	weiBn := ethereum.GweiToWei(gasPriceGweiBn)
 
+	shouldExecuteEthTransaction := true
+	// Check memo for the format {eth_address-0-0}
+	if weiBn.String() == "0" && txReimbursement == "0" {
+		shouldExecuteEthTransaction = false
+	}
+
 	return &Memo{
-		EthereumAddress:    ethAddress,
-		TxReimbursementFee: txReimbursement,
-		GasPrice:           weiBn.String(),
+		EthereumAddress:       ethAddress,
+		TxReimbursementFee:    txReimbursement,
+		GasPrice:              weiBn.String(),
+		ExecuteEthTransaction: shouldExecuteEthTransaction,
 	}, nil
 }

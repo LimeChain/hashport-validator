@@ -2,7 +2,7 @@ name: E2E Tests
 on:
   push:
     branches:
-      - feature/db/models
+      - main
   pull_request:
 
 jobs:

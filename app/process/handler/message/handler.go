@@ -29,14 +29,16 @@ import (
 )
 
 type Handler struct {
-	messageRepository repository.Message
-	contracts         service.Contracts
-	messages          service.Messages
-	logger            *log.Entry
+	transferRepository repository.Transfer
+	messageRepository  repository.Message
+	contracts          service.Contracts
+	messages           service.Messages
+	logger             *log.Entry
 }
 
 func NewHandler(
 	configuration config.ConsensusMessageHandler,
+	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
 	messages service.Messages,
@@ -47,10 +49,11 @@ func NewHandler(
 	}
 
 	return &Handler{
-		messageRepository: messageRepository,
-		contracts:         contractsService,
-		messages:          messages,
-		logger:            config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		transferRepository: transferRepository,
+		messageRepository:  messageRepository,
+		contracts:          contractsService,
+		messages:           messages,
+		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
 }
 
@@ -80,7 +83,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	isValid, err := cmh.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
-		cmh.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransactionId)
+		cmh.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransferID)
 		return
 	}
 	if !isValid {
@@ -91,7 +94,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 	// Process Ethereum Transaction Message
 	err = cmh.messages.ProcessEthereumTxMessage(tm)
 	if err != nil {
-		cmh.logger.Errorf("Failed to process Ethereum TX Message for TX[%s]", ethTxMessage.TransactionId)
+		cmh.logger.Errorf("Failed to process Ethereum TX Message for TX [%s]", ethTxMessage.TransferID)
 		return
 	}
 }
@@ -101,51 +104,58 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 	tsm := tm.GetTopicSignatureMessage()
 	valid, err := cmh.messages.SanityCheckSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
+		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransferID)
 		return
 	}
 	if !valid {
-		cmh.logger.Errorf("Incoming signature for TX [%s] is invalid", tsm.GetTransactionId())
+		cmh.logger.Errorf("Incoming signature for TX [%s] is invalid", tsm.TransferID)
 		return
 	}
 
 	err = cmh.messages.ProcessSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Could not process Signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransactionId)
+		cmh.logger.Errorf("Could not process Signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransferID)
 		return
 	}
 
 	// Check if transaction should be scheduled
-	shouldExecuteEthTransaction, err := cmh.messages.ShouldTransactionBeScheduled(tsm.TransactionId)
+	shouldExecuteEthTransaction, err := cmh.messages.ShouldTransactionBeScheduled(tsm.TransferID)
 
 	if err != nil {
-		cmh.logger.Errorf("There is no info in the database whether TX with id [%s] should be scheduled for execution.", tsm.TransactionId)
+		cmh.logger.Errorf("There is no info in the database whether TX with id [%s] should be scheduled for execution.", tsm.TransferID)
+		return
+	}
+
+	majorityReached, err := cmh.hasReachedMajority(tsm.TransferID)
+	if err != nil {
+		cmh.logger.Errorf("Could not determine whether majority was reached for TX [%s]", tsm.TransferID)
 		return
 	}
 
 	if shouldExecuteEthTransaction {
-		majorityReached, err := cmh.hasReachedMajority(tsm.TransactionId)
-		if err != nil {
-			cmh.logger.Errorf("Could not determine whether majority was reached for TX [%s]", tsm.TransactionId)
-			return
-		}
-
 		if majorityReached {
-			cmh.logger.Debugf("Collected Majority of signatures for TX [%s]", tsm.TransactionId)
-			err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransactionId)
+			cmh.logger.Debugf("Collected Majority of signatures for TX [%s]", tsm.TransferID)
+			err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransferID)
 			if err != nil {
-				cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransactionId)
+				cmh.logger.Errorf("Could not schedule TX [%s] for submission", tsm.TransferID)
 			}
 		}
 	} else {
-		cmh.logger.Infof("Transaction [%s] will not be scheduled for submission.", tsm.TransactionId)
+		cmh.logger.Infof("Transaction [%s] will not be scheduled for submission.", tsm.TransferID)
+
+		if majorityReached {
+			err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
+			if err != nil {
+				cmh.logger.Errorf("Failed to complete TX [%s]. Error: [%s]", tsm.TransferID, err)
+			}
+		}
 	}
 }
 
 func (cmh *Handler) hasReachedMajority(txId string) (bool, error) {
 	signatureMessages, err := cmh.messageRepository.Get(txId)
 	if err != nil {
-		cmh.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
+		cmh.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: [%s]", txId, err)
 		return false, err
 	}
 	requiredSigCount := len(cmh.contracts.GetMembers())/2 + 1
