@@ -33,14 +33,12 @@ type Messages interface {
 	ScheduleEthereumTxForSubmission(txId string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
-	// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
-	ShouldTransactionBeScheduled(transactionId string) (bool, error)
-	// TransactionData returns from the database all messages for specific transactionId and
+	// TransferData returns from the database all messages for specific transactionId and
 	// calculates if messages have reached super majority
-	TransactionData(transactionId string) (TransactionData, error)
+	TransferData(txId string) (TransferData, error)
 }
 
-type TransactionData struct {
+type TransferData struct {
 	Recipient   string   `json:"recipient"`
 	Amount      string   `json:"amount"`
 	SourceAsset string   `json:"sourceAsset"`

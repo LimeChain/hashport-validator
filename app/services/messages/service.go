@@ -163,7 +163,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 	transfer, err := ss.transferRepository.GetByTransactionId(txId)
 	if err != nil {
-		ss.logger.Errorf("Failed eto query transfer for TX [%s]. Error: [%s].", txId, err)
+		ss.logger.Errorf("Failed to query transfer for TX [%s]. Error: [%s].", txId, err)
 	}
 	signatureMessages, err := ss.messageRepository.Get(txId)
 	if err != nil {
@@ -436,31 +436,17 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	return nil
 }
 
-// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
-func (ss *Service) ShouldTransactionBeScheduled(transactionId string) (bool, error) {
-	t, err := ss.transferRepository.GetByTransactionId(transactionId)
-	if err != nil {
-		ss.logger.Errorf("Could not load transaction info for TX [%s] Error: %s", transactionId, err)
-		return false, err
-	}
-	return t.ExecuteEthTransaction, nil
-}
-
-// TransactionData returns from the database all messages for specific transactionId and
+// TransferData returns from the database all messages for specific transactionId and
 // calculates if messages have reached super majority
-func (ss *Service) TransactionData(transactionId string) (service.TransactionData, error) {
-	transfer, err := ss.transferRepository.GetByTransactionId(transactionId)
-	if err != nil {
-		ss.logger.Errorf("Failed to query Transfer for TX [%s]. Error: [%s]", transactionId, err)
-	}
+func (ss *Service) TransferData(transactionId string) (service.TransferData, error) {
 	messages, err := ss.messageRepository.Get(transactionId)
 	if err != nil {
 		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
-		return service.TransactionData{}, err
+		return service.TransferData{}, err
 	}
 
 	if len(messages) == 0 {
-		return service.TransactionData{}, nil
+		return service.TransferData{}, nil
 	}
 
 	var signatures []string
@@ -471,14 +457,14 @@ func (ss *Service) TransactionData(transactionId string) (service.TransactionDat
 	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
 	reachedMajority := len(messages) >= requiredSigCount
 
-	return service.TransactionData{
-		Recipient:   transfer.Receiver,
-		Amount:      transfer.Amount,
-		Fee:         transfer.TxReimbursement,
-		SourceAsset: transfer.SourceAsset,
-		TargetAsset: transfer.TargetAsset,
+	return service.TransferData{
+		Recipient:   messages[0].Transfer.Receiver,
+		Amount:      messages[0].Transfer.Amount,
+		Fee:         messages[0].Transfer.TxReimbursement,
+		SourceAsset: messages[0].Transfer.SourceAsset,
+		TargetAsset: messages[0].Transfer.TargetAsset,
 		Signatures:  signatures,
 		Majority:    reachedMajority,
-		GasPrice:    transfer.GasPrice,
+		GasPrice:    messages[0].Transfer.GasPrice,
 	}, nil
 }

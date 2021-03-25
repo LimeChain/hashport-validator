@@ -70,7 +70,12 @@ func (m Repository) Create(message *Message) error {
 
 func (m Repository) Get(txId string) ([]Message, error) {
 	var messages []Message
-	err := m.dbClient.Where("transfer_id = ?", txId).Order("transaction_timestamp").Find(&messages).Error
+	err := m.dbClient.
+		Preload("Transfer").
+		Where("transfer_id = ?", txId).
+		Order("transaction_timestamp").
+		Find(&messages).
+		Error
 	if err != nil {
 		return nil, err
 	}
