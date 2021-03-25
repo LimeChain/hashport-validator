@@ -76,7 +76,7 @@ func Test_E2E(t *testing.T) {
 	transactionResponse, whbarBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
-	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, expectedValidatorsCount, 1, t)
+	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, 1, t)
 
 	// Step 3 - Verify the Ethereum Transaction execution
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
@@ -91,7 +91,7 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
-	verifyTopicMessages(setupEnv, transactionResponse, expectedValidatorsCount, 0, t)
+	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
@@ -199,7 +199,7 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	return &res, err
 }
 
-func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedSignaturesCount int, expectedEthTxMessageCount int, t *testing.T) string {
+func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) string {
 	ethSignaturesCollected := 0
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
@@ -248,7 +248,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 	select {
 	case <-time.After(60 * time.Second):
-		if ethSignaturesCollected != expectedSignaturesCount {
+		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
 		if ethTransMsgCollected != expectedEthTxMessageCount {
