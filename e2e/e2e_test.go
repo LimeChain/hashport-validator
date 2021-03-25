@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"gorm.io/gorm"
@@ -81,13 +82,53 @@ func Test_E2E(t *testing.T) {
 	transactionResponse, whbarBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
-	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, t)
+	ethTransactionHash, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify the Ethereum Transaction execution
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
 
 	// TODO: Step 4 - Verify Transaction Record in the database
-	bigGasPriceGwei, _ := helper.ToBigInt(gasPriceGwei)
+	expectedTxRecord := verifyTransactionRecordInDB(setupEnv, transactionResponse, txFee, ethTransactionHash, t)
+
+	// TODO: Step 5 - Verify Message Record in the database
+	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
+}
+
+func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *transaction.Transaction, signatures []string, t *testing.T) {
+	var expectedMessageRecords []message.TransactionMessage
+
+	for _, signature := range signatures {
+		tm := message.TransactionMessage{
+			Model:                gorm.Model{},
+			TransactionId:        record.TransactionId,
+			EthAddress:           record.EthAddress,
+			Amount:               record.Amount,
+			Fee:                  record.Fee,
+			Signature:            signature,
+			Hash:                 record.EthHash,
+			SignerAddress:        "", // TODO: Associate Signature <-> SignerAddress somehow
+			TransactionTimestamp: 0,  // TODO: Figure out a way to get the timestamp
+			GasPriceWei:          record.GasPriceWei,
+			ERC20ContractAddress: "", // TODO: Which address do I use?
+		}
+		expectedMessageRecords = append(expectedMessageRecords, tm)
+	}
+
+	exist, err := setupEnv.DBVerifier.SignatureMessagesExist(record.TransactionId, expectedMessageRecords)
+	if err != nil {
+		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionId, expectedMessageRecords, err)
+	}
+	if !exist {
+		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionId, expectedMessageRecords)
+	}
+}
+
+func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, txFee, ethTransactionHash string, t *testing.T) *transaction.Transaction {
+	bigGasPriceGwei, err := helper.ToBigInt(gasPriceGwei)
+	if err != nil {
+		t.Fatalf("Could not parse GasPriceGwei [%s] to Big Integer for TX ID [%s]. Error: [%s].", gasPriceGwei, transactionResponse.TransactionID.String(), err)
+	}
+	bigGasPriceWei := ethereum.GweiToWei(bigGasPriceGwei).String()
 
 	expectedTxRecord := &transaction.Transaction{
 		Model:                 gorm.Model{},
@@ -103,7 +144,7 @@ func Test_E2E(t *testing.T) {
 		EthTxStatus:           transaction.StatusEthTxMined,
 		EthHash:               ethTransactionHash,
 		Asset:                 "hbar",
-		GasPriceWei:           ethereum.GweiToWei(bigGasPriceGwei).String(),
+		GasPriceWei:           bigGasPriceWei,
 		ExecuteEthTransaction: true,
 	}
 	exists, err := setupEnv.DBVerifier.TransactionRecordExists(expectedTxRecord)
@@ -114,7 +155,7 @@ func Test_E2E(t *testing.T) {
 		t.Fatalf("[%s] does not exist.", expectedTxRecord.TransactionId)
 	}
 
-	// TODO: Step 5 - Verify Message Record in the database
+	return expectedTxRecord
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
@@ -222,10 +263,11 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	return &res, err
 }
 
-func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, t *testing.T) string {
+func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, t *testing.T) (string, []string) {
 	ethSignaturesCollected := 0
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
+	receivedSignatures := []string{}
 
 	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
@@ -249,6 +291,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
 						t.Fatalf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String())
 					}
+					receivedSignatures = append(receivedSignatures, msg.GetTopicSignatureMessage().Signature)
 					ethSignaturesCollected++
 					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 				}
@@ -276,7 +319,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 	select {
 	case _ = <-c1:
-		return ethTransactionHash
+		return ethTransactionHash, receivedSignatures
 	case <-time.After(60 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
@@ -286,7 +329,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 		}
 	}
 	// Not possible end-case
-	return ""
+	return "", nil
 }
 
 func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, whbarReceiverAddress common.Address, expectedWHBarAmount int64, whbarBalanceBefore *big.Int, t *testing.T) {
