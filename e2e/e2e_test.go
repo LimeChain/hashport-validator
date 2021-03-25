@@ -106,10 +106,10 @@ func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *transaction.Transac
 			Fee:                  record.Fee,
 			Signature:            signature,
 			Hash:                 record.EthHash,
-			SignerAddress:        "", // TODO: Associate Signature <-> SignerAddress somehow
-			TransactionTimestamp: 0,  // TODO: Figure out a way to get the timestamp
+			SignerAddress:        "", // TODO: Associate Signature <-> SignerAddress somehow - ecrecover, code reuse
+			TransactionTimestamp: 0,  // TODO: Figure out a way to get the timestamp - ts of message in topic
 			GasPriceWei:          record.GasPriceWei,
-			ERC20ContractAddress: "", // TODO: Which address do I use?
+			ERC20ContractAddress: "", // TODO: Which address do I use? - Contract Service when ready???
 		}
 		expectedMessageRecords = append(expectedMessageRecords, tm)
 	}
@@ -137,7 +137,7 @@ func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hede
 		Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
 		Fee:                   txFee,
 		Signature:             "", // TODO: Figure out how to mock expected signature (Signing Logic from Process Transfer Maybe?)
-		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from)
+		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from) - Probably won't check
 		Status:                transaction.StatusCompleted,
 		SignatureMsgStatus:    transaction.StatusSignatureMined,
 		EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
