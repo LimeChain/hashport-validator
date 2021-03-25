@@ -2,6 +2,7 @@ package service
 
 import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -56,4 +57,13 @@ func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
 		return nil
 	}
 	return args.Get(0).(error)
+}
+
+func (mts *MockTransferService) TransferData(txId string) (service.TransferData, error) {
+	args := mts.Called(txId)
+	if args.Get(0) == nil {
+		return service.TransferData{}, args.Get(1).(error)
+	}
+
+	return args.Get(0).(service.TransferData), args.Get(0).(error)
 }

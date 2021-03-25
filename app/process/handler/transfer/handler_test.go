@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -75,7 +76,7 @@ func Test_Handle(t *testing.T) {
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
-	tx := &txRepo.Transfer{
+	tx := &entity.Transfer{
 		TransactionID:         ctm.TransactionId,
 		Receiver:              ctm.Receiver,
 		Amount:                ctm.Amount,
@@ -130,7 +131,7 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
-	tx := &txRepo.Transfer{
+	tx := &entity.Transfer{
 		TransactionID:   ctm.TransactionId,
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,
@@ -152,7 +153,7 @@ func Test_Handle_VerifyFee_Fails(t *testing.T) {
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
-	tx := &txRepo.Transfer{
+	tx := &entity.Transfer{
 		TransactionID:   ctm.TransactionId,
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,
@@ -174,7 +175,7 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 
 	proto.Unmarshal(cryptoTransferPayload, &ctm)
 
-	tx := &txRepo.Transfer{
+	tx := &entity.Transfer{
 		TransactionID:   ctm.TransactionId,
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,

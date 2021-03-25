@@ -39,7 +39,6 @@ type Transfers interface {
 	// ProcessTransfer processes the transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessTransfer(tm encoding.TransferMessage) error
-
 	// TransferData returns from the database the given transfer, its signatures and
 	// calculates if its messages have reached super majority
 	TransferData(txId string) (TransferData, error)
