@@ -31,7 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -143,7 +143,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransferID)
 
 	// Persist in DB
-	err = ss.messageRepository.Create(&message.Message{
+	err = ss.messageRepository.Create(&entity.Message{
 		TransferID:           tsm.TransferID,
 		Signature:            signatureHex,
 		Hash:                 authMessageStr,
@@ -248,7 +248,7 @@ func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amoun
 	return ethereumMintTask
 }
 
-func getSignatures(messages []message.Message) ([][]byte, error) {
+func getSignatures(messages []entity.Message) ([][]byte, error) {
 	var signatures [][]byte
 
 	for _, msg := range messages {
@@ -283,7 +283,7 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 
 // computeExecutionSlot - computes the slot order in which the TX will execute
 // Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (ss *Service) computeExecutionSlot(messages []message.Message) (slot int64, isFound bool) {
+func (ss *Service) computeExecutionSlot(messages []entity.Message) (slot int64, isFound bool) {
 	for i := 0; i < len(messages); i++ {
 		if strings.ToLower(messages[i].Signer) == strings.ToLower(ss.ethSigner.Address()) {
 			return int64(i), true
@@ -434,37 +434,4 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 
 	ss.scheduler.Cancel(etm.TransferID)
 	return nil
-}
-
-// TransferData returns from the database all messages for specific transactionId and
-// calculates if messages have reached super majority
-func (ss *Service) TransferData(transactionId string) (service.TransferData, error) {
-	messages, err := ss.messageRepository.Get(transactionId)
-	if err != nil {
-		ss.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
-		return service.TransferData{}, err
-	}
-
-	if len(messages) == 0 {
-		return service.TransferData{}, nil
-	}
-
-	var signatures []string
-	for _, m := range messages {
-		signatures = append(signatures, m.Signature)
-	}
-
-	requiredSigCount := len(ss.contractsService.GetMembers())/2 + 1
-	reachedMajority := len(messages) >= requiredSigCount
-
-	return service.TransferData{
-		Recipient:   messages[0].Transfer.Receiver,
-		Amount:      messages[0].Transfer.Amount,
-		Fee:         messages[0].Transfer.TxReimbursement,
-		SourceAsset: messages[0].Transfer.SourceAsset,
-		TargetAsset: messages[0].Transfer.TargetAsset,
-		Signatures:  signatures,
-		Majority:    reachedMajority,
-		GasPrice:    messages[0].Transfer.GasPrice,
-	}, nil
 }

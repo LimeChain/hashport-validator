@@ -17,7 +17,7 @@
 package transaction
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
 )
@@ -26,18 +26,18 @@ type MockTransferRepository struct {
 	mock.Mock
 }
 
-func (m *MockTransferRepository) Create(ct *proto.TransferMessage) (*transfer.Transfer, error) {
+func (m *MockTransferRepository) Create(ct *proto.TransferMessage) (*entity.Transfer, error) {
 	args := m.Called(ct)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transfer.Transfer), nil
+		return args.Get(0).(*entity.Transfer), nil
 	}
-	return args.Get(0).(*transfer.Transfer), args.Get(1).(error)
+	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
-func (m *MockTransferRepository) Save(tx *transfer.Transfer) error {
+func (m *MockTransferRepository) Save(tx *entity.Transfer) error {
 	args := m.Called(tx)
 	if args.Get(0) == nil {
 		return nil
@@ -85,26 +85,26 @@ func (m *MockTransferRepository) UpdateStatusEthTxMsgFailed(txId string) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockTransferRepository) GetByTransactionId(transactionId string) (*transfer.Transfer, error) {
+func (m *MockTransferRepository) GetByTransactionId(transactionId string) (*entity.Transfer, error) {
 	args := m.Called(transactionId)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transfer.Transfer), nil
+		return args.Get(0).(*entity.Transfer), nil
 	}
-	return args.Get(0).(*transfer.Transfer), args.Get(1).(error)
+	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
-func (m *MockTransferRepository) GetInitialAndSignatureSubmittedTx() ([]*transfer.Transfer, error) {
+func (m *MockTransferRepository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error) {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).([]*transfer.Transfer), nil
+		return args.Get(0).([]*entity.Transfer), nil
 	}
-	return args.Get(0).([]*transfer.Transfer), args.Get(1).(error)
+	return args.Get(0).([]*entity.Transfer), args.Get(1).(error)
 }
 
 func (m *MockTransferRepository) UpdateStatusInsufficientFee(txId string) error {
@@ -147,14 +147,14 @@ func (m *MockTransferRepository) SaveRecoveredTxn(ct *proto.TransferMessage) err
 	return args.Get(0).(error)
 }
 
-func (m *MockTransferRepository) GetUnprocessedTransfers() ([]transfer.Transfer, error) {
+func (m *MockTransferRepository) GetUnprocessedTransfers() ([]entity.Transfer, error) {
 	args := m.Called()
 
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).([]transfer.Transfer), nil
+		return args.Get(0).([]entity.Transfer), nil
 	}
-	return args.Get(0).([]transfer.Transfer), args.Get(1).(error)
+	return args.Get(0).([]entity.Transfer), args.Get(1).(error)
 }

@@ -47,6 +47,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
+		contracts,
 		fees,
 		ethSigner,
 		repositories.transfer,

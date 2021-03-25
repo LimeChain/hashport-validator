@@ -33,18 +33,4 @@ type Messages interface {
 	ScheduleEthereumTxForSubmission(txId string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
-	// TransferData returns from the database all messages for specific transactionId and
-	// calculates if messages have reached super majority
-	TransferData(txId string) (TransferData, error)
-}
-
-type TransferData struct {
-	Recipient   string   `json:"recipient"`
-	Amount      string   `json:"amount"`
-	SourceAsset string   `json:"sourceAsset"`
-	TargetAsset string   `json:"targetAsset"`
-	Fee         string   `json:"fee"`
-	GasPrice    string   `json:"gasPrice"`
-	Signatures  []string `json:"signatures"`
-	Majority    bool     `json:"majority"`
 }

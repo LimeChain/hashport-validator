@@ -122,7 +122,7 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(metadata.Route, metadata.NewRouter(services.fees))
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
-	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.messages))
+	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.transfers))
 	return apiRouter
 }
 

@@ -18,6 +18,7 @@ package transfer
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -71,22 +72,6 @@ const (
 	StatusEthTxMsgFailed = "ETH_TX_MSG_FAILED"
 )
 
-type Transfer struct {
-	TransactionID         string `gorm:"primaryKey; not null; autoIncrement:false"`
-	Receiver              string
-	SourceAsset           string
-	TargetAsset           string
-	Amount                string
-	TxReimbursement       string
-	GasPrice              string
-	Status                string
-	SignatureMsgStatus    string
-	EthTxMsgStatus        string
-	EthTxStatus           string
-	EthTxHash             string
-	ExecuteEthTransaction bool
-}
-
 type Repository struct {
 	dbClient *gorm.DB
 	logger   *log.Entry
@@ -99,10 +84,10 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (tr Repository) GetByTransactionId(transactionId string) (*Transfer, error) {
-	tx := &Transfer{}
+func (tr Repository) GetByTransactionId(transactionId string) (*entity.Transfer, error) {
+	tx := &entity.Transfer{}
 	result := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", transactionId).
 		First(tx)
 
@@ -115,11 +100,21 @@ func (tr Repository) GetByTransactionId(transactionId string) (*Transfer, error)
 	return tx, nil
 }
 
-func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transfer, error) {
-	var transfers []*Transfer
+func (tr Repository) GetWithMessages(transactionId string) (*entity.Transfer, error) {
+	tx := &entity.Transfer{}
+	err := tr.dbClient.
+		Preload("Messages").
+		Model(entity.Transfer{}).
+		Where("transaction_id = ?", transactionId).
+		Find(tx).Error
+	return tx, err
+}
+
+func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error) {
+	var transfers []*entity.Transfer
 
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted).
 		Find(&transfers).Error
 	if err != nil {
@@ -130,12 +125,12 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*Transfer, error) {
 }
 
 // Create creates new record of Transfer
-func (tr Repository) Create(ct *proto.TransferMessage) (*Transfer, error) {
+func (tr Repository) Create(ct *proto.TransferMessage) (*entity.Transfer, error) {
 	return tr.create(ct, StatusInitial)
 }
 
 // Save updates the provided Transfer instance
-func (tr Repository) Save(tx *Transfer) error {
+func (tr Repository) Save(tx *entity.Transfer) error {
 	return tr.dbClient.Save(tx).Error
 }
 
@@ -162,9 +157,9 @@ func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
 
 func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transfer{EthTxStatus: StatusEthTxSubmitted, EthTxHash: hash}).
+		Updates(entity.Transfer{EthTxStatus: StatusEthTxSubmitted, EthTxHash: hash}).
 		Error
 	if err == nil {
 		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s]", txId, StatusEthTxSubmitted)
@@ -174,9 +169,9 @@ func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 
 func (tr Repository) UpdateEthTxMined(txId string) error {
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transfer{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
+		Updates(entity.Transfer{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
 		Error
 	if err == nil {
 		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxMined, StatusCompleted)
@@ -186,9 +181,9 @@ func (tr Repository) UpdateEthTxMined(txId string) error {
 
 func (tr Repository) UpdateEthTxReverted(txId string) error {
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(Transfer{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
+		Updates(entity.Transfer{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
 		Error
 	if err == nil {
 		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxReverted, StatusFailed)
@@ -208,8 +203,8 @@ func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
 	return tr.updateEthereumTxMsgStatus(txId, StatusEthTxMsgFailed)
 }
 
-func (tr Repository) create(ct *proto.TransferMessage, status string) (*Transfer, error) {
-	tx := &Transfer{
+func (tr Repository) create(ct *proto.TransferMessage, status string) (*entity.Transfer, error) {
+	tx := &entity.Transfer{
 		TransactionID:         ct.TransactionId,
 		Receiver:              ct.Receiver,
 		Amount:                ct.Amount,
@@ -232,7 +227,7 @@ func (tr Repository) updateStatus(txId string, status string) error {
 	}
 
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
 		Error
@@ -260,7 +255,7 @@ func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibl
 	}
 
 	err := tr.dbClient.
-		Model(Transfer{}).
+		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn(statusColumn, status).
 		Error
@@ -279,8 +274,8 @@ func isValidStatus(status string, possibleStatuses []string) bool {
 	return false
 }
 
-func (tr *Repository) GetUnprocessedTransfers() ([]Transfer, error) {
-	var transfers []Transfer
+func (tr *Repository) GetUnprocessedTransfers() ([]entity.Transfer, error) {
+	var transfers []entity.Transfer
 
 	err := tr.dbClient.
 		Where("status IN ?", []string{StatusInitial, StatusRecovered}).

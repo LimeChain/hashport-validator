@@ -16,11 +16,13 @@
 
 package repository
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+)
 
 type Message interface {
-	Create(message *message.Message) error
+	Create(message *entity.Message) error
 	Exist(txId, signature, hash string) (bool, error)
-	Get(txId string) ([]message.Message, error)
-	GetMessageWith(txId, signature, hash string) (*message.Message, error)
+	Get(txId string) ([]entity.Message, error)
+	GetMessageWith(txId, signature, hash string) (*entity.Message, error)
 }

@@ -29,6 +29,7 @@ import (
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -39,6 +40,7 @@ type Service struct {
 	logger             *log.Entry
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
+	contractsService   service.Contracts
 	fees               service.Fees
 	ethSigner          service.Signer
 	transferRepository repository.Transfer
@@ -48,6 +50,7 @@ type Service struct {
 func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
+	contractsService service.Contracts,
 	fees service.Fees,
 	signer service.Signer,
 	transferRepository repository.Transfer,
@@ -62,6 +65,7 @@ func NewService(
 		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
+		contractsService:   contractsService,
 		fees:               fees,
 		ethSigner:          signer,
 		transferRepository: transferRepository,
@@ -95,7 +99,7 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
-func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.Transfer, error) {
+func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error) {
 	dbTransaction, err := ts.transferRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
 		ts.logger.Errorf("Failed to get record with TransactionID [%s]. Error [%s]", tm.TransactionId, err)
@@ -239,4 +243,37 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransferID)
 	ts.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
+}
+
+// TransferData returns from the database the given transfer, its signatures and
+// calculates if its messages have reached super majority
+func (s *Service) TransferData(transactionId string) (service.TransferData, error) {
+	t, err := s.transferRepository.GetWithMessages(transactionId)
+	if err != nil {
+		s.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
+		return service.TransferData{}, err
+	}
+
+	if len(t.Messages) == 0 {
+		return service.TransferData{}, nil
+	}
+
+	var signatures []string
+	for _, m := range t.Messages {
+		signatures = append(signatures, m.Signature)
+	}
+
+	requiredSigCount := len(s.contractsService.GetMembers())/2 + 1
+	reachedMajority := len(t.Messages) >= requiredSigCount
+
+	return service.TransferData{
+		Recipient:   t.Receiver,
+		Amount:      t.Amount,
+		Fee:         t.TxReimbursement,
+		SourceAsset: t.SourceAsset,
+		TargetAsset: t.TargetAsset,
+		Signatures:  signatures,
+		Majority:    reachedMajority,
+		GasPrice:    t.GasPrice,
+	}, nil
 }

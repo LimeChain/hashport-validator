@@ -16,11 +16,11 @@ var (
 )
 
 // GET: .../transfers/:id
-func getTransfer(messageService service.Messages) func(w http.ResponseWriter, r *http.Request) {
+func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		transferID := chi.URLParam(r, "id")
 
-		transferData, err := messageService.TransferData(transferID)
+		transferData, err := transfersService.TransferData(transferID)
 		if err != nil {
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
@@ -33,8 +33,8 @@ func getTransfer(messageService service.Messages) func(w http.ResponseWriter, r 
 	}
 }
 
-func NewRouter(messageService service.Messages) chi.Router {
+func NewRouter(service service.Transfers) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/{id}", getTransfer(messageService))
+	r.Get("/{id}", getTransfer(service))
 	return r
 }
