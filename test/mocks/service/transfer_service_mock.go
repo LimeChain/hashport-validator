@@ -4,7 +4,7 @@ import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -39,15 +39,15 @@ func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, sourceAsset, targ
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage) (*transfer.Transfer, error) {
+func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error) {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transfer.Transfer), nil
+		return args.Get(0).(*entity.Transfer), nil
 	}
-	return args.Get(0).(*transfer.Transfer), args.Get(1).(error)
+	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
 func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
