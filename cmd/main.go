@@ -101,18 +101,18 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 		client.MirrorNode,
 		client.HederaNode)
 	if err != nil {
-		log.Fatalf("Could not prepare Recovery process. Err %s", err)
+		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
 	transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo, err := r.ComputeIntervals()
 	if err != nil {
-		log.Fatalf("Could not compute recovery interval. Error %s", err)
+		log.Fatalf("Could not compute recovery interval. Error [%s]", err)
 	}
 	if transfersRecoveryFrom <= 0 {
 		log.Infof("Skipping Recovery process. Nothing to recover")
 	} else {
 		err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
 		if err != nil {
-			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: %s", transfersRecoveryFrom, recoveryTo, err)
+			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: [%s].", transfersRecoveryFrom, recoveryTo, err)
 		}
 	}
 	return err, recoveryTo

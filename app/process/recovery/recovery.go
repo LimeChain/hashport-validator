@@ -247,7 +247,7 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 func (r Recovery) processUnfinishedOperations() error {
 	unprocessedTransfers, err := r.transferRepo.GetUnprocessedTransfers()
 	if err != nil {
-		r.logger.Errorf("Failed to get unprocessed transfers. Error: %s", err)
+		r.logger.Errorf("Failed to get unprocessed transfers. Error: [%s]", err)
 		return err
 	}
 

@@ -22,7 +22,7 @@ import (
 
 type Message interface {
 	Create(message *entity.Message) error
-	Exist(txId, signature, hash string) (bool, error)
-	Get(txId string) ([]entity.Message, error)
-	GetMessageWith(txId, signature, hash string) (*entity.Message, error)
+	Exist(transferID, signature, hash string) (bool, error)
+	Get(transferID string) ([]entity.Message, error)
+	GetMessageWith(transferID, signature, hash string) (*entity.Message, error)
 }

@@ -92,7 +92,7 @@ func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onE
 	go func() {
 		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))
 		if err != nil {
-			ec.logger.Errorf("Error occurred while monitoring TX [%s]. Error: %s", hex, err)
+			ec.logger.Errorf("Error occurred while monitoring TX [%s]. Error: [%s]", hex, err)
 			onError(err)
 			return
 		}

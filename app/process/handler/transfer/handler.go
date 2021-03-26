@@ -47,26 +47,26 @@ func (th Handler) Handle(payload []byte) {
 
 	transactionRecord, err := th.transfersService.InitiateNewTransfer(*transferMsg)
 	if err != nil {
-		th.logger.Errorf("Error occurred while initiating TX ID [%s] processing", transferMsg.TransactionId)
+		th.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", transferMsg.TransactionId, err)
 		return
 	}
 
 	if transactionRecord.Status != transfer.StatusInitial {
-		th.logger.Debugf("Previously added Transaction with TransactionID [%s] has status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
+		th.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 
 	if transferMsg.ExecuteEthTransaction {
 		err = th.transfersService.VerifyFee(*transferMsg)
 		if err != nil {
-			th.logger.Errorf("Fee validation failed for TX [%s]. Skipping further execution", transferMsg.TransactionId)
+			th.logger.Errorf("[%s] - Fee validation failed. Skipping further execution", transferMsg.TransactionId)
 			return
 		}
 	}
 
 	err = th.transfersService.ProcessTransfer(*transferMsg)
 	if err != nil {
-		th.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
+		th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
 		return
 	}
 }

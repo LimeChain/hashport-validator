@@ -87,13 +87,13 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 	topicMessage := tm.GetTopicSignatureMessage()
 	t, err := ss.transferRepository.GetByTransactionId(topicMessage.TransferID)
 	if err != nil {
-		ss.logger.Errorf("Failed to retrieve Transaction Record for TX ID [%s]. Error: %s", topicMessage.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", topicMessage.TransferID, err)
 		return false, err
 	}
 
 	valid, erc20address := ss.contractsService.IsValidBridgeAsset(t.SourceAsset)
 	if !valid {
-		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.SourceAsset)
+		ss.logger.Errorf("[%s] - Provided Asset is not supported - [%s]", topicMessage.TransferID, t.SourceAsset)
 		return false, err
 	}
 
@@ -111,14 +111,14 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	tsm := tm.GetTopicSignatureMessage()
 	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.Receiver, tsm.TargetAsset, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
 	if err != nil {
-		ss.logger.Errorf("Failed to encode the authorisation signature for TX ID [%s]. Error: %s", tsm.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
 	}
 
 	// Prepare Signature
 	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(tsm.GetSignature())
 	if err != nil {
-		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: %s", tsm.TransferID, tsm.GetSignature(), err)
+		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: [%s]", tsm.TransferID, tsm.GetSignature(), err)
 		return err
 	}
 	authMessageStr := hex.EncodeToString(authMsgBytes)
@@ -126,11 +126,11 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Check for duplicated signature
 	exists, err := ss.messageRepository.Exist(tsm.TransferID, signatureHex, authMessageStr)
 	if err != nil {
-		ss.logger.Errorf("An error occurred while getting TX [%s] from DB. Error: %s", tsm.TransferID, err)
+		ss.logger.Errorf("[%s] - An error occurred while checking existence from DB. Error: [%s]", tsm.TransferID, err)
 		return err
 	}
 	if exists {
-		ss.logger.Errorf("Signature already received for TX [%s]", tsm.TransferID)
+		ss.logger.Errorf("[%s] - Signature already received", tsm.TransferID)
 		return err
 	}
 
@@ -140,7 +140,7 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		return err
 	}
 
-	ss.logger.Debugf("Successfully verified new Signature from [%s] for TX [%s]", address.String(), tsm.TransferID)
+	ss.logger.Debugf("[%s] - Successfully verified new Signature from [%s]", tsm.TransferID, address.String())
 
 	// Persist in DB
 	err = ss.messageRepository.Create(&entity.Message{
@@ -151,29 +151,29 @@ func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 		TransactionTimestamp: tm.TransactionTimestamp,
 	})
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: %s", tsm.TransferID, signatureHex, err)
+		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: [%s]", tsm.TransferID, signatureHex, err)
 		return err
 	}
 
-	ss.logger.Infof("Successfully processed Signature Message from [%s] for TX [%s]", address.String(), tsm.TransferID)
+	ss.logger.Infof("[%s] - Successfully processed Signature Message from [%s]", tsm.TransferID, address.String())
 	return nil
 }
 
 // ScheduleForSubmission computes the execution slot and schedules the Eth TX for submission
-func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
-	transfer, err := ss.transferRepository.GetByTransactionId(txId)
+func (ss *Service) ScheduleEthereumTxForSubmission(transferID string) error {
+	transfer, err := ss.transferRepository.GetByTransactionId(transferID)
 	if err != nil {
-		ss.logger.Errorf("Failed to query transfer for TX [%s]. Error: [%s].", txId, err)
+		ss.logger.Errorf("[%s] - Failed to query transfer. Error: [%s].", transferID, err)
 	}
-	signatureMessages, err := ss.messageRepository.Get(txId)
+	signatureMessages, err := ss.messageRepository.Get(transferID)
 	if err != nil {
-		ss.logger.Errorf("Failed to query all Signature Messages for TX [%s]. Error: %s", txId, err)
+		ss.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)
 		return err
 	}
 
 	slot, isFound := ss.computeExecutionSlot(signatureMessages)
 	if !isFound {
-		ss.logger.Debugf("TX [%s] - Operator [%s] has not been found as signer amongst the signatures collected.", txId, ss.ethSigner.Address())
+		ss.logger.Debugf("[%s] - Operator [%s] has not been found as signer amongst the signatures collected.", transferID, ss.ethSigner.Address())
 		return nil
 	}
 
@@ -187,8 +187,8 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 		return err
 	}
 
-	ethereumMintTask := ss.prepareEthereumMintTask(txId, ethAddress, amount, txReimbursement, gasPriceWei, signatures, messageHash)
-	err = ss.scheduler.Schedule(txId, signatureMessages[0].TransactionTimestamp, slot, ethereumMintTask)
+	ethereumMintTask := ss.prepareEthereumMintTask(transferID, ethAddress, amount, txReimbursement, gasPriceWei, signatures, messageHash)
+	err = ss.scheduler.Schedule(transferID, signatureMessages[0].TransactionTimestamp, slot, ethereumMintTask)
 	if err != nil {
 		return err
 	}
@@ -197,53 +197,53 @@ func (ss *Service) ScheduleEthereumTxForSubmission(txId string) error {
 
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
-func (ss *Service) prepareEthereumMintTask(txId string, ethAddress string, amount string, txReimbursement string, gasPriceWei string, signatures [][]byte, messageHash string) func() {
+func (ss *Service) prepareEthereumMintTask(transferID string, ethAddress string, amount string, txReimbursement string, gasPriceWei string, signatures [][]byte, messageHash string) func() {
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
 		if err != nil {
-			ss.logger.Errorf("Failed to establish key transactor. Error %s", err)
+			ss.logger.Errorf("[%s] - Failed to establish key transactor. Error: [%s].", transferID, err)
 			return
 		}
 
 		ethTransactor.GasPrice, err = helper.ToBigInt(gasPriceWei)
 		if err != nil {
-			ss.logger.Errorf("Failed to parse provided gas price for TX [%s]. Error: %s", txId, err)
+			ss.logger.Errorf("[%s] - Failed to parse provided gas price. Error: [%s].", transferID, err)
 			return
 		}
 
-		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, txId, ethAddress, amount, txReimbursement, signatures)
+		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, transferID, ethAddress, amount, txReimbursement, signatures)
 		if err != nil {
-			ss.logger.Errorf("Failed to Submit Signatures for TX [%s]. Error: %s", txId, err)
+			ss.logger.Errorf("[%s] - Failed to Submit Signatures. Error: [%s]", transferID, err)
 			return
 		}
-		err = ss.transferRepository.UpdateEthTxSubmitted(txId, ethTx.Hash().String())
+		err = ss.transferRepository.UpdateEthTxSubmitted(transferID, ethTx.Hash().String())
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			ss.logger.Errorf("[%s] - Failed to update status. Error: [%s].", transferID, err)
 			return
 		}
-		ss.logger.Infof("Submitted Ethereum Mint TX [%s] for TX [%s]", ethTx.Hash().String(), txId)
+		ss.logger.Infof("[%s] - Submitted Ethereum Mint TX [%s]", transferID, ethTx.Hash().String())
 
-		onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(txId, ethTx.Hash().String())
+		onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(transferID, ethTx.Hash().String())
 		ss.ethClient.WaitForTransaction(ethTx.Hash().String(), onEthTxSuccess, onEthTxRevert, func(err error) {})
 
 		// Submit and monitor HCS Message for Ethereum TX Hash
-		hcsTx, err := ss.submitEthTxTopicMessage(txId, messageHash, ethTx.Hash().String())
+		hcsTx, err := ss.submitEthTxTopicMessage(transferID, messageHash, ethTx.Hash().String())
 		if err != nil {
-			ss.logger.Errorf("Failed to submit Ethereum TX Hash to Bridge Topic for TX [%s]. Error %s", txId, err)
+			ss.logger.Errorf("[%s] - Failed to submit Ethereum TX Hash to Bridge Topic. Error: [%s].", transferID, err)
 			return
 		}
-		err = ss.transferRepository.UpdateStatusEthTxMsgSubmitted(txId)
+		err = ss.transferRepository.UpdateStatusEthTxMsgSubmitted(transferID)
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			ss.logger.Errorf("[%s] - Failed to update status for. Error: [%s].", transferID, err)
 			return
 		}
-		ss.logger.Infof("Submitted Ethereum TX Hash [%s] for TX [%s] to HCS. Transaction ID [%s]", ethTx.Hash().String(), txId, hcsTx.String())
+		ss.logger.Infof("[%s] - Submitted Ethereum TX Hash [%s] to HCS. Transaction ID [%s].", transferID, ethTx.Hash().String(), hcsTx.String())
 
-		onHcsMessageSuccess, onHcsMessageFail := ss.hcsTxCallbacks(txId)
+		onHcsMessageSuccess, onHcsMessageFail := ss.hcsTxCallbacks(transferID)
 		ss.mirrorClient.WaitForTransaction(hcsTx.String(), onHcsMessageSuccess, onHcsMessageFail)
 
-		ss.logger.Infof("Successfully processed Ethereum Minting for TX [%s]", txId)
+		ss.logger.Infof("[%s] - Successfully processed Ethereum Minting", transferID)
 	}
 	return ethereumMintTask
 }
@@ -262,20 +262,20 @@ func getSignatures(messages []entity.Message) ([][]byte, error) {
 	return signatures, nil
 }
 
-func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, txId, authMessageStr string) (common.Address, error) {
+func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID, authMessageStr string) (common.Address, error) {
 	publicKey, err := crypto.Ecrecover(authMsgBytes, signatureBytes)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to recover public key. Hash [%s]. Error: %s", txId, authMessageStr, err)
+		ss.logger.Errorf("[%s] - Failed to recover public key. Hash [%s]. Error: [%s]", transferID, authMessageStr, err)
 		return common.Address{}, err
 	}
 	unmarshalledPublicKey, err := crypto.UnmarshalPubkey(publicKey)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to unmarshall public key. Error: %s", txId, err)
+		ss.logger.Errorf("[%s] - Failed to unmarshall public key. Error: [%s]", transferID, err)
 		return common.Address{}, err
 	}
 	address := crypto.PubkeyToAddress(*unmarshalledPublicKey)
 	if !ss.contractsService.IsMember(address.String()) {
-		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", txId, authMessageStr)
+		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", transferID, authMessageStr)
 		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
 	}
 	return address, nil
@@ -293,32 +293,32 @@ func (ss *Service) computeExecutionSlot(messages []entity.Message) (slot int64, 
 	return -1, false
 }
 
-func (ss *Service) submitEthTxTopicMessage(txId, messageHash, ethereumTxHash string) (*hedera.TransactionID, error) {
-	ethTxHashMessage := encoding.NewEthereumHashMessage(txId, messageHash, ethereumTxHash)
+func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHash string) (*hedera.TransactionID, error) {
+	ethTxHashMessage := encoding.NewEthereumHashMessage(transferID, messageHash, ethereumTxHash)
 	ethTxHashBytes, err := ethTxHashMessage.ToBytes()
 	if err != nil {
-		ss.logger.Errorf("Failed to encode Eth TX Hash Message to bytes for TX [%s]. Error: %s", txId, err)
+		ss.logger.Errorf("[%s] - Failed to encode Eth TX Hash Message to bytes. Error: [%s]", transferID, err)
 		return nil, err
 	}
 
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
 }
 
-func (ss *Service) ethTxCallbacks(txId, hash string) (onSuccess, onRevert func()) {
+func (ss *Service) ethTxCallbacks(transferID, hash string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
-		ss.logger.Infof("Ethereum TX [%s] for TX [%s] was successfully mined", hash, txId)
-		err := ss.transferRepository.UpdateEthTxMined(txId)
+		ss.logger.Infof("[%s] - Ethereum TX [%s] was successfully mined", transferID, hash)
+		err := ss.transferRepository.UpdateEthTxMined(transferID)
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			ss.logger.Errorf("[%s] - Failed to update status. Error [%s].", transferID, err)
 			return
 		}
 	}
 
 	onRevert = func() {
-		ss.logger.Infof("Ethereum TX [%s] for TX [%s] reverted", hash, txId)
-		err := ss.transferRepository.UpdateEthTxReverted(txId)
+		ss.logger.Infof("[%s] - Ethereum TX [%s] reverted", transferID, hash)
+		err := ss.transferRepository.UpdateEthTxReverted(transferID)
 		if err != nil {
-			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
+			ss.logger.Errorf("[%s] - Failed to update status. Error [%s].", transferID, err)
 			return
 		}
 	}
@@ -327,7 +327,7 @@ func (ss *Service) ethTxCallbacks(txId, hash string) (onSuccess, onRevert func()
 
 func (ss *Service) hcsTxCallbacks(txId string) (onSuccess, onFailure func()) {
 	onSuccess = func() {
-		ss.logger.Infof("Ethereum TX Hash message was successfully mined for TX [%s]", txId)
+		ss.logger.Infof("[%s] - Ethereum TX Hash message was successfully mined", txId)
 		err := ss.transferRepository.UpdateStatusEthTxMsgMined(txId)
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
@@ -336,7 +336,7 @@ func (ss *Service) hcsTxCallbacks(txId string) (onSuccess, onFailure func()) {
 	}
 
 	onFailure = func() {
-		ss.logger.Infof("Ethereum TX Hash message failed for TX ID [%s]", txId)
+		ss.logger.Infof("[%s] - Ethereum TX Hash message failed", txId)
 		err := ss.transferRepository.UpdateStatusEthTxMsgFailed(txId)
 		if err != nil {
 			ss.logger.Errorf("Failed to update status for TX [%s]. Error [%s].", txId, err)
@@ -397,7 +397,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	// Verify Ethereum TX provided `signatures` authenticity
 	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20address, amount, txReimbursement, dbTx.GasPrice)
 	if err != nil {
-		ss.logger.Errorf("Failed to encode the authorisation signature to reconstruct required Signature for TX ID [%s]. Error: %s", txId, err)
+		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature to reconstruct required Signature. Error: [%s]", txId, err)
 		return false, err
 	}
 
@@ -425,7 +425,7 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	etm := tm.GetTopicEthTransactionMessage()
 	err := ss.transferRepository.UpdateEthTxSubmitted(etm.TransferID, etm.EthTxHash)
 	if err != nil {
-		ss.logger.Errorf("Failed to update status to [%s] of transaction with TransactionID [%s]. Error [%s].", transfer.StatusEthTxSubmitted, etm.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to update status to [%s]. Error [%s].", transfer.StatusEthTxSubmitted, etm.TransferID, err)
 		return err
 	}
 

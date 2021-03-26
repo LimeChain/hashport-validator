@@ -63,12 +63,12 @@ func NewTopicMessageFromString(data, ts string) (*TopicMessage, error) {
 }
 
 // NewSignatureMessage instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewSignatureMessage(txId, receiver, amount, txReimbursement, gasPrice, signature, targetAsset string) *TopicMessage {
+func NewSignatureMessage(transferID, receiver, amount, txReimbursement, gasPrice, signature, targetAsset string) *TopicMessage {
 	topicMsg := &model.TopicMessage{
 		Type: model.TopicMessageType_EthSignature,
 		Message: &model.TopicMessage_TopicSignatureMessage{
 			TopicSignatureMessage: &model.TopicEthSignatureMessage{
-				TransferID:      txId,
+				TransferID:      transferID,
 				Receiver:        receiver,
 				Amount:          amount,
 				TxReimbursement: txReimbursement,
@@ -82,12 +82,12 @@ func NewSignatureMessage(txId, receiver, amount, txReimbursement, gasPrice, sign
 }
 
 // NewEthereumHashMessage instantiates Ethereum Transaction Hash Message struct ready for submission to the Bridge Topic
-func NewEthereumHashMessage(txId, messageHash, ethereumTxHash string) *TopicMessage {
+func NewEthereumHashMessage(transferID, messageHash, ethereumTxHash string) *TopicMessage {
 	topicMsg := &model.TopicMessage{
 		Type: model.TopicMessageType_EthTransaction,
 		Message: &model.TopicMessage_TopicEthTransactionMessage{
 			TopicEthTransactionMessage: &model.TopicEthTransactionMessage{
-				TransferID: txId,
+				TransferID: transferID,
 				Hash:       messageHash,
 				EthTxHash:  ethereumTxHash,
 			},

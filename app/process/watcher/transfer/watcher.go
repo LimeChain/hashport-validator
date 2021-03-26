@@ -79,11 +79,11 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
 			if err != nil {
-				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error %s", err)
+				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error [%s]", err)
 			}
 			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
-			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: %s", err)
+			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
 		}
 	} else {
 		ctw.updateStatusTimestamp(ctw.startTimestamp)
@@ -101,7 +101,7 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 func (ctw Watcher) updateStatusTimestamp(ts int64) {
 	err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), ts)
 	if err != nil {
-		ctw.logger.Fatalf("Failed to update Transfer Watcher Status timestamp. Error %s", err)
+		ctw.logger.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
 	}
 	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }

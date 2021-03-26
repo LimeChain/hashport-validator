@@ -162,7 +162,7 @@ func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 		Updates(entity.Transfer{EthTxStatus: StatusEthTxSubmitted, EthTxHash: hash}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s]", txId, StatusEthTxSubmitted)
+		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s]", txId, StatusEthTxSubmitted)
 	}
 	return err
 }
@@ -174,7 +174,7 @@ func (tr Repository) UpdateEthTxMined(txId string) error {
 		Updates(entity.Transfer{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxMined, StatusCompleted)
+		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s] and Transfer status to [%s]", txId, StatusEthTxMined, StatusCompleted)
 	}
 	return err
 }
@@ -260,7 +260,7 @@ func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibl
 		UpdateColumn(statusColumn, status).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated TX [%s] Column [%s] status to [%s]", txId, statusColumn, status)
+		tr.logger.Debugf("[%s] - Column [%s] status to [%s]", txId, statusColumn, status)
 	}
 	return err
 }

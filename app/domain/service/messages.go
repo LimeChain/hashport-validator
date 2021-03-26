@@ -30,7 +30,7 @@ type Messages interface {
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(tm encoding.TopicMessage) error
 	// ScheduleForSubmission computes the execution slot and schedules the Ethereum Mint TX for submission
-	ScheduleEthereumTxForSubmission(txId string) error
+	ScheduleEthereumTxForSubmission(transferID string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
 }
