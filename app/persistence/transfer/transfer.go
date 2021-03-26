@@ -19,57 +19,11 @@ package transfer
 import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-)
-
-// Enum Transfer Statuses
-const (
-	// StatusInitial is the first status on Transfer Record creation
-	StatusInitial = "INITIAL"
-	// StatusInsufficientFee is a status set once transfer is made but the provided TX
-	// reimbursement is not enough for validators to process it. This is a terminal status
-	StatusInsufficientFee = "INSUFFICIENT_FEE"
-	// StatusInProgress is a status set once the transfer is accepted and the process
-	// of bridging the asset has started
-	StatusInProgress = "IN_PROGRESS"
-	// StatusCompleted is a status set once the Transfer operation is successfully finished.
-	// This is a terminal status
-	StatusCompleted = "COMPLETED"
-	// StatusRecovered is a status set when a transfer has not been processed yet,
-	// but has been found by the recovery service
-	StatusRecovered = "RECOVERED"
-	// StatusFailed is a status set when an ethereum transaction is reverted
-	StatusFailed = "FAILED"
-
-	// StatusSignatureSubmitted is a SignatureStatus set once the signature is submitted to HCS
-	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
-	// StatusSignatureMined is a SignatureStatus set once the signature submission TX is successfully mined.
-	// This is a terminal status
-	StatusSignatureMined = "SIGNATURE_MINED"
-	// StatusSignatureFailed is a SignatureStatus set if the signature submission TX fails.
-	// This is a terminal status
-	StatusSignatureFailed = "SIGNATURE_FAILED"
-
-	// StatusEthTxSubmitted is a EthTxStatus set once the Ethereum transaction is submitted to the Ethereum network
-	StatusEthTxSubmitted = "ETH_TX_SUBMITTED"
-	// StatusEthTxMined is a EthTxStatus set once the Ethereum transaction is successfully mined.
-	// This is a terminal status
-	StatusEthTxMined = "ETH_TX_MINED"
-	// StatusEthTxReverted is a EthTxStatus set if the Ethereum transaction reverts.
-	// This is a terminal status
-	StatusEthTxReverted = "ETH_TX_REVERTED"
-
-	// StatusEthTxMsgSubmitted is a EthTxMsgStatus set once the `Ethereum TX Hash` is submitted to HCS
-	StatusEthTxMsgSubmitted = "ETH_TX_MSG_SUBMITTED"
-	// StatusEthTxMsgMined is a EthTxMsgStatus set once the `Ethereum TX Hash` HCS message is mined.
-	// This is a terminal status
-	StatusEthTxMsgMined = "ETH_TX_MSG_MINED"
-	// StatusEthTxMsgFailed is a EthTxMsgStatus set once the `Ethereum TX Hash` HCS message fails
-	// This is a terminal status
-	StatusEthTxMsgFailed = "ETH_TX_MSG_FAILED"
 )
 
 type Repository struct {
@@ -115,7 +69,7 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, er
 
 	err := tr.dbClient.
 		Model(entity.Transfer{}).
-		Where("status = ? OR status = ?", StatusInitial, StatusSignatureSubmitted).
+		Where("status = ? OR status = ?", transfer.StatusInitial, transfer.StatusSignatureSubmitted).
 		Find(&transfers).Error
 	if err != nil {
 		return nil, err
@@ -126,7 +80,7 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, er
 
 // Create creates new record of Transfer
 func (tr Repository) Create(ct *proto.TransferMessage) (*entity.Transfer, error) {
-	return tr.create(ct, StatusInitial)
+	return tr.create(ct, transfer.StatusInitial)
 }
 
 // Save updates the provided Transfer instance
@@ -135,34 +89,46 @@ func (tr Repository) Save(tx *entity.Transfer) error {
 }
 
 func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
-	_, err := tr.create(ct, StatusRecovered)
+	_, err := tr.create(ct, transfer.StatusRecovered)
 	return err
 }
 
 func (tr Repository) UpdateStatusInsufficientFee(txId string) error {
-	return tr.updateStatus(txId, StatusInsufficientFee)
+	return tr.updateStatus(txId, transfer.StatusInsufficientFee)
 }
 
 func (tr Repository) UpdateStatusCompleted(txId string) error {
-	return tr.updateStatus(txId, StatusCompleted)
+	return tr.updateStatus(txId, transfer.StatusCompleted)
+}
+
+func (tr Repository) UpdateStatusSignatureSubmitted(txId string) error {
+	err := tr.dbClient.
+		Model(entity.Transfer{}).
+		Where("transaction_id = ?", txId).
+		Updates(entity.Transfer{SignatureMsgStatus: transfer.StatusSignatureSubmitted, Status: transfer.StatusInProgress}).
+		Error
+	if err == nil {
+		tr.logger.Debugf("[%s] - Updated Status to [%s] and SignatureMsgStatus to [%s]", txId, transfer.StatusInProgress, transfer.StatusSignatureSubmitted)
+	}
+	return err
 }
 
 func (tr Repository) UpdateStatusSignatureMined(txId string) error {
-	return tr.updateSignatureStatus(txId, StatusSignatureMined)
+	return tr.updateSignatureStatus(txId, transfer.StatusSignatureMined)
 }
 
 func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
-	return tr.updateSignatureStatus(txId, StatusSignatureFailed)
+	return tr.updateSignatureStatus(txId, transfer.StatusSignatureFailed)
 }
 
 func (tr Repository) UpdateEthTxSubmitted(txId string, hash string) error {
 	err := tr.dbClient.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(entity.Transfer{EthTxStatus: StatusEthTxSubmitted, EthTxHash: hash}).
+		Updates(entity.Transfer{EthTxStatus: transfer.StatusEthTxSubmitted, EthTxHash: hash}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s]", txId, StatusEthTxSubmitted)
+		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s]", txId, transfer.StatusEthTxSubmitted)
 	}
 	return err
 }
@@ -171,10 +137,10 @@ func (tr Repository) UpdateEthTxMined(txId string) error {
 	err := tr.dbClient.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(entity.Transfer{EthTxStatus: StatusEthTxMined, Status: StatusCompleted}).
+		Updates(entity.Transfer{EthTxStatus: transfer.StatusEthTxMined, Status: transfer.StatusCompleted}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s] and Transfer status to [%s]", txId, StatusEthTxMined, StatusCompleted)
+		tr.logger.Debugf("[%s] - Updated Ethereum TX Status to [%s] and Transfer status to [%s]", txId, transfer.StatusEthTxMined, transfer.StatusCompleted)
 	}
 	return err
 }
@@ -183,24 +149,24 @@ func (tr Repository) UpdateEthTxReverted(txId string) error {
 	err := tr.dbClient.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Updates(entity.Transfer{EthTxStatus: StatusEthTxReverted, Status: StatusFailed}).
+		Updates(entity.Transfer{EthTxStatus: transfer.StatusEthTxReverted, Status: transfer.StatusFailed}).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, StatusEthTxReverted, StatusFailed)
+		tr.logger.Debugf("Updated Ethereum TX Status of TX [%s] to [%s] and Transfer status to [%s]", txId, transfer.StatusEthTxReverted, transfer.StatusFailed)
 	}
 	return err
 }
 
 func (tr Repository) UpdateStatusEthTxMsgSubmitted(txId string) error {
-	return tr.updateEthereumTxMsgStatus(txId, StatusEthTxMsgSubmitted)
+	return tr.updateEthereumTxMsgStatus(txId, transfer.StatusEthTxMsgSubmitted)
 }
 
 func (tr Repository) UpdateStatusEthTxMsgMined(txId string) error {
-	return tr.updateEthereumTxMsgStatus(txId, StatusEthTxMsgMined)
+	return tr.updateEthereumTxMsgStatus(txId, transfer.StatusEthTxMsgMined)
 }
 
 func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
-	return tr.updateEthereumTxMsgStatus(txId, StatusEthTxMsgFailed)
+	return tr.updateEthereumTxMsgStatus(txId, transfer.StatusEthTxMsgFailed)
 }
 
 func (tr Repository) create(ct *proto.TransferMessage, status string) (*entity.Transfer, error) {
@@ -222,7 +188,10 @@ func (tr Repository) create(ct *proto.TransferMessage, status string) (*entity.T
 
 func (tr Repository) updateStatus(txId string, status string) error {
 	// Sanity check
-	if status != StatusInitial && status != StatusInsufficientFee && status != StatusInProgress && status != StatusCompleted {
+	if status != transfer.StatusInitial &&
+		status != transfer.StatusInsufficientFee &&
+		status != transfer.StatusInProgress &&
+		status != transfer.StatusCompleted {
 		return errors.New("invalid signature status")
 	}
 
@@ -238,15 +207,15 @@ func (tr Repository) updateStatus(txId string, status string) error {
 }
 
 func (tr Repository) updateSignatureStatus(txId string, status string) error {
-	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{StatusSignatureSubmitted, StatusSignatureMined, StatusSignatureFailed})
+	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{transfer.StatusSignatureSubmitted, transfer.StatusSignatureMined, transfer.StatusSignatureFailed})
 }
 
 func (tr Repository) updateEthereumTxStatus(txId string, status string) error {
-	return tr.baseUpdateStatus("eth_tx_status", txId, status, []string{StatusEthTxSubmitted, StatusEthTxMined, StatusEthTxReverted})
+	return tr.baseUpdateStatus("eth_tx_status", txId, status, []string{transfer.StatusEthTxSubmitted, transfer.StatusEthTxMined, transfer.StatusEthTxReverted})
 }
 
 func (tr Repository) updateEthereumTxMsgStatus(txId string, status string) error {
-	return tr.baseUpdateStatus("eth_tx_msg_status", txId, status, []string{StatusEthTxMsgSubmitted, StatusEthTxMsgMined, StatusEthTxMsgFailed})
+	return tr.baseUpdateStatus("eth_tx_msg_status", txId, status, []string{transfer.StatusEthTxMsgSubmitted, transfer.StatusEthTxMsgMined, transfer.StatusEthTxMsgFailed})
 }
 
 func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
@@ -274,11 +243,11 @@ func isValidStatus(status string, possibleStatuses []string) bool {
 	return false
 }
 
-func (tr *Repository) GetUnprocessedTransfers() ([]entity.Transfer, error) {
-	var transfers []entity.Transfer
+func (tr *Repository) GetUnprocessedTransfers() ([]*entity.Transfer, error) {
+	var transfers []*entity.Transfer
 
 	err := tr.dbClient.
-		Where("status IN ?", []string{StatusInitial, StatusRecovered}).
+		Where("status IN ?", []string{transfer.StatusInitial, transfer.StatusRecovered}).
 		Find(&transfers).Error
 	if err != nil {
 		return nil, err

@@ -30,7 +30,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -224,15 +224,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	}
 
 	// Update Transfer Record
-	tx, err := ts.transferRepository.GetByTransactionId(tsm.TransferID)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to get from DB", tsm.TransferID)
-		return err
-	}
-
-	tx.Status = transfer.StatusInProgress
-	tx.SignatureMsgStatus = transfer.StatusSignatureSubmitted
-	err = ts.transferRepository.Save(tx)
+	err = ts.transferRepository.UpdateStatusSignatureSubmitted(tsm.TransferID)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to update. Error [%s].", tsm.TransferID, err)
 		return err

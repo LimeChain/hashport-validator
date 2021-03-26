@@ -25,7 +25,7 @@ type Transfer interface {
 	GetByTransactionId(txId string) (*entity.Transfer, error)
 	GetWithMessages(txId string) (*entity.Transfer, error)
 	GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error)
-	GetUnprocessedTransfers() ([]entity.Transfer, error)
+	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *proto.TransferMessage) (*entity.Transfer, error)
 	Save(tx *entity.Transfer) error
@@ -33,6 +33,7 @@ type Transfer interface {
 	UpdateStatusInsufficientFee(txId string) error
 	UpdateStatusCompleted(txId string) error
 
+	UpdateStatusSignatureSubmitted(txId string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
 

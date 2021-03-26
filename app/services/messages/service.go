@@ -32,7 +32,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -425,7 +425,7 @@ func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
 	etm := tm.GetTopicEthTransactionMessage()
 	err := ss.transferRepository.UpdateEthTxSubmitted(etm.TransferID, etm.EthTxHash)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to update status to [%s]. Error [%s].", transfer.StatusEthTxSubmitted, etm.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to update status to [%s]. Error [%s].", etm.TransferID, transfer.StatusEthTxSubmitted, err)
 		return err
 	}
 
