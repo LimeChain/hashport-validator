@@ -250,7 +250,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	t, err := ts.transferRepository.GetWithMessages(txId)
 	if err != nil {
-		ts.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", txId, err)
+		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
 		return service.TransferData{}, err
 	}
 
