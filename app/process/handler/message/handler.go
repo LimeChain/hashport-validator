@@ -104,17 +104,17 @@ func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
 	tsm := tm.GetTopicSignatureMessage()
 	valid, err := cmh.messages.SanityCheckSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Failed to perform sanity check on incoming signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransferID)
+		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 	if !valid {
-		cmh.logger.Errorf("Incoming signature for TX [%s] is invalid", tsm.TransferID)
+		cmh.logger.Errorf("[%s] - Incoming signature is invalid", tsm.TransferID)
 		return
 	}
 
 	err = cmh.messages.ProcessSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("Could not process Signature [%s] for TX [%s]", tsm.GetSignature(), tsm.TransferID)
+		cmh.logger.Errorf("[%s] - Could not process Signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 

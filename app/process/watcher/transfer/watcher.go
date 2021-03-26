@@ -138,19 +138,19 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
-		ctw.logger.Errorf("Could not extract incoming transfer for TX [%s]. Error: [%s]", tx.TransactionID, err)
+		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
 	valid, targetAsset := ctw.contractService.IsValidBridgeAsset(asset)
 	if !valid {
-		ctw.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
+		ctw.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
 		return
 	}
 
 	m, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
-		ctw.logger.Errorf("Sanity check for TX [%s] failed. Error: [%s]", tx.TransactionID, err)
+		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
