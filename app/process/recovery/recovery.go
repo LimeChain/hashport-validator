@@ -157,30 +157,30 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 	for _, tx := range txns {
 		amount, asset, err := tx.GetIncomingTransfer(r.accountID.String())
 		if err != nil {
-			r.logger.Errorf("Skipping recovery of TX [%s]. Invalid amount. Error: [%s]", tx.TransactionID, err)
+			r.logger.Errorf("[%s] - Skipping recovery. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 
 		valid, targetAsset := r.contracts.IsValidBridgeAsset(asset)
 		if !valid {
-			r.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
+			r.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
 			continue
 		}
 
 		m, err := r.transfers.SanityCheckTransfer(tx)
 		if err != nil {
-			r.logger.Errorf("Skipping recovery of [%s]. Failed sanity check. Error: [%s]", tx.TransactionID, err)
+			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, targetAsset, *m)
 		if err != nil {
-			r.logger.Errorf("Skipping recovery of [%s]. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
+			r.logger.Errorf("[%s] - Skipping recovery. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		r.logger.Debugf("Recovered transfer with TXn ID [%s]", tx.TransactionID)
+		r.logger.Debugf("[%s] - Recovered transfer", tx.TransactionID)
 	}
 
-	r.logger.Infof("Successfully recovered [%d] transfer TXns for Account [%s]", len(txns), r.accountID)
+	r.logger.Infof("[%s] - Successfully recovered [%d] transfer TXns", r.accountID, len(txns))
 	return nil
 }
 
@@ -220,7 +220,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 		}
 	}
 
-	r.logger.Infof("Successfully recovered [%d] Messages for TOpic [%s]", len(messages), r.topicID)
+	r.logger.Infof("Successfully recovered [%d] Messages for Topic [%s]", len(messages), r.topicID)
 	return nil
 }
 
@@ -228,17 +228,17 @@ func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	isValid, err := r.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
-		r.logger.Errorf("Failed to verify Ethereum TX [%s] authenticity for TX [%s]", ethTxMessage.EthTxHash, ethTxMessage.TransferID)
+		r.logger.Errorf("[%s] - Failed to verify Ethereum TX [%s] authenticity", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return err
 	}
 	if !isValid {
-		r.logger.Infof("Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.EthTxHash)
+		r.logger.Infof("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return nil
 	}
 
 	err = r.messages.ProcessEthereumTxMessage(tm)
 	if err != nil {
-		r.logger.Errorf("Failed to process Ethereum TX Message for TX [%s]", ethTxMessage.TransferID)
+		r.logger.Errorf("[%s] - Failed to process Ethereum TX Message", ethTxMessage.TransferID)
 		return nil
 	}
 	return nil
