@@ -32,7 +32,7 @@ type Memo struct {
 	EthereumAddress string
 	// TxReimbursementFee that will be paid to the transaction sender
 	TxReimbursementFee string
-	// GasPrice the gas price that must be used in the mint transaction, converted to wei
+	// GasPrice the gas price that must be used in the mint transaction, converted from gwei to wei
 	GasPrice string
 	// ExecuteEthTransaction returns if transaction will be executed by validators
 	ExecuteEthTransaction bool
