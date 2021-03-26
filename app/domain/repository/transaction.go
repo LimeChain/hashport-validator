@@ -22,8 +22,8 @@ import (
 )
 
 type Transfer interface {
-	GetByTransactionId(transactionId string) (*entity.Transfer, error)
-	GetWithMessages(transactionId string) (*entity.Transfer, error)
+	GetByTransactionId(txId string) (*entity.Transfer, error)
+	GetWithMessages(txId string) (*entity.Transfer, error)
 	GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error)
 	GetUnprocessedTransfers() ([]entity.Transfer, error)
 

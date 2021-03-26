@@ -84,11 +84,11 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (tr Repository) GetByTransactionId(transactionId string) (*entity.Transfer, error) {
+func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.
 		Model(entity.Transfer{}).
-		Where("transaction_id = ?", transactionId).
+		Where("transaction_id = ?", txId).
 		First(tx)
 
 	if result.Error != nil {
@@ -100,12 +100,12 @@ func (tr Repository) GetByTransactionId(transactionId string) (*entity.Transfer,
 	return tx, nil
 }
 
-func (tr Repository) GetWithMessages(transactionId string) (*entity.Transfer, error) {
+func (tr Repository) GetWithMessages(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	err := tr.dbClient.
 		Preload("Messages").
 		Model(entity.Transfer{}).
-		Where("transaction_id = ?", transactionId).
+		Where("transaction_id = ?", txId).
 		Find(tx).Error
 	return tx, err
 }
