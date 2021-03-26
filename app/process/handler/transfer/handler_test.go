@@ -22,7 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	txRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
@@ -85,7 +85,7 @@ func Test_Handle(t *testing.T) {
 		TxReimbursement:       ctm.TxReimbursement,
 		GasPrice:              ctm.GasPrice,
 		ExecuteEthTransaction: ctm.ExecuteEthTransaction,
-		Status:                txRepo.StatusInitial,
+		Status:                transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
@@ -136,7 +136,7 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,
 		TxReimbursement: ctm.TxReimbursement,
-		Status:          txRepo.StatusCompleted,
+		Status:          transfer.StatusCompleted,
 	}
 
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
@@ -158,7 +158,7 @@ func Test_Handle_VerifyFee_Fails(t *testing.T) {
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,
 		TxReimbursement: ctm.TxReimbursement,
-		Status:          txRepo.StatusInitial,
+		Status:          transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
@@ -180,7 +180,7 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 		Receiver:        ctm.Receiver,
 		Amount:          ctm.Amount,
 		TxReimbursement: ctm.TxReimbursement,
-		Status:          txRepo.StatusInitial,
+		Status:          transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
