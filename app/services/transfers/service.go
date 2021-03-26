@@ -247,10 +247,10 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 
 // TransferData returns from the database the given transfer, its signatures and
 // calculates if its messages have reached super majority
-func (s *Service) TransferData(transactionId string) (service.TransferData, error) {
-	t, err := s.transferRepository.GetWithMessages(transactionId)
+func (ts *Service) TransferData(transactionId string) (service.TransferData, error) {
+	t, err := ts.transferRepository.GetWithMessages(transactionId)
 	if err != nil {
-		s.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
+		ts.logger.Errorf("Failed to query Signature Messages for TX [%s]. Error: [%s].", transactionId, err)
 		return service.TransferData{}, err
 	}
 
@@ -259,7 +259,7 @@ func (s *Service) TransferData(transactionId string) (service.TransferData, erro
 		signatures = append(signatures, m.Signature)
 	}
 
-	requiredSigCount := len(s.contractsService.GetMembers())/2 + 1
+	requiredSigCount := len(ts.contractsService.GetMembers())/2 + 1
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
