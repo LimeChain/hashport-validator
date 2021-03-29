@@ -91,7 +91,11 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		return false, err
 	}
 
-	valid, erc20address := ss.contractsService.IsValidBridgeAsset(t.Asset)
+	valid, _, err := ss.contractsService.IsValidBridgeAsset(nil, t.Asset)
+	if err != nil {
+		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", t.Asset, err)
+		return false, err
+	}
 	if !valid {
 		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.Asset)
 		return false, err
@@ -101,7 +105,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		t.Amount == topicMessage.Amount &&
 		t.Fee == topicMessage.Fee &&
 		t.GasPriceWei == topicMessage.GasPriceWei &&
-		topicMessage.Erc20Address == erc20address
+		valid
 	return match, nil
 }
 
@@ -362,7 +366,8 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 	// Verify Ethereum TX `call data`
-	txId, ethAddress, amount, fee, erc20address, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	// TODO: new gasCost return parameter
+	txId, ethAddress, amount, fee, erc20address, _, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
 	if err != nil {
 		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
 			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
@@ -385,10 +390,20 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 
+	valid, _, err := ss.contractsService.IsValidBridgeAsset(nil, dbTx.Asset)
+	if err != nil {
+		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", dbTx.Asset, err)
+		return false, err
+	}
+	if !valid {
+		ss.logger.Errorf("Provided Asset is not supported - [%s]", dbTx.Asset)
+		return false, err
+	}
+
 	if dbTx.Amount != amount ||
 		dbTx.EthAddress != ethAddress ||
 		dbTx.Fee != fee ||
-		// TODO: Add validation for erc20address, once the contracts support it
+		!valid ||
 		tx.GasPrice().String() != dbTx.GasPriceWei {
 		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransactionId, ethTxMessage.EthTxHash)
 		return false, nil
@@ -474,6 +489,7 @@ func (ss *Service) TransactionData(transactionId string) (service.TransactionDat
 		ERC20Address: messages[0].ERC20ContractAddress,
 		Signatures:   signatures,
 		Majority:     reachedMajority,
+		GasPrice:     messages[0].GasPriceWei,
 		// TODO: GasPrice: messages[0].GasPrice,
 	}, nil
 }

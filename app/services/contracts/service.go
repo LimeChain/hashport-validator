@@ -28,23 +28,37 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	bridgeAbi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	routerAbi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
-	address    common.Address
-	contract   *abi.Bridge
-	Client     client.Ethereum
-	mutex      sync.Mutex
-	members    Members
-	serviceFee ServiceFee
-	logger     *log.Entry
+	address        common.Address
+	contract       *bridgeAbi.Bridge
+	routerContract *routerAbi.Router
+	Client         client.Ethereum
+	mutex          sync.Mutex
+	members        Members
+	serviceFee     ServiceFee
+	logger         *log.Entry
 }
 
-func (bsc *Service) IsValidBridgeAsset(tokenId string) (bool, string) {
-	// TODO: Do magic here
-	return true, config.LoadConfig().Hedera.Eth.WhbarContractAddress
+func (bsc *Service) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error) {
+	asset, err := bsc.routerContract.TokenIdToAsset(
+		opts,
+		common.Hex2Bytes(tokenId),
+	)
+	if err != nil {
+		return false, "", err
+	}
+
+	erc20address := asset.String()
+	if erc20address == "0x00000000000000000000" {
+		return false, erc20address, nil
+	}
+
+	return true, erc20address, nil
 }
 
 func (bsc *Service) GetBridgeContractAddress() common.Address {
@@ -72,7 +86,7 @@ func (bsc *Service) IsMember(address string) bool {
 }
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
-func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error) {
+func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridgeAbi.BridgeBurn) (event.Subscription, error) {
 	var addresses []common.Address
 	return bsc.contract.WatchBurn(opts, sink, addresses)
 }
@@ -132,7 +146,7 @@ func (bsc *Service) updateMembers() {
 }
 
 func (bsc *Service) listenForChangeFeeEvent() {
-	events := make(chan *abi.BridgeServiceFeeSet)
+	events := make(chan *bridgeAbi.BridgeServiceFeeSet)
 	sub, err := bsc.contract.WatchServiceFeeSet(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error ", err)
@@ -151,7 +165,7 @@ func (bsc *Service) listenForChangeFeeEvent() {
 }
 
 func (bsc *Service) listenForMemberUpdatedEvent() {
-	events := make(chan *abi.BridgeMemberUpdated)
+	events := make(chan *bridgeAbi.BridgeMemberUpdated)
 	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
@@ -174,17 +188,24 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	contractInstance, err := abi.NewBridge(*contractAddress, client.GetClient())
+	contractInstance, err := bridgeAbi.NewBridge(*contractAddress, client.GetClient())
 	if err != nil {
 		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
 	}
 
+	routerContractAddress, err := client.ValidateContractDeployedAt("0xEBCdFAb2A4677c5A76e6F406dd3D5aD55f2a62B4")
+
+	routerContractInstance, err := routerAbi.NewRouter(*routerContractAddress, client.GetClient())
+	if err != nil {
+		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", "0xEBCdFAb2A4677c5A76e6F406dd3D5aD55f2a62B4", err)
+	}
+
 	contractService := &Service{
-		address:  *contractAddress,
-		Client:   client,
-		contract: contractInstance,
-		logger:   config.GetLoggerFor("Contract Service"),
+		address:        *contractAddress,
+		Client:         client,
+		contract:       contractInstance,
+		routerContract: routerContractInstance,
+		logger:         config.GetLoggerFor("Contract Service"),
 	}
 
 	contractService.updateMembers()

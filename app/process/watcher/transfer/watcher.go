@@ -142,7 +142,11 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	valid, erc20Address := ctw.contractService.IsValidBridgeAsset(asset)
+	valid, erc20Address, err := ctw.contractService.IsValidBridgeAsset(nil, asset)
+	if err != nil {
+		ctw.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", asset, err)
+		return
+	}
 	if !valid {
 		ctw.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
 		return

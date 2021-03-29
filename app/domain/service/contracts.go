@@ -40,5 +40,5 @@ type Contracts interface {
 	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
 	SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
 	// Check whether a specific asset has a valid bridge token address. Returns true and the erc20 token address if token is valid. Returns false and an empty string if not.
-	IsValidBridgeAsset(tokenId string) (bool, string)
+	IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error)
 }

@@ -38,14 +38,12 @@ func EncodeBytesFrom(txId, receiverEthAddress, erc20Address, amount, fee, gasPri
 	if err != nil {
 		return nil, err
 	}
-	// TODO: add gasPriceBn after contracts are updated
-	_, err = helper.ToBigInt(gasPriceWei)
+	gasCostBn, err := helper.ToBigInt(gasPriceWei)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: add common.HexToAddress(erc20Address) after contracts are updated
-	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), amountBn, feeBn)
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), common.HexToAddress(erc20Address), amountBn, feeBn, gasCostBn)
 	return keccak(bytesToHash), nil
 }
 
@@ -65,13 +63,18 @@ func generateArguments() (abi.Arguments, error) {
 		return nil, err
 	}
 
-	// TODO: Update when ready
 	return abi.Arguments{
 		{
 			Type: bytesType,
 		},
 		{
 			Type: addressType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: uint256Type,
 		},
 		{
 			Type: uint256Type,

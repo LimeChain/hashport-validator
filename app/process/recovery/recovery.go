@@ -254,7 +254,11 @@ func (r Recovery) processUnfinishedOperations() error {
 		}
 		gwei := ethereum.WeiToGwei(weiBn)
 
-		valid, erc20Address := r.contracts.IsValidBridgeAsset(transfer.Asset)
+		valid, erc20Address, err := r.contracts.IsValidBridgeAsset(nil, transfer.Asset)
+		if err != nil {
+			r.logger.Errorf("Skipping recovery for TX [%s]. Could not validate provided asset [%s] - Error: [%s]", transfer.Asset, err)
+			continue
+		}
 		if !valid {
 			r.logger.Errorf("Skipping recovery for TX [%s]. Specified Asset [%s] is not supported.", transfer.TransactionId, transfer.Asset)
 			continue
