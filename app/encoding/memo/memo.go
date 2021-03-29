@@ -19,6 +19,8 @@ package memo
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/pkg/errors"
 	"regexp"
 	"strings"
@@ -30,8 +32,10 @@ type Memo struct {
 	EthereumAddress string
 	// TxReimbursementFee that will be paid to the transaction sender
 	TxReimbursementFee string
-	// GasPriceGwei the gas price that must be used in the mint transaction
-	GasPriceGwei string
+	// GasPrice the gas price that must be used in the mint transaction, converted from gwei to wei
+	GasPrice string
+	// ExecuteEthTransaction returns if transaction will be executed by validators
+	ExecuteEthTransaction bool
 }
 
 // FromBase64String sanity checks and instantiates new Memo struct from base64 encoded string
@@ -58,9 +62,23 @@ func FromBase64String(base64Str string) (*Memo, error) {
 		gasPriceGwei = "0"
 	}
 
+	gasPriceGweiBn, err := helper.ToBigInt(gasPriceGwei)
+	if err != nil {
+		return nil, err
+	}
+
+	weiBn := ethereum.GweiToWei(gasPriceGweiBn)
+
+	shouldExecuteEthTransaction := true
+	// Check memo for the format {eth_address-0-0}
+	if weiBn.String() == "0" && txReimbursement == "0" {
+		shouldExecuteEthTransaction = false
+	}
+
 	return &Memo{
-		EthereumAddress:    ethAddress,
-		TxReimbursementFee: txReimbursement,
-		GasPriceGwei:       gasPriceGwei,
+		EthereumAddress:       ethAddress,
+		TxReimbursementFee:    txReimbursement,
+		GasPrice:              weiBn.String(),
+		ExecuteEthTransaction: shouldExecuteEthTransaction,
 	}, nil
 }

@@ -147,7 +147,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				continue
 			}
 			if err != nil {
-				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error: %s.", txId, err.Error())
+				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error: [%s].", txId, err.Error())
 				return
 			}
 

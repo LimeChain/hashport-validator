@@ -71,6 +71,7 @@ func main() {
 
 		server.AddHandler(process.HCSMessageType, cmh.NewHandler(
 			configuration.Hedera.Handler.ConsensusMessage,
+			repositories.transfer,
 			repositories.message,
 			services.contracts,
 			services.messages))
@@ -96,22 +97,22 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 		services.contracts,
 		repository.transferStatus,
 		repository.messageStatus,
-		repository.transaction,
+		repository.transfer,
 		client.MirrorNode,
 		client.HederaNode)
 	if err != nil {
-		log.Fatalf("Could not prepare Recovery process. Err %s", err)
+		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
 	transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo, err := r.ComputeIntervals()
 	if err != nil {
-		log.Fatalf("Could not compute recovery interval. Error %s", err)
+		log.Fatalf("Could not compute recovery interval. Error [%s]", err)
 	}
 	if transfersRecoveryFrom <= 0 {
 		log.Infof("Skipping Recovery process. Nothing to recover")
 	} else {
 		err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
 		if err != nil {
-			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: %s", transfersRecoveryFrom, recoveryTo, err)
+			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: [%s].", transfersRecoveryFrom, recoveryTo, err)
 		}
 	}
 	return err, recoveryTo
@@ -121,7 +122,7 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(metadata.Route, metadata.NewRouter(services.fees))
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
-	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.messages))
+	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.transfers))
 	return apiRouter
 }
 

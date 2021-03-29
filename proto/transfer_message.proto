@@ -7,11 +7,11 @@ option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 // TransferMessage used by the Transfer watchers and handlers to pass the necessary metadata when processing new incoming Transfer
 message TransferMessage {
   string transactionId = 1;
-  string ethAddress = 2;
+  string receiver = 2;
   string amount = 3;
-  string fee = 4;
-  string gasPriceGwei = 5;
-  bool   executeEthTransaction = 6;
-  string asset = 7;
-  string erc20Address = 8;
+  string txReimbursement = 4;
+  string gasPrice = 5;
+  string sourceAsset = 6;
+  string targetAsset = 7;
+  bool   executeEthTransaction = 8;
 }

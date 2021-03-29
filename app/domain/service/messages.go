@@ -30,22 +30,7 @@ type Messages interface {
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(tm encoding.TopicMessage) error
 	// ScheduleForSubmission computes the execution slot and schedules the Ethereum Mint TX for submission
-	ScheduleEthereumTxForSubmission(txId string) error
+	ScheduleEthereumTxForSubmission(transferID string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
-	// ShouldTransactionBeScheduled checks the database for ExecuteEthTransaction flag
-	ShouldTransactionBeScheduled(transactionId string) (bool, error)
-	// TransactionData returns from the database all messages for specific transactionId and
-	// calculates if messages have reached super majority
-	TransactionData(transactionId string) (TransactionData, error)
-}
-
-type TransactionData struct {
-	Recipient    string   `json:"recipient"`
-	Amount       string   `json:"amount"`
-	ERC20Address string   `json:"erc20Address"`
-	Fee          string   `json:"fee"`
-	GasPrice     string   `json:"gasPrice"`
-	Signatures   []string `json:"signatures"`
-	Majority     bool     `json:"majority"`
 }
