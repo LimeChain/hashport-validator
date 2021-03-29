@@ -312,7 +312,7 @@ func fromHederaTransactionID(id *hedera.TransactionID) hederaTxId {
 	return hederaTxId{
 		AccountId: accId,
 		Seconds:   split[0],
-		Nanos:     split[1],
+		Nanos:     fmt.Sprintf("%09s", split[1]),
 	}
 }
 
