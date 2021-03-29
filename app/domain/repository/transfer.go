@@ -17,20 +17,23 @@
 package repository
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
-type Transaction interface {
-	GetByTransactionId(transactionId string) (*transaction.Transaction, error)
-	GetInitialAndSignatureSubmittedTx() ([]*transaction.Transaction, error)
-	GetUnprocessedTransactions() ([]transaction.Transaction, error)
+type Transfer interface {
+	GetByTransactionId(txId string) (*entity.Transfer, error)
+	GetWithMessages(txId string) (*entity.Transfer, error)
+	GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error)
+	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
-	Create(ct *proto.TransferMessage) (*transaction.Transaction, error)
-	Save(tx *transaction.Transaction) error
+	Create(ct *proto.TransferMessage) (*entity.Transfer, error)
+	Save(tx *entity.Transfer) error
 	SaveRecoveredTxn(ct *proto.TransferMessage) error
 	UpdateStatusInsufficientFee(txId string) error
+	UpdateStatusCompleted(txId string) error
 
+	UpdateStatusSignatureSubmitted(txId string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
 

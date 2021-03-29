@@ -222,7 +222,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 				if msg.GetType() == validatorproto.TopicMessageType_EthSignature {
 					//Verify that all the submitted messages have signed the same transaction
 					topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
-					if msg.GetTopicSignatureMessage().TransactionId != topicSubmissionMessageSign.String() {
+					if msg.GetTopicSignatureMessage().TransferID != topicSubmissionMessageSign.String() {
 						fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 					} else {
 						ethSignaturesCollected++
@@ -233,7 +233,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 				if msg.GetType() == validatorproto.TopicMessageType_EthTransaction {
 					//Verify that the eth transaction message has been submitted
 					topicSubmissionMessageTrans := fromHederaTransactionID(&transactionResponse.TransactionID)
-					if msg.GetTopicEthTransactionMessage().TransactionId != topicSubmissionMessageTrans.String() {
+					if msg.GetTopicEthTransactionMessage().TransferID != topicSubmissionMessageTrans.String() {
 						t.Fatalf(`Expected ethereum transaction message to contain the transaction id: [%s]`, topicSubmissionMessageTrans.String())
 					}
 					ethTransactionHash = msg.GetTopicEthTransactionMessage().GetEthTxHash()

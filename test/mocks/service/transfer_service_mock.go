@@ -2,9 +2,10 @@ package service
 
 import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -31,23 +32,23 @@ func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) 
 	return args.Get(0).(*memo.Memo), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, asset string, m memo.Memo) error {
-	args := mts.Called(txId, amount, asset, m)
+func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error {
+	args := mts.Called(txId, amount, sourceAsset, targetAsset, m)
 	if args.Get(0) == nil {
 		return nil
 	}
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error) {
+func (mts *MockTransferService) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error) {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*transaction.Transaction), nil
+		return args.Get(0).(*entity.Transfer), nil
 	}
-	return args.Get(0).(*transaction.Transaction), args.Get(1).(error)
+	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
 func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
@@ -56,4 +57,13 @@ func (mts *MockTransferService) VerifyFee(tm encoding.TransferMessage) error {
 		return nil
 	}
 	return args.Get(0).(error)
+}
+
+func (mts *MockTransferService) TransferData(txId string) (service.TransferData, error) {
+	args := mts.Called(txId)
+	if args.Get(0) == nil {
+		return service.TransferData{}, args.Get(1).(error)
+	}
+
+	return args.Get(0).(service.TransferData), args.Get(0).(error)
 }

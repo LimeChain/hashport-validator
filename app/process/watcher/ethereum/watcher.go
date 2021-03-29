@@ -54,7 +54,7 @@ func (ew *Watcher) listenForEvents(q *queue.Queue) {
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("Burn Event Logs subscription failed. Error [%s].", err)
+			log.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
 			return
 		case eventLog := <-events:
 			ew.handleLog(eventLog, q)

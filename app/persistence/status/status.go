@@ -18,18 +18,11 @@ package status
 
 import (
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
-
-// This table will contain information for latest status of the application
-type Status struct {
-	Name      string
-	EntityID  string
-	Code      string
-	Timestamp int64
-}
 
 type Repository struct {
 	dbClient                 *gorm.DB
@@ -55,9 +48,8 @@ func typeCheck(statusType string) {
 }
 
 func (s Repository) GetLastFetchedTimestamp(entityID string) (int64, error) {
-	lastFetchedStatus := &Status{}
+	lastFetchedStatus := &entity.Status{}
 	err := s.dbClient.
-		Model(&Status{}).
 		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
 		First(&lastFetchedStatus).Error
 	if err != nil {
@@ -67,7 +59,7 @@ func (s Repository) GetLastFetchedTimestamp(entityID string) (int64, error) {
 }
 
 func (s Repository) CreateTimestamp(entityID string, timestamp int64) error {
-	return s.dbClient.Create(Status{
+	return s.dbClient.Create(entity.Status{
 		Name:      "Last fetched timestamp",
 		EntityID:  entityID,
 		Code:      s.lastFetchedTimestampCode,
@@ -78,7 +70,7 @@ func (s Repository) CreateTimestamp(entityID string, timestamp int64) error {
 func (s Repository) UpdateLastFetchedTimestamp(entityID string, timestamp int64) error {
 	return s.dbClient.
 		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
-		Save(Status{
+		Save(entity.Status{
 			Name:      "Last fetched timestamp",
 			EntityID:  entityID,
 			Code:      s.lastFetchedTimestampCode,

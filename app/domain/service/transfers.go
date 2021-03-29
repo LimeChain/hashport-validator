@@ -20,7 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
 
 // Transfers is the major service used for processing Transfers operations
@@ -29,14 +29,28 @@ type Transfers interface {
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount string, asset string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
-	// aware of already processed transactions
-	InitiateNewTransfer(tm encoding.TransferMessage) (*transaction.Transaction, error)
+	// aware of already processed transfers
+	InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error)
 	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
 	// If no error is returned the TX can be processed
 	VerifyFee(tm encoding.TransferMessage) error
 	// ProcessTransfer processes the transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessTransfer(tm encoding.TransferMessage) error
+	// TransferData returns from the database the given transfer, its signatures and
+	// calculates if its messages have reached super majority
+	TransferData(txId string) (TransferData, error)
+}
+
+type TransferData struct {
+	Recipient   string   `json:"recipient"`
+	Amount      string   `json:"amount"`
+	SourceAsset string   `json:"sourceAsset"`
+	TargetAsset string   `json:"targetAsset"`
+	Fee         string   `json:"fee"`
+	GasPrice    string   `json:"gasPrice"`
+	Signatures  []string `json:"signatures"`
+	Majority    bool     `json:"majority"`
 }
