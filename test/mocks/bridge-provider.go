@@ -31,7 +31,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) IsValidBridgeAsset(tokenId string) (bool, string) {
+func (m *MockBridgeContract) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error) {
 	panic("implement me")
 }
 
