@@ -42,7 +42,7 @@ func NewCalculator(rateProvider client.ExchangeRate, configuration config.Hedera
 	}
 }
 
-func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error) {
+func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceWei string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
 		return false, InvalidTransferAmount
@@ -62,12 +62,12 @@ func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount str
 		return false, InsufficientFee
 	}
 
-	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+	bigGasPriceWei, err := helper.ToBigInt(gasPriceWei)
 	if err != nil {
 		return false, InvalidGasPrice
 	}
 
-	tinyBarTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
+	tinyBarTxFee, err := fc.getEstimatedTxFee(bigGasPriceWei)
 	if err != nil {
 		return false, err
 	}
@@ -81,13 +81,19 @@ func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount str
 	return true, nil
 }
 
-func (fc Calculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
-	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+func (fc Calculator) GetEstimatedTxFeeFromGWei(gasPriceGWei string) (string, error) {
+	gasPriceGweiBn, err := helper.ToBigInt(gasPriceGWei)
 	if err != nil {
 		return "", InvalidGasPrice
 	}
 
-	bigEstimatedTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
+	gasPriceWeiBn := ethereum.GweiToWei(gasPriceGweiBn)
+
+	return fc.getEstimatedTxFeeFromWei(gasPriceWeiBn)
+}
+
+func (fc Calculator) getEstimatedTxFeeFromWei(gasPriceWei *big.Int) (string, error) {
+	bigEstimatedTxFee, err := fc.getEstimatedTxFee(gasPriceWei)
 	if err != nil {
 		return "", err
 	}
@@ -95,15 +101,14 @@ func (fc Calculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
 	return bigEstimatedTxFee.String(), nil
 }
 
-func (fc Calculator) getEstimatedTxFee(gasPriceGwei *big.Int) (*big.Float, error) {
+func (fc Calculator) getEstimatedTxFee(gasPriceWei *big.Int) (*big.Float, error) {
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
 	if err != nil {
 		return nil, err
 	}
 
 	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
-	bigGasPriceWei := ethereum.GweiToWei(gasPriceGwei)
-	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
+	weiTxFee := calculateWeiTxFee(gasPriceWei, estimatedGas)
 
 	return weiToTinyBar(weiTxFee, exchangeRate), nil
 }

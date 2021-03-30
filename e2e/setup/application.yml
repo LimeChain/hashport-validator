@@ -1,5 +1,6 @@
 # Template configuration for the e2e tests
 hedera:
+  network_type:
   db_validation:
     host:
     name:
