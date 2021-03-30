@@ -45,7 +45,7 @@ func (s *Scheduler) Schedule(id string, firstTimestamp, slot int64, task func())
 	})
 
 	if alreadyExisted {
-		s.logger.Infof("Job for TX [%s] already scheduled for execution/executed.", id)
+		s.logger.Infof("[%s] - Job already scheduled for execution/executed.", id)
 		return nil
 	}
 
@@ -53,10 +53,10 @@ func (s *Scheduler) Schedule(id string, firstTimestamp, slot int64, task func())
 		<-timer.C
 		storedValue.(*Storage).Executed = true
 		task()
-		s.logger.Infof("Execution for TX [%s] completed", id)
+		s.logger.Infof("[%s] - Execution completed", id)
 	}()
 
-	s.logger.Infof("Scheduled new Job for TX [%s] for execution in [%s]", id, executeIn)
+	s.logger.Infof("[%s] - Scheduled new Job for execution in [%s]", id, executeIn)
 
 	return nil
 }

@@ -11,16 +11,16 @@ import (
 )
 
 var (
-	Route  = "/transaction"
+	Route  = "/transfers"
 	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
-// GET: .../transaction/:id
-func getTransaction(messageService service.Messages) func(w http.ResponseWriter, r *http.Request) {
+// GET: .../transfers/:id
+func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		transactionId := chi.URLParam(r, "id")
+		transferID := chi.URLParam(r, "id")
 
-		transactionData, err := messageService.TransactionData(transactionId)
+		transferData, err := transfersService.TransferData(transferID)
 		if err != nil {
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
@@ -29,12 +29,12 @@ func getTransaction(messageService service.Messages) func(w http.ResponseWriter,
 			return
 		}
 
-		render.JSON(w, r, transactionData)
+		render.JSON(w, r, transferData)
 	}
 }
 
-func NewRouter(messageService service.Messages) chi.Router {
+func NewRouter(service service.Transfers) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/{id}", getTransaction(messageService))
+	r.Get("/{id}", getTransfer(service))
 	return r
 }

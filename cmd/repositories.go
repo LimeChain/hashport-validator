@@ -20,7 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
@@ -31,7 +31,7 @@ import (
 type Repositories struct {
 	transferStatus repository.Status
 	messageStatus  repository.Status
-	transaction    repository.Transaction
+	transfer       repository.Transfer
 	message        repository.Message
 }
 
@@ -41,7 +41,7 @@ func PrepareRepositories(config config.Db) *Repositories {
 	return &Repositories{
 		transferStatus: status.NewRepositoryForStatus(db, process.CryptoTransferMessageType),
 		messageStatus:  status.NewRepositoryForStatus(db, process.HCSMessageType),
-		transaction:    transaction.NewRepository(db),
+		transfer:       transfer.NewRepository(db),
 		message:        message.NewRepository(db),
 	}
 }

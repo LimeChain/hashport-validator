@@ -60,11 +60,11 @@ func (cmw Watcher) Watch(q *queue.Queue) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
 			if err != nil {
-				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error %s", err)
+				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error [%s]", err)
 			}
 			cmw.logger.Tracef("Created new Topic Watcher status timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 		} else {
-			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error %s", err)
+			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
 		}
 	} else {
 		cmw.updateStatusTimestamp(cmw.startTimestamp)
@@ -75,7 +75,7 @@ func (cmw Watcher) Watch(q *queue.Queue) {
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
 	err := cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), ts)
 	if err != nil {
-		cmw.logger.Fatalf("Failed to update Topic Watcher Status timestamp. Error %s", err)
+		cmw.logger.Fatalf("Failed to update Topic Watcher Status timestamp. Error [%s]", err)
 	}
 	cmw.logger.Tracef("Updated Topic Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }

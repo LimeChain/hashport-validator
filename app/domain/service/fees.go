@@ -17,6 +17,6 @@
 package service
 
 type Fees interface {
-	GetEstimatedTxFee(gasPriceGwei string) (string, error)
-	ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error)
+	GetEstimatedTxFeeFromGWei(gasPriceGWei string) (string, error)
+	ValidateExecutionFee(transferFee string, transferAmount string, gasPriceWei string) (bool, error)
 }

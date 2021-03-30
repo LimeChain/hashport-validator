@@ -79,11 +79,11 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
 			if err != nil {
-				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error %s", err)
+				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error [%s]", err)
 			}
-			ctw.logger.Tracef("Cteated new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
+			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
-			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Err: %s", err)
+			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
 		}
 	} else {
 		ctw.updateStatusTimestamp(ctw.startTimestamp)
@@ -101,7 +101,7 @@ func (ctw Watcher) Watch(q *queue.Queue) {
 func (ctw Watcher) updateStatusTimestamp(ts int64) {
 	err := ctw.statusRepository.UpdateLastFetchedTimestamp(ctw.accountID.String(), ts)
 	if err != nil {
-		ctw.logger.Fatalf("Failed to update Transfer Watcher Status timestamp. Error %s", err)
+		ctw.logger.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
 	}
 	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
@@ -138,33 +138,27 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
-		ctw.logger.Errorf("Could not extract incoming transfer for TX [%s]. Error: [%s]", tx.TransactionID, err)
+		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	valid, erc20Address, err := ctw.contractService.IsValidBridgeAsset(nil, asset)
+	valid, targetAsset, err := ctw.contractService.IsValidBridgeAsset(nil, asset)
 	if err != nil {
 		ctw.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", asset, err)
 		return
 	}
 	if !valid {
-		ctw.logger.Errorf("The specified asset [%s] for TX ID [%s] is not supported", asset, tx.TransactionID)
+		ctw.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
 		return
 	}
 
 	m, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
-		ctw.logger.Errorf("Sanity check for TX [%s] failed. Error: [%s]", tx.TransactionID, err)
+		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	shouldExecuteEthTransaction := true
-	// Check memo for the format {eth_address-0-0}
-	if m.GasPriceGwei == "0" && m.TxReimbursementFee == "0" {
-		shouldExecuteEthTransaction = false
-	}
-
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, erc20Address, amount, m.TxReimbursementFee, m.GasPriceGwei, shouldExecuteEthTransaction)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 
