@@ -17,7 +17,6 @@
 package eth
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,10 +49,6 @@ func (s *Signer) Sign(msg []byte) ([]byte, error) {
 
 func (s *Signer) NewKeyTransactor(chainId *big.Int) (*bind.TransactOpts, error) {
 	return bind.NewKeyedTransactorWithChainID(s.privateKey, chainId)
-}
-
-func (s *Signer) NewCaller() *bind.CallOpts {
-	return &bind.CallOpts{Context: context.Background()}
 }
 
 func (s *Signer) Address() string {

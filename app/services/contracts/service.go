@@ -193,11 +193,14 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
 	}
 
-	routerContractAddress, err := client.ValidateContractDeployedAt("0xEBCdFAb2A4677c5A76e6F406dd3D5aD55f2a62B4")
+	routerContractAddress, err := client.ValidateContractDeployedAt(c.RouterContractAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	routerContractInstance, err := routerAbi.NewRouter(*routerContractAddress, client.GetClient())
 	if err != nil {
-		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", "0xEBCdFAb2A4677c5A76e6F406dd3D5aD55f2a62B4", err)
+		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", c.RouterContractAddress, err)
 	}
 
 	contractService := &Service{
