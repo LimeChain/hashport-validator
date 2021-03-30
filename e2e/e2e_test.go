@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
-	"gorm.io/gorm"
 	"log"
 	"math/big"
 	"strconv"
@@ -94,65 +93,85 @@ func Test_E2E(t *testing.T) {
 	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
 }
 
-func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *transaction.Transaction, signatures []string, t *testing.T) {
-	var expectedMessageRecords []message.TransactionMessage
+func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, signatures []string, t *testing.T) {
+	var expectedMessageRecords []entity.Message
 
 	for _, signature := range signatures {
-		tm := message.TransactionMessage{
-			Model:                gorm.Model{},
-			TransactionId:        record.TransactionId,
-			EthAddress:           record.EthAddress,
-			Amount:               record.Amount,
-			Fee:                  record.Fee,
+		tm := entity.Message{
+			TransferID:           record.TransactionID,
+			Transfer:             *record,
+			Hash:                 record.EthTxHash,
 			Signature:            signature,
-			Hash:                 record.EthHash,
-			SignerAddress:        "", // TODO: Associate Signature <-> SignerAddress somehow - ecrecover, code reuse
-			TransactionTimestamp: 0,  // TODO: Figure out a way to get the timestamp - ts of message in topic
-			GasPriceWei:          record.GasPriceWei,
-			ERC20ContractAddress: "", // TODO: Which address do I use? - Contract Service when ready???
+			Signer:               "",
+			TransactionTimestamp: 0,
 		}
+		//Model:                gorm.Model{},
+		//TransactionId:        record.TransactionId,
+		//EthAddress:           record.EthAddress,
+		//Amount:               record.Amount,
+		//Fee:                  record.Fee,
+		//Signature:            signature,
+		//Hash:                 record.EthHash,
+		//SignerAddress:        "", // TODO: Associate Signature <-> SignerAddress somehow - ecrecover, code reuse
+		//TransactionTimestamp: 0,  // TODO: Figure out a way to get the timestamp - ts of message in topic
+		//GasPriceWei:          record.GasPriceWei,
+		//ERC20ContractAddress: "", // TODO: Which address do I use? - Contract Service when ready???
 		expectedMessageRecords = append(expectedMessageRecords, tm)
 	}
 
-	exist, err := setupEnv.DBVerifier.SignatureMessagesExist(record.TransactionId, expectedMessageRecords)
+	exist, err := setupEnv.DBVerifier.SignatureMessagesExist(record.TransactionID, expectedMessageRecords)
 	if err != nil {
-		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionId, expectedMessageRecords, err)
+		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
 	}
 	if !exist {
-		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionId, expectedMessageRecords)
+		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
 	}
 }
 
-func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, txFee, ethTransactionHash string, t *testing.T) *transaction.Transaction {
+func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
 	bigGasPriceGwei, err := helper.ToBigInt(gasPriceGwei)
 	if err != nil {
 		t.Fatalf("Could not parse GasPriceGwei [%s] to Big Integer for TX ID [%s]. Error: [%s].", gasPriceGwei, transactionResponse.TransactionID.String(), err)
 	}
 	bigGasPriceWei := ethereum.GweiToWei(bigGasPriceGwei).String()
 
-	expectedTxRecord := &transaction.Transaction{
-		Model:                 gorm.Model{},
-		TransactionId:         transactionResponse.TransactionID.String(),
-		EthAddress:            receiverAddress,
+	expectedTxRecord := &entity.Transfer{
+		TransactionID:         transactionResponse.TransactionID.String(),
+		Receiver:              receiverAddress,
+		SourceAsset:           "hbar",
+		TargetAsset:           "",
 		Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
-		Fee:                   txFee,
-		Signature:             "", // TODO: Figure out how to mock expected signature (Signing Logic from Process Transfer Maybe?)
-		SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from) - Probably won't check
-		Status:                transaction.StatusCompleted,
-		SignatureMsgStatus:    transaction.StatusSignatureMined,
-		EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
-		EthTxStatus:           transaction.StatusEthTxMined,
-		EthHash:               ethTransactionHash,
-		Asset:                 "hbar",
-		GasPriceWei:           bigGasPriceWei,
+		TxReimbursement:       txFee,
+		GasPrice:              bigGasPriceWei,
+		Status:                transfer.StatusCompleted,
+		SignatureMsgStatus:    transfer.StatusSignatureMined,
+		EthTxMsgStatus:        transfer.StatusEthTxMsgMined,
+		EthTxStatus:           transfer.StatusEthTxMined,
+		EthTxHash:             ethTransactionHash,
 		ExecuteEthTransaction: true,
+		Messages:              nil,
 	}
+	//Model:                 gorm.Model{},
+	//TransactionId:         transactionResponse.TransactionID.String(),
+	//EthAddress:            receiverAddress,
+	//Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
+	//Fee:                   txFee,
+	//Signature:             "", // TODO: Figure out how to mock expected signature (Signing Logic from Process Transfer Maybe?)
+	//SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from) - Probably won't check
+	//Status:                transaction.StatusCompleted,
+	//SignatureMsgStatus:    transaction.StatusSignatureMined,
+	//EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
+	//EthTxStatus:           transaction.StatusEthTxMined,
+	//EthHash:               ethTransactionHash,
+	//Asset:                 "hbar",
+	//GasPriceWei:           bigGasPriceWei,
+	//ExecuteEthTransaction: true,
 	exists, err := setupEnv.DBVerifier.TransactionRecordExists(expectedTxRecord)
 	if err != nil {
-		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxRecord.TransactionId, err)
+		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxRecord.TransactionID, err)
 	}
 	if !exists {
-		t.Fatalf("[%s] does not exist.", expectedTxRecord.TransactionId)
+		t.Fatalf("[%s] does not exist.", expectedTxRecord.TransactionID)
 	}
 
 	return expectedTxRecord
