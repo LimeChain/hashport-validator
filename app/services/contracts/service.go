@@ -33,6 +33,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	nilErc20Address = "0x00000000000000000000"
+)
+
 type Service struct {
 	address        common.Address
 	contract       *bridgeAbi.Bridge
@@ -54,7 +58,7 @@ func (bsc *Service) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (boo
 	}
 
 	erc20address := asset.String()
-	if erc20address == "0x00000000000000000000" {
+	if erc20address == nilErc20Address {
 		return false, erc20address, nil
 	}
 
