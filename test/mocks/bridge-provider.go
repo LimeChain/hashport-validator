@@ -43,7 +43,7 @@ func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<
 	panic("implement me")
 }
 
-func (m *MockBridgeContract) SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
+func (m *MockBridgeContract) SubmitSignatures(opts *bind.TransactOpts, txId, targetAsset, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
 	panic("implement me")
 }
 
