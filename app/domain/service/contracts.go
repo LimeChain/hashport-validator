@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
-	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"math/big"
 )
 
@@ -36,9 +36,9 @@ type Contracts interface {
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
-	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.BridgeBurn) (event.Subscription, error)
+	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-	SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
+	SubmitSignatures(opts *bind.TransactOpts, txId, targetAsset, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
 	// Check whether a specific asset has a valid bridge token address. Returns true and the erc20 token address if token is valid. Returns false and an empty string if not.
 	IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error)
 }

@@ -186,7 +186,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		return err
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.Receiver, tm.TargetAsset, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err

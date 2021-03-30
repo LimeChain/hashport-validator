@@ -25,7 +25,7 @@ import (
 
 // EncodeBytesFrom returns the array of bytes representing an
 // authorisation signature ready to be signed by Ethereum Private Key
-func EncodeBytesFrom(txId, receiverEthAddress, targetAsset, amount, txReimbursement, gasPriceWei string) ([]byte, error) {
+func EncodeBytesFrom(txId, targetAsset, receiverEthAddress, amount, txReimbursement, gasPriceWei string) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func EncodeBytesFrom(txId, receiverEthAddress, targetAsset, amount, txReimbursem
 		return nil, err
 	}
 
-	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(receiverEthAddress), common.HexToAddress(targetAsset), amountBn, txReimbursementBn, gasCostBn)
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(targetAsset), common.HexToAddress(receiverEthAddress), amountBn, txReimbursementBn, gasCostBn)
 	return keccak(bytesToHash), nil
 }
 

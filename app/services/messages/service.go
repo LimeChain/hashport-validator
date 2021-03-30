@@ -113,7 +113,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.Receiver, tsm.TargetAsset, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.TargetAsset, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
@@ -186,12 +186,13 @@ func (ss *Service) ScheduleEthereumTxForSubmission(transferID string) error {
 	ethAddress := transfer.Receiver
 	messageHash := transfer.EthTxHash
 	gasPriceWei := transfer.GasPrice
+	targetAsset := transfer.TargetAsset
 	signatures, err := getSignatures(signatureMessages)
 	if err != nil {
 		return err
 	}
 
-	ethereumMintTask := ss.prepareEthereumMintTask(transferID, ethAddress, amount, txReimbursement, gasPriceWei, signatures, messageHash)
+	ethereumMintTask := ss.prepareEthereumMintTask(transferID, targetAsset, ethAddress, amount, txReimbursement, gasPriceWei, signatures, messageHash)
 	err = ss.scheduler.Schedule(transferID, signatureMessages[0].TransactionTimestamp, slot, ethereumMintTask)
 	if err != nil {
 		return err
@@ -201,7 +202,7 @@ func (ss *Service) ScheduleEthereumTxForSubmission(transferID string) error {
 
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
-func (ss *Service) prepareEthereumMintTask(transferID string, ethAddress string, amount string, txReimbursement string, gasPriceWei string, signatures [][]byte, messageHash string) func() {
+func (ss *Service) prepareEthereumMintTask(transferID, targetAsset, ethAddress, amount, txReimbursement, gasPriceWei string, signatures [][]byte, messageHash string) func() {
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
@@ -216,7 +217,7 @@ func (ss *Service) prepareEthereumMintTask(transferID string, ethAddress string,
 			return
 		}
 
-		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, transferID, ethAddress, amount, txReimbursement, signatures)
+		ethTx, err := ss.contractsService.SubmitSignatures(ethTransactor, transferID, targetAsset, ethAddress, amount, txReimbursement, signatures)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to Submit Signatures. Error: [%s]", transferID, err)
 			return
@@ -410,7 +411,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	}
 
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, ethAddress, erc20address, amount, txReimbursement, dbTx.GasPrice)
+	messageHash, err := auth_message.EncodeBytesFrom(txId, erc20address, ethAddress, amount, txReimbursement, dbTx.GasPrice)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature to reconstruct required Signature. Error: [%s]", txId, err)
 		return false, err

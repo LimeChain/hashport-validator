@@ -1,6 +1,12 @@
 # Template configuration for the e2e tests
 hedera:
-  network_type:
+  network_type: testnet
+  db_validation:
+    host: 127.0.0.1
+    name: hedera_validator
+    password: hedera_db_validation_pass
+    port: 5432
+    username: hedera_db_validation
   bridge_account:
   topic_id:
   sender:
@@ -8,6 +14,8 @@ hedera:
     private_key:
 ethereum:
   node_url:
-  whbar_contract_address:
-  bridge_contract_address:
+  router_contract_address:
+tokens:
+  whbar:
+  wtoken:
 validator_url:

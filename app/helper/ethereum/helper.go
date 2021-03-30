@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 )
 
 const (
@@ -59,7 +59,7 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 }
 
 func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amount, fee, gasPrice string, signatures [][]byte, err error) {
-	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
+	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		return "", "", "", "", "", "", nil, err
 	}

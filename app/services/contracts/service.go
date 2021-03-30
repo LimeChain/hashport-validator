@@ -28,7 +28,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	bridgeAbi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
 	routerAbi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +38,6 @@ const (
 
 type Service struct {
 	address        common.Address
-	contract       *bridgeAbi.Bridge
 	routerContract *routerAbi.Router
 	Client         client.Ethereum
 	mutex          sync.Mutex
@@ -49,7 +47,7 @@ type Service struct {
 }
 
 func (bsc *Service) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error) {
-	asset, err := bsc.routerContract.TokenIdToAsset(
+	asset, err := bsc.routerContract.NativeToWrappedToken(
 		opts,
 		common.RightPadBytes([]byte(tokenId), 32),
 	)
@@ -90,13 +88,13 @@ func (bsc *Service) IsMember(address string) bool {
 }
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
-func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *bridgeAbi.BridgeBurn) (event.Subscription, error) {
+func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *routerAbi.RouterBurn) (event.Subscription, error) {
 	var addresses []common.Address
-	return bsc.contract.WatchBurn(opts, sink, addresses)
+	return bsc.routerContract.WatchBurn(opts, sink, addresses)
 }
 
 // SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
+func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, targetAsset, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
 	bsc.mutex.Lock()
 	defer bsc.mutex.Unlock()
 
@@ -110,9 +108,10 @@ func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, 
 		return nil, err
 	}
 
-	return bsc.contract.Mint(
+	return bsc.routerContract.MintWithReimbursement(
 		opts,
 		[]byte(txId),
+		common.HexToAddress(targetAsset),
 		common.HexToAddress(ethAddress),
 		amountBn,
 		feeBn,
@@ -120,7 +119,7 @@ func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, ethAddress, 
 }
 
 func (bsc *Service) updateServiceFee() {
-	newFee, err := bsc.contract.ServiceFee(nil)
+	newFee, err := bsc.routerContract.ServiceFee(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get service fee", err)
 	}
@@ -131,14 +130,14 @@ func (bsc *Service) updateServiceFee() {
 }
 
 func (bsc *Service) updateMembers() {
-	membersCount, err := bsc.contract.MembersCount(nil)
+	membersCount, err := bsc.routerContract.MembersCount(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get members count", err)
 	}
 
 	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
-		addr, err := bsc.contract.MemberAt(nil, big.NewInt(int64(i)))
+		addr, err := bsc.routerContract.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
 			bsc.logger.Fatal("Failed to get member address", err)
 		}
@@ -150,8 +149,8 @@ func (bsc *Service) updateMembers() {
 }
 
 func (bsc *Service) listenForChangeFeeEvent() {
-	events := make(chan *bridgeAbi.BridgeServiceFeeSet)
-	sub, err := bsc.contract.WatchServiceFeeSet(nil, events)
+	events := make(chan *routerAbi.RouterServiceFeeSet)
+	sub, err := bsc.routerContract.WatchServiceFeeSet(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error ", err)
 	}
@@ -169,8 +168,8 @@ func (bsc *Service) listenForChangeFeeEvent() {
 }
 
 func (bsc *Service) listenForMemberUpdatedEvent() {
-	events := make(chan *bridgeAbi.BridgeMemberUpdated)
-	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
+	events := make(chan *routerAbi.RouterMemberUpdated)
+	sub, err := bsc.routerContract.WatchMemberUpdated(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
 	}
@@ -188,15 +187,6 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 
 // NewService creates new instance of a Contract Services based on the provided configuration
 func NewService(client client.Ethereum, c config.Ethereum) *Service {
-	contractAddress, err := client.ValidateContractDeployedAt(c.BridgeContractAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-	contractInstance, err := bridgeAbi.NewBridge(*contractAddress, client.GetClient())
-	if err != nil {
-		log.Fatalf("Failed to initialize Bridge Contract Instance at [%s]. Error [%s]", c.BridgeContractAddress, err)
-	}
-
 	routerContractAddress, err := client.ValidateContractDeployedAt(c.RouterContractAddress)
 	if err != nil {
 		log.Fatal(err)
@@ -208,9 +198,8 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 	}
 
 	contractService := &Service{
-		address:        *contractAddress,
+		address:        *routerContractAddress,
 		Client:         client,
-		contract:       contractInstance,
 		routerContract: routerContractInstance,
 		logger:         config.GetLoggerFor("Contract Service"),
 	}

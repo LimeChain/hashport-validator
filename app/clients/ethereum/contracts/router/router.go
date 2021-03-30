@@ -27,7 +27,7 @@ var (
 )
 
 // RouterABI is the input ABI used to generate the binding from.
-const RouterABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAsset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"AssetContractSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deprecate\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFeeInWTokens\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"assetToTokenId\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"assetsData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"tokenIdToAsset\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAsset\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"tokenID\",\"type\":\"bytes\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"updateAsset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"isAsset\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"assetsCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"assetAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const RouterABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFeeInWTokens\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newWrappedToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"nativeToken\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"TokenUpdate\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"}],\"name\":\"getTxCostsPerMember\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"nativeToWrappedToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedToNativeToken\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedTokensData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mintWithReimbursement\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newWrappedToken\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"tokenID\",\"type\":\"bytes\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"updateWrappedToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"isSupportedToken\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"wrappedTokensCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"wrappedTokenAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Router is an auto generated Go binding around an Ethereum contract.
 type Router struct {
@@ -171,74 +171,12 @@ func (_Router *RouterTransactorRaw) Transact(opts *bind.TransactOpts, method str
 	return _Router.Contract.contract.Transact(opts, method, params...)
 }
 
-// AssetAt is a free data retrieval call binding the contract method 0xaa9239f5.
+// GetTxCostsPerMember is a free data retrieval call binding the contract method 0x20990243.
 //
-// Solidity: function assetAt(uint256 index) view returns(address)
-func (_Router *RouterCaller) AssetAt(opts *bind.CallOpts, index *big.Int) (common.Address, error) {
+// Solidity: function getTxCostsPerMember(address wrappedToken, address member) view returns(uint256)
+func (_Router *RouterCaller) GetTxCostsPerMember(opts *bind.CallOpts, wrappedToken common.Address, member common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "assetAt", index)
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// AssetAt is a free data retrieval call binding the contract method 0xaa9239f5.
-//
-// Solidity: function assetAt(uint256 index) view returns(address)
-func (_Router *RouterSession) AssetAt(index *big.Int) (common.Address, error) {
-	return _Router.Contract.AssetAt(&_Router.CallOpts, index)
-}
-
-// AssetAt is a free data retrieval call binding the contract method 0xaa9239f5.
-//
-// Solidity: function assetAt(uint256 index) view returns(address)
-func (_Router *RouterCallerSession) AssetAt(index *big.Int) (common.Address, error) {
-	return _Router.Contract.AssetAt(&_Router.CallOpts, index)
-}
-
-// AssetToTokenId is a free data retrieval call binding the contract method 0xecec967c.
-//
-// Solidity: function assetToTokenId(address ) view returns(bytes)
-func (_Router *RouterCaller) AssetToTokenId(opts *bind.CallOpts, arg0 common.Address) ([]byte, error) {
-	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "assetToTokenId", arg0)
-
-	if err != nil {
-		return *new([]byte), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
-
-	return out0, err
-
-}
-
-// AssetToTokenId is a free data retrieval call binding the contract method 0xecec967c.
-//
-// Solidity: function assetToTokenId(address ) view returns(bytes)
-func (_Router *RouterSession) AssetToTokenId(arg0 common.Address) ([]byte, error) {
-	return _Router.Contract.AssetToTokenId(&_Router.CallOpts, arg0)
-}
-
-// AssetToTokenId is a free data retrieval call binding the contract method 0xecec967c.
-//
-// Solidity: function assetToTokenId(address ) view returns(bytes)
-func (_Router *RouterCallerSession) AssetToTokenId(arg0 common.Address) ([]byte, error) {
-	return _Router.Contract.AssetToTokenId(&_Router.CallOpts, arg0)
-}
-
-// AssetsCount is a free data retrieval call binding the contract method 0xcd9df190.
-//
-// Solidity: function assetsCount() view returns(uint256)
-func (_Router *RouterCaller) AssetsCount(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "assetsCount")
+	err := _Router.contract.Call(opts, &out, "getTxCostsPerMember", wrappedToken, member)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -250,99 +188,18 @@ func (_Router *RouterCaller) AssetsCount(opts *bind.CallOpts) (*big.Int, error) 
 
 }
 
-// AssetsCount is a free data retrieval call binding the contract method 0xcd9df190.
+// GetTxCostsPerMember is a free data retrieval call binding the contract method 0x20990243.
 //
-// Solidity: function assetsCount() view returns(uint256)
-func (_Router *RouterSession) AssetsCount() (*big.Int, error) {
-	return _Router.Contract.AssetsCount(&_Router.CallOpts)
+// Solidity: function getTxCostsPerMember(address wrappedToken, address member) view returns(uint256)
+func (_Router *RouterSession) GetTxCostsPerMember(wrappedToken common.Address, member common.Address) (*big.Int, error) {
+	return _Router.Contract.GetTxCostsPerMember(&_Router.CallOpts, wrappedToken, member)
 }
 
-// AssetsCount is a free data retrieval call binding the contract method 0xcd9df190.
+// GetTxCostsPerMember is a free data retrieval call binding the contract method 0x20990243.
 //
-// Solidity: function assetsCount() view returns(uint256)
-func (_Router *RouterCallerSession) AssetsCount() (*big.Int, error) {
-	return _Router.Contract.AssetsCount(&_Router.CallOpts)
-}
-
-// AssetsData is a free data retrieval call binding the contract method 0x35558e9b.
-//
-// Solidity: function assetsData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
-func (_Router *RouterCaller) AssetsData(opts *bind.CallOpts, arg0 common.Address) (struct {
-	FeesAccrued     *big.Int
-	PreviousAccrued *big.Int
-	Accumulator     *big.Int
-}, error) {
-	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "assetsData", arg0)
-
-	outstruct := new(struct {
-		FeesAccrued     *big.Int
-		PreviousAccrued *big.Int
-		Accumulator     *big.Int
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.FeesAccrued = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-	outstruct.PreviousAccrued = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
-	outstruct.Accumulator = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
-
-	return *outstruct, err
-
-}
-
-// AssetsData is a free data retrieval call binding the contract method 0x35558e9b.
-//
-// Solidity: function assetsData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
-func (_Router *RouterSession) AssetsData(arg0 common.Address) (struct {
-	FeesAccrued     *big.Int
-	PreviousAccrued *big.Int
-	Accumulator     *big.Int
-}, error) {
-	return _Router.Contract.AssetsData(&_Router.CallOpts, arg0)
-}
-
-// AssetsData is a free data retrieval call binding the contract method 0x35558e9b.
-//
-// Solidity: function assetsData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
-func (_Router *RouterCallerSession) AssetsData(arg0 common.Address) (struct {
-	FeesAccrued     *big.Int
-	PreviousAccrued *big.Int
-	Accumulator     *big.Int
-}, error) {
-	return _Router.Contract.AssetsData(&_Router.CallOpts, arg0)
-}
-
-// IsAsset is a free data retrieval call binding the contract method 0xc87fa42a.
-//
-// Solidity: function isAsset(address asset) view returns(bool)
-func (_Router *RouterCaller) IsAsset(opts *bind.CallOpts, asset common.Address) (bool, error) {
-	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "isAsset", asset)
-
-	if err != nil {
-		return *new(bool), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
-
-	return out0, err
-
-}
-
-// IsAsset is a free data retrieval call binding the contract method 0xc87fa42a.
-//
-// Solidity: function isAsset(address asset) view returns(bool)
-func (_Router *RouterSession) IsAsset(asset common.Address) (bool, error) {
-	return _Router.Contract.IsAsset(&_Router.CallOpts, asset)
-}
-
-// IsAsset is a free data retrieval call binding the contract method 0xc87fa42a.
-//
-// Solidity: function isAsset(address asset) view returns(bool)
-func (_Router *RouterCallerSession) IsAsset(asset common.Address) (bool, error) {
-	return _Router.Contract.IsAsset(&_Router.CallOpts, asset)
+// Solidity: function getTxCostsPerMember(address wrappedToken, address member) view returns(uint256)
+func (_Router *RouterCallerSession) GetTxCostsPerMember(wrappedToken common.Address, member common.Address) (*big.Int, error) {
+	return _Router.Contract.GetTxCostsPerMember(&_Router.CallOpts, wrappedToken, member)
 }
 
 // IsMember is a free data retrieval call binding the contract method 0xa230c524.
@@ -374,6 +231,37 @@ func (_Router *RouterSession) IsMember(_member common.Address) (bool, error) {
 // Solidity: function isMember(address _member) view returns(bool)
 func (_Router *RouterCallerSession) IsMember(_member common.Address) (bool, error) {
 	return _Router.Contract.IsMember(&_Router.CallOpts, _member)
+}
+
+// IsSupportedToken is a free data retrieval call binding the contract method 0x240028e8.
+//
+// Solidity: function isSupportedToken(address wrappedToken) view returns(bool)
+func (_Router *RouterCaller) IsSupportedToken(opts *bind.CallOpts, wrappedToken common.Address) (bool, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "isSupportedToken", wrappedToken)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// IsSupportedToken is a free data retrieval call binding the contract method 0x240028e8.
+//
+// Solidity: function isSupportedToken(address wrappedToken) view returns(bool)
+func (_Router *RouterSession) IsSupportedToken(wrappedToken common.Address) (bool, error) {
+	return _Router.Contract.IsSupportedToken(&_Router.CallOpts, wrappedToken)
+}
+
+// IsSupportedToken is a free data retrieval call binding the contract method 0x240028e8.
+//
+// Solidity: function isSupportedToken(address wrappedToken) view returns(bool)
+func (_Router *RouterCallerSession) IsSupportedToken(wrappedToken common.Address) (bool, error) {
+	return _Router.Contract.IsSupportedToken(&_Router.CallOpts, wrappedToken)
 }
 
 // MemberAt is a free data retrieval call binding the contract method 0xac0250f7.
@@ -469,6 +357,37 @@ func (_Router *RouterCallerSession) MintTransfers(arg0 []byte) (bool, error) {
 	return _Router.Contract.MintTransfers(&_Router.CallOpts, arg0)
 }
 
+// NativeToWrappedToken is a free data retrieval call binding the contract method 0x2b793cc8.
+//
+// Solidity: function nativeToWrappedToken(bytes ) view returns(address)
+func (_Router *RouterCaller) NativeToWrappedToken(opts *bind.CallOpts, arg0 []byte) (common.Address, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "nativeToWrappedToken", arg0)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// NativeToWrappedToken is a free data retrieval call binding the contract method 0x2b793cc8.
+//
+// Solidity: function nativeToWrappedToken(bytes ) view returns(address)
+func (_Router *RouterSession) NativeToWrappedToken(arg0 []byte) (common.Address, error) {
+	return _Router.Contract.NativeToWrappedToken(&_Router.CallOpts, arg0)
+}
+
+// NativeToWrappedToken is a free data retrieval call binding the contract method 0x2b793cc8.
+//
+// Solidity: function nativeToWrappedToken(bytes ) view returns(address)
+func (_Router *RouterCallerSession) NativeToWrappedToken(arg0 []byte) (common.Address, error) {
+	return _Router.Contract.NativeToWrappedToken(&_Router.CallOpts, arg0)
+}
+
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
@@ -531,12 +450,43 @@ func (_Router *RouterCallerSession) ServiceFee() (*big.Int, error) {
 	return _Router.Contract.ServiceFee(&_Router.CallOpts)
 }
 
-// TokenIdToAsset is a free data retrieval call binding the contract method 0xae5e2696.
+// WrappedToNativeToken is a free data retrieval call binding the contract method 0x0aa3824d.
 //
-// Solidity: function tokenIdToAsset(bytes ) view returns(address)
-func (_Router *RouterCaller) TokenIdToAsset(opts *bind.CallOpts, arg0 []byte) (common.Address, error) {
+// Solidity: function wrappedToNativeToken(address ) view returns(bytes)
+func (_Router *RouterCaller) WrappedToNativeToken(opts *bind.CallOpts, arg0 common.Address) ([]byte, error) {
 	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "tokenIdToAsset", arg0)
+	err := _Router.contract.Call(opts, &out, "wrappedToNativeToken", arg0)
+
+	if err != nil {
+		return *new([]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
+
+	return out0, err
+
+}
+
+// WrappedToNativeToken is a free data retrieval call binding the contract method 0x0aa3824d.
+//
+// Solidity: function wrappedToNativeToken(address ) view returns(bytes)
+func (_Router *RouterSession) WrappedToNativeToken(arg0 common.Address) ([]byte, error) {
+	return _Router.Contract.WrappedToNativeToken(&_Router.CallOpts, arg0)
+}
+
+// WrappedToNativeToken is a free data retrieval call binding the contract method 0x0aa3824d.
+//
+// Solidity: function wrappedToNativeToken(address ) view returns(bytes)
+func (_Router *RouterCallerSession) WrappedToNativeToken(arg0 common.Address) ([]byte, error) {
+	return _Router.Contract.WrappedToNativeToken(&_Router.CallOpts, arg0)
+}
+
+// WrappedTokenAt is a free data retrieval call binding the contract method 0xae963d45.
+//
+// Solidity: function wrappedTokenAt(uint256 index) view returns(address)
+func (_Router *RouterCaller) WrappedTokenAt(opts *bind.CallOpts, index *big.Int) (common.Address, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "wrappedTokenAt", index)
 
 	if err != nil {
 		return *new(common.Address), err
@@ -548,102 +498,183 @@ func (_Router *RouterCaller) TokenIdToAsset(opts *bind.CallOpts, arg0 []byte) (c
 
 }
 
-// TokenIdToAsset is a free data retrieval call binding the contract method 0xae5e2696.
+// WrappedTokenAt is a free data retrieval call binding the contract method 0xae963d45.
 //
-// Solidity: function tokenIdToAsset(bytes ) view returns(address)
-func (_Router *RouterSession) TokenIdToAsset(arg0 []byte) (common.Address, error) {
-	return _Router.Contract.TokenIdToAsset(&_Router.CallOpts, arg0)
+// Solidity: function wrappedTokenAt(uint256 index) view returns(address)
+func (_Router *RouterSession) WrappedTokenAt(index *big.Int) (common.Address, error) {
+	return _Router.Contract.WrappedTokenAt(&_Router.CallOpts, index)
 }
 
-// TokenIdToAsset is a free data retrieval call binding the contract method 0xae5e2696.
+// WrappedTokenAt is a free data retrieval call binding the contract method 0xae963d45.
 //
-// Solidity: function tokenIdToAsset(bytes ) view returns(address)
-func (_Router *RouterCallerSession) TokenIdToAsset(arg0 []byte) (common.Address, error) {
-	return _Router.Contract.TokenIdToAsset(&_Router.CallOpts, arg0)
+// Solidity: function wrappedTokenAt(uint256 index) view returns(address)
+func (_Router *RouterCallerSession) WrappedTokenAt(index *big.Int) (common.Address, error) {
+	return _Router.Contract.WrappedTokenAt(&_Router.CallOpts, index)
+}
+
+// WrappedTokensCount is a free data retrieval call binding the contract method 0xb753cf46.
+//
+// Solidity: function wrappedTokensCount() view returns(uint256)
+func (_Router *RouterCaller) WrappedTokensCount(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "wrappedTokensCount")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// WrappedTokensCount is a free data retrieval call binding the contract method 0xb753cf46.
+//
+// Solidity: function wrappedTokensCount() view returns(uint256)
+func (_Router *RouterSession) WrappedTokensCount() (*big.Int, error) {
+	return _Router.Contract.WrappedTokensCount(&_Router.CallOpts)
+}
+
+// WrappedTokensCount is a free data retrieval call binding the contract method 0xb753cf46.
+//
+// Solidity: function wrappedTokensCount() view returns(uint256)
+func (_Router *RouterCallerSession) WrappedTokensCount() (*big.Int, error) {
+	return _Router.Contract.WrappedTokensCount(&_Router.CallOpts)
+}
+
+// WrappedTokensData is a free data retrieval call binding the contract method 0xf804b7a2.
+//
+// Solidity: function wrappedTokensData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
+func (_Router *RouterCaller) WrappedTokensData(opts *bind.CallOpts, arg0 common.Address) (struct {
+	FeesAccrued     *big.Int
+	PreviousAccrued *big.Int
+	Accumulator     *big.Int
+}, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "wrappedTokensData", arg0)
+
+	outstruct := new(struct {
+		FeesAccrued     *big.Int
+		PreviousAccrued *big.Int
+		Accumulator     *big.Int
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.FeesAccrued = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.PreviousAccrued = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.Accumulator = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
+
+	return *outstruct, err
+
+}
+
+// WrappedTokensData is a free data retrieval call binding the contract method 0xf804b7a2.
+//
+// Solidity: function wrappedTokensData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
+func (_Router *RouterSession) WrappedTokensData(arg0 common.Address) (struct {
+	FeesAccrued     *big.Int
+	PreviousAccrued *big.Int
+	Accumulator     *big.Int
+}, error) {
+	return _Router.Contract.WrappedTokensData(&_Router.CallOpts, arg0)
+}
+
+// WrappedTokensData is a free data retrieval call binding the contract method 0xf804b7a2.
+//
+// Solidity: function wrappedTokensData(address ) view returns(uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
+func (_Router *RouterCallerSession) WrappedTokensData(arg0 common.Address) (struct {
+	FeesAccrued     *big.Int
+	PreviousAccrued *big.Int
+	Accumulator     *big.Int
+}, error) {
+	return _Router.Contract.WrappedTokensData(&_Router.CallOpts, arg0)
 }
 
 // Burn is a paid mutator transaction binding the contract method 0x8c99319f.
 //
-// Solidity: function burn(uint256 amount, bytes receiver, address asset) returns()
-func (_Router *RouterTransactor) Burn(opts *bind.TransactOpts, amount *big.Int, receiver []byte, asset common.Address) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "burn", amount, receiver, asset)
+// Solidity: function burn(uint256 amount, bytes receiver, address wrappedToken) returns()
+func (_Router *RouterTransactor) Burn(opts *bind.TransactOpts, amount *big.Int, receiver []byte, wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "burn", amount, receiver, wrappedToken)
 }
 
 // Burn is a paid mutator transaction binding the contract method 0x8c99319f.
 //
-// Solidity: function burn(uint256 amount, bytes receiver, address asset) returns()
-func (_Router *RouterSession) Burn(amount *big.Int, receiver []byte, asset common.Address) (*types.Transaction, error) {
-	return _Router.Contract.Burn(&_Router.TransactOpts, amount, receiver, asset)
+// Solidity: function burn(uint256 amount, bytes receiver, address wrappedToken) returns()
+func (_Router *RouterSession) Burn(amount *big.Int, receiver []byte, wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.Contract.Burn(&_Router.TransactOpts, amount, receiver, wrappedToken)
 }
 
 // Burn is a paid mutator transaction binding the contract method 0x8c99319f.
 //
-// Solidity: function burn(uint256 amount, bytes receiver, address asset) returns()
-func (_Router *RouterTransactorSession) Burn(amount *big.Int, receiver []byte, asset common.Address) (*types.Transaction, error) {
-	return _Router.Contract.Burn(&_Router.TransactOpts, amount, receiver, asset)
+// Solidity: function burn(uint256 amount, bytes receiver, address wrappedToken) returns()
+func (_Router *RouterTransactorSession) Burn(amount *big.Int, receiver []byte, wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.Contract.Burn(&_Router.TransactOpts, amount, receiver, wrappedToken)
 }
 
 // Claim is a paid mutator transaction binding the contract method 0x1e83409a.
 //
-// Solidity: function claim(address asset) returns()
-func (_Router *RouterTransactor) Claim(opts *bind.TransactOpts, asset common.Address) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "claim", asset)
+// Solidity: function claim(address wrappedToken) returns()
+func (_Router *RouterTransactor) Claim(opts *bind.TransactOpts, wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "claim", wrappedToken)
 }
 
 // Claim is a paid mutator transaction binding the contract method 0x1e83409a.
 //
-// Solidity: function claim(address asset) returns()
-func (_Router *RouterSession) Claim(asset common.Address) (*types.Transaction, error) {
-	return _Router.Contract.Claim(&_Router.TransactOpts, asset)
+// Solidity: function claim(address wrappedToken) returns()
+func (_Router *RouterSession) Claim(wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.Contract.Claim(&_Router.TransactOpts, wrappedToken)
 }
 
 // Claim is a paid mutator transaction binding the contract method 0x1e83409a.
 //
-// Solidity: function claim(address asset) returns()
-func (_Router *RouterTransactorSession) Claim(asset common.Address) (*types.Transaction, error) {
-	return _Router.Contract.Claim(&_Router.TransactOpts, asset)
+// Solidity: function claim(address wrappedToken) returns()
+func (_Router *RouterTransactorSession) Claim(wrappedToken common.Address) (*types.Transaction, error) {
+	return _Router.Contract.Claim(&_Router.TransactOpts, wrappedToken)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x724ae0eb.
+// Mint is a paid mutator transaction binding the contract method 0x9949e912.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
-func (_Router *RouterTransactor) Mint(opts *bind.TransactOpts, transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "mint", transactionId, asset, receiver, amount, txCost, signatures)
+// Solidity: function mint(bytes transactionId, address wrappedToken, address receiver, uint256 amount, bytes[] signatures) returns()
+func (_Router *RouterTransactor) Mint(opts *bind.TransactOpts, transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "mint", transactionId, wrappedToken, receiver, amount, signatures)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x724ae0eb.
+// Mint is a paid mutator transaction binding the contract method 0x9949e912.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
-func (_Router *RouterSession) Mint(transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint(&_Router.TransactOpts, transactionId, asset, receiver, amount, txCost, signatures)
+// Solidity: function mint(bytes transactionId, address wrappedToken, address receiver, uint256 amount, bytes[] signatures) returns()
+func (_Router *RouterSession) Mint(transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.Mint(&_Router.TransactOpts, transactionId, wrappedToken, receiver, amount, signatures)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x724ae0eb.
+// Mint is a paid mutator transaction binding the contract method 0x9949e912.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
-func (_Router *RouterTransactorSession) Mint(transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint(&_Router.TransactOpts, transactionId, asset, receiver, amount, txCost, signatures)
+// Solidity: function mint(bytes transactionId, address wrappedToken, address receiver, uint256 amount, bytes[] signatures) returns()
+func (_Router *RouterTransactorSession) Mint(transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.Mint(&_Router.TransactOpts, transactionId, wrappedToken, receiver, amount, signatures)
 }
 
-// Mint0 is a paid mutator transaction binding the contract method 0x9949e912.
+// MintWithReimbursement is a paid mutator transaction binding the contract method 0x9787221b.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, bytes[] signatures) returns()
-func (_Router *RouterTransactor) Mint0(opts *bind.TransactOpts, transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "mint0", transactionId, asset, receiver, amount, signatures)
+// Solidity: function mintWithReimbursement(bytes transactionId, address wrappedToken, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
+func (_Router *RouterTransactor) MintWithReimbursement(opts *bind.TransactOpts, transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "mintWithReimbursement", transactionId, wrappedToken, receiver, amount, txCost, signatures)
 }
 
-// Mint0 is a paid mutator transaction binding the contract method 0x9949e912.
+// MintWithReimbursement is a paid mutator transaction binding the contract method 0x9787221b.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, bytes[] signatures) returns()
-func (_Router *RouterSession) Mint0(transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint0(&_Router.TransactOpts, transactionId, asset, receiver, amount, signatures)
+// Solidity: function mintWithReimbursement(bytes transactionId, address wrappedToken, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
+func (_Router *RouterSession) MintWithReimbursement(transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.MintWithReimbursement(&_Router.TransactOpts, transactionId, wrappedToken, receiver, amount, txCost, signatures)
 }
 
-// Mint0 is a paid mutator transaction binding the contract method 0x9949e912.
+// MintWithReimbursement is a paid mutator transaction binding the contract method 0x9787221b.
 //
-// Solidity: function mint(bytes transactionId, address asset, address receiver, uint256 amount, bytes[] signatures) returns()
-func (_Router *RouterTransactorSession) Mint0(transactionId []byte, asset common.Address, receiver common.Address, amount *big.Int, signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint0(&_Router.TransactOpts, transactionId, asset, receiver, amount, signatures)
+// Solidity: function mintWithReimbursement(bytes transactionId, address wrappedToken, address receiver, uint256 amount, uint256 txCost, bytes[] signatures) returns()
+func (_Router *RouterTransactorSession) MintWithReimbursement(transactionId []byte, wrappedToken common.Address, receiver common.Address, amount *big.Int, txCost *big.Int, signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.MintWithReimbursement(&_Router.TransactOpts, transactionId, wrappedToken, receiver, amount, txCost, signatures)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
@@ -709,27 +740,6 @@ func (_Router *RouterTransactorSession) TransferOwnership(newOwner common.Addres
 	return _Router.Contract.TransferOwnership(&_Router.TransactOpts, newOwner)
 }
 
-// UpdateAsset is a paid mutator transaction binding the contract method 0x86545fa4.
-//
-// Solidity: function updateAsset(address newAsset, bytes tokenID, bool isActive) returns()
-func (_Router *RouterTransactor) UpdateAsset(opts *bind.TransactOpts, newAsset common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "updateAsset", newAsset, tokenID, isActive)
-}
-
-// UpdateAsset is a paid mutator transaction binding the contract method 0x86545fa4.
-//
-// Solidity: function updateAsset(address newAsset, bytes tokenID, bool isActive) returns()
-func (_Router *RouterSession) UpdateAsset(newAsset common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
-	return _Router.Contract.UpdateAsset(&_Router.TransactOpts, newAsset, tokenID, isActive)
-}
-
-// UpdateAsset is a paid mutator transaction binding the contract method 0x86545fa4.
-//
-// Solidity: function updateAsset(address newAsset, bytes tokenID, bool isActive) returns()
-func (_Router *RouterTransactorSession) UpdateAsset(newAsset common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
-	return _Router.Contract.UpdateAsset(&_Router.TransactOpts, newAsset, tokenID, isActive)
-}
-
 // UpdateMember is a paid mutator transaction binding the contract method 0x05566101.
 //
 // Solidity: function updateMember(address account, bool isMember) returns()
@@ -751,139 +761,25 @@ func (_Router *RouterTransactorSession) UpdateMember(account common.Address, isM
 	return _Router.Contract.UpdateMember(&_Router.TransactOpts, account, isMember)
 }
 
-// RouterAssetContractSetIterator is returned from FilterAssetContractSet and is used to iterate over the raw logs and unpacked data for AssetContractSet events raised by the Router contract.
-type RouterAssetContractSetIterator struct {
-	Event *RouterAssetContractSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *RouterAssetContractSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(RouterAssetContractSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(RouterAssetContractSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *RouterAssetContractSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *RouterAssetContractSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// RouterAssetContractSet represents a AssetContractSet event raised by the Router contract.
-type RouterAssetContractSet struct {
-	NewAsset common.Address
-	IsActive bool
-	Raw      types.Log // Blockchain specific contextual infos
-}
-
-// FilterAssetContractSet is a free log retrieval operation binding the contract event 0x46b131307a2dfcf4a7c0e56a0f8e948d43e7e652c64cf5c227c255d3fb91a0fc.
+// UpdateWrappedToken is a paid mutator transaction binding the contract method 0xb9080c46.
 //
-// Solidity: event AssetContractSet(address newAsset, bool isActive)
-func (_Router *RouterFilterer) FilterAssetContractSet(opts *bind.FilterOpts) (*RouterAssetContractSetIterator, error) {
-
-	logs, sub, err := _Router.contract.FilterLogs(opts, "AssetContractSet")
-	if err != nil {
-		return nil, err
-	}
-	return &RouterAssetContractSetIterator{contract: _Router.contract, event: "AssetContractSet", logs: logs, sub: sub}, nil
+// Solidity: function updateWrappedToken(address newWrappedToken, bytes tokenID, bool isActive) returns()
+func (_Router *RouterTransactor) UpdateWrappedToken(opts *bind.TransactOpts, newWrappedToken common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "updateWrappedToken", newWrappedToken, tokenID, isActive)
 }
 
-// WatchAssetContractSet is a free log subscription operation binding the contract event 0x46b131307a2dfcf4a7c0e56a0f8e948d43e7e652c64cf5c227c255d3fb91a0fc.
+// UpdateWrappedToken is a paid mutator transaction binding the contract method 0xb9080c46.
 //
-// Solidity: event AssetContractSet(address newAsset, bool isActive)
-func (_Router *RouterFilterer) WatchAssetContractSet(opts *bind.WatchOpts, sink chan<- *RouterAssetContractSet) (event.Subscription, error) {
-
-	logs, sub, err := _Router.contract.WatchLogs(opts, "AssetContractSet")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(RouterAssetContractSet)
-				if err := _Router.contract.UnpackLog(event, "AssetContractSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
+// Solidity: function updateWrappedToken(address newWrappedToken, bytes tokenID, bool isActive) returns()
+func (_Router *RouterSession) UpdateWrappedToken(newWrappedToken common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateWrappedToken(&_Router.TransactOpts, newWrappedToken, tokenID, isActive)
 }
 
-// ParseAssetContractSet is a log parse operation binding the contract event 0x46b131307a2dfcf4a7c0e56a0f8e948d43e7e652c64cf5c227c255d3fb91a0fc.
+// UpdateWrappedToken is a paid mutator transaction binding the contract method 0xb9080c46.
 //
-// Solidity: event AssetContractSet(address newAsset, bool isActive)
-func (_Router *RouterFilterer) ParseAssetContractSet(log types.Log) (*RouterAssetContractSet, error) {
-	event := new(RouterAssetContractSet)
-	if err := _Router.contract.UnpackLog(event, "AssetContractSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
+// Solidity: function updateWrappedToken(address newWrappedToken, bytes tokenID, bool isActive) returns()
+func (_Router *RouterTransactorSession) UpdateWrappedToken(newWrappedToken common.Address, tokenID []byte, isActive bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateWrappedToken(&_Router.TransactOpts, newWrappedToken, tokenID, isActive)
 }
 
 // RouterBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the Router contract.
@@ -1172,141 +1068,6 @@ func (_Router *RouterFilterer) WatchClaim(opts *bind.WatchOpts, sink chan<- *Rou
 func (_Router *RouterFilterer) ParseClaim(log types.Log) (*RouterClaim, error) {
 	event := new(RouterClaim)
 	if err := _Router.contract.UnpackLog(event, "Claim", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// RouterDeprecateIterator is returned from FilterDeprecate and is used to iterate over the raw logs and unpacked data for Deprecate events raised by the Router contract.
-type RouterDeprecateIterator struct {
-	Event *RouterDeprecate // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *RouterDeprecateIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(RouterDeprecate)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(RouterDeprecate)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *RouterDeprecateIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *RouterDeprecateIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// RouterDeprecate represents a Deprecate event raised by the Router contract.
-type RouterDeprecate struct {
-	Account common.Address
-	Amount  *big.Int
-	Raw     types.Log // Blockchain specific contextual infos
-}
-
-// FilterDeprecate is a free log retrieval operation binding the contract event 0x33a356c68d152c1cdfdce73f7e4644d382dcbe94098932def08c281a37cdf6bd.
-//
-// Solidity: event Deprecate(address account, uint256 amount)
-func (_Router *RouterFilterer) FilterDeprecate(opts *bind.FilterOpts) (*RouterDeprecateIterator, error) {
-
-	logs, sub, err := _Router.contract.FilterLogs(opts, "Deprecate")
-	if err != nil {
-		return nil, err
-	}
-	return &RouterDeprecateIterator{contract: _Router.contract, event: "Deprecate", logs: logs, sub: sub}, nil
-}
-
-// WatchDeprecate is a free log subscription operation binding the contract event 0x33a356c68d152c1cdfdce73f7e4644d382dcbe94098932def08c281a37cdf6bd.
-//
-// Solidity: event Deprecate(address account, uint256 amount)
-func (_Router *RouterFilterer) WatchDeprecate(opts *bind.WatchOpts, sink chan<- *RouterDeprecate) (event.Subscription, error) {
-
-	logs, sub, err := _Router.contract.WatchLogs(opts, "Deprecate")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(RouterDeprecate)
-				if err := _Router.contract.UnpackLog(event, "Deprecate", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseDeprecate is a log parse operation binding the contract event 0x33a356c68d152c1cdfdce73f7e4644d382dcbe94098932def08c281a37cdf6bd.
-//
-// Solidity: event Deprecate(address account, uint256 amount)
-func (_Router *RouterFilterer) ParseDeprecate(log types.Log) (*RouterDeprecate, error) {
-	event := new(RouterDeprecate)
-	if err := _Router.contract.UnpackLog(event, "Deprecate", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -1888,6 +1649,142 @@ func (_Router *RouterFilterer) WatchServiceFeeSet(opts *bind.WatchOpts, sink cha
 func (_Router *RouterFilterer) ParseServiceFeeSet(log types.Log) (*RouterServiceFeeSet, error) {
 	event := new(RouterServiceFeeSet)
 	if err := _Router.contract.UnpackLog(event, "ServiceFeeSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// RouterTokenUpdateIterator is returned from FilterTokenUpdate and is used to iterate over the raw logs and unpacked data for TokenUpdate events raised by the Router contract.
+type RouterTokenUpdateIterator struct {
+	Event *RouterTokenUpdate // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RouterTokenUpdateIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RouterTokenUpdate)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RouterTokenUpdate)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RouterTokenUpdateIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RouterTokenUpdateIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RouterTokenUpdate represents a TokenUpdate event raised by the Router contract.
+type RouterTokenUpdate struct {
+	NewWrappedToken common.Address
+	NativeToken     []byte
+	IsActive        bool
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterTokenUpdate is a free log retrieval operation binding the contract event 0x1fdba7efccb3b2b0ed68be70ff537de605c6a8d279fc25899e5426cb4ddd3d8b.
+//
+// Solidity: event TokenUpdate(address newWrappedToken, bytes nativeToken, bool isActive)
+func (_Router *RouterFilterer) FilterTokenUpdate(opts *bind.FilterOpts) (*RouterTokenUpdateIterator, error) {
+
+	logs, sub, err := _Router.contract.FilterLogs(opts, "TokenUpdate")
+	if err != nil {
+		return nil, err
+	}
+	return &RouterTokenUpdateIterator{contract: _Router.contract, event: "TokenUpdate", logs: logs, sub: sub}, nil
+}
+
+// WatchTokenUpdate is a free log subscription operation binding the contract event 0x1fdba7efccb3b2b0ed68be70ff537de605c6a8d279fc25899e5426cb4ddd3d8b.
+//
+// Solidity: event TokenUpdate(address newWrappedToken, bytes nativeToken, bool isActive)
+func (_Router *RouterFilterer) WatchTokenUpdate(opts *bind.WatchOpts, sink chan<- *RouterTokenUpdate) (event.Subscription, error) {
+
+	logs, sub, err := _Router.contract.WatchLogs(opts, "TokenUpdate")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RouterTokenUpdate)
+				if err := _Router.contract.UnpackLog(event, "TokenUpdate", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTokenUpdate is a log parse operation binding the contract event 0x1fdba7efccb3b2b0ed68be70ff537de605c6a8d279fc25899e5426cb4ddd3d8b.
+//
+// Solidity: event TokenUpdate(address newWrappedToken, bytes nativeToken, bool isActive)
+func (_Router *RouterFilterer) ParseTokenUpdate(log types.Log) (*RouterTokenUpdate, error) {
+	event := new(RouterTokenUpdate)
+	if err := _Router.contract.UnpackLog(event, "TokenUpdate", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
