@@ -122,7 +122,7 @@ func newClients(config Config) (*clients, error) {
 	}
 	ethClient := ethereum.NewClient(config.Ethereum)
 
-	whbarContractAddress := common.HexToAddress(config.Ethereum.WhbarContractAddress)
+	whbarContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
 	whbarInstance, err := whbar.NewWhbar(whbarContractAddress, ethClient.Client)
 	if err != nil {
 		return nil, err
