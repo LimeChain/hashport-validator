@@ -47,7 +47,7 @@ type Service struct {
 func (bsc *Service) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error) {
 	asset, err := bsc.routerContract.TokenIdToAsset(
 		opts,
-		common.Hex2Bytes(tokenId),
+		common.RightPadBytes([]byte(tokenId), 32),
 	)
 	if err != nil {
 		return false, "", err
