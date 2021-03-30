@@ -161,7 +161,12 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		valid, targetAsset := r.contracts.IsValidBridgeAsset(asset)
+		valid, targetAsset, err := r.contracts.IsValidBridgeAsset(nil, asset)
+
+		if err != nil {
+			r.logger.Errorf("[%s] - Could not validate provided asset [%s] - Error: [%s]", tx.TransactionID, asset, err)
+			continue
+		}
 		if !valid {
 			r.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
 			continue
@@ -252,28 +257,11 @@ func (r Recovery) processUnfinishedOperations() error {
 	}
 
 	for _, transfer := range unprocessedTransfers {
-		weiBn, err := helper.ToBigInt(transfer.GasPriceWei)
-		if err != nil {
-			r.logger.Errorf("Skipping recovery for TX [%s]. Could not parse gas price [%s wei] to Big Integer.", transfer.TransactionId, transfer.GasPriceWei)
-			continue
-		}
-		gwei := ethereum.WeiToGwei(weiBn)
-
-		valid, erc20Address, err := r.contracts.IsValidBridgeAsset(nil, transfer.Asset)
-		if err != nil {
-			r.logger.Errorf("Skipping recovery for TX [%s]. Could not validate provided asset [%s] - Error: [%s]", transfer.Asset, err)
-			continue
-		}
-		if !valid {
-			r.logger.Errorf("Skipping recovery for TX [%s]. Specified Asset [%s] is not supported.", transfer.TransactionId, transfer.Asset)
-			continue
-		}
-
 		transferMsg := encoding.NewTransferMessage(
 			transfer.TransactionID,
-			transfer.Receiver, // ethaddress
-			transfer.SourceAsset, // asset
-			transfer.TargetAsset, // erc20
+			transfer.Receiver,
+			transfer.SourceAsset,
+			transfer.TargetAsset,
 			transfer.Amount,
 			transfer.TxReimbursement,
 			transfer.GasPrice,

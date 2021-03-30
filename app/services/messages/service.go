@@ -91,13 +91,13 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		return false, err
 	}
 
-	valid, erc20address, err := ss.contractsService.IsValidBridgeAsset(nil, t.Asset)
+	valid, erc20address, err := ss.contractsService.IsValidBridgeAsset(nil, t.SourceAsset)
 	if err != nil {
-		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", t.Asset, err)
+		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", t.SourceAsset, err)
 		return false, err
 	}
 	if !valid {
-		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.Asset)
+		ss.logger.Errorf("Provided Asset is not supported - [%s]", t.SourceAsset)
 		return false, err
 	}
 
@@ -390,13 +390,13 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 
-	valid, _, err := ss.contractsService.IsValidBridgeAsset(nil, dbTx.Asset)
+	valid, _, err := ss.contractsService.IsValidBridgeAsset(nil, dbTx.SourceAsset)
 	if err != nil {
-		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", dbTx.Asset, err)
+		ss.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", dbTx.SourceAsset, err)
 		return false, err
 	}
 	if !valid {
-		ss.logger.Errorf("Provided Asset is not supported - [%s]", dbTx.Asset)
+		ss.logger.Errorf("Provided Asset is not supported - [%s]", dbTx.SourceAsset)
 		return false, err
 	}
 
