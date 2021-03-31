@@ -26,7 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
-	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/db-validation"
+	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -179,7 +179,7 @@ type Config struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType   	  string    `yaml:"network_type"`
+	NetworkType       string    `yaml:"network_type"`
 	BridgeAccount     string    `yaml:"bridge_account"`
 	TopicID           string    `yaml:"topic_id"`
 	Sender            Sender    `yaml:"sender"`

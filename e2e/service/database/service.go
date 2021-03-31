@@ -1,4 +1,4 @@
-package db_validation
+package database
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
