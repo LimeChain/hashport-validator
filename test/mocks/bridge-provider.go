@@ -31,7 +31,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error) {
+func (m *MockBridgeContract) ParseToken(opts *bind.CallOpts, tokenId string) (bool, string, error) {
 	panic("implement me")
 }
 
@@ -43,7 +43,7 @@ func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<
 	panic("implement me")
 }
 
-func (m *MockBridgeContract) SubmitSignatures(opts *bind.TransactOpts, txId, targetAsset, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
+func (m *MockBridgeContract) SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
 	panic("implement me")
 }
 

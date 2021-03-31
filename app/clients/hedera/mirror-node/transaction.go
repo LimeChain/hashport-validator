@@ -44,7 +44,7 @@ type (
 		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
-		Asset string `json:"token_id"`
+		NativeToken string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried
@@ -70,7 +70,7 @@ func (t Transaction) getIncomingAmountFor(account string) (string, string, error
 func (t Transaction) getIncomingTokenAmountFor(account string) (string, string, error) {
 	for _, tr := range t.TokenTransfers {
 		if tr.Account == account {
-			return strconv.Itoa(int(tr.Amount)), tr.Asset, nil
+			return strconv.Itoa(int(tr.Amount)), tr.NativeToken, nil
 		}
 	}
 	return "", "", errors.New("no incoming token transfer found")

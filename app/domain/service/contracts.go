@@ -38,7 +38,7 @@ type Contracts interface {
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-	SubmitSignatures(opts *bind.TransactOpts, txId, targetAsset, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
+	SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
 	// Check whether a specific asset has a valid bridge token address. Returns true and the erc20 token address if token is valid. Returns false and an empty string if not.
-	IsValidBridgeAsset(opts *bind.CallOpts, tokenId string) (bool, string, error)
+	ParseToken(nativeTokenId string) string
 }

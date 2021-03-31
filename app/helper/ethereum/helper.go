@@ -34,7 +34,7 @@ const (
 	MintFunctionParameterAmount        = "amount"
 	MintFunctionParameterReceiver      = "receiver"
 	MintFunctionParameterSignatures    = "signatures"
-	MintFunctionParameterTargetAsset   = "wrappedToken"
+	MintFunctionParameterTargetAsset   = "wrappedToken" // TODO: Rename also to WrappedToken?
 	MintFunctionParameterTransactionId = "transactionId"
 	MintFunctionParameterTxCost        = "txCost"
 )

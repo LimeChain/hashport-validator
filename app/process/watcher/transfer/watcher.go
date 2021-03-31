@@ -136,19 +136,15 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	amount, nativeToken, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	valid, targetAsset, err := ctw.contractService.IsValidBridgeAsset(nil, asset)
-	if err != nil {
-		ctw.logger.Errorf("Could not validate provided asset [%s] - Error: [%s]", asset, err)
-		return
-	}
-	if !valid {
-		ctw.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
+	wrappedToken := ctw.contractService.ParseToken(nativeToken)
+	if wrappedToken == "" {
+		ctw.logger.Errorf("[%s] - The specified nativeToken [%s] is not supported", tx.TransactionID, nativeToken)
 		return
 	}
 
@@ -158,7 +154,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
+	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
 	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
 }
 

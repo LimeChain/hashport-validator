@@ -121,15 +121,15 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Tra
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error {
+func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
 		TransactionId:         txId,
 		Receiver:              m.EthereumAddress,
 		Amount:                amount,
 		TxReimbursement:       m.TxReimbursementFee,
 		GasPrice:              m.GasPrice,
-		SourceAsset:           sourceAsset,
-		TargetAsset:           targetAsset,
+		NativeToken:           nativeToken,
+		WrappedToken:          wrappedToken,
 		ExecuteEthTransaction: m.ExecuteEthTransaction,
 	})
 	if err != nil {
@@ -186,7 +186,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		return err
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
@@ -206,7 +206,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 		tm.TxReimbursement,
 		tm.GasPrice,
 		signature,
-		tm.TargetAsset)
+		tm.WrappedToken)
 
 	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := signatureMessage.ToBytes()
@@ -255,13 +255,13 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
-		Recipient:   t.Receiver,
-		Amount:      t.Amount,
-		Fee:         t.TxReimbursement,
-		SourceAsset: t.SourceAsset,
-		TargetAsset: t.TargetAsset,
-		Signatures:  signatures,
-		Majority:    reachedMajority,
-		GasPrice:    t.GasPrice,
+		Recipient:    t.Receiver,
+		Amount:       t.Amount,
+		Fee:          t.TxReimbursement,
+		NativeToken:  t.NativeToken,
+		WrappedToken: t.WrappedToken,
+		Signatures:   signatures,
+		Majority:     reachedMajority,
+		GasPrice:     t.GasPrice,
 	}, nil
 }

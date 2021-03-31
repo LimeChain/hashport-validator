@@ -176,8 +176,8 @@ func (tr Repository) create(ct *proto.TransferMessage, status string) (*entity.T
 		Amount:                ct.Amount,
 		TxReimbursement:       ct.TxReimbursement,
 		Status:                status,
-		SourceAsset:           ct.SourceAsset,
-		TargetAsset:           ct.TargetAsset,
+		NativeToken:           ct.NativeToken,
+		WrappedToken:          ct.WrappedToken,
 		GasPrice:              ct.GasPrice,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}

@@ -124,7 +124,7 @@ func newClients(config Config) (*clients, error) {
 	}
 	ethClient := ethereum.NewClient(config.Ethereum)
 
-	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
+	routerContractAddress := common.HexToAddress(config.Ethereum.ContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
 	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
@@ -149,20 +149,20 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initTokenContract(sourceAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	fmt.Println(common.RightPadBytes([]byte(sourceAsset), 32))
+func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	fmt.Println(common.RightPadBytes([]byte(nativeToken), 32))
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
-	asset, err := routerInstance.NativeToWrappedToken(
+	wrappedToken, err := routerInstance.NativeToWrappedToken(
 		nil,
-		common.RightPadBytes([]byte(sourceAsset), 32),
+		common.RightPadBytes([]byte(nativeToken), 32),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenContractHex := asset.String()
+	wTokenContractHex := wrappedToken.String()
 	if wTokenContractHex == nilErc20Address {
-		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", sourceAsset))
+		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
 	}
 
 	wTokenContractAddress := common.HexToAddress(wTokenContractHex)
