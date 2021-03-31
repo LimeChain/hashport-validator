@@ -18,36 +18,47 @@ package persistence
 
 import (
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"time"
 )
 
 // Establish connection to the Postgres Database
 func connectToDb(dbConfig config.Db) *gorm.DB {
 	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Name, dbConfig.Password)
+
+	db := tryConnection(connectionStr)
+	log.Infoln("Successfully connected to Database")
+
+	return db
+}
+
+// TryConnection, tries to connect to the database associated to the validator node. If it fails, it retries after 10 seconds.
+// This function will try to reconnect until it succeeds or the validator node gets stopped manually
+func tryConnection(connectionStr string) *gorm.DB {
 	db, err := gorm.Open(
 		postgres.Open(connectionStr),
 		&gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		},
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Infoln("Successfully connected to Database")
 
+	if err != nil {
+		log.Error(err)
+		time.Sleep(10 * time.Second)
+		log.Infof("Retrying to connect to DB with connection string [%s]", connectionStr)
+		return tryConnection(connectionStr)
+	}
 	return db
 }
 
 // Migrate tables
 func migrateDb(db *gorm.DB) {
-	err := db.AutoMigrate(status.Status{}, transaction.Transaction{}, message.TransactionMessage{})
+	err := db.AutoMigrate(entity.Status{}, entity.Transfer{}, entity.Message{})
 	if err != nil {
 		log.Fatal(err)
 	}

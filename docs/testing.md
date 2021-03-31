@@ -18,6 +18,7 @@ Name                                              | Description
 `hedera.ethereum.whbar_contract_address`          | The ERC20 WHBAR contract on Ethereum
 `hedera.ethereum.bridge_contract_address`         | The Bridge contract on Ethereum
 `hedera.validator_url`                            | The URL of the Validator node. Used for querying Metadata
+`hedera.network_type`                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
 
 ### Run E2E Tests
 

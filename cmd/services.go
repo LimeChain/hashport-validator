@@ -47,16 +47,17 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
+		contracts,
 		fees,
 		ethSigner,
-		repositories.transaction,
+		repositories.transfer,
 		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
 
 	messages := messages.NewService(
 		ethSigner,
 		contracts,
 		schedulerService,
-		repositories.transaction,
+		repositories.transfer,
 		repositories.message,
 		clients.HederaNode,
 		clients.MirrorNode,

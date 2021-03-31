@@ -1,5 +1,7 @@
 # This file contains application defaults
 hedera:
+  log_level: info
+  rest_api_only: false
   validator:
     db:
       host: 127.0.0.1
@@ -8,6 +10,10 @@ hedera:
       port: 5432
       username: validator
     port: 5200
+  eth:
+    node_url:
+    bridge_contract_address:
+    whbar_contract_address:
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600
     api_address: https://testnet.mirrornode.hedera.com/api/v1/
@@ -18,12 +24,23 @@ hedera:
       account_id:
       private_key:
       eth_private_key:
+    base_gas_usage: 130000
+    gas_per_validator: 54000
   watcher:
     crypto-transfer:
-      accounts:
+      account:
+        id:
+        max_retries: 10
+        start_timestamp:
     consensus-message:
-      topics:
+      topic:
+        id:
+        max_retries: 10
+        start_timestamp:
   handler:
     crypto-transfer:
       topic_id:
-      polling_interval:
+      polling_interval: 5
+    consensus-message:
+      topic_id:
+      send_deadline: 300

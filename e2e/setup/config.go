@@ -17,6 +17,7 @@
 package setup
 
 import (
+	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go"
@@ -115,7 +116,7 @@ type clients struct {
 
 // newClients instantiates the clients for the e2e tests
 func newClients(config Config) (*clients, error) {
-	hederaClient, err := initHederaClient(config.Hedera.Sender)
+	hederaClient, err := initHederaClient(config.Hedera.Sender, config.Hedera.NetworkType)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +142,18 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initHederaClient(sender Sender) (*hederaSDK.Client, error) {
-	client := hederaSDK.ClientForTestnet()
+func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
+	var client *hederaSDK.Client
+	switch networkType {
+	case "mainnet":
+		client = hederaSDK.ClientForMainnet()
+	case "testnet":
+		client = hederaSDK.ClientForTestnet()
+	case "previewnet":
+		client = hederaSDK.ClientForPreviewnet()
+	default:
+		panic(fmt.Sprintf("Invalid Client NetworkType provided: [%s]", networkType))
+	}
 	senderAccount, err := hederaSDK.AccountIDFromString(sender.Account)
 	if err != nil {
 		return nil, err
@@ -165,6 +176,7 @@ type Config struct {
 
 // hedera props from the application.yml
 type Hedera struct {
+	NetworkType   string `yaml:"network_type"`
 	BridgeAccount string `yaml:"bridge_account"`
 	TopicID       string `yaml:"topic_id"`
 	Sender        Sender `yaml:"sender"`
