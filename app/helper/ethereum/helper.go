@@ -35,7 +35,6 @@ const (
 	MintFunctionParameterReceiver      = "receiver"
 	MintFunctionParameterSignatures    = "signatures"
 	MintFunctionParameterTargetAsset   = "wrappedToken"
-	MintFunctionParameterGasCost       = "gasCost"
 	MintFunctionParameterTransactionId = "transactionId"
 	MintFunctionParameterTxCost        = "txCost"
 )
@@ -58,21 +57,21 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amount, fee, gasPrice string, signatures [][]byte, err error) {
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amount, fee string, signatures [][]byte, err error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
-		return "", "", "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	// bytes transactionId, address receiver, address erc20address, uint256 amount, uint256 fee, uint256 gasCost, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
-		return "", "", "", "", "", "", nil, err
+		return "", "", "", "", "", nil, err
 	}
 
 	if len(decodedParameters) != MintFunctionParametersCount {
-		return "", "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
+		return "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
 	}
 
 	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
@@ -82,16 +81,15 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amou
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
 	erc20 := decodedParameters[MintFunctionParameterTargetAsset].(common.Address)
-	gasCost := decodedParameters[MintFunctionParameterGasCost].(*big.Int)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
 		if err != nil {
-			return "", "", "", "", "", "", nil, err
+			return "", "", "", "", "", nil, err
 		}
 	}
 
-	return string(transactionId), receiver.String(), erc20.String(), amountBn.String(), txCost.String(), gasCost.String(), signatures, nil
+	return string(transactionId), receiver.String(), erc20.String(), amountBn.String(), txCost.String(), signatures, nil
 }
 
 func GweiToWei(gwei *big.Int) *big.Int {

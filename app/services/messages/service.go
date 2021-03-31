@@ -367,8 +367,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 		return false, nil
 	}
 	// Verify Ethereum TX `call data`
-	// TODO: new gasCost return parameter
-	txId, ethAddress, amount, txReimbursement, erc20address, _, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
+	txId, ethAddress, amount, txReimbursement, erc20address, signatures, err := ethhelper.DecodeBridgeMintFunction(tx.Data())
 	if err != nil {
 		if errors.Is(err, ethhelper.ErrorInvalidMintFunctionParameters) {
 			ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid Mint parameters provided", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
