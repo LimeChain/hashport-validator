@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	nilErc20Address = "0x00000000000000000000"
+	nilErc20Address = "0x0000000000000000000000000000000000000000"
 )
 
 type Service struct {

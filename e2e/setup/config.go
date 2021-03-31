@@ -151,7 +151,7 @@ func newClients(config Config) (*clients, error) {
 
 func initTokenContract(sourceAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
 	fmt.Println(common.RightPadBytes([]byte(sourceAsset), 32))
-	nilErc20Address := "0x00000000000000000000"
+	nilErc20Address := "0x0000000000000000000000000000000000000000"
 	asset, err := routerInstance.NativeToWrappedToken(
 		nil,
 		common.RightPadBytes([]byte(sourceAsset), 32),
