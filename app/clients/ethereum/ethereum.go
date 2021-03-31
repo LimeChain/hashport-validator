@@ -132,12 +132,15 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *Client) WaitBlocks(numberOfBlocks uint64) error {
+func (ec *Client) WaitBlocks(transactionHash string) error {
+	numberOfBlocks := ec.config.WaitingBlocks
 	if numberOfBlocks < 1 {
 		return errors.New("numberOfBlocks should be a positive number")
 	}
 
-	blockNumber, err := ec.BlockNumber(context.Background())
+	// TODO: Get Transaction Receipt -> get block
+
+	blockNumber, err := ec.BlockByHash(context.Background(), transactionHash)
 	if err != nil {
 		return err
 	}
