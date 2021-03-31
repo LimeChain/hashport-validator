@@ -17,7 +17,7 @@
 package client
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 )
 
