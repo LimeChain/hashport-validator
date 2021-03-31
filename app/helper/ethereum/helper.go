@@ -40,7 +40,7 @@ const (
 )
 
 const (
-	MintFunction                = "mint"
+	MintFunction                = "mintWithReimbursement"
 	MintFunctionParametersCount = 5
 )
 
