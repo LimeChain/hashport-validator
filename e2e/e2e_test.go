@@ -128,7 +128,7 @@ func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, si
 	}
 }
 
-func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
+func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, whbarReceiverAddress, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
 	bigGasPriceGwei, err := helper.ToBigInt(gasPriceGwei)
 	if err != nil {
 		t.Fatalf("Could not parse GasPriceGwei [%s] to Big Integer for TX ID [%s]. Error: [%s].", gasPriceGwei, transactionResponse.TransactionID.String(), err)
@@ -139,7 +139,7 @@ func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hede
 		TransactionID:         transactionResponse.TransactionID.String(),
 		Receiver:              receiverAddress,
 		SourceAsset:           "hbar",
-		TargetAsset:           "",
+		TargetAsset:           whbarReceiverAddress,
 		Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
 		TxReimbursement:       txFee,
 		GasPrice:              bigGasPriceWei,
@@ -151,21 +151,6 @@ func verifyTransactionRecordInDB(setupEnv *setup.Setup, transactionResponse hede
 		ExecuteEthTransaction: true,
 		Messages:              nil,
 	}
-	//Model:                 gorm.Model{},
-	//TransactionId:         transactionResponse.TransactionID.String(),
-	//EthAddress:            receiverAddress,
-	//Amount:                strconv.FormatInt(hBarAmount.AsTinybar(), 10),
-	//Fee:                   txFee,
-	//Signature:             "", // TODO: Figure out how to mock expected signature (Signing Logic from Process Transfer Maybe?)
-	//SignatureMsgTxId:      "", // TODO: Figure out how to get exactly the same signature message transaction id (No Idea where this will come from) - Probably won't check
-	//Status:                transaction.StatusCompleted,
-	//SignatureMsgStatus:    transaction.StatusSignatureMined,
-	//EthTxMsgStatus:        transaction.StatusEthTxMsgMined,
-	//EthTxStatus:           transaction.StatusEthTxMined,
-	//EthHash:               ethTransactionHash,
-	//Asset:                 "hbar",
-	//GasPriceWei:           bigGasPriceWei,
-	//ExecuteEthTransaction: true,
 	exists, err := setupEnv.DBVerifier.TransactionRecordExists(expectedTxRecord)
 	if err != nil {
 		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxRecord.TransactionID, err)
