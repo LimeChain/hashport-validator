@@ -3,36 +3,37 @@ package database
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
-	transactions repository.Transaction
+	transactions repository.Transfer
 	messages     repository.Message
 	logger       *log.Entry
 }
 
 func NewService(dbConfig config.Db) *Service {
 	return &Service{
-		transactions: transaction.NewRepository(persistence.RunDb(dbConfig)),
+		transactions: transfer.NewRepository(persistence.RunDb(dbConfig)),
 		messages:     message.NewRepository(persistence.RunDb(dbConfig)),
 		logger:       config.GetLoggerFor("DB Validation Service"),
 	}
 }
 
-func (s *Service) TransactionRecordExists(expectedTx *transaction.Transaction) (bool, error) {
-	actualDbTx, err := s.transactions.GetByTransactionId(expectedTx.TransactionId)
+func (s *Service) TransactionRecordExists(expectedTx *entity.Transfer) (bool, error) {
+	actualDbTx, err := s.transactions.GetByTransactionId(expectedTx.TransactionID)
 	if err != nil {
 		return false, err
 	}
 	return expectedTx == actualDbTx, nil
 }
 
-func (s *Service) SignatureMessagesExist(txId string, expectedMessages []message.TransactionMessage) (bool, error) {
-	messages, err := s.messages.GetMessagesFor(txId)
+func (s *Service) SignatureMessagesExist(txId string, expectedMessages []entity.Message) (bool, error) {
+	messages, err := s.messages.Get(txId)
 	if err != nil {
 		return false, err
 	}
@@ -45,7 +46,7 @@ func (s *Service) SignatureMessagesExist(txId string, expectedMessages []message
 	return len(messages) == len(expectedMessages), nil
 }
 
-func contains(m message.TransactionMessage, array []message.TransactionMessage) bool {
+func contains(m entity.Message, array []entity.Message) bool {
 	for _, a := range array {
 		if a == m {
 			return true
