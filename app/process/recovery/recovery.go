@@ -155,15 +155,15 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 
 	r.logger.Infof("Found [%d] unprocessed TXns for Account [%s]", len(txns), r.accountID)
 	for _, tx := range txns {
-		amount, asset, err := tx.GetIncomingTransfer(r.accountID.String())
+		amount, nativeToken, err := tx.GetIncomingTransfer(r.accountID.String())
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 
-		valid, targetAsset := r.contracts.IsValidBridgeAsset(asset)
-		if !valid {
-			r.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
+		wrappedToken, err := r.contracts.ParseToken(nativeToken)
+		if err != nil {
+			r.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
 			continue
 		}
 
@@ -172,7 +172,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, asset, targetAsset, *m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, nativeToken, wrappedToken, *m)
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
 			continue
@@ -201,7 +201,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 	for _, msg := range messages {
 		m, err := encoding.NewTopicMessageFromString(msg.Contents, msg.ConsensusTimestamp)
 		if err != nil {
-			r.logger.Errorf("Skipping recovery of Topic MSG with TS [%s]. Could not decode message. Error: [%s]", msg.ConsensusTimestamp, err)
+			r.logger.Errorf("Skipping recovery of Topic Message with timestamp [%s]. Could not decode message. Error: [%s]", msg.ConsensusTimestamp, err)
 			continue
 		}
 
@@ -255,8 +255,8 @@ func (r Recovery) processUnfinishedOperations() error {
 		transferMsg := encoding.NewTransferMessage(
 			transfer.TransactionID,
 			transfer.Receiver,
-			transfer.SourceAsset,
-			transfer.TargetAsset,
+			transfer.NativeToken,
+			transfer.WrappedToken,
 			transfer.Amount,
 			transfer.TxReimbursement,
 			transfer.GasPrice,
