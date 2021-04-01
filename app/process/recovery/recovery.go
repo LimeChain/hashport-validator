@@ -19,7 +19,7 @@ package recovery
 import (
 	"errors"
 	"fmt"
-	hederasdk "github.com/hashgraph/hedera-sdk-go"
+	hederasdk "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
