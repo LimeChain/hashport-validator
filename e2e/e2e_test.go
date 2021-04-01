@@ -184,8 +184,8 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarSendAmount, memo))
 
 	res, err := hedera.NewTransferTransaction().
-		AddHbarTransfer(setup.SenderAccount, hBarSendAmount).
-		AddHbarTransfer(setup.BridgeAccount, hbarRemovalAmount).
+		AddHbarTransfer(setup.SenderAccount, hbarRemovalAmount).
+		AddHbarTransfer(setup.BridgeAccount, hBarSendAmount).
 		SetTransactionMemo(memo).
 		Execute(setup.Clients.Hedera)
 	if err != nil {
