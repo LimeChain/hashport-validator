@@ -14,7 +14,7 @@ hedera:
     private_key:
 ethereum:
   node_url:
-  contract_address:
+  router_contract_address:
 tokens:
   whbar:
   wtoken:
