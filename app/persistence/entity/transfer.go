@@ -3,8 +3,8 @@ package entity
 type Transfer struct {
 	TransactionID         string `gorm:"primaryKey"`
 	Receiver              string
-	SourceAsset           string
-	TargetAsset           string
+	NativeToken           string
+	WrappedToken          string
 	Amount                string
 	TxReimbursement       string
 	GasPrice              string

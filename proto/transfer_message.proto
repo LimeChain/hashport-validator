@@ -11,7 +11,7 @@ message TransferMessage {
   string amount = 3;
   string txReimbursement = 4;
   string gasPrice = 5;
-  string sourceAsset = 6;
-  string targetAsset = 7;
+  string nativeToken = 6;
+  string wrappedToken = 7;
   bool   executeEthTransaction = 8;
 }
