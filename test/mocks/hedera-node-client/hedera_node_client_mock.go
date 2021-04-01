@@ -17,7 +17,7 @@
 package hedera_node_client
 
 import (
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/stretchr/testify/mock"
 )
 
