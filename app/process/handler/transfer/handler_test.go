@@ -48,8 +48,8 @@ var (
 		Amount:                "10000000000",
 		TxReimbursement:       "500000000",
 		GasPrice:              "100000000",
-		SourceAsset:           "HBAR",
-		TargetAsset:           "0x45678",
+		NativeToken:           "HBAR",
+		WrappedToken:          "0x45678",
 		ExecuteEthTransaction: true,
 	}
 )
@@ -80,8 +80,8 @@ func Test_Handle(t *testing.T) {
 		TransactionID:         ctm.TransactionId,
 		Receiver:              ctm.Receiver,
 		Amount:                ctm.Amount,
-		SourceAsset:           ctm.SourceAsset,
-		TargetAsset:           ctm.TargetAsset,
+		NativeToken:           ctm.NativeToken,
+		WrappedToken:          ctm.WrappedToken,
 		TxReimbursement:       ctm.TxReimbursement,
 		GasPrice:              ctm.GasPrice,
 		ExecuteEthTransaction: ctm.ExecuteEthTransaction,

@@ -17,13 +17,14 @@
 package setup
 
 import (
+	"errors"
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/whbar"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"gopkg.in/yaml.v2"
@@ -109,8 +110,9 @@ func newSetup(config Config) (*Setup, error) {
 type clients struct {
 	Hedera          *hederaSDK.Client
 	EthClient       *ethereum.Client
-	WHbarContract   *whbar.Whbar
-	BridgeContract  *bridge.Bridge
+	WHbarContract   *wtoken.Wtoken
+	WTokenContract  *wtoken.Wtoken
+	RouterContract  *router.Router
 	ValidatorClient *e2eClients.Validator
 }
 
@@ -122,24 +124,53 @@ func newClients(config Config) (*clients, error) {
 	}
 	ethClient := ethereum.NewClient(config.Ethereum)
 
-	whbarContractAddress := common.HexToAddress(config.Ethereum.WhbarContractAddress)
-	whbarInstance, err := whbar.NewWhbar(whbarContractAddress, ethClient.Client)
+	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
+	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
+
+	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	bridgeContractAddress := common.HexToAddress(config.Ethereum.BridgeContractAddress)
-	bridgeInstance, err := bridge.NewBridge(bridgeContractAddress, ethClient.Client)
+	wTokenInstance, err := initTokenContract(config.Tokens.WToken, routerInstance, ethClient)
+	if err != nil {
+		return nil, err
+	}
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	return &clients{
 		Hedera:          hederaClient,
 		EthClient:       ethClient,
-		WHbarContract:   whbarInstance,
-		BridgeContract:  bridgeInstance,
+		WHbarContract:   wHbarInstance,
+		WTokenContract:  wTokenInstance,
+		RouterContract:  routerInstance,
 		ValidatorClient: validatorClient,
 	}, nil
+}
+
+func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	nilErc20Address := "0x0000000000000000000000000000000000000000"
+	wrappedToken, err := routerInstance.NativeToWrappedToken(
+		nil,
+		common.RightPadBytes([]byte(nativeToken), 32),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	wTokenContractHex := wrappedToken.String()
+	if wTokenContractHex == nilErc20Address {
+		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
+	}
+
+	wTokenContractAddress := common.HexToAddress(wTokenContractHex)
+	wTokenInstance, err := wtoken.NewWtoken(wTokenContractAddress, ethClient.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	return wTokenInstance, nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
@@ -171,7 +202,13 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 type Config struct {
 	Hedera       Hedera          `yaml:"hedera"`
 	Ethereum     config.Ethereum `yaml:"ethereum"`
+	Tokens       Tokens          `yaml:"tokens"`
 	ValidatorUrl string          `yaml:"validator_url"`
+}
+
+type Tokens struct {
+	WHbar  string `yaml:"whbar"`
+	WToken string `yaml:"wtoken"`
 }
 
 // hedera props from the application.yml
