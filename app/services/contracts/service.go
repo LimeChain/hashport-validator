@@ -17,6 +17,7 @@
 package contracts
 
 import (
+	"errors"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -46,21 +47,21 @@ type Service struct {
 	logger     *log.Entry
 }
 
-func (bsc *Service) ParseToken(tokenId string) string {
+func (bsc *Service) ParseToken(tokenId string) (string, error) {
 	wrappedToken, err := bsc.contract.NativeToWrappedToken(
 		nil,
 		common.RightPadBytes([]byte(tokenId), 32),
 	)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	erc20address := wrappedToken.String()
 	if erc20address == nilErc20Address {
-		return ""
+		return "", errors.New("token-not-supported")
 	}
 
-	return erc20address
+	return erc20address, nil
 }
 
 func (bsc *Service) GetBridgeContractAddress() common.Address {
@@ -187,14 +188,14 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 
 // NewService creates new instance of a Contract Services based on the provided configuration
 func NewService(client client.Ethereum, c config.Ethereum) *Service {
-	contractAddress, err := client.ValidateContractDeployedAt(c.ContractAddress)
+	contractAddress, err := client.ValidateContractDeployedAt(c.RouterContractAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	contractInstance, err := routerAbi.NewRouter(*contractAddress, client.GetClient())
 	if err != nil {
-		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", c.ContractAddress, err)
+		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", c.RouterContractAddress, err)
 	}
 
 	contractService := &Service{

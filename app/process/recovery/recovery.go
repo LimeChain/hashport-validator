@@ -161,9 +161,9 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		wrappedToken := r.contracts.ParseToken(nativeToken)
-		if wrappedToken == "" {
-			r.logger.Errorf("[%s] - The specified nativeToken [%s] is not supported", tx.TransactionID, nativeToken)
+		wrappedToken, err := r.contracts.ParseToken(nativeToken)
+		if err != nil {
+			r.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
 			continue
 		}
 

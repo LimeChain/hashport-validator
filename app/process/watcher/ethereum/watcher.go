@@ -41,14 +41,14 @@ func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
 
 func (ew *Watcher) Watch(queue *queue.Queue) {
 	go ew.listenForEvents(queue)
-	log.Infof("Listening for events at contract [%s]", ew.config.ContractAddress)
+	log.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
 }
 
 func (ew *Watcher) listenForEvents(q *queue.Queue) {
 	events := make(chan *routerContract.RouterBurn)
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.ContractAddress, err)
+		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
 	}
 
 	for {

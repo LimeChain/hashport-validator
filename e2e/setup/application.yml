@@ -1,21 +1,21 @@
 # Template configuration for the e2e tests
 hedera:
-    network_type: previewnet
-    db_validation:
-        host: 127.0.0.1
-        name: hedera_validator
-        password: hedera_db_validation_pass
-        port: 5432
-        username: hedera_db_validation
-    bridge_account: 0.0.2376
-    topic_id: 0.0.2375
-    sender:
-        account: 0.0.1234
-        private_key: 302e020100300506032b6570042204203425f0b39dc6d80345b08b65fb4ec6296871ecb6244e9dcc258c482106ca4414
+  network_type:
+  db_validation:
+    host:
+    name:
+    password: 
+    port:
+    username:
+  bridge_account:
+  topic_id:
+  sender:
+    account:
+    private_key:
 ethereum:
-    node_url: wss://ropsten.infura.io/ws/v3/8b64d65996d24dc0aae2e0c6029e5a9b
-    router_contract_address: 0x0b0d347D3DFdB21c0136d536c63cd74Ae20a6249
+  node_url:
+  router_contract_address:
 tokens:
-    whbar: "HBAR"
-    wtoken: "0.0.468145"
-validator_url: http://localhost:6200
+  whbar:
+  wtoken:
+validator_url:

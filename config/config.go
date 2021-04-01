@@ -100,8 +100,8 @@ type Watcher struct {
 }
 
 type Ethereum struct {
-	NodeUrl         string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
-	ContractAddress string `yaml:"contract_address" env:"HEDERA_ETH_BRIDGE_ETH_ROUTER_CONTRACT_ADDRESS"`
+	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
+	RouterContractAddress string `yaml:"router_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_ROUTER_CONTRACT_ADDRESS"`
 }
 
 type CryptoTransfer struct {

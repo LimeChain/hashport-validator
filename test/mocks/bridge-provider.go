@@ -31,7 +31,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) ParseToken(nativeToken string) string {
+func (m *MockBridgeContract) ParseToken(nativeToken string) (string, error) {
 	panic("implement me")
 }
 
