@@ -6,4 +6,4 @@
    `go run ./token-create/ --privateKey/your private key/ --accountId=/your account id/ --network=/previewnet|testnet|mainnet/--memberPrKeys=/'The array of private keys from from the output of the previous step separated only by whitespace'/ --bridgeID=/The bridge id from the output of the previous step/`
 
 3. Associate new account to token
-   `go run associate-token.go --privateKey/your private key/ --accountId=/your account id/ --network=/previewnet|testnet|mainnet/ --bridgeID=/The bridge id from the output of the previous step/ --tokenID=/The Token id from the output of the previous step/`
+   `go run associate-token.go --privateKey/your private key/ --accountId=/your account id/ --network=/previewnet|testnet|mainnet/ --tokenID=/The Token id from the output of the previous step/`

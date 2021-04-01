@@ -19,8 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
@@ -29,7 +27,6 @@ func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
-	bridgeID := flag.String("bridgeID", "0.0", "Bridge account ID")
 	tokenID := flag.String("tokenID", "0.0", "Bridge account ID")
 	flag.Parse()
 	if *privateKey == "0x0" {
@@ -38,9 +35,6 @@ func main() {
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
 	}
-	if *bridgeID == "0.0" {
-		panic("Bridge id was not provided")
-	}
 	if *tokenID == "0.0" {
 		panic("Token id was not provided")
 	}
@@ -48,16 +42,14 @@ func main() {
 	fmt.Println("-----------Start-----------")
 	client := initClient(*privateKey, *accountID, *network)
 
-	bridgeIDFromString, err := hedera.AccountIDFromString(*bridgeID)
+	tokenIDFromString, err := hedera.TokenIDFromString(*tokenID)
 	if err != nil {
 		panic(err)
 	}
-	tokenIDFromString := TokenIDFromString(*tokenID)
-
-	receipt := associateTokenToAccount(client, tokenIDFromString, bridgeIDFromString)
+	receipt := associateTokenToAccount(client, tokenIDFromString)
 	fmt.Println("Associate transaction status:", receipt.Status)
 }
-func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID) hedera.TransactionReceipt {
+func associateTokenToAccount(client *hedera.Client, token hedera.TokenID) hedera.TransactionReceipt {
 	res, err := hedera.
 		NewTokenAssociateTransaction().
 		SetAccountID(client.GetOperatorAccountID()).
@@ -95,15 +87,4 @@ func initClient(privateKey, accountID, network string) *hedera.Client {
 	}
 	client.SetOperator(accID, pK)
 	return client
-}
-func TokenIDFromString(tokenId string) hedera.TokenID {
-	args := strings.Split(tokenId, ".")
-	shard, _ := strconv.ParseUint(args[0], 10, 64)
-	realm, _ := strconv.ParseUint(args[1], 10, 64)
-	token, _ := strconv.ParseUint(args[2], 10, 64)
-	return hedera.TokenID{
-		Shard: shard,
-		Realm: realm,
-		Token: token,
-	}
 }
