@@ -138,21 +138,19 @@ func (ec *Client) WaitBlocks(transactionHash string) error {
 		return errors.New("numberOfBlocks should be a positive number")
 	}
 
-	// TODO: Get Transaction Receipt -> get block
-
-	blockNumber, err := ec.BlockByHash(context.Background(), transactionHash)
+	receipt, err := ec.waitForTransactionReceipt(common.HexToHash(transactionHash))
 	if err != nil {
 		return err
 	}
 
-	target := blockNumber + numberOfBlocks
+	target := new(big.Int).Add(receipt.BlockNumber, new(big.Int).SetUint64(numberOfBlocks))
 	for {
-		blockNumber, err = ec.BlockNumber(context.Background())
+		blockNumber, err := ec.BlockNumber(context.Background())
 		if err != nil {
 			return err
 		}
 
-		if blockNumber == target {
+		if target.Cmp(new(big.Int).SetUint64(blockNumber)) <= 0 {
 			return nil
 		}
 	}
