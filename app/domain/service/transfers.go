@@ -29,7 +29,7 @@ type Transfers interface {
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error)
@@ -45,12 +45,12 @@ type Transfers interface {
 }
 
 type TransferData struct {
-	Recipient   string   `json:"recipient"`
-	Amount      string   `json:"amount"`
-	SourceAsset string   `json:"sourceAsset"`
-	TargetAsset string   `json:"targetAsset"`
-	Fee         string   `json:"fee"`
-	GasPrice    string   `json:"gasPrice"`
-	Signatures  []string `json:"signatures"`
-	Majority    bool     `json:"majority"`
+	Recipient    string   `json:"recipient"`
+	Amount       string   `json:"amount"`
+	NativeToken  string   `json:"nativeToken"`
+	WrappedToken string   `json:"wrappedToken"`
+	Fee          string   `json:"fee"`
+	GasPrice     string   `json:"gasPrice"`
+	Signatures   []string `json:"signatures"`
+	Majority     bool     `json:"majority"`
 }

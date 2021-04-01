@@ -66,7 +66,7 @@ func Test_E2E(t *testing.T) {
 
 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 
-	serviceFeePercentage, err := setupEnv.Clients.BridgeContract.ServiceFee(nil)
+	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
 	if err != nil {
 		t.Fatal(err)
 	}

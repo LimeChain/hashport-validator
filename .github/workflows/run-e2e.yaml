@@ -30,7 +30,7 @@ jobs:
             start=`date +%s` ;
             ports=("6200" "7200" "8200") ;
             for port in "${ports[@]}" ; do
-            MAX_TIMEOUT=25;
+            MAX_TIMEOUT=60;
             while [[ "$(curl -s 127.0.0.1:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
             sleep 5; ((MAX_TIMEOUT-=5));
             if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
