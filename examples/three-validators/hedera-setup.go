@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 var balance = hedera.NewHbar(100)
