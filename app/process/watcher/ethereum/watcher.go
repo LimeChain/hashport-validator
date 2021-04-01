@@ -71,7 +71,7 @@ func (ew *Watcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue
 		eventLog.Amount.String(),
 		eventLog.Receiver)
 
-	err := ew.ethClient.WaitBlocks(ew.config.WaitingBlocks)
+	err := ew.ethClient.WaitBlocks(eventLog.Raw.TxHash.String(), eventLog.Raw.BlockNumber)
 	if err != nil {
 		ew.logger.Errorf("Could not wait [%s] of ETH Block Numbers. Error: [%s]", ew.config.WaitingBlocks, err)
 	}

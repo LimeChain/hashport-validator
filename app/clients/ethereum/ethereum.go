@@ -132,26 +132,24 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *Client) WaitBlocks(transactionHash string) error {
+func (ec *Client) WaitBlocks(transactionHash string, blockNumber uint64) error {
 	numberOfBlocks := ec.config.WaitingBlocks
 	if numberOfBlocks < 1 {
 		return errors.New("numberOfBlocks should be a positive number")
 	}
 
-	receipt, err := ec.waitForTransactionReceipt(common.HexToHash(transactionHash))
-	if err != nil {
-		return err
-	}
-
-	target := new(big.Int).Add(receipt.BlockNumber, new(big.Int).SetUint64(numberOfBlocks))
+	target := new(big.Int).Add(new(big.Int).SetUint64(blockNumber), new(big.Int).SetUint64(numberOfBlocks))
 	for {
-		blockNumber, err := ec.BlockNumber(context.Background())
+		currentBlockNumber, err := ec.BlockNumber(context.Background())
 		if err != nil {
 			return err
 		}
+		currentBlockNumberBn := new(big.Int).SetUint64(currentBlockNumber)
 
-		if target.Cmp(new(big.Int).SetUint64(blockNumber)) <= 0 {
+		if target.Cmp(currentBlockNumberBn) <= 0 {
 			return nil
 		}
+
+		time.Sleep(time.Second * 5)
 	}
 }
