@@ -20,14 +20,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"time"
@@ -36,24 +35,27 @@ import (
 type Watcher struct {
 	nodeClient       client.HederaNode
 	topicID          hedera.TopicID
-	typeMessage      string
 	statusRepository repository.Status
 	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(nodeClient client.HederaNode, topicID hedera.TopicID, repository repository.Status, startTimestamp int64) *Watcher {
+func NewWatcher(nodeClient client.HederaNode, topicID string, repository repository.Status, startTimestamp int64) *Watcher {
+	id, err := hedera.TopicIDFromString(topicID)
+	if err != nil {
+		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
+	}
+
 	return &Watcher{
 		nodeClient:       nodeClient,
-		topicID:          topicID,
-		typeMessage:      process.HCSMessageType,
+		topicID:          id,
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
-		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID)),
 	}
 }
 
-func (cmw Watcher) Watch(q *queue.Queue) {
+func (cmw Watcher) Watch(q *pair.Queue) {
 	topic := cmw.topicID.String()
 	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
 	if err != nil {
@@ -80,7 +82,7 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 	cmw.logger.Tracef("Updated Topic Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
+func (cmw Watcher) subscribeToTopic(q *pair.Queue) {
 	_, err := hedera.NewTopicMessageQuery().
 		SetStartTime(time.Unix(0, cmw.startTimestamp)).
 		SetTopicID(cmw.topicID).
@@ -99,7 +101,7 @@ func (cmw Watcher) subscribeToTopic(q *queue.Queue) {
 	cmw.logger.Infof("Subscribed to Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
-func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) {
+func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *pair.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
@@ -109,5 +111,5 @@ func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *queue.Queue) 
 		return
 	}
 
-	publisher.Publish(msg, cmw.typeMessage, cmw.topicID, q)
+	publisher.Publish(msg, q)
 }

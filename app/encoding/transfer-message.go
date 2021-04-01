@@ -17,6 +17,8 @@
 package encoding
 
 import (
+	"errors"
+	"fmt"
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
 )
@@ -49,6 +51,14 @@ func NewTransferMessageFromBytes(data []byte) (*TransferMessage, error) {
 		return nil, err
 	}
 	return &TransferMessage{transferMsg}, nil
+}
+
+func NewTransferMessageFromInterface(data interface{}) (*TransferMessage, error) {
+	transferMsg, ok := data.(*TransferMessage)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("unable to cast to TransferMessage data [%s]", data))
+	}
+	return transferMsg, nil
 }
 
 // ToBytes marshals the underlying protobuf TransferMessage into bytes

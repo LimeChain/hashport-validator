@@ -17,7 +17,6 @@
 package message
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -57,10 +56,10 @@ func NewHandler(
 	}
 }
 
-func (cmh Handler) Handle(payload []byte) {
-	m, err := encoding.NewTopicMessageFromBytes(payload)
-	if err != nil {
-		log.Errorf("Error could not unmarshal payload. Error [%s].", err)
+func (cmh Handler) Handle(payload interface{}) {
+	m, ok := payload.(*encoding.TopicMessage)
+	if !ok {
+		cmh.logger.Errorf("Error could not cast payload [%s]", payload)
 		return
 	}
 
@@ -70,12 +69,7 @@ func (cmh Handler) Handle(payload []byte) {
 	case validatorproto.TopicMessageType_EthTransaction:
 		cmh.handleEthTxMessage(*m)
 	default:
-		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
-	}
-
-	if err != nil {
-		cmh.logger.Errorf("Error - could not handle payload: [%s]", err)
-		return
+		cmh.logger.Errorf("Error - invalid topic submission message type [%s]", m.Type)
 	}
 }
 
@@ -87,7 +81,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 		return
 	}
 	if !isValid {
-		cmh.logger.Infof("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
+		cmh.logger.Errorf("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return
 	}
 

@@ -18,10 +18,10 @@ package ethereum
 
 import (
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,12 +39,12 @@ func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
 	}
 }
 
-func (ew *Watcher) Watch(queue *queue.Queue) {
+func (ew *Watcher) Watch(queue *pair.Queue) {
 	go ew.listenForEvents(queue)
 	log.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
 }
 
-func (ew *Watcher) listenForEvents(q *queue.Queue) {
+func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	events := make(chan *routerContract.RouterBurn)
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
@@ -62,7 +62,7 @@ func (ew *Watcher) listenForEvents(q *queue.Queue) {
 	}
 }
 
-func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *queue.Queue) {
+func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
 	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
