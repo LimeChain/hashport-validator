@@ -124,7 +124,7 @@ func newClients(config Config) (*clients, error) {
 	}
 	ethClient := ethereum.NewClient(config.Ethereum)
 
-	routerContractAddress := common.HexToAddress(config.Ethereum.ContractAddress)
+	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
 	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
@@ -150,7 +150,6 @@ func newClients(config Config) (*clients, error) {
 }
 
 func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	fmt.Println(common.RightPadBytes([]byte(nativeToken), 32))
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
 	wrappedToken, err := routerInstance.NativeToWrappedToken(
 		nil,

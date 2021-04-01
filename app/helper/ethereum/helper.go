@@ -34,7 +34,7 @@ const (
 	MintFunctionParameterAmount        = "amount"
 	MintFunctionParameterReceiver      = "receiver"
 	MintFunctionParameterSignatures    = "signatures"
-	MintFunctionParameterTargetAsset   = "wrappedToken" // TODO: Rename also to WrappedToken?
+	MintFunctionParameterWrappedToken  = "wrappedToken"
 	MintFunctionParameterTransactionId = "transactionId"
 	MintFunctionParameterTxCost        = "txCost"
 )
@@ -80,7 +80,7 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amou
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
-	erc20 := decodedParameters[MintFunctionParameterTargetAsset].(common.Address)
+	erc20 := decodedParameters[MintFunctionParameterWrappedToken].(common.Address)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)

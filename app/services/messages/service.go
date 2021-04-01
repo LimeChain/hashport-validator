@@ -91,9 +91,9 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		return false, err
 	}
 
-	erc20address := ss.contractsService.ParseToken(t.NativeToken)
-	if erc20address == "" {
-		ss.logger.Errorf("[%s] Provided NativeToken is not supported", t.NativeToken)
+	wrappedToken, err := ss.contractsService.ParseToken(t.NativeToken)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", t.TransactionID, t.NativeToken, err)
 		return false, err
 	}
 
@@ -101,7 +101,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 		t.Amount == topicMessage.Amount &&
 		t.TxReimbursement == topicMessage.TxReimbursement &&
 		t.GasPrice == topicMessage.GasPrice &&
-		topicMessage.WrappedToken == erc20address
+		topicMessage.WrappedToken == wrappedToken
 	return match, nil
 }
 

@@ -142,9 +142,9 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	wrappedToken := ctw.contractService.ParseToken(nativeToken)
-	if wrappedToken == "" {
-		ctw.logger.Errorf("[%s] - The specified nativeToken [%s] is not supported", tx.TransactionID, nativeToken)
+	wrappedToken, err := ctw.contractService.ParseToken(nativeToken)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
 		return
 	}
 
