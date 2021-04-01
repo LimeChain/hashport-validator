@@ -19,6 +19,10 @@ package setup
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
@@ -28,9 +32,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -76,6 +77,7 @@ type Setup struct {
 	BridgeAccount hederaSDK.AccountID
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
+	TokenID       hederaSDK.TokenID
 	Clients       *clients
 }
 
@@ -94,6 +96,11 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.WToken)
+	if err != nil {
+		return nil, err
+	}
+
 	clients, err := newClients(config)
 	if err != nil {
 		return nil, err
@@ -102,6 +109,7 @@ func newSetup(config Config) (*Setup, error) {
 		BridgeAccount: bridgeAccount,
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
+		TokenID:       tokenID,
 		Clients:       clients,
 	}, nil
 }

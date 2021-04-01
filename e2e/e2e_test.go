@@ -19,12 +19,13 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"log"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,6 +38,7 @@ var (
 	incrementFloat, _            = new(big.Int).SetString("1", 10)
 	amount               float64 = 400
 	hBarSendAmount               = hedera.HbarFrom(amount, "hbar")
+	tokensSendAmount             = 1000000000
 	hbarRemovalAmount            = hedera.HbarFrom(-amount, "hbar")
 	precision                    = new(big.Int).SetInt64(100000)
 	whbarReceiverAddress         = common.HexToAddress(receiverAddress)
@@ -91,6 +93,18 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
 	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+
+	// Step 2 - Verify the submitted topic messages
+	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+}
+
+func Test_E2E_Token_Transfer(t *testing.T) {
+	setupEnv := setup.Load()
+
+	memo := fmt.Sprintf("%s-0-0", receiverAddress)
+
+	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+	transactionResponse, _ := verifyTokenTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
 	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
@@ -180,6 +194,59 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 	return *transactionResponse, whbarBalanceBefore
 }
 
+func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenReceiverAddress common.Address, t *testing.T) (hedera.TransactionResponse, *big.Int) {
+	// Get the wrapped hbar balance of the receiver before the transfer
+	whbarBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Token balance before transaction: [%s]\n", whbarBalanceBefore)
+	// Get bridge account token balance before transfer
+	receiverBalance, err := hedera.NewAccountBalanceQuery().
+		SetAccountID(setup.BridgeAccount).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		fmt.Println(`Unable to query the token balance of the Bridge Account`)
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf(`Bridge account Token balance before transaction: [%d]`, receiverBalance.Token[setup.TokenID]))
+
+	// Get the transaction receipt to verify the transaction was executed
+	transactionResponse, err := sendTokensToBridgeAccount(setup, memo)
+	if err != nil {
+		fmt.Println(fmt.Sprintf(`Unable to send Tokens to Bridge Account, Error: [%s]`, err))
+		t.Fatal(err)
+	}
+	transactionReceipt, err := transactionResponse.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
+		t.Fatal(err)
+	}
+
+	fmt.Println(fmt.Sprintf(`Successfully sent Tokens to bridge account, Status: [%s]`, transactionReceipt.Status))
+
+	// Get bridge account hbar balance after transfer
+	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
+		SetAccountID(setup.BridgeAccount).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		fmt.Println(`Unable to query the token balance of the Bridge Account`)
+		t.Fatal(err)
+	}
+
+	fmt.Println(fmt.Sprintf(`Bridge Account Token balance after transaction: [%d]`, receiverBalanceNew.Token[setup.TokenID]))
+
+	// Verify that the custodial address has received exactly the amount sent
+	amount := receiverBalanceNew.Token[setup.TokenID] - receiverBalance.Token[setup.TokenID]
+	// Verify that the bridge account has received exactly the amount sent
+	if amount != uint64(tokensSendAmount) {
+		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hBarSendAmount.AsTinybar())
+	}
+
+	return *transactionResponse, whbarBalanceBefore
+}
+
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
 	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarSendAmount, memo))
 
@@ -187,6 +254,28 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 		AddHbarTransfer(setup.SenderAccount, hbarRemovalAmount).
 		AddHbarTransfer(setup.BridgeAccount, hBarSendAmount).
 		SetTransactionMemo(memo).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+	rec, err := res.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(fmt.Sprintf(`TX broadcasted. ID [%s], Status: [%s]`, res.TransactionID, rec.Status))
+	time.Sleep(1 * time.Second)
+
+	return &res, err
+}
+
+func sendTokensToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf(`Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]`, tokensSendAmount, memo))
+
+	res, err := hedera.NewTransferTransaction().
+		SetTransactionMemo(memo).
+		AddTokenTransfer(setup.TokenID, setup.SenderAccount, -int64(tokensSendAmount)).
+		AddTokenTransfer(setup.TokenID, setup.BridgeAccount, int64(tokensSendAmount)).
 		Execute(setup.Clients.Hedera)
 	if err != nil {
 		return nil, err
