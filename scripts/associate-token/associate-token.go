@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -29,7 +30,7 @@ func main() {
 	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
 	bridgeID := flag.String("bridgeID", "0.0", "Bridge account ID")
-	memberPrKeys := flag.String("memberPrKeys", "", "The count of the members")
+	tokenID := flag.String("tokenID", "0.0", "Bridge account ID")
 	flag.Parse()
 	if *privateKey == "0x0" {
 		panic("Private key was not provided")
@@ -40,68 +41,33 @@ func main() {
 	if *bridgeID == "0.0" {
 		panic("Bridge id was not provided")
 	}
+	if *tokenID == "0.0" {
+		panic("Token id was not provided")
+	}
 
 	fmt.Println("-----------Start-----------")
 	client := initClient(*privateKey, *accountID, *network)
-
-	membersSlice := strings.Split(*memberPrKeys, " ")
-
-	var custodianKey []hedera.PrivateKey
-	for i := 0; i < len(membersSlice); i++ {
-		privateKeyFromStr, err := hedera.PrivateKeyFromString(membersSlice[i])
-		if err != nil {
-			panic(err)
-		}
-		custodianKey = append(custodianKey, privateKeyFromStr)
-	}
-
-	tokenId := createToken(client)
 
 	bridgeIDFromString, err := hedera.AccountIDFromString(*bridgeID)
 	if err != nil {
 		panic(err)
 	}
+	tokenIDFromString := TokenIDFromString(*tokenID)
 
-	receipt := associateTokenToAccount(client, *tokenId, bridgeIDFromString, custodianKey)
-	fmt.Println("Token ID:", tokenId)
+	receipt := associateTokenToAccount(client, tokenIDFromString, bridgeIDFromString)
 	fmt.Println("Associate transaction status:", receipt.Status)
 }
-func createToken(client *hedera.Client) *hedera.TokenID {
-	result, err := hedera.NewTokenCreateTransaction().
-		SetTreasuryAccountID(client.GetOperatorAccountID()).
-		SetTokenName("e2e-test-token").
-		SetTokenSymbol("ett").
-		SetInitialSupply(100000000000000).
-		SetDecimals(8).
-		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
+func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID) hedera.TransactionReceipt {
+	res, err := hedera.
+		NewTokenAssociateTransaction().
+		SetAccountID(client.GetOperatorAccountID()).
+		SetTokenIDs(token).
 		Execute(client)
 	if err != nil {
 		fmt.Println(err)
 	}
-	receipt, err := result.GetReceipt(client)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return receipt.TokenID
-}
-func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID, custodianKey []hedera.PrivateKey) hedera.TransactionReceipt {
-	res, err := hedera.
-		NewTokenAssociateTransaction().
-		SetAccountID(bridgeID).
-		SetTokenIDs(token).
-		FreezeWith(client)
-	if err != nil {
-		fmt.Println(err)
-	}
 
-	for i := 0; i < len(custodianKey); i++ {
-		res = res.Sign(custodianKey[i])
-	}
-	res2, err := res.Execute(client)
-	if err != nil {
-		fmt.Println(err)
-	}
-	receipt, err := res2.GetReceipt(client)
+	receipt, err := res.GetReceipt(client)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -129,4 +95,15 @@ func initClient(privateKey, accountID, network string) *hedera.Client {
 	}
 	client.SetOperator(accID, pK)
 	return client
+}
+func TokenIDFromString(tokenId string) hedera.TokenID {
+	args := strings.Split(tokenId, ".")
+	shard, _ := strconv.ParseUint(args[0], 10, 64)
+	realm, _ := strconv.ParseUint(args[1], 10, 64)
+	token, _ := strconv.ParseUint(args[2], 10, 64)
+	return hedera.TokenID{
+		Shard: shard,
+		Realm: realm,
+		Token: token,
+	}
 }

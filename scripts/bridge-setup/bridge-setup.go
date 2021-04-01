@@ -72,7 +72,7 @@ func main() {
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
-	custodialKey := hedera.KeyListWithThreshold(3)
+	custodialKey := hedera.KeyListWithThreshold(uint(*members))
 	for i := 0; i < *members; i++ {
 		custodialKey.Add(memberKeys[i].PublicKey())
 	}
