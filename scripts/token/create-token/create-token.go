@@ -22,11 +22,12 @@ import (
 	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
-	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
+	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
 	bridgeID := flag.String("bridgeID", "0.0", "Bridge account ID")
 	memberPrKeys := flag.String("memberPrKeys", "", "The count of the members")
@@ -42,7 +43,7 @@ func main() {
 	}
 
 	fmt.Println("-----------Start-----------")
-	client := initClient(*privateKey, *accountID, *network)
+	client := client.Init(*privateKey, *accountID, *network)
 
 	membersSlice := strings.Split(*memberPrKeys, " ")
 
@@ -67,7 +68,7 @@ func main() {
 	fmt.Println("Associate transaction status:", receipt.Status)
 }
 func createToken(client *hedera.Client) *hedera.TokenID {
-	result, err := hedera.NewTokenCreateTransaction().
+	createTokenTX, err := hedera.NewTokenCreateTransaction().
 		SetTreasuryAccountID(client.GetOperatorAccountID()).
 		SetTokenName("e2e-test-token").
 		SetTokenSymbol("ett").
@@ -78,14 +79,14 @@ func createToken(client *hedera.Client) *hedera.TokenID {
 	if err != nil {
 		fmt.Println(err)
 	}
-	receipt, err := result.GetReceipt(client)
+	receipt, err := createTokenTX.GetReceipt(client)
 	if err != nil {
 		fmt.Println(err)
 	}
 	return receipt.TokenID
 }
 func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID, custodianKey []hedera.PrivateKey) hedera.TransactionReceipt {
-	res, err := hedera.
+	freezedAssociateTX, err := hedera.
 		NewTokenAssociateTransaction().
 		SetAccountID(bridgeID).
 		SetTokenIDs(token).
@@ -95,38 +96,15 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridge
 	}
 
 	for i := 0; i < len(custodianKey); i++ {
-		res = res.Sign(custodianKey[i])
+		freezedAssociateTX = freezedAssociateTX.Sign(custodianKey[i])
 	}
-	res2, err := res.Execute(client)
+	associateTX, err := freezedAssociateTX.Execute(client)
 	if err != nil {
 		fmt.Println(err)
 	}
-	receipt, err := res2.GetReceipt(client)
+	receipt, err := associateTX.GetReceipt(client)
 	if err != nil {
 		fmt.Println(err)
 	}
 	return receipt
-}
-func initClient(privateKey, accountID, network string) *hedera.Client {
-	var client *hedera.Client
-
-	if network == "previewnet" {
-		client = hedera.ClientForPreviewnet()
-	} else if network == "testnet" {
-		client = hedera.ClientForTestnet()
-	} else if network == "mainnet" {
-		client = hedera.ClientForMainnet()
-	} else {
-		panic("Unknown Network Type!")
-	}
-	accID, err := hedera.AccountIDFromString(accountID)
-	if err != nil {
-		panic(err)
-	}
-	pK, err := hedera.PrivateKeyFromString(privateKey)
-	if err != nil {
-		panic(err)
-	}
-	client.SetOperator(accID, pK)
-	return client
 }

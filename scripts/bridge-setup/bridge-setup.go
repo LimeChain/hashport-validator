@@ -21,13 +21,14 @@ import (
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 var balance = hedera.NewHbar(100)
 
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
-	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
+	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
 	members := flag.Int("members", 1, "The count of the members")
 	flag.Parse()
@@ -39,7 +40,7 @@ func main() {
 	}
 
 	fmt.Println("-----------Start-----------")
-	client := initClient(*privateKey, *accountID, *network)
+	client := client.Init(*privateKey, *accountID, *network)
 
 	var memberKeys []hedera.PrivateKey
 	for i := 0; i < *members; i++ {
@@ -129,27 +130,4 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("--------------------------")
 	return privateKey, nil
-}
-func initClient(privateKey, accountID, network string) *hedera.Client {
-	var client *hedera.Client
-
-	if network == "previewnet" {
-		client = hedera.ClientForPreviewnet()
-	} else if network == "testnet" {
-		client = hedera.ClientForTestnet()
-	} else if network == "mainnet" {
-		client = hedera.ClientForMainnet()
-	} else {
-		panic("Unknown Network Type!")
-	}
-	accID, err := hedera.AccountIDFromString(accountID)
-	if err != nil {
-		panic(err)
-	}
-	pK, err := hedera.PrivateKeyFromString(privateKey)
-	if err != nil {
-		panic(err)
-	}
-	client.SetOperator(accID, pK)
-	return client
 }
