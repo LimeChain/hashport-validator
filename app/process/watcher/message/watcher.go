@@ -104,7 +104,7 @@ func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *pair.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
-	msg, err := message.NewTopicMessageFromBytesWithTS(topicMsg.Contents, messageTimestamp)
+	msg, err := message.FromBytesWithTS(topicMsg.Contents, messageTimestamp)
 	if err != nil {
 		cmw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", topicMsg.Contents, err)
 		return

@@ -200,7 +200,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 
 	r.logger.Debugf("Found [%d] unprocessed messages for Topic [%s]", len(messages), r.topicID)
 	for _, msg := range messages {
-		m, err := message.NewTopicMessageFromString(msg.Contents, msg.ConsensusTimestamp)
+		m, err := message.FromString(msg.Contents, msg.ConsensusTimestamp)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of Topic Message with timestamp [%s]. Could not decode message. Error: [%s]", msg.ConsensusTimestamp, err)
 			continue
@@ -253,7 +253,7 @@ func (r Recovery) processUnfinishedOperations() error {
 	}
 
 	for _, t := range unprocessedTransfers {
-		transferMsg := transfer.NewTransferMessage(
+		transferMsg := transfer.New(
 			t.TransactionID,
 			t.Receiver,
 			t.NativeToken,

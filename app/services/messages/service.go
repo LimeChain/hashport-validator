@@ -297,7 +297,7 @@ func (ss *Service) computeExecutionSlot(messages []entity.Message) (slot int64, 
 }
 
 func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHash string) (*hedera.TransactionID, error) {
-	ethTxHashMessage := message.NewEthereumHashMessage(transferID, messageHash, ethereumTxHash)
+	ethTxHashMessage := message.NewEthereumHash(transferID, messageHash, ethereumTxHash)
 	ethTxHashBytes, err := ethTxHashMessage.ToBytes()
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode Eth TX Hash Message to bytes. Error: [%s]", transferID, err)

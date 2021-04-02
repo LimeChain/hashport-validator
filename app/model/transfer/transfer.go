@@ -16,6 +16,7 @@
 
 package transfer
 
+// Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId         string
 	Receiver              string
@@ -27,8 +28,8 @@ type Transfer struct {
 	ExecuteEthTransaction bool
 }
 
-// NewTransferMessage instantiates Transfer Message struct ready for submission to the handler
-func NewTransferMessage(txId, receiver, nativeToken, wrappedToken, amount, txReimbursement, gasPrice string, executeEthTransaction bool) *Transfer {
+// New instantiates Transfer struct ready for submission to the handler
+func New(txId, receiver, nativeToken, wrappedToken, amount, txReimbursement, gasPrice string, executeEthTransaction bool) *Transfer {
 	return &Transfer{
 		TransactionId:         txId,
 		Receiver:              receiver,

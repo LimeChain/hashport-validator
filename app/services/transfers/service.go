@@ -199,7 +199,7 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	signatureMessage := message.NewSignatureMessage(
+	signatureMessage := message.NewSignature(
 		tm.TransactionId,
 		tm.Receiver,
 		tm.Amount,
