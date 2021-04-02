@@ -25,7 +25,7 @@ type Queue struct {
 	channel chan *Message
 }
 
-// Push pushes a image to the channel
+// Push pushes a message to the channel
 func (q *Queue) Push(message *Message) {
 	q.channel <- message
 }
