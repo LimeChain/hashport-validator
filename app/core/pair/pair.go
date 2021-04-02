@@ -42,7 +42,7 @@ func (p *Pair) Listen() {
 func (p *Pair) handle() {
 	go func() {
 		for messages := range p.queue.channel {
-			p.handler.Handle(messages.Payload)
+			go p.handler.Handle(messages.Payload)
 		}
 	}()
 }
