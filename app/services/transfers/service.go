@@ -26,14 +26,14 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,7 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
-func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error) {
+func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, error) {
 	dbTransaction, err := ts.transferRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to get db record. Error [%s]", tm.TransactionId, err)
@@ -112,7 +112,7 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Tra
 	}
 
 	ts.logger.Debugf("[%s] - Adding new Transaction Record", tm.TransactionId)
-	tx, err := ts.transferRepository.Create(tm.TransferMessage)
+	tx, err := ts.transferRepository.Create(&tm)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to create a transaction record. Error [%s].", tm.TransactionId, err)
 		return nil, err
@@ -122,7 +122,7 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Tra
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error {
-	err := ts.transferRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
+	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId:         txId,
 		Receiver:              m.EthereumAddress,
 		Amount:                amount,
@@ -143,7 +143,7 @@ func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken stri
 
 // VerifyFee verifies that the provided TX reimbursement fee is enough using the
 // Fee Calculator and updates the Transaction Record to Insufficient Fee if necessary
-func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
+func (ts *Service) VerifyFee(tm model.Transfer) error {
 	isSufficient, err := ts.fees.ValidateExecutionFee(tm.TxReimbursement, tm.Amount, tm.GasPrice)
 	if !isSufficient {
 		ts.logger.Errorf("[%s] - Fee validation failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s].", tm.TransactionId, err)
@@ -179,7 +179,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
+func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	gasPriceWeiBn, err := helper.ToBigInt(tm.GasPrice)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to parse Gas Price Wei to bigint [%s]. Error [%s].", tm.TransactionId, tm.GasPrice, err)
@@ -199,7 +199,7 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	signatureMessage := encoding.NewSignatureMessage(
+	signatureMessage := message.NewSignatureMessage(
 		tm.TransactionId,
 		tm.Receiver,
 		tm.Amount,

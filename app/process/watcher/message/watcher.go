@@ -23,9 +23,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -105,11 +104,11 @@ func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *pair.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
-	msg, err := encoding.NewTopicMessageFromBytesWithTS(topicMsg.Contents, messageTimestamp)
+	msg, err := message.NewTopicMessageFromBytesWithTS(topicMsg.Contents, messageTimestamp)
 	if err != nil {
 		cmw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", topicMsg.Contents, err)
 		return
 	}
 
-	publisher.Publish(msg, q)
+	q.Push(&pair.Message{Payload: msg})
 }

@@ -19,9 +19,14 @@ package status
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+)
+
+// Hedera Watcher SDK message types
+const (
+	TransferMessageType = "TRANSFER"
+	MessageType         = "TOPIC_MESSAGE"
 )
 
 type Repository struct {
@@ -39,8 +44,8 @@ func NewRepositoryForStatus(dbClient *gorm.DB, statusType string) *Repository {
 
 func typeCheck(statusType string) {
 	switch statusType {
-	case process.HCSMessageType:
-	case process.CryptoTransferMessageType:
+	case MessageType:
+	case TransferMessageType:
 		return
 	default:
 		log.Fatal("Invalid status type.")

@@ -25,10 +25,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -39,7 +37,6 @@ type Watcher struct {
 	transfers        service.Transfers
 	client           client.MirrorNode
 	accountID        hedera.AccountID
-	typeMessage      string
 	pollingInterval  time.Duration
 	statusRepository repository.Status
 	maxRetries       int
@@ -67,7 +64,6 @@ func NewWatcher(
 		transfers:        transfers,
 		client:           client,
 		accountID:        id,
-		typeMessage:      process.CryptoTransferMessageType,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
@@ -159,8 +155,8 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
-	publisher.Publish(transferMessage, q)
+	transferMessage := transfer.NewTransferMessage(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
+	q.Push(&pair.Message{Payload: transferMessage})
 }
 
 func (ctw Watcher) restart(q *pair.Queue) {
