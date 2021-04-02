@@ -308,7 +308,7 @@ func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHa
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
 }
 
-// awaitTransfer checks until given transfer is found the database
+// awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	for {
 		t, err := ss.transferRepository.GetByTransactionId(transferID)
