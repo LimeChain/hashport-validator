@@ -19,6 +19,7 @@ package message
 import (
 	"errors"
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -87,7 +88,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 		return
 	}
 	if !isValid {
-		cmh.logger.Infof("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
+		cmh.logger.Errorf("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return
 	}
 

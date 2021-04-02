@@ -96,6 +96,7 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 
 	// Step 2 - Verify the submitted topic messages
 	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+	//TODO: submit the tx
 }
 
 func Test_E2E_Token_Transfer(t *testing.T) {
@@ -108,6 +109,9 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	// Step 2 - Verify the submitted topic messages
 	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+	//TODO: submit the tx
+	// setupEnv.Clients.RouterContract.Mint()
+	// setupEnv.Clients.EthClient.WaitForTransaction()
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
