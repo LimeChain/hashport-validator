@@ -62,20 +62,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		server.AddPair(
-			addTransferWatchers(&configuration, services.transfers, clients.MirrorNode, &repositories.transferStatus, watchersStartTimestamp, services.contracts),
-			th.NewHandler(services.transfers))
-
-		server.AddPair(
-			addConsensusTopicWatcher(&configuration, clients.HederaNode, repositories.messageStatus, watchersStartTimestamp),
-			cmh.NewHandler(
-				configuration.Hedera.Handler.ConsensusMessage,
-				repositories.transfer,
-				repositories.message,
-				services.contracts,
-				services.messages))
-		server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth), nil)
+		initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
 	}
 
 	apiRouter := initializeAPIRouter(services)
@@ -120,7 +107,33 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func addTransferWatchers(configuration *config.Config,
+func initializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config, watchersTimestamp int64) {
+	server.AddPair(
+		addTransferWatcher(
+			&configuration,
+			services.transfers,
+			clients.MirrorNode,
+			&repositories.transferStatus,
+			watchersTimestamp,
+			services.contracts),
+		th.NewHandler(services.transfers))
+
+	server.AddPair(
+		addConsensusTopicWatcher(
+			&configuration,
+			clients.HederaNode,
+			repositories.messageStatus,
+			watchersTimestamp),
+		cmh.NewHandler(
+			configuration.Hedera.Handler.ConsensusMessage,
+			repositories.transfer,
+			repositories.message,
+			services.contracts,
+			services.messages))
+	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth), nil)
+}
+
+func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,

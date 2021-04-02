@@ -23,6 +23,7 @@ func (s *Server) AddPair(watcher pair.Watcher, handler pair.Handler) {
 	s.pairs = append(s.pairs, pair.NewPair(watcher, handler))
 }
 
+// Run starts every pair's Listen and serves the chi.Mux on a given port
 func (s *Server) Run(chi *chi.Mux, port string) {
 	for _, p := range s.pairs {
 		p.Listen()
