@@ -36,6 +36,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -85,9 +86,10 @@ func NewService(
 // Validates it against the Transaction Record metadata from DB
 func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) {
 	topicMessage := tm.GetTopicSignatureMessage()
-	t, err := ss.transferRepository.GetByTransactionId(topicMessage.TransferID)
+
+	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", topicMessage.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to await incoming transfer. Error: [%s]", topicMessage.TransferID, err)
 		return false, err
 	}
 
@@ -303,6 +305,22 @@ func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHa
 	}
 
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
+}
+
+func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
+	for {
+		t, err := ss.transferRepository.GetByTransactionId(transferID)
+		if err != nil {
+			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
+			return nil, err
+		}
+
+		if t != nil {
+			return t, nil
+		}
+		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func (ss *Service) ethTxCallbacks(transferID, hash string) (onSuccess, onRevert func()) {
