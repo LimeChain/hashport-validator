@@ -41,7 +41,7 @@ const (
 
 const (
 	MintFunction                = "mintWithReimbursement"
-	MintFunctionParametersCount = 5
+	MintFunctionParametersCount = 6
 )
 
 var (
@@ -112,19 +112,6 @@ func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
 	}
 
 	return crypto.PubkeyToAddress(*pubKey).String(), nil
-}
-
-func GetSignerBySignatureString(hash []byte, signature string) (string, error) {
-	decodedSig, _, err := DecodeSignature(signature)
-	if err != nil {
-		return "", err
-	}
-
-	signer, err := GetAddressBySignature(hash, decodedSig)
-	if err != nil {
-		return "", err
-	}
-	return signer, nil
 }
 
 func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSignature string, err error) {

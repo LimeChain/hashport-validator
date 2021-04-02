@@ -21,14 +21,15 @@ type Service struct {
 }
 
 func NewService(dbConfig config.Db) *Service {
+	db := persistence.RunDb(dbConfig)
 	return &Service{
-		transactions: transfer.NewRepository(persistence.RunDb(dbConfig)),
-		messages:     message.NewRepository(persistence.RunDb(dbConfig)),
+		transactions: transfer.NewRepository(db),
+		messages:     message.NewRepository(db),
 		logger:       config.GetLoggerFor("DB Validation Service"),
 	}
 }
 
-func (s *Service) TransactionRecordExists(transactionID, receiverAddress, sourceAsset, targetAsset, amount, txReimbursement, gasCost, ethTxHash string, executeEthTransaction bool) (bool, *entity.Transfer, error) {
+func (s *Service) TransactionRecordExists(transactionID, receiverAddress, nativeToken, wrappedToken, amount, txReimbursement, gasCost, ethTxHash string, executeEthTransaction bool) (bool, *entity.Transfer, error) {
 	bigGasPriceGwei, err := helper.ToBigInt(gasCost)
 	if err != nil {
 		s.logger.Fatalf("Could not parse GasPriceGwei [%s] to Big Integer for TX ID [%s]. Error: [%s].", gasCost, transactionID, err)
@@ -36,16 +37,16 @@ func (s *Service) TransactionRecordExists(transactionID, receiverAddress, source
 	bigGasPriceWei := ethereum.GweiToWei(bigGasPriceGwei).String()
 
 	expectedTransferRecord := &entity.Transfer{
-		TransactionID:         transactionID,
-		Receiver:              receiverAddress,
-		SourceAsset:           sourceAsset,
-		TargetAsset:           targetAsset,
-		Amount:                amount,
-		TxReimbursement:       txReimbursement,
-		GasPrice:              bigGasPriceWei,
-		Status:                entity_transfer.StatusCompleted,
-		SignatureMsgStatus:    entity_transfer.StatusSignatureMined,
-		EthTxMsgStatus:        entity_transfer.StatusEthTxMsgMined,
+		TransactionID:      transactionID,
+		Receiver:           receiverAddress,
+		NativeToken:        nativeToken,
+		WrappedToken:       wrappedToken,
+		Amount:             amount,
+		TxReimbursement:    txReimbursement,
+		GasPrice:           bigGasPriceWei,
+		Status:             entity_transfer.StatusCompleted,
+		SignatureMsgStatus: entity_transfer.StatusSignatureMined,
+		//EthTxMsgStatus:        entity_transfer.StatusEthTxMsgMined, // TODO: Uncomment when ready
 		EthTxStatus:           entity_transfer.StatusEthTxMined,
 		EthTxHash:             ethTxHash,
 		ExecuteEthTransaction: true,
@@ -58,17 +59,17 @@ func (s *Service) TransactionRecordExists(transactionID, receiverAddress, source
 	return expectedTransferRecord.Equals(*actualDbTx), expectedTransferRecord, nil
 }
 
-func (s *Service) SignatureMessagesExist(record *entity.Transfer, signatureTriplets []model.SigTriplet) (bool, []entity.Message, error) {
+func (s *Service) SignatureMessagesExist(record *entity.Transfer, signatureDuplets []model.SigDuplet) (bool, []entity.Message, error) {
 	var expectedMessageRecords []entity.Message
 
-	for _, triplet := range signatureTriplets {
+	for _, duplet := range signatureDuplets {
 		tm := entity.Message{
-			TransferID:           record.TransactionID,
-			Transfer:             *record,
-			Hash:                 record.EthTxHash,
-			Signature:            triplet.Signature,
-			Signer:               triplet.Signer,
-			TransactionTimestamp: triplet.ConsensusTimestamp,
+			TransferID: record.TransactionID,
+			Transfer:   *record,
+			Hash:       record.EthTxHash,
+			Signature:  duplet.Signature,
+			//Signer:               duplet.Signer, // TODO: Decode Signature, EncodeMessageBytes, VerifySignature to get Signer
+			TransactionTimestamp: duplet.ConsensusTimestamp,
 		}
 		expectedMessageRecords = append(expectedMessageRecords, tm)
 	}

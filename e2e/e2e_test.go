@@ -92,25 +92,36 @@ func Test_E2E(t *testing.T) {
 	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
 }
 
-func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, signatures []model.SigTriplet, t *testing.T) {
-	exist, expectedMessageRecords, err := setupEnv.DBVerifier.SignatureMessagesExist(record, signatures)
-	if err != nil {
-		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
-	}
-	if !exist {
-		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
-	}
+func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, signatures []model.SigDuplet, t *testing.T) {
+	//exist, expectedMessageRecords, err := setupEnv.DBVerifierAlice.SignatureMessagesExist(record, signatures)
+	//if err != nil {
+	//	t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
+	//}
+	//if !exist {
+	//	t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
+	//}
 }
 
 func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, whbarReceiverAddress common.Address, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
-	exists, expectedTransferRecord, err := setupEnv.DBVerifier.TransactionRecordExists(transactionResponse.TransactionID.String(), receiverAddress, "hbar", whbarReceiverAddress.String(), strconv.FormatInt(hBarAmount.AsTinybar(), 10), txFee, gasPriceGwei, ethTransactionHash, true)
+	expectedTxId := fromHederaTransactionID(&transactionResponse.TransactionID)
+
+	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(expectedTxId.String(), receiverAddress, "HBAR", whbarReceiverAddress.String(), strconv.FormatInt(hBarAmount.AsTinybar(), 10), txFee, gasPriceGwei, ethTransactionHash, true)
 	if err != nil {
-		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", transactionResponse.TransactionID.String(), err)
+		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxId, err)
 	}
 	if !exists {
-		t.Fatalf("[%s] does not exist.", transactionResponse.TransactionID.String())
+		t.Fatalf("[%s] does not exist.", expectedTxId)
 	}
 	return expectedTransferRecord
+}
+
+func prepareId(s string) string {
+	args := strings.Split(s, "@")
+	accountID := args[0]
+	timestampArgs := strings.Split(args[1], ".")
+	seconds := timestampArgs[0]
+	nanoseconds := timestampArgs[1]
+	return strings.Join([]string{accountID, seconds, nanoseconds}, "-")
 }
 
 func Test_E2E_Only_Address_Memo(t *testing.T) {
@@ -230,11 +241,11 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	return &res, err
 }
 
-func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) (string, []model.SigTriplet) {
+func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) (string, []model.SigDuplet) {
 	ethSignaturesCollected := 0
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
-	var receivedSignatures []model.SigTriplet
+	var receivedSignatures []model.SigDuplet
 
 	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
@@ -257,21 +268,20 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					if msg.GetTopicSignatureMessage().TransferID != topicSubmissionMessageSign.String() {
 						fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 					} else {
-						signer, err := ethereum.GetSignerBySignatureString(transactionResponse.Hash, msg.GetTopicSignatureMessage().Signature)
+						_, signatureHex, err := ethereum.DecodeSignature(msg.GetTopicSignatureMessage().Signature)
 						if err != nil {
-							fmt.Println(fmt.Errorf(`Could not retrieve Signer Address by received Signature [%s]`, msg.GetTopicSignatureMessage().Signature))
+							fmt.Println(fmt.Errorf(`Could not decode received Signature [%s] - Error: [%s]`, msg.GetTopicSignatureMessage().Signature, err))
 							return
 						}
 
-						duple := model.SigTriplet{
-							Signature:          msg.GetTopicSignatureMessage().Signature,
+						duple := model.SigDuplet{
+							Signature:          signatureHex,
 							ConsensusTimestamp: msg.TransactionTimestamp,
-							Signer:             signer,
 						}
 						receivedSignatures = append(receivedSignatures, duple)
 
 						ethSignaturesCollected++
-						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
+						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signatureHex))
 					}
 				}
 
@@ -292,7 +302,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case <-time.After(60 * time.Second):
+	case <-time.After(120 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
@@ -320,8 +330,8 @@ func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, wh
 
 		fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
 		// Verify that the ethereum address has received the exact transfer amount of WHBARs
-		amount := whbarBalanceAfter.Int64() - whbarBalanceBefore.Int64()
-		if amount != expectedWHBarAmount {
+		amount := new(big.Int).Sub(whbarBalanceAfter, whbarBalanceBefore)
+		if amount.String() == strconv.FormatInt(expectedWHBarAmount, 10) {
 			t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, expectedWHBarAmount, amount)
 		}
 
@@ -356,7 +366,7 @@ func fromHederaTransactionID(id *hedera.TransactionID) hederaTxId {
 
 	return hederaTxId{
 		AccountId: accId,
-		Seconds:   split[0],
+		Seconds:   fmt.Sprintf("%09s", split[0]),
 		Nanos:     fmt.Sprintf("%09s", split[1]),
 	}
 }

@@ -66,8 +66,13 @@ func migrateDb(db *gorm.DB) {
 }
 
 // Connect and Migrate
-func RunDb(dbConfig config.Db) *gorm.DB {
+func RunAndMigrateDb(dbConfig config.Db) *gorm.DB {
 	gorm := connectToDb(dbConfig)
 	migrateDb(gorm)
+	return gorm
+}
+
+func RunDb(dbConfig config.Db) *gorm.DB {
+	gorm := connectToDb(dbConfig)
 	return gorm
 }

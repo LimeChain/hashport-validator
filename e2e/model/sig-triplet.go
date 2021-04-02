@@ -1,7 +1,6 @@
 package model
 
-type SigTriplet struct {
+type SigDuplet struct {
 	Signature          string
 	ConsensusTimestamp int64
-	Signer             string
 }

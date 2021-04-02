@@ -1,12 +1,25 @@
 # Template configuration for the e2e tests
 hedera:
   network_type:
-  db_validation:
-    host:
-    name:
-    password:
-    port:
-    username:
+  dbs:
+    alice:
+      host:
+      name:
+      password:
+      port:
+      username:
+    bob:
+      host:
+      name:
+      password:
+      port:
+      username:
+    carol:
+      host:
+      name:
+      password:
+      port:
+      username:
   bridge_account:
   topic_id:
   sender:
@@ -16,6 +29,6 @@ ethereum:
   node_url:
   router_contract_address:
 tokens:
-  whbar:
+  whbar: "HBAR"
   wtoken:
 validator_url:

@@ -74,11 +74,13 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount hederaSDK.AccountID
-	SenderAccount hederaSDK.AccountID
-	TopicID       hederaSDK.TopicID
-	Clients       *clients
-	DBVerifier    *db_validation.Service
+	BridgeAccount   hederaSDK.AccountID
+	SenderAccount   hederaSDK.AccountID
+	TopicID         hederaSDK.TopicID
+	Clients         *clients
+	DBVerifierAlice *db_validation.Service
+	DBVerifierBob   *db_validation.Service
+	DBVerifierCarol *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -101,11 +103,13 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 	return &Setup{
-		BridgeAccount: bridgeAccount,
-		SenderAccount: senderAccount,
-		TopicID:       topicID,
-		Clients:       clients,
-		DBVerifier:    db_validation.NewService(config.Hedera.DbValidationProps),
+		BridgeAccount:   bridgeAccount,
+		SenderAccount:   senderAccount,
+		TopicID:         topicID,
+		Clients:         clients,
+		DBVerifierAlice: db_validation.NewService(config.Hedera.DbValidationProps.Alice),
+		DBVerifierBob:   db_validation.NewService(config.Hedera.DbValidationProps.Bob),
+		DBVerifierCarol: db_validation.NewService(config.Hedera.DbValidationProps.Carol),
 	}, nil
 }
 
@@ -216,11 +220,17 @@ type Tokens struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string    `yaml:"network_type"`
-	BridgeAccount     string    `yaml:"bridge_account"`
-	TopicID           string    `yaml:"topic_id"`
-	Sender            Sender    `yaml:"sender"`
-	DbValidationProps config.Db `yaml:"db_validation"`
+	NetworkType       string `yaml:"network_type"`
+	BridgeAccount     string `yaml:"bridge_account"`
+	TopicID           string `yaml:"topic_id"`
+	Sender            Sender `yaml:"sender"`
+	DbValidationProps Dbs    `yaml:"dbs"`
+}
+
+type Dbs struct {
+	Alice config.Db `yaml:"alice"`
+	Bob   config.Db `yaml:"bob"`
+	Carol config.Db `yaml:"carol"`
 }
 
 // sender props from the application.yml
