@@ -41,7 +41,7 @@ const (
 
 const (
 	MintFunction                = "mintWithReimbursement"
-	MintFunctionParametersCount = 5
+	MintFunctionParametersCount = 6
 )
 
 var (
