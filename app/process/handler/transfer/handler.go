@@ -39,9 +39,9 @@ func NewHandler(transfersService service.Transfers) *Handler {
 }
 
 func (th Handler) Handle(payload interface{}) {
-	transferMsg, err := model.NewTransferMessageFromInterface(payload)
-	if err != nil {
-		th.logger.Errorf("Failed to parse incoming payload. Error [%s]", err)
+	transferMsg, ok := payload.(*model.Transfer)
+	if !ok {
+		th.logger.Errorf("Error could not cast Transfer payload [%s]", payload)
 		return
 	}
 

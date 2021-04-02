@@ -16,11 +16,6 @@
 
 package transfer
 
-import (
-	"errors"
-	"fmt"
-)
-
 type Transfer struct {
 	TransactionId         string
 	Receiver              string
@@ -44,12 +39,4 @@ func NewTransferMessage(txId, receiver, nativeToken, wrappedToken, amount, txRei
 		WrappedToken:          wrappedToken,
 		ExecuteEthTransaction: executeEthTransaction,
 	}
-}
-
-func NewTransferMessageFromInterface(data interface{}) (*Transfer, error) {
-	transferMsg, ok := data.(*Transfer)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("unable to cast to TransferMessage data [%s]", data))
-	}
-	return transferMsg, nil
 }
