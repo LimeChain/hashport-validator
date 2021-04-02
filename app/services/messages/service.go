@@ -87,6 +87,7 @@ func NewService(
 func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 	topicMessage := tm.GetTopicSignatureMessage()
 
+	// In case a topic message for given transfer is being processed before the actual transfer
 	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to await incoming transfer. Error: [%s]", topicMessage.TransferID, err)
@@ -307,6 +308,7 @@ func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHa
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
 }
 
+// awaitTransfer checks until given transfer is found the database
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	for {
 		t, err := ss.transferRepository.GetByTransactionId(transferID)
