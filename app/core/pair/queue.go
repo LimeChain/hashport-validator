@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package publisher
+package pair
 
-import (
-	"github.com/golang/protobuf/proto"
-	"github.com/limechain/hedera-watcher-sdk/queue"
-	"github.com/limechain/hedera-watcher-sdk/types"
-	log "github.com/sirupsen/logrus"
-)
+type Message struct {
+	Payload interface{}
+}
 
-func Publish(m proto.Message, typeMessage string, id interface{}, q *queue.Queue) {
-	message, e := proto.Marshal(m)
-	if e != nil {
-		log.Fatalf("[%s] - Failed marshalling response - ID: [%s]\n", typeMessage, id)
-	}
+// Queue is a wrapper of a go channel, particularly to restrict actions on the channel itself
+type Queue struct {
+	channel chan *Message
+}
 
-	q.Push(&types.Message{
-		Payload: message,
-		Type:    typeMessage,
-	})
+// Push pushes a message to the channel
+func (q *Queue) Push(message *Message) {
+	q.channel <- message
+}
+
+func NewQueue() *Queue {
+	ch := make(chan *Message)
+	return &Queue{channel: ch}
 }
