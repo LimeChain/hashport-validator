@@ -37,8 +37,8 @@ type Repositories struct {
 func PrepareRepositories(config config.Db) *Repositories {
 	db := persistence.RunDb(config)
 	return &Repositories{
-		transferStatus: status.NewRepositoryForStatus(db, status.TransferMessageType),
-		messageStatus:  status.NewRepositoryForStatus(db, status.MessageType),
+		transferStatus: status.NewRepositoryForStatus(db, status.Transfer),
+		messageStatus:  status.NewRepositoryForStatus(db, status.Message),
 		transfer:       transfer.NewRepository(db),
 		message:        message.NewRepository(db),
 	}

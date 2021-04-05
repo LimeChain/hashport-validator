@@ -25,8 +25,8 @@ import (
 
 // Hedera Watcher SDK message types
 const (
-	TransferMessageType = "TRANSFER"
-	MessageType         = "TOPIC_MESSAGE"
+	Transfer = "TRANSFER"
+	Message  = "TOPIC_MESSAGE"
 )
 
 type Repository struct {
@@ -44,8 +44,8 @@ func NewRepositoryForStatus(dbClient *gorm.DB, statusType string) *Repository {
 
 func typeCheck(statusType string) {
 	switch statusType {
-	case MessageType:
-	case TransferMessageType:
+	case Message:
+	case Transfer:
 		return
 	default:
 		log.Fatal("Invalid status type.")
