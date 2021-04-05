@@ -17,7 +17,11 @@
 package mocks
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"math/big"
 
 	"github.com/stretchr/testify/mock"
@@ -27,7 +31,23 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) GetContractAddress() common.Address {
+func (m *MockBridgeContract) ParseToken(nativeToken string) (string, error) {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) IsMember(address string) bool {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) GetBridgeContractAddress() common.Address {
 	return common.HexToAddress("0x0000000000000000000000000000000000000000")
 }
 

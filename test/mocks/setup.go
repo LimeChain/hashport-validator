@@ -16,11 +16,17 @@
 
 package mocks
 
-var MExchangeRateProvider *MockExchangeRateProvider
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
+)
 
+var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
+var MTransferService *service.MockTransferService
 var MBridgeContractService *MockBridgeContract
 
 func Setup() {
-	MExchangeRateProvider = &MockExchangeRateProvider{}
 	MBridgeContractService = &MockBridgeContract{}
+	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
+	MTransferService = &service.MockTransferService{}
 }

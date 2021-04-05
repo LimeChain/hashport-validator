@@ -68,12 +68,15 @@ type Config struct {
 }
 
 type Hedera struct {
-	Validator  Validator  `yaml:"validator"`
-	Eth        Ethereum   `yaml:"eth"`
-	MirrorNode MirrorNode `yaml:"mirror_node"`
-	Client     Client     `yaml:"client"`
-	Watcher    Watcher    `yaml:"watcher"`
-	Handler    Handler    `yaml:"handler"`
+	LogLevel    string     `yaml:"log_level"`
+	Validator   Validator  `yaml:"validator"`
+	Eth         Ethereum   `yaml:"eth"`
+	MirrorNode  MirrorNode `yaml:"mirror_node"`
+	Client      Client     `yaml:"client"`
+	Watcher     Watcher    `yaml:"watcher"`
+	Handler     Handler    `yaml:"handler"`
+	Recovery    Recovery   `yaml:"recovery"`
+	RestApiOnly bool       `yaml:"rest_api_only"`
 }
 
 type Handler struct {
@@ -104,22 +107,20 @@ type Watcher struct {
 
 type Ethereum struct {
 	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
-	BridgeContractAddress string `yaml:"bridge_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_BRIDGE_CONTRACT_ADDRESS"`
-	WhbarContractAddress  string `yaml:"whbar_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_WHBAR_CONTRACT_ADDRESS"`
+	RouterContractAddress string `yaml:"router_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_ROUTER_CONTRACT_ADDRESS"`
 }
 
 type CryptoTransfer struct {
-	Accounts []ID `yaml:"accounts" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
+	Account ID `yaml:"account" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
 }
 
 type ConsensusMessage struct {
-	Topics []ID `yaml:"topics" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
+	Topic ID `yaml:"topic" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
 }
 
 type ID struct {
-	Id             string `yaml:"id"`
-	MaxRetries     int    `yaml:"max_retries"`
-	StartTimestamp int64  `yaml:"start_timestamp"`
+	Id         string `yaml:"id"`
+	MaxRetries int    `yaml:"max_retries"`
 }
 
 type Client struct {
@@ -152,4 +153,8 @@ type Db struct {
 	Password string `yaml:"password" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PASSWORD"`
 	Port     string `yaml:"port" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PORT"`
 	Username string `yaml:"username" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_USERNAME"`
+}
+
+type Recovery struct {
+	Timestamp int64 `yaml:"timestamp" env:"HEDERA_ETH_BRIDGE_VALIDATOR_RECOVERY_TIMESTAMP"`
 }

@@ -17,11 +17,11 @@
 package fees
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/clients"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/services/bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
@@ -29,12 +29,12 @@ import (
 var precision = new(big.Int).SetInt64(100000)
 
 type Calculator struct {
-	rateProvider  clients.ExchangeRate
+	rateProvider  client.ExchangeRate
 	configuration config.Hedera
-	bridge        bridge.ContractService
+	bridge        service.Contracts
 }
 
-func NewCalculator(rateProvider clients.ExchangeRate, configuration config.Hedera, bridge bridge.ContractService) *Calculator {
+func NewCalculator(rateProvider client.ExchangeRate, configuration config.Hedera, bridge service.Contracts) *Calculator {
 	return &Calculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,
@@ -42,7 +42,7 @@ func NewCalculator(rateProvider clients.ExchangeRate, configuration config.Heder
 	}
 }
 
-func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceGwei string) (bool, error) {
+func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount string, gasPriceWei string) (bool, error) {
 	bigTransferAmount, err := helper.ToBigInt(transferAmount)
 	if err != nil {
 		return false, InvalidTransferAmount
@@ -62,12 +62,12 @@ func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount str
 		return false, InsufficientFee
 	}
 
-	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+	bigGasPriceWei, err := helper.ToBigInt(gasPriceWei)
 	if err != nil {
 		return false, InvalidGasPrice
 	}
 
-	tinyBarTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
+	tinyBarTxFee, err := fc.getEstimatedTxFee(bigGasPriceWei)
 	if err != nil {
 		return false, err
 	}
@@ -81,13 +81,19 @@ func (fc Calculator) ValidateExecutionFee(transferFee string, transferAmount str
 	return true, nil
 }
 
-func (fc Calculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
-	bigGasPriceGWei, err := helper.ToBigInt(gasPriceGwei)
+func (fc Calculator) GetEstimatedTxFeeFromGWei(gasPriceGWei string) (string, error) {
+	gasPriceGweiBn, err := helper.ToBigInt(gasPriceGWei)
 	if err != nil {
 		return "", InvalidGasPrice
 	}
 
-	bigEstimatedTxFee, err := fc.getEstimatedTxFee(bigGasPriceGWei)
+	gasPriceWeiBn := ethereum.GweiToWei(gasPriceGweiBn)
+
+	return fc.getEstimatedTxFeeFromWei(gasPriceWeiBn)
+}
+
+func (fc Calculator) getEstimatedTxFeeFromWei(gasPriceWei *big.Int) (string, error) {
+	bigEstimatedTxFee, err := fc.getEstimatedTxFee(gasPriceWei)
 	if err != nil {
 		return "", err
 	}
@@ -95,15 +101,14 @@ func (fc Calculator) GetEstimatedTxFee(gasPriceGwei string) (string, error) {
 	return bigEstimatedTxFee.String(), nil
 }
 
-func (fc Calculator) getEstimatedTxFee(gasPriceGwei *big.Int) (*big.Float, error) {
+func (fc Calculator) getEstimatedTxFee(gasPriceWei *big.Int) (*big.Float, error) {
 	exchangeRate, err := fc.rateProvider.GetEthVsHbarRate()
 	if err != nil {
 		return nil, err
 	}
 
 	estimatedGas := new(big.Int).SetUint64(fc.getEstimatedGas())
-	bigGasPriceWei := gweiToWei(gasPriceGwei)
-	weiTxFee := calculateWeiTxFee(bigGasPriceWei, estimatedGas)
+	weiTxFee := calculateWeiTxFee(gasPriceWei, estimatedGas)
 
 	return weiToTinyBar(weiTxFee, exchangeRate), nil
 }
@@ -124,10 +129,6 @@ func (fc Calculator) getEstimatedGas() uint64 {
 
 func calculateWeiTxFee(gasPrice *big.Int, estimatedGas *big.Int) *big.Int {
 	return new(big.Int).Mul(gasPrice, estimatedGas)
-}
-
-func gweiToWei(gwei *big.Int) *big.Int {
-	return new(big.Int).Mul(gwei, big.NewInt(params.GWei))
 }
 
 func getFee(transferFee *big.Int, serviceFee *big.Int) *big.Int {

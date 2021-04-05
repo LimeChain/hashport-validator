@@ -17,20 +17,10 @@
 package message
 
 import (
+	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"gorm.io/gorm"
 )
-
-type TransactionMessage struct {
-	gorm.Model
-	TransactionId        string
-	EthAddress           string
-	Amount               string
-	Fee                  string
-	Signature            string
-	Hash                 string
-	SignerAddress        string
-	TransactionTimestamp int64
-}
 
 type Repository struct {
 	dbClient *gorm.DB
@@ -42,10 +32,10 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (m Repository) GetTransaction(txId, signature, hash string) (*TransactionMessage, error) {
-	var message TransactionMessage
-	err := m.dbClient.Model(&TransactionMessage{}).
-		Where("transaction_id = ? and signature = ? and hash = ?", txId, signature, hash).
+func (m Repository) GetMessageWith(transferID, signature, hash string) (*entity.Message, error) {
+	var message entity.Message
+	err := m.dbClient.Model(&entity.Message{}).
+		Where("transfer_id = ? and signature = ? and hash = ?", transferID, signature, hash).
 		First(&message).Error
 	if err != nil {
 		return nil, err
@@ -53,13 +43,30 @@ func (m Repository) GetTransaction(txId, signature, hash string) (*TransactionMe
 	return &message, nil
 }
 
-func (m Repository) Create(message *TransactionMessage) error {
+func (m Repository) Exist(transferID, signature, hash string) (bool, error) {
+	_, err := m.GetMessageWith(transferID, signature, hash)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+func (m Repository) Create(message *entity.Message) error {
 	return m.dbClient.Create(message).Error
 }
 
-func (m Repository) GetTransactions(txId string, hash string) ([]TransactionMessage, error) {
-	var messages []TransactionMessage
-	err := m.dbClient.Where("transaction_id = ? and hash = ?", txId, hash).Order("transaction_timestamp").Find(&messages).Error
+func (m Repository) Get(transferID string) ([]entity.Message, error) {
+	var messages []entity.Message
+	err := m.dbClient.
+		Preload("Transfer").
+		Where("transfer_id = ?", transferID).
+		Order("transaction_timestamp").
+		Find(&messages).
+		Error
 	if err != nil {
 		return nil, err
 	}

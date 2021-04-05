@@ -5,7 +5,7 @@ package proto;
 option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
 
 message TopicEthTransactionMessage {
-  string transactionId = 1;
-  string hash = 2; // hedera hash data
-  string ethTxHash = 3;
+  string transferID = 1; // The transaction Id of the initial Hedera Transfer
+  string hash = 2; // The hash of the message signed by validators
+  string ethTxHash = 3; // The Ethereum Transaction hash of the mint TX
 }

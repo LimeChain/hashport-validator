@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 LimeChain Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package metadata
 
 import (
@@ -5,6 +21,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -17,20 +34,16 @@ const (
 )
 
 var (
-	ErrorInternalServerError = errors.New("SOMETHING_WENT_WRONG")
+	Route  = "/metadata"
+	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
-var (
-	metadataRoute = "/metadata"
-	logger        = config.GetLoggerFor(fmt.Sprintf("Router [%s]", metadataRoute))
-)
-
-// /metadata?gasPriceGwei=${gasPriceGwei}
-func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *http.Request) {
+// GET: .../metadata?gasPriceGwei=${gasPriceGwei}
+func getMetadata(calculator service.Fees) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gasPriceGwei := r.URL.Query().Get(GasPriceGweiParam)
 
-		txFee, err := calculator.GetEstimatedTxFee(gasPriceGwei)
+		txFee, err := calculator.GetEstimatedTxFeeFromGWei(gasPriceGwei)
 		if err != nil {
 			if errors.Is(fees.InvalidGasPrice, err) {
 				render.Status(r, http.StatusBadRequest)
@@ -39,7 +52,7 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 				logger.Debugf("Invalid provided value: [%s].", gasPriceGwei)
 			} else {
 				render.Status(r, http.StatusInternalServerError)
-				render.JSON(w, r, response.ErrorResponse(ErrorInternalServerError))
+				render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
 
 				logger.Errorf("Router resolved with an error. Error [%s].", err)
 			}
@@ -54,9 +67,8 @@ func getMetadata(calculator *fees.Calculator) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func NewMetadataRouter(feeCalculator *fees.Calculator) http.Handler {
+func NewRouter(feeCalculator service.Fees) chi.Router {
 	r := chi.NewRouter()
-	r.Get(metadataRoute, getMetadata(feeCalculator))
-
+	r.Get("/", getMetadata(feeCalculator))
 	return r
 }

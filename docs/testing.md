@@ -18,6 +18,14 @@ Name                                              | Description
 `hedera.ethereum.whbar_contract_address`          | The ERC20 WHBAR contract on Ethereum
 `hedera.ethereum.bridge_contract_address`         | The Bridge contract on Ethereum
 `hedera.validator_url`                            | The URL of the Validator node. Used for querying Metadata
+`hedera.network_type`                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
+`hedera.tokens.whbar`                             | The whbar ID which will be used for the tests.
+`hedera.tokens.wtoken`                            | The token ID which will be used for the token related tests.
+`hedera.db_validation.host`                       | The IP or hostname used to connect to the database.
+`hedera.db_validation.name`                       | The name of the database.
+`hedera.db_validation.password`                   | The database password the processor uses to connect.
+`hedera.db_validation.port`                       | The port used to connect to the database.
+`hedera.db_validation.username`                   | The username the processor uses to connect to the database.
 
 ### Run E2E Tests
 
