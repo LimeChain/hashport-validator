@@ -18,7 +18,6 @@ package contracts
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -109,13 +108,6 @@ func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(txId)
-	fmt.Println(wrappedToken)
-	fmt.Println(ethAddress)
-	fmt.Println(amount)
-	fmt.Println(fee)
-	fmt.Println(signatures)
 
 	return bsc.contract.MintWithReimbursement(
 		opts,
