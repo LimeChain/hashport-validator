@@ -96,7 +96,7 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 
 	// Step 2 - Verify the submitted topic messages
 	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
-	//TODO: submit the tx
+	//TODO: submit the tx send amount
 }
 
 func Test_E2E_Token_Transfer(t *testing.T) {
@@ -343,7 +343,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case <-time.After(60 * time.Second):
+	case <-time.After(120 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
