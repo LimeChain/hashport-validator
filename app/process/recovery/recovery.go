@@ -23,8 +23,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -199,7 +200,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 
 	r.logger.Debugf("Found [%d] unprocessed messages for Topic [%s]", len(messages), r.topicID)
 	for _, msg := range messages {
-		m, err := encoding.NewTopicMessageFromString(msg.Contents, msg.ConsensusTimestamp)
+		m, err := message.FromString(msg.Contents, msg.ConsensusTimestamp)
 		if err != nil {
 			r.logger.Errorf("Skipping recovery of Topic Message with timestamp [%s]. Could not decode message. Error: [%s]", msg.ConsensusTimestamp, err)
 			continue
@@ -224,7 +225,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 	return nil
 }
 
-func (r Recovery) recoverEthereumTXMessage(tm encoding.TopicMessage) error {
+func (r Recovery) recoverEthereumTXMessage(tm message.Message) error {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	isValid, err := r.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
@@ -251,16 +252,16 @@ func (r Recovery) processUnfinishedOperations() error {
 		return err
 	}
 
-	for _, transfer := range unprocessedTransfers {
-		transferMsg := encoding.NewTransferMessage(
-			transfer.TransactionID,
-			transfer.Receiver,
-			transfer.NativeToken,
-			transfer.WrappedToken,
-			transfer.Amount,
-			transfer.TxReimbursement,
-			transfer.GasPrice,
-			transfer.ExecuteEthTransaction)
+	for _, t := range unprocessedTransfers {
+		transferMsg := transfer.New(
+			t.TransactionID,
+			t.Receiver,
+			t.NativeToken,
+			t.WrappedToken,
+			t.Amount,
+			t.TxReimbursement,
+			t.GasPrice,
+			t.ExecuteEthTransaction)
 
 		if transferMsg.ExecuteEthTransaction {
 			err = r.transfers.VerifyFee(*transferMsg)

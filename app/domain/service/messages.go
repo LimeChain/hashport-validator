@@ -17,20 +17,20 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 )
 
 type Messages interface {
 	// SanityCheckSignature performs any validation required prior handling the topic message
 	// (verifies metadata against the corresponding Transaction record)
-	SanityCheckSignature(tm encoding.TopicMessage) (bool, error)
+	SanityCheckSignature(tm message.Message) (bool, error)
 	// VerifyEthereumTxAuthenticity performs the validation required prior handling the topic message
 	// (verifies the submitted TX against the required target contract and arguments passed)
-	VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool, error)
+	VerifyEthereumTxAuthenticity(tm message.Message) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-	ProcessSignature(tm encoding.TopicMessage) error
+	ProcessSignature(tm message.Message) error
 	// ScheduleForSubmission computes the execution slot and schedules the Ethereum Mint TX for submission
 	ScheduleEthereumTxForSubmission(transferID string) error
 	// ProcessEthereumTxMessage
-	ProcessEthereumTxMessage(tm encoding.TopicMessage) error
+	ProcessEthereumTxMessage(tm message.Message) error
 }
