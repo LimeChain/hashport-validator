@@ -157,6 +157,20 @@ func newClients(config Config) (*clients, error) {
 }
 
 func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := ParseToken(routerInstance, nativeToken)
+	if err != nil {
+		return nil, err
+	}
+
+	wTokenInstance, err := wtoken.NewWtoken(*wTokenContractAddress, ethClient.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	return wTokenInstance, nil
+}
+
+func ParseToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
 	wrappedToken, err := routerInstance.NativeToWrappedToken(
 		nil,
@@ -171,13 +185,8 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
 	}
 
-	wTokenContractAddress := common.HexToAddress(wTokenContractHex)
-	wTokenInstance, err := wtoken.NewWtoken(wTokenContractAddress, ethClient.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	return wTokenInstance, nil
+	address := common.HexToAddress(wTokenContractHex)
+	return &address, nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {

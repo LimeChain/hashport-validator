@@ -50,6 +50,7 @@ const (
 	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
 	gasPriceGwei            = "100"
 	expectedValidatorsCount = 3
+	HbarTokenID             = "HBAR"
 )
 
 func Test_E2E(t *testing.T) {
@@ -95,19 +96,24 @@ func Test_E2E(t *testing.T) {
 }
 
 func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, signatures []model.SigDuplet, t *testing.T) {
-	//exist, expectedMessageRecords, err := setupEnv.DBVerifierAlice.SignatureMessagesExist(record, signatures)
-	//if err != nil {
-	//	t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
-	//}
-	//if !exist {
-	//	t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
-	//}
+	exist, expectedMessageRecords, err := setupEnv.DBVerifierAlice.SignatureMessagesExist(record, signatures)
+	if err != nil {
+		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
+	}
+	if !exist {
+		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
+	}
 }
 
 func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, whbarReceiverAddress common.Address, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
 	expectedTxId := fromHederaTransactionID(&transactionResponse.TransactionID)
 
-	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(expectedTxId.String(), receiverAddress, "HBAR", whbarReceiverAddress.String(), strconv.FormatInt(hBarAmount.AsTinybar(), 10), txFee, gasPriceGwei, ethTransactionHash, true)
+	wrappedToken, err := setup.ParseToken(setupEnv.Clients.RouterContract, "HBAR")
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", expectedTxId, err)
+	}
+
+	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(expectedTxId.String(), receiverAddress, HbarTokenID, wrappedToken.String(), strconv.FormatInt(hBarSendAmount.AsTinybar(), 10), txFee, gasPriceGwei, ethTransactionHash, true)
 	if err != nil {
 		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxId, err)
 	}
@@ -115,15 +121,6 @@ func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.
 		t.Fatalf("[%s] does not exist.", expectedTxId)
 	}
 	return expectedTransferRecord
-}
-
-func prepareId(s string) string {
-	args := strings.Split(s, "@")
-	accountID := args[0]
-	timestampArgs := strings.Split(args[1], ".")
-	seconds := timestampArgs[0]
-	nanoseconds := timestampArgs[1]
-	return strings.Join([]string{accountID, seconds, nanoseconds}, "-")
 }
 
 func Test_E2E_Only_Address_Memo(t *testing.T) {
@@ -279,7 +276,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 						duple := model.SigDuplet{
 							Signature:          signatureHex,
-							ConsensusTimestamp: msg.TransactionTimestamp,
+							ConsensusTimestamp: msg.GetTransactionTimestamp(),
 						}
 						receivedSignatures = append(receivedSignatures, duple)
 
@@ -334,10 +331,9 @@ func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, wh
 		fmt.Printf("WHBAR balance after transaction: [%s]\n", whbarBalanceAfter)
 		// Verify that the ethereum address has received the exact transfer amount of WHBARs
 		amount := new(big.Int).Sub(whbarBalanceAfter, whbarBalanceBefore)
-		if amount.String() == strconv.FormatInt(expectedWHBarAmount, 10) {
+		if strings.Compare(amount.String(), strconv.FormatInt(expectedWHBarAmount, 10)) != 0 {
 			t.Fatalf(`Expected to receive [%v] WHBAR, but got [%v].`, expectedWHBarAmount, amount)
 		}
-
 		c1 <- true
 	}
 	onRevert := func() {

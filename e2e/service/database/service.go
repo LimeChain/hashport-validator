@@ -62,14 +62,28 @@ func (s *Service) TransactionRecordExists(transactionID, receiverAddress, native
 func (s *Service) SignatureMessagesExist(record *entity.Transfer, signatureDuplets []model.SigDuplet) (bool, []entity.Message, error) {
 	var expectedMessageRecords []entity.Message
 
+	//authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
+	//	if err != nil {
+	//		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
+	//		return err
+	//	}
+	//
+	//	// Prepare Signature
+	//	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(tsm.GetSignature())
+	//	if err != nil {
+	//		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: [%s]", tsm.TransferID, tsm.GetSignature(), err)
+	//		return err
+	//	}
+	//	authMessageStr := hex.EncodeToString(authMsgBytes)
+
 	for _, duplet := range signatureDuplets {
 		tm := entity.Message{
 			TransferID: record.TransactionID,
 			Transfer:   *record,
-			Hash:       record.EthTxHash,
-			Signature:  duplet.Signature,
+			//Hash:       record.EthTxHash,
+			Signature: duplet.Signature,
 			//Signer:               duplet.Signer, // TODO: Decode Signature, EncodeMessageBytes, VerifySignature to get Signer
-			TransactionTimestamp: duplet.ConsensusTimestamp,
+			//TransactionTimestamp: duplet.ConsensusTimestamp,
 		}
 		expectedMessageRecords = append(expectedMessageRecords, tm)
 	}
