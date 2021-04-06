@@ -92,7 +92,7 @@ func Test_E2E(t *testing.T) {
 	// Step 4 - Verify Transaction Record in the database
 	expectedTxRecord := verifyTransferRecordInDB(
 		setupEnv.Clients.RouterContract,
-		[]*database.Service{setupEnv.DBVerifierAlice, setupEnv.DBVerifierBob, setupEnv.DBVerifierCarol},
+		setupEnv.DBVerifiers,
 		transactionResponse.TransactionID,
 		"HBAR",
 		txFee,
@@ -107,7 +107,7 @@ func Test_E2E(t *testing.T) {
 		true, t)
 
 	// Step 5 - Verify Message Record in the database
-	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
+	verifyMessageRecordsInDB(setupEnv.DBVerifiers, expectedTxRecord, receivedSignatures, t)
 }
 
 func Test_E2E_Only_Address_Memo(t *testing.T) {
@@ -124,7 +124,7 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 	// Step 3 - Verify Transaction Record in the database
 	expectedTxRecord := verifyTransferRecordInDB(
 		setupEnv.Clients.RouterContract,
-		[]*database.Service{setupEnv.DBVerifierAlice, setupEnv.DBVerifierBob, setupEnv.DBVerifierCarol},
+		setupEnv.DBVerifiers,
 		transactionResponse.TransactionID,
 		"HBAR",
 		"0",
@@ -137,16 +137,18 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 		false, t)
 
 	// Step 4 - Verify Message Record in the database
-	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
+	verifyMessageRecordsInDB(setupEnv.DBVerifiers, expectedTxRecord, receivedSignatures, t)
 }
 
-func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, signatures []model.SigDuplet, t *testing.T) {
-	exist, expectedMessageRecords, err := setupEnv.DBVerifierAlice.SignatureMessagesExist(record, signatures)
-	if err != nil {
-		t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
-	}
-	if !exist {
-		t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
+func verifyMessageRecordsInDB(DBVerifiers []*database.Service, record *entity.Transfer, signatures []model.SigDuplet, t *testing.T) {
+	for _, dbVerifier := range DBVerifiers {
+		exist, expectedMessageRecords, err := dbVerifier.SignatureMessagesExist(record, signatures)
+		if err != nil {
+			t.Fatalf("Could not figure out if messages for [%s] are the expected messages [%v] - Error: [%s].", record.TransactionID, expectedMessageRecords, err)
+		}
+		if !exist {
+			t.Fatalf("Messages for [%s] are not [%v].", record.TransactionID, expectedMessageRecords)
+		}
 	}
 }
 

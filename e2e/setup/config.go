@@ -74,13 +74,11 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount   hederaSDK.AccountID
-	SenderAccount   hederaSDK.AccountID
-	TopicID         hederaSDK.TopicID
-	Clients         *clients
-	DBVerifierAlice *db_validation.Service
-	DBVerifierBob   *db_validation.Service
-	DBVerifierCarol *db_validation.Service
+	BridgeAccount hederaSDK.AccountID
+	SenderAccount hederaSDK.AccountID
+	TopicID       hederaSDK.TopicID
+	Clients       *clients
+	DBVerifiers   []*db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -103,13 +101,11 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 	return &Setup{
-		BridgeAccount:   bridgeAccount,
-		SenderAccount:   senderAccount,
-		TopicID:         topicID,
-		Clients:         clients,
-		DBVerifierAlice: db_validation.NewService(config.Hedera.DbValidationProps.Alice),
-		DBVerifierBob:   db_validation.NewService(config.Hedera.DbValidationProps.Bob),
-		DBVerifierCarol: db_validation.NewService(config.Hedera.DbValidationProps.Carol),
+		BridgeAccount: bridgeAccount,
+		SenderAccount: senderAccount,
+		TopicID:       topicID,
+		Clients:       clients,
+		DBVerifiers:   []*db_validation.Service{db_validation.NewService(config.Hedera.DbValidationProps.Alice), db_validation.NewService(config.Hedera.DbValidationProps.Bob), db_validation.NewService(config.Hedera.DbValidationProps.Carol)},
 	}, nil
 }
 
