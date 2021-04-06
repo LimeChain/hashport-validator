@@ -40,19 +40,19 @@ func NewService(dbConfigs []config.Db) *Service {
 }
 
 func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, signatures []string) (bool, error) {
-	exists, record, err := s.validTransactionRecord(expectedTransferRecord)
+	valid, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err
 	}
-	if !exists {
+	if !valid {
 		return false, nil
 	}
 
-	exists, err = s.validSignatureMessages(record, signatures)
+	valid, err = s.validSignatureMessages(record, signatures)
 	if err != nil {
 		return false, err
 	}
-	if !exists {
+	if !valid {
 		return false, nil
 	}
 	return true, nil
