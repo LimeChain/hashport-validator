@@ -8,7 +8,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -31,7 +30,21 @@ func NewService(dbConfig config.Db) *Service {
 	}
 }
 
-func (s *Service) TransactionRecordExists(transactionID, receiverAddress, nativeToken, wrappedToken, amount, txReimbursement, gasCost, ethTxHash string, executeEthTransaction bool) (bool, *entity.Transfer, error) {
+func (s *Service) TransactionRecordExists(
+	transactionID,
+	receiverAddress,
+	nativeToken,
+	wrappedToken,
+	amount,
+	txReimbursement,
+	gasCost,
+	status,
+	signatureMsgStatus,
+	ethTxMsgStatus,
+	ethTxStatus,
+	ethTxHash string,
+	executeEthTransaction bool,
+) (bool, *entity.Transfer, error) {
 	bigGasPriceGwei, err := helper.ToBigInt(gasCost)
 	if err != nil {
 		s.logger.Fatalf("Could not parse GasPriceGwei [%s] to Big Integer for TX ID [%s]. Error: [%s].", gasCost, transactionID, err)
@@ -46,12 +59,12 @@ func (s *Service) TransactionRecordExists(transactionID, receiverAddress, native
 		Amount:             amount,
 		TxReimbursement:    txReimbursement,
 		GasPrice:           bigGasPriceWei,
-		Status:             entity_transfer.StatusCompleted,
-		SignatureMsgStatus: entity_transfer.StatusSignatureMined,
-		//EthTxMsgStatus:        entity_transfer.StatusEthTxMsgMined, // TODO: Uncomment when ready
-		EthTxStatus:           entity_transfer.StatusEthTxMined,
+		Status:             status,
+		SignatureMsgStatus: signatureMsgStatus,
+		//EthTxMsgStatus:        ethTxMsgStatus, // TODO: Uncomment when ready
+		EthTxStatus:           ethTxStatus,
 		EthTxHash:             ethTxHash,
-		ExecuteEthTransaction: true,
+		ExecuteEthTransaction: executeEthTransaction,
 	}
 
 	actualDbTx, err := s.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)

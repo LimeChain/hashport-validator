@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/model"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"log"
@@ -47,15 +48,14 @@ var (
 
 const (
 	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
-	gasPriceGwei            = "100"
+	gasPrice                = "100"
 	expectedValidatorsCount = 3
-	HbarTokenID             = "HBAR"
 )
 
 func Test_E2E(t *testing.T) {
 	setupEnv := setup.Load()
 
-	metadataResponse, err := setupEnv.Clients.ValidatorClient.GetMetadata(gasPriceGwei)
+	metadataResponse, err := setupEnv.Clients.ValidatorClient.GetMetadata(gasPrice)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func Test_E2E(t *testing.T) {
 	}
 	fmt.Printf("Estimated TX TxReimbursementFee: [%s]\n", txFee)
 
-	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
+	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPrice)
 
 	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
 	if err != nil {
@@ -88,9 +88,51 @@ func Test_E2E(t *testing.T) {
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
 
 	// Step 4 - Verify Transaction Record in the database
-	expectedTxRecord := verifyTransferRecordInDB(setupEnv, transactionResponse, whbarReceiverAddress, txFee, ethTransactionHash, t)
+	expectedTxRecord := verifyTransferRecordInDB(
+		setupEnv,
+		transactionResponse.TransactionID,
+		"HBAR",
+		txFee,
+		gasPrice,
+		statusInfo{
+			status:          entity_transfer.StatusCompleted,
+			statusSignature: entity_transfer.StatusSignatureMined,
+			statusEthTx:     entity_transfer.StatusEthTxMined,
+			statusEthTxMsg:  entity_transfer.StatusEthTxMsgMined,
+		},
+		ethTransactionHash,
+		true, t)
 
 	// Step 5 - Verify Message Record in the database
+	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
+}
+
+func Test_E2E_Only_Address_Memo(t *testing.T) {
+	setupEnv := setup.Load()
+
+	memo := fmt.Sprintf("%s-0-0", receiverAddress)
+
+	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+
+	// Step 2 - Verify the submitted topic messages
+	ethTransactionHash, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+
+	// Step 3 - Verify Transaction Record in the database
+	expectedTxRecord := verifyTransferRecordInDB(
+		setupEnv,
+		transactionResponse.TransactionID,
+		"HBAR",
+		"0",
+		"0",
+		statusInfo{
+			status:          entity_transfer.StatusCompleted,
+			statusSignature: entity_transfer.StatusSignatureMined,
+		},
+		ethTransactionHash,
+		false, t)
+
+	// Step 4 - Verify Message Record in the database
 	verifyMessageRecordsInDB(setupEnv, expectedTxRecord, receivedSignatures, t)
 }
 
@@ -104,15 +146,37 @@ func verifyMessageRecordsInDB(setupEnv *setup.Setup, record *entity.Transfer, si
 	}
 }
 
-func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, whbarReceiverAddress common.Address, txFee, ethTransactionHash string, t *testing.T) *entity.Transfer {
-	expectedTxId := fromHederaTransactionID(&transactionResponse.TransactionID)
+type statusInfo struct {
+	status          string
+	statusSignature string
+	statusEthTx     string
+	statusEthTxMsg  string
+}
 
-	wrappedToken, err := setup.ParseToken(setupEnv.Clients.RouterContract, "HBAR")
+func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionID hedera.TransactionID, nativeToken, txFee, gasPrice string, statuses statusInfo, ethTransactionHash string, shouldExecuteEthTx bool, t *testing.T) *entity.Transfer {
+	expectedTxId := fromHederaTransactionID(&transactionID)
+
+	wrappedToken, err := setup.ParseToken(setupEnv.Clients.RouterContract, nativeToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", expectedTxId, err)
 	}
 
-	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(expectedTxId.String(), receiverAddress, HbarTokenID, wrappedToken.String(), strconv.FormatInt(hBarSendAmount.AsTinybar(), 10), txFee, gasPriceGwei, ethTransactionHash, true)
+	amount := strconv.FormatInt(hBarSendAmount.AsTinybar(), 10)
+
+	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(
+		expectedTxId.String(),
+		receiverAddress,
+		nativeToken,
+		wrappedToken.String(),
+		amount,
+		txFee,
+		gasPrice,
+		statuses.status,
+		statuses.statusSignature,
+		statuses.statusEthTxMsg,
+		statuses.statusEthTx,
+		ethTransactionHash,
+		shouldExecuteEthTx)
 	if err != nil {
 		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxId, err)
 	}
@@ -120,18 +184,6 @@ func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionResponse hedera.
 		t.Fatalf("[%s] does not exist.", expectedTxId)
 	}
 	return expectedTransferRecord
-}
-
-func Test_E2E_Only_Address_Memo(t *testing.T) {
-	setupEnv := setup.Load()
-
-	memo := fmt.Sprintf("%s-0-0", receiverAddress)
-
-	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
-
-	// Step 2 - Verify the submitted topic messages
-	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 }
 
 func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
@@ -295,7 +347,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case <-time.After(45 * time.Second):
+	case <-time.After(60 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
