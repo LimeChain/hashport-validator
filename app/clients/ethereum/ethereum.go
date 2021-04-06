@@ -98,7 +98,26 @@ func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onE
 		}
 
 		if receipt.Status == 1 {
-			ec.logger.Debugf("TX [%s] was successfully mined", hex)
+			//Wait for confirmations
+			confirmationsNeeded := 5
+			firstBlock, err := ec.HeaderByNumber(context.Background(), nil)
+			if err != nil {
+				onError(err)
+				return
+			}
+			for {
+				currentBlock, err := ec.HeaderByNumber(context.Background(), nil)
+				if err != nil {
+					onError(err)
+					return
+				}
+				c := big.NewInt(0).Sub(currentBlock.Number, firstBlock.Number).Int64()
+				if c >= int64(confirmationsNeeded) {
+					break
+				}
+				time.Sleep(5 * time.Second)
+			}
+			ec.logger.Debugf("TX [%s] was successfully mined with %d confirmations", hex, confirmationsNeeded)
 			onSuccess()
 		} else {
 			ec.logger.Debugf("TX [%s] reverted", hex)
@@ -147,6 +166,16 @@ func (ec *Client) WaitBlocks(transactionHash string, blockNumber uint64) error {
 		currentBlockNumberBn := new(big.Int).SetUint64(currentBlockNumber)
 
 		if target.Cmp(currentBlockNumberBn) <= 0 {
+			_, isPending, err := ec.Client.TransactionByHash(context.Background(), common.HexToHash(transactionHash))
+			if err != nil {
+				return err
+			}
+			if isPending {
+				err := ec.WaitBlocks(transactionHash, target.Uint64())
+				if err != nil {
+					return err
+				}
+			}
 			return nil
 		}
 
