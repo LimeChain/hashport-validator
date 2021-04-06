@@ -159,7 +159,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 
-func (ctw Watcher) restart(q *pair.Queue) {
+func (ctw *Watcher) restart(q *pair.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")

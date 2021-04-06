@@ -121,7 +121,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddPair(
 		addConsensusTopicWatcher(
 			&configuration,
-			clients.HederaNode,
+			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp),
 		cmh.NewHandler(
@@ -155,11 +155,16 @@ func addTransferWatcher(configuration *config.Config,
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
-	hederaNodeClient client.HederaNode,
+	client client.MirrorNode,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
 	topic := configuration.Hedera.Watcher.ConsensusMessage.Topic
 	log.Debugf("Added Topic Watcher for topic [%s]\n", topic.Id)
-	return cmw.NewWatcher(hederaNodeClient, topic.Id, repository, startTimestamp)
+	return cmw.NewWatcher(client,
+		topic.Id,
+		repository,
+		configuration.Hedera.MirrorNode.PollingInterval,
+		topic.MaxRetries,
+		startTimestamp)
 }
