@@ -3,9 +3,9 @@ package database
 import (
 	"encoding/hex"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"

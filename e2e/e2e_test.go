@@ -295,7 +295,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case <-time.After(120 * time.Second):
+	case <-time.After(45 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
