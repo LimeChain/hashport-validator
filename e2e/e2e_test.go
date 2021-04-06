@@ -19,7 +19,6 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/model"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
@@ -268,20 +267,14 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					if msg.GetTopicSignatureMessage().TransferID != topicSubmissionMessageSign.String() {
 						fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 					} else {
-						_, signatureHex, err := ethereum.DecodeSignature(msg.GetTopicSignatureMessage().Signature)
-						if err != nil {
-							fmt.Println(fmt.Errorf(`Could not decode received Signature [%s] - Error: [%s]`, msg.GetTopicSignatureMessage().Signature, err))
-							return
-						}
-
 						duple := model.SigDuplet{
-							Signature:          signatureHex,
-							ConsensusTimestamp: msg.GetTransactionTimestamp(),
+							Signature:          msg.GetTopicSignatureMessage().Signature,
+							ConsensusTimestamp: msg.TransactionTimestamp,
 						}
 						receivedSignatures = append(receivedSignatures, duple)
 
 						ethSignaturesCollected++
-						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signatureHex))
+						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 					}
 				}
 

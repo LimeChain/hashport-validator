@@ -114,6 +114,19 @@ func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
 	return crypto.PubkeyToAddress(*pubKey).String(), nil
 }
 
+func ReinstantiateSigner(signature string, authMsgBytes []byte) (string, string, error) {
+	signatureBytes, signatureHex, err := DecodeSignature(signature)
+	if err != nil {
+		return "", "", err
+	}
+
+	signerAddress, err := GetAddressBySignature(authMsgBytes, signatureBytes)
+	if err != nil {
+		return "", "", err
+	}
+	return signerAddress, signatureHex, nil
+}
+
 func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSignature string, err error) {
 	if len(decodedSig) != 65 {
 		return nil, "", errors.New("invalid signature length")
