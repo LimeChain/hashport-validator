@@ -17,12 +17,11 @@
 package message
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
@@ -57,10 +56,10 @@ func NewHandler(
 	}
 }
 
-func (cmh Handler) Handle(payload []byte) {
-	m, err := encoding.NewTopicMessageFromBytes(payload)
-	if err != nil {
-		log.Errorf("Error could not unmarshal payload. Error [%s].", err)
+func (cmh Handler) Handle(payload interface{}) {
+	m, ok := payload.(*message.Message)
+	if !ok {
+		cmh.logger.Errorf("Error could not cast payload [%s]", payload)
 		return
 	}
 
@@ -70,16 +69,11 @@ func (cmh Handler) Handle(payload []byte) {
 	case validatorproto.TopicMessageType_EthTransaction:
 		cmh.handleEthTxMessage(*m)
 	default:
-		err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
-	}
-
-	if err != nil {
-		cmh.logger.Errorf("Error - could not handle payload: [%s]", err)
-		return
+		cmh.logger.Errorf("Error - invalid topic submission message type [%s]", m.Type)
 	}
 }
 
-func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
+func (cmh Handler) handleEthTxMessage(tm message.Message) {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	isValid, err := cmh.messages.VerifyEthereumTxAuthenticity(tm)
 	if err != nil {
@@ -100,7 +94,7 @@ func (cmh Handler) handleEthTxMessage(tm encoding.TopicMessage) {
 }
 
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleSignatureMessage(tm encoding.TopicMessage) {
+func (cmh Handler) handleSignatureMessage(tm message.Message) {
 	tsm := tm.GetTopicSignatureMessage()
 	valid, err := cmh.messages.SanityCheckSignature(tm)
 	if err != nil {

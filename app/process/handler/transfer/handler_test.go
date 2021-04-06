@@ -18,31 +18,16 @@ package transfer
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
-	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
-	protomsg "github.com/limechain/hedera-eth-bridge-validator/proto"
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
 	"testing"
 )
 
-const (
-	topicID   = "0.0.125563"
-	accountID = "0.0.99661"
-)
-
 var (
-	addresses = []string{
-		"0xsomeaddress",
-		"0xsomeaddress2",
-		"0xsomeaddress3",
-	}
-	// Value of the serviceFeePercent in percentage. Range 0% to 99.999% multiplied my 1000
-	serviceFeePercent    uint64 = 10000
-	protoTransferMessage        = &protomsg.TransferMessage{
+	mt = model.Transfer{
 		TransactionId:         "0.0.0-0000000-1234",
 		Receiver:              "0x12345",
 		Amount:                "10000000000",
@@ -60,43 +45,30 @@ func InitializeHandler() (*Handler, *service.MockTransferService) {
 	return NewHandler(mocks.MTransferService), mocks.MTransferService
 }
 
-func GetTestData() (encoding.TransferMessage, hedera.TopicID, hedera.AccountID, []byte) {
-	ctm := encoding.TransferMessage{TransferMessage: &protomsg.TransferMessage{}}
-	topicID, _ := hedera.TopicIDFromString(topicID)
-	accID, _ := hedera.AccountIDFromString(accountID)
-
-	cryptoTransferPayload, _ := proto.Marshal(protoTransferMessage)
-
-	return ctm, topicID, accID, cryptoTransferPayload
-}
-
 func Test_Handle(t *testing.T) {
-	ctm, _, _, cryptoTransferPayload := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
-	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
 	tx := &entity.Transfer{
-		TransactionID:         ctm.TransactionId,
-		Receiver:              ctm.Receiver,
-		Amount:                ctm.Amount,
-		NativeToken:           ctm.NativeToken,
-		WrappedToken:          ctm.WrappedToken,
-		TxReimbursement:       ctm.TxReimbursement,
-		GasPrice:              ctm.GasPrice,
-		ExecuteEthTransaction: ctm.ExecuteEthTransaction,
+		TransactionID:         mt.TransactionId,
+		Receiver:              mt.Receiver,
+		Amount:                mt.Amount,
+		NativeToken:           mt.NativeToken,
+		WrappedToken:          mt.WrappedToken,
+		TxReimbursement:       mt.TxReimbursement,
+		GasPrice:              mt.GasPrice,
+		ExecuteEthTransaction: mt.ExecuteEthTransaction,
 		Status:                transfer.StatusInitial,
 	}
 
-	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
-	mockedService.On("VerifyFee", ctm).Return(nil)
-	mockedService.On("ProcessTransfer", ctm).Return(nil)
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
+	mockedService.On("VerifyFee", mt).Return(nil)
+	mockedService.On("ProcessTransfer", mt).Return(nil)
 
-	ctHandler.Handle(cryptoTransferPayload)
+	ctHandler.Handle(&mt)
 
-	mockedService.AssertCalled(t, "InitiateNewTransfer", ctm)
-	mockedService.AssertCalled(t, "VerifyFee", ctm)
-	mockedService.AssertCalled(t, "ProcessTransfer", ctm)
+	mockedService.AssertCalled(t, "InitiateNewTransfer", mt)
+	mockedService.AssertCalled(t, "VerifyFee", mt)
+	mockedService.AssertCalled(t, "ProcessTransfer", mt)
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {
@@ -112,80 +84,68 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 }
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
-	ctm, _, _, cryptoTransferPayload := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
-	proto.Unmarshal(cryptoTransferPayload, &ctm)
+	mockedService.On("InitiateNewTransfer", mt).Return(nil, errors.New("some-error"))
 
-	mockedService.On("InitiateNewTransfer", ctm).Return(nil, errors.New("some-error"))
-
-	ctHandler.Handle(cryptoTransferPayload)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertNotCalled(t, "VerifyFee")
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
-	ctm, _, _, cryptoTransferPayload := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
-	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
 	tx := &entity.Transfer{
-		TransactionID:   ctm.TransactionId,
-		Receiver:        ctm.Receiver,
-		Amount:          ctm.Amount,
-		TxReimbursement: ctm.TxReimbursement,
+		TransactionID:   mt.TransactionId,
+		Receiver:        mt.Receiver,
+		Amount:          mt.Amount,
+		TxReimbursement: mt.TxReimbursement,
 		Status:          transfer.StatusCompleted,
 	}
 
-	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 
-	ctHandler.Handle(cryptoTransferPayload)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertNotCalled(t, "VerifyFee")
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_VerifyFee_Fails(t *testing.T) {
-	ctm, _, _, cryptoTransferPayload := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
-	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
 	tx := &entity.Transfer{
-		TransactionID:   ctm.TransactionId,
-		Receiver:        ctm.Receiver,
-		Amount:          ctm.Amount,
-		TxReimbursement: ctm.TxReimbursement,
+		TransactionID:   mt.TransactionId,
+		Receiver:        mt.Receiver,
+		Amount:          mt.Amount,
+		TxReimbursement: mt.TxReimbursement,
 		Status:          transfer.StatusInitial,
 	}
 
-	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
-	mockedService.On("VerifyFee", ctm).Return(errors.New("some-error"))
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
+	mockedService.On("VerifyFee", mt).Return(errors.New("some-error"))
 
-	ctHandler.Handle(cryptoTransferPayload)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
 func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
-	ctm, _, _, cryptoTransferPayload := GetTestData()
 	ctHandler, mockedService := InitializeHandler()
 
-	proto.Unmarshal(cryptoTransferPayload, &ctm)
-
 	tx := &entity.Transfer{
-		TransactionID:   ctm.TransactionId,
-		Receiver:        ctm.Receiver,
-		Amount:          ctm.Amount,
-		TxReimbursement: ctm.TxReimbursement,
+		TransactionID:   mt.TransactionId,
+		Receiver:        mt.Receiver,
+		Amount:          mt.Amount,
+		TxReimbursement: mt.TxReimbursement,
 		Status:          transfer.StatusInitial,
 	}
 
-	mockedService.On("InitiateNewTransfer", ctm).Return(tx, nil)
-	mockedService.On("VerifyFee", ctm).Return(nil)
-	mockedService.On("ProcessTransfer", ctm).Return(errors.New("some-error"))
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
+	mockedService.On("VerifyFee", mt).Return(nil)
+	mockedService.On("ProcessTransfer", mt).Return(errors.New("some-error"))
 
-	ctHandler.Handle(cryptoTransferPayload)
+	ctHandler.Handle(&mt)
 }

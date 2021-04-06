@@ -18,7 +18,7 @@ package transfer
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -38,10 +38,10 @@ func NewHandler(transfersService service.Transfers) *Handler {
 	}
 }
 
-func (th Handler) Handle(payload []byte) {
-	transferMsg, err := encoding.NewTransferMessageFromBytes(payload)
-	if err != nil {
-		th.logger.Errorf("Failed to parse incoming payload. Error: [%s].", err)
+func (th Handler) Handle(payload interface{}) {
+	transferMsg, ok := payload.(*model.Transfer)
+	if !ok {
+		th.logger.Errorf("Error could not cast Transfer payload [%s]", payload)
 		return
 	}
 
