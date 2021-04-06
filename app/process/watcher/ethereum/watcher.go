@@ -76,14 +76,36 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 
 	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to parse acount [%s]. Error [%s]", eventLog.Raw.TxHash, eventAccount, err)
+		ew.logger.Errorf("[%s] - Failed to parse acount [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
+	nativeToken, err := ew.contracts.ToNativeToken(eventLog.WrappedToken)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken, err)
+		return
+	}
+
+	if nativeToken != "HBAR" && isTokenID(nativeToken) {
+		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
+		return
+	}
+
 	burnEvent := &burn_event.BurnEvent{
-		Amount:    eventLog.Amount.Int64(),
-		TxHash:    eventLog.Raw.TxHash.String(),
-		Recipient: recipientAccount,
+		Amount:       eventLog.Amount.Int64(),
+		TxHash:       eventLog.Raw.TxHash.String(),
+		Recipient:    recipientAccount,
+		WrappedToken: eventLog.WrappedToken.String(),
+		NativeToken:  nativeToken,
 	}
 
 	q.Push(&pair.Message{Payload: burnEvent})
+}
+
+func isTokenID(tokenID string) bool {
+	_, err := hedera.TokenIDFromString(tokenID)
+	if err != nil {
+		return false
+	}
+
+	return true
 }

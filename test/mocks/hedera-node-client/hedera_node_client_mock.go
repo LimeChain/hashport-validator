@@ -40,7 +40,7 @@ func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicI
 	return args.Get(0).(*hedera.TransactionID), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledTransaction(
+func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
 	tinybarAmount int64,
 	recipient,
 	bridgeThresholdAccountID,

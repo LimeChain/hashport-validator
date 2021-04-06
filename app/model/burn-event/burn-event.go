@@ -20,7 +20,9 @@ import "github.com/hashgraph/hedera-sdk-go/v2"
 
 // BurnEvent serves as a model between Ethereum Watcher and Handler
 type BurnEvent struct {
-	Amount    int64
-	Recipient hedera.AccountID
-	TxHash    string
+	Amount       int64
+	Recipient    hedera.AccountID
+	TxHash       string
+	NativeToken  string
+	WrappedToken string
 }

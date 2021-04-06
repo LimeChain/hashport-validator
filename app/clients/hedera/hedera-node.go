@@ -80,24 +80,46 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	return &txResponse.TransactionID, err
 }
 
-// SubmitScheduledTransaction submits a scheduled transaction based on input parameters
-func (hc Node) SubmitScheduledTransaction(tinybarAmount int64,
+// SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits a scheduled transfer transaction
+func (hc Node) SubmitScheduledTokenTransferTransaction(
+	tinybarAmount int64,
+	tokenID hedera.TokenID,
 	recipient,
-	bridgeThresholdAccountID,
+	sender,
+	payerAccountID hedera.AccountID,
+	memo string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+
+	transferTransaction := hedera.NewTransferTransaction().
+		AddTokenTransfer(tokenID, recipient, tinybarAmount).
+		AddTokenTransfer(tokenID, sender, -tinybarAmount)
+
+	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
+}
+
+// SubmitScheduledHbarTransferTransaction creates a hbar transfer transaction and submits a scheduled transfer transaction
+func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
+	recipient,
+	sender,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
 	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
 	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
 
-	transferTransaction, err := hedera.NewTransferTransaction().
+	transferTransaction := hedera.NewTransferTransaction().
 		AddHbarTransfer(recipient, receiveAmount).
-		AddHbarTransfer(bridgeThresholdAccountID, subtractedAmount).
-		FreezeWith(hc.GetClient())
+		AddHbarTransfer(sender, subtractedAmount)
+
+	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
+}
+
+// submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits to HCS
+func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, transaction *hedera.TransferTransaction) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+	transaction, err := transaction.FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	signedTransaction, err := transferTransaction.
+	signedTransaction, err := transaction.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
 		return nil, nil, err

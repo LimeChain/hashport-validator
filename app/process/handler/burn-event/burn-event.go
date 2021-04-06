@@ -69,7 +69,22 @@ func (sth Handler) Handle(payload interface{}) {
 		return
 	}
 
-	transactionID, scheduleID, err := sth.hederaNodeClient.SubmitScheduledTransaction(burnEvent.Amount, burnEvent.Recipient, sth.bridgeThresholdAccount, sth.payerAccount, burnEvent.TxHash)
+	var transactionID *hedera.TransactionID
+	var scheduleID *hedera.ScheduleID
+
+	if burnEvent.NativeToken == "HBAR" {
+		transactionID, scheduleID, err = sth.hederaNodeClient.
+			SubmitScheduledHbarTransferTransaction(burnEvent.Amount, burnEvent.Recipient, sth.bridgeThresholdAccount, sth.payerAccount, burnEvent.TxHash)
+	} else {
+		tokenID, err := hedera.TokenIDFromString(burnEvent.NativeToken)
+		if err != nil {
+			sth.logger.Errorf("[%s] - failed to parse native token [%s] to TokenID. Error [%s]", burnEvent.TxHash, burnEvent.NativeToken, err)
+			return
+		}
+		transactionID, scheduleID, err = sth.hederaNodeClient.
+			SubmitScheduledTokenTransferTransaction(burnEvent.Amount, tokenID, burnEvent.Recipient, sth.bridgeThresholdAccount, sth.payerAccount, burnEvent.TxHash)
+	}
+
 	if err != nil {
 		sth.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", burnEvent.TxHash, err)
 		return

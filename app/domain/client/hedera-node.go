@@ -26,5 +26,6 @@ type HederaNode interface {
 	// SubmitTopicConsensusMessage submits the provided message bytes to the
 	// specified HCS `topicId`
 	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
-	SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error)
+	SubmitScheduledTokenTransferTransaction(tinybarAmount int64, tokenID hedera.TokenID, recipient, sender, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionID, *hedera.ScheduleID, error)
+	SubmitScheduledHbarTransferTransaction(tinybarAmount int64, recipient, sender, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionID, *hedera.ScheduleID, error)
 }
