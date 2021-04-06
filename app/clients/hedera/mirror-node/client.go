@@ -73,6 +73,15 @@ func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, 
 	return res, nil
 }
 
+// GetMessagesAfterTimestamp returns all Topic messages after the given timestamp
+func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]Message, error) {
+	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
+		topicId.String(),
+		timestampHelper.String(from))
+
+	return c.getTopicMessagesByQuery(messagesQuery)
+}
+
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
 func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",

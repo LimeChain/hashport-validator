@@ -125,7 +125,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
-				ctw.logger.Errorf("Watcher [%s] - Unable to parse latest transaction timestamp. Error - [%s].", ctw.accountID.String(), err)
+				ctw.logger.Errorf("Unable to parse latest transfer timestamp. Error - [%s].", err)
 				continue
 			}
 
@@ -159,7 +159,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 
-func (ctw Watcher) restart(q *pair.Queue) {
+func (ctw *Watcher) restart(q *pair.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")
