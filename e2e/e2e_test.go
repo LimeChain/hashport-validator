@@ -19,9 +19,11 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/model"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"log"
 	"math/big"
@@ -89,7 +91,8 @@ func Test_E2E(t *testing.T) {
 
 	// Step 4 - Verify Transaction Record in the database
 	expectedTxRecord := verifyTransferRecordInDB(
-		setupEnv,
+		setupEnv.Clients.RouterContract,
+		[]*database.Service{setupEnv.DBVerifierAlice, setupEnv.DBVerifierBob, setupEnv.DBVerifierCarol},
 		transactionResponse.TransactionID,
 		"HBAR",
 		txFee,
@@ -120,7 +123,8 @@ func Test_E2E_Only_Address_Memo(t *testing.T) {
 
 	// Step 3 - Verify Transaction Record in the database
 	expectedTxRecord := verifyTransferRecordInDB(
-		setupEnv,
+		setupEnv.Clients.RouterContract,
+		[]*database.Service{setupEnv.DBVerifierAlice, setupEnv.DBVerifierBob, setupEnv.DBVerifierCarol},
 		transactionResponse.TransactionID,
 		"HBAR",
 		"0",
@@ -153,35 +157,39 @@ type statusInfo struct {
 	statusEthTxMsg  string
 }
 
-func verifyTransferRecordInDB(setupEnv *setup.Setup, transactionID hedera.TransactionID, nativeToken, txFee, gasPrice string, statuses statusInfo, ethTransactionHash string, shouldExecuteEthTx bool, t *testing.T) *entity.Transfer {
+func verifyTransferRecordInDB(routerContract *router.Router, DBVerifiers []*database.Service, transactionID hedera.TransactionID, nativeToken, txFee, gasPrice string, statuses statusInfo, ethTransactionHash string, shouldExecuteEthTx bool, t *testing.T) *entity.Transfer {
 	expectedTxId := fromHederaTransactionID(&transactionID)
 
-	wrappedToken, err := setup.ParseToken(setupEnv.Clients.RouterContract, nativeToken)
+	wrappedToken, err := setup.ParseToken(routerContract, nativeToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", expectedTxId, err)
 	}
 
 	amount := strconv.FormatInt(hBarSendAmount.AsTinybar(), 10)
 
-	exists, expectedTransferRecord, err := setupEnv.DBVerifierAlice.TransactionRecordExists(
-		expectedTxId.String(),
-		receiverAddress,
-		nativeToken,
-		wrappedToken.String(),
-		amount,
-		txFee,
-		gasPrice,
-		statuses.status,
-		statuses.statusSignature,
-		statuses.statusEthTxMsg,
-		statuses.statusEthTx,
-		ethTransactionHash,
-		shouldExecuteEthTx)
-	if err != nil {
-		t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxId, err)
-	}
-	if !exists {
-		t.Fatalf("[%s] does not exist.", expectedTxId)
+	var expectedTransferRecord *entity.Transfer
+	for _, DBVerifier := range DBVerifiers {
+		var exists bool
+		exists, expectedTransferRecord, err = DBVerifier.TransactionRecordExists(
+			expectedTxId.String(),
+			receiverAddress,
+			nativeToken,
+			wrappedToken.String(),
+			amount,
+			txFee,
+			gasPrice,
+			statuses.status,
+			statuses.statusSignature,
+			statuses.statusEthTxMsg,
+			statuses.statusEthTx,
+			ethTransactionHash,
+			shouldExecuteEthTx)
+		if err != nil {
+			t.Fatalf("Could not figure out if [%s] exists - Error: [%s].", expectedTxId, err)
+		}
+		if !exists {
+			t.Fatalf("[%s] does not exist.", expectedTxId)
+		}
 	}
 	return expectedTransferRecord
 }
