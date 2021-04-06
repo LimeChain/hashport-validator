@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -32,24 +33,28 @@ import (
 )
 
 type Watcher struct {
-	nodeClient       client.HederaNode
+	client           client.MirrorNode
 	topicID          hedera.TopicID
 	statusRepository repository.Status
+	pollingInterval  time.Duration
+	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(nodeClient client.HederaNode, topicID string, repository repository.Status, startTimestamp int64) *Watcher {
+func NewWatcher(client client.MirrorNode, topicID string, repository repository.Status, pollingInterval time.Duration, maxRetries int, startTimestamp int64) *Watcher {
 	id, err := hedera.TopicIDFromString(topicID)
 	if err != nil {
 		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
 	}
 
 	return &Watcher{
-		nodeClient:       nodeClient,
+		client:           client,
 		topicID:          id,
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
+		pollingInterval:  pollingInterval,
+		maxRetries:       maxRetries,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID)),
 	}
 }
@@ -70,7 +75,7 @@ func (cmw Watcher) Watch(q *pair.Queue) {
 	} else {
 		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
-	cmw.subscribeToTopic(q)
+	cmw.beginWatching(q)
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
@@ -81,34 +86,50 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 	cmw.logger.Tracef("Updated Topic Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (cmw Watcher) subscribeToTopic(q *pair.Queue) {
-	_, err := hedera.NewTopicMessageQuery().
-		SetStartTime(time.Unix(0, cmw.startTimestamp)).
-		SetTopicID(cmw.topicID).
-		Subscribe(
-			cmw.nodeClient.GetClient(),
-			func(topicMsg hedera.TopicMessage) {
-				cmw.processMessage(topicMsg, q)
-				cmw.updateStatusTimestamp(topicMsg.ConsensusTimestamp.UnixNano())
-			},
-		)
+func (cmw Watcher) beginWatching(q *pair.Queue) {
+	milestoneTimestamp := cmw.startTimestamp
 
-	if err != nil {
-		cmw.logger.Error("Failed to subscribe to topic")
-		return
+	for {
+		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+		if err != nil {
+			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
+			cmw.restart(q)
+			return
+		}
+
+		cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
+
+		for _, msg := range messages {
+			milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
+			if err != nil {
+				cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
+				continue
+			}
+			cmw.processMessage(msg, q)
+			cmw.updateStatusTimestamp(milestoneTimestamp)
+		}
+		time.Sleep(cmw.pollingInterval * time.Second)
 	}
-	cmw.logger.Infof("Subscribed to Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
-func (cmw Watcher) processMessage(topicMsg hedera.TopicMessage, q *pair.Queue) {
+func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q *pair.Queue) {
 	cmw.logger.Info("New Message Received")
 
-	messageTimestamp := topicMsg.ConsensusTimestamp.UnixNano()
-	msg, err := message.FromBytesWithTS(topicMsg.Contents, messageTimestamp)
+	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)
 	if err != nil {
 		cmw.logger.Errorf("Could not decode incoming message [%s]. Error: [%s]", topicMsg.Contents, err)
 		return
 	}
 
 	q.Push(&pair.Message{Payload: msg})
+}
+
+func (cmw *Watcher) restart(q *pair.Queue) {
+	if cmw.maxRetries > 0 {
+		cmw.maxRetries--
+		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
+		go cmw.Watch(q)
+		return
+	}
+	cmw.logger.Errorf("Watcher failed: [Too many retries]")
 }
