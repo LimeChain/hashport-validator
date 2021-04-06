@@ -102,7 +102,7 @@ func (cmw Watcher) beginWatching(q *pair.Queue) {
 		for _, msg := range messages {
 			milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
 			if err != nil {
-				cmw.logger.Errorf("Watcher [%s] - Unable to parse latest transaction timestamp. Error - [%s].", cmw.topicID.String(), err)
+				cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
 				continue
 			}
 			cmw.processMessage(msg, q)
