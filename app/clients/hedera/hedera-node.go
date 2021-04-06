@@ -24,12 +24,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	// TODO: clarify node ids
-	nodeID, _ = hedera.AccountIDFromString("0.0.4")
-	nodeIDs   = []hedera.AccountID{nodeID}
-)
-
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
 type Node struct {
 	client *hedera.Client
@@ -87,20 +81,17 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 }
 
 // SubmitScheduledTransaction submits a scheduled transaction based on input parameters
-func (hc Node) SubmitScheduledTransaction(tinybarAmount int64, recipient, bridgeThresholdAccountID, payerAccountID hedera.AccountID, nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+func (hc Node) SubmitScheduledTransaction(tinybarAmount int64,
+	recipient,
+	bridgeThresholdAccountID,
+	payerAccountID hedera.AccountID,
+	memo string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
 	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
 	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
 
-	// todo: create TransactionID with nonce and set it in TransferTransaction
-	txnId := hedera.TransactionID{
-		AccountID: payerAccountID,
-	}
-
 	transferTransaction, err := hedera.NewTransferTransaction().
-		SetTransactionID(txnId).
 		AddHbarTransfer(recipient, receiveAmount).
 		AddHbarTransfer(bridgeThresholdAccountID, subtractedAmount).
-		SetNodeAccountIDs(nodeIDs).
 		FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, nil, err
@@ -112,13 +103,14 @@ func (hc Node) SubmitScheduledTransaction(tinybarAmount int64, recipient, bridge
 		return nil, nil, err
 	}
 
-	scheduledTx := hedera.NewScheduleCreateTransaction().
-		SetTransaction(&signedTransaction.Transaction).
-		// todo: we can set some kind of memo to showcase bridge transfers (e.g. "Bridge ETH -> Hedera Transfer")
-		SetMemo(nonce). // todo: replace when TransactionID nonce is introduced
-		SetPayerAccountID(payerAccountID)
+	scheduledTx, err := hedera.NewScheduleCreateTransaction().
+		SetPayerAccountID(payerAccountID).
+		SetTransactionMemo(memo).
+		SetScheduledTransaction(signedTransaction)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	scheduledTx = scheduledTx.SetTransactionID(hedera.TransactionIDGenerate(hc.client.GetOperatorAccountID()))
 	txResponse, err := scheduledTx.Execute(hc.GetClient())
 	if err != nil {
 		return nil, nil, err

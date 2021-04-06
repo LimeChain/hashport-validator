@@ -45,6 +45,6 @@ Name                                                                | Default   
 `hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
 `hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
 `hedera.log_level`                                                  | Info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
-`hedera.handler.scheduled-transaction.bridge_threshold_account`     | ""                                                  | The Hedera Bridge Threshold account id, which will send to recipients their unwrapped amounts
-`hedera.handler.scheduled-transaction.payer_account`                | ""                                                  | The Hedera Payer account id, which will pay for scheduled transactions (unwrapping) fees
+`hedera.handler.burn-event.bridge_threshold_account`                | ""                                                  | The Hedera Bridge Threshold account id, which will send to recipients their unwrapped amounts
+`hedera.handler.burn-event.payer_account`                           | ""                                                  | The Hedera Payer account id, which will pay for scheduled transactions (unwrapping) fees
 

@@ -43,6 +43,6 @@ hedera:
     consensus-message:
       topic_id:
       send_deadline: 300
-    scheduled-transaction:
+    burn-event:
       bridge_threshold_account:
       payer_account:

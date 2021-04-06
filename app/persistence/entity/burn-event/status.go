@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+package burn_event
 
-package proto;
-
-
-option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
-
-message ScheduledTransactionMessage {
-  int64 amount = 1; // in tinybars
-  string recipient = 2; // hedera.AccountID
-  string nonce = 3; // {ethereumTxHash}-{eventLogIndex}
-}
+const (
+	// StatusCompleted is a status set once the BurnEvent operation is successfully finished.
+	// This is a terminal status
+	StatusCompleted = "COMPLETED"
+	StatusFailed    = "FAILED"
+	StatusInitial   = "INITIAL"
+	StatusSubmitted = "SUBMITTED"
+)

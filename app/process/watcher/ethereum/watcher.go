@@ -17,9 +17,12 @@
 package ethereum
 
 import (
+	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -35,13 +38,13 @@ func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
 	return &Watcher{
 		config:    config,
 		contracts: contracts,
-		logger:    c.GetLoggerFor("Ethereum Watcher"),
+		logger:    c.GetLoggerFor(fmt.Sprintf("Ethereum Router Watcher [%s]", config.RouterContractAddress)),
 	}
 }
 
 func (ew *Watcher) Watch(queue *pair.Queue) {
 	go ew.listenForEvents(queue)
-	log.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
+	ew.logger.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
 }
 
 func (ew *Watcher) listenForEvents(q *pair.Queue) {
@@ -54,7 +57,7 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
+			ew.logger.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
 			return
 		case eventLog := <-events:
 			ew.handleLog(eventLog, q)
@@ -63,9 +66,24 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
+	eventAccount := string(eventLog.Receiver)
+	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
+		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
-		eventLog.Receiver)
-	// TODO: push to queue with message type, corresponding to ETH Handler
+		eventLog.ServiceFee.String(),
+		eventAccount)
+
+	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to parse acount [%s]. Error [%s]", eventLog.Raw.TxHash, eventAccount, err)
+		return
+	}
+	burnEvent := &burn_event.BurnEvent{
+		Amount:    eventLog.Amount.Int64(),
+		TxHash:    eventLog.Raw.TxHash.String(),
+		Recipient: recipientAccount,
+	}
+
+	q.Push(&pair.Message{Payload: burnEvent})
 }

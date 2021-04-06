@@ -80,9 +80,9 @@ type Hedera struct {
 }
 
 type Handler struct {
-	CryptoTransfer              CryptoTransferHandler       `yaml:"crypto-transfer"`
-	ConsensusMessage            ConsensusMessageHandler     `yaml:"consensus-message"`
-	ScheduledTransactionHandler ScheduledTransactionHandler `yaml:"scheduled-transaction"`
+	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
+	ConsensusMessage ConsensusMessageHandler `yaml:"consensus-message"`
+	BurnEventHandler BurnEventHandler        `yaml:"burn-event"`
 }
 
 type ConsensusMessageHandler struct {
@@ -95,9 +95,9 @@ type CryptoTransferHandler struct {
 	PollingInterval time.Duration `yaml:"polling_interval"`
 }
 
-type ScheduledTransactionHandler struct {
-	BridgeThresholdAccount string `yaml:"bridge_threshold_account" env:"HEDERA_ETH_BRIDGE_HANDLER_SCHEDULED_TX_BRIDGE_THRESHOLD_ACCOUNT"`
-	PayerAccount           string `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_HANDLER_SCHEDULED_TX_PAYER_ACCOUNT"`
+type BurnEventHandler struct {
+	BridgeThresholdAccount string `yaml:"bridge_threshold_account" env:"HEDERA_ETH_BRIDGE_HANDLER_BURN_EVENT_BRIDGE_THRESHOLD_ACCOUNT"`
+	PayerAccount           string `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_HANDLER_BURN_EVENT_PAYER_ACCOUNT"`
 }
 
 type Watcher struct {

@@ -19,6 +19,7 @@ package main
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
@@ -31,6 +32,7 @@ type Repositories struct {
 	messageStatus  repository.Status
 	transfer       repository.Transfer
 	message        repository.Message
+	burnEvent      repository.BurnEvent
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
@@ -41,5 +43,6 @@ func PrepareRepositories(config config.Db) *Repositories {
 		messageStatus:  status.NewRepositoryForStatus(db, status.Message),
 		transfer:       transfer.NewRepository(db),
 		message:        message.NewRepository(db),
+		burnEvent:      burn_event.NewRepository(db),
 	}
 }

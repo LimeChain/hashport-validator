@@ -22,6 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-event"
 	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
@@ -130,7 +131,11 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.message,
 			services.contracts,
 			services.messages))
-	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth), nil)
+	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth),
+		burn_event.NewHandler(
+			configuration.Hedera.Handler.BurnEventHandler,
+			clients.HederaNode,
+			repositories.burnEvent))
 }
 
 func addTransferWatcher(configuration *config.Config,
