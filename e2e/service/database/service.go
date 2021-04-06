@@ -40,7 +40,7 @@ func NewService(dbConfigs []config.Db) *Service {
 }
 
 func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, signatures []string) (bool, error) {
-	exists, record, err := s.transactionRecordExists(expectedTransferRecord)
+	exists, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer,
 		return false, nil
 	}
 
-	exists, err = s.signatureMessagesExist(record, signatures)
+	exists, err = s.validSignatureMessages(record, signatures)
 	if err != nil {
 		return false, err
 	}
@@ -58,7 +58,7 @@ func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer,
 	return true, nil
 }
 
-func (s *Service) transactionRecordExists(expectedTransferRecord *entity.Transfer) (bool, *entity.Transfer, error) {
+func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer) (bool, *entity.Transfer, error) {
 	for _, verifier := range s.verifiers {
 		actualDbTx, err := verifier.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)
 		if err != nil {
@@ -71,7 +71,7 @@ func (s *Service) transactionRecordExists(expectedTransferRecord *entity.Transfe
 	return true, expectedTransferRecord, nil
 }
 
-func (s *Service) signatureMessagesExist(record *entity.Transfer, signatures []string) (bool, error) {
+func (s *Service) validSignatureMessages(record *entity.Transfer, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
 
 	authMsgBytes, err := auth_message.EncodeBytesFrom(record.TransactionID, record.WrappedToken, record.Receiver, record.Amount, record.TxReimbursement, record.GasPrice)
