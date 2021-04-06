@@ -35,7 +35,7 @@ type Repositories struct {
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
 func PrepareRepositories(config config.Db) *Repositories {
-	db := persistence.RunAndMigrateDb(config)
+	db := persistence.ConnectWithMigration(config)
 	return &Repositories{
 		transferStatus: status.NewRepositoryForStatus(db, status.Transfer),
 		messageStatus:  status.NewRepositoryForStatus(db, status.Message),

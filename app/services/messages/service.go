@@ -424,7 +424,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error
 
 	checkedAddresses := make(map[string]bool)
 	for _, signature := range signatures {
-		address, err := ethhelper.GetAddressBySignature(messageHash, signature)
+		address, err := ethhelper.RecoverSignerFromBytes(messageHash, signature)
 		if err != nil {
 			return false, err
 		}

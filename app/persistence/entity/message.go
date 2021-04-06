@@ -8,12 +8,3 @@ type Message struct {
 	Signer               string
 	TransactionTimestamp int64
 }
-
-func (m Message) Equals(comparing Message) bool {
-	return m.TransferID == comparing.TransferID &&
-		//m.TransactionTimestamp == comparing.TransactionTimestamp &&
-		m.Signature == comparing.Signature &&
-		m.Hash == comparing.Hash &&
-		m.Transfer.Equals(comparing.Transfer) &&
-		m.Signer == comparing.Signer
-}

@@ -78,7 +78,7 @@ type Setup struct {
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
 	Clients       *clients
-	DBVerifiers   []*db_validation.Service
+	DbValidation  *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -100,12 +100,13 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Setup{
 		BridgeAccount: bridgeAccount,
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
 		Clients:       clients,
-		DBVerifiers:   []*db_validation.Service{db_validation.NewService(config.Hedera.DbValidationProps.Alice), db_validation.NewService(config.Hedera.DbValidationProps.Bob), db_validation.NewService(config.Hedera.DbValidationProps.Carol)},
+		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
 }
 
@@ -225,17 +226,11 @@ type Tokens struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string `yaml:"network_type"`
-	BridgeAccount     string `yaml:"bridge_account"`
-	TopicID           string `yaml:"topic_id"`
-	Sender            Sender `yaml:"sender"`
-	DbValidationProps Dbs    `yaml:"dbs"`
-}
-
-type Dbs struct {
-	Alice config.Db `yaml:"alice"`
-	Bob   config.Db `yaml:"bob"`
-	Carol config.Db `yaml:"carol"`
+	NetworkType       string      `yaml:"network_type"`
+	BridgeAccount     string      `yaml:"bridge_account"`
+	TopicID           string      `yaml:"topic_id"`
+	Sender            Sender      `yaml:"sender"`
+	DbValidationProps []config.Db `yaml:"dbs"`
 }
 
 // sender props from the application.yml

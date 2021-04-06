@@ -100,7 +100,7 @@ func WeiToGwei(wei *big.Int) *big.Int {
 	return new(big.Int).Div(wei, big.NewInt(params.GWei))
 }
 
-func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
+func RecoverSignerFromBytes(hash []byte, signature []byte) (string, error) {
 	key, err := crypto.Ecrecover(hash, signature)
 	if err != nil {
 		return "", err
@@ -114,13 +114,13 @@ func GetAddressBySignature(hash []byte, signature []byte) (string, error) {
 	return crypto.PubkeyToAddress(*pubKey).String(), nil
 }
 
-func ReinstantiateSigner(signature string, authMsgBytes []byte) (string, string, error) {
+func RecoverSignerFromStr(signature string, authMsgBytes []byte) (string, string, error) {
 	signatureBytes, signatureHex, err := DecodeSignature(signature)
 	if err != nil {
 		return "", "", err
 	}
 
-	signerAddress, err := GetAddressBySignature(authMsgBytes, signatureBytes)
+	signerAddress, err := RecoverSignerFromBytes(authMsgBytes, signatureBytes)
 	if err != nil {
 		return "", "", err
 	}
