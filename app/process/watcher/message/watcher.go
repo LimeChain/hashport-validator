@@ -94,6 +94,7 @@ func (cmw Watcher) beginWatching(q *pair.Queue) {
 		if err != nil {
 			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
 			cmw.restart(q)
+			return
 		}
 
 		cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
