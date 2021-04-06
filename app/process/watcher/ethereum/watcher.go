@@ -85,7 +85,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	if nativeToken != "HBAR" && isTokenID(nativeToken) {
+	if nativeToken != "HBAR" && !isTokenID(nativeToken) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
 		return
 	}
