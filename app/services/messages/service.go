@@ -114,7 +114,17 @@ func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 func (ss *Service) ProcessSignature(tm message.Message) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
+	t, err := ss.transferRepository.GetByTransactionId(tsm.TransferID)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to get transfer. Error: [%s]", tsm.TransferID, err)
+	}
+	var authMsgBytes []byte
+	if t.ExecuteEthTransaction {
+		authMsgBytes, err = auth_message.EncodeBytesForMintWithReimbursement(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
+	} else {
+		authMsgBytes, err = auth_message.EncodeBytesForMint(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount)
+	}
+
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
@@ -417,8 +427,13 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error
 		return false, nil
 	}
 
+	var messageHash []byte
+	if dbTx.ExecuteEthTransaction {
+		messageHash, err = auth_message.EncodeBytesForMintWithReimbursement(txId, wrappedToken, ethAddress, amount, txReimbursement, dbTx.GasPrice)
+	} else {
+		messageHash, err = auth_message.EncodeBytesForMint(txId, wrappedToken, ethAddress, amount)
+	}
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, wrappedToken, ethAddress, amount, txReimbursement, dbTx.GasPrice)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature to reconstruct required Signature. Error: [%s]", txId, err)
 		return false, err
