@@ -73,7 +73,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 
 	err := ew.ethClient.WaitBlocks(eventLog.Raw.TxHash.String(), eventLog.Raw.BlockNumber)
 	if err != nil {
-		ew.logger.Errorf("Could not wait [%s] of ETH Block Numbers. Error: [%s]", ew.config.WaitingBlocks, err)
+		ew.logger.Errorf("Could not wait [%d] of ETH Block Numbers. Error: [%s]", ew.config.WaitingBlocks, err)
 	}
 
 	// TODO: push to queue with message type, corresponding to ETH Handler
