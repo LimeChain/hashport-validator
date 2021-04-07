@@ -27,20 +27,21 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 )
 
 const (
 	MintFunctionParameterAmount        = "amount"
 	MintFunctionParameterReceiver      = "receiver"
 	MintFunctionParameterSignatures    = "signatures"
+	MintFunctionParameterWrappedToken  = "wrappedToken"
 	MintFunctionParameterTransactionId = "transactionId"
 	MintFunctionParameterTxCost        = "txCost"
 )
 
 const (
-	MintFunction                = "mint"
-	MintFunctionParametersCount = 5
+	MintFunction                = "mintWithReimbursement"
+	MintFunctionParametersCount = 6
 )
 
 var (
@@ -56,13 +57,13 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	return switchSignatureValueV(decodedSig)
 }
 
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20Address string, signatures [][]byte, err error) {
-	bridgeAbi, err := abi.JSON(strings.NewReader(bridge.BridgeABI))
+func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amount, fee string, signatures [][]byte, err error) {
+	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		return "", "", "", "", "", nil, err
 	}
 
-	// bytes transactionId, address receiver, uint256 amount, uint256 fee, bytes[] signatures
+	// bytes transactionId, address receiver, address erc20address, uint256 amount, uint256 fee, uint256 gasCost, bytes[] signatures
 	decodedParameters := make(map[string]interface{})
 	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
 	if err != nil {
@@ -79,8 +80,7 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20
 	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
 	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
 
-	// TODO: Update Key to 'MintFunctionParameterErc20Address' once contract is ready
-	erc20 := decodedParameters[MintFunctionParameterTransactionId].([]byte)
+	erc20 := decodedParameters[MintFunctionParameterWrappedToken].(common.Address)
 
 	for _, sig := range signatures {
 		_, _, err := switchSignatureValueV(sig)
@@ -89,7 +89,7 @@ func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, amount, fee, erc20
 		}
 	}
 
-	return string(transactionId), receiver.String(), amountBn.String(), txCost.String(), string(erc20), signatures, nil
+	return string(transactionId), receiver.String(), erc20.String(), amountBn.String(), txCost.String(), signatures, nil
 }
 
 func GweiToWei(gwei *big.Int) *big.Int {

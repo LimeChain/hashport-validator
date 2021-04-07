@@ -20,56 +20,64 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 var balance = hedera.NewHbar(100)
 
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
-	accountID := flag.String("accountId", "0.0", "Hedera Account ID")
+	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
+	members := flag.Int("members", 1, "The count of the members")
 	flag.Parse()
-
 	if *privateKey == "0x0" {
 		panic("Private key was not provided")
 	}
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
 	}
+
 	fmt.Println("-----------Start-----------")
-	client := initClient(*privateKey, *accountID, *network)
-	privKey1, err := cryptoCreate(client)
-	if err != nil {
-		panic(err)
+	client := client.Init(*privateKey, *accountID, *network)
+
+	var memberKeys []hedera.PrivateKey
+	for i := 0; i < *members; i++ {
+		privKey, err := cryptoCreate(client)
+		if err != nil {
+			panic(err)
+		}
+		memberKeys = append(memberKeys, privKey)
 	}
-	privKey2, err := cryptoCreate(client)
-	if err != nil {
-		panic(err)
-	}
-	privKey3, err := cryptoCreate(client)
-	if err != nil {
-		panic(err)
-	}
+
+	fmt.Println("Private keys array:", memberKeys)
+
 	topicKey := hedera.KeyListWithThreshold(1)
-	topicKey = topicKey.
-		Add(privKey1.PublicKey()).
-		Add(privKey2.PublicKey()).
-		Add(privKey3.PublicKey())
+	for i := 0; i < *members; i++ {
+		topicKey.Add(memberKeys[i].PublicKey())
+	}
+
 	txID, err := hedera.NewTopicCreateTransaction().
 		SetSubmitKey(topicKey).
 		Execute(client)
 	if err != nil {
 		panic(err)
 	}
+
 	topicReceipt, err := txID.GetReceipt(client)
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
-	custodialKey := hedera.KeyListWithThreshold(3)
-	custodialKey = custodialKey.Add(privKey1.PublicKey()).Add(privKey2.PublicKey()).Add(privKey3.PublicKey())
+
+	custodialKey := hedera.KeyListWithThreshold(uint(*members))
+	for i := 0; i < *members; i++ {
+		custodialKey.Add(memberKeys[i].PublicKey())
+	}
+
 	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(custodialKey).
@@ -77,10 +85,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	bridgeAccountReceipt, err := bridgeAccount.GetReceipt(client)
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Printf("Bridge Account: %v\n", bridgeAccountReceipt.AccountID)
 	fmt.Println("--------------------------")
 
@@ -96,6 +106,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Printf("Scheduled Tx Payer Account: %v\n", scheduledTxPayerAccountReceipt.AccountID)
 	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("---Executed Successfully---")
@@ -119,27 +130,4 @@ func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("--------------------------")
 	return privateKey, nil
-}
-func initClient(privateKey, accountID, network string) *hedera.Client {
-	var client *hedera.Client
-
-	if network == "previewnet" {
-		client = hedera.ClientForPreviewnet()
-	} else if network == "testnet" {
-		client = hedera.ClientForTestnet()
-	} else if network == "mainnet" {
-		client = hedera.ClientForMainnet()
-	} else {
-		panic("Unknown Network Type!")
-	}
-	accID, err := hedera.AccountIDFromString(accountID)
-	if err != nil {
-		panic(err)
-	}
-	pK, err := hedera.PrivateKeyFromString(privateKey)
-	if err != nil {
-		panic(err)
-	}
-	client.SetOperator(accID, pK)
-	return client
 }

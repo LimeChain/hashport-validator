@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package encoding
+package message
 
 import (
 	"encoding/base64"
@@ -23,23 +23,24 @@ import (
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
-type TopicMessage struct {
+// Message serves as a model between Topic Message Watcher and Handler
+type Message struct {
 	*model.TopicMessage
 }
 
-// NewTopicMessageFromBytes instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
-func NewTopicMessageFromBytes(data []byte) (*TopicMessage, error) {
+// FromBytes instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
+func FromBytes(data []byte) (*Message, error) {
 	msg := &model.TopicMessage{}
 	err := proto.Unmarshal(data, msg)
 	if err != nil {
 		return nil, err
 	}
-	return &TopicMessage{msg}, nil
+	return &Message{msg}, nil
 }
 
-// NewTopicMessageFromBytesWithTS instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
-func NewTopicMessageFromBytesWithTS(data []byte, ts int64) (*TopicMessage, error) {
-	msg, err := NewTopicMessageFromBytes(data)
+// FromBytesWithTS instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
+func FromBytesWithTS(data []byte, ts int64) (*Message, error) {
+	msg, err := FromBytes(data)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +48,8 @@ func NewTopicMessageFromBytesWithTS(data []byte, ts int64) (*TopicMessage, error
 	return msg, nil
 }
 
-// NewTopicMessageFromString instantiates new Topic Message protobuf from string `content` and `timestamp`
-func NewTopicMessageFromString(data, ts string) (*TopicMessage, error) {
+// FromString instantiates new Topic Message protobuf from string `content` and `timestamp`
+func FromString(data, ts string) (*Message, error) {
 	t, err := timestamp.FromString(ts)
 	if err != nil {
 		return nil, err
@@ -59,11 +60,11 @@ func NewTopicMessageFromString(data, ts string) (*TopicMessage, error) {
 		return nil, err
 	}
 
-	return NewTopicMessageFromBytesWithTS(bytes, t)
+	return FromBytesWithTS(bytes, t)
 }
 
 // NewSignatureMessage instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewSignatureMessage(transferID, receiver, amount, txReimbursement, gasPrice, signature, targetAsset string) *TopicMessage {
+func NewSignature(transferID, receiver, amount, txReimbursement, gasPrice, signature, wrappedToken string) *Message {
 	topicMsg := &model.TopicMessage{
 		Type: model.TopicMessageType_EthSignature,
 		Message: &model.TopicMessage_TopicSignatureMessage{
@@ -74,15 +75,15 @@ func NewSignatureMessage(transferID, receiver, amount, txReimbursement, gasPrice
 				TxReimbursement: txReimbursement,
 				GasPrice:        gasPrice,
 				Signature:       signature,
-				TargetAsset:     targetAsset,
+				WrappedToken:    wrappedToken,
 			},
 		},
 	}
-	return &TopicMessage{topicMsg}
+	return &Message{topicMsg}
 }
 
-// NewEthereumHashMessage instantiates Ethereum Transaction Hash Message struct ready for submission to the Bridge Topic
-func NewEthereumHashMessage(transferID, messageHash, ethereumTxHash string) *TopicMessage {
+// NewEthereumHash instantiates Ethereum Transaction Hash Message struct ready for submission to the Bridge Topic
+func NewEthereumHash(transferID, messageHash, ethereumTxHash string) *Message {
 	topicMsg := &model.TopicMessage{
 		Type: model.TopicMessageType_EthTransaction,
 		Message: &model.TopicMessage_TopicEthTransactionMessage{
@@ -93,10 +94,10 @@ func NewEthereumHashMessage(transferID, messageHash, ethereumTxHash string) *Top
 			},
 		},
 	}
-	return &TopicMessage{topicMsg}
+	return &Message{topicMsg}
 }
 
-// ToBytes marshals the underlying protobuf TopicMessage into bytes
-func (tm *TopicMessage) ToBytes() ([]byte, error) {
+// ToBytes marshals the underlying protobuf Message into bytes
+func (tm *Message) ToBytes() ([]byte, error) {
 	return proto.Marshal(tm.TopicMessage)
 }

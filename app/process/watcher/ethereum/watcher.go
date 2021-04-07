@@ -17,12 +17,11 @@
 package ethereum
 
 import (
-	bridgeContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/bridge"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,16 +41,16 @@ func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config c
 	}
 }
 
-func (ew *Watcher) Watch(queue *queue.Queue) {
+func (ew *Watcher) Watch(queue *pair.Queue) {
 	go ew.listenForEvents(queue)
-	log.Infof("Listening for events at contract [%s]", ew.config.BridgeContractAddress)
+	log.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
 }
 
-func (ew *Watcher) listenForEvents(q *queue.Queue) {
-	events := make(chan *bridgeContract.BridgeBurn)
+func (ew *Watcher) listenForEvents(q *pair.Queue) {
+	events := make(chan *routerContract.RouterBurn)
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.BridgeContractAddress, err)
+		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
 	}
 
 	for {
@@ -65,7 +64,7 @@ func (ew *Watcher) listenForEvents(q *queue.Queue) {
 	}
 }
 
-func (ew *Watcher) handleLog(eventLog *bridgeContract.BridgeBurn, q *queue.Queue) {
+func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
 	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),

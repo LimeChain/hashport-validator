@@ -18,8 +18,8 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
 
@@ -29,28 +29,28 @@ type Transfers interface {
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
-	InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error)
+	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
 	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
 	// If no error is returned the TX can be processed
-	VerifyFee(tm encoding.TransferMessage) error
+	VerifyFee(tm transfer.Transfer) error
 	// ProcessTransfer processes the transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
-	ProcessTransfer(tm encoding.TransferMessage) error
+	ProcessTransfer(tm transfer.Transfer) error
 	// TransferData returns from the database the given transfer, its signatures and
 	// calculates if its messages have reached super majority
 	TransferData(txId string) (TransferData, error)
 }
 
 type TransferData struct {
-	Recipient   string   `json:"recipient"`
-	Amount      string   `json:"amount"`
-	SourceAsset string   `json:"sourceAsset"`
-	TargetAsset string   `json:"targetAsset"`
-	Fee         string   `json:"fee"`
-	GasPrice    string   `json:"gasPrice"`
-	Signatures  []string `json:"signatures"`
-	Majority    bool     `json:"majority"`
+	Recipient    string   `json:"recipient"`
+	Amount       string   `json:"amount"`
+	NativeToken  string   `json:"nativeToken"`
+	WrappedToken string   `json:"wrappedToken"`
+	Fee          string   `json:"fee"`
+	GasPrice     string   `json:"gasPrice"`
+	Signatures   []string `json:"signatures"`
+	Majority     bool     `json:"majority"`
 }

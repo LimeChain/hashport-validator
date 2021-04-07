@@ -28,16 +28,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"google.golang.org/protobuf/proto"
 )
 
 var (
-	incrementFloat, _    = new(big.Int).SetString("1", 10)
-	hBarAmount           = hedera.HbarFrom(400, "hbar")
-	precision            = new(big.Int).SetInt64(100000)
-	whbarReceiverAddress = common.HexToAddress(receiverAddress)
+	incrementFloat, _            = new(big.Int).SetString("1", 10)
+	amount               float64 = 400
+	hBarSendAmount               = hedera.HbarFrom(amount, "hbar")
+	hbarRemovalAmount            = hedera.HbarFrom(-amount, "hbar")
+	precision                    = new(big.Int).SetInt64(100000)
+	whbarReceiverAddress         = common.HexToAddress(receiverAddress)
 )
 
 const (
@@ -62,7 +64,7 @@ func Test_E2E(t *testing.T) {
 
 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 
-	serviceFeePercentage, err := setupEnv.Clients.BridgeContract.ServiceFee(nil)
+	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +102,7 @@ func calculateWHBarAmount(txFee string, percentage *big.Int) (*big.Int, error) {
 		return nil, errors.New(fmt.Sprintf("could not parse txn fee [%s].", txFee))
 	}
 
-	bnHbarAmount := new(big.Int).SetInt64(hBarAmount.AsTinybar())
+	bnHbarAmount := new(big.Int).SetInt64(hBarSendAmount.AsTinybar())
 	bnAmount := new(big.Int).Sub(bnHbarAmount, bnTxFee)
 	serviceFee := new(big.Int).Mul(bnAmount, percentage)
 	precisionedServiceFee := new(big.Int).Div(serviceFee, precision)
@@ -171,18 +173,19 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 	// Verify that the custodial address has received exactly the amount sent
 	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
 	// Verify that the bridge account has received exactly the amount sent
-	if amount != hBarAmount.AsTinybar() {
-		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hBarAmount.AsTinybar())
+	if amount != hBarSendAmount.AsTinybar() {
+		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hBarSendAmount.AsTinybar())
 	}
 
 	return *transactionResponse, whbarBalanceBefore
 }
 
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarAmount, memo))
+	fmt.Println(fmt.Sprintf(`Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]`, hBarSendAmount, memo))
 
-	res, err := hedera.NewTransferTransaction().AddHbarSender(setup.SenderAccount, hBarAmount).
-		AddHbarRecipient(setup.BridgeAccount, hBarAmount).
+	res, err := hedera.NewTransferTransaction().
+		AddHbarTransfer(setup.SenderAccount, hbarRemovalAmount).
+		AddHbarTransfer(setup.BridgeAccount, hBarSendAmount).
 		SetTransactionMemo(memo).
 		Execute(setup.Clients.Hedera)
 	if err != nil {

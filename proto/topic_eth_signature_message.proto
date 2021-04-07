@@ -11,5 +11,5 @@ message TopicEthSignatureMessage {
   string txReimbursement = 4; // The tx reimbursement of the initial Hedera Transfer Memo
   string signature = 5; // The signature of the validator
   string gasPrice = 6; // The gas price of the initial Hedera Transfer Memo
-  string targetAsset = 7; // The target asset
+  string wrappedToken = 7; // The wrapped eth token
 }

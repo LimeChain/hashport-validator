@@ -20,19 +20,20 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -80,26 +81,25 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, 
 		return nil, errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
-	// TODO: Uncomment when State Proof Method gets updated accordingly
-	//stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	//}
-	//
-	//verified, e := proof.Verify(tx.TransactionID, stateProof)
-	//if e != nil {
-	//	return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
-	//}
-	//
-	//if !verified {
-	//	return nil, errors.New("State proof not valid")
-	//}
+	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+	}
+
+	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+	}
+
+	if !verified {
+		return nil, errors.New("invalid state proof")
+	}
 
 	return m, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
-func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Transfer, error) {
+func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, error) {
 	dbTransaction, err := ts.transferRepository.GetByTransactionId(tm.TransactionId)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to get db record. Error [%s]", tm.TransactionId, err)
@@ -112,7 +112,7 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Tra
 	}
 
 	ts.logger.Debugf("[%s] - Adding new Transaction Record", tm.TransactionId)
-	tx, err := ts.transferRepository.Create(tm.TransferMessage)
+	tx, err := ts.transferRepository.Create(&tm)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to create a transaction record. Error [%s].", tm.TransactionId, err)
 		return nil, err
@@ -121,15 +121,15 @@ func (ts *Service) InitiateNewTransfer(tm encoding.TransferMessage) (*entity.Tra
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset string, m memo.Memo) error {
-	err := ts.transferRepository.SaveRecoveredTxn(&validatorproto.TransferMessage{
+func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error {
+	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId:         txId,
 		Receiver:              m.EthereumAddress,
 		Amount:                amount,
 		TxReimbursement:       m.TxReimbursementFee,
 		GasPrice:              m.GasPrice,
-		SourceAsset:           sourceAsset,
-		TargetAsset:           targetAsset,
+		NativeToken:           nativeToken,
+		WrappedToken:          wrappedToken,
 		ExecuteEthTransaction: m.ExecuteEthTransaction,
 	})
 	if err != nil {
@@ -143,7 +143,7 @@ func (ts *Service) SaveRecoveredTxn(txId, amount, sourceAsset, targetAsset strin
 
 // VerifyFee verifies that the provided TX reimbursement fee is enough using the
 // Fee Calculator and updates the Transaction Record to Insufficient Fee if necessary
-func (ts *Service) VerifyFee(tm encoding.TransferMessage) error {
+func (ts *Service) VerifyFee(tm model.Transfer) error {
 	isSufficient, err := ts.fees.ValidateExecutionFee(tm.TxReimbursement, tm.Amount, tm.GasPrice)
 	if !isSufficient {
 		ts.logger.Errorf("[%s] - Fee validation failed. Provided tx reimbursement fee is invalid/insufficient. Error [%s].", tm.TransactionId, err)
@@ -179,14 +179,14 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
+func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	gasPriceWeiBn, err := helper.ToBigInt(tm.GasPrice)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to parse Gas Price Wei to bigint [%s]. Error [%s].", tm.TransactionId, tm.GasPrice, err)
 		return err
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.Receiver, tm.TargetAsset, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
@@ -199,14 +199,14 @@ func (ts *Service) ProcessTransfer(tm encoding.TransferMessage) error {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	signatureMessage := encoding.NewSignatureMessage(
+	signatureMessage := message.NewSignature(
 		tm.TransactionId,
 		tm.Receiver,
 		tm.Amount,
 		tm.TxReimbursement,
 		tm.GasPrice,
 		signature,
-		tm.TargetAsset)
+		tm.WrappedToken)
 
 	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := signatureMessage.ToBytes()
@@ -255,13 +255,13 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
-		Recipient:   t.Receiver,
-		Amount:      t.Amount,
-		Fee:         t.TxReimbursement,
-		SourceAsset: t.SourceAsset,
-		TargetAsset: t.TargetAsset,
-		Signatures:  signatures,
-		Majority:    reachedMajority,
-		GasPrice:    t.GasPrice,
+		Recipient:    t.Receiver,
+		Amount:       t.Amount,
+		Fee:          t.TxReimbursement,
+		NativeToken:  t.NativeToken,
+		WrappedToken: t.WrappedToken,
+		Signatures:   signatures,
+		Majority:     reachedMajority,
+		GasPrice:     t.GasPrice,
 	}, nil
 }

@@ -25,7 +25,7 @@ Name                                                                | Default   
 `hedera.validator.db.username`                                      | validator                                           | The username the processor uses to connect to the database.
 `hedera.validator.port`                                             | 5200                                                | The port on which the application runs.
 `hedera.eth.node_url`                                               | ""                                                  | The endpoint of the Ethereum node.
-`hedera.eth.bridge_contract_address`                                | ""                                                  | The address of the Bridge contract.
+`hedera.eth.router_contract_address`                                | ""                                                  | The address of the Router contract.
 `hedera.eth.bridge_waiting_blocks`                                  | ""                                                  | The number of blocks to wait before processing an ethereum event
 `hedera.mirror_node.client_address`                                 | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
 `hedera.mirror_node.api_address`                                    | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.

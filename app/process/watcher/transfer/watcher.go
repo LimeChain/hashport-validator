@@ -19,17 +19,15 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/publisher"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-watcher-sdk/queue"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"time"
@@ -39,7 +37,6 @@ type Watcher struct {
 	transfers        service.Transfers
 	client           client.MirrorNode
 	accountID        hedera.AccountID
-	typeMessage      string
 	pollingInterval  time.Duration
 	statusRepository repository.Status
 	maxRetries       int
@@ -51,28 +48,32 @@ type Watcher struct {
 func NewWatcher(
 	transfers service.Transfers,
 	client client.MirrorNode,
-	accountID hedera.AccountID,
+	accountID string,
 	pollingInterval time.Duration,
 	repository repository.Status,
 	maxRetries int,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *Watcher {
+	id, err := hedera.AccountIDFromString(accountID)
+	if err != nil {
+		log.Fatalf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", accountID, err)
+	}
+
 	return &Watcher{
 		transfers:        transfers,
 		client:           client,
-		accountID:        accountID,
-		typeMessage:      process.CryptoTransferMessageType,
+		accountID:        id,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
 		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
-		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID.String())),
+		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractService:  contractService,
 	}
 }
 
-func (ctw Watcher) Watch(q *queue.Queue) {
+func (ctw Watcher) Watch(q *pair.Queue) {
 	accountAddress := ctw.accountID.String()
 	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
 	if err != nil {
@@ -106,7 +107,7 @@ func (ctw Watcher) updateStatusTimestamp(ts int64) {
 	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (ctw Watcher) beginWatching(q *queue.Queue) {
+func (ctw Watcher) beginWatching(q *pair.Queue) {
 	milestoneTimestamp := ctw.startTimestamp
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
@@ -124,7 +125,7 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
 			if err != nil {
-				ctw.logger.Errorf("Watcher [%s] - Unable to parse latest transaction timestamp. Error - [%s].", ctw.accountID.String(), err)
+				ctw.logger.Errorf("Unable to parse latest transfer timestamp. Error - [%s].", err)
 				continue
 			}
 
@@ -134,17 +135,17 @@ func (ctw Watcher) beginWatching(q *queue.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue) {
+func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	amount, nativeToken, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	valid, targetAsset := ctw.contractService.IsValidBridgeAsset(asset)
-	if !valid {
-		ctw.logger.Errorf("[%s] - The specified asset [%s] is not supported", tx.TransactionID, asset)
+	wrappedToken, err := ctw.contractService.ParseToken(nativeToken)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
 		return
 	}
 
@@ -154,11 +155,11 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *queue.Queue
 		return
 	}
 
-	transferMessage := encoding.NewTransferMessage(tx.TransactionID, m.EthereumAddress, asset, targetAsset, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
-	publisher.Publish(transferMessage, ctw.typeMessage, ctw.accountID, q)
+	transferMessage := transfer.New(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
+	q.Push(&pair.Message{Payload: transferMessage})
 }
 
-func (ctw Watcher) restart(q *queue.Queue) {
+func (ctw *Watcher) restart(q *pair.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")

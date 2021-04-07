@@ -12,8 +12,7 @@ hedera:
     port: 5200
   eth:
     node_url:
-    bridge_contract_address:
-    whbar_contract_address:
+    router_contract_address:
     waiting_blocks: 5
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600

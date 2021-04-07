@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -71,6 +71,15 @@ func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, 
 		}
 	}
 	return res, nil
+}
+
+// GetMessagesAfterTimestamp returns all Topic messages after the given timestamp
+func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]Message, error) {
+	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
+		topicId.String(),
+		timestampHelper.String(from))
+
+	return c.getTopicMessagesByQuery(messagesQuery)
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
@@ -147,7 +156,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				continue
 			}
 			if err != nil {
-				c.logger.Errorf("Error while trying to get account TransactionID [%s]. Error: [%s].", txId, err.Error())
+				c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err.Error())
 				return
 			}
 

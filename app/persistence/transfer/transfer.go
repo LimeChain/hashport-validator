@@ -18,10 +18,10 @@ package transfer
 
 import (
 	"errors"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -79,7 +79,7 @@ func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, er
 }
 
 // Create creates new record of Transfer
-func (tr Repository) Create(ct *proto.TransferMessage) (*entity.Transfer, error) {
+func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
 	return tr.create(ct, transfer.StatusInitial)
 }
 
@@ -88,7 +88,7 @@ func (tr Repository) Save(tx *entity.Transfer) error {
 	return tr.dbClient.Save(tx).Error
 }
 
-func (tr *Repository) SaveRecoveredTxn(ct *proto.TransferMessage) error {
+func (tr *Repository) SaveRecoveredTxn(ct *model.Transfer) error {
 	_, err := tr.create(ct, transfer.StatusRecovered)
 	return err
 }
@@ -169,15 +169,15 @@ func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
 	return tr.updateEthereumTxMsgStatus(txId, transfer.StatusEthTxMsgFailed)
 }
 
-func (tr Repository) create(ct *proto.TransferMessage, status string) (*entity.Transfer, error) {
+func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID:         ct.TransactionId,
 		Receiver:              ct.Receiver,
 		Amount:                ct.Amount,
 		TxReimbursement:       ct.TxReimbursement,
 		Status:                status,
-		SourceAsset:           ct.SourceAsset,
-		TargetAsset:           ct.TargetAsset,
+		NativeToken:           ct.NativeToken,
+		WrappedToken:          ct.WrappedToken,
 		GasPrice:              ct.GasPrice,
 		ExecuteEthTransaction: ct.ExecuteEthTransaction,
 	}
