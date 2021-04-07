@@ -23,10 +23,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 )
 
-// EncodeBytesFrom returns the array of bytes representing an
-// authorisation signature ready to be signed by Ethereum Private Key
-func EncodeBytesFrom(txId, wrappedToken, receiverEthAddress, amount, txReimbursement, gasPriceWei string) ([]byte, error) {
-	args, err := generateArguments()
+// EncodeBytesForMintWithReimbursement returns the array of bytes representing an
+// authorisation signature ready to be signed by Ethereum Private Key for MintWithReimbursement contract function
+func EncodeBytesForMintWithReimbursement(txId, wrappedToken, receiverEthAddress, amount, txReimbursement, gasPriceWei string) ([]byte, error) {
+	args, err := generateMintWithReimbursementArguments()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,54 @@ func EncodeBytesFrom(txId, wrappedToken, receiverEthAddress, amount, txReimburse
 	return keccak(bytesToHash), nil
 }
 
-func generateArguments() (abi.Arguments, error) {
+// EncodeBytesForMint returns the array of bytes representing an
+// authorisation signature ready to be signed by Ethereum Private Key for Mint contract function
+func EncodeBytesForMint(txId, wrappedToken, receiverEthAddress, amount string) ([]byte, error) {
+	args, err := generateMintArguments()
+	if err != nil {
+		return nil, err
+	}
+	amountBn, err := helper.ToBigInt(amount)
+	if err != nil {
+		return nil, err
+	}
+
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(wrappedToken), common.HexToAddress(receiverEthAddress), amountBn)
+	return keccak(bytesToHash), nil
+}
+
+func generateMintArguments() (abi.Arguments, error) {
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return abi.Arguments{
+		{
+			Type: bytesType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: uint256Type,
+		}}, nil
+}
+
+func generateMintWithReimbursementArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, err
