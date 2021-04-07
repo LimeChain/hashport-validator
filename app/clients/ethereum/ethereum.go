@@ -98,26 +98,7 @@ func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onE
 		}
 
 		if receipt.Status == 1 {
-			//Wait for confirmations
-			confirmationsNeeded := 5
-			firstBlock, err := ec.HeaderByNumber(context.Background(), nil)
-			if err != nil {
-				onError(err)
-				return
-			}
-			for {
-				currentBlock, err := ec.HeaderByNumber(context.Background(), nil)
-				if err != nil {
-					onError(err)
-					return
-				}
-				c := big.NewInt(0).Sub(currentBlock.Number, firstBlock.Number).Int64()
-				if c >= int64(confirmationsNeeded) {
-					break
-				}
-				time.Sleep(5 * time.Second)
-			}
-			ec.logger.Debugf("TX [%s] was successfully mined with %d confirmations", hex, confirmationsNeeded)
+			ec.logger.Debugf("TX [%s] was successfully mined", hex)
 			onSuccess()
 		} else {
 			ec.logger.Debugf("TX [%s] reverted", hex)
