@@ -23,16 +23,18 @@ import (
 	"fmt"
 	"strings"
 
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/encoding"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/encoding/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -84,11 +86,13 @@ func NewService(
 
 // SanityCheckSignature performs validation on the topic message metadata.
 // Validates it against the Transaction Record metadata from DB
-func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) {
+func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 	topicMessage := tm.GetTopicSignatureMessage()
-	t, err := ss.transferRepository.GetByTransactionId(topicMessage.TransferID)
+
+	// In case a topic message for given transfer is being processed before the actual transfer
+	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", topicMessage.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to await incoming transfer. Error: [%s]", topicMessage.TransferID, err)
 		return false, err
 	}
 
@@ -107,7 +111,7 @@ func (ss *Service) SanityCheckSignature(tm encoding.TopicMessage) (bool, error) 
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-func (ss *Service) ProcessSignature(tm encoding.TopicMessage) error {
+func (ss *Service) ProcessSignature(tm message.Message) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
 	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
@@ -296,7 +300,7 @@ func (ss *Service) computeExecutionSlot(messages []entity.Message) (slot int64, 
 }
 
 func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHash string) (*hedera.TransactionID, error) {
-	ethTxHashMessage := encoding.NewEthereumHashMessage(transferID, messageHash, ethereumTxHash)
+	ethTxHashMessage := message.NewEthereumHash(transferID, messageHash, ethereumTxHash)
 	ethTxHashBytes, err := ethTxHashMessage.ToBytes()
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode Eth TX Hash Message to bytes. Error: [%s]", transferID, err)
@@ -304,6 +308,23 @@ func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHa
 	}
 
 	return ss.hederaClient.SubmitTopicConsensusMessage(ss.topicID, ethTxHashBytes)
+}
+
+// awaitTransfer checks until given transfer is found
+func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
+	for {
+		t, err := ss.transferRepository.GetByTransactionId(transferID)
+		if err != nil {
+			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
+			return nil, err
+		}
+
+		if t != nil {
+			return t, nil
+		}
+		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func (ss *Service) ethTxCallbacks(transferID, hash string) (onSuccess, onRevert func()) {
@@ -350,7 +371,7 @@ func (ss *Service) hcsTxCallbacks(txId string) (onSuccess, onFailure func()) {
 
 // VerifyEthereumTxAuthenticity performs the validation required prior handling the topic message
 // (verifies the submitted TX against the required target contract and arguments passed)
-func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool, error) {
+func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error) {
 	ethTxMessage := tm.GetTopicEthTransactionMessage()
 	tx, _, err := ss.ethClient.GetClient().TransactionByHash(context.Background(), common.HexToHash(ethTxMessage.EthTxHash))
 	if err != nil {
@@ -423,7 +444,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm encoding.TopicMessage) (bool,
 	return true, nil
 }
 
-func (ss *Service) ProcessEthereumTxMessage(tm encoding.TopicMessage) error {
+func (ss *Service) ProcessEthereumTxMessage(tm message.Message) error {
 	etm := tm.GetTopicEthTransactionMessage()
 	err := ss.transferRepository.UpdateEthTxSubmitted(etm.TransferID, etm.EthTxHash)
 	if err != nil {
