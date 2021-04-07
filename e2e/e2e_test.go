@@ -47,70 +47,84 @@ var (
 const (
 	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
 	gasPriceGwei            = "100"
-	expectedValidatorsCount = 3
+	expectedValidatorsCount = 1
 )
 
-func Test_E2E(t *testing.T) {
-	setupEnv := setup.Load()
+// func Test_E2E(t *testing.T) {
+// 	setupEnv := setup.Load()
 
-	metadataResponse, err := setupEnv.Clients.ValidatorClient.GetMetadata(gasPriceGwei)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	metadataResponse, err := setupEnv.Clients.ValidatorClient.GetMetadata(gasPriceGwei)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	txFee, err := txFeeToBigInt(metadataResponse.TransactionFee)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("Estimated TX TxReimbursementFee: [%s]\n", txFee)
+// 	txFee, err := txFeeToBigInt(metadataResponse.TransactionFee)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	fmt.Printf("Estimated TX TxReimbursementFee: [%s]\n", txFee)
 
-	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
+// 	memo := fmt.Sprintf("%s-%s-%s", receiverAddress, txFee, gasPriceGwei)
 
-	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	expectedWHbarAmount, err := calculateWHBarAmount(txFee, serviceFeePercentage)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	expectedWHbarAmount, err := calculateWHBarAmount(txFee, serviceFeePercentage)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, whbarBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+// 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+// 	transactionResponse, whbarBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
-	// Step 2 - Verify the submitted topic messages
-	ethTransactionHash := verifyTopicMessages(setupEnv, transactionResponse, 1, t)
+// 	// Step 2 - Verify the submitted topic messages
+// 	ethTransactionHash, _ := verifyTopicMessages(setupEnv, transactionResponse, 1, t)
 
-	// Step 3 - Verify the Ethereum Transaction execution
-	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
-}
+// 	// Step 3 - Verify the Ethereum Transaction execution
+// 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
+// }
 
-func Test_E2E_Only_Address_Memo(t *testing.T) {
-	setupEnv := setup.Load()
+// func Test_E2E_Only_Address_Memo(t *testing.T) {
+// 	setupEnv := setup.Load()
 
-	memo := fmt.Sprintf("%s-0-0", receiverAddress)
+// 	memo := fmt.Sprintf("%s-0-0", receiverAddress)
 
-	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+// 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+// 	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
-	// Step 2 - Verify the submitted topic messages
-	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
-	//TODO: submit the tx send amount
-}
+// 	// Step 2 - Verify the submitted topic messages
+// 	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+// }
 
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 
 	memo := fmt.Sprintf("%s-0-0", receiverAddress)
 
-	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+	// Step 1 - Verify the transfer of HTS Token to the Bridge Account
 	transactionResponse, _ := verifyTokenTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
-
+	fmt.Println("transactionResponse:", transactionResponse.TransactionID)
 	// Step 2 - Verify the submitted topic messages
-	verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+	_, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+	fmt.Println("receivedSignatures:", receivedSignatures)
+
+	fmt.Println("TOKEN ID:", setupEnv.TokenID.String())
+	fmt.Println("TOKEN ID in bytes:", []byte(setupEnv.TokenID.String()))
+	
+	tokenAddress, _ := setupEnv.Clients.RouterContract.NativeToWrappedToken(&bind.CallOpts{}, []byte(setupEnv.TokenID.String()))
 	//TODO: submit the tx
-	// setupEnv.Clients.RouterContract.Mint()
+	fmt.Println(tokenAddress)
+
+	// setupEnv.Clients.RouterContract.Mint(
+	// 	&bind.TransactOpts{},
+	// 	[]byte(transactionResponse.TransactionID.String()),
+	// 	common.HexToAddress(),
+	// 	whbarReceiverAddress,
+	// 	new(big.Int).SetInt64(int64(tokensSendAmount)),
+	// 	[]byte(receivedSignatures),
+	// )
 	// setupEnv.Clients.EthClient.WaitForTransaction()
 }
 
@@ -200,12 +214,12 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 
 func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenReceiverAddress common.Address, t *testing.T) (hedera.TransactionResponse, *big.Int) {
 	// Get the wrapped hbar balance of the receiver before the transfer
-	whbarBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
+	wrappedTokenBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Token balance before transaction: [%s]\n", whbarBalanceBefore)
+	fmt.Printf("Token balance before transaction: [%s]\n", wrappedTokenBalanceBefore)
 	// Get bridge account token balance before transfer
 	receiverBalance, err := hedera.NewAccountBalanceQuery().
 		SetAccountID(setup.BridgeAccount).
@@ -227,10 +241,9 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
 		t.Fatal(err)
 	}
-
 	fmt.Println(fmt.Sprintf(`Successfully sent Tokens to bridge account, Status: [%s]`, transactionReceipt.Status))
 
-	// Get bridge account hbar balance after transfer
+	// Get bridge account HTS token balance after transfer
 	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
 		SetAccountID(setup.BridgeAccount).
 		Execute(setup.Clients.Hedera)
@@ -248,7 +261,7 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 		t.Fatalf(`Expected to recieve the exact transfer amount of hbar: [%v]`, hBarSendAmount.AsTinybar())
 	}
 
-	return *transactionResponse, whbarBalanceBefore
+	return *transactionResponse, wrappedTokenBalanceBefore
 }
 
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
@@ -295,10 +308,11 @@ func sendTokensToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transac
 	return &res, err
 }
 
-func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) string {
+func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, expectedEthTxMessageCount int, t *testing.T) (string, []string) {
 	ethSignaturesCollected := 0
 	ethTransMsgCollected := 0
 	ethTransactionHash := ""
+	var receivedSignatures []string
 
 	fmt.Println(fmt.Sprintf(`Waiting for Signatures & TX Hash to be published to Topic [%v]`, setup.TopicID.String()))
 
@@ -321,6 +335,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 					if msg.GetTopicSignatureMessage().TransferID != topicSubmissionMessageSign.String() {
 						fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 					} else {
+						receivedSignatures = append(receivedSignatures, msg.GetTopicSignatureMessage().Signature)
 						ethSignaturesCollected++
 						fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
 					}
@@ -343,17 +358,17 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 
 	select {
-	case <-time.After(120 * time.Second):
+	case <-time.After(60 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf(`Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]`, expectedValidatorsCount, ethSignaturesCollected)
 		}
 		if ethTransMsgCollected != expectedEthTxMessageCount {
 			t.Fatalf(`Expected to submit exactly [%v] ethereum transaction in topic, but was: [%v]`, expectedEthTxMessageCount, ethTransMsgCollected)
 		}
-		return ethTransactionHash
+		return ethTransactionHash, receivedSignatures
 	}
 	// Not possible end-case
-	return ""
+	return "", nil
 }
 
 func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, whbarReceiverAddress common.Address, expectedWHBarAmount int64, whbarBalanceBefore *big.Int, t *testing.T) {
