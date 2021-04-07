@@ -413,7 +413,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error
 		dbTx.TxReimbursement != txReimbursement ||
 		tx.GasPrice().String() != dbTx.GasPrice ||
 		wrappedToken != dbTx.WrappedToken {
-		ss.logger.Debugf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
+		ss.logger.Errorf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return false, nil
 	}
 
@@ -426,7 +426,7 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error
 
 	checkedAddresses := make(map[string]bool)
 	for _, signature := range signatures {
-		address, err := ethhelper.GetAddressBySignature(messageHash, signature)
+		address, err := ethhelper.RecoverSignerFromBytes(messageHash, signature)
 		if err != nil {
 			return false, err
 		}

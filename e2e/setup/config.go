@@ -31,6 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
+	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
 )
 
@@ -79,6 +80,7 @@ type Setup struct {
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	Clients       *clients
+	DbValidation  *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -105,12 +107,14 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Setup{
 		BridgeAccount: bridgeAccount,
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
 		TokenID:       tokenID,
 		Clients:       clients,
+		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
 }
 
@@ -158,6 +162,20 @@ func newClients(config Config) (*clients, error) {
 }
 
 func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := ParseToken(routerInstance, nativeToken)
+	if err != nil {
+		return nil, err
+	}
+
+	wTokenInstance, err := wtoken.NewWtoken(*wTokenContractAddress, ethClient.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	return wTokenInstance, nil
+}
+
+func ParseToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
 	wrappedToken, err := routerInstance.NativeToWrappedToken(
 		nil,
@@ -172,13 +190,8 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
 	}
 
-	wTokenContractAddress := common.HexToAddress(wTokenContractHex)
-	wTokenInstance, err := wtoken.NewWtoken(wTokenContractAddress, ethClient.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	return wTokenInstance, nil
+	address := common.HexToAddress(wTokenContractHex)
+	return &address, nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
@@ -221,10 +234,11 @@ type Tokens struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType   string `yaml:"network_type"`
-	BridgeAccount string `yaml:"bridge_account"`
-	TopicID       string `yaml:"topic_id"`
-	Sender        Sender `yaml:"sender"`
+	NetworkType       string      `yaml:"network_type"`
+	BridgeAccount     string      `yaml:"bridge_account"`
+	TopicID           string      `yaml:"topic_id"`
+	Sender            Sender      `yaml:"sender"`
+	DbValidationProps []config.Db `yaml:"dbs"`
 }
 
 // sender props from the application.yml
