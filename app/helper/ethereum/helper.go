@@ -114,13 +114,13 @@ func RecoverSignerFromBytes(hash []byte, signature []byte) (string, error) {
 	return crypto.PubkeyToAddress(*pubKey).String(), nil
 }
 
-func RecoverSignerFromStr(signature string, authMsgBytes []byte) (string, string, error) {
+func RecoverSignerFromStr(signature string, authMsgBytes []byte) (signerAddress string, signatureHex string, err error) {
 	signatureBytes, signatureHex, err := DecodeSignature(signature)
 	if err != nil {
 		return "", "", err
 	}
 
-	signerAddress, err := RecoverSignerFromBytes(authMsgBytes, signatureBytes)
+	signerAddress, err = RecoverSignerFromBytes(authMsgBytes, signatureBytes)
 	if err != nil {
 		return "", "", err
 	}
