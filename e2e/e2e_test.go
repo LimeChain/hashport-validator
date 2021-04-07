@@ -19,6 +19,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
@@ -89,7 +90,7 @@ func Test_HBAR(t *testing.T) {
 	verifyEthereumTXExecution(setupEnv, ethTransactionHash, whbarReceiverAddress, expectedWHbarAmount.Int64(), whbarBalanceBefore, t)
 
 	expectedTxRecord := prepareExpectedTransfer(
-		setupEnv,
+		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		"HBAR",
 		txFee,
@@ -104,7 +105,7 @@ func Test_HBAR(t *testing.T) {
 		true, t)
 
 	// Step 4 - Verify Database Records
-	verifyDatabaseRecords(setupEnv, expectedTxRecord, receivedSignatures, t)
+	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
 func Test_No_Ethereum_TX_Submission(t *testing.T) {
@@ -119,7 +120,7 @@ func Test_No_Ethereum_TX_Submission(t *testing.T) {
 	ethTransactionHash, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 
 	expectedTxRecord := prepareExpectedTransfer(
-		setupEnv,
+		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		"HBAR",
 		"0",
@@ -132,11 +133,11 @@ func Test_No_Ethereum_TX_Submission(t *testing.T) {
 		false, t)
 
 	// Step 4 - Verify Database Records
-	verifyDatabaseRecords(setupEnv, expectedTxRecord, receivedSignatures, t)
+	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
-func verifyDatabaseRecords(setupEnv *setup.Setup, expectedRecord *entity.Transfer, signatures []string, t *testing.T) {
-	exist, err := setupEnv.DbValidation.VerifyDatabaseRecords(expectedRecord, signatures)
+func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.Transfer, signatures []string, t *testing.T) {
+	exist, err := dbValidation.VerifyDatabaseRecords(expectedRecord, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
@@ -145,10 +146,10 @@ func verifyDatabaseRecords(setupEnv *setup.Setup, expectedRecord *entity.Transfe
 	}
 }
 
-func prepareExpectedTransfer(setupEnv *setup.Setup, transactionID hedera.TransactionID, nativeToken, txFee, gasPriceWei string, statuses database.ExpectedStatuses, ethTransactionHash string, shouldExecuteEthTx bool, t *testing.T) *entity.Transfer {
+func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeToken, txFee, gasPriceWei string, statuses database.ExpectedStatuses, ethTransactionHash string, shouldExecuteEthTx bool, t *testing.T) *entity.Transfer {
 	expectedTxId := fromHederaTransactionID(&transactionID)
 
-	wrappedToken, err := setup.ParseToken(setupEnv.Clients.RouterContract, nativeToken)
+	wrappedToken, err := setup.ParseToken(routerContract, nativeToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", expectedTxId, err)
 	}
