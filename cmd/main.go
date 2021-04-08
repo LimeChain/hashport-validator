@@ -130,7 +130,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.message,
 			services.contracts,
 			services.messages))
-	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth), nil)
+	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Hedera.Eth), nil)
 }
 
 func addTransferWatcher(configuration *config.Config,
