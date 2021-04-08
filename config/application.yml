@@ -13,7 +13,7 @@ hedera:
   eth:
     node_url:
     router_contract_address:
-    waiting_blocks: 5
+    block_confirmations: 5
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600
     api_address: https://testnet.mirrornode.hedera.com/api/v1/

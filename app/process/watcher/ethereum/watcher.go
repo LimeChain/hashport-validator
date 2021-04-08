@@ -17,6 +17,9 @@
 package ethereum
 
 import (
+	"errors"
+	ethereum2 "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/core/types"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -44,20 +47,20 @@ func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config c
 
 func (ew *Watcher) Watch(queue *pair.Queue) {
 	go ew.listenForEvents(queue)
-	log.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
+	ew.logger.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
 }
 
 func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	events := make(chan *routerContract.RouterBurn)
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
+			ew.logger.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
 			return
 		case eventLog := <-events:
 			go ew.handleLog(eventLog, q)
@@ -66,15 +69,42 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	log.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
+	ew.logger.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		eventLog.Receiver)
 
-	err := ew.ethClient.WaitBlocks(eventLog.Raw.TxHash.String(), eventLog.Raw.BlockNumber)
-	if err != nil {
-		ew.logger.Errorf("Could not wait [%d] of ETH Block Numbers. Error: [%s]", ew.config.WaitingBlocks, err)
+	if eventLog.Raw.Removed {
+		ew.logger.Infof("[%s] Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
 	}
 
-	// TODO: push to queue with message type, corresponding to ETH Handler
+	err := ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	if err != nil {
+		ew.logger.Errorf("[%s] Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+	}
+
+	onSuccess, onRevert, onError := ew.ethTxCallbacks(eventLog.Raw, q)
+	ew.ethClient.WaitForTransaction(eventLog.Raw.TxHash.String(), onSuccess, onRevert, onError)
+}
+
+func (ew *Watcher) ethTxCallbacks(eventLog types.Log, q *pair.Queue) (onSuccess, onRevert func(), onError func(error)) {
+	onSuccess = func() {
+		ew.logger.Infof("[%s] Ethereum TX was successfully mined. Processing continues.", eventLog.TxHash)
+		// TODO: push to queue with message type, corresponding to ETH Handler
+		// TODO: what is the format of the message payload?
+		message := &pair.Message{Payload: eventLog.Data}
+		q.Push(message)
+	}
+
+	onRevert = func() {
+		ew.logger.Infof("[%s] Ethereum TX reverted - transaction went into an uncle block.", eventLog.TxHash)
+	}
+
+	onError = func(err error) {
+		if errors.Is(err, ethereum2.NotFound) {
+			ew.logger.Infof("[%s] Ethereum TX went into an uncle block.", eventLog.TxHash)
+		}
+	}
+	return onSuccess, onRevert, onError
 }

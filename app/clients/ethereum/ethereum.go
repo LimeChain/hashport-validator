@@ -41,6 +41,10 @@ type Client struct {
 // NewClient creates new instance of an Ethereum client
 func NewClient(c config.Ethereum) *Client {
 	logger := config.GetLoggerFor(fmt.Sprintf("Ethereum Client"))
+	if c.BlockConfirmations < 1 {
+		logger.Fatalf("BlockConfirmations should be a positive number")
+	}
+
 	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
 		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
@@ -132,34 +136,22 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *Client) WaitBlocks(transactionHash string, blockNumber uint64) error {
-	numberOfBlocks := ec.config.WaitingBlocks
-	if numberOfBlocks < 1 {
-		return errors.New("numberOfBlocks should be a positive number")
-	}
-
-	target := new(big.Int).Add(new(big.Int).SetUint64(blockNumber), new(big.Int).SetUint64(numberOfBlocks))
+func (ec *Client) WaitForConfirmations(raw types.Log) error {
+	target := raw.BlockNumber + ec.config.BlockConfirmations
 	for {
 		currentBlockNumber, err := ec.BlockNumber(context.Background())
 		if err != nil {
 			return err
 		}
-		currentBlockNumberBn := new(big.Int).SetUint64(currentBlockNumber)
 
-		if target.Cmp(currentBlockNumberBn) <= 0 {
-			_, isPending, err := ec.Client.TransactionByHash(context.Background(), common.HexToHash(transactionHash))
-			if err != nil {
-				return err
-			}
-			if isPending {
-				err := ec.WaitBlocks(transactionHash, target.Uint64())
-				if err != nil {
-					return err
-				}
-			}
+		if target <= currentBlockNumber {
 			return nil
 		}
 
 		time.Sleep(time.Second * 5)
 	}
+}
+
+func (ec *Client) WaitForTransactionSimplified() {
+
 }

@@ -102,7 +102,7 @@ type Watcher struct {
 type Ethereum struct {
 	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
 	RouterContractAddress string `yaml:"router_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_ROUTER_CONTRACT_ADDRESS"`
-	WaitingBlocks         uint64 `yaml:"waiting_blocks" env:"HEDERA_ETH_BRIDGE_WAITING_BLOCKS"`
+	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"HEDERA_ETH_BLOCK_CONFIRMATIONS"`
 }
 
 type CryptoTransfer struct {
