@@ -74,23 +74,35 @@ func NewWatcher(
 }
 
 func (ctw Watcher) Watch(q *pair.Queue) {
-	accountAddress := ctw.accountID.String()
-	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
-			if err != nil {
-				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error [%s]", err)
-			}
-			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
-		} else {
-			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
-		}
-	}
-
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Error incoming: Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
 		return
+	}
+
+	account := ctw.accountID.String()
+	lastFetchedTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(account)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newTimeStamp := time.Now().UnixNano()
+			if ctw.startTimestamp > 0 {
+				newTimeStamp = ctw.startTimestamp
+			}
+			err := ctw.statusRepository.CreateTimestamp(account, newTimeStamp)
+			if err != nil {
+				ctw.logger.Fatalf("Failed to create Transfer Watcher timestamp. Error [%s]", err)
+			}
+			ctw.logger.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
+		} else {
+			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
+		}
+	} else {
+		if ctw.startTimestamp > 0 {
+			lastFetchedTimestamp = ctw.startTimestamp
+			err := ctw.statusRepository.UpdateLastFetchedTimestamp(account, lastFetchedTimestamp)
+			if err != nil {
+				ctw.logger.Fatalf("Failed to update Transfer Watcher timestamp. Error [%s]", err)
+			}
+		}
 	}
 
 	go ctw.beginWatching(q)
