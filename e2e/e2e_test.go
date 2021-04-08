@@ -113,14 +113,14 @@ func Test_HBAR(t *testing.T) {
 	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
-func Test_No_Ethereum_TX_Submission(t *testing.T) {
+func Test_HBAR_No_Ethereum_TX_Submission(t *testing.T) {
 	setupEnv := setup.Load()
 
 	memo := fmt.Sprintf("%s-0-0", receiverAddress)
 
 	// Step 1 - Verify the transfer of HTS Token to the Bridge Account
 	transactionResponse, _ := verifyTokenTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
-	fmt.Println("transactionResponse:", transactionResponse.TransactionID)
+
 	// Step 2 - Verify the submitted topic messages
 	ethTransactionHash, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 
@@ -148,21 +148,38 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	wTokenReceiverAddress := common.HexToAddress(receiverAddress)
 
-	// Step 1 - Verify the transfer of Hbars to the Bridge Account
+	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	transactionResponse, wrappedTokenBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, wTokenReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
 	_, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 
-	// tokenAddress, _ := setup.ParseToken(setupEnv.Clients.RouterContract, setupEnv.TokenID.String())
-
+	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransactionData(setupEnv, transactionResponse, receivedSignatures, t)
 
+	// Step 4 - Submit Mint transaction
 	txHash := executeTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
 
+	// Step 5 - Wait for transaction to be mined
 	validateTransactionReceipt(setupEnv, txHash, t)
 
+	// Step 6 - Validate Token balances
 	validateTokenBalance(setupEnv, wrappedTokenBalanceBefore, wTokenReceiverAddress, t)
+
+	// Step 7 - Verify Database records
+	expectedTxRecord := prepareExpectedTransfer(
+		setupEnv.Clients.RouterContract,
+		transactionResponse.TransactionID,
+		setupEnv.TokenID.String(),
+		"0",
+		"0",
+		database.ExpectedStatuses{
+			Status:          entity_transfer.StatusCompleted,
+			StatusSignature: entity_transfer.StatusSignatureMined,
+		},
+		txHash,
+		false, t)
+	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
 func executeTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
@@ -198,10 +215,8 @@ func validateTransactionReceipt(setupEnv *setup.Setup, txHash string, t *testing
 		t.Fatalf(`Failed to mine successfully ethereum transaction: [%s]`, txHash)
 	}
 	onError := func(err error) {
-		if err != nil {
-			fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
-			t.Fatal(err)
-		}
+		fmt.Println(fmt.Sprintf(`Transaction unsuccessful, Error: [%s]`, err))
+		t.Fatal(err)
 	}
 	setupEnv.Clients.EthClient.WaitForTransaction(txHash, onSuccess, onRevert, onError)
 	<-c1
@@ -223,7 +238,10 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 	txFee := new(big.Int).Mul(tokensAmount, serviceFeePercentage)
 	txFee = new(big.Int).Div(txFee, precision)
 
-	if new(big.Int).Sub(wrappedTokenBalanceAfter, wrappedTokenBalanceBefore) != new(big.Int).Sub(tokensAmount, txFee) {
+	expectedBalance := new(big.Int).Sub(wrappedTokenBalanceAfter, wrappedTokenBalanceBefore)
+	mintAmount := new(big.Int).Sub(tokensAmount, txFee)
+
+	if expectedBalance.Cmp(mintAmount) != 0 {
 		t.Fatalf("Incorect token balance")
 	}
 }
@@ -373,10 +391,10 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 }
 
 func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenReceiverAddress common.Address, t *testing.T) (hedera.TransactionResponse, *big.Int) {
-	// Get the wrapped hbar balance of the receiver before the transfer
+	// Get the wrapped hts token balance of the receiver before the transfer
 	wrappedTokenBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	fmt.Printf("Token balance before transaction: [%s]\n", wrappedTokenBalanceBefore)
@@ -533,7 +551,6 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 func verifyEthereumTXExecution(setup *setup.Setup, ethTransactionHash string, whbarReceiverAddress common.Address, expectedWHBarAmount int64, whbarBalanceBefore *big.Int, t *testing.T) {
 	fmt.Printf("Waiting for transaction [%s] to succeed...\n", ethTransactionHash)
-
 	// Make a blocking channel waiting for Ethereum TX success
 	c1 := make(chan bool, 1)
 	onSuccess := func() {
