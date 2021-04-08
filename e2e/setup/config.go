@@ -24,11 +24,13 @@ import (
 	"path/filepath"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
@@ -126,6 +128,7 @@ type clients struct {
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
 	ValidatorClient *e2eClients.Validator
+	KeyTransactor   *bind.TransactOpts
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -151,6 +154,9 @@ func newClients(config Config) (*clients, error) {
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
+	signer := eth.NewEthSigner(config.Signer)
+	keyTransactor, _ := signer.NewKeyTransactor(ethClient.ChainID())
+
 	return &clients{
 		Hedera:          hederaClient,
 		EthClient:       ethClient,
@@ -158,6 +164,7 @@ func newClients(config Config) (*clients, error) {
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
 		ValidatorClient: validatorClient,
+		KeyTransactor:   keyTransactor,
 	}, nil
 }
 
@@ -225,6 +232,7 @@ type Config struct {
 	Ethereum     config.Ethereum `yaml:"ethereum"`
 	Tokens       Tokens          `yaml:"tokens"`
 	ValidatorUrl string          `yaml:"validator_url"`
+	Signer       string          `yaml:"eth_signer"`
 }
 
 type Tokens struct {
