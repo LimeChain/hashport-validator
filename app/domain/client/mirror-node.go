@@ -32,6 +32,7 @@ type MirrorNode interface {
 	GetAccountTransaction(transactionID string) (*mirror_node.Response, error)
 	GetStateProof(transactionID string) ([]byte, error)
 	AccountExists(accountID hedera.AccountID) bool
+	TopicExists(topicID hedera.TopicID) bool
 	// WaitForTransaction Polls the transaction at intervals. Depending on the
 	// result, the corresponding `onSuccess` and `onFailure` functions are called
 	WaitForTransaction(txId string, onSuccess, onFailure func())

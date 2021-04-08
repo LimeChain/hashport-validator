@@ -145,6 +145,23 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 	return true
 }
 
+func (c Client) TopicExists(topicID hedera.TopicID) bool {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
+	accountQuery := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		topicID.String())
+	response, e := c.httpClient.Get(accountQuery)
+	if e != nil {
+		return false
+	}
+
+	if response.StatusCode != 200 {
+		return false
+	}
+
+	return true
+}
+
 // WaitForTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
 func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {

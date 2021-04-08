@@ -86,12 +86,10 @@ func (ctw Watcher) Watch(q *pair.Queue) {
 		} else {
 			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
 		}
-	} else {
-		ctw.updateStatusTimestamp(ctw.startTimestamp)
 	}
 
 	if !ctw.client.AccountExists(ctw.accountID) {
-		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
+		ctw.logger.Errorf("Error incoming: Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
 		return
 	}
 

@@ -72,10 +72,15 @@ func (cmw Watcher) Watch(q *pair.Queue) {
 		} else {
 			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
 		}
-	} else {
-		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
+
+	if !cmw.client.TopicExists(cmw.topicID) {
+		cmw.logger.Errorf("Error incoming: Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
+		return
+	}
+
 	cmw.beginWatching(q)
+	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
