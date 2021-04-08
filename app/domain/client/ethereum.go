@@ -33,5 +33,5 @@ type Ethereum interface {
 	// onError is called if an error occurs while waiting for TX to go into one of the other 2 states
 	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
 	// WaitBlocks starts a loop which ends either when we reach the target block number or an error occurs with block number retrieval
-	WaitForConfirmations(raw types.Log) (chan bool, *error)
+	WaitForConfirmations(raw types.Log) error
 }

@@ -136,17 +136,30 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *Client) WaitForConfirmations(raw types.Log) (done chan bool, err *error) {
+func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	target := raw.BlockNumber + ec.config.BlockConfirmations
-	done = make(chan bool, 1)
-	go func() {
-		for {
-			currentBlockNumber, err := ec.BlockNumber(context.Background())
-			if err != nil || target <= currentBlockNumber {
-				done <- true
-			}
-			time.Sleep(time.Second * 5)
+	for {
+		currentBlockNumber, err := ec.BlockNumber(context.Background())
+		if err != nil {
+			ec.logger.Errorf("[%s] Failed retrieving block number.", raw.TxHash.String())
+			return err
 		}
-	}()
-	return done, err
+
+		if target <= currentBlockNumber {
+			receipt, err := ec.TransactionReceipt(context.Background(), raw.TxHash)
+			if err != nil {
+				ec.logger.Infof("[%s] Ethereum TX went into an uncle block.", raw.TxHash.String())
+				return err
+			}
+
+			if receipt.Status == 1 {
+				ec.logger.Debugf("[%s] Transaction was successfully mined", raw.TxHash.String())
+				return nil
+			} else {
+				ec.logger.Debugf("[%s] Transaction reverted", raw.TxHash.String())
+				return errors.New("reverted")
+			}
+		}
+		time.Sleep(time.Second * 5)
+	}
 }
