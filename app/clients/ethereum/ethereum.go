@@ -136,22 +136,17 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
-func (ec *Client) WaitForConfirmations(raw types.Log) error {
+func (ec *Client) WaitForConfirmations(raw types.Log) (done chan bool, err *error) {
 	target := raw.BlockNumber + ec.config.BlockConfirmations
-	for {
-		currentBlockNumber, err := ec.BlockNumber(context.Background())
-		if err != nil {
-			return err
+	done = make(chan bool, 1)
+	go func() {
+		for {
+			currentBlockNumber, err := ec.BlockNumber(context.Background())
+			if err != nil || target <= currentBlockNumber {
+				done <- true
+			}
+			time.Sleep(time.Second * 5)
 		}
-
-		if target <= currentBlockNumber {
-			return nil
-		}
-
-		time.Sleep(time.Second * 5)
-	}
-}
-
-func (ec *Client) WaitForTransactionSimplified() {
-
+	}()
+	return done, err
 }
