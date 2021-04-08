@@ -155,13 +155,13 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	_, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransactionData(setupEnv, transactionResponse, receivedSignatures, t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, receivedSignatures, t)
 
 	// Step 4 - Submit Mint transaction
-	txHash := executeTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
+	txHash := submitMintTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
 
 	// Step 5 - Wait for transaction to be mined
-	validateTransactionReceipt(setupEnv, txHash, t)
+	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
 	validateTokenBalance(setupEnv, wrappedTokenBalanceBefore, wTokenReceiverAddress, t)
@@ -182,7 +182,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
-func executeTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
+func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, _ := hex.DecodeString(transactionData.Signatures[i])
@@ -204,7 +204,7 @@ func executeTransaction(setupEnv *setup.Setup, transactionResponse hedera.Transa
 	return res.Hash().String()
 }
 
-func validateTransactionReceipt(setupEnv *setup.Setup, txHash string, t *testing.T) {
+func waitForTransaction(setupEnv *setup.Setup, txHash string, t *testing.T) {
 	fmt.Printf("Waiting for transaction: [%s] to be mined\n", txHash)
 	c1 := make(chan bool, 1)
 	onSuccess := func() {
@@ -246,7 +246,7 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 	}
 }
 
-func verifyTransactionData(setupEnv *setup.Setup, txResponce hedera.TransactionResponse, signatures []string, t *testing.T) (*service.TransferData, *common.Address) {
+func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponce hedera.TransactionResponse, signatures []string, t *testing.T) (*service.TransferData, *common.Address) {
 	tokenAddress, _ := setup.ParseToken(setupEnv.Clients.RouterContract, setupEnv.TokenID.String())
 
 	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(fromHederaTransactionID(&txResponce.TransactionID).String())
@@ -394,6 +394,7 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 	// Get the wrapped hts token balance of the receiver before the transfer
 	wrappedTokenBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
 	if err != nil {
+		fmt.Println(`Unable to query the token balance of the  receiver account`)
 		t.Fatal(err)
 	}
 
