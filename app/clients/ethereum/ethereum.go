@@ -147,13 +147,17 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 
 		if target <= currentBlockNumber {
 			receipt, err := ec.TransactionReceipt(context.Background(), raw.TxHash)
-			if err != nil {
+			if errors.Is(ethereum.NotFound, err) {
 				ec.logger.Infof("[%s] Ethereum TX went into an uncle block.", raw.TxHash.String())
+				return err
+			}
+			if err != nil {
+				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: %s", raw.TxHash.String(), err)
 				return err
 			}
 
 			if receipt.Status == 1 {
-				ec.logger.Debugf("[%s] Transaction was successfully mined", raw.TxHash.String())
+				ec.logger.Debugf("[%] Transaction received [%d] block confirmations", raw.TxHash.String(), ec.config.BlockConfirmations)
 				return nil
 			} else {
 				ec.logger.Debugf("[%s] Transaction reverted", raw.TxHash.String())

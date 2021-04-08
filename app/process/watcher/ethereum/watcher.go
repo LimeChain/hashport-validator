@@ -66,13 +66,10 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	ew.logger.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
-		eventLog.Account.Hex(),
-		eventLog.Amount.String(),
-		eventLog.Receiver)
+	ew.logger.Debugf("[%s] New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
-		ew.logger.Infof("[%s] Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		ew.logger.Debugf("[%s] Uncle block transaction was removed.", eventLog.Raw.TxHash)
 		return
 	}
 
@@ -80,7 +77,10 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 	if err != nil {
 		ew.logger.Errorf("[%s] Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
 	}
-	ew.logger.Infof("[%s] Ethereum TX was successfully mined. Processing continues.", eventLog.Raw.TxHash)
+	ew.logger.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
+		eventLog.Account.Hex(),
+		eventLog.Amount.String(),
+		eventLog.Receiver)
 
 	message := &pair.Message{Payload: eventLog.Raw.Data}
 	q.Push(message)
