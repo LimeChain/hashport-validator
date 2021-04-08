@@ -119,7 +119,7 @@ func Test_HBAR_No_Ethereum_TX_Submission(t *testing.T) {
 	memo := fmt.Sprintf("%s-0-0", receiverAddress)
 
 	// Step 1 - Verify the transfer of HTS Token to the Bridge Account
-	transactionResponse, _ := verifyTokenTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+	transactionResponse, _ := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
 	ethTransactionHash, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
