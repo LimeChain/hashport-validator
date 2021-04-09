@@ -140,7 +140,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 	}
 	scheduledTx = scheduledTx.
 		SetPayerAccountID(payerAccountID).
-		SetTransactionMemo(memo)
+		SetScheduleMemo(memo)
 
 	response, err := scheduledTx.Execute(hc.GetClient())
 
