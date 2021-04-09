@@ -25,6 +25,8 @@ type MirrorNode interface {
 	GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
 	// GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
 	GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]mirror_node.Transaction, error)
+	// GetMessagesAfterTimestamp returns all topic messages after the given timestamp
+	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]mirror_node.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]mirror_node.Message, error)
 	GetAccountTransaction(transactionID string) (*mirror_node.Response, error)
