@@ -94,7 +94,10 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (cmw Watcher) beginWatching(q *pair.Queue) {
-	milestoneTimestamp := cmw.startTimestamp
+	milestoneTimestamp, err := cmw.statusRepository.GetLastFetchedTimestamp(cmw.topicID.String())
+	if err != nil {
+		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
+	}
 
 	for {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
@@ -135,6 +138,7 @@ func (cmw *Watcher) restart(q *pair.Queue) {
 	if cmw.maxRetries > 0 {
 		cmw.maxRetries--
 		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
+		time.Sleep(5 * time.Second)
 		go cmw.beginWatching(q)
 		return
 	}

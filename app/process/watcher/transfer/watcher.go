@@ -108,7 +108,11 @@ func (ctw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (ctw Watcher) beginWatching(q *pair.Queue) {
-	milestoneTimestamp := ctw.startTimestamp
+	milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+	if err != nil {
+		ctw.logger.Fatalf("Failed to retrieve Transfer Watcher Status timestamp. Error [%s]", err)
+	}
+
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
@@ -163,6 +167,7 @@ func (ctw *Watcher) restart(q *pair.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")
+		time.Sleep(5 * time.Second)
 		go ctw.beginWatching(q)
 		return
 	}
