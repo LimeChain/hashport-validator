@@ -145,7 +145,7 @@ func (cmw *Watcher) restart(q *pair.Queue) {
 	if cmw.maxRetries > 0 {
 		cmw.maxRetries--
 		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
-		go cmw.Watch(q)
+		go cmw.beginWatching(q)
 		return
 	}
 	cmw.logger.Errorf("Watcher failed: [Too many retries]")
