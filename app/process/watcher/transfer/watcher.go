@@ -92,10 +92,7 @@ func (ctw Watcher) Watch(q *pair.Queue) {
 			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
 		}
 	} else {
-		err := ctw.statusRepository.UpdateLastFetchedTimestamp(account, ctw.startTimestamp)
-		if err != nil {
-			ctw.logger.Fatalf("Failed to update Transfer Watcher timestamp. Error [%s]", err)
-		}
+		ctw.updateStatusTimestamp(ctw.startTimestamp)
 	}
 
 	go ctw.beginWatching(q)

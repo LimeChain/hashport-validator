@@ -78,10 +78,7 @@ func (cmw Watcher) Watch(q *pair.Queue) {
 			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
 		}
 	} else {
-		err := cmw.statusRepository.UpdateLastFetchedTimestamp(topic, cmw.startTimestamp)
-		if err != nil {
-			cmw.logger.Fatalf("Failed to update Topic Watcher timestamp. Error [%s]", err)
-		}
+		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
 
 	cmw.beginWatching(q)
