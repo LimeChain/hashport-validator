@@ -18,6 +18,7 @@ package ethereum
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
@@ -66,7 +67,7 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	eventAccount := string(eventLog.Receiver)
+	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
 	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
 		eventLog.Account.Hex(),
 		eventLog.Raw.TxHash.String(),
@@ -76,7 +77,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 
 	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to parse acount [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
+		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
 	nativeToken, err := ew.contracts.ToNativeToken(eventLog.WrappedToken)

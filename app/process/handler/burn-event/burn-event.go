@@ -17,6 +17,7 @@
 package burn_event
 
 import (
+	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -69,11 +70,9 @@ func (sth Handler) Handle(payload interface{}) {
 		return
 	}
 
-	var transactionID *hedera.TransactionID
-	var scheduleID *hedera.ScheduleID
-
+	var transactionResponse *hedera.TransactionResponse
 	if burnEvent.NativeToken == "HBAR" {
-		transactionID, scheduleID, err = sth.hederaNodeClient.
+		transactionResponse, err = sth.hederaNodeClient.
 			SubmitScheduledHbarTransferTransaction(burnEvent.Amount, burnEvent.Recipient, sth.bridgeThresholdAccount, sth.payerAccount, burnEvent.TxHash)
 	} else {
 		tokenID, err := hedera.TokenIDFromString(burnEvent.NativeToken)
@@ -81,28 +80,59 @@ func (sth Handler) Handle(payload interface{}) {
 			sth.logger.Errorf("[%s] - failed to parse native token [%s] to TokenID. Error [%s]", burnEvent.TxHash, burnEvent.NativeToken, err)
 			return
 		}
-		transactionID, scheduleID, err = sth.hederaNodeClient.
+		transactionResponse, err = sth.hederaNodeClient.
 			SubmitScheduledTokenTransferTransaction(burnEvent.Amount, tokenID, burnEvent.Recipient, sth.bridgeThresholdAccount, sth.payerAccount, burnEvent.TxHash)
 	}
-
 	if err != nil {
 		sth.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", burnEvent.TxHash, err)
 		return
 	}
 
-	sth.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s] for [%s] to receive [%d] tinybars.",
-		burnEvent.TxHash,
-		transactionID, burnEvent.Recipient, burnEvent.Amount)
+	txReceipt, err := transactionResponse.GetReceipt(sth.hederaNodeClient.GetClient())
+	if err != nil {
+		sth.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", burnEvent.TxHash, transactionResponse.TransactionID)
+		return
+	}
+	fmt.Println(transactionResponse.TransactionID.String())
 
-	//submissionTxID := tx.FromHederaTransactionID(transactionID)
-
-	err = sth.repository.UpdateStatusSubmitted(burnEvent.TxHash, scheduleID.String(), transactionID.String())
+	sth.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s]", burnEvent.TxHash, txReceipt.ScheduledTransactionID.String())
+	err = sth.repository.UpdateStatusSubmitted(burnEvent.TxHash, txReceipt.ScheduleID.String(), txReceipt.ScheduledTransactionID.String())
 	if err != nil {
 		sth.logger.Errorf(
 			"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
-			burnEvent.TxHash, transactionID, scheduleID, err)
+			burnEvent.TxHash, transactionResponse.TransactionID, txReceipt.ScheduleID, err)
 		return
 	}
+
+	switch txReceipt.Status {
+	case hedera.StatusIdenticalScheduleAlreadyCreated:
+		sth.logger.Debugf("[%s] - Scheduled transaction already created - Executing Scheduled Sign [%s].", burnEvent.TxHash, txReceipt.ScheduleID)
+		txResponse, err := sth.hederaNodeClient.SubmitScheduleSign(*txReceipt.ScheduleID)
+		if err != nil {
+			sth.logger.Errorf("[%s] - Failed to submit schedule sign [%s]. Error: [%s]", burnEvent.TxHash, txReceipt.ScheduleID, err)
+			return
+		}
+
+		txr, err := txResponse.GetReceipt(sth.hederaNodeClient.GetClient())
+		if err != nil {
+			sth.logger.Errorf("[%s] - Failed to get transaction receipt for schedule sign [%s]. Error: [%s]", burnEvent.TxHash, txReceipt.ScheduleID, err)
+			return
+		}
+
+		if txr.Status != hedera.StatusSuccess {
+			sth.logger.Errorf("[%s] - Schedule Sign [%s] failed with [%s].", burnEvent.TxHash, txReceipt.ScheduleID, txr.Status)
+			return
+		}
+	case hedera.StatusSuccess:
+		// TODO:
+	default:
+		sth.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s]", burnEvent.TxHash, transactionResponse.TransactionID, txReceipt.Status)
+		return
+	}
+
+	sth.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s] for [%s] to receive [%d] tinybars.",
+		burnEvent.TxHash,
+		transactionResponse.TransactionID, burnEvent.Recipient, burnEvent.Amount)
 
 	// TODO: query mirror node for the final status (similar to topic submission)
 }

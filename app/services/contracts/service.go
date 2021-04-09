@@ -74,7 +74,7 @@ func (bsc *Service) ToNativeToken(wrappedToken common.Address) (string, error) {
 		return "", errors.New("native token not found")
 	}
 
-	return string(nativeToken), nil
+	return string(common.TrimRightZeroes(nativeToken)), nil
 }
 
 func (bsc *Service) GetBridgeContractAddress() common.Address {

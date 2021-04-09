@@ -58,7 +58,7 @@ func tryConnection(connectionStr string) *gorm.DB {
 
 // Migrate tables
 func migrateDb(db *gorm.DB) {
-	err := db.AutoMigrate(entity.Status{}, entity.Transfer{}, entity.Message{})
+	err := db.AutoMigrate(entity.Status{}, entity.Transfer{}, entity.Message{}, entity.BurnEvent{})
 	if err != nil {
 		log.Fatal(err)
 	}

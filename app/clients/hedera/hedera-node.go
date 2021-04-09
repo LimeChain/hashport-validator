@@ -80,6 +80,14 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	return &txResponse.TransactionID, err
 }
 
+func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
+	response, err := hedera.NewScheduleSignTransaction().
+		SetScheduleID(scheduleID).
+		Execute(hc.GetClient())
+
+	return &response, err
+}
+
 // SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits a scheduled transfer transaction
 func (hc Node) SubmitScheduledTokenTransferTransaction(
 	tinybarAmount int64,
@@ -87,7 +95,7 @@ func (hc Node) SubmitScheduledTokenTransferTransaction(
 	recipient,
 	sender,
 	payerAccountID hedera.AccountID,
-	memo string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 
 	transferTransaction := hedera.NewTransferTransaction().
 		AddTokenTransfer(tokenID, recipient, tinybarAmount).
@@ -101,7 +109,7 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
 	recipient,
 	sender,
 	payerAccountID hedera.AccountID,
-	memo string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
 	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
 
@@ -113,37 +121,30 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
 }
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits to HCS
-func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, transaction *hedera.TransferTransaction) (*hedera.TransactionID, *hedera.ScheduleID, error) {
+func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, transaction *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
 	transaction, err := transaction.FreezeWith(hc.GetClient())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	signedTransaction, err := transaction.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scheduledTx, err := hedera.NewScheduleCreateTransaction().
-		SetPayerAccountID(payerAccountID).
-		SetTransactionMemo(memo).
 		SetScheduledTransaction(signedTransaction)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	scheduledTx = scheduledTx.
+		SetPayerAccountID(payerAccountID).
+		SetTransactionMemo(memo)
 
-	txResponse, err := scheduledTx.Execute(hc.GetClient())
-	if err != nil {
-		return nil, nil, err
-	}
+	response, err := scheduledTx.Execute(hc.GetClient())
 
-	receipt, err := hc.checkTransactionReceipt(txResponse)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &txResponse.TransactionID, receipt.ScheduleID, nil
+	return &response, err
 }
 
 func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
