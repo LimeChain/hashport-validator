@@ -147,7 +147,7 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 
 func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
-	accountQuery := fmt.Sprintf("%s/%s",
+	accountQuery := fmt.Sprintf("%s/%s/messages",
 		mirrorNodeApiTransactionAddress,
 		topicID.String())
 	response, e := c.httpClient.Get(accountQuery)
