@@ -155,7 +155,10 @@ func newClients(config Config) (*clients, error) {
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	signer := eth.NewEthSigner(config.Signer)
-	keyTransactor, _ := signer.NewKeyTransactor(ethClient.ChainID())
+	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	return &clients{
 		Hedera:          hederaClient,
