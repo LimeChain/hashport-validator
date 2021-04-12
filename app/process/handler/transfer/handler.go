@@ -31,7 +31,6 @@ type Handler struct {
 }
 
 func NewHandler(transfersService service.Transfers) *Handler {
-
 	return &Handler{
 		logger:           config.GetLoggerFor("Account Transfer Handler"),
 		transfersService: transfersService,

@@ -108,7 +108,7 @@ func (cmh Handler) handleSignatureMessage(tm message.Message) {
 
 	err = cmh.messages.ProcessSignature(tm)
 	if err != nil {
-		cmh.logger.Errorf("[%s] - Could not process Signature [%s]", tsm.TransferID, tsm.GetSignature())
+		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 
