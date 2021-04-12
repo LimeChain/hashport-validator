@@ -18,7 +18,6 @@ package main
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/exchange-rate"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -27,18 +26,16 @@ import (
 
 // Clients struct used to initialise and store all available external clients for a validator node
 type Clients struct {
-	HederaNode   client.HederaNode
-	MirrorNode   client.MirrorNode
-	Ethereum     client.Ethereum
-	ExchangeRate client.ExchangeRate
+	HederaNode client.HederaNode
+	MirrorNode client.MirrorNode
+	Ethereum   client.Ethereum
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Config) *Clients {
 	return &Clients{
-		HederaNode:   hedera.NewNodeClient(config.Hedera.Client),
-		MirrorNode:   mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval),
-		Ethereum:     ethereum.NewClient(config.Hedera.Eth),
-		ExchangeRate: exchangerate.NewProvider("hedera-hashgraph", "eth"),
+		HederaNode: hedera.NewNodeClient(config.Hedera.Client),
+		MirrorNode: mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval),
+		Ethereum:   ethereum.NewClient(config.Hedera.Eth),
 	}
 }
