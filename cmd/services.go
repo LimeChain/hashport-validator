@@ -18,6 +18,7 @@ package main
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
@@ -29,12 +30,13 @@ import (
 
 // TODO extract new service only for Ethereum TX handling
 type Services struct {
-	signer    service.Signer
-	scheduler service.Scheduler
-	contracts service.Contracts
-	transfers service.Transfers
-	messages  service.Messages
-	fees      service.Fees
+	signer     service.Signer
+	scheduler  service.Scheduler
+	contracts  service.Contracts
+	transfers  service.Transfers
+	messages   service.Messages
+	fees       service.Fees
+	burnEvents service.BurnEvent
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -64,13 +66,21 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.Ethereum,
 		c.Hedera.Handler.ConsensusMessage.TopicId)
 
+	burnEvent := burn_event.NewService(
+		c.Hedera.Client.ThresholdAccount,
+		c.Hedera.Client.PayerAccount,
+		clients.HederaNode,
+		clients.MirrorNode,
+		repositories.burnEvent)
+
 	return &Services{
-		signer:    ethSigner,
-		scheduler: schedulerService,
-		contracts: contracts,
-		transfers: transfers,
-		messages:  messages,
-		fees:      fees,
+		signer:     ethSigner,
+		scheduler:  schedulerService,
+		contracts:  contracts,
+		transfers:  transfers,
+		messages:   messages,
+		fees:       fees,
+		burnEvents: burnEvent,
 	}
 }
 

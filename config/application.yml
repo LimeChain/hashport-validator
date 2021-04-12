@@ -25,6 +25,8 @@ hedera:
       eth_private_key:
     base_gas_usage: 130000
     gas_per_validator: 54000
+    threshold_account:
+    payer_account:
   watcher:
     crypto-transfer:
       account:
@@ -43,6 +45,3 @@ hedera:
     consensus-message:
       topic_id:
       send_deadline: 300
-    burn-event:
-      bridge_threshold_account:
-      payer_account:

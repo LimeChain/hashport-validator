@@ -52,7 +52,8 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	events := make(chan *routerContract.RouterBurn)
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
-		log.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		return
 	}
 
 	for {
@@ -67,20 +68,20 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
 	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
-		eventLog.Account.Hex(),
 		eventLog.Raw.TxHash.String(),
+		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		eventLog.ServiceFee.String(),
-		eventAccount)
+		eventLog.Receiver)
 
+	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
 	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
-	nativeToken, err := ew.contracts.ToNativeToken(eventLog.WrappedToken)
+	nativeToken, err := ew.contracts.NativeToken(eventLog.WrappedToken)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken, err)
 		return

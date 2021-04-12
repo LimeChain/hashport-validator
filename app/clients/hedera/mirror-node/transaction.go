@@ -35,6 +35,7 @@ type (
 		MaxFee               string     `json:"max_fee"`
 		ValidDurationSeconds string     `json:"valid_duration_seconds"`
 		Node                 string     `json:"node"`
+		Scheduled            bool       `json:"scheduled"`
 		TransactionID        string     `json:"transaction_id"`
 		Transfers            []Transfer `json:"transfers"`
 		TokenTransfers       []Transfer `json:"token_transfers"`

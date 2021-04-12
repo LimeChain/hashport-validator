@@ -82,7 +82,6 @@ type Hedera struct {
 type Handler struct {
 	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
 	ConsensusMessage ConsensusMessageHandler `yaml:"consensus-message"`
-	BurnEventHandler BurnEventHandler        `yaml:"burn-event"`
 }
 
 type ConsensusMessageHandler struct {
@@ -93,11 +92,6 @@ type ConsensusMessageHandler struct {
 type CryptoTransferHandler struct {
 	TopicId         string        `yaml:"topic_id"`
 	PollingInterval time.Duration `yaml:"polling_interval"`
-}
-
-type BurnEventHandler struct {
-	BridgeThresholdAccount string `yaml:"bridge_threshold_account" env:"HEDERA_ETH_BRIDGE_HANDLER_BURN_EVENT_BRIDGE_THRESHOLD_ACCOUNT"`
-	PayerAccount           string `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_HANDLER_BURN_EVENT_PAYER_ACCOUNT"`
 }
 
 type Watcher struct {
@@ -124,10 +118,12 @@ type ID struct {
 }
 
 type Client struct {
-	NetworkType     string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator        Operator `yaml:"operator"`
-	BaseGasUsage    uint64   `yaml:"base_gas_usage"`
-	GasPerValidator uint64   `yaml:"gas_per_validator"`
+	NetworkType      string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator         Operator `yaml:"operator"`
+	BaseGasUsage     uint64   `yaml:"base_gas_usage"`
+	GasPerValidator  uint64   `yaml:"gas_per_validator"`
+	ThresholdAccount string   `yaml:"threshold_account" env:"HEDERA_ETH_BRIDGE_CLIENT_THRESHOLD_ACCOUNT"`
+	PayerAccount     string   `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_CLIENT_PAYER_ACCOUNT"`
 }
 
 type Operator struct {

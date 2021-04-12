@@ -64,7 +64,7 @@ func (bsc *Service) ParseToken(tokenId string) (string, error) {
 	return erc20address, nil
 }
 
-func (bsc *Service) ToNativeToken(wrappedToken common.Address) (string, error) {
+func (bsc *Service) NativeToken(wrappedToken common.Address) (string, error) {
 	nativeToken, err := bsc.contract.WrappedToNativeToken(nil, wrappedToken)
 	if err != nil {
 		return "", err

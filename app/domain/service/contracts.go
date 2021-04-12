@@ -42,5 +42,5 @@ type Contracts interface {
 	// Check whether a specific asset has a valid bridge token address. Returns the erc20 token address if token is valid. Returns an empty string if not.
 	ParseToken(nativeTokenId string) (string, error)
 	// Checks whether a specific wrapped token has a corresponding native token. Returns the native token as string
-	ToNativeToken(wrappedToken common.Address) (string, error)
+	NativeToken(wrappedToken common.Address) (string, error)
 }

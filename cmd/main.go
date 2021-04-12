@@ -22,8 +22,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-event"
-	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
+	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-event"
+	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
@@ -125,17 +125,15 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp),
-		cmh.NewHandler(
+		mh.NewHandler(
 			configuration.Hedera.Handler.ConsensusMessage,
 			repositories.transfer,
 			repositories.message,
 			services.contracts,
 			services.messages))
+
 	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth),
-		burn_event.NewHandler(
-			configuration.Hedera.Handler.BurnEventHandler,
-			clients.HederaNode,
-			repositories.burnEvent))
+		beh.NewHandler(services.burnEvents))
 }
 
 func addTransferWatcher(configuration *config.Config,

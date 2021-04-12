@@ -33,6 +33,8 @@ Name                                                                | Default   
 `hedera.client.operator.account_id`                                 | ""                                                  | The operator's Hedera account id.
 `hedera.client.operator.private_key`                                | ""                                                  | The operator's Hedera private key.
 `hedera.client.operator.eth_private_key`                            | ""                                                  | The operator's Ethereum private key.
+`hedera.client.threshold_account`                                   | ""                                                  | The Hedera Bridge Threshold account id, from which fees and bridged amounts will be distributed on Hedera. Most likely to be identical with `hedera.mirror_node.account_id`
+`hedera.client.payer_account`                                       | ""                                                  | The Hedera Payer account id, used as a payer for scheduled transactions execution fee.
 `hedera.watcher.crypto-transfer.account.id`                         | ""                                                  | The Hedera account id to which the crypto transfer watcher will subscribe.
 `hedera.watcher.crypto-transfer.account.max_retries`                | 10                                                  | The number of times the watcher will try restarting in case it failed.
 `hedera.watcher.crypto-transfer.account.start_timestamp`            | ""                                                  | The timestamp from which the crypto transfer watcher will begin its subscription. Leave empty on the first run if you want to begin from `now`.
@@ -44,7 +46,4 @@ Name                                                                | Default   
 `hedera.handler.consensus-message.topic_id`                         | ""                                                  | The Hedera topic id to which the consensus message handler will publish messages.
 `hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
 `hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
-`hedera.log_level`                                                  | Info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
-`hedera.handler.burn-event.bridge_threshold_account`                | ""                                                  | The Hedera Bridge Threshold account id, which will send to recipients their unwrapped amounts
-`hedera.handler.burn-event.payer_account`                           | ""                                                  | The Hedera Payer account id, which will pay for scheduled transactions (unwrapping) fees
-
+`hedera.log_level`                                                  | Info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive.
