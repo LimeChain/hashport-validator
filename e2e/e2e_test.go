@@ -257,13 +257,11 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendHbarsToBridgeAccount(setup, memo)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Unable to send HBARs to Bridge Account, Error: [%s]", err))
-		t.Fatal(err)
+		t.Fatalf("Unable to send HBARs to Bridge Account, Error: [%s]", err)
 	}
 	transactionReceipt, err := transactionResponse.GetReceipt(setup.Clients.Hedera)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Transaction unsuccessful, Error: [%s]", err))
-		t.Fatal(err)
+		t.Fatalf("Transaction unsuccessful, Error: [%s]", err)
 	}
 
 	fmt.Println(fmt.Sprintf("Successfully sent HBAR to bridge account, Status: [%s]", transactionReceipt.Status))
@@ -273,8 +271,7 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 		SetAccountID(setup.BridgeAccount).
 		Execute(setup.Clients.Hedera)
 	if err != nil {
-		fmt.Println("Unable to query the balance of the Bridge Account")
-		t.Fatal(err)
+		t.Fatalf("Unable to query the balance of the Bridge Account. Error: [%s]", err)
 	}
 
 	fmt.Println(fmt.Sprintf("Bridge Account HBAR balance after transaction: [%d]", receiverBalanceNew.Hbars.AsTinybar()))
@@ -283,7 +280,7 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
 	// Verify that the bridge account has received exactly the amount sent
 	if amount != hBarSendAmount.AsTinybar() {
-		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v]", hBarSendAmount.AsTinybar())
+		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but was [%v]", hBarSendAmount.AsTinybar(), amount)
 	}
 
 	return *transactionResponse, whbarBalanceBefore
@@ -293,8 +290,7 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 	// Get the wrapped hts token balance of the receiver before the transfer
 	wrappedTokenBalanceBefore, err := setup.Clients.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
 	if err != nil {
-		fmt.Println("Unable to query the token balance of the  receiver account")
-		t.Fatal(err)
+		t.Fatalf("Unable to query the token balance of the receiver account. Error: [%s]", err)
 	}
 
 	fmt.Println(fmt.Sprintf("Token balance before transaction: [%s]", wrappedTokenBalanceBefore))

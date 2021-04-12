@@ -26,7 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	memo2 "github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	memo "github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -71,7 +71,7 @@ func NewService(
 
 // SanityCheck performs validation on the memo and state proof for the transaction
 func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
-	memo, e := memo2.ValidateMemo(tx.MemoBase64)
+	m, e := memo.ValidateMemo(tx.MemoBase64)
 	if e != nil {
 		return "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
@@ -90,7 +90,7 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, erro
 		return "", errors.New("invalid state proof")
 	}
 
-	return memo, nil
+	return m, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
