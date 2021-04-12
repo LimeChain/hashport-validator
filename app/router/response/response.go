@@ -40,7 +40,6 @@ func ErrorResponse(err error) *ErrResponse {
 type MetadataResponse struct {
 	TransactionFee         string `json:"txFee"`
 	TransactionFeeCurrency string `json:"txFeeCurrency"`
-	GasPriceGwei           string `json:"gasPriceGwei"`
 }
 
 type HealthResponse struct {

@@ -27,7 +27,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
@@ -42,7 +41,6 @@ import (
 type Service struct {
 	ethSigner          service.Signer
 	contractsService   service.Contracts
-	scheduler          service.Scheduler
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
@@ -55,7 +53,6 @@ type Service struct {
 func NewService(
 	ethSigner service.Signer,
 	contractsService service.Contracts,
-	scheduler service.Scheduler,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	hederaClient client.HederaNode,
@@ -71,7 +68,6 @@ func NewService(
 	return &Service{
 		ethSigner:          ethSigner,
 		contractsService:   contractsService,
-		scheduler:          scheduler,
 		messageRepository:  messageRepository,
 		transferRepository: transferRepository,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Messages Service")),
@@ -103,7 +99,6 @@ func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 	match := t.Receiver == topicMessage.Receiver &&
 		t.Amount == topicMessage.Amount &&
 		t.TxReimbursement == topicMessage.TxReimbursement &&
-		t.GasPrice == topicMessage.GasPrice &&
 		topicMessage.WrappedToken == wrappedToken
 	return match, nil
 }
@@ -112,7 +107,7 @@ func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 func (ss *Service) ProcessSignature(tm message.Message) error {
 	// Parse incoming message
 	tsm := tm.GetTopicSignatureMessage()
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement, tsm.GasPrice)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount, tsm.TxReimbursement)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
@@ -162,57 +157,14 @@ func (ss *Service) ProcessSignature(tm message.Message) error {
 	return nil
 }
 
-// ScheduleForSubmission computes the execution slot and schedules the Eth TX for submission
-func (ss *Service) ScheduleEthereumTxForSubmission(transferID string) error {
-	transfer, err := ss.transferRepository.GetByTransactionId(transferID)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to query transfer. Error: [%s].", transferID, err)
-	}
-	signatureMessages, err := ss.messageRepository.Get(transferID)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)
-		return err
-	}
-
-	slot, isFound := ss.computeExecutionSlot(signatureMessages)
-	if !isFound {
-		ss.logger.Debugf("[%s] - Operator [%s] has not been found as signer amongst the signatures collected.", transferID, ss.ethSigner.Address())
-		return nil
-	}
-
-	amount := transfer.Amount
-	txReimbursement := transfer.TxReimbursement
-	ethAddress := transfer.Receiver
-	messageHash := transfer.EthTxHash
-	gasPriceWei := transfer.GasPrice
-	wrappedToken := transfer.WrappedToken
-	signatures, err := getSignatures(signatureMessages)
-	if err != nil {
-		return err
-	}
-
-	ethereumMintTask := ss.prepareEthereumMintTask(transferID, wrappedToken, ethAddress, amount, txReimbursement, gasPriceWei, signatures, messageHash)
-	err = ss.scheduler.Schedule(transferID, signatureMessages[0].TransactionTimestamp, slot, ethereumMintTask)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // prepareEthereumMintTask returns the function to be executed for processing the
 // Ethereum Mint transaction and HCS topic message with the ethereum TX hash after that
-func (ss *Service) prepareEthereumMintTask(transferID, wrappedToken, ethAddress, amount, txReimbursement, gasPriceWei string, signatures [][]byte, messageHash string) func() {
+func (ss *Service) prepareEthereumMintTask(transferID, wrappedToken, ethAddress, amount, txReimbursement string, signatures [][]byte, messageHash string) func() {
 	ethereumMintTask := func() {
 		// Submit and monitor Ethereum TX
 		ethTransactor, err := ss.ethSigner.NewKeyTransactor(ss.ethClient.ChainID())
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to establish key transactor. Error: [%s].", transferID, err)
-			return
-		}
-
-		ethTransactor.GasPrice, err = helper.ToBigInt(gasPriceWei)
-		if err != nil {
-			ss.logger.Errorf("[%s] - Failed to parse provided gas price. Error: [%s].", transferID, err)
 			return
 		}
 
@@ -283,18 +235,6 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
 	}
 	return address, nil
-}
-
-// computeExecutionSlot - computes the slot order in which the TX will execute
-// Important! Transaction messages ARE expected to be sorted by ascending Timestamp
-func (ss *Service) computeExecutionSlot(messages []entity.Message) (slot int64, isFound bool) {
-	for i := 0; i < len(messages); i++ {
-		if strings.ToLower(messages[i].Signer) == strings.ToLower(ss.ethSigner.Address()) {
-			return int64(i), true
-		}
-	}
-
-	return -1, false
 }
 
 func (ss *Service) submitEthTxTopicMessage(transferID, messageHash, ethereumTxHash string) (*hedera.TransactionID, error) {
@@ -409,14 +349,13 @@ func (ss *Service) VerifyEthereumTxAuthenticity(tm message.Message) (bool, error
 	if dbTx.Amount != amount ||
 		dbTx.Receiver != ethAddress ||
 		dbTx.TxReimbursement != txReimbursement ||
-		tx.GasPrice().String() != dbTx.GasPrice ||
 		wrappedToken != dbTx.WrappedToken {
 		ss.logger.Errorf("[%s] - ETH TX [%s] - Invalid arguments.", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
 		return false, nil
 	}
 
 	// Verify Ethereum TX provided `signatures` authenticity
-	messageHash, err := auth_message.EncodeBytesFrom(txId, wrappedToken, ethAddress, amount, txReimbursement, dbTx.GasPrice)
+	messageHash, err := auth_message.EncodeBytesFrom(txId, wrappedToken, ethAddress, amount, txReimbursement)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature to reconstruct required Signature. Error: [%s]", txId, err)
 		return false, err
@@ -453,6 +392,5 @@ func (ss *Service) ProcessEthereumTxMessage(tm message.Message) error {
 	onEthTxSuccess, onEthTxRevert := ss.ethTxCallbacks(etm.TransferID, etm.EthTxHash)
 	ss.ethClient.WaitForTransaction(etm.EthTxHash, onEthTxSuccess, onEthTxRevert, func(err error) {})
 
-	ss.scheduler.Cancel(etm.TransferID)
 	return nil
 }

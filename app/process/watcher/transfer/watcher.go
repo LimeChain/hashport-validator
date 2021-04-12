@@ -155,7 +155,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
+	transferMessage := transfer.New(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 

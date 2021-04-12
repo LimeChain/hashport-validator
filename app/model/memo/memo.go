@@ -19,8 +19,6 @@ package memo
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	"github.com/pkg/errors"
 	"regexp"
 	"strings"
@@ -32,53 +30,30 @@ type Memo struct {
 	EthereumAddress string
 	// TxReimbursementFee that will be paid to the transaction sender
 	TxReimbursementFee string
-	// GasPrice the gas price that must be used in the mint transaction, converted from gwei to wei
-	GasPrice string
-	// ExecuteEthTransaction returns if transaction will be executed by validators
-	ExecuteEthTransaction bool
 }
 
 // FromBase64String sanity checks and instantiates new Memo struct from base64 encoded string
 func FromBase64String(base64Str string) (*Memo, error) {
-	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[0-9]+-[0-9]+$")
+	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}-[0-9]+$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(base64Str)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
 	}
 
-	if len(decodedMemo) < 46 || !encodingFormat.MatchString(string(decodedMemo)) {
+	if len(decodedMemo) < 42 || !encodingFormat.MatchString(string(decodedMemo)) {
 		return nil, errors.New(fmt.Sprintf("Memo is invalid or has invalid encoding format: [%s]", string(decodedMemo)))
 	}
 
 	memoSplit := strings.Split(string(decodedMemo), "-")
 	ethAddress := memoSplit[0]
 	txReimbursement := strings.TrimLeft(memoSplit[1], "0")
-	gasPriceGwei := strings.TrimLeft(memoSplit[2], "0")
 
 	if txReimbursement == "" {
 		txReimbursement = "0"
 	}
-	if gasPriceGwei == "" {
-		gasPriceGwei = "0"
-	}
-
-	gasPriceGweiBn, err := helper.ToBigInt(gasPriceGwei)
-	if err != nil {
-		return nil, err
-	}
-
-	weiBn := ethereum.GweiToWei(gasPriceGweiBn)
-
-	shouldExecuteEthTransaction := true
-	// Check memo for the format {eth_address-0-0}
-	if weiBn.String() == "0" && txReimbursement == "0" {
-		shouldExecuteEthTransaction = false
-	}
 
 	return &Memo{
-		EthereumAddress:       ethAddress,
-		TxReimbursementFee:    txReimbursement,
-		GasPrice:              weiBn.String(),
-		ExecuteEthTransaction: shouldExecuteEthTransaction,
+		EthereumAddress:    ethAddress,
+		TxReimbursementFee: txReimbursement,
 	}, nil
 }

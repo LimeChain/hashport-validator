@@ -171,15 +171,13 @@ func (tr Repository) UpdateStatusEthTxMsgFailed(txId string) error {
 
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
-		TransactionID:         ct.TransactionId,
-		Receiver:              ct.Receiver,
-		Amount:                ct.Amount,
-		TxReimbursement:       ct.TxReimbursement,
-		Status:                status,
-		NativeToken:           ct.NativeToken,
-		WrappedToken:          ct.WrappedToken,
-		GasPrice:              ct.GasPrice,
-		ExecuteEthTransaction: ct.ExecuteEthTransaction,
+		TransactionID:   ct.TransactionId,
+		Receiver:        ct.Receiver,
+		Amount:          ct.Amount,
+		TxReimbursement: ct.TxReimbursement,
+		Status:          status,
+		NativeToken:     ct.NativeToken,
+		WrappedToken:    ct.WrappedToken,
 	}
 	err := tr.dbClient.Create(tx).Error
 

@@ -33,9 +33,6 @@ type Transfers interface {
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
-	// VerifyFee verifies that the provided TX reimbursement fee is enough. Returns error if TX processing must be stopped
-	// If no error is returned the TX can be processed
-	VerifyFee(tm transfer.Transfer) error
 	// ProcessTransfer processes the transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessTransfer(tm transfer.Transfer) error
@@ -50,7 +47,6 @@ type TransferData struct {
 	NativeToken  string   `json:"nativeToken"`
 	WrappedToken string   `json:"wrappedToken"`
 	Fee          string   `json:"fee"`
-	GasPrice     string   `json:"gasPrice"`
 	Signatures   []string `json:"signatures"`
 	Majority     bool     `json:"majority"`
 }

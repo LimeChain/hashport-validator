@@ -30,7 +30,6 @@ import (
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
-	"github.com/limechain/hedera-eth-bridge-validator/app/router/metadata"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -101,7 +100,6 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 
 func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
-	apiRouter.AddV1Router(metadata.Route, metadata.NewRouter(services.fees))
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transaction.Route, transaction.NewRouter(services.transfers))
 	return apiRouter

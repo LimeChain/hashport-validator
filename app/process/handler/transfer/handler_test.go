@@ -28,14 +28,12 @@ import (
 
 var (
 	mt = model.Transfer{
-		TransactionId:         "0.0.0-0000000-1234",
-		Receiver:              "0x12345",
-		Amount:                "10000000000",
-		TxReimbursement:       "500000000",
-		GasPrice:              "100000000",
-		NativeToken:           "HBAR",
-		WrappedToken:          "0x45678",
-		ExecuteEthTransaction: true,
+		TransactionId:   "0.0.0-0000000-1234",
+		Receiver:        "0x12345",
+		Amount:          "10000000000",
+		TxReimbursement: "500000000",
+		NativeToken:     "HBAR",
+		WrappedToken:    "0x45678",
 	}
 )
 
@@ -49,25 +47,21 @@ func Test_Handle(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID:         mt.TransactionId,
-		Receiver:              mt.Receiver,
-		Amount:                mt.Amount,
-		NativeToken:           mt.NativeToken,
-		WrappedToken:          mt.WrappedToken,
-		TxReimbursement:       mt.TxReimbursement,
-		GasPrice:              mt.GasPrice,
-		ExecuteEthTransaction: mt.ExecuteEthTransaction,
-		Status:                transfer.StatusInitial,
+		TransactionID:   mt.TransactionId,
+		Receiver:        mt.Receiver,
+		Amount:          mt.Amount,
+		NativeToken:     mt.NativeToken,
+		WrappedToken:    mt.WrappedToken,
+		TxReimbursement: mt.TxReimbursement,
+		Status:          transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("VerifyFee", mt).Return(nil)
 	mockedService.On("ProcessTransfer", mt).Return(nil)
 
 	ctHandler.Handle(&mt)
 
 	mockedService.AssertCalled(t, "InitiateNewTransfer", mt)
-	mockedService.AssertCalled(t, "VerifyFee", mt)
 	mockedService.AssertCalled(t, "ProcessTransfer", mt)
 }
 
@@ -79,7 +73,6 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 	ctHandler.Handle(invalidTransferPayload)
 
 	mockedService.AssertNotCalled(t, "InitiateNewTransfer")
-	mockedService.AssertNotCalled(t, "VerifyFee")
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
@@ -90,7 +83,6 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	ctHandler.Handle(&mt)
 
-	mockedService.AssertNotCalled(t, "VerifyFee")
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
@@ -109,26 +101,6 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 
 	ctHandler.Handle(&mt)
 
-	mockedService.AssertNotCalled(t, "VerifyFee")
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
-}
-
-func Test_Handle_VerifyFee_Fails(t *testing.T) {
-	ctHandler, mockedService := InitializeHandler()
-
-	tx := &entity.Transfer{
-		TransactionID:   mt.TransactionId,
-		Receiver:        mt.Receiver,
-		Amount:          mt.Amount,
-		TxReimbursement: mt.TxReimbursement,
-		Status:          transfer.StatusInitial,
-	}
-
-	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("VerifyFee", mt).Return(errors.New("some-error"))
-
-	ctHandler.Handle(&mt)
-
 	mockedService.AssertNotCalled(t, "ProcessTransfer")
 }
 
@@ -144,7 +116,6 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("VerifyFee", mt).Return(nil)
 	mockedService.On("ProcessTransfer", mt).Return(errors.New("some-error"))
 
 	ctHandler.Handle(&mt)

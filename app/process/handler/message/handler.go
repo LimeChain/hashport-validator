@@ -112,43 +112,30 @@ func (cmh Handler) handleSignatureMessage(tm message.Message) {
 		return
 	}
 
-	majorityReached, shouldExecute, err := cmh.checkMajorityAndExecution(tsm.TransferID)
+	majorityReached, err := cmh.checkMajority(tsm.TransferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached", tsm.TransferID)
 		return
 	}
 
-	if shouldExecute {
-		if majorityReached {
-			cmh.logger.Debugf("[%s] - Collected Majority of signatures", tsm.TransferID)
-			err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransferID)
-			if err != nil {
-				cmh.logger.Errorf("[%s] - Could not schedule for submission", tsm.TransferID)
-			}
-		}
-	} else {
-		cmh.logger.Infof("[%s] - will not be scheduled for submission.", tsm.TransferID)
-
-		if majorityReached {
-			err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
-			if err != nil {
-				cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
-			}
+	if majorityReached {
+		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
+		if err != nil {
+			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
 		}
 	}
 }
 
-func (cmh *Handler) checkMajorityAndExecution(transferID string) (majorityReached, shouldExecute bool, err error) {
+func (cmh *Handler) checkMajority(transferID string) (majorityReached bool, err error) {
 	signatureMessages, err := cmh.messageRepository.Get(transferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)
-		return false, false, err
+		return false, err
 	}
 
 	requiredSigCount := len(cmh.contracts.GetMembers())/2 + 1
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), len(cmh.contracts.GetMembers()))
 
 	return len(signatureMessages) >= requiredSigCount,
-		signatureMessages[0].Transfer.ExecuteEthTransaction,
 		nil
 }

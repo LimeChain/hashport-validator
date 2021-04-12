@@ -259,17 +259,7 @@ func (r Recovery) processUnfinishedOperations() error {
 			t.NativeToken,
 			t.WrappedToken,
 			t.Amount,
-			t.TxReimbursement,
-			t.GasPrice,
-			t.ExecuteEthTransaction)
-
-		if transferMsg.ExecuteEthTransaction {
-			err = r.transfers.VerifyFee(*transferMsg)
-			if err != nil {
-				r.logger.Errorf("Skipping recovery for TX [%s]. Fee validation failed.", transferMsg.TransactionId)
-				continue
-			}
-		}
+			t.TxReimbursement)
 
 		err = r.transfers.ProcessTransfer(*transferMsg)
 		if err != nil {

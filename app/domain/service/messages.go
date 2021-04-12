@@ -29,8 +29,6 @@ type Messages interface {
 	VerifyEthereumTxAuthenticity(tm message.Message) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(tm message.Message) error
-	// ScheduleForSubmission computes the execution slot and schedules the Ethereum Mint TX for submission
-	ScheduleEthereumTxForSubmission(transferID string) error
 	// ProcessEthereumTxMessage
 	ProcessEthereumTxMessage(tm message.Message) error
 }

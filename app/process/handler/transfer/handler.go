@@ -56,14 +56,6 @@ func (th Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transferMsg.ExecuteEthTransaction {
-		err = th.transfersService.VerifyFee(*transferMsg)
-		if err != nil {
-			th.logger.Errorf("[%s] - Fee validation failed. Skipping further execution", transferMsg.TransactionId)
-			return
-		}
-	}
-
 	err = th.transfersService.ProcessTransfer(*transferMsg)
 	if err != nil {
 		th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
