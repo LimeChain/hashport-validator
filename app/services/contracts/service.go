@@ -18,10 +18,8 @@ package contracts
 
 import (
 	"errors"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math/big"
 	"strings"
@@ -68,11 +66,6 @@ func (bsc *Service) GetBridgeContractAddress() common.Address {
 	return bsc.address
 }
 
-// GetServiceFee returns the current service fee configured in the Bridge contract
-func (bsc *Service) GetServiceFee() *big.Int {
-	return bsc.serviceFee.Get()
-}
-
 // GetMembers returns the array of bridge members currently set in the Bridge contract
 func (bsc *Service) GetMembers() []string {
 	return bsc.members.Get()
@@ -92,31 +85,6 @@ func (bsc *Service) IsMember(address string) bool {
 func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *routerAbi.RouterBurn) (event.Subscription, error) {
 	var addresses []common.Address
 	return bsc.contract.WatchBurn(opts, sink, addresses)
-}
-
-// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-func (bsc *Service) SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error) {
-	bsc.mutex.Lock()
-	defer bsc.mutex.Unlock()
-
-	amountBn, err := helper.ToBigInt(amount)
-	if err != nil {
-		return nil, err
-	}
-
-	feeBn, err := helper.ToBigInt(fee)
-	if err != nil {
-		return nil, err
-	}
-
-	return bsc.contract.MintWithReimbursement(
-		opts,
-		[]byte(txId),
-		common.HexToAddress(wrappedToken),
-		common.HexToAddress(ethAddress),
-		amountBn,
-		feeBn,
-		signatures)
 }
 
 func (bsc *Service) updateServiceFee() {

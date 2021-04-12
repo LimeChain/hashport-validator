@@ -18,7 +18,6 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
@@ -27,9 +26,9 @@ import (
 type Transfers interface {
 	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
-	SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error)
+	SanityCheckTransfer(tx mirror_node.Transaction) (string, error)
 	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error
+	SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m string) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
@@ -46,7 +45,6 @@ type TransferData struct {
 	Amount       string   `json:"amount"`
 	NativeToken  string   `json:"nativeToken"`
 	WrappedToken string   `json:"wrappedToken"`
-	Fee          string   `json:"fee"`
 	Signatures   []string `json:"signatures"`
 	Majority     bool     `json:"majority"`
 }

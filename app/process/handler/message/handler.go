@@ -23,7 +23,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,34 +62,7 @@ func (cmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	switch m.Type {
-	case validatorproto.TopicMessageType_EthSignature:
-		cmh.handleSignatureMessage(*m)
-	case validatorproto.TopicMessageType_EthTransaction:
-		cmh.handleEthTxMessage(*m)
-	default:
-		cmh.logger.Errorf("Error - invalid topic submission message type [%s]", m.Type)
-	}
-}
-
-func (cmh Handler) handleEthTxMessage(tm message.Message) {
-	ethTxMessage := tm.GetTopicEthTransactionMessage()
-	isValid, err := cmh.messages.VerifyEthereumTxAuthenticity(tm)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to verify Ethereum TX [%s]. Error: [%s]", ethTxMessage.TransferID, ethTxMessage.EthTxHash, err)
-		return
-	}
-	if !isValid {
-		cmh.logger.Errorf("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
-		return
-	}
-
-	// Process Ethereum Transaction Message
-	err = cmh.messages.ProcessEthereumTxMessage(tm)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to process Ethereum TX Message", ethTxMessage.TransferID)
-		return
-	}
+	cmh.handleSignatureMessage(*m)
 }
 
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages

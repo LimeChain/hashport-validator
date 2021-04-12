@@ -19,27 +19,7 @@ package ethereum
 import (
 	"encoding/hex"
 	"errors"
-	"math/big"
-	"strings"
-
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
-)
-
-const (
-	MintFunctionParameterAmount        = "amount"
-	MintFunctionParameterReceiver      = "receiver"
-	MintFunctionParameterSignatures    = "signatures"
-	MintFunctionParameterWrappedToken  = "wrappedToken"
-	MintFunctionParameterTransactionId = "transactionId"
-	MintFunctionParameterTxCost        = "txCost"
-)
-
-const (
-	MintFunction                = "mintWithReimbursement"
-	MintFunctionParametersCount = 6
 )
 
 var (
@@ -53,41 +33,6 @@ func DecodeSignature(signature string) (decodedSignature []byte, ethSignature st
 	}
 
 	return switchSignatureValueV(decodedSig)
-}
-
-func DecodeBridgeMintFunction(data []byte) (txId, ethAddress, erc20address, amount, fee string, signatures [][]byte, err error) {
-	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
-	if err != nil {
-		return "", "", "", "", "", nil, err
-	}
-
-	// bytes transactionId, address receiver, address erc20address, uint256 amount, uint256 fee, uint256 gasCost, bytes[] signatures
-	decodedParameters := make(map[string]interface{})
-	err = bridgeAbi.Methods[MintFunction].Inputs.UnpackIntoMap(decodedParameters, data[4:]) // data[4:] <- slice function name
-	if err != nil {
-		return "", "", "", "", "", nil, err
-	}
-
-	if len(decodedParameters) != MintFunctionParametersCount {
-		return "", "", "", "", "", nil, ErrorInvalidMintFunctionParameters
-	}
-
-	transactionId := decodedParameters[MintFunctionParameterTransactionId].([]byte)
-	receiver := decodedParameters[MintFunctionParameterReceiver].(common.Address)
-	amountBn := decodedParameters[MintFunctionParameterAmount].(*big.Int)
-	txCost := decodedParameters[MintFunctionParameterTxCost].(*big.Int)
-	signatures = decodedParameters[MintFunctionParameterSignatures].([][]byte)
-
-	erc20 := decodedParameters[MintFunctionParameterWrappedToken].(common.Address)
-
-	for _, sig := range signatures {
-		_, _, err := switchSignatureValueV(sig)
-		if err != nil {
-			return "", "", "", "", "", nil, err
-		}
-	}
-
-	return string(transactionId), receiver.String(), erc20.String(), amountBn.String(), txCost.String(), signatures, nil
 }
 
 func RecoverSignerFromBytes(hash []byte, signature []byte) (string, error) {

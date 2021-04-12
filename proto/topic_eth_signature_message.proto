@@ -8,7 +8,6 @@ message TopicEthSignatureMessage {
   string transferID = 1; // The transaction Id of the initial Hedera Transfer
   string receiver = 2; // The receiver of the initial Hedera Transfer Memo
   string amount = 3; // The amount of the initial Hedera Transfer
-  string txReimbursement = 4; // The tx reimbursement of the initial Hedera Transfer Memo
-  string signature = 5; // The signature of the validator
-  string wrappedToken = 6; // The wrapped eth token
+  string signature = 4; // The signature of the validator
+  string wrappedToken = 5; // The wrapped eth token
 }

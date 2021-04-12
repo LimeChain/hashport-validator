@@ -88,54 +88,6 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	return &address, nil
 }
 
-// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
-// onSuccess is called once the TX is successfully mined
-// onRevert is called once the TX is mined but it reverted
-// onError is called if an error occurs while waiting for TX to go into one of the other 2 states
-func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
-	go func() {
-		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))
-		if err != nil {
-			ec.logger.Errorf("[%s] - Error occurred while monitoring. Error: [%s]", hex, err)
-			onError(err)
-			return
-		}
-
-		if receipt.Status == 1 {
-			ec.logger.Debugf("TX [%s] was successfully mined", hex)
-			onSuccess()
-		} else {
-			ec.logger.Debugf("TX [%s] reverted", hex)
-			onRevert()
-		}
-		return
-	}()
-	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hex)
-}
-
-// waitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
-func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
-	for {
-		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
-
-		// try again mechanism in case transaction is not validated for tx mempool yet
-		if errors.Is(ethereum.NotFound, err) {
-			time.Sleep(5 * time.Second)
-			_, isPending, err = ec.Client.TransactionByHash(context.Background(), hash)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		if !isPending {
-			break
-		}
-		time.Sleep(5 * time.Second)
-	}
-
-	return ec.Client.TransactionReceipt(context.Background(), hash)
-}
-
 func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	target := raw.BlockNumber + ec.config.BlockConfirmations
 	for {

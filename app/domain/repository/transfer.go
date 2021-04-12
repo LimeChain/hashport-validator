@@ -30,18 +30,9 @@ type Transfer interface {
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
 	Save(tx *entity.Transfer) error
 	SaveRecoveredTxn(ct *transfer.Transfer) error
-	UpdateStatusInsufficientFee(txId string) error
 	UpdateStatusCompleted(txId string) error
 
 	UpdateStatusSignatureSubmitted(txId string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
-
-	UpdateEthTxSubmitted(txId string, hash string) error
-	UpdateEthTxMined(txId string) error
-	UpdateEthTxReverted(txId string) error
-
-	UpdateStatusEthTxMsgSubmitted(txId string) error
-	UpdateStatusEthTxMsgMined(txId string) error
-	UpdateStatusEthTxMsgFailed(txId string) error
 }

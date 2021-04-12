@@ -37,11 +37,6 @@ func ErrorResponse(err error) *ErrResponse {
 	}
 }
 
-type MetadataResponse struct {
-	TransactionFee         string `json:"txFee"`
-	TransactionFeeCurrency string `json:"txFeeCurrency"`
-}
-
 type HealthResponse struct {
 	Status string `json:"status"`
 }

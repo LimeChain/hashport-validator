@@ -28,12 +28,11 @@ import (
 
 var (
 	mt = model.Transfer{
-		TransactionId:   "0.0.0-0000000-1234",
-		Receiver:        "0x12345",
-		Amount:          "10000000000",
-		TxReimbursement: "500000000",
-		NativeToken:     "HBAR",
-		WrappedToken:    "0x45678",
+		TransactionId: "0.0.0-0000000-1234",
+		Receiver:      "0x12345",
+		Amount:        "10000000000",
+		NativeToken:   "HBAR",
+		WrappedToken:  "0x45678",
 	}
 )
 
@@ -47,13 +46,12 @@ func Test_Handle(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID:   mt.TransactionId,
-		Receiver:        mt.Receiver,
-		Amount:          mt.Amount,
-		NativeToken:     mt.NativeToken,
-		WrappedToken:    mt.WrappedToken,
-		TxReimbursement: mt.TxReimbursement,
-		Status:          transfer.StatusInitial,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
+		NativeToken:   mt.NativeToken,
+		WrappedToken:  mt.WrappedToken,
+		Status:        transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
@@ -90,11 +88,10 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID:   mt.TransactionId,
-		Receiver:        mt.Receiver,
-		Amount:          mt.Amount,
-		TxReimbursement: mt.TxReimbursement,
-		Status:          transfer.StatusCompleted,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
+		Status:        transfer.StatusCompleted,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
@@ -108,11 +105,10 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID:   mt.TransactionId,
-		Receiver:        mt.Receiver,
-		Amount:          mt.Amount,
-		TxReimbursement: mt.TxReimbursement,
-		Status:          transfer.StatusInitial,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
+		Status:        transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)

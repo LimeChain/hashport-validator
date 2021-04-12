@@ -26,8 +26,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	memo2 "github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -70,27 +70,27 @@ func NewService(
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
-	m, e := memo.FromBase64String(tx.MemoBase64)
+func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
+	e := memo2.ValidateMemo(tx.MemoBase64)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		return "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
 	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+		return "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
 	}
 
 	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+		return "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
 	}
 
 	if !verified {
-		return nil, errors.New("invalid state proof")
+		return "", errors.New("invalid state proof")
 	}
 
-	return m, nil
+	return tx.MemoBase64, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
@@ -116,14 +116,13 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 }
 
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error {
+func (ts *Service) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, memo string) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
-		TransactionId:   txId,
-		Receiver:        m.EthereumAddress,
-		Amount:          amount,
-		TxReimbursement: m.TxReimbursementFee,
-		NativeToken:     nativeToken,
-		WrappedToken:    wrappedToken,
+		TransactionId: txId,
+		Receiver:      memo,
+		Amount:        amount,
+		NativeToken:   nativeToken,
+		WrappedToken:  wrappedToken,
 	})
 	if err != nil {
 		ts.logger.Errorf("[%s] - Something went wrong while saving new Recovered Transaction. Error [%s]", txId, err)
@@ -156,7 +155,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 }
 
 func (ts *Service) ProcessTransfer(tm model.Transfer) error {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount, tm.TxReimbursement)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
@@ -173,7 +172,6 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		tm.TransactionId,
 		tm.Receiver,
 		tm.Amount,
-		tm.TxReimbursement,
 		signature,
 		tm.WrappedToken)
 
@@ -226,7 +224,6 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	return service.TransferData{
 		Recipient:    t.Receiver,
 		Amount:       t.Amount,
-		Fee:          t.TxReimbursement,
 		NativeToken:  t.NativeToken,
 		WrappedToken: t.WrappedToken,
 		Signatures:   signatures,

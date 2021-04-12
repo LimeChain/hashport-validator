@@ -64,33 +64,14 @@ func FromString(data, ts string) (*Message, error) {
 }
 
 // NewSignatureMessage instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewSignature(transferID, receiver, amount, txReimbursement, signature, wrappedToken string) *Message {
+func NewSignature(transferID, receiver, amount, signature, wrappedToken string) *Message {
 	topicMsg := &model.TopicMessage{
-		Type: model.TopicMessageType_EthSignature,
-		Message: &model.TopicMessage_TopicSignatureMessage{
-			TopicSignatureMessage: &model.TopicEthSignatureMessage{
-				TransferID:      transferID,
-				Receiver:        receiver,
-				Amount:          amount,
-				TxReimbursement: txReimbursement,
-				Signature:       signature,
-				WrappedToken:    wrappedToken,
-			},
-		},
-	}
-	return &Message{topicMsg}
-}
-
-// NewEthereumHash instantiates Ethereum Transaction Hash Message struct ready for submission to the Bridge Topic
-func NewEthereumHash(transferID, messageHash, ethereumTxHash string) *Message {
-	topicMsg := &model.TopicMessage{
-		Type: model.TopicMessageType_EthTransaction,
-		Message: &model.TopicMessage_TopicEthTransactionMessage{
-			TopicEthTransactionMessage: &model.TopicEthTransactionMessage{
-				TransferID: transferID,
-				Hash:       messageHash,
-				EthTxHash:  ethereumTxHash,
-			},
+		TopicSignatureMessage: &model.TopicEthSignatureMessage{
+			TransferID:   transferID,
+			Receiver:     receiver,
+			Amount:       amount,
+			Signature:    signature,
+			WrappedToken: wrappedToken,
 		},
 	}
 	return &Message{topicMsg}
