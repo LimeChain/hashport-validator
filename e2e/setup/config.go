@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -127,6 +128,7 @@ type clients struct {
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
 	KeyTransactor   *bind.TransactOpts
+	ValidatorClient *e2eClients.Validator
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -156,6 +158,8 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
+	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
+
 	return &clients{
 		Hedera:          hederaClient,
 		EthClient:       ethClient,
@@ -163,6 +167,7 @@ func newClients(config Config) (*clients, error) {
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
 		KeyTransactor:   keyTransactor,
+		ValidatorClient: validatorClient,
 	}, nil
 }
 

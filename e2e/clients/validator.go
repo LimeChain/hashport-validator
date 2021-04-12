@@ -24,7 +24,6 @@ import (
 	"net/http"
 
 	transfers "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	apiresponse "github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 )
 
 type Validator struct {

@@ -18,9 +18,7 @@ package e2e
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -90,7 +88,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	transactionResponse, wrappedTokenBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, wTokenReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
-	_, receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, 0, t)
+	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, receivedSignatures, t)
@@ -112,8 +110,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
-		},
-		txHash, t)
+		}, t)
 	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
