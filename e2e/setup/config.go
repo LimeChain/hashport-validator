@@ -19,18 +19,21 @@ package setup
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/caarlos0/env/v6"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -76,6 +79,7 @@ type Setup struct {
 	BridgeAccount hederaSDK.AccountID
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
+	TokenID       hederaSDK.TokenID
 	Clients       *clients
 	DbValidation  *db_validation.Service
 }
@@ -95,6 +99,11 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.WToken)
+	if err != nil {
+		return nil, err
+	}
+
 	clients, err := newClients(config)
 	if err != nil {
 		return nil, err
@@ -104,6 +113,7 @@ func newSetup(config Config) (*Setup, error) {
 		BridgeAccount: bridgeAccount,
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
+		TokenID:       tokenID,
 		Clients:       clients,
 		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
@@ -111,11 +121,12 @@ func newSetup(config Config) (*Setup, error) {
 
 // clients used by the e2e tests
 type clients struct {
-	Hedera         *hederaSDK.Client
-	EthClient      *ethereum.Client
-	WHbarContract  *wtoken.Wtoken
-	WTokenContract *wtoken.Wtoken
-	RouterContract *router.Router
+	Hedera          *hederaSDK.Client
+	EthClient       *ethereum.Client
+	WHbarContract   *wtoken.Wtoken
+	WTokenContract  *wtoken.Wtoken
+	RouterContract  *router.Router
+	KeyTransactor   *bind.TransactOpts
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -139,12 +150,19 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
+	signer := eth.NewEthSigner(config.Signer)
+	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
+	if err != nil {
+		return nil, err
+	}
+
 	return &clients{
-		Hedera:         hederaClient,
-		EthClient:      ethClient,
-		WHbarContract:  wHbarInstance,
-		WTokenContract: wTokenInstance,
-		RouterContract: routerInstance,
+		Hedera:          hederaClient,
+		EthClient:       ethClient,
+		WHbarContract:   wHbarInstance,
+		WTokenContract:  wTokenInstance,
+		RouterContract:  routerInstance,
+		KeyTransactor:   keyTransactor,
 	}, nil
 }
 
@@ -212,6 +230,7 @@ type Config struct {
 	Ethereum     config.Ethereum `yaml:"ethereum"`
 	Tokens       Tokens          `yaml:"tokens"`
 	ValidatorUrl string          `yaml:"validator_url"`
+	Signer       string          `yaml:"eth_signer"`
 }
 
 type Tokens struct {
