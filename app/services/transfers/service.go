@@ -71,7 +71,7 @@ func NewService(
 
 // SanityCheck performs validation on the memo and state proof for the transaction
 func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
-	_, e := memo2.ValidateMemo(tx.MemoBase64)
+	memo, e := memo2.ValidateMemo(tx.MemoBase64)
 	if e != nil {
 		return "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
@@ -90,7 +90,7 @@ func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, erro
 		return "", errors.New("invalid state proof")
 	}
 
-	return tx.MemoBase64, nil
+	return memo, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers

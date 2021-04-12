@@ -24,16 +24,16 @@ import (
 )
 
 // ValidateMemo sanity checks and instantiates new Memo struct from base64 encoded string
-func ValidateMemo(ethAddress string) ([]byte, error) {
+func ValidateMemo(ethAddress string) (string, error) {
 	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(ethAddress)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
+		return "", errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
 	}
 
 	if !encodingFormat.MatchString(string(decodedMemo)) {
-		return nil, errors.New(fmt.Sprintf("Memo is invalid or has invalid encoding format: [%s]", string(decodedMemo)))
+		return "", errors.New(fmt.Sprintf("Memo is invalid or has invalid encoding format: [%s]", string(decodedMemo)))
 	}
 
-	return decodedMemo, nil
+	return string(decodedMemo), nil
 }
