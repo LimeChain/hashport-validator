@@ -40,7 +40,6 @@ import (
 )
 
 var (
-	incrementFloat, _            = new(big.Int).SetString("1", 10)
 	amount               float64 = 400
 	hBarSendAmount               = hedera.HbarFrom(amount, "hbar")
 	tokensSendAmount             = 1000000000
@@ -91,7 +90,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, receivedSignatures, t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, t)
 
 	// Step 4 - Submit Mint transaction
 	txHash := submitMintTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
@@ -180,24 +179,27 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 	}
 }
 
-func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponce hedera.TransactionResponse, signatures []string, t *testing.T) (*service.TransferData, *common.Address) {
-	tokenAddress, _ := setup.ParseToken(setupEnv.Clients.RouterContract, setupEnv.TokenID.String())
+func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.TransactionResponse, t *testing.T) (*service.TransferData, *common.Address) {
+	tokenAddress, err := setup.ParseToken(setupEnv.Clients.RouterContract, setupEnv.TokenID.String())
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
+	}
 
-	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(fromHederaTransactionID(&txResponce.TransactionID).String())
+	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(fromHederaTransactionID(&txResponse.TransactionID).String())
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
 	if transactionData.Amount != fmt.Sprint(tokensSendAmount) {
-		t.Fatal("Transaction data mismatch")
+		t.Fatalf("Transaction data mismatch: Expected [%d], but was [%s]", tokensSendAmount, transactionData.Amount)
 	}
 	if transactionData.NativeToken != setupEnv.TokenID.String() {
-		t.Fatal("Native Token mismatch")
+		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeToken)
 	}
 	if transactionData.Recipient != receiverAddress {
-		t.Fatal("Receiver address mismatch")
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", receiverAddress, transactionData.Recipient)
 	}
 	if transactionData.WrappedToken != tokenAddress.String() {
-		t.Fatal("Token address mismatch")
+		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", tokenAddress.String(), transactionData.WrappedToken)
 	}
 
 	return transactionData, tokenAddress
@@ -218,7 +220,7 @@ func prepareExpectedTransfer(routerContract *routerContract.Router, transactionI
 
 	wrappedToken, err := setup.ParseToken(routerContract, nativeToken)
 	if err != nil {
-		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", expectedTxId, err)
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeToken, err)
 	}
 
 	amount := strconv.FormatInt(hBarSendAmount.AsTinybar(), 10)
