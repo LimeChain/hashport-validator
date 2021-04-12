@@ -29,8 +29,7 @@ hedera:
     base_gas_usage: 130000
     gas_per_validator: 54000
   watcher:
-    transfer_timestamp:
-    message_timestamp:
+    recovery_timestamp:
     max_retries: 10
   handler:
-    message_send_deadline: 300
+    send_deadline: 300

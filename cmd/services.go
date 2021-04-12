@@ -41,7 +41,7 @@ type Services struct {
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
 	ethSigner := eth.NewEthSigner(c.Hedera.Client.Operator.EthPrivateKey)
 	contracts := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
-	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.SendDeadline)
+	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.SendDeadline)
 	fees := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contracts)
 
 	transfers := transfers.NewService(
@@ -51,7 +51,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		fees,
 		ethSigner,
 		repositories.transfer,
-		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+		c.Hedera.MirrorNode.TopicId)
 
 	messages := messages.NewService(
 		ethSigner,
@@ -62,7 +62,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		clients.Ethereum,
-		c.Hedera.Handler.ConsensusMessage.TopicId)
+		c.Hedera.MirrorNode.TopicId)
 
 	return &Services{
 		signer:    ethSigner,

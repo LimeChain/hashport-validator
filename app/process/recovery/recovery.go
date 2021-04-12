@@ -59,12 +59,12 @@ func NewProcess(
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
-	account, err := hederasdk.AccountIDFromString(c.Watcher.CryptoTransfer.Account.Id)
+	account, err := hederasdk.AccountIDFromString(c.MirrorNode.AccountId)
 	if err != nil {
 		return nil, err
 	}
 
-	topic, err := hederasdk.TopicIDFromString(c.Watcher.ConsensusMessage.Topic.Id)
+	topic, err := hederasdk.TopicIDFromString(c.MirrorNode.TopicId)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func NewProcess(
 		nodeClient:              nodeClient,
 		accountID:               account,
 		topicID:                 topic,
-		configRecoveryTimestamp: c.Recovery.Timestamp,
+		configRecoveryTimestamp: c.Watcher.RecoveryTimestamp,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 	}, nil
 }

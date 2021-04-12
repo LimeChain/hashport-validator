@@ -13,10 +13,13 @@ hedera:
   eth:
     node_url:
     router_contract_address:
+    block_confirmations: 5
   mirror_node:
     client_address: hcs.testnet.mirrornode.hedera.com:5600
     api_address: https://testnet.mirrornode.hedera.com/api/v1/
     polling_interval: 5
+    account_id:
+    topic_id:
   client:
     network_type: testnet
     operator:
@@ -26,20 +29,7 @@ hedera:
     base_gas_usage: 130000
     gas_per_validator: 54000
   watcher:
-    crypto-transfer:
-      account:
-        id:
-        max_retries: 10
-        start_timestamp:
-    consensus-message:
-      topic:
-        id:
-        max_retries: 10
-        start_timestamp:
+    recovery_timestamp:
+    max_retries: 10
   handler:
-    crypto-transfer:
-      topic_id:
-      polling_interval: 5
-    consensus-message:
-      topic_id:
-      send_deadline: 300
+    send_deadline: 300

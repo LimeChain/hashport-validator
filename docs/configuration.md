@@ -29,22 +29,17 @@ Name                                                                | Default   
 `hedera.eth.block_confirmations`                                    | 5                                                   | The number of block confirmations to wait for before processing an ethereum event
 `hedera.mirror_node.client_address`                                 | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
 `hedera.mirror_node.api_address`                                    | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
-`hedera.mirror_node.polling_interval`                               | 5                                                   | How often (in seconds) the application will poll the mirror node for new transactions.
+`hedera.mirror_node.polling_interval`                               |                                                     | How often (in seconds) the application will poll the mirror node for new transactions.
+`hedera.mirror_node.account_id`                                     |                                                     | The account id that the validators use to monitor for incoming transfers.
+`hedera.mirror_node.topic_id`                                       |                                                     | The topic id that the validators use to monitor for incoming hedera consensus messages.
 `hedera.client.network_type`                                        | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
 `hedera.client.operator.account_id`                                 | ""                                                  | The operator's Hedera account id.
 `hedera.client.operator.private_key`                                | ""                                                  | The operator's Hedera private key.
 `hedera.client.operator.eth_private_key`                            | ""                                                  | The operator's Ethereum private key.
-`hedera.watcher.crypto-transfer.account.id`                         | ""                                                  | The Hedera account id to which the crypto transfer watcher will subscribe.
-`hedera.watcher.crypto-transfer.account.max_retries`                | 10                                                  | The number of times the watcher will try restarting in case it failed.
-`hedera.watcher.crypto-transfer.account.start_timestamp`            | ""                                                  | The timestamp from which the crypto transfer watcher will begin its subscription. Leave empty on the first run if you want to begin from `now`.
-`hedera.watcher.consensus-message.topic.id`                         | ""                                                  | The Hedera topic id to which the consensus message watcher will subscribe.
-`hedera.watcher.consensus-message.topic.max_retries`                | 10                                                  | The number of times the watcher will try restarting in case it failed.
-`hedera.watcher.consensus-message.topic.start_timestamp`            | ""                                                  | The timestamp from which the consensus message watcher will begin its subscription. Leave empty on the first run if you want to begin from `now`.
-`hedera.handler.crypto-transfer.topic_id`                           | ""                                                  | The Hedera topic id to which the crypto transfer handler will publish messages.
-`hedera.handler.crypto-transfer.polling_interval`                   | 5                                                   | How often (in seconds) the crypto transfer handler will poll the status of a given transaction.
-`hedera.handler.consensus-message.topic_id`                         | ""                                                  | The Hedera topic id to which the consensus message handler will publish messages.
-`hedera.handler.consensus-message.send_deadline`                    | 300                                                 | The time (in seconds) between every execution window.
+`hedera.watcher.recovery_timestamp`                                 |                                                     | The timestamp from which the crypto transfer watcher will begin its recovery. Leave empty on the first run if you want to begin from `now`.
+`hedera.watcher.max_retries`                                        | 10                                                  | The number of times the watcher will try restarting in case it failed.
+`hedera.handler.send_deadline`                                      | 300                                                 | The time (in seconds) between every execution window.
 `hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
-`hedera.log_level`                                                  | Info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
+`hedera.log_level`                                                  | info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
 
 

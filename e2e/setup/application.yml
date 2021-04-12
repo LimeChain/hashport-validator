@@ -1,21 +1,17 @@
-# Template configuration for the e2e tests
 hedera:
   network_type:
   dbs:
-    alice:
-      host:
+    - host:
       name:
       password:
       port:
       username:
-    bob:
-      host:
+    - host:
       name:
       password:
       port:
       username:
-    carol:
-      host:
+    - host:
       name:
       password:
       port:
@@ -28,6 +24,7 @@ hedera:
 ethereum:
   node_url:
   router_contract_address:
+  block_confirmations:
 tokens:
   whbar: "HBAR"
   wtoken:

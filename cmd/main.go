@@ -125,7 +125,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.messageStatus,
 			watchersTimestamp),
 		cmh.NewHandler(
-			configuration.Hedera.Handler.ConsensusMessage,
+			configuration.Hedera.MirrorNode,
 			repositories.transfer,
 			repositories.message,
 			services.contracts,
@@ -140,16 +140,16 @@ func addTransferWatcher(configuration *config.Config,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *tw.Watcher {
-	account := configuration.Hedera.Watcher.CryptoTransfer.Account
+	account := configuration.Hedera.MirrorNode.AccountId
 
-	log.Debugf("Added Transfer Watcher for account [%s]", account.Id)
+	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
 		bridgeService,
 		mirrorNode,
-		account.Id,
+		account,
 		configuration.Hedera.MirrorNode.PollingInterval,
 		*repository,
-		account.MaxRetries,
+		configuration.Hedera.Watcher.MaxRetries,
 		startTimestamp,
 		contractService)
 }
@@ -159,12 +159,12 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
-	topic := configuration.Hedera.Watcher.ConsensusMessage.Topic
-	log.Debugf("Added Topic Watcher for topic [%s]\n", topic.Id)
+	topic := configuration.Hedera.MirrorNode.TopicId
+	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
 	return cmw.NewWatcher(client,
-		topic.Id,
+		topic,
 		repository,
 		configuration.Hedera.MirrorNode.PollingInterval,
-		topic.MaxRetries,
+		configuration.Hedera.Watcher.MaxRetries,
 		startTimestamp)
 }
