@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package helper
+package big_numbers
 
 import (
 	"errors"

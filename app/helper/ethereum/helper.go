@@ -22,10 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var (
-	ErrorInvalidMintFunctionParameters = errors.New("invalid mint function parameters length")
-)
-
 func DecodeSignature(signature string) (decodedSignature []byte, ethSignature string, err error) {
 	decodedSig, err := hex.DecodeString(signature)
 	if err != nil {

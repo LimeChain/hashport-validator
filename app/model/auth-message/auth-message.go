@@ -20,7 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 )
 
 // EncodeBytesFrom returns the array of bytes representing an
@@ -30,7 +30,7 @@ func EncodeBytesFrom(txId, wrappedToken, receiverEthAddress, amount string) ([]b
 	if err != nil {
 		return nil, err
 	}
-	amountBn, err := helper.ToBigInt(amount)
+	amountBn, err := big_numbers.ToBigInt(amount)
 	if err != nil {
 		return nil, err
 	}

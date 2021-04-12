@@ -13,9 +13,6 @@ const (
 	// StatusRecovered is a status set when a transfer has not been processed yet,
 	// but has been found by the recovery service
 	StatusRecovered = "RECOVERED"
-	// StatusFailed is a status set when an ethereum transaction is reverted
-	StatusFailed = "FAILED"
-
 	// StatusSignatureSubmitted is a SignatureStatus set once the signature is submitted to HCS
 	StatusSignatureSubmitted = "SIGNATURE_SUBMITTED"
 	// StatusSignatureMined is a SignatureStatus set once the signature submission TX is successfully mined.
