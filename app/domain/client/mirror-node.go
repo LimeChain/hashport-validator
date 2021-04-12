@@ -29,9 +29,14 @@ type MirrorNode interface {
 	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]mirror_node.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]mirror_node.Message, error)
-	GetAccountTransaction(transactionID string) (*mirror_node.Response, error)
+	// GetTransaction gets all data related to a specific transaction id or returns an error
+	GetTransaction(transactionID string) (*mirror_node.Response, error)
+	// GetStateProof sends a query to get the state proof. If the query is successful, the function returns the state.
+	// If the query returns a status != 200, the function returns an error.
 	GetStateProof(transactionID string) ([]byte, error)
+	// AccountExists sends a query to check whether a specific account exists. If the query returns a status != 200, the function returns a false value
 	AccountExists(accountID hedera.AccountID) bool
+	// TopicExists sends a query to check whether a specific topic exists. If the query returns a status != 200, the function returns a false value
 	TopicExists(topicID hedera.TopicID) bool
 	// WaitForTransaction Polls the transaction at intervals. Depending on the
 	// result, the corresponding `onSuccess` and `onFailure` functions are called

@@ -106,7 +106,7 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	return res, nil
 }
 
-func (c Client) GetAccountTransaction(transactionID string) (*Response, error) {
+func (c Client) GetTransaction(transactionID string) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -168,7 +168,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	queryableTxId := parseIntoQueryableTx(txId)
 	go func() {
 		for {
-			response, err := c.GetAccountTransaction(queryableTxId)
+			response, err := c.GetTransaction(queryableTxId)
 			if response != nil && response.isNotFound() {
 				continue
 			}

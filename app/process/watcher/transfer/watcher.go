@@ -75,7 +75,7 @@ func NewWatcher(
 
 func (ctw Watcher) Watch(q *pair.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
-		ctw.logger.Errorf("Error incoming: Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
+		ctw.logger.Errorf("Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
 		return
 	}
 
@@ -116,7 +116,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
 			return
 		}

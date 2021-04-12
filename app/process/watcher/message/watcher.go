@@ -61,7 +61,7 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 
 func (cmw Watcher) Watch(q *pair.Queue) {
 	if !cmw.client.TopicExists(cmw.topicID) {
-		cmw.logger.Errorf("Error incoming: Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
+		cmw.logger.Errorf("Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
 		return
 	}
 
