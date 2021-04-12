@@ -119,10 +119,8 @@ type ID struct {
 }
 
 type Client struct {
-	NetworkType     string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator        Operator `yaml:"operator"`
-	BaseGasUsage    uint64   `yaml:"base_gas_usage"`
-	GasPerValidator uint64   `yaml:"gas_per_validator"`
+	NetworkType string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
+	Operator    Operator `yaml:"operator"`
 }
 
 type Operator struct {
@@ -132,7 +130,6 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	ClientAddress   string        `yaml:"client_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_CLIENT_ADDRESS"`
 	ApiAddress      string        `yaml:"api_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_API_ADDRESS"`
 	PollingInterval time.Duration `yaml:"polling_interval" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_POLLING_INTERVAL"`
 }
