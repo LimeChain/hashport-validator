@@ -82,6 +82,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 	err := ew.ethClient.WaitForConfirmations(eventLog.Raw)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+		return
 	}
 
 	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
