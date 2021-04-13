@@ -38,7 +38,7 @@ func NewHandler(service service.BurnEvent) *Handler {
 func (sth Handler) Handle(payload interface{}) {
 	burnEvent, ok := payload.(*burn_event.BurnEvent)
 	if !ok {
-		sth.logger.Errorf("Error could not cast BurnEvent payload [%s]", payload)
+		sth.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
 

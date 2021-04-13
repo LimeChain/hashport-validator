@@ -60,7 +60,7 @@ func NewHandler(
 func (cmh Handler) Handle(payload interface{}) {
 	m, ok := payload.(*message.Message)
 	if !ok {
-		cmh.logger.Errorf("Error could not cast payload [%s]", payload)
+		cmh.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
 
