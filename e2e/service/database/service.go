@@ -2,9 +2,10 @@ package database
 
 import (
 	"encoding/hex"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
@@ -74,11 +75,19 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 func (s *Service) validSignatureMessages(record *entity.Transfer, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
 
-	authMsgBytes, err := auth_message.EncodeBytesFrom(record.TransactionID, record.WrappedToken, record.Receiver, record.Amount, record.TxReimbursement, record.GasPrice)
+	var authMsgBytes []byte
+	var err error
+	if record.ExecuteEthTransaction {
+		authMsgBytes, err = auth_message.EncodeBytesForMintWithReimbursement(record.TransactionID, record.WrappedToken, record.Receiver, record.Amount, record.TxReimbursement, record.GasPrice)
+	} else {
+		authMsgBytes, err = auth_message.EncodeBytesForMint(record.TransactionID, record.WrappedToken, record.Receiver, record.Amount)
+	}
+
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", record.TransactionID, err)
 		return false, err
 	}
+
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 
 	for _, signature := range signatures {

@@ -60,22 +60,29 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 }
 
 func (cmw Watcher) Watch(q *pair.Queue) {
+	if !cmw.client.TopicExists(cmw.topicID) {
+		cmw.logger.Errorf("Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
+		return
+	}
+
 	topic := cmw.topicID.String()
 	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
 			if err != nil {
-				cmw.logger.Fatalf("Failed to create Topic Watcher Status timestamp. Error [%s]", err)
+				cmw.logger.Fatalf("Failed to create Topic Watcher timestamp. Error [%s]", err)
 			}
-			cmw.logger.Tracef("Created new Topic Watcher status timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
+			cmw.logger.Tracef("Created new Topic Watcher timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 		} else {
 			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
 		}
 	} else {
 		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
+
 	cmw.beginWatching(q)
+	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
@@ -87,7 +94,10 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (cmw Watcher) beginWatching(q *pair.Queue) {
-	milestoneTimestamp := cmw.startTimestamp
+	milestoneTimestamp, err := cmw.statusRepository.GetLastFetchedTimestamp(cmw.topicID.String())
+	if err != nil {
+		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
+	}
 
 	for {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
@@ -128,7 +138,8 @@ func (cmw *Watcher) restart(q *pair.Queue) {
 	if cmw.maxRetries > 0 {
 		cmw.maxRetries--
 		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
-		go cmw.Watch(q)
+		time.Sleep(5 * time.Second)
+		go cmw.beginWatching(q)
 		return
 	}
 	cmw.logger.Errorf("Watcher failed: [Too many retries]")
