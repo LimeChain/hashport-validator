@@ -6,11 +6,11 @@ name: Deploy three validators network
 on: push
 
 env:
-  add_docker-compose_alias: echo alias docker-compose="'"'docker run --rm \
+  add_docker-compose_alias: echo alias docker-compose="'docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "$PWD:$PWD" \
     -w="$PWD" \
-    docker/compose:1.24.0'"'" >> ~/.bashrc && source ~/.bashrc
+    docker/compose:1.24.0'" >> ~/.bashrc && source ~/.bashrc
   refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
 
 jobs:
