@@ -207,7 +207,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 func (c Client) WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func()) {
 	go func() {
 		for {
-			response, err := c.GetAccountTransaction(txId)
+			response, err := c.GetTransaction(txId)
 			if response != nil && response.isNotFound() {
 				continue
 			}
