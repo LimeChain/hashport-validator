@@ -6,17 +6,19 @@ name: Deploy three validators network
 on: push
 
 env:
-  add_docker-compose_alias: echo alias docker-compose="'docker run --rm \
+  docker-compose: docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "$PWD:$PWD" \
     -w="$PWD" \
-    docker/compose:1.24.0'" >> ~/.bashrc && source ~/.bashrc
-  refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
+    docker/compose:1.24.0
 
 jobs:
   deploy_app_alice:
     runs-on: ubuntu-latest
     steps:
+      - name: "Set environmental variables"
+          run: |
+            echo "refresh_containers_command=${{secrets.docker-compose}} stop && ${{secrets.docker-compose}} rm -f && ${{secrets.docker-compose}} pull && ${{secrets.docker-compose}} up -d">> $GITHUB_ENV
       - uses: actions/checkout@v2
 
       - name: Setup GCloud SDK
@@ -37,7 +39,7 @@ jobs:
         run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="${{ env.add_docker-compose_alias }}"
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="$refresh_containers_command"
 
   deploy_app_bob:
     runs-on: ubuntu-latest
@@ -59,7 +61,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_BOB_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_BOB_INSTANCE }}:~
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_BOB_INSTANCE }} --zone=${{ secrets.APP_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_BOB_INSTANCE }} --zone=${{ secrets.APP_BOB_ZONE }} --command="$env.refresh_containers_command"
 
   deploy_app_carol:
     runs-on: ubuntu-latest
@@ -81,4 +83,4 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_CAROL_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_CAROL_INSTANCE }}:~
 
       - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_CAROL_INSTANCE }} --zone=${{ secrets.APP_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_CAROL_INSTANCE }} --zone=${{ secrets.APP_CAROL_ZONE }} --command="$env.refresh_containers_command"
