@@ -17,8 +17,8 @@
 package repository
 
 type BurnEvent interface {
-	Create(ethTxHash string, amount int64, recipient string) error
-	UpdateStatusSubmitted(nonce, scheduleID, submissionTxId string) error
+	Create(id string, amount int64, recipient string) error
+	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -78,12 +78,6 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
 		return
 	}
-	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
-		eventLog.Raw.TxHash.String(),
-		eventLog.Account.Hex(),
-		eventLog.Amount.String(),
-		eventLog.ServiceFee.String(),
-		eventLog.Receiver)
 
 	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
 	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
@@ -97,14 +91,14 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	if nativeToken != "HBAR" && !helper.IsTokenID(nativeToken) {
+	if nativeToken != "HBAR" && !hederahelper.IsTokenID(nativeToken) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
 		return
 	}
 
 	burnEvent := &burn_event.BurnEvent{
 		Amount:       eventLog.Amount.Int64(),
-		TxHash:       eventLog.Raw.TxHash.String(),
+		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:    recipientAccount,
 		WrappedToken: eventLog.WrappedToken.String(),
 		NativeToken:  nativeToken,
@@ -115,6 +109,13 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
 		return
 	}
+
+	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
+		eventLog.Raw.TxHash.String(),
+		eventLog.Account.Hex(),
+		eventLog.Amount.String(),
+		eventLog.ServiceFee.String(),
+		eventLog.Receiver)
 
 	q.Push(&pair.Message{Payload: burnEvent})
 }

@@ -160,6 +160,8 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 				ec.logger.Debugf("[%s] has been moved from original block", raw.TxHash.String())
 				return errors.New("moved from original block")
 			}
+
+			return nil
 		}
 		time.Sleep(time.Second * 5)
 	}

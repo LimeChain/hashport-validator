@@ -17,10 +17,14 @@
 package burn_event
 
 const (
-	// StatusCompleted is a status set once the BurnEvent operation is successfully finished.
+	// StatusCompleted is a status set once the BurnEvent operation is successfully completed.
 	// This is a terminal status
 	StatusCompleted = "COMPLETED"
-	StatusFailed    = "FAILED"
-	StatusInitial   = "INITIAL"
+	// StatusFailed is a status set once the BurnEvent operation has failed
+	// This is a terminal status
+	StatusFailed = "FAILED"
+	// StatusInitial is the initial status on BurnEvent Record creation
+	StatusInitial = "INITIAL"
+	// StatusSubmitted is set once the Hedera Scheduled Transaction (Create/Sign) is submitted to HCS
 	StatusSubmitted = "SUBMITTED"
 )

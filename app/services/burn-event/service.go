@@ -20,7 +20,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -63,56 +63,59 @@ func NewService(
 }
 
 func (s Service) ProcessEvent(event burn_event.BurnEvent) {
-	err := s.repository.Create(event.TxHash, event.Amount, event.Recipient.String())
+	err := s.repository.Create(event.Id, event.Amount, event.Recipient.String())
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.TxHash, err)
+		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.Id, err)
 		return
 	}
 
 	var transactionResponse *hedera.TransactionResponse
 	if event.NativeToken == "HBAR" {
 		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledHbarTransferTransaction(event.Amount, event.Recipient, s.thresholdAccount, s.payerAccount, event.TxHash)
+			SubmitScheduledHbarTransferTransaction(event.Amount, event.Recipient, s.thresholdAccount, s.payerAccount, event.Id)
 	} else {
 		tokenID, err := hedera.TokenIDFromString(event.NativeToken)
 		if err != nil {
-			s.logger.Errorf("[%s] - failed to parse native token [%s] to TokenID. Error [%s].", event.TxHash, event.NativeToken, err)
+			s.logger.Errorf("[%s] - failed to parse native token [%s] to TokenID. Error [%s].", event.Id, event.NativeToken, err)
 			return
 		}
 		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledTokenTransferTransaction(event.Amount, tokenID, event.Recipient, s.thresholdAccount, s.payerAccount, event.TxHash)
+			SubmitScheduledTokenTransferTransaction(event.Amount, tokenID, event.Recipient, s.thresholdAccount, s.payerAccount, event.Id)
 	}
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", event.TxHash, err)
+		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", event.Id, err)
 		return
 	}
 
-	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s] for [%s] to receive [%d] tinybars.",
-		event.TxHash,
-		transactionResponse.TransactionID, event.Recipient, event.Amount)
+	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s] for [%s] to receive [%d] [%s] .",
+		event.Id,
+		transactionResponse.TransactionID,
+		event.Recipient,
+		event.Amount,
+		event.NativeToken)
 
 	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", event.TxHash, transactionResponse.TransactionID)
+		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", event.Id, transactionResponse.TransactionID)
 		return
 	}
 
 	switch txReceipt.Status {
 	case hedera.StatusIdenticalScheduleAlreadyCreated:
-		s.handleScheduleSign(event.TxHash, helper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String()), *txReceipt.ScheduleID)
+		s.handleScheduleSign(event.Id, hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String()), *txReceipt.ScheduleID)
 	case hedera.StatusSuccess:
-		transactionID := helper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
-		s.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].", event.TxHash, transactionID)
-
-		err := s.repository.UpdateStatusSubmitted(event.TxHash, txReceipt.ScheduleID.String(), transactionID)
+		transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
+		err := s.repository.UpdateStatusSubmitted(event.Id, txReceipt.ScheduleID.String(), transactionID)
 		if err != nil {
 			s.logger.Errorf(
 				"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
-				event.TxHash, transactionID, txReceipt.ScheduleID, err)
+				event.Id, transactionID, txReceipt.ScheduleID, err)
 			return
 		}
+
+		s.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].", event.Id, transactionID)
 	default:
-		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", event.TxHash, transactionResponse.TransactionID, txReceipt.Status)
+		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", event.Id, transactionResponse.TransactionID, txReceipt.Status)
 
 		err := s.repository.UpdateStatusFailed(transactionResponse.TransactionID.String())
 		if err != nil {
@@ -122,7 +125,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 		return
 	}
 
-	transactionID := helper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
+	transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
 
 	onSuccess, onFail := s.scheduledTxExecutionCallbacks(transactionID)
 	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onSuccess, onFail)
@@ -142,10 +145,14 @@ func (s *Service) handleScheduleSign(txHash, transactionID string, scheduleID he
 		return
 	}
 
-	if receipt.Status != hedera.StatusSuccess {
+	switch receipt.Status {
+	case hedera.StatusSuccess:
+		s.logger.Debugf("[%s] - Successfully executed schedule sign for [%s].", txHash, scheduleID)
+	case hedera.StatusScheduleAlreadyExecuted:
+		s.logger.Debugf("[%s] - Scheduled Sign [%s] already executed.", txHash, scheduleID)
+	default:
 		s.logger.Errorf("[%s] - Schedule Sign [%s] failed with [%s].", txHash, scheduleID, receipt.Status)
 	}
-	s.logger.Infof("[%s] - Successfully executed schedule sign for [%s].", txHash, scheduleID)
 
 	err = s.repository.UpdateStatusSubmitted(txHash, scheduleID.String(), transactionID)
 	if err != nil {

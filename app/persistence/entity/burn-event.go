@@ -19,10 +19,10 @@ package entity
 import "database/sql"
 
 type BurnEvent struct {
-	EthereumTxHash string `gorm:"primaryKey"`
-	ScheduleID     string
-	Amount         int64
-	Recipient      string
-	Status         string
-	TransactionId  sql.NullString `gorm:"unique"` // id of the original scheduled transaction
+	Id            string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
+	ScheduleID    string
+	Amount        int64
+	Recipient     string
+	Status        string
+	TransactionId sql.NullString `gorm:"unique"` // id of the original scheduled transaction
 }

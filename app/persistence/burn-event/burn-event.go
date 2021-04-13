@@ -33,19 +33,19 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (sr Repository) Create(ethTxHash string, amount int64, recipient string) error {
+func (sr Repository) Create(id string, amount int64, recipient string) error {
 	return sr.dbClient.Create(&entity.BurnEvent{
-		EthereumTxHash: ethTxHash,
-		Amount:         amount,
-		Recipient:      recipient,
-		Status:         burn_event.StatusInitial,
+		Id:        id,
+		Amount:    amount,
+		Recipient: recipient,
+		Status:    burn_event.StatusInitial,
 	}).Error
 }
 
 func (sr Repository) UpdateStatusSubmitted(ethTxHash, scheduleID, transactionId string) error {
 	return sr.dbClient.
 		Model(entity.BurnEvent{}).
-		Where("ethereum_tx_hash = ?", ethTxHash).
+		Where("id = ?", ethTxHash).
 		Updates(entity.BurnEvent{Status: burn_event.StatusSubmitted, ScheduleID: scheduleID, TransactionId: sql.NullString{
 			String: transactionId,
 			Valid:  true,
@@ -58,7 +58,7 @@ func (sr Repository) UpdateStatusCompleted(txId string) error {
 }
 
 func (sr Repository) UpdateStatusFailed(txId string) error {
-	return sr.updateStatus(txId, burn_event.StatusCompleted)
+	return sr.updateStatus(txId, burn_event.StatusFailed)
 }
 
 func (sr Repository) updateStatus(txId string, status string) error {
