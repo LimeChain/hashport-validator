@@ -78,13 +78,6 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
 		return
 	}
-
-	err := ew.ethClient.WaitForConfirmations(eventLog.Raw)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
-		return
-	}
-
 	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
@@ -115,6 +108,12 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		Recipient:    recipientAccount,
 		WrappedToken: eventLog.WrappedToken.String(),
 		NativeToken:  nativeToken,
+	}
+
+	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+		return
 	}
 
 	q.Push(&pair.Message{Payload: burnEvent})
