@@ -1,8 +1,9 @@
 name: Deploy three validators network
 
-on:
-  repository_dispatch:
-    types: [trigger-image-release]
+#on:
+#  repository_dispatch:
+#    types: [trigger-image-release]
+on: push
 
 env:
   add_docker-compose_alias: echo alias docker-compose="'"'docker run --rm \
