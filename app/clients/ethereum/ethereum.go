@@ -156,12 +156,9 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 				return err
 			}
 
-			if receipt.Status == 1 {
-				ec.logger.Debugf("[%s] Transaction received [%d] block confirmations", raw.TxHash.String(), ec.config.BlockConfirmations)
-				return nil
-			} else {
-				ec.logger.Debugf("[%s] Transaction reverted", raw.TxHash.String())
-				return errors.New("reverted")
+			if receipt.BlockNumber.Uint64() != raw.BlockNumber {
+				ec.logger.Debugf("[%s] has been moved from original block", raw.TxHash.String())
+				return errors.New("moved from original block")
 			}
 		}
 		time.Sleep(time.Second * 5)
