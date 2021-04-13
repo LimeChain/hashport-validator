@@ -16,10 +16,12 @@ jobs:
   deploy_app_alice:
     runs-on: ubuntu-latest
     steps:
-      - name: "Set environmental variables"
-          run: |
-            echo "refresh_containers_command=${{secrets.docker-compose}} stop && ${{secrets.docker-compose}} rm -f && ${{secrets.docker-compose}} pull && ${{secrets.docker-compose}} up -d">> $GITHUB_ENV
       - uses: actions/checkout@v2
+
+      - name: "Set environmental variables"
+        shell: bash
+        run: |
+          echo "refresh_containers_command=${{secrets.docker-compose}} stop && ${{secrets.docker-compose}} rm -f && ${{secrets.docker-compose}} pull && ${{secrets.docker-compose}} up -d">> $GITHUB_ENV
 
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0
