@@ -41,6 +41,10 @@ type Client struct {
 // NewClient creates new instance of an Ethereum client
 func NewClient(c config.Ethereum) *Client {
 	logger := config.GetLoggerFor(fmt.Sprintf("Ethereum Client"))
+	if c.BlockConfirmations < 1 {
+		logger.Fatalf("BlockConfirmations should be a positive number")
+	}
+
 	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
 		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
@@ -130,4 +134,36 @@ func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	}
 
 	return ec.Client.TransactionReceipt(context.Background(), hash)
+}
+
+func (ec *Client) WaitForConfirmations(raw types.Log) error {
+	target := raw.BlockNumber + ec.config.BlockConfirmations
+	for {
+		currentBlockNumber, err := ec.BlockNumber(context.Background())
+		if err != nil {
+			ec.logger.Errorf("[%s] Failed retrieving block number.", raw.TxHash.String())
+			return err
+		}
+
+		if target <= currentBlockNumber {
+			receipt, err := ec.TransactionReceipt(context.Background(), raw.TxHash)
+			if errors.Is(ethereum.NotFound, err) {
+				ec.logger.Infof("[%s] Ethereum TX went into an uncle block.", raw.TxHash.String())
+				return err
+			}
+			if err != nil {
+				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: %s", raw.TxHash.String(), err)
+				return err
+			}
+
+			if receipt.Status == 1 {
+				ec.logger.Debugf("[%s] Transaction received [%d] block confirmations", raw.TxHash.String(), ec.config.BlockConfirmations)
+				return nil
+			} else {
+				ec.logger.Debugf("[%s] Transaction reverted", raw.TxHash.String())
+				return errors.New("reverted")
+			}
+		}
+		time.Sleep(time.Second * 5)
+	}
 }

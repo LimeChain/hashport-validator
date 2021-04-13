@@ -74,25 +74,25 @@ func NewWatcher(
 }
 
 func (ctw Watcher) Watch(q *pair.Queue) {
-	accountAddress := ctw.accountID.String()
-	_, err := ctw.statusRepository.GetLastFetchedTimestamp(accountAddress)
+	if !ctw.client.AccountExists(ctw.accountID) {
+		ctw.logger.Errorf("Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
+		return
+	}
+
+	account := ctw.accountID.String()
+	_, err := ctw.statusRepository.GetLastFetchedTimestamp(account)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := ctw.statusRepository.CreateTimestamp(accountAddress, ctw.startTimestamp)
+			err := ctw.statusRepository.CreateTimestamp(account, ctw.startTimestamp)
 			if err != nil {
-				ctw.logger.Fatalf("Failed to create Transfer Watcher Status timestamp. Error [%s]", err)
+				ctw.logger.Fatalf("Failed to create Transfer Watcher timestamp. Error [%s]", err)
 			}
-			ctw.logger.Tracef("Created new Transfer Watcher status timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
+			ctw.logger.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 		} else {
 			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
 		}
 	} else {
 		ctw.updateStatusTimestamp(ctw.startTimestamp)
-	}
-
-	if !ctw.client.AccountExists(ctw.accountID) {
-		ctw.logger.Errorf("Error incoming: Could not start monitoring account - Account not found.")
-		return
 	}
 
 	go ctw.beginWatching(q)
@@ -108,11 +108,15 @@ func (ctw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (ctw Watcher) beginWatching(q *pair.Queue) {
-	milestoneTimestamp := ctw.startTimestamp
+	milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
+	if err != nil {
+		ctw.logger.Fatalf("Failed to retrieve Transfer Watcher Status timestamp. Error [%s]", err)
+	}
+
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			ctw.logger.Errorf("Error incoming: Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
 			ctw.restart(q)
 			return
 		}
@@ -163,7 +167,8 @@ func (ctw *Watcher) restart(q *pair.Queue) {
 	if ctw.maxRetries > 0 {
 		ctw.maxRetries--
 		ctw.logger.Infof("Watcher is trying to reconnect")
-		go ctw.Watch(q)
+		time.Sleep(5 * time.Second)
+		go ctw.beginWatching(q)
 		return
 	}
 	ctw.logger.Errorf("Watcher failed: [Too many retries]")

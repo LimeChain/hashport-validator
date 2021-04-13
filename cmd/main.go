@@ -132,7 +132,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			services.contracts,
 			services.messages))
 
-	server.AddPair(ethereum.NewWatcher(services.contracts, configuration.Hedera.Eth),
+	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Hedera.Eth),
 		beh.NewHandler(services.burnEvents))
 }
 

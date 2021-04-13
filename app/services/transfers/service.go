@@ -186,7 +186,13 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
+	var authMsgHash []byte
+	if tm.ExecuteEthTransaction {
+		authMsgHash, err = auth_message.EncodeBytesForMintWithReimbursement(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount, tm.TxReimbursement, gasPriceWeiBn.String())
+	} else {
+		authMsgHash, err = auth_message.EncodeBytesForMint(tm.TransactionId, tm.WrappedToken, tm.Receiver, tm.Amount)
+	}
+
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err

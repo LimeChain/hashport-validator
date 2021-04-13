@@ -22,6 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
@@ -33,13 +34,15 @@ import (
 type Watcher struct {
 	config    config.Ethereum
 	contracts service.Contracts
+	ethClient client.Ethereum
 	logger    *log.Entry
 }
 
-func NewWatcher(contracts service.Contracts, config config.Ethereum) *Watcher {
+func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config config.Ethereum) *Watcher {
 	return &Watcher{
 		config:    config,
 		contracts: contracts,
+		ethClient: ethClient,
 		logger:    c.GetLoggerFor(fmt.Sprintf("Ethereum Router Watcher [%s]", config.RouterContractAddress)),
 	}
 }
@@ -63,12 +66,24 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 			ew.logger.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
 			return
 		case eventLog := <-events:
-			ew.handleLog(eventLog, q)
+			go ew.handleLog(eventLog, q)
 		}
 	}
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
+	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
+
+	if eventLog.Raw.Removed {
+		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
+	}
+
+	err := ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+	}
+
 	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
