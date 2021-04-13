@@ -28,6 +28,7 @@ import (
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -91,7 +92,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	if nativeToken != "HBAR" && !hederahelper.IsTokenID(nativeToken) {
+	if nativeToken != constants.Hbar && !hederahelper.IsTokenID(nativeToken) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
 		return
 	}

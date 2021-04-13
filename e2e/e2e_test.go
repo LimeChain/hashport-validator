@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"log"
 	"math/big"
 	"strconv"
@@ -98,7 +99,7 @@ func Test_HBAR(t *testing.T) {
 	expectedTxRecord := prepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
-		"HBAR",
+		constants.Hbar,
 		txFee,
 		gasPrice,
 		database.ExpectedStatuses{
@@ -126,7 +127,7 @@ func Test_HBAR_No_Ethereum_TX_Submission(t *testing.T) {
 	expectedTxRecord := prepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
-		"HBAR",
+		constants.Hbar,
 		"0",
 		"0",
 		database.ExpectedStatuses{

@@ -23,6 +23,7 @@ import (
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -70,7 +71,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	}
 
 	var transactionResponse *hedera.TransactionResponse
-	if event.NativeToken == "HBAR" {
+	if event.NativeToken == constants.Hbar {
 		transactionResponse, err = s.hederaNodeClient.
 			SubmitScheduledHbarTransferTransaction(event.Amount, event.Recipient, s.thresholdAccount, s.payerAccount, event.Id)
 	} else {
