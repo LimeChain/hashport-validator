@@ -1,6 +1,8 @@
 name: Deploy three validators network
 
-on: push
+on:
+  repository_dispatch:
+    types: [trigger-image-release]
 
 env:
   refresh_containers_command: sudo docker-compose stop && sudo docker-compose rm -f && sudo docker-compose pull && sudo docker-compose up -d
