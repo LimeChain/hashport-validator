@@ -1,35 +1,34 @@
 # This file contains application defaults
-hedera:
+validator:
   log_level: info
-  rest_api_only: false
-  validator:
-    db:
-      host: 127.0.0.1
-      name: hedera_validator
-      password: validator_pass
-      port: 5432
-      username: validator
-    port: 5200
-  eth:
-    node_url:
-    router_contract_address:
-    block_confirmations: 5
-  mirror_node:
-    client_address: hcs.testnet.mirrornode.hedera.com:5600
-    api_address: https://testnet.mirrornode.hedera.com/api/v1/
-    polling_interval: 5
-    account_id:
-    topic_id:
-  client:
-    network_type: testnet
-    operator:
-      account_id:
+  rest-api-only: false
+  port: 5200
+  database:
+    host: 127.0.0.1
+    name: hedera_validator
+    password: validator_pass
+    port: 5432
+    username: validator
+  clients:
+    ethereum:
+      node_url:
+      router_contract_address:
+      block_confirmations: 5
       private_key:
-      eth_private_key:
-    base_gas_usage: 130000
-    gas_per_validator: 54000
-  watcher:
-    recovery_timestamp:
-    max_retries: 10
-  handler:
-    send_deadline: 300
+    mirror_node:
+      client_address: hcs.testnet.mirrornode.hedera.com:5600
+      api_address: https://testnet.mirrornode.hedera.com/api/v1/
+      bridge_account:
+      topic_id:
+      polling_interval: 5
+      max_retries: 10
+    hedera:
+      network_type: testnet
+      operator:
+        account_id:
+        private_key:
+  send_deadline: 300
+  base_gas_usage: 130000
+  gas_per_validator: 54000
+  recovery:
+    start_timestamp:

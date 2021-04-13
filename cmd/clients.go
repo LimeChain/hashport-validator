@@ -34,11 +34,11 @@ type Clients struct {
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
-func PrepareClients(config config.Config) *Clients {
+func PrepareClients(config config.Clients) *Clients {
 	return &Clients{
-		HederaNode:   hedera.NewNodeClient(config.Hedera.Client),
-		MirrorNode:   mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval),
-		Ethereum:     ethereum.NewClient(config.Hedera.Eth),
+		HederaNode:   hedera.NewNodeClient(config.Hedera),
+		MirrorNode:   mirror_node.NewClient(config.MirrorNode.ApiAddress, config.MirrorNode.PollingInterval),
+		Ethereum:     ethereum.NewClient(config.Ethereum),
 		ExchangeRate: exchangerate.NewProvider("hedera-hashgraph", "eth"),
 	}
 }
