@@ -18,28 +18,27 @@ Unless you need to set a non-default value, it is recommended to only populate o
 
 Name                                                                | Default                                             | Description
 ------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------
-`hedera.validator.db.host`                                          | 127.0.0.1                                           | The IP or hostname used to connect to the database.
-`hedera.validator.db.name`                                          | hedera_validator                                    | The name of the database.
-`hedera.validator.db.password`                                      | validator_pass                                      | The database password the processor uses to connect.
-`hedera.validator.db.port`                                          | 5432                                                | The port used to connect to the database.
-`hedera.validator.db.username`                                      | validator                                           | The username the processor uses to connect to the database.
-`hedera.validator.port`                                             | 5200                                                | The port on which the application runs.
-`hedera.eth.node_url`                                               | ""                                                  | The endpoint of the Ethereum node.
-`hedera.eth.router_contract_address`                                | ""                                                  | The address of the Router contract.
-`hedera.eth.block_confirmations`                                    | 5                                                   | The number of block confirmations to wait for before processing an ethereum event
-`hedera.mirror_node.client_address`                                 | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
-`hedera.mirror_node.api_address`                                    | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
-`hedera.mirror_node.polling_interval`                               |                                                     | How often (in seconds) the application will poll the mirror node for new transactions.
-`hedera.mirror_node.account_id`                                     |                                                     | The account id that the validators use to monitor for incoming transfers.
-`hedera.mirror_node.topic_id`                                       |                                                     | The topic id that the validators use to monitor for incoming hedera consensus messages.
-`hedera.client.network_type`                                        | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
-`hedera.client.operator.account_id`                                 | ""                                                  | The operator's Hedera account id.
-`hedera.client.operator.private_key`                                | ""                                                  | The operator's Hedera private key.
-`hedera.client.operator.eth_private_key`                            | ""                                                  | The operator's Ethereum private key.
-`hedera.watcher.recovery_timestamp`                                 |                                                     | The timestamp from which the crypto transfer watcher will begin its recovery. Leave empty on the first run if you want to begin from `now`.
-`hedera.watcher.max_retries`                                        | 10                                                  | The number of times the watcher will try restarting in case it failed.
-`hedera.handler.send_deadline`                                      | 300                                                 | The time (in seconds) between every execution window.
-`hedera.rest_api_only`                                              | false                                               | The application will only expose REST API endpoints if this flag is true.
-`hedera.log_level`                                                  | info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
+`validator.database.host`                                           | 127.0.0.1                                           | The IP or hostname used to connect to the database.
+`validator.database.name`                                           | hedera_validator                                    | The name of the database.
+`validator.database.password`                                       | validator_pass                                      | The database password the processor uses to connect.
+`validator.database.port`                                           | 5432                                                | The port used to connect to the database.
+`validator.database.username`                                       | validator                                           | The username the processor uses to connect to the database.
+`validator.port`                                                    | 5200                                                | The port on which the application runs.
+`validator.clients.ethereum.node_url`                               | ""                                                  | The endpoint of the Ethereum node.
+`validator.clients.ethereum.router_contract_address`                | ""                                                  | The address of the Router contract.
+`validator.clients.ethereum.block_confirmations`                    | 5                                                   | The number of block confirmations to wait for before processing an ethereum event
+`validator.clients.ethereum.private_key`                            | ""                                                  | The operator's Ethereum private key.
+`validator.clients.mirror_node.client_address`                      | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
+`validator.clients.mirror_node.api_address`                         | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
+`validator.clients.mirror_node.polling_interval`                    |                                                     | How often (in seconds) the application will poll the mirror node for new transactions.
+`validator.clients.mirror_node.account_id`                          |                                                     | The account id that the validators use to monitor for incoming transfers.
+`validator.clients.mirror_node.topic_id`                            |                                                     | The topic id that the validators use to monitor for incoming hedera consensus messages.
+`validator.clients.mirror_node.max_retries`                         | 10                                                  | The maximum number of retries that the mirror node has to continue monitoring after a failure, before stopping completely.
+`validator.clients.hedera.network_type`                             | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
+`validator.clients.hedera.operator.account_id`                      | ""                                                  | The operator's Hedera account id.
+`validator.clients.hedera.operator.private_key`                     | ""                                                  | The operator's Hedera private key.
+`validator.recovery.start_timestamp`                                |                                                     | The timestamp from which the crypto transfer watcher will begin its recovery. Leave empty on the first run if you want to begin from `now`.
+`validator.rest_api_only`                                           | false                                               | The application will only expose REST API endpoints if this flag is true.
+`validator.log_level`                                               | info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive. 
 
 
