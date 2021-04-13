@@ -18,8 +18,9 @@ package service
 
 import burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 
-// BurnEvent TODO
+// BurnEvent is the major service used for processing BurnEvent operations
 type BurnEvent interface {
-	// ProcessEvent TODO
+	// ProcessEvent processes the burn event by submitting the appropriate
+	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
 	ProcessEvent(event burn_event.BurnEvent)
 }

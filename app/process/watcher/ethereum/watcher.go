@@ -23,6 +23,7 @@ import (
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -87,7 +88,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	if nativeToken != "HBAR" && !isTokenID(nativeToken) {
+	if nativeToken != "HBAR" && !helper.IsTokenID(nativeToken) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
 		return
 	}
@@ -101,13 +102,4 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 	}
 
 	q.Push(&pair.Message{Payload: burnEvent})
-}
-
-func isTokenID(tokenID string) bool {
-	_, err := hedera.TokenIDFromString(tokenID)
-	if err != nil {
-		return false
-	}
-
-	return true
 }

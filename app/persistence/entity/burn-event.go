@@ -24,5 +24,5 @@ type BurnEvent struct {
 	Amount         int64
 	Recipient      string
 	Status         string
-	SubmissionTxId sql.NullString `gorm:"unique"`
+	TransactionId  sql.NullString `gorm:"unique"` // id of the original scheduled transaction
 }

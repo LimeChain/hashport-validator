@@ -42,12 +42,12 @@ func (sr Repository) Create(ethTxHash string, amount int64, recipient string) er
 	}).Error
 }
 
-func (sr Repository) UpdateStatusSubmitted(ethTxHash, scheduleID, submissionTxId string) error {
+func (sr Repository) UpdateStatusSubmitted(ethTxHash, scheduleID, transactionId string) error {
 	return sr.dbClient.
 		Model(entity.BurnEvent{}).
 		Where("ethereum_tx_hash = ?", ethTxHash).
-		Updates(entity.BurnEvent{Status: burn_event.StatusSubmitted, ScheduleID: scheduleID, SubmissionTxId: sql.NullString{
-			String: submissionTxId,
+		Updates(entity.BurnEvent{Status: burn_event.StatusSubmitted, ScheduleID: scheduleID, TransactionId: sql.NullString{
+			String: transactionId,
 			Valid:  true,
 		}}).
 		Error
@@ -64,7 +64,7 @@ func (sr Repository) UpdateStatusFailed(txId string) error {
 func (sr Repository) updateStatus(txId string, status string) error {
 	return sr.dbClient.
 		Model(entity.BurnEvent{}).
-		Where("submission_tx_id = ?", txId).
+		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
 		Error
 }

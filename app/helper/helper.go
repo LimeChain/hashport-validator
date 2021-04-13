@@ -19,6 +19,7 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"math/big"
 	"strings"
 )
@@ -40,4 +41,13 @@ func ToMirrorNodeTransactionID(txId string) string {
 	accId := split[0]
 	split = strings.Split(split[1], ".")
 	return fmt.Sprintf("%s-%s-%s", accId, split[0], fmt.Sprintf("%09s", split[1]))
+}
+
+func IsTokenID(tokenID string) bool {
+	_, err := hedera.TokenIDFromString(tokenID)
+	if err != nil {
+		return false
+	}
+
+	return true
 }
