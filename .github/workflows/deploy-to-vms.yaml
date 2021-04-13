@@ -5,6 +5,11 @@ on:
     types: [trigger-image-release]
 
 env:
+  add_docker-compose_alias: echo alias docker-compose="'"'docker run --rm \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$PWD:$PWD" \
+    -w="$PWD" \
+    docker/compose:1.24.0'"'" >> ~/.bashrc && source ~/.bashrc
   refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
 
 jobs:
@@ -26,6 +31,9 @@ jobs:
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_ALICE_ZONE }} ./docker-compose.yml ./application.yml ${{ secrets.APP_ALICE_INSTANCE }}:~
+
+      - name: Add alias
+        run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="${{ env.add_docker-compose_alias }}"
 
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_ALICE_INSTANCE }} --zone=${{ secrets.APP_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
