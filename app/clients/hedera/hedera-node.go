@@ -80,6 +80,7 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	return &txResponse.TransactionID, err
 }
 
+// SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
 func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
 	response, err := hedera.NewScheduleSignTransaction().
 		SetScheduleID(scheduleID).
@@ -88,7 +89,7 @@ func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.Transac
 	return &response, err
 }
 
-// SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits a scheduled transfer transaction
+// SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits it as a scheduled transaction
 func (hc Node) SubmitScheduledTokenTransferTransaction(
 	tinybarAmount int64,
 	tokenID hedera.TokenID,
@@ -104,7 +105,7 @@ func (hc Node) SubmitScheduledTokenTransferTransaction(
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }
 
-// SubmitScheduledHbarTransferTransaction creates a hbar transfer transaction and submits a scheduled transfer transaction
+// SubmitScheduledHbarTransferTransaction creates a hbar transfer transaction and submits it as a scheduled transaction
 func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
 	recipient,
 	sender,
