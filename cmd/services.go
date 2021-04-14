@@ -41,10 +41,10 @@ type Services struct {
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	ethSigner := eth.NewEthSigner(c.Hedera.Client.Operator.EthPrivateKey)
-	contracts := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
-	schedulerService := scheduler.NewScheduler(c.Hedera.Handler.ConsensusMessage.SendDeadline)
-	fees := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contracts)
+	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
+	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	schedulerService := scheduler.NewScheduler(c.Validator.SendDeadline)
+	fees := fees.NewCalculator(clients.ExchangeRate, c.Validator, contracts)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
@@ -53,7 +53,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		fees,
 		ethSigner,
 		repositories.transfer,
-		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+		c.Validator.Clients.Hedera.TopicId)
 
 	messages := messages.NewService(
 		ethSigner,
@@ -64,11 +64,11 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		clients.Ethereum,
-		c.Hedera.Handler.ConsensusMessage.TopicId)
+		c.Validator.Clients.Hedera.TopicId)
 
 	burnEvent := burn_event.NewService(
-		c.Hedera.Client.ThresholdAccount,
-		c.Hedera.Client.PayerAccount,
+		c.Validator.Clients.Hedera.BridgeAccount,
+		c.Validator.Clients.Hedera.PayerAccount,
 		clients.HederaNode,
 		clients.MirrorNode,
 		repositories.burnEvent)
@@ -87,8 +87,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractService := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
-	feeService := fees.NewCalculator(clients.ExchangeRate, c.Hedera, contractService)
+	contractService := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	feeService := fees.NewCalculator(clients.ExchangeRate, c.Validator, contractService)
 
 	return &Services{
 		contracts: contractService,

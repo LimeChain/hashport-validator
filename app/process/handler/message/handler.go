@@ -37,15 +37,15 @@ type Handler struct {
 }
 
 func NewHandler(
-	configuration config.ConsensusMessageHandler,
+	topicId string,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
 	messages service.Messages,
 ) *Handler {
-	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
+	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
-		log.Fatalf("Invalid topic id: [%v]", configuration.TopicId)
+		log.Fatalf("Invalid topic id: [%v]", topicId)
 	}
 
 	return &Handler{

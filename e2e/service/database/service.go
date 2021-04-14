@@ -24,7 +24,7 @@ type Service struct {
 	logger    *log.Entry
 }
 
-func NewService(dbConfigs []config.Db) *Service {
+func NewService(dbConfigs []config.Database) *Service {
 	var verifiers []dbVerifier
 	for _, db := range dbConfigs {
 		connection := persistence.Connect(db)

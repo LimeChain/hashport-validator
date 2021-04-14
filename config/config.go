@@ -64,94 +64,62 @@ func GetConfig(config *Config, path string) error {
 }
 
 type Config struct {
-	Hedera Hedera `yaml:"hedera"`
-}
-
-type Hedera struct {
-	LogLevel    string     `yaml:"log_level"`
-	Validator   Validator  `yaml:"validator"`
-	Eth         Ethereum   `yaml:"eth"`
-	MirrorNode  MirrorNode `yaml:"mirror_node"`
-	Client      Client     `yaml:"client"`
-	Watcher     Watcher    `yaml:"watcher"`
-	Handler     Handler    `yaml:"handler"`
-	Recovery    Recovery   `yaml:"recovery"`
-	RestApiOnly bool       `yaml:"rest_api_only"`
-}
-
-type Handler struct {
-	CryptoTransfer   CryptoTransferHandler   `yaml:"crypto-transfer"`
-	ConsensusMessage ConsensusMessageHandler `yaml:"consensus-message"`
-}
-
-type ConsensusMessageHandler struct {
-	TopicId      string `yaml:"topic_id"`
-	SendDeadline int64  `yaml:"send_deadline"`
-}
-
-type CryptoTransferHandler struct {
-	TopicId         string        `yaml:"topic_id"`
-	PollingInterval time.Duration `yaml:"polling_interval"`
-}
-
-type Watcher struct {
-	CryptoTransfer   CryptoTransfer   `yaml:"crypto-transfer"`
-	ConsensusMessage ConsensusMessage `yaml:"consensus-message"`
-}
-
-type Ethereum struct {
-	NodeUrl               string `yaml:"node_url" env:"HEDERA_ETH_BRIDGE_ETH_NODE_URL"`
-	RouterContractAddress string `yaml:"router_contract_address" env:"HEDERA_ETH_BRIDGE_ETH_ROUTER_CONTRACT_ADDRESS"`
-	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"HEDERA_ETH_BLOCK_CONFIRMATIONS"`
-}
-
-type CryptoTransfer struct {
-	Account ID `yaml:"account" env:"HEDERA_ETH_BRIDGE_WATCHER_CRYPTO_TRANSFER"`
-}
-
-type ConsensusMessage struct {
-	Topic ID `yaml:"topic" env:"HEDERA_ETH_BRIDGE_WATCHER_CONSENSUS_MESSAGE"`
-}
-
-type ID struct {
-	Id         string `yaml:"id"`
-	MaxRetries int    `yaml:"max_retries"`
-}
-
-type Client struct {
-	NetworkType      string   `yaml:"network_type" env:"HEDERA_ETH_BRIDGE_CLIENT_NETWORK_TYPE"`
-	Operator         Operator `yaml:"operator"`
-	BaseGasUsage     uint64   `yaml:"base_gas_usage"`
-	GasPerValidator  uint64   `yaml:"gas_per_validator"`
-	ThresholdAccount string   `yaml:"threshold_account" env:"HEDERA_ETH_BRIDGE_CLIENT_THRESHOLD_ACCOUNT"`
-	PayerAccount     string   `yaml:"payer_account" env:"HEDERA_ETH_BRIDGE_CLIENT_PAYER_ACCOUNT"`
-}
-
-type Operator struct {
-	AccountId     string `yaml:"account_id" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ACCOUNT_ID"`
-	EthPrivateKey string `yaml:"eth_private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_ETH_PRIVATE_KEY"`
-	PrivateKey    string `yaml:"private_key" env:"HEDERA_ETH_BRIDGE_CLIENT_OPERATOR_PRIVATE_KEY"`
-}
-
-type MirrorNode struct {
-	ClientAddress   string        `yaml:"client_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_CLIENT_ADDRESS"`
-	ApiAddress      string        `yaml:"api_address" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_API_ADDRESS"`
-	PollingInterval time.Duration `yaml:"polling_interval" env:"HEDERA_ETH_BRIDGE_MIRROR_NODE_POLLING_INTERVAL"`
+	Validator Validator `yaml:"validator"`
 }
 
 type Validator struct {
-	Db   Db     `yaml:"db"`
-	Port string `yaml:"port" env:"HEDERA_ETH_BRIDGE_VALIDATOR_PORT"`
+	LogLevel        string   `yaml:"log_level"`
+	RestApiOnly     bool     `yaml:"rest_api_only"`
+	Port            string   `yaml:"port"`
+	Database        Database `yaml:"database"`
+	Clients         Clients  `yaml:"clients"`
+	Recovery        Recovery `yaml:"recovery"`
+	SendDeadline    int64    `yaml:"send_deadline"`
+	BaseGasUsage    uint64   `yaml:"base_gas_usage"`
+	GasPerValidator uint64   `yaml:"gas_per_validator"`
 }
 
-type Db struct {
-	Host     string `yaml:"host" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST"`
-	Name     string `yaml:"name" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_NAME"`
-	Password string `yaml:"password" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PASSWORD"`
-	Port     string `yaml:"port" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_PORT"`
-	Username string `yaml:"username" env:"HEDERA_ETH_BRIDGE_VALIDATOR_DB_USERNAME"`
+type Clients struct {
+	Ethereum   Ethereum   `yaml:"ethereum"`
+	MirrorNode MirrorNode `yaml:"mirror_node"`
+	Hedera     Hedera     `yaml:"hedera"`
 }
 
 type Recovery struct {
-	Timestamp int64 `yaml:"timestamp" env:"HEDERA_ETH_BRIDGE_VALIDATOR_RECOVERY_TIMESTAMP"`
+	StartTimestamp int64 `yaml:"start_timestamp"`
+}
+
+type Ethereum struct {
+	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_ETH_NODE_URL"`
+	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_ETH_ROUTER_CONTRACT_ADDRESS"`
+	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_BLOCK_CONFIRMATIONS"`
+	PrivateKey            string `yaml:"private_key" env:"VALIDATOR_CLIENTS_OPERATOR_ETH_PRIVATE_KEY"`
+}
+
+type Hedera struct {
+	NetworkType   string   `yaml:"network_type" env:"VALIDATOR_CLIENTS_HEDERA_NETWORK_TYPE"`
+	Operator      Operator `yaml:"operator"`
+	BridgeAccount string   `yaml:"account_id" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
+	PayerAccount  string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
+	TopicId       string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
+}
+
+type Operator struct {
+	AccountId  string `yaml:"account_id" env:"VALIDATOR_CLIENTS_HEDERA_OPERATOR_ACCOUNT_ID"`
+	PrivateKey string `yaml:"private_key" env:"VALIDATOR_CLIENTS_HEDERA_OPERATOR_PRIVATE_KEY"`
+}
+
+type MirrorNode struct {
+	ClientAddress   string        `yaml:"client_address" env:"VALIDATOR_CLIENTS_MIRROR_NODE_CLIENT_ADDRESS"`
+	ApiAddress      string        `yaml:"api_address" env:"VALIDATOR_CLIENTS_MIRROR_NODE_API_ADDRESS"`
+	PollingInterval time.Duration `yaml:"polling_interval" env:"VALIDATOR_CLIENTS_MIRROR_NODE_POLLING_INTERVAL"`
+	MaxRetries      int           `yaml:"max_retries" env:"VALIDATOR_CLIENTS_MIRROR_NODE_TOPIC_ID"`
+}
+
+type Database struct {
+	Host     string `yaml:"host" env:"VALIDATOR_DATABASE_HOST"`
+	Name     string `yaml:"name" env:"VALIDATOR_DATABASE_NAME"`
+	Password string `yaml:"password" env:"VALIDATOR_DATABASE_DB_PASSWORD"`
+	Port     string `yaml:"port" env:"VALIDATOR_DATABASE_DB_PORT"`
+	Username string `yaml:"username" env:"VALIDATOR_DATABASE_DB_USERNAME"`
 }

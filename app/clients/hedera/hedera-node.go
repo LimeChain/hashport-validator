@@ -30,7 +30,7 @@ type Node struct {
 }
 
 // NewNodeClient creates new instance of hedera.Client based on the provided client configuration
-func NewNodeClient(config config.Client) *Node {
+func NewNodeClient(config config.Hedera) *Node {
 	var client *hedera.Client
 	switch config.NetworkType {
 	case "mainnet":

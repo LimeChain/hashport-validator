@@ -28,7 +28,7 @@ import (
 )
 
 // Establish connection to the Postgres Database
-func Connect(dbConfig config.Db) *gorm.DB {
+func Connect(dbConfig config.Database) *gorm.DB {
 	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Name, dbConfig.Password)
 
 	db := tryConnection(connectionStr)
@@ -66,7 +66,7 @@ func migrateDb(db *gorm.DB) {
 }
 
 // Connect and Migrate
-func ConnectWithMigration(dbConfig config.Db) *gorm.DB {
+func ConnectWithMigration(dbConfig config.Database) *gorm.DB {
 	gorm := Connect(dbConfig)
 	migrateDb(gorm)
 	return gorm

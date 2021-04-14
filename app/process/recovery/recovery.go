@@ -49,7 +49,7 @@ type Recovery struct {
 }
 
 func NewProcess(
-	c config.Hedera,
+	c config.Validator,
 	transfers service.Transfers,
 	messages service.Messages,
 	contracts service.Contracts,
@@ -59,12 +59,12 @@ func NewProcess(
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
-	account, err := hederasdk.AccountIDFromString(c.Watcher.CryptoTransfer.Account.Id)
+	account, err := hederasdk.AccountIDFromString(c.Clients.Hedera.BridgeAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	topic, err := hederasdk.TopicIDFromString(c.Watcher.ConsensusMessage.Topic.Id)
+	topic, err := hederasdk.TopicIDFromString(c.Clients.Hedera.TopicId)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func NewProcess(
 		nodeClient:              nodeClient,
 		accountID:               account,
 		topicID:                 topic,
-		configRecoveryTimestamp: c.Recovery.Timestamp,
+		configRecoveryTimestamp: c.Recovery.StartTimestamp,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 	}, nil
 }

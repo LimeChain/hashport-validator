@@ -28,7 +28,7 @@ import (
 )
 
 type Service struct {
-	thresholdAccount hedera.AccountID
+	bridgeAccount    hedera.AccountID
 	payerAccount     hedera.AccountID
 	repository       repository.BurnEvent
 	hederaNodeClient client.HederaNode
@@ -37,15 +37,15 @@ type Service struct {
 }
 
 func NewService(
-	thresholdAccount string,
+	bridgeAccount string,
 	payerAccount string,
 	hederaNodeClient client.HederaNode,
 	mirrorNodeClient client.MirrorNode,
 	repository repository.BurnEvent) *Service {
 
-	threshold, err := hedera.AccountIDFromString(thresholdAccount)
+	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
-		log.Fatalf("Invalid bridge threshold account: [%s].", thresholdAccount)
+		log.Fatalf("Invalid bridge threshold account: [%s].", bridgeAccount)
 	}
 
 	payer, err := hedera.AccountIDFromString(payerAccount)
@@ -54,7 +54,7 @@ func NewService(
 	}
 
 	return &Service{
-		thresholdAccount: threshold,
+		bridgeAccount:    bridgeAcc,
 		payerAccount:     payer,
 		repository:       repository,
 		hederaNodeClient: hederaNodeClient,
@@ -73,7 +73,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	var transactionResponse *hedera.TransactionResponse
 	if event.NativeToken == constants.Hbar {
 		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledHbarTransferTransaction(event.Amount, event.Recipient, s.thresholdAccount, s.payerAccount, event.Id)
+			SubmitScheduledHbarTransferTransaction(event.Amount, event.Recipient, s.bridgeAccount, s.payerAccount, event.Id)
 	} else {
 		tokenID, err := hedera.TokenIDFromString(event.NativeToken)
 		if err != nil {
@@ -81,7 +81,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 			return
 		}
 		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledTokenTransferTransaction(event.Amount, tokenID, event.Recipient, s.thresholdAccount, s.payerAccount, event.Id)
+			SubmitScheduledTokenTransferTransaction(event.Amount, tokenID, event.Recipient, s.bridgeAccount, s.payerAccount, event.Id)
 	}
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", event.Id, err)
