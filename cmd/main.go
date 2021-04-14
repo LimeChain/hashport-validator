@@ -38,21 +38,21 @@ import (
 func main() {
 	// Config
 	configuration := config.LoadConfig()
-	config.InitLogger(configuration.Hedera.LogLevel)
+	config.InitLogger(configuration.Validator.LogLevel)
 
 	// Prepare Clients
-	clients := PrepareClients(configuration)
+	clients := PrepareClients(configuration.Validator.Clients)
 
 	// Prepare Node
 	server := server.NewServer()
 
 	var services *Services = nil
-	if configuration.Hedera.RestApiOnly {
+	if configuration.Validator.RestApiOnly {
 		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 		services = PrepareApiOnlyServices(configuration, *clients)
 	} else {
 		// Prepare repositories
-		repositories := PrepareRepositories(configuration.Hedera.Validator.Db)
+		repositories := PrepareRepositories(configuration.Validator.Database)
 		// Prepare Services
 		services = PrepareServices(configuration, *clients, *repositories)
 
@@ -67,11 +67,11 @@ func main() {
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Hedera.Validator.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Database.Port))
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Hedera,
+	r, err := recovery.NewProcess(configuration.Validator,
 		services.transfers,
 		services.messages,
 		services.contracts,
@@ -123,12 +123,12 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.messageStatus,
 			watchersTimestamp),
 		cmh.NewHandler(
-			configuration.Hedera.Handler.ConsensusMessage,
+			configuration.Validator.Clients.MirrorNode,
 			repositories.transfer,
 			repositories.message,
 			services.contracts,
 			services.messages))
-	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Hedera.Eth), nil)
+	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Validator.Clients.Ethereum), nil)
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -138,16 +138,16 @@ func addTransferWatcher(configuration *config.Config,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *tw.Watcher {
-	account := configuration.Hedera.Watcher.CryptoTransfer.Account
+	account := configuration.Validator.Clients.MirrorNode.AccountId
 
-	log.Debugf("Added Transfer Watcher for account [%s]", account.Id)
+	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
 		bridgeService,
 		mirrorNode,
-		account.Id,
-		configuration.Hedera.MirrorNode.PollingInterval,
+		account,
+		configuration.Validator.Clients.MirrorNode.PollingInterval,
 		*repository,
-		account.MaxRetries,
+		configuration.Validator.Clients.MirrorNode.MaxRetries,
 		startTimestamp,
 		contractService)
 }
@@ -157,12 +157,12 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
-	topic := configuration.Hedera.Watcher.ConsensusMessage.Topic
-	log.Debugf("Added Topic Watcher for topic [%s]\n", topic.Id)
+	topic := configuration.Validator.Clients.MirrorNode.TopicId
+	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
 	return cmw.NewWatcher(client,
-		topic.Id,
+		topic,
 		repository,
-		configuration.Hedera.MirrorNode.PollingInterval,
-		topic.MaxRetries,
+		configuration.Validator.Clients.MirrorNode.PollingInterval,
+		configuration.Validator.Clients.MirrorNode.MaxRetries,
 		startTimestamp)
 }

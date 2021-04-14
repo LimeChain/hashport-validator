@@ -24,6 +24,6 @@ services:
     volumes:
       - ./application.yml:/src/hedera-eth-bridge-validator/application.yml
     ports:
-      - 5200:5200
+      - 80:5200
     depends_on:
       - "db"

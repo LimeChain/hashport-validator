@@ -35,8 +35,8 @@ type Services struct {
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	ethSigner := eth.NewEthSigner(c.Hedera.Client.Operator.EthPrivateKey)
-	contracts := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
+	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
+	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
@@ -44,7 +44,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contracts,
 		ethSigner,
 		repositories.transfer,
-		c.Hedera.Watcher.ConsensusMessage.Topic.Id)
+		c.Validator.Clients.MirrorNode.TopicId)
 
 	messages := messages.NewService(
 		ethSigner,
@@ -54,7 +54,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		clients.Ethereum,
-		c.Hedera.Handler.ConsensusMessage.TopicId)
+		c.Validator.Clients.MirrorNode.TopicId)
 
 	return &Services{
 		signer:    ethSigner,
