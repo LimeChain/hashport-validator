@@ -30,11 +30,11 @@ var precision = new(big.Int).SetInt64(100000)
 
 type Calculator struct {
 	rateProvider  client.ExchangeRate
-	configuration config.Hedera
+	configuration config.Validator
 	bridge        service.Contracts
 }
 
-func NewCalculator(rateProvider client.ExchangeRate, configuration config.Hedera, bridge service.Contracts) *Calculator {
+func NewCalculator(rateProvider client.ExchangeRate, configuration config.Validator, bridge service.Contracts) *Calculator {
 	return &Calculator{
 		rateProvider:  rateProvider,
 		configuration: configuration,
@@ -123,7 +123,7 @@ func weiToTinyBar(weiTxFee *big.Int, exchangeRate float64) *big.Float {
 
 func (fc Calculator) getEstimatedGas() uint64 {
 	majorityValidatorsCount := len(fc.bridge.GetMembers())/2 + 1
-	estimatedGas := fc.configuration.Client.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.Client.GasPerValidator
+	estimatedGas := fc.configuration.BaseGasUsage + uint64(majorityValidatorsCount)*fc.configuration.GasPerValidator
 	return estimatedGas
 }
 
