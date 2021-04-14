@@ -68,15 +68,15 @@ type Config struct {
 }
 
 type Validator struct {
-	LogLevel        string   `yaml:"log_level"`
-	RestApiOnly     bool     `yaml:"rest_api_only"`
-	Port            string   `yaml:"port"`
+	LogLevel        string   `yaml:"log_level" env:"VALIDATOR_LOG_LEVEL"`
+	RestApiOnly     bool     `yaml:"rest_api_only" env:"VALIDATOR_REST_API_ONLY"`
+	Port            string   `yaml:"port" env:"VALIDATOR_PORT"`
 	Database        Database `yaml:"database"`
 	Clients         Clients  `yaml:"clients"`
 	Recovery        Recovery `yaml:"recovery"`
-	SendDeadline    int64    `yaml:"send_deadline"`
-	BaseGasUsage    uint64   `yaml:"base_gas_usage"`
-	GasPerValidator uint64   `yaml:"gas_per_validator"`
+	SendDeadline    int64    `yaml:"send_deadline" env:"VALIDATOR_SEND_DEADLINE"`
+	BaseGasUsage    uint64   `yaml:"base_gas_usage" env:"VALIDATOR_BASE_GAS_USAGE"`
+	GasPerValidator uint64   `yaml:"gas_per_validator" env:"VALIDATOR_GAS_PER_VALIDATOR"`
 }
 
 type Clients struct {
@@ -86,20 +86,20 @@ type Clients struct {
 }
 
 type Recovery struct {
-	StartTimestamp int64 `yaml:"start_timestamp"`
+	StartTimestamp int64 `yaml:"start_timestamp" env:"VALIDATOR_RECOVERY_START_TIMESTAMP"`
 }
 
 type Ethereum struct {
-	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_ETH_NODE_URL"`
-	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_ETH_ROUTER_CONTRACT_ADDRESS"`
-	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_BLOCK_CONFIRMATIONS"`
-	PrivateKey            string `yaml:"private_key" env:"VALIDATOR_CLIENTS_OPERATOR_ETH_PRIVATE_KEY"`
+	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_CLIENTS_ETHEREUM_NODE_URL"`
+	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_ROUTER_CONTRACT_ADDRESS"`
+	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_ETHEREUM_BLOCK_CONFIRMATIONS"`
+	PrivateKey            string `yaml:"private_key" env:"VALIDATOR_CLIENTS_ETHEREUM_PRIVATE_KEY"`
 }
 
 type Hedera struct {
 	NetworkType   string   `yaml:"network_type" env:"VALIDATOR_CLIENTS_HEDERA_NETWORK_TYPE"`
 	Operator      Operator `yaml:"operator"`
-	BridgeAccount string   `yaml:"account_id" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
+	BridgeAccount string   `yaml:"bridge_account" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
 	PayerAccount  string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
 	TopicId       string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
 }

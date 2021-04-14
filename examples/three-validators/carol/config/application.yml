@@ -1,11 +1,10 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
-#hedera:
-#  validator:
-#    db:
-#      host:
-#      name:
-#      password:
-#      port:
-#      username:
+#validator:
+#  db:
+#    host:
+#    name:
+#    password:
 #    port:
+#    username:
+#  port:

@@ -69,7 +69,7 @@ func main() {
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Database.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Port))
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {

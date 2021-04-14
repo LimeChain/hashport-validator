@@ -1,8 +1,5 @@
 # This file contains application defaults
 validator:
-  log_level: info
-  rest-api-only: false
-  port: 5200
   database:
     host: 127.0.0.1
     name: hedera_validator
@@ -11,25 +8,28 @@ validator:
     username: validator
   clients:
     ethereum:
-      node_url:
-      router_contract_address:
       block_confirmations: 5
+      node_url:
       private_key:
-    mirror_node:
-      client_address: hcs.testnet.mirrornode.hedera.com:5600
-      api_address: https://testnet.mirrornode.hedera.com/api/v1/
-      polling_interval: 5
-      max_retries: 10
+      router_contract_address:
     hedera:
-      network_type: testnet
       operator:
         account_id:
         private_key:
       bridge_account:
+      network_type: testnet
       payer_account:
       topic_id:
-  send_deadline: 300
+    mirror_node:
+      api_address: https://testnet.mirrornode.hedera.com/api/v1/
+      client_address: hcs.testnet.mirrornode.hedera.com:5600
+      max_retries: 10
+      polling_interval: 5
   base_gas_usage: 130000
   gas_per_validator: 54000
+  log_level: info
+  port: 5200
   recovery:
     start_timestamp:
+  rest-api-only: false
+  send_deadline: 300

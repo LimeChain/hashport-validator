@@ -43,10 +43,10 @@ func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicI
 func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
 	tinybarAmount int64,
 	recipient,
-	bridgeThresholdAccountID,
+	bridgeAccountID,
 	payerAccountID hedera.AccountID,
 	nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
-	args := m.Called(tinybarAmount, recipient, bridgeThresholdAccountID, payerAccountID, nonce)
+	args := m.Called(tinybarAmount, recipient, bridgeAccountID, payerAccountID, nonce)
 
 	if args.Get(2) == nil {
 		return args.Get(0).(*hedera.TransactionID), args.Get(1).(*hedera.ScheduleID), nil
