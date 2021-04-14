@@ -26,7 +26,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -165,10 +164,9 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 // WaitForTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
 func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
-	queryableTxId := parseIntoQueryableTx(txId)
 	go func() {
 		for {
-			response, err := c.GetTransaction(queryableTxId)
+			response, err := c.GetTransaction(txId)
 			if response != nil && response.isNotFound() {
 				continue
 			}
@@ -187,15 +185,15 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				}
 
 				if success {
-					c.logger.Debugf("TX [%s] was successfully mined", queryableTxId)
+					c.logger.Debugf("TX [%s] was successfully mined", txId)
 					onSuccess()
 				} else {
-					c.logger.Debugf("TX [%s] has failed", queryableTxId)
+					c.logger.Debugf("TX [%s] has failed", txId)
 					onFailure()
 				}
 				return
 			}
-			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No update", queryableTxId)
+			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No update", txId)
 			time.Sleep(c.pollingInterval * time.Second)
 		}
 	}()
@@ -293,12 +291,4 @@ func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
 	return ioutil.ReadAll(response.Body)
-}
-
-// parseIntoQueryableTx parses TX with format `0.0.X@{seconds}.{nanos}` to format `0.0.X-{seconds}-{nanos}`
-func parseIntoQueryableTx(txId string) string {
-	split := strings.Split(txId, "@")
-	accId := split[0]
-	split = strings.Split(split[1], ".")
-	return fmt.Sprintf("%s-%s-%s", accId, split[0], split[1])
 }
