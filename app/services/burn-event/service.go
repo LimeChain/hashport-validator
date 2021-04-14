@@ -103,7 +103,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 
 	switch txReceipt.Status {
 	case hedera.StatusIdenticalScheduleAlreadyCreated:
-		s.handleScheduleSign(event.Id, hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String()), *txReceipt.ScheduleID)
+		s.handleScheduleSign(event.Id, *txReceipt.ScheduleID)
 	case hedera.StatusSuccess:
 		transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
 		err := s.repository.UpdateStatusSubmitted(event.Id, txReceipt.ScheduleID.String(), transactionID)
@@ -127,40 +127,39 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	}
 
 	transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
+	err = s.repository.UpdateStatusSubmitted(event.Id, txReceipt.ScheduleID.String(), transactionID)
+	if err != nil {
+		s.logger.Errorf(
+			"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
+			event.Id, transactionID, txReceipt.ScheduleID.String(), err)
+		return
+	}
 
 	onSuccess, onFail := s.scheduledTxExecutionCallbacks(transactionID)
 	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onSuccess, onFail)
 }
 
-func (s *Service) handleScheduleSign(txHash, transactionID string, scheduleID hedera.ScheduleID) {
-	s.logger.Debugf("[%s] - Scheduled transaction already created - Executing Scheduled Sign for [%s].", txHash, scheduleID)
+func (s *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {
+	s.logger.Debugf("[%s] - Scheduled transaction already created - Executing Scheduled Sign for [%s].", id, scheduleID)
 	txResponse, err := s.hederaNodeClient.SubmitScheduleSign(scheduleID)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit schedule sign [%s]. Error: [%s].", txHash, scheduleID, err)
+		s.logger.Errorf("[%s] - Failed to submit schedule sign [%s]. Error: [%s].", id, scheduleID, err)
 		return
 	}
 
 	receipt, err := txResponse.GetReceipt(s.hederaNodeClient.GetClient())
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transaction receipt for schedule sign [%s]. Error: [%s].", txHash, scheduleID, err)
+		s.logger.Errorf("[%s] - Failed to get transaction receipt for schedule sign [%s]. Error: [%s].", id, scheduleID, err)
 		return
 	}
 
 	switch receipt.Status {
 	case hedera.StatusSuccess:
-		s.logger.Debugf("[%s] - Successfully executed schedule sign for [%s].", txHash, scheduleID)
+		s.logger.Debugf("[%s] - Successfully executed schedule sign for [%s].", id, scheduleID)
 	case hedera.StatusScheduleAlreadyExecuted:
-		s.logger.Debugf("[%s] - Scheduled Sign [%s] already executed.", txHash, scheduleID)
+		s.logger.Debugf("[%s] - Scheduled Sign [%s] already executed.", id, scheduleID)
 	default:
-		s.logger.Errorf("[%s] - Schedule Sign [%s] failed with [%s].", txHash, scheduleID, receipt.Status)
-	}
-
-	err = s.repository.UpdateStatusSubmitted(txHash, scheduleID.String(), transactionID)
-	if err != nil {
-		s.logger.Errorf(
-			"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
-			txHash, transactionID, scheduleID, err)
-		return
+		s.logger.Errorf("[%s] - Schedule Sign [%s] failed with [%s].", id, scheduleID, receipt.Status)
 	}
 }
 
