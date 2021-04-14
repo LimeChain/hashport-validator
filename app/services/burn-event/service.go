@@ -105,16 +105,9 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	case hedera.StatusIdenticalScheduleAlreadyCreated:
 		s.handleScheduleSign(event.Id, *txReceipt.ScheduleID)
 	case hedera.StatusSuccess:
-		transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
-		err := s.repository.UpdateStatusSubmitted(event.Id, txReceipt.ScheduleID.String(), transactionID)
-		if err != nil {
-			s.logger.Errorf(
-				"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
-				event.Id, transactionID, txReceipt.ScheduleID, err)
-			return
-		}
-
-		s.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].", event.Id, transactionID)
+		s.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].",
+			event.Id,
+			hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String()))
 	default:
 		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", event.Id, transactionResponse.TransactionID, txReceipt.Status)
 

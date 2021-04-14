@@ -25,6 +25,6 @@ const (
 	StatusFailed = "FAILED"
 	// StatusInitial is the initial status on BurnEvent Record creation
 	StatusInitial = "INITIAL"
-	// StatusSubmitted is set once the Hedera Scheduled Transaction (Create/Sign) is submitted to HCS
+	// StatusSubmitted is set once the Hedera Scheduled Transaction (Create/Sign)
 	StatusSubmitted = "SUBMITTED"
 )
