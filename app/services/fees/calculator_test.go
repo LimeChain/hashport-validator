@@ -53,10 +53,10 @@ var (
 	serviceFeePercent uint64 = 10000
 )
 
-func validHederaConfig() config.Hedera {
-	hederaConfig := config.Hedera{}
-	hederaConfig.Client.BaseGasUsage = 130000
-	hederaConfig.Client.GasPerValidator = 54000
+func validHederaConfig() config.Validator {
+	hederaConfig := config.Validator{}
+	hederaConfig.BaseGasUsage = 130000
+	hederaConfig.GasPerValidator = 54000
 
 	return hederaConfig
 }
@@ -75,7 +75,7 @@ func addMoreValidatorsTo(additional uint) []string {
 
 func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
 	mocks.Setup()
-	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Validator{}, mocks.MBridgeContractService)
 
 	invalid, err := feeCalculator.GetEstimatedTxFeeFromGWei(invalidValue)
 
@@ -87,7 +87,7 @@ func TestGetEstimatedTxFeeInvalidInput(t *testing.T) {
 func TestGetEstimatedTxFeeFailedToRetrieveRate(t *testing.T) {
 	mocks.Setup()
 	mocks.MExchangeRateProvider.On("GetEthVsHbarRate").Return(float64(0), RateProviderFailure)
-	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Hedera{}, mocks.MBridgeContractService)
+	feeCalculator := NewCalculator(mocks.MExchangeRateProvider, config.Validator{}, mocks.MBridgeContractService)
 
 	invalid, err := feeCalculator.GetEstimatedTxFeeFromGWei(validGasPrice)
 
@@ -261,8 +261,8 @@ func TestFeeCalculatorConsidersServiceFee(t *testing.T) {
 	mocks.MBridgeContractService.On("GetMembers").Return(addresses)
 
 	config := validHederaConfig()
-	config.Client.BaseGasUsage = 1
-	config.Client.GasPerValidator = 1
+	config.BaseGasUsage = 1
+	config.GasPerValidator = 1
 	serviceFeePercent = 0
 	mocks.MBridgeContractService.On("GetServiceFee").Return(serviceFeePercent)
 

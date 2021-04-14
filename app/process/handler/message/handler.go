@@ -37,7 +37,7 @@ type Handler struct {
 }
 
 func NewHandler(
-	configuration config.ConsensusMessageHandler,
+	configuration config.MirrorNode,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
