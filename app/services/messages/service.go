@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"strings"
 
 	"time"
@@ -257,7 +258,7 @@ func (ss *Service) prepareEthereumMintTask(transferID, wrappedToken, ethAddress,
 		ss.logger.Infof("[%s] - Submitted Ethereum TX Hash [%s] to HCS. Transaction ID [%s].", transferID, ethTx.Hash().String(), hcsTx.String())
 
 		onHcsMessageSuccess, onHcsMessageFail := ss.hcsTxCallbacks(transferID)
-		ss.mirrorClient.WaitForTransaction(hcsTx.String(), onHcsMessageSuccess, onHcsMessageFail)
+		ss.mirrorClient.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(hcsTx.String()), onHcsMessageSuccess, onHcsMessageFail)
 
 		ss.logger.Infof("[%s] - Successfully processed Ethereum Minting", transferID)
 	}

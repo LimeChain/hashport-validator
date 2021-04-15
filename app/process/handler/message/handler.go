@@ -37,15 +37,15 @@ type Handler struct {
 }
 
 func NewHandler(
-	configuration config.MirrorNode,
+	topicId string,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	contractsService service.Contracts,
 	messages service.Messages,
 ) *Handler {
-	topicID, err := hedera.TopicIDFromString(configuration.TopicId)
+	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
-		log.Fatalf("Invalid topic id: [%v]", configuration.TopicId)
+		log.Fatalf("Invalid topic id: [%v]", topicId)
 	}
 
 	return &Handler{
@@ -60,7 +60,7 @@ func NewHandler(
 func (cmh Handler) Handle(payload interface{}) {
 	m, ok := payload.(*message.Message)
 	if !ok {
-		cmh.logger.Errorf("Error could not cast payload [%s]", payload)
+		cmh.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
 

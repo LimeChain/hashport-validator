@@ -22,7 +22,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	cmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
+	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-event"
+	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
@@ -68,7 +69,7 @@ func main() {
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Database.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Port))
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
@@ -124,13 +125,15 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp),
-		cmh.NewHandler(
-			configuration.Validator.Clients.MirrorNode,
+		mh.NewHandler(
+			configuration.Validator.Clients.Hedera.TopicId,
 			repositories.transfer,
 			repositories.message,
 			services.contracts,
 			services.messages))
-	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Validator.Clients.Ethereum), nil)
+
+	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Validator.Clients.Ethereum),
+		beh.NewHandler(services.burnEvents))
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -140,7 +143,7 @@ func addTransferWatcher(configuration *config.Config,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *tw.Watcher {
-	account := configuration.Validator.Clients.MirrorNode.AccountId
+	account := configuration.Validator.Clients.Hedera.BridgeAccount
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
@@ -159,7 +162,7 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
-	topic := configuration.Validator.Clients.MirrorNode.TopicId
+	topic := configuration.Validator.Clients.Hedera.TopicId
 	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
 	return cmw.NewWatcher(client,
 		topic,

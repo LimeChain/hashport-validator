@@ -41,7 +41,7 @@ func NewHandler(transfersService service.Transfers) *Handler {
 func (th Handler) Handle(payload interface{}) {
 	transferMsg, ok := payload.(*model.Transfer)
 	if !ok {
-		th.logger.Errorf("Error could not cast Transfer payload [%s]", payload)
+		th.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
 

@@ -31,6 +31,10 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
+func (m *MockBridgeContract) NativeToken(wrappedToken common.Address) (string, error) {
+	panic("implement me")
+}
+
 func (m *MockBridgeContract) ParseToken(nativeToken string) (string, error) {
 	panic("implement me")
 }
