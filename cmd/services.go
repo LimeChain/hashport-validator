@@ -67,7 +67,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractService := contracts.NewService(clients.Ethereum, c.Hedera.Eth)
+	contractService := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
 
 	return &Services{
 		contracts: contractService,
