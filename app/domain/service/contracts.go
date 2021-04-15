@@ -18,6 +18,7 @@ package service
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 )

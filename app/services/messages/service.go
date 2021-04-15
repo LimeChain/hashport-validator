@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 
 	"time"
 
