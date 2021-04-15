@@ -46,7 +46,6 @@ var (
 	hbarRemovalAmount            = hedera.HbarFrom(-amount, "hbar")
 	precision                    = new(big.Int).SetInt64(100000)
 	whbarReceiverAddress         = common.HexToAddress(receiverAddress)
-	memo                         = receiverAddress
 )
 
 const (
@@ -65,6 +64,10 @@ func Test_HBAR(t *testing.T) {
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
+	// Step 3 - Verify Transfer retrieved from Validator API
+	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, t)
+
+	// Step 4 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
@@ -74,7 +77,7 @@ func Test_HBAR(t *testing.T) {
 			StatusSignature: entity_transfer.StatusSignatureMined,
 		}, t)
 
-	// Step 4 - Verify Database Records
+	// Step 5 - Verify Database Records
 	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, receivedSignatures, t)
 }
 
@@ -84,7 +87,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	wTokenReceiverAddress := common.HexToAddress(receiverAddress)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedTokenBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, wTokenReceiverAddress, t)
+	transactionResponse, wrappedTokenBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, receiverAddress, wTokenReceiverAddress, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -391,7 +394,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 		Subscribe(
 			setup.Clients.Hedera,
 			func(response hedera.TopicMessage) {
-				msg := &validatorproto.TopicMessage{}
+				msg := &validatorproto.TopicEthSignatureMessage{}
 				err := proto.Unmarshal(response.Contents, msg)
 				if err != nil {
 					t.Fatal(err)
@@ -399,12 +402,12 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 
 				//Verify that all the submitted messages have signed the same transaction
 				topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
-				if msg.GetTopicSignatureMessage().TransferID != topicSubmissionMessageSign.String() {
+				if msg.TransferID != topicSubmissionMessageSign.String() {
 					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 				} else {
-					receivedSignatures = append(receivedSignatures, msg.GetTopicSignatureMessage().Signature)
+					receivedSignatures = append(receivedSignatures, msg.Signature)
 					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.GetTopicSignatureMessage().Signature))
+					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.Signature))
 				}
 			},
 		)

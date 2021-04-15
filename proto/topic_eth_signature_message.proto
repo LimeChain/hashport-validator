@@ -10,4 +10,5 @@ message TopicEthSignatureMessage {
   string amount = 3; // The amount of the initial Hedera Transfer
   string signature = 4; // The signature of the validator
   string wrappedToken = 5; // The wrapped eth token
+  int64 transactionTimestamp = 6; // The timestamp of the Hedera Transfer
 }

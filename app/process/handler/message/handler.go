@@ -67,9 +67,8 @@ func (cmh Handler) Handle(payload interface{}) {
 }
 
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleSignatureMessage(tm message.Message) {
-	tsm := tm.GetTopicSignatureMessage()
-	valid, err := cmh.messages.SanityCheckSignature(tm)
+func (cmh Handler) handleSignatureMessage(tsm message.Message) {
+	valid, err := cmh.messages.SanityCheckSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
 		return
@@ -79,7 +78,7 @@ func (cmh Handler) handleSignatureMessage(tm message.Message) {
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tm)
+	err = cmh.messages.ProcessSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return

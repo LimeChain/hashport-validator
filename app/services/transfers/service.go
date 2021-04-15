@@ -71,7 +71,7 @@ func NewService(
 
 // SanityCheck performs validation on the memo and state proof for the transaction
 func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
-	m, e := memo.ValidateMemo(tx.MemoBase64)
+	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
 		return "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
@@ -175,10 +175,9 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		signature,
 		tm.WrappedToken)
 
-	tsm := signatureMessage.GetTopicSignatureMessage()
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", tsm.TransferID, err)
+		ts.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", signatureMessage.TransferID, err)
 		return err
 	}
 
@@ -186,20 +185,20 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		ts.topicID,
 		sigMsgBytes)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", tsm.TransferID, err)
+		ts.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", signatureMessage.TransferID, err)
 		return err
 	}
 
 	// Update Transfer Record
-	err = ts.transferRepository.UpdateStatusSignatureSubmitted(tsm.TransferID)
+	err = ts.transferRepository.UpdateStatusSignatureSubmitted(signatureMessage.TransferID)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to update. Error [%s].", tsm.TransferID, err)
+		ts.logger.Errorf("[%s] - Failed to update. Error [%s].", signatureMessage.TransferID, err)
 		return err
 	}
 
 	// Attach update callbacks on Signature HCS Message
-	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", tsm.TransferID, ts.topicID)
-	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransferID)
+	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", signatureMessage.TransferID, ts.topicID)
+	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(signatureMessage.TransferID)
 	ts.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }

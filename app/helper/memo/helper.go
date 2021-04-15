@@ -23,8 +23,8 @@ import (
 	"regexp"
 )
 
-// ValidateMemo sanity checks and instantiates new Memo struct from base64 encoded string
-func ValidateMemo(ethAddress string) (string, error) {
+// Validate sanity checks and instantiates new Memo struct from base64 encoded string
+func Validate(ethAddress string) (string, error) {
 	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(ethAddress)
 	if e != nil {

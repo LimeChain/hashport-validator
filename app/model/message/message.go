@@ -25,12 +25,12 @@ import (
 
 // Message serves as a model between Topic Message Watcher and Handler
 type Message struct {
-	*model.TopicMessage
+	*model.TopicEthSignatureMessage
 }
 
 // FromBytes instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
 func FromBytes(data []byte) (*Message, error) {
-	msg := &model.TopicMessage{}
+	msg := &model.TopicEthSignatureMessage{}
 	err := proto.Unmarshal(data, msg)
 	if err != nil {
 		return nil, err
@@ -65,19 +65,17 @@ func FromString(data, ts string) (*Message, error) {
 
 // NewSignatureMessage instantiates Signature Message struct ready for submission to the Bridge Topic
 func NewSignature(transferID, receiver, amount, signature, wrappedToken string) *Message {
-	topicMsg := &model.TopicMessage{
-		TopicSignatureMessage: &model.TopicEthSignatureMessage{
-			TransferID:   transferID,
-			Receiver:     receiver,
-			Amount:       amount,
-			Signature:    signature,
-			WrappedToken: wrappedToken,
-		},
+	topicMsg := &model.TopicEthSignatureMessage{
+		TransferID:   transferID,
+		Receiver:     receiver,
+		Amount:       amount,
+		Signature:    signature,
+		WrappedToken: wrappedToken,
 	}
 	return &Message{topicMsg}
 }
 
 // ToBytes marshals the underlying protobuf Message into bytes
 func (tm *Message) ToBytes() ([]byte, error) {
-	return proto.Marshal(tm.TopicMessage)
+	return proto.Marshal(tm.TopicEthSignatureMessage)
 }

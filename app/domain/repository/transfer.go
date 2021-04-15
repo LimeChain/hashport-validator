@@ -24,11 +24,9 @@ import (
 type Transfer interface {
 	GetByTransactionId(txId string) (*entity.Transfer, error)
 	GetWithMessages(txId string) (*entity.Transfer, error)
-	GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error)
 	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
-	Save(tx *entity.Transfer) error
 	SaveRecoveredTxn(ct *transfer.Transfer) error
 	UpdateStatusCompleted(txId string) error
 

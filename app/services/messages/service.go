@@ -77,9 +77,7 @@ func NewService(
 
 // SanityCheckSignature performs validation on the topic message metadata.
 // Validates it against the Transaction Record metadata from DB
-func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
-	topicMessage := tm.GetTopicSignatureMessage()
-
+func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, error) {
 	// In case a topic message for given transfer is being processed before the actual transfer
 	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
@@ -100,9 +98,8 @@ func (ss *Service) SanityCheckSignature(tm message.Message) (bool, error) {
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-func (ss *Service) ProcessSignature(tm message.Message) error {
+func (ss *Service) ProcessSignature(tsm message.Message) error {
 	// Parse incoming message
-	tsm := tm.GetTopicSignatureMessage()
 	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
@@ -142,7 +139,7 @@ func (ss *Service) ProcessSignature(tm message.Message) error {
 		Signature:            signatureHex,
 		Hash:                 authMessageStr,
 		Signer:               address.String(),
-		TransactionTimestamp: tm.TransactionTimestamp,
+		TransactionTimestamp: tsm.TransactionTimestamp,
 	})
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: [%s]", tsm.TransferID, signatureHex, err)

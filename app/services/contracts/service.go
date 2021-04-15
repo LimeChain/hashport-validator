@@ -36,13 +36,12 @@ const (
 )
 
 type Service struct {
-	address    common.Address
-	contract   *routerAbi.Router
-	Client     client.Ethereum
-	mutex      sync.Mutex
-	members    Members
-	serviceFee ServiceFee
-	logger     *log.Entry
+	address  common.Address
+	contract *routerAbi.Router
+	Client   client.Ethereum
+	mutex    sync.Mutex
+	members  Members
+	logger   *log.Entry
 }
 
 func (bsc *Service) ParseToken(tokenId string) (string, error) {
@@ -87,17 +86,6 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router
 	return bsc.contract.WatchBurn(opts, sink, addresses)
 }
 
-func (bsc *Service) updateServiceFee() {
-	newFee, err := bsc.contract.ServiceFee(nil)
-	if err != nil {
-		bsc.logger.Fatal("Failed to get service fee", err)
-	}
-
-	bsc.serviceFee.Set(*newFee)
-	bsc.logger.Infof("Set service fee to [%s]", newFee)
-
-}
-
 func (bsc *Service) updateMembers() {
 	membersCount, err := bsc.contract.MembersCount(nil)
 	if err != nil {
@@ -115,25 +103,6 @@ func (bsc *Service) updateMembers() {
 	bsc.members.Set(membersArray)
 	bsc.logger.Infof("Set members list to %s", membersArray)
 
-}
-
-func (bsc *Service) listenForChangeFeeEvent() {
-	events := make(chan *routerAbi.RouterServiceFeeSet)
-	sub, err := bsc.contract.WatchServiceFeeSet(nil, events)
-	if err != nil {
-		bsc.logger.Fatal("Failed to subscribe for WatchServiceFeeSet Event Logs for contract. Error ", err)
-	}
-
-	for {
-		select {
-		case err := <-sub.Err():
-			bsc.logger.Errorf("ServiceFeeSet Event Logs subscription failed. Error [%s].", err)
-			return
-		case eventLog := <-events:
-			bsc.serviceFee.Set(*eventLog.NewServiceFee)
-			bsc.logger.Infof(`Set service fee to [%s]`, eventLog.NewServiceFee)
-		}
-	}
 }
 
 func (bsc *Service) listenForMemberUpdatedEvent() {
@@ -174,10 +143,8 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 	}
 
 	contractService.updateMembers()
-	contractService.updateServiceFee()
 
 	go contractService.listenForMemberUpdatedEvent()
-	go contractService.listenForChangeFeeEvent()
 
 	return contractService
 }
