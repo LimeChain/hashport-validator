@@ -58,12 +58,12 @@ func NewProcess(
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
 ) (*Recovery, error) {
-	account, err := hederasdk.AccountIDFromString(c.Clients.MirrorNode.AccountId)
+	account, err := hederasdk.AccountIDFromString(c.Clients.Hedera.BridgeAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	topic, err := hederasdk.TopicIDFromString(c.Clients.MirrorNode.TopicId)
+	topic, err := hederasdk.TopicIDFromString(c.Clients.Hedera.TopicId)
 	if err != nil {
 		return nil, err
 	}

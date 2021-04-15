@@ -51,7 +51,7 @@ services:
       context: ../..
       dockerfile: ./build/Dockerfile
     environment:
-      HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: alice_db
+      VALIDATOR_DATABASE_HOST: alice_db
     volumes:
       - ./alice/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
   bob:
     image: eth-hedera-validator
     environment:
-      HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: bob_db
+      VALIDATOR_DATABASE_HOST: bob_db
     volumes:
       - ./bob/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped
@@ -75,7 +75,7 @@ services:
   carol:
     image: eth-hedera-validator
     environment:
-      HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: carol_db
+      VALIDATOR_DATABASE_HOST: carol_db
     volumes:
       - ./carol/config/application.yml:/src/hedera-eth-bridge-validator/application.yml
     restart: unless-stopped

@@ -20,6 +20,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -32,7 +36,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Service struct {

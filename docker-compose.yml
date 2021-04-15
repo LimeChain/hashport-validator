@@ -18,7 +18,7 @@ services:
   validator:
     image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:latest
     environment:
-      HEDERA_ETH_BRIDGE_VALIDATOR_DB_HOST: db
+      VALIDATOR_DATABASE_HOST: db
     restart: unless-stopped
     tty: true
     volumes:

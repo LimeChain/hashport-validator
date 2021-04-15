@@ -1,9 +1,8 @@
-#hedera:
-#  validator:
-#    db:
-#      host:
-#      name:
-#      password:
-#      port:
-#      username:
+#validator:
+#  db:
+#    host:
+#    name:
+#    password:
 #    port:
+#    username:
+#  port:

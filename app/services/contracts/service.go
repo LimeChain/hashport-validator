@@ -61,6 +61,19 @@ func (bsc *Service) ParseToken(tokenId string) (string, error) {
 	return erc20address, nil
 }
 
+func (bsc *Service) NativeToken(wrappedToken common.Address) (string, error) {
+	nativeToken, err := bsc.contract.WrappedToNativeToken(nil, wrappedToken)
+	if err != nil {
+		return "", err
+	}
+
+	if len(nativeToken) == 0 {
+		return "", errors.New("native token not found")
+	}
+
+	return string(common.TrimRightZeroes(nativeToken)), nil
+}
+
 func (bsc *Service) GetBridgeContractAddress() common.Address {
 	return bsc.address
 }
@@ -82,8 +95,7 @@ func (bsc *Service) IsMember(address string) bool {
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *routerAbi.RouterBurn) (event.Subscription, error) {
-	var addresses []common.Address
-	return bsc.contract.WatchBurn(opts, sink, addresses)
+	return bsc.contract.WatchBurn(opts, sink, nil, nil)
 }
 
 func (bsc *Service) updateMembers() {

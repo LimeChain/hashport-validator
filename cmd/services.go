@@ -18,6 +18,7 @@ package main
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -31,6 +32,7 @@ type Services struct {
 	contracts service.Contracts
 	transfers service.Transfers
 	messages  service.Messages
+	burnEvents service.BurnEvent
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -44,7 +46,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contracts,
 		ethSigner,
 		repositories.transfer,
-		c.Validator.Clients.MirrorNode.TopicId)
+		c.Validator.Clients.Hedera.TopicId)
 
 	messages := messages.NewService(
 		ethSigner,
@@ -54,13 +56,21 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		clients.Ethereum,
-		c.Validator.Clients.MirrorNode.TopicId)
+		c.Validator.Clients.Hedera.TopicId)
+
+	burnEvent := burn_event.NewService(
+		c.Validator.Clients.Hedera.BridgeAccount,
+		c.Validator.Clients.Hedera.PayerAccount,
+		clients.HederaNode,
+		clients.MirrorNode,
+		repositories.burnEvent)
 
 	return &Services{
 		signer:    ethSigner,
 		contracts: contracts,
 		transfers: transfers,
 		messages:  messages,
+		burnEvents: burnEvent,
 	}
 }
 

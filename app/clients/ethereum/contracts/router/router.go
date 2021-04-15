@@ -27,7 +27,7 @@ var (
 )
 
 // RouterABI is the input ABI used to generate the binding from.
-const RouterABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_controllerAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFeeInWTokens\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"nativeToken\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"TokenUpdate\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"controllerAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"}],\"name\":\"getTxCostsPerMember\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"nativeToWrappedToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedToNativeToken\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedTokensData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mintWithReimbursement\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newWrappedToken\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"tokenID\",\"type\":\"bytes\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"updateWrappedToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"isSupportedToken\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"wrappedTokensCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"wrappedTokenAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const RouterABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_controllerAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFeeInWTokens\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"nativeToken\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"TokenUpdate\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"controllerAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"}],\"name\":\"getTxCostsPerMember\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"mintTransfers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isExecuted\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"nativeToWrappedToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedToNativeToken\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"wrappedTokensData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"txCost\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mintWithReimbursement\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isMember\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newWrappedToken\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"tokenID\",\"type\":\"bytes\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"name\":\"updateWrappedToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"isSupportedToken\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"wrappedTokensCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"wrappedTokenAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Router is an auto generated Go binding around an Ethereum contract.
 type Router struct {
@@ -879,41 +879,50 @@ func (it *RouterBurnIterator) Close() error {
 
 // RouterBurn represents a Burn event raised by the Router contract.
 type RouterBurn struct {
-	Account    common.Address
-	Amount     *big.Int
-	ServiceFee *big.Int
-	Receiver   []byte
-	Raw        types.Log // Blockchain specific contextual infos
+	Account      common.Address
+	WrappedToken common.Address
+	Amount       *big.Int
+	ServiceFee   *big.Int
+	Receiver     []byte
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterBurn is a free log retrieval operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
+// FilterBurn is a free log retrieval operation binding the contract event 0xdc10f4e7dc07ecbfb7161b29d366abee4dd6e2413104fcb7c324aeccedb2f15f.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
-func (_Router *RouterFilterer) FilterBurn(opts *bind.FilterOpts, account []common.Address) (*RouterBurnIterator, error) {
+// Solidity: event Burn(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFee, bytes receiver)
+func (_Router *RouterFilterer) FilterBurn(opts *bind.FilterOpts, account []common.Address, wrappedToken []common.Address) (*RouterBurnIterator, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
+	var wrappedTokenRule []interface{}
+	for _, wrappedTokenItem := range wrappedToken {
+		wrappedTokenRule = append(wrappedTokenRule, wrappedTokenItem)
+	}
 
-	logs, sub, err := _Router.contract.FilterLogs(opts, "Burn", accountRule)
+	logs, sub, err := _Router.contract.FilterLogs(opts, "Burn", accountRule, wrappedTokenRule)
 	if err != nil {
 		return nil, err
 	}
 	return &RouterBurnIterator{contract: _Router.contract, event: "Burn", logs: logs, sub: sub}, nil
 }
 
-// WatchBurn is a free log subscription operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
+// WatchBurn is a free log subscription operation binding the contract event 0xdc10f4e7dc07ecbfb7161b29d366abee4dd6e2413104fcb7c324aeccedb2f15f.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
-func (_Router *RouterFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *RouterBurn, account []common.Address) (event.Subscription, error) {
+// Solidity: event Burn(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFee, bytes receiver)
+func (_Router *RouterFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *RouterBurn, account []common.Address, wrappedToken []common.Address) (event.Subscription, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
+	var wrappedTokenRule []interface{}
+	for _, wrappedTokenItem := range wrappedToken {
+		wrappedTokenRule = append(wrappedTokenRule, wrappedTokenItem)
+	}
 
-	logs, sub, err := _Router.contract.WatchLogs(opts, "Burn", accountRule)
+	logs, sub, err := _Router.contract.WatchLogs(opts, "Burn", accountRule, wrappedTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -945,9 +954,9 @@ func (_Router *RouterFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *Rout
 	}), nil
 }
 
-// ParseBurn is a log parse operation binding the contract event 0x8da2fc26da2245514483a393963ce93cac8be27cf30bbbc78569ff2ffe3eda16.
+// ParseBurn is a log parse operation binding the contract event 0xdc10f4e7dc07ecbfb7161b29d366abee4dd6e2413104fcb7c324aeccedb2f15f.
 //
-// Solidity: event Burn(address indexed account, uint256 amount, uint256 serviceFee, bytes receiver)
+// Solidity: event Burn(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFee, bytes receiver)
 func (_Router *RouterFilterer) ParseBurn(log types.Log) (*RouterBurn, error) {
 	event := new(RouterBurn)
 	if err := _Router.contract.UnpackLog(event, "Burn", log); err != nil {
@@ -1307,6 +1316,7 @@ func (it *RouterMintIterator) Close() error {
 // RouterMint represents a Mint event raised by the Router contract.
 type RouterMint struct {
 	Account             common.Address
+	WrappedToken        common.Address
 	Amount              *big.Int
 	ServiceFeeInWTokens *big.Int
 	TxCost              *big.Int
@@ -1314,14 +1324,18 @@ type RouterMint struct {
 	Raw                 types.Log // Blockchain specific contextual infos
 }
 
-// FilterMint is a free log retrieval operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
+// FilterMint is a free log retrieval operation binding the contract event 0x43921b73dbf816ea45b5fb03d9fce2201c7d8f5a8ed24da1726402df8c718551.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
-func (_Router *RouterFilterer) FilterMint(opts *bind.FilterOpts, account []common.Address, transactionId [][]byte) (*RouterMintIterator, error) {
+// Solidity: event Mint(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
+func (_Router *RouterFilterer) FilterMint(opts *bind.FilterOpts, account []common.Address, wrappedToken []common.Address, transactionId [][]byte) (*RouterMintIterator, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
+	}
+	var wrappedTokenRule []interface{}
+	for _, wrappedTokenItem := range wrappedToken {
+		wrappedTokenRule = append(wrappedTokenRule, wrappedTokenItem)
 	}
 
 	var transactionIdRule []interface{}
@@ -1329,21 +1343,25 @@ func (_Router *RouterFilterer) FilterMint(opts *bind.FilterOpts, account []commo
 		transactionIdRule = append(transactionIdRule, transactionIdItem)
 	}
 
-	logs, sub, err := _Router.contract.FilterLogs(opts, "Mint", accountRule, transactionIdRule)
+	logs, sub, err := _Router.contract.FilterLogs(opts, "Mint", accountRule, wrappedTokenRule, transactionIdRule)
 	if err != nil {
 		return nil, err
 	}
 	return &RouterMintIterator{contract: _Router.contract, event: "Mint", logs: logs, sub: sub}, nil
 }
 
-// WatchMint is a free log subscription operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
+// WatchMint is a free log subscription operation binding the contract event 0x43921b73dbf816ea45b5fb03d9fce2201c7d8f5a8ed24da1726402df8c718551.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
-func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *RouterMint, account []common.Address, transactionId [][]byte) (event.Subscription, error) {
+// Solidity: event Mint(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
+func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *RouterMint, account []common.Address, wrappedToken []common.Address, transactionId [][]byte) (event.Subscription, error) {
 
 	var accountRule []interface{}
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
+	}
+	var wrappedTokenRule []interface{}
+	for _, wrappedTokenItem := range wrappedToken {
+		wrappedTokenRule = append(wrappedTokenRule, wrappedTokenItem)
 	}
 
 	var transactionIdRule []interface{}
@@ -1351,7 +1369,7 @@ func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *Rout
 		transactionIdRule = append(transactionIdRule, transactionIdItem)
 	}
 
-	logs, sub, err := _Router.contract.WatchLogs(opts, "Mint", accountRule, transactionIdRule)
+	logs, sub, err := _Router.contract.WatchLogs(opts, "Mint", accountRule, wrappedTokenRule, transactionIdRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1383,9 +1401,9 @@ func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *Rout
 	}), nil
 }
 
-// ParseMint is a log parse operation binding the contract event 0xab5e0e0fc4eb29aaba31da7756245e8580bb49834b10faff58b98807a565808f.
+// ParseMint is a log parse operation binding the contract event 0x43921b73dbf816ea45b5fb03d9fce2201c7d8f5a8ed24da1726402df8c718551.
 //
-// Solidity: event Mint(address indexed account, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
+// Solidity: event Mint(address indexed account, address indexed wrappedToken, uint256 amount, uint256 serviceFeeInWTokens, uint256 txCost, bytes indexed transactionId)
 func (_Router *RouterFilterer) ParseMint(log types.Log) (*RouterMint, error) {
 	event := new(RouterMint)
 	if err := _Router.contract.UnpackLog(event, "Mint", log); err != nil {

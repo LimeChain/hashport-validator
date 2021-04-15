@@ -72,6 +72,7 @@ func Test_HBAR(t *testing.T) {
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		"HBAR",
+		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -109,6 +110,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
+		strconv.Itoa(tokensSendAmount),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -218,16 +220,13 @@ func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entit
 	}
 }
 
-func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeToken string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeToken, amount string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := fromHederaTransactionID(&transactionID)
 
 	wrappedToken, err := setup.ParseToken(routerContract, nativeToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeToken, err)
 	}
-
-	amount := strconv.FormatInt(hBarSendAmount.AsTinybar(), 10)
-
 	return &entity.Transfer{
 		TransactionID:      expectedTxId.String(),
 		Receiver:           receiverAddress,

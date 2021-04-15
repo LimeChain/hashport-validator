@@ -19,6 +19,7 @@ package mirror_node
 import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"strconv"
 )
 
@@ -35,6 +36,7 @@ type (
 		MaxFee               string     `json:"max_fee"`
 		ValidDurationSeconds string     `json:"valid_duration_seconds"`
 		Node                 string     `json:"node"`
+		Scheduled            bool       `json:"scheduled"`
 		TransactionID        string     `json:"transaction_id"`
 		Transfers            []Transfer `json:"transfers"`
 		TokenTransfers       []Transfer `json:"token_transfers"`
@@ -59,7 +61,7 @@ type (
 func (t Transaction) getIncomingAmountFor(account string) (string, string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
-			return strconv.Itoa(int(tr.Amount)), "HBAR", nil
+			return strconv.Itoa(int(tr.Amount)), constants.Hbar, nil
 		}
 	}
 	return "", "", errors.New("no incoming transfer found")

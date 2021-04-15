@@ -17,12 +17,18 @@
 package ethereum
 
 import (
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,7 +44,7 @@ func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config c
 		config:    config,
 		contracts: contracts,
 		ethClient: ethClient,
-		logger:    c.GetLoggerFor("Ethereum Watcher"),
+		logger:    c.GetLoggerFor(fmt.Sprintf("Ethereum Router Watcher [%s]", config.RouterContractAddress)),
 	}
 }
 
@@ -52,6 +58,7 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	sub, err := ew.contracts.WatchBurnEventLogs(nil, events)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		return
 	}
 
 	for {
@@ -66,22 +73,50 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 }
 
 func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	ew.logger.Debugf("[%s] New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
+	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
-		ew.logger.Debugf("[%s] Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
 		return
 	}
 
-	err := ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
+	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
 	if err != nil {
-		ew.logger.Errorf("[%s] Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
+		return
 	}
-	ew.logger.Infof("New Burn Event Log for [%s], Amount [%s], Receiver Address [%s] has been found.",
+	nativeToken, err := ew.contracts.NativeToken(eventLog.WrappedToken)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken, err)
+		return
+	}
+
+	if nativeToken != constants.Hbar && !hederahelper.IsTokenID(nativeToken) {
+		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
+		return
+	}
+
+	burnEvent := &burn_event.BurnEvent{
+		Amount:       eventLog.Amount.Int64(),
+		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+		Recipient:    recipientAccount,
+		WrappedToken: eventLog.WrappedToken.String(),
+		NativeToken:  nativeToken,
+	}
+
+	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+		return
+	}
+
+	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
+		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
+		eventLog.ServiceFee.String(),
 		eventLog.Receiver)
 
-	message := &pair.Message{Payload: eventLog.Raw.Data}
-	q.Push(message)
+	q.Push(&pair.Message{Payload: burnEvent})
 }

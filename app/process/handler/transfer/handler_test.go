@@ -21,6 +21,7 @@ import (
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
 	"testing"
@@ -31,7 +32,7 @@ var (
 		TransactionId: "0.0.0-0000000-1234",
 		Receiver:      "0x12345",
 		Amount:        "10000000000",
-		NativeToken:   "HBAR",
+		NativeToken:   constants.Hbar,
 		WrappedToken:  "0x45678",
 	}
 )

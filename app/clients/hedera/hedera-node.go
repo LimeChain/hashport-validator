@@ -66,7 +66,7 @@ func (hc Node) GetClient() *hedera.Client {
 // SubmitTopicConsensusMessage submits the provided message bytes to the
 // specified HCS `topicId`
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	id, err := hedera.NewTopicMessageSubmitTransaction().
+	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		Execute(hc.client)
@@ -75,14 +75,88 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 		return nil, err
 	}
 
-	receipt, err := id.GetReceipt(hc.client)
+	_, err = hc.checkTransactionReceipt(txResponse)
+
+	return &txResponse.TransactionID, err
+}
+
+// SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
+func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
+	response, err := hedera.NewScheduleSignTransaction().
+		SetScheduleID(scheduleID).
+		Execute(hc.GetClient())
+
+	return &response, err
+}
+
+// SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits it as a scheduled transaction
+func (hc Node) SubmitScheduledTokenTransferTransaction(
+	tinybarAmount int64,
+	tokenID hedera.TokenID,
+	recipient,
+	sender,
+	payerAccountID hedera.AccountID,
+	memo string) (*hedera.TransactionResponse, error) {
+
+	transferTransaction := hedera.NewTransferTransaction().
+		AddTokenTransfer(tokenID, recipient, tinybarAmount).
+		AddTokenTransfer(tokenID, sender, -tinybarAmount)
+
+	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
+}
+
+// SubmitScheduledHbarTransferTransaction creates a hbar transfer transaction and submits it as a scheduled transaction
+func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
+	recipient,
+	sender,
+	payerAccountID hedera.AccountID,
+	memo string) (*hedera.TransactionResponse, error) {
+	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
+	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
+
+	transferTransaction := hedera.NewTransferTransaction().
+		AddHbarTransfer(recipient, receiveAmount).
+		AddHbarTransfer(sender, subtractedAmount)
+
+	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
+}
+
+// submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits to HCS
+func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, transaction *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
+	transaction, err := transaction.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTransaction, err := transaction.
+		SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledTx, err := hedera.NewScheduleCreateTransaction().
+		SetScheduledTransaction(signedTransaction)
+	if err != nil {
+		return nil, err
+	}
+	scheduledTx = scheduledTx.
+		SetPayerAccountID(payerAccountID).
+		SetScheduleMemo(memo)
+
+	response, err := scheduledTx.Execute(hc.GetClient())
+
+	return &response, err
+}
+
+func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
+	receipt, err := txResponse.GetReceipt(hc.client)
 	if err != nil {
 		return nil, err
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", id.TransactionID.String(), receipt.Status))
+		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status))
 	}
 
-	return &id.TransactionID, err
+	return &receipt, err
 }
