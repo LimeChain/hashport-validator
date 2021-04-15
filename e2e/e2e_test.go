@@ -42,7 +42,7 @@ import (
 var (
 	amount               float64 = 400
 	hBarSendAmount               = hedera.HbarFrom(amount, "hbar")
-	tokensSendAmount             = 1000000000
+	tokensSendAmount     int64   = 1000000000
 	hbarRemovalAmount            = hedera.HbarFrom(-amount, "hbar")
 	precision                    = new(big.Int).SetInt64(100000)
 	whbarReceiverAddress         = common.HexToAddress(receiverAddress)
@@ -65,7 +65,7 @@ func Test_HBAR(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, t)
+	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, "HBAR", hBarSendAmount.AsTinybar(), t)
 
 	// Step 4 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
@@ -94,7 +94,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), tokensSendAmount, t)
 
 	// Step 4 - Submit Mint transaction
 	txHash := submitMintTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
@@ -110,7 +110,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
-		strconv.Itoa(tokensSendAmount),
+		strconv.FormatInt(tokensSendAmount, 10),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -184,20 +184,20 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 	}
 }
 
-func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.TransactionResponse, t *testing.T) (*service.TransferData, *common.Address) {
-	tokenAddress, err := setup.ParseToken(setupEnv.Clients.RouterContract, setupEnv.TokenID.String())
+func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.TransactionResponse, tokenID string, expectedSendAmount int64, t *testing.T) (*service.TransferData, *common.Address) {
+	tokenAddress, err := setup.ParseToken(setupEnv.Clients.RouterContract, tokenID)
 	if err != nil {
-		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", tokenID, err)
 	}
 
 	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(hederahelper.FromHederaTransactionID(&txResponse.TransactionID).String())
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
-	if transactionData.Amount != fmt.Sprint(tokensSendAmount) {
-		t.Fatalf("Transaction data mismatch: Expected [%d], but was [%s]", tokensSendAmount, transactionData.Amount)
+	if transactionData.Amount != fmt.Sprint(expectedSendAmount) {
+		t.Fatalf("Transaction data mismatch: Expected [%d], but was [%s]", expectedSendAmount, transactionData.Amount)
 	}
-	if transactionData.NativeToken != setupEnv.TokenID.String() {
+	if transactionData.NativeToken != tokenID {
 		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeToken)
 	}
 	if transactionData.Recipient != receiverAddress {
