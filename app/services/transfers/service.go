@@ -27,6 +27,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
@@ -239,7 +240,7 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	// Attach update callbacks on Signature HCS Message
 	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", tsm.TransferID, ts.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(tsm.TransferID)
-	ts.mirrorNode.WaitForTransaction(messageTxId.String(), onSuccessfulAuthMessage, onFailedAuthMessage)
+	ts.mirrorNode.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }
 

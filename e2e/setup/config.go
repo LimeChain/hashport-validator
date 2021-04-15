@@ -245,11 +245,11 @@ type Tokens struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string      `yaml:"network_type"`
-	BridgeAccount     string      `yaml:"bridge_account"`
-	TopicID           string      `yaml:"topic_id"`
-	Sender            Sender      `yaml:"sender"`
-	DbValidationProps []config.Db `yaml:"dbs"`
+	NetworkType       string            `yaml:"network_type"`
+	BridgeAccount     string            `yaml:"bridge_account"`
+	TopicID           string            `yaml:"topic_id"`
+	Sender            Sender            `yaml:"sender"`
+	DbValidationProps []config.Database `yaml:"dbs"`
 }
 
 // sender props from the application.yml
