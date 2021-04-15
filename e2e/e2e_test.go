@@ -19,9 +19,9 @@ package e2e
 import (
 	"encoding/hex"
 	"fmt"
+	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"math/big"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -130,7 +130,7 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 
 	res, err := setupEnv.Clients.RouterContract.Mint(
 		setupEnv.Clients.KeyTransactor,
-		[]byte(fromHederaTransactionID(&transactionResponse.TransactionID).String()),
+		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
 		common.HexToAddress(receiverAddress),
 		big.NewInt(int64(tokensSendAmount)),
@@ -190,7 +190,7 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
 	}
 
-	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(fromHederaTransactionID(&txResponse.TransactionID).String())
+	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(hederahelper.FromHederaTransactionID(&txResponse.TransactionID).String())
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
@@ -221,7 +221,7 @@ func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entit
 }
 
 func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeToken, amount string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
-	expectedTxId := fromHederaTransactionID(&transactionID)
+	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
 	wrappedToken, err := setup.ParseToken(routerContract, nativeToken)
 	if err != nil {
@@ -400,7 +400,7 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 				}
 
 				//Verify that all the submitted messages have signed the same transaction
-				topicSubmissionMessageSign := fromHederaTransactionID(&transactionResponse.TransactionID)
+				topicSubmissionMessageSign := hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID)
 				if msg.TransferID != topicSubmissionMessageSign.String() {
 					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, topicSubmissionMessageSign.String()))
 				} else {
@@ -423,32 +423,4 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 	// Not possible end-case
 	return nil
-}
-
-type hederaTxId struct {
-	AccountId string
-	Seconds   string
-	Nanos     string
-}
-
-func fromHederaTransactionID(id *hedera.TransactionID) hederaTxId {
-	stringTxId := id.String()
-	split := strings.Split(stringTxId, "@")
-	accId := split[0]
-
-	split = strings.Split(split[1], ".")
-
-	return hederaTxId{
-		AccountId: accId,
-		Seconds:   fmt.Sprintf("%09s", split[0]),
-		Nanos:     fmt.Sprintf("%09s", split[1]),
-	}
-}
-
-func (txId hederaTxId) String() string {
-	return fmt.Sprintf("%s-%s-%s", txId.AccountId, txId.Seconds, txId.Nanos)
-}
-
-func (txId hederaTxId) Timestamp() string {
-	return fmt.Sprintf("%s.%s", txId.Seconds, txId.Nanos)
 }
