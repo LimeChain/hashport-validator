@@ -104,8 +104,8 @@ func validateFees() {
 
 func validateTxAndEvents(setupEnv *setup.Setup, tx *types.Transaction, t *testing.T) {
 	waitForTransaction(setupEnv, tx.Hash().String(), t)
-	validateScheduledTransactionSubmission(setupEnv, tx, t)
 	listenBurnEvents(setupEnv, t)
+	validateScheduledTransactionSubmission(setupEnv, tx, t)
 }
 
 func listenBurnEvents(setupEnv *setup.Setup, t *testing.T) {
@@ -407,6 +407,7 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 	return res.Hash().String()
 }
 
+// TODO: Call only WaitForReceipt and make the function synchronous
 func waitForTransaction(setupEnv *setup.Setup, txHash string, t *testing.T) {
 	fmt.Println(fmt.Sprintf("Waiting for transaction: [%s] to be mined", txHash))
 	c1 := make(chan bool, 1)
