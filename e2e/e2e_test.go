@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"math/big"
 	"strconv"
 	"testing"
@@ -65,7 +66,7 @@ func Test_HBAR(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, "HBAR", hBarSendAmount.AsTinybar(), t)
+	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, constants.Hbar, hBarSendAmount.AsTinybar(), t)
 
 	// Step 4 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
