@@ -24,7 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,40 +63,12 @@ func (cmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	switch m.Type {
-	case validatorproto.TopicMessageType_EthSignature:
-		cmh.handleSignatureMessage(*m)
-	case validatorproto.TopicMessageType_EthTransaction:
-		cmh.handleEthTxMessage(*m)
-	default:
-		cmh.logger.Errorf("Error - invalid topic submission message type [%s]", m.Type)
-	}
-}
-
-func (cmh Handler) handleEthTxMessage(tm message.Message) {
-	ethTxMessage := tm.GetTopicEthTransactionMessage()
-	isValid, err := cmh.messages.VerifyEthereumTxAuthenticity(tm)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to verify Ethereum TX [%s]. Error: [%s]", ethTxMessage.TransferID, ethTxMessage.EthTxHash, err)
-		return
-	}
-	if !isValid {
-		cmh.logger.Errorf("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
-		return
-	}
-
-	// Process Ethereum Transaction Message
-	err = cmh.messages.ProcessEthereumTxMessage(tm)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to process Ethereum TX Message", ethTxMessage.TransferID)
-		return
-	}
+	cmh.handleSignatureMessage(*m)
 }
 
 // handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleSignatureMessage(tm message.Message) {
-	tsm := tm.GetTopicSignatureMessage()
-	valid, err := cmh.messages.SanityCheckSignature(tm)
+func (cmh Handler) handleSignatureMessage(tsm message.Message) {
+	valid, err := cmh.messages.SanityCheckSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
 		return
@@ -107,49 +78,36 @@ func (cmh Handler) handleSignatureMessage(tm message.Message) {
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tm)
+	err = cmh.messages.ProcessSignature(tsm)
 	if err != nil {
-		cmh.logger.Errorf("[%s] - Could not process Signature [%s]", tsm.TransferID, tsm.GetSignature())
+		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 
-	majorityReached, shouldExecute, err := cmh.checkMajorityAndExecution(tsm.TransferID)
+	majorityReached, err := cmh.checkMajority(tsm.TransferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached", tsm.TransferID)
 		return
 	}
 
-	if shouldExecute {
-		if majorityReached {
-			cmh.logger.Debugf("[%s] - Collected Majority of signatures", tsm.TransferID)
-			err = cmh.messages.ScheduleEthereumTxForSubmission(tsm.TransferID)
-			if err != nil {
-				cmh.logger.Errorf("[%s] - Could not schedule for submission", tsm.TransferID)
-			}
-		}
-	} else {
-		cmh.logger.Infof("[%s] - will not be scheduled for submission.", tsm.TransferID)
-
-		if majorityReached {
-			err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
-			if err != nil {
-				cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
-			}
+	if majorityReached {
+		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
+		if err != nil {
+			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
 		}
 	}
 }
 
-func (cmh *Handler) checkMajorityAndExecution(transferID string) (majorityReached, shouldExecute bool, err error) {
+func (cmh *Handler) checkMajority(transferID string) (majorityReached bool, err error) {
 	signatureMessages, err := cmh.messageRepository.Get(transferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)
-		return false, false, err
+		return false, err
 	}
 
 	requiredSigCount := len(cmh.contracts.GetMembers())/2 + 1
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), len(cmh.contracts.GetMembers()))
 
 	return len(signatureMessages) >= requiredSigCount,
-		signatureMessages[0].Transfer.ExecuteEthTransaction,
 		nil
 }

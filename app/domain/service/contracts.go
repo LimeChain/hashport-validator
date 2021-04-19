@@ -19,26 +19,18 @@ package service
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
-	"math/big"
 )
 
 // Contracts interface is implemented by the Contracts Service providing business logic access to the Ethereum SmartContracts and other related utility functions
 type Contracts interface {
-	// GetBridgeContractAddress returns the bridge contract address
-	GetBridgeContractAddress() common.Address
-	// GetServiceFee returns the current service fee configured in the Bridge contract
-	GetServiceFee() *big.Int
 	// GetMembers returns the array of bridge members currently set in the Bridge contract
 	GetMembers() []string
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
-	// SubmitSignatures signs and broadcasts an Ethereum TX authorising the mint operation on the Ethereum network
-	SubmitSignatures(opts *bind.TransactOpts, txId, wrappedToken, ethAddress, amount, fee string, signatures [][]byte) (*types.Transaction, error)
 	// Check whether a specific asset has a valid bridge token address. Returns the erc20 token address if token is valid. Returns an empty string if not.
 	ParseToken(nativeTokenId string) (string, error)
 	// Checks whether a specific wrapped token has a corresponding native token. Returns the native token as string

@@ -18,6 +18,7 @@ package hedera
 
 import (
 	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"strings"
 )
 
@@ -34,4 +35,32 @@ func ToMirrorNodeTransactionID(txId string) string {
 		accId,
 		split[0],
 		fmt.Sprintf("%09s", split[1]))
+}
+
+func FromHederaTransactionID(id *hedera.TransactionID) HederaTransactionID {
+	stringTxId := id.String()
+	split := strings.Split(stringTxId, "@")
+	accId := split[0]
+
+	split = strings.Split(split[1], ".")
+
+	return HederaTransactionID{
+		AccountId: accId,
+		Seconds:   fmt.Sprintf("%09s", split[0]),
+		Nanos:     fmt.Sprintf("%09s", split[1]),
+	}
+}
+
+type HederaTransactionID struct {
+	AccountId string
+	Seconds   string
+	Nanos     string
+}
+
+func (txId HederaTransactionID) String() string {
+	return fmt.Sprintf("%s-%s-%s", txId.AccountId, txId.Seconds, txId.Nanos)
+}
+
+func (txId HederaTransactionID) Timestamp() string {
+	return fmt.Sprintf("%s.%s", txId.Seconds, txId.Nanos)
 }

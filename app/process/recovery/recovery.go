@@ -27,7 +27,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	validatorproto "github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"time"
@@ -173,7 +172,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, nativeToken, wrappedToken, *m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, nativeToken, wrappedToken, m)
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
 			continue
@@ -206,15 +205,7 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 			continue
 		}
 
-		switch m.Type {
-		case validatorproto.TopicMessageType_EthSignature:
-			err = r.messages.ProcessSignature(*m)
-		case validatorproto.TopicMessageType_EthTransaction:
-			err = r.recoverEthereumTXMessage(*m)
-		default:
-			err = errors.New(fmt.Sprintf("Error - invalid topic submission message type [%s]", m.Type))
-		}
-
+		err = r.messages.ProcessSignature(*m)
 		if err != nil {
 			r.logger.Errorf("Error - could not handle recovery payload: [%s]", err)
 			continue
@@ -222,26 +213,6 @@ func (r Recovery) topicMessagesRecovery(from, to int64) error {
 	}
 
 	r.logger.Infof("Successfully recovered [%d] Messages for Topic [%s]", len(messages), r.topicID)
-	return nil
-}
-
-func (r Recovery) recoverEthereumTXMessage(tm message.Message) error {
-	ethTxMessage := tm.GetTopicEthTransactionMessage()
-	isValid, err := r.messages.VerifyEthereumTxAuthenticity(tm)
-	if err != nil {
-		r.logger.Errorf("[%s] - Failed to verify Ethereum TX [%s] authenticity", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
-		return err
-	}
-	if !isValid {
-		r.logger.Infof("[%s] - Provided Ethereum TX [%s] is not the required Mint Transaction", ethTxMessage.TransferID, ethTxMessage.EthTxHash)
-		return nil
-	}
-
-	err = r.messages.ProcessEthereumTxMessage(tm)
-	if err != nil {
-		r.logger.Errorf("[%s] - Failed to process Ethereum TX Message", ethTxMessage.TransferID)
-		return nil
-	}
 	return nil
 }
 
@@ -258,18 +229,7 @@ func (r Recovery) processUnfinishedOperations() error {
 			t.Receiver,
 			t.NativeToken,
 			t.WrappedToken,
-			t.Amount,
-			t.TxReimbursement,
-			t.GasPrice,
-			t.ExecuteEthTransaction)
-
-		if transferMsg.ExecuteEthTransaction {
-			err = r.transfers.VerifyFee(*transferMsg)
-			if err != nil {
-				r.logger.Errorf("Skipping recovery for TX [%s]. Fee validation failed.", transferMsg.TransactionId)
-				continue
-			}
-		}
+			t.Amount)
 
 		err = r.transfers.ProcessTransfer(*transferMsg)
 		if err != nil {

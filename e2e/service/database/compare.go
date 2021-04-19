@@ -8,14 +8,8 @@ func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 		comparable.NativeToken == comparing.NativeToken &&
 		comparable.WrappedToken == comparing.WrappedToken &&
 		comparable.Amount == comparing.Amount &&
-		comparable.TxReimbursement == comparing.TxReimbursement &&
-		comparable.GasPrice == comparing.GasPrice &&
 		comparable.Status == comparing.Status &&
-		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus &&
-		//comparable.EthTxMsgStatus == comparing.EthTxMsgStatus && // TODO: Currently, this field is updated to its final stage, only in the db corresponding to the eth tx executioner.
-		comparable.EthTxStatus == comparing.EthTxStatus &&
-		comparable.EthTxHash == comparing.EthTxHash &&
-		comparable.ExecuteEthTransaction == comparing.ExecuteEthTransaction
+		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus
 }
 
 func messagesFieldsMatch(comparing, comparable entity.Message) bool {

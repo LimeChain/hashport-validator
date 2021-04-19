@@ -24,24 +24,13 @@ import (
 type Transfer interface {
 	GetByTransactionId(txId string) (*entity.Transfer, error)
 	GetWithMessages(txId string) (*entity.Transfer, error)
-	GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error)
 	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
-	Save(tx *entity.Transfer) error
 	SaveRecoveredTxn(ct *transfer.Transfer) error
-	UpdateStatusInsufficientFee(txId string) error
 	UpdateStatusCompleted(txId string) error
 
 	UpdateStatusSignatureSubmitted(txId string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
-
-	UpdateEthTxSubmitted(txId string, hash string) error
-	UpdateEthTxMined(txId string) error
-	UpdateEthTxReverted(txId string) error
-
-	UpdateStatusEthTxMsgSubmitted(txId string) error
-	UpdateStatusEthTxMsgMined(txId string) error
-	UpdateStatusEthTxMsgFailed(txId string) error
 }

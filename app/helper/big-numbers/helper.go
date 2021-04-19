@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package fees
+package big_numbers
 
-import "errors"
-
-var (
-	InvalidTransferAmount = errors.New("INVALID_TRANSFER_AMOUNT")
-	InvalidTransferFee    = errors.New("INVALID_TRANSFER_FEE")
-	InvalidGasPrice       = errors.New("INVALID_GAS_PRICE")
-	InsufficientFee       = errors.New("INSUFFICIENT_FEE")
-	RateProviderFailure   = errors.New("RATE_PROVIDER_FAILURE")
+import (
+	"errors"
+	"fmt"
+	"math/big"
 )
+
+func ToBigInt(value string) (*big.Int, error) {
+	amount := new(big.Int)
+	amount, ok := amount.SetString(value, 10)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("Failed to parse amount [%s] to big integer.", amount))
+	}
+
+	return amount, nil
+}

@@ -3,7 +3,6 @@ package service
 import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/stretchr/testify/mock"
@@ -21,19 +20,19 @@ func (mts *MockTransferService) ProcessTransfer(tm transfer.Transfer) error {
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (*memo.Memo, error) {
+func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
 	args := mts.Called(tx)
 	if args.Get(0) == nil {
-		return nil, args.Get(1).(error)
+		return "", args.Get(1).(error)
 	}
 	if args.Get(1) == nil {
-		return args.Get(0).(*memo.Memo), nil
+		return args.Get(0).(string), nil
 	}
-	return args.Get(0).(*memo.Memo), args.Get(1).(error)
+	return args.Get(0).(string), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken string, m memo.Memo) error {
-	args := mts.Called(txId, amount, nativeToken, wrappedToken, m)
+func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeToken, wrappedToken, ethereumAddress string) error {
+	args := mts.Called(txId, amount, nativeToken, wrappedToken, ethereumAddress)
 	if args.Get(0) == nil {
 		return nil
 	}

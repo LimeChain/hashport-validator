@@ -24,7 +24,6 @@ import (
 	"net/http"
 
 	transfers "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	apiresponse "github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 )
 
 type Validator struct {
@@ -35,27 +34,6 @@ type Validator struct {
 // NewValidatorClient returns new instance of validator client
 func NewValidatorClient(url string) *Validator {
 	return &Validator{baseUrl: url}
-}
-
-// GetMetadata retrieves the Metadata for a specified gasPrice from the Validator node
-func (v *Validator) GetMetadata(gasPriceGwei string) (*apiresponse.MetadataResponse, error) {
-	url := v.baseUrl + "/api/v1/metadata?gasPriceGwei=" + gasPriceGwei
-	response, err := v.Client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Get Metadata resolved with status [%d].", response.StatusCode))
-	}
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	var metadataResponse *apiresponse.MetadataResponse
-	err = json.Unmarshal(bodyBytes, &metadataResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return metadataResponse, nil
 }
 
 func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferData, error) {
