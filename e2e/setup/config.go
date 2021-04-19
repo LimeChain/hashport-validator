@@ -159,7 +159,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.Signer)
+	signer := eth.NewEthSigner(config.Ethereum.ClientConfig.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
