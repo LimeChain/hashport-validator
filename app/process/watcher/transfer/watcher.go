@@ -153,13 +153,13 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	m, err := ctw.transfers.SanityCheckTransfer(tx)
+	ethAddress, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, m.EthereumAddress, nativeToken, wrappedToken, amount, m.TxReimbursementFee, m.GasPrice, m.ExecuteEthTransaction)
+	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeToken, wrappedToken, amount)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 

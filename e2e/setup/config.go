@@ -159,13 +159,13 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
-
-	signer := eth.NewEthSigner(config.Ethereum.Sender.PrivateKey)
+	signer := eth.NewEthSigner(config.Signer)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
 	}
+
+	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval)
 
