@@ -51,6 +51,7 @@ var (
 const (
 	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
 	expectedValidatorsCount = 3
+	HBAR                    = "HBAR"
 )
 
 func Test_HBAR(t *testing.T) {
@@ -65,7 +66,7 @@ func Test_HBAR(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, "HBAR", hBarSendAmount.AsTinybar(), t)
+	_, _ = verifyTransferFromValidatorAPI(setupEnv, transactionResponse, HBAR, hBarSendAmount.AsTinybar(), t)
 
 	// Step 4 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
