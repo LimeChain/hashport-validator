@@ -21,10 +21,18 @@ hedera:
   sender:
     account:
     private_key:
+  mirror_node:
+    api_address:
+    client_address:
+    max_retries:
+    polling_interval:
 ethereum:
-  node_url:
-  router_contract_address:
-  block_confirmations:
+  client_configuration:
+    node_url:
+    router_contract_address:
+    block_confirmations:
+  sender:
+    private_key:
 tokens:
   whbar: "HBAR"
   wtoken:

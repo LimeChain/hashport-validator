@@ -65,7 +65,7 @@ func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferDa
 		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Get Metadata resolved with status [%d].", response.StatusCode))
+		return nil, errors.New(fmt.Sprintf("Get Transfer Data resolved with status [%d].", response.StatusCode))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
@@ -76,4 +76,24 @@ func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferDa
 	}
 
 	return transferDataResponse, nil
+}
+
+func (v *Validator) GetAccountTransfersAfter(accountID string, timestamp int64) (*[]transfers.TransferData, error) {
+	url := fmt.Sprintf("%s/api/v1/transactions?account.id=%s&timestamp=gt:%d", v.baseUrl, accountID, timestamp)
+	response, err := v.Client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("Get Accounts Transfers resolved with status [%d].", response.StatusCode))
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	var transfersDataResponse *[]transfers.TransferData
+	err = json.Unmarshal(bodyBytes, &transfersDataResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return transfersDataResponse, nil
 }

@@ -94,6 +94,7 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 // onError is called if an error occurs while waiting for TX to go into one of the other 2 states
 func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	go func() {
+		ec.logger.Infof("[%s] - Waiting for Transaction Receipt", hex)
 		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))
 		if err != nil {
 			ec.logger.Errorf("[%s] - Error occurred while monitoring. Error: [%s]", hex, err)

@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -77,12 +78,14 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount hederaSDK.AccountID
-	SenderAccount hederaSDK.AccountID
-	TopicID       hederaSDK.TopicID
-	TokenID       hederaSDK.TokenID
-	Clients       *clients
-	DbValidation  *db_validation.Service
+	BridgeAccount         hederaSDK.AccountID
+	SenderAccount         hederaSDK.AccountID
+	TopicID               hederaSDK.TopicID
+	TokenID               hederaSDK.TokenID
+	Clients               *clients
+	DbValidation          *db_validation.Service
+	EthSender             EthSender
+	RouterContractAddress string
 }
 
 // newSetup instantiates new Setup struct
@@ -111,12 +114,14 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	return &Setup{
-		BridgeAccount: bridgeAccount,
-		SenderAccount: senderAccount,
-		TopicID:       topicID,
-		TokenID:       tokenID,
-		Clients:       clients,
-		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
+		BridgeAccount:         bridgeAccount,
+		SenderAccount:         senderAccount,
+		EthSender:             config.Ethereum.Sender,
+		TopicID:               topicID,
+		TokenID:               tokenID,
+		Clients:               clients,
+		DbValidation:          db_validation.NewService(config.Hedera.DbValidationProps),
+		RouterContractAddress: config.Ethereum.ClientConfig.RouterContractAddress,
 	}, nil
 }
 
@@ -128,7 +133,9 @@ type clients struct {
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
 	ValidatorClient *e2eClients.Validator
+	Signer          *eth.Signer
 	KeyTransactor   *bind.TransactOpts
+	MirrorNode      *mirror_node.Client
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -137,9 +144,9 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := ethereum.NewClient(config.Ethereum)
+	ethClient := ethereum.NewClient(config.Ethereum.ClientConfig)
 
-	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
+	routerContractAddress := common.HexToAddress(config.Ethereum.ClientConfig.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
 	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
@@ -154,11 +161,13 @@ func newClients(config Config) (*clients, error) {
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
-	signer := eth.NewEthSigner(config.Signer)
+	signer := eth.NewEthSigner(config.Ethereum.Sender.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
 	}
+
+	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval)
 
 	return &clients{
 		Hedera:          hederaClient,
@@ -167,12 +176,14 @@ func newClients(config Config) (*clients, error) {
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
 		ValidatorClient: validatorClient,
+		Signer:          signer,
 		KeyTransactor:   keyTransactor,
+		MirrorNode:      mirrorNode,
 	}, nil
 }
 
 func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := ParseToken(routerInstance, nativeToken)
+	wTokenContractAddress, err := ParseHederaToETHToken(routerInstance, nativeToken)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +196,7 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 	return wTokenInstance, nil
 }
 
-func ParseToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
+func ParseHederaToETHToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
 	wrappedToken, err := routerInstance.NativeToWrappedToken(
 		nil,
@@ -202,6 +213,18 @@ func ParseToken(routerInstance *router.Router, nativeToken string) (*common.Addr
 
 	address := common.HexToAddress(wTokenContractHex)
 	return &address, nil
+}
+
+func ParseETHToHederaToken(routerInstance *router.Router, wrappedToken common.Address) (string, error) {
+	nativeToken, err := routerInstance.WrappedToNativeToken(
+		nil,
+		wrappedToken,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return string(nativeToken), nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
@@ -231,11 +254,19 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 
 // e2eConfig used to load and parse from application.yml
 type Config struct {
-	Hedera       Hedera          `yaml:"hedera"`
-	Ethereum     config.Ethereum `yaml:"ethereum"`
-	Tokens       Tokens          `yaml:"tokens"`
-	ValidatorUrl string          `yaml:"validator_url"`
-	Signer       string          `yaml:"eth_signer"`
+	Hedera       Hedera   `yaml:"hedera"`
+	Ethereum     Ethereum `yaml:"ethereum"`
+	Tokens       Tokens   `yaml:"tokens"`
+	ValidatorUrl string   `yaml:"validator_url"`
+}
+
+type EthSender struct {
+	PrivateKey string `yaml:"private_key"`
+}
+
+type Ethereum struct {
+	ClientConfig config.Ethereum `yaml:"client_configuration"`
+	Sender       EthSender       `yaml:"sender"`
 }
 
 type Tokens struct {
@@ -250,10 +281,12 @@ type Hedera struct {
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []config.Database `yaml:"dbs"`
+	MirrorNode        config.MirrorNode `yaml:"mirror_node"`
 }
 
 // sender props from the application.yml
 type Sender struct {
-	Account    string `yaml:"account"`
-	PrivateKey string `yaml:"private_key"`
+	Account       string `yaml:"account"`
+	PrivateKey    string `yaml:"private_key"`
+	EthPrivateKey string `yaml:"eth_private_key"`
 }
