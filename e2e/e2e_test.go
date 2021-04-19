@@ -72,7 +72,7 @@ func Test_HBAR(t *testing.T) {
 	expectedTxRecord := prepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
-		"HBAR",
+		HBAR,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
