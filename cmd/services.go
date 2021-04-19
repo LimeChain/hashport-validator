@@ -20,9 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fees"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduler"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -30,12 +28,10 @@ import (
 
 // TODO extract new service only for Ethereum TX handling
 type Services struct {
-	signer     service.Signer
-	scheduler  service.Scheduler
-	contracts  service.Contracts
-	transfers  service.Transfers
-	messages   service.Messages
-	fees       service.Fees
+	signer    service.Signer
+	contracts service.Contracts
+	transfers service.Transfers
+	messages  service.Messages
 	burnEvents service.BurnEvent
 }
 
@@ -43,14 +39,11 @@ type Services struct {
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
 	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
 	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
-	schedulerService := scheduler.NewScheduler(c.Validator.SendDeadline)
-	fees := fees.NewCalculator(clients.ExchangeRate, c.Validator, contracts)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
 		contracts,
-		fees,
 		ethSigner,
 		repositories.transfer,
 		c.Validator.Clients.Hedera.TopicId)
@@ -58,7 +51,6 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	messages := messages.NewService(
 		ethSigner,
 		contracts,
-		schedulerService,
 		repositories.transfer,
 		repositories.message,
 		clients.HederaNode,
@@ -74,12 +66,10 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		repositories.burnEvent)
 
 	return &Services{
-		signer:     ethSigner,
-		scheduler:  schedulerService,
-		contracts:  contracts,
-		transfers:  transfers,
-		messages:   messages,
-		fees:       fees,
+		signer:    ethSigner,
+		contracts: contracts,
+		transfers: transfers,
+		messages:  messages,
 		burnEvents: burnEvent,
 	}
 }
@@ -88,10 +78,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
 	contractService := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
-	feeService := fees.NewCalculator(clients.ExchangeRate, c.Validator, contractService)
 
 	return &Services{
 		contracts: contractService,
-		fees:      feeService,
 	}
 }

@@ -31,7 +31,6 @@ type Handler struct {
 }
 
 func NewHandler(transfersService service.Transfers) *Handler {
-
 	return &Handler{
 		logger:           config.GetLoggerFor("Account Transfer Handler"),
 		transfersService: transfersService,
@@ -54,14 +53,6 @@ func (th Handler) Handle(payload interface{}) {
 	if transactionRecord.Status != transfer.StatusInitial {
 		th.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
-	}
-
-	if transferMsg.ExecuteEthTransaction {
-		err = th.transfersService.VerifyFee(*transferMsg)
-		if err != nil {
-			th.logger.Errorf("[%s] - Fee validation failed. Skipping further execution", transferMsg.TransactionId)
-			return
-		}
 	}
 
 	err = th.transfersService.ProcessTransfer(*transferMsg)

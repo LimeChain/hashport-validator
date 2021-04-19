@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -32,7 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
 )
@@ -127,8 +127,8 @@ type clients struct {
 	WHbarContract   *wtoken.Wtoken
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
-	ValidatorClient *e2eClients.Validator
 	KeyTransactor   *bind.TransactOpts
+	ValidatorClient *e2eClients.Validator
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -152,13 +152,13 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
-
 	signer := eth.NewEthSigner(config.Signer)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
 	}
+
+	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	return &clients{
 		Hedera:          hederaClient,
@@ -166,8 +166,8 @@ func newClients(config Config) (*clients, error) {
 		WHbarContract:   wHbarInstance,
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
-		ValidatorClient: validatorClient,
 		KeyTransactor:   keyTransactor,
+		ValidatorClient: validatorClient,
 	}, nil
 }
 
