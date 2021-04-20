@@ -18,7 +18,7 @@ hedera:
       username:
   bridge_account:
   topic_id:
-  fee_percentage: 10
+  fee_percentage: 10000 # 10%
   members:
   sender:
     account:
