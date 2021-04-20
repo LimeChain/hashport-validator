@@ -17,13 +17,16 @@ docker-compose pull
 
 ### Database setup
 
-In addition to Go, you will need to install a database and initialize it.
-The application is using [PostgreSQL](https://postgresql.org) v9.6.
+In addition to Go, you will need to run [PostgreSQL](https://postgresql.org) v9.6 database. The easiest way you can do that is by running it from the docker image:
 
-Run initialization script located at `scripts/init.sql`:
 ```
-psql postgres -f scripts/init.sql
+docker-compose up db
 ```
+
+This would start the postgres container and expose it to port 5432 with the default values configured.
+The folder `./db` will be used mounting the volume and persisting the data.
+
+You can run the database separately, but you will have to edit the validator default configuration for the database name, user and password.
 
 ### Build application
 
@@ -33,22 +36,17 @@ go build cmd/*
 
 ### Run application
 
-After you have run the database, you need to have the necessary [configuration](configuration.md) populated and run:
+After you have run the database and compiled the node, you need to have the necessary [configuration](configuration.md) populated and run:
 ```
 go run cmd/*
 ```
 
-or use the built executable:
-
-```
-./main
-```
-
 ### Unit Tests
-
+In order to run the unit tests, one must execute the following command:
 ```
-go test ./...
+go test $(go list ./... | grep -v e2e)
 ```
+The command filters out the e2e tests that require an additional setup.
 
 ## Running via Docker Compose
 

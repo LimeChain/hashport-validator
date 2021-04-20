@@ -19,7 +19,10 @@ package setup
 import (
 	"errors"
 	"fmt"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,7 +36,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
 )
@@ -78,13 +80,16 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
+	Receiver     		  common.Address
 	HederaReceiverAccount hederaSDK.AccountID
-	BridgeAccount         hederaSDK.AccountID
-	SenderAccount         hederaSDK.AccountID
-	TopicID               hederaSDK.TopicID
-	TokenID               hederaSDK.TokenID
-	Clients               *clients
-	DbValidation          *db_validation.Service
+	BridgeAccount		  hederaSDK.AccountID
+	SenderAccount		  hederaSDK.AccountID
+	TopicID     		  hederaSDK.TopicID
+	TokenID     		  hederaSDK.TokenID
+	FeePercentage		  int64
+	Members     		  []hederaSDK.AccountID
+	Clients       		  *clients
+	DbValidation  		  *db_validation.Service
 	EthSender             EthSender
 	RouterContractAddress string
 }
@@ -113,6 +118,23 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	if config.Hedera.FeePercentage < fee.MinPercentage || config.Hedera.FeePercentage > fee.MaxPercentage {
+		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
+	}
+
+	if len(config.Hedera.Members) == 0 {
+		return nil, errors.New(fmt.Sprintf("members account ids cannot be 0"))
+	}
+
+	var members []hederaSDK.AccountID
+	for _, v := range config.Hedera.Members {
+		account, err := hederaSDK.AccountIDFromString(v)
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, account)
+	}
+
 	clients, err := newClients(config)
 	if err != nil {
 		return nil, err
@@ -128,6 +150,8 @@ func newSetup(config Config) (*Setup, error) {
 		Clients:               clients,
 		DbValidation:          db_validation.NewService(config.Hedera.DbValidationProps),
 		RouterContractAddress: config.Ethereum.ClientConfig.RouterContractAddress,
+		FeePercentage: config.Hedera.FeePercentage,
+		Members:       members,
 	}, nil
 }
 
@@ -138,10 +162,12 @@ type clients struct {
 	WHbarContract   *wtoken.Wtoken
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
-	ValidatorClient *e2eClients.Validator
-	Signer          *eth.Signer
 	KeyTransactor   *bind.TransactOpts
 	MirrorNode      *mirror_node.Client
+	ValidatorClient *e2eClients.Validator
+	FeeCalculator   service.Fee
+	Distributor     service.Distributor
+	Signer          service.Signer
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -182,14 +208,16 @@ func newClients(config Config) (*clients, error) {
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
 		ValidatorClient: validatorClient,
-		Signer:          signer,
 		KeyTransactor:   keyTransactor,
 		MirrorNode:      mirrorNode,
+		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
+		Distributor:     distributor.New(config.Hedera.Members),
+		Signer:          signer,
 	}, nil
 }
 
-func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := ParseHederaToETHToken(routerInstance, nativeToken)
+func initTokenContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := WrappedAsset(routerInstance, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -202,19 +230,19 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 	return wTokenInstance, nil
 }
 
-func ParseHederaToETHToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
+func WrappedAsset(routerInstance *router.Router, nativeAsset string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
-	wrappedToken, err := routerInstance.NativeToWrapped(
+	wrappedAsset, err := routerInstance.NativeToWrapped(
 		nil,
-		common.RightPadBytes([]byte(nativeToken), 32),
+		common.RightPadBytes([]byte(nativeAsset), 32),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenContractHex := wrappedToken.String()
+	wTokenContractHex := wrappedAsset.String()
 	if wTokenContractHex == nilErc20Address {
-		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
+		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
 	}
 
 	address := common.HexToAddress(wTokenContractHex)
@@ -284,6 +312,8 @@ type Tokens struct {
 type Hedera struct {
 	NetworkType       string            `yaml:"network_type"`
 	BridgeAccount     string            `yaml:"bridge_account"`
+	FeePercentage     int64             `yaml:"fee_percentage"`
+	Members           []string          `yaml:"members"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
 	Receiver          Receiver          `yaml:"receiver"`

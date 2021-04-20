@@ -17,7 +17,7 @@ The following table lists the currently available properties, along with their d
 Unless you need to set a non-default value, it is recommended to only populate overwritten properties in the custom `application.yml`.
 
 Name                                                                | Default                                             | Description
-------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------- | --------------------------------------------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 `validator.database.host`                                           | 127.0.0.1                                           | The IP or hostname used to connect to the database.
 `validator.database.name`                                           | hedera_validator                                    | The name of the database.
 `validator.database.password`                                       | validator_pass                                      | The database password the processor uses to connect.
@@ -30,6 +30,8 @@ Name                                                                | Default   
 `validator.clients.hedera.operator.account_id`                      | ""                                                  | The operator's Hedera account id.
 `validator.clients.hedera.operator.private_key`                     | ""                                                  | The operator's Hedera private key.
 `validator.clients.hedera.bridge_account`                           | ""                                                  | The account id validators use to monitor for incoming transfers. Also, serves as a distributor for Hedera transfers (validator fees and bridged amounts).
+`validator.clients.hedera.fee_percentage`                           | 10000                                               | The percentage which validators take for every bridge transfer. Range is from 0 to 100.000 (multiplied by 1 000). Examples: 1% is 1 000, 1.234% = 1234, 0.15% = 150. Default 10% = 10 000
+`validator.clients.hedera.members[]`                                | []                                                  | The Hedera account ids of the validators, to which their bridge fees will be sent (if Bridge accepts Hedera Tokens, associations with these tokens will be required)
 `validator.clients.hedera.network_type`                             | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
 `validator.clients.hedera.payer_account`                            | ""                                                  | The account id paying for Hedera transfers fees.
 `validator.clients.hedera.topic_id`                                 | ""                                                  | The topic id that the validators use to monitor for incoming hedera consensus messages.

@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package entity
+package service
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
+import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+
+// Scheduled interface is implemented by the Scheduled Service
+// Provides business logic for execution of Scheduled Transactions
+type Scheduled interface {
+	// Execute submits a scheduled transaction and executes provided functions when necessary
+	Execute(id, nativeAsset string, transfers []transfer.Hedera, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 }

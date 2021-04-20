@@ -86,14 +86,14 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
-	nativeToken, err := ew.contracts.NativeToken(eventLog.WrappedAsset)
+	nativeAsset, err := ew.contracts.ToNative(eventLog.WrappedAsset)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
 		return
 	}
 
-	if nativeToken != constants.Hbar && !hederahelper.IsTokenID(nativeToken) {
-		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeToken)
+	if nativeAsset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset) {
+		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeAsset)
 		return
 	}
 
@@ -101,8 +101,8 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		Amount:       eventLog.Amount.Int64(),
 		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:    recipientAccount,
-		WrappedToken: eventLog.WrappedAsset.String(),
-		NativeToken:  nativeToken,
+		NativeAsset:  nativeAsset,
+		WrappedAsset: eventLog.WrappedAsset.String(),
 	}
 
 	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
@@ -111,7 +111,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], ServiceFee [%s], Receiver Address [%s] has been found.",
+	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
