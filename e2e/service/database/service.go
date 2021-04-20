@@ -16,6 +16,7 @@ import (
 type dbVerifier struct {
 	transactions repository.Transfer
 	messages     repository.Message
+	burnEvents   repository.BurnEvent
 }
 
 type Service struct {
@@ -115,6 +116,18 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, signatures []s
 		}
 	}
 	return true, nil
+}
+
+func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, error) {
+	valid := false
+	for _, verifier := range s.verifiers {
+		actualBurnEvent, err := verifier.burnEvents.Get(expectedBurnRecord.Id)
+		if err != nil {
+			return false, err
+		}
+		valid = burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord)
+	}
+	return valid, nil
 }
 
 func contains(m entity.Message, array []entity.Message) bool {

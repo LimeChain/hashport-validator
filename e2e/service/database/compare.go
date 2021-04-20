@@ -19,3 +19,12 @@ func messagesFieldsMatch(comparing, comparable entity.Message) bool {
 		transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
 		comparable.Signer == comparing.Signer
 }
+
+func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
+	return comparable.ScheduleID == comparing.ScheduleID &&
+		comparable.TransactionId == comparing.TransactionId &&
+		comparable.Status == comparing.Status &&
+		comparable.Recipient == comparing.Recipient &&
+		comparable.Amount == comparing.Amount &&
+		comparable.Id == comparing.Id
+}

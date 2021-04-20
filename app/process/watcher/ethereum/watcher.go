@@ -86,9 +86,9 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
-	nativeToken, err := ew.contracts.NativeToken(eventLog.WrappedToken)
+	nativeToken, err := ew.contracts.NativeToken(eventLog.WrappedAsset)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native token of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		Amount:       eventLog.Amount.Int64(),
 		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:    recipientAccount,
-		WrappedToken: eventLog.WrappedToken.String(),
+		WrappedToken: eventLog.WrappedAsset.String(),
 		NativeToken:  nativeToken,
 	}
 
@@ -115,7 +115,6 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
-		eventLog.ServiceFee.String(),
 		eventLog.Receiver)
 
 	q.Push(&pair.Message{Payload: burnEvent})

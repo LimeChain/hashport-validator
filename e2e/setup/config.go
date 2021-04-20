@@ -78,6 +78,7 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
+	HederaReceiverAccount hederaSDK.AccountID
 	BridgeAccount         hederaSDK.AccountID
 	SenderAccount         hederaSDK.AccountID
 	TopicID               hederaSDK.TopicID
@@ -98,6 +99,10 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
+	receiverAccount, err := hederaSDK.AccountIDFromString(config.Hedera.Receiver.Account)
+	if err != nil {
+		return nil, err
+	}
 	topicID, err := hederaSDK.TopicIDFromString(config.Hedera.TopicID)
 	if err != nil {
 		return nil, err
@@ -114,6 +119,7 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	return &Setup{
+		HederaReceiverAccount: receiverAccount,
 		BridgeAccount:         bridgeAccount,
 		SenderAccount:         senderAccount,
 		EthSender:             config.Ethereum.Sender,
@@ -159,7 +165,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.Ethereum.ClientConfig.PrivateKey)
+	signer := eth.NewEthSigner(config.Ethereum.Sender.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
@@ -198,7 +204,7 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 
 func ParseHederaToETHToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
-	wrappedToken, err := routerInstance.NativeToWrappedToken(
+	wrappedToken, err := routerInstance.NativeToWrapped(
 		nil,
 		common.RightPadBytes([]byte(nativeToken), 32),
 	)
@@ -216,7 +222,7 @@ func ParseHederaToETHToken(routerInstance *router.Router, nativeToken string) (*
 }
 
 func ParseETHToHederaToken(routerInstance *router.Router, wrappedToken common.Address) (string, error) {
-	nativeToken, err := routerInstance.WrappedToNativeToken(
+	nativeToken, err := routerInstance.WrappedToNative(
 		nil,
 		wrappedToken,
 	)
@@ -280,13 +286,17 @@ type Hedera struct {
 	BridgeAccount     string            `yaml:"bridge_account"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
+	Receiver          Receiver          `yaml:"receiver"`
 	DbValidationProps []config.Database `yaml:"dbs"`
 	MirrorNode        config.MirrorNode `yaml:"mirror_node"`
 }
 
 // sender props from the application.yml
 type Sender struct {
-	Account       string `yaml:"account"`
-	PrivateKey    string `yaml:"private_key"`
-	EthPrivateKey string `yaml:"eth_private_key"`
+	Account    string `yaml:"account"`
+	PrivateKey string `yaml:"private_key"`
+}
+
+type Receiver struct {
+	Account string `yaml:"account"`
 }

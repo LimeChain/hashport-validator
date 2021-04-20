@@ -16,9 +16,12 @@
 
 package repository
 
+import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+
 type BurnEvent interface {
 	Create(id string, amount int64, recipient string) error
 	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
+	Get(txId string) (*entity.BurnEvent, error)
 }

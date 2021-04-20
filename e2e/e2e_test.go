@@ -17,11 +17,14 @@
 package e2e
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"math/big"
 	"reflect"
@@ -45,12 +48,13 @@ import (
 )
 
 var (
+	tokensSendAmount     int64   = 1000000000
 	amount               float64 = 400
 	hBarSendAmount               = hedera.HbarFrom(amount, "hbar")
-	tokensSendAmount     int64   = 1000000000
 	hbarRemovalAmount            = hedera.HbarFrom(-amount, "hbar")
 	precision                    = new(big.Int).SetInt64(100000)
 	whbarReceiverAddress         = common.HexToAddress(receiverAddress)
+	now                          = time.Now()
 )
 
 const (
@@ -60,16 +64,41 @@ const (
 
 func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
+	now = time.Now()
 	accountBalanceBefore := getAccountBalance(setupEnv, t)
 
 	// 1. Submit burn transaction to the bridge contract
 	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, t)
 
-	// 2. Validate that the tx went through and emitted the correct events
-	validateTxAndEvents(setupEnv, submittedTx, expectedRouterBurn, t)
+	// 2. Validate burn event
+	expectedId := validateBurnEvent(setupEnv, submittedTx.Hash(), expectedRouterBurn, t)
 
-	// 3. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	// 3. Validate that the tx went through and emitted the correct events
+	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
+
+	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateBridgeAccountBalance(setupEnv, accountBalanceBefore, t)
+
+	// 5. Prepare Expected Database Record
+	expectedDbBurnEvent := prepareDbBurnEvent(
+		mirrorNodeScheduledTransaction.TransactionID,
+		hBarSendAmount.AsTinybar(),
+		setupEnv.HederaReceiverAccount.String(),
+		expectedId)
+
+	// 6. Validate Database Record
+	verifyBurnDatabaseRecords(setupEnv.DbValidation, expectedDbBurnEvent, t)
+}
+
+func prepareDbBurnEvent(scheduleID string, amount int64, recipient string, burnEventId string) *entity.BurnEvent {
+	return &entity.BurnEvent{
+		Id:            burnEventId,
+		ScheduleID:    scheduleID,
+		Amount:        amount,
+		Recipient:     recipient,
+		Status:        burn_event.StatusCompleted,
+		TransactionId: sql.NullString{},
+	}
 }
 
 func getAccountBalance(setup *setup.Setup, t *testing.T) hedera.AccountBalance {
@@ -86,19 +115,75 @@ func getAccountBalance(setup *setup.Setup, t *testing.T) hedera.AccountBalance {
 func validateBridgeAccountBalance(setup *setup.Setup, beforeHBARBalance hedera.AccountBalance, t *testing.T) {
 	// Post Process HBAR Account Balance
 	afterHBARBalance := getAccountBalance(setup, t)
-
 	if afterHBARBalance.Hbars.AsTinybar()-beforeHBARBalance.Hbars.AsTinybar() != hBarSendAmount.AsTinybar() {
 		t.Fatalf("Expected account balance after - [%d], but was [%d]", afterHBARBalance, beforeHBARBalance)
 	}
 }
 
-func validateTxAndEvents(setupEnv *setup.Setup, tx *types.Transaction, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) {
-	validateBurnEvent(setupEnv, tx.Hash(), expectedRouterBurn, t)
-	validateScheduledTransactionSubmission(setupEnv, tx, t)
+func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) string {
+	fmt.Println(fmt.Sprintf("[%s] Waiting for transaction receipt.", txHash))
+	txReceipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(txHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsedAbi, err := abi.JSON(strings.NewReader(routerContract.RouterABI))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routerBurn := &routerContract.RouterBurn{}
+	for _, log := range txReceipt.Logs {
+		err = parsedAbi.UnpackIntoInterface(routerBurn, "Burn", log.Data)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		if routerBurn.Amount != expectedRouterBurn.Amount {
+			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
+		}
+
+		if routerBurn.WrappedAsset != expectedRouterBurn.WrappedAsset {
+			t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
+		}
+
+		if !reflect.DeepEqual(routerBurn.Receiver, expectedRouterBurn.Receiver) {
+			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
+		}
+
+		if routerBurn.Account != expectedRouterBurn.Account {
+			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
+		}
+
+		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
+
+		return expectedId
+	}
+	t.Fatal("Could not retrieve valid Burn Event Log information.")
+	return ""
 }
 
-func validateScheduledTransactionSubmission(setupEnv *setup.Setup, tx *types.Transaction, t *testing.T) {
-	setupEnv.Clients.MirrorNode.WaitForScheduledTransferTransaction(tx.Hash().String(), func() {}, func() {})
+func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Transaction {
+	time.Sleep(30 * time.Second)
+	transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.HederaReceiverAccount, now.UnixNano())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, transaction := range transactions.Transactions {
+		if transaction.Scheduled == true {
+			// amount, "HBAR"
+			_, _, err := transaction.GetIncomingTransfer(setupEnv.HederaReceiverAccount.String())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// TODO: Do proper comparison later
+			return &transaction
+		}
+	}
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.HederaReceiverAccount)
+	return nil
 }
 
 func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction, *routerContract.RouterBurn) {
@@ -117,7 +202,7 @@ func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction
 
 	expectedRouterBurn := &routerContract.RouterBurn{
 		Account:      common.HexToAddress(setupEnv.Clients.Signer.Address()),
-		WrappedToken: *wrappedToken,
+		WrappedAsset: *wrappedToken,
 		Amount:       value,
 		Receiver:     setupEnv.BridgeAccount.ToBytes(),
 	}
@@ -216,46 +301,6 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 	return res.Hash().String()
 }
 
-func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) {
-	fmt.Println(fmt.Sprintf("[%s] Waiting for transaction receipt.", txHash))
-	txReceipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(txHash)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	parsedAbi, err := abi.JSON(strings.NewReader(routerContract.RouterABI))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	routerBurn := routerContract.RouterBurn{}
-	for _, log := range txReceipt.Logs {
-		err = parsedAbi.UnpackIntoInterface(routerBurn, "Burn", log.Data)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		if routerBurn.Amount != expectedRouterBurn.Amount {
-			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
-		}
-
-		if routerBurn.WrappedToken != expectedRouterBurn.WrappedToken {
-			t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedToken, routerBurn.WrappedToken)
-		}
-
-		if !reflect.DeepEqual(routerBurn.Receiver, expectedRouterBurn.Receiver) {
-			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
-		}
-
-		if routerBurn.Account != expectedRouterBurn.Account {
-			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
-		}
-		return
-	}
-	t.Fatal("Could not retrieve valid Burn Event Log information.")
-}
-
 // TODO: Call only WaitForReceipt and make the function synchronous
 func waitForTransaction(setupEnv *setup.Setup, txHash string, t *testing.T) {
 	fmt.Println(fmt.Sprintf("Waiting for transaction: [%s] to be mined", txHash))
@@ -280,12 +325,9 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 		t.Fatal(err)
 	}
 
-	tokensAmount := big.NewInt(int64(tokensSendAmount))
+	tokensAmount := big.NewInt(tokensSendAmount)
 
-	serviceFeePercentage, err := setupEnv.Clients.RouterContract.ServiceFee(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	serviceFeePercentage := big.NewInt(0)
 
 	txFee := new(big.Int).Mul(tokensAmount, serviceFeePercentage)
 	txFee = new(big.Int).Div(txFee, precision)
@@ -294,7 +336,7 @@ func validateTokenBalance(setupEnv *setup.Setup, wrappedTokenBalanceBefore *big.
 	expectedBalance := new(big.Int).Sub(tokensAmount, txFee)
 
 	if newBalance.Cmp(expectedBalance) != 0 {
-		t.Fatalf("Incorect token balance. Expected to be [%s], but was [%s].", expectedBalance, newBalance)
+		t.Fatalf("Incorrect token balance. Expected to be [%s], but was [%s].", expectedBalance, newBalance)
 	}
 }
 
@@ -322,6 +364,16 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponce hedera.Tra
 	}
 
 	return transactionData, tokenAddress
+}
+
+func verifyBurnDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.BurnEvent, t *testing.T) {
+	exist, err := dbValidation.VerifyBurnRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.Id, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.Id)
+	}
 }
 
 func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.Transfer, signatures []string, t *testing.T) {

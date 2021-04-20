@@ -21,6 +21,9 @@ hedera:
   sender:
     account:
     private_key:
+  receiver:
+    account:
+    private_key:
   mirror_node:
     api_address:
     client_address:

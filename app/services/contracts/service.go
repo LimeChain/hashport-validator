@@ -45,7 +45,7 @@ type Service struct {
 }
 
 func (bsc *Service) ParseToken(tokenId string) (string, error) {
-	wrappedToken, err := bsc.contract.NativeToWrappedToken(
+	wrappedToken, err := bsc.contract.NativeToWrapped(
 		nil,
 		common.RightPadBytes([]byte(tokenId), 32),
 	)
@@ -62,7 +62,7 @@ func (bsc *Service) ParseToken(tokenId string) (string, error) {
 }
 
 func (bsc *Service) NativeToken(wrappedToken common.Address) (string, error) {
-	nativeToken, err := bsc.contract.WrappedToNativeToken(nil, wrappedToken)
+	nativeToken, err := bsc.contract.WrappedToNative(nil, wrappedToken)
 	if err != nil {
 		return "", err
 	}
