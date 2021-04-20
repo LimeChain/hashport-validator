@@ -290,7 +290,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			},
 		})
 		if err != nil {
-			ts.logger.Errorf("[%s] Fee - Failed to created failed record. Error [%s].", transferID, err)
+			ts.logger.Errorf("[%s] Fee - Failed to create failed record. Error [%s].", transferID, err)
 			return
 		}
 	}

@@ -107,7 +107,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	mintAmount := calculateMintAmount(setupEnv, amount)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), calculateMintAmount(setupEnv, amount), t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), mintAmount, t)
 
 	// Step 4 - Submit Mint transaction
 	txHash := submitMintTransaction(setupEnv, transactionResponse, transactionData, tokenAddress, t)
