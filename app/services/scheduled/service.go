@@ -34,6 +34,7 @@ func New(
 	}
 }
 
+// Execute submits a scheduled transaction and executes provided functions when necessary
 func (s *Service) Execute(
 	id, nativeAsset string,
 	transfers []transfer.Hedera,

@@ -36,6 +36,7 @@ func New(feePercentage int64) *Service {
 		logger:        config.GetLoggerFor("Fee Service")}
 }
 
+// CalculateFee calculates the fee and remainder of a given amount
 func (s Service) CalculateFee(amount int64) (fee, remainder int64) {
 	fee = amount * s.feePercentage / 100
 	remainder = amount - fee

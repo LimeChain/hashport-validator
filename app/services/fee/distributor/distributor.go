@@ -48,6 +48,7 @@ func New(validators []string) *Service {
 		logger:     config.GetLoggerFor("Fee Service")}
 }
 
+// DistributeToValidators Returns an equally distributed portion to each validator
 func (s Service) DistributeToValidators(amount int64) ([]transfer.Hedera, error) {
 	feePerAccount := amount / int64(len(s.accountIDs))
 
@@ -68,6 +69,7 @@ func (s Service) DistributeToValidators(amount int64) ([]transfer.Hedera, error)
 	return transfers, nil
 }
 
+// ValidAmount Returns the closes amount, which can be equally distributed to validators
 func (s Service) ValidAmount(amount int64) int64 {
 	feePerAccount := amount / int64(len(s.accountIDs))
 

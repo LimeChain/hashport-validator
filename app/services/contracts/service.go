@@ -44,10 +44,10 @@ type Service struct {
 	logger   *log.Entry
 }
 
-func (bsc *Service) Wrapped(tokenId string) (string, error) {
+func (bsc *Service) ToWrapped(nativeAsset string) (string, error) {
 	wrappedAsset, err := bsc.contract.NativeToWrapped(
 		nil,
-		common.RightPadBytes([]byte(tokenId), 32),
+		common.RightPadBytes([]byte(nativeAsset), 32),
 	)
 	if err != nil {
 		return "", err
@@ -61,7 +61,7 @@ func (bsc *Service) Wrapped(tokenId string) (string, error) {
 	return erc20address, nil
 }
 
-func (bsc *Service) Native(wrappedAsset common.Address) (string, error) {
+func (bsc *Service) ToNative(wrappedAsset common.Address) (string, error) {
 	native, err := bsc.contract.WrappedToNative(nil, wrappedAsset)
 	if err != nil {
 		return "", err

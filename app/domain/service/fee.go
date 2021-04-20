@@ -16,7 +16,7 @@
 
 package service
 
-// Fee interface is implemented by the Fee Service
+// Fee interface is implemented by the Calculator Service
 type Fee interface {
 	// CalculateFee calculates the fee and remainder of a given amount
 	CalculateFee(amount int64) (fee, remainder int64)

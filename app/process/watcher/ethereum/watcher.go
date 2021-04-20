@@ -86,7 +86,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
 		return
 	}
-	nativeAsset, err := ew.contracts.Native(eventLog.WrappedAsset)
+	nativeAsset, err := ew.contracts.ToNative(eventLog.WrappedAsset)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
 		return

@@ -19,7 +19,6 @@ package burn_event
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
@@ -33,11 +32,8 @@ import (
 
 type Service struct {
 	bridgeAccount      hedera.AccountID
-	payerAccount       hedera.AccountID
 	feeRepository      repository.Fee
 	repository         repository.BurnEvent
-	hederaNodeClient   client.HederaNode
-	mirrorNodeClient   client.MirrorNode
 	distributorService service.Distributor
 	feeService         service.Fee
 	scheduledService   service.Scheduled
@@ -46,9 +42,6 @@ type Service struct {
 
 func NewService(
 	bridgeAccount string,
-	payerAccount string,
-	hederaNodeClient client.HederaNode,
-	mirrorNodeClient client.MirrorNode,
 	repository repository.BurnEvent,
 	feeRepository repository.Fee,
 	distributor service.Distributor,
@@ -60,18 +53,10 @@ func NewService(
 		log.Fatalf("Invalid bridge threshold account: [%s].", bridgeAccount)
 	}
 
-	payer, err := hedera.AccountIDFromString(payerAccount)
-	if err != nil {
-		log.Fatalf("Invalid payer account: [%s].", payerAccount)
-	}
-
 	return &Service{
 		bridgeAccount:      bridgeAcc,
-		payerAccount:       payer,
 		feeRepository:      feeRepository,
 		repository:         repository,
-		hederaNodeClient:   hederaNodeClient,
-		mirrorNodeClient:   mirrorNodeClient,
 		distributorService: distributor,
 		feeService:         feeService,
 		scheduledService:   scheduled,
@@ -80,14 +65,15 @@ func NewService(
 }
 
 func (s Service) ProcessEvent(event burn_event.BurnEvent) {
-	_, feeAmount, transfers, err := s.getTransfers(event)
-	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transfers. Error [%s].", event.Id, err)
-	}
-
-	err = s.repository.Create(event.Id, event.Amount, event.Recipient.String())
+	err := s.repository.Create(event.Id, event.Amount, event.Recipient.String())
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.Id, err)
+		return
+	}
+
+	_, feeAmount, transfers, err := s.prepareTransfers(event)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to prepare transfers. Error [%s].", event.Id, err)
 		return
 	}
 
@@ -97,7 +83,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	s.scheduledService.Execute(event.Id, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
-func (s *Service) getTransfers(event burn_event.BurnEvent) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
+func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
 	fee, remainder := s.feeService.CalculateFee(event.Amount)
 
 	validFee := s.distributorService.ValidAmount(fee)

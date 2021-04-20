@@ -18,6 +18,7 @@ package transfer
 
 import "github.com/hashgraph/hedera-sdk-go/v2"
 
+// Hedera is used as a data transfer struct between packages
 type Hedera struct {
 	AccountID hedera.AccountID
 	Amount    int64

@@ -161,7 +161,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		wrappedAsset, err := r.contracts.Wrapped(nativeAsset)
+		wrappedAsset, err := r.contracts.ToWrapped(nativeAsset)
 		if err != nil {
 			r.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 			continue

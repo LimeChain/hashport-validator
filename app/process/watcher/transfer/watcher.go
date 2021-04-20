@@ -147,7 +147,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	wrappedAsset, err := ctw.contractService.Wrapped(nativeAsset)
+	wrappedAsset, err := ctw.contractService.ToWrapped(nativeAsset)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 		return

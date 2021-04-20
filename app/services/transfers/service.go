@@ -320,30 +320,6 @@ func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transacti
 	return onSuccess, onFail
 }
 
-func (ts *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {
-	ts.logger.Debugf("[%s] Fee - Scheduled transaction already created - Executing Scheduled Sign for [%s].", id, scheduleID)
-	txResponse, err := ts.hederaNode.SubmitScheduleSign(scheduleID)
-	if err != nil {
-		ts.logger.Errorf("[%s] Fee - Failed to submit schedule sign [%s]. Error: [%s].", id, scheduleID, err)
-		return
-	}
-
-	receipt, err := txResponse.GetReceipt(ts.hederaNode.GetClient())
-	if err != nil {
-		ts.logger.Errorf("[%s] Fee - Failed to get transaction receipt for schedule sign [%s]. Error: [%s].", id, scheduleID, err)
-		return
-	}
-
-	switch receipt.Status {
-	case hedera.StatusSuccess:
-		ts.logger.Debugf("[%s] Fee - Successfully executed schedule sign for [%s].", id, scheduleID)
-	case hedera.StatusScheduleAlreadyExecuted:
-		ts.logger.Debugf("[%s] Fee - Scheduled Sign [%s] already executed.", id, scheduleID)
-	default:
-		ts.logger.Errorf("[%s] Fee - Schedule Sign [%s] failed with [%s].", id, scheduleID, receipt.Status)
-	}
-}
-
 // TransferData returns from the database the given transfer, its signatures and
 // calculates if its messages have reached super majority
 func (ts *Service) TransferData(txId string) (service.TransferData, error) {

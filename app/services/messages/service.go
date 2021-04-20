@@ -100,7 +100,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
-	wrappedAsset, err := ss.contractsService.Wrapped(t.NativeAsset)
+	wrappedAsset, err := ss.contractsService.ToWrapped(t.NativeAsset)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err
