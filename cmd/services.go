@@ -74,9 +74,6 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	burnEvent := burn_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
-		c.Validator.Clients.Hedera.PayerAccount,
-		clients.HederaNode,
-		clients.MirrorNode,
 		repositories.burnEvent,
 		repositories.fee,
 		distributor,
