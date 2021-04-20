@@ -51,6 +51,7 @@ var (
 	amount            int64 = 1000000000
 	hBarSendAmount          = hedera.HbarFromTinybar(amount)
 	hbarRemovalAmount       = hedera.HbarFromTinybar(-amount)
+	now                     = time.Now()
 )
 
 const (
@@ -59,7 +60,7 @@ const (
 
 func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
-	now := time.Now()
+	now = time.Now()
 	accountBalanceBefore := getAccountBalance(setupEnv, t)
 
 	// 1. Submit burn transaction to the bridge contract
@@ -182,7 +183,7 @@ func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Trans
 }
 
 func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction, *routerContract.RouterBurn) {
-	wrappedToken, err := setup.ParseHederaToETHToken(setupEnv.Clients.RouterContract, "HBAR")
+	wrappedToken, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, "HBAR")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
@@ -80,16 +81,16 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	Receiver     		  common.Address
+	Receiver              common.Address
 	HederaReceiverAccount hederaSDK.AccountID
-	BridgeAccount		  hederaSDK.AccountID
-	SenderAccount		  hederaSDK.AccountID
-	TopicID     		  hederaSDK.TopicID
-	TokenID     		  hederaSDK.TokenID
-	FeePercentage		  int64
-	Members     		  []hederaSDK.AccountID
-	Clients       		  *clients
-	DbValidation  		  *db_validation.Service
+	BridgeAccount         hederaSDK.AccountID
+	SenderAccount         hederaSDK.AccountID
+	TopicID               hederaSDK.TopicID
+	TokenID               hederaSDK.TokenID
+	FeePercentage         int64
+	Members               []hederaSDK.AccountID
+	Clients               *clients
+	DbValidation          *db_validation.Service
 	EthSender             EthSender
 	RouterContractAddress string
 }
@@ -150,8 +151,8 @@ func newSetup(config Config) (*Setup, error) {
 		Clients:               clients,
 		DbValidation:          db_validation.NewService(config.Hedera.DbValidationProps),
 		RouterContractAddress: config.Ethereum.ClientConfig.RouterContractAddress,
-		FeePercentage: config.Hedera.FeePercentage,
-		Members:       members,
+		FeePercentage:         config.Hedera.FeePercentage,
+		Members:               members,
 	}, nil
 }
 
