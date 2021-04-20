@@ -21,13 +21,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const MaxPercentage = 100000
+const MinPercentage = 0
+
 type Service struct {
 	feePercentage int64
 	logger        *log.Entry
 }
 
 func New(feePercentage int64) *Service {
-	if feePercentage < 0 || feePercentage > 100 {
+	if feePercentage < MinPercentage || feePercentage > MaxPercentage {
 		log.Fatalf("Invalid fee percentage: [%d]", feePercentage)
 	}
 
@@ -38,7 +41,7 @@ func New(feePercentage int64) *Service {
 
 // CalculateFee calculates the fee and remainder of a given amount
 func (s Service) CalculateFee(amount int64) (fee, remainder int64) {
-	fee = amount * s.feePercentage / 100
+	fee = amount * s.feePercentage / MaxPercentage
 	remainder = amount - fee
 
 	totalAmount := remainder + fee

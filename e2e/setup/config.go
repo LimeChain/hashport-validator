@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
+	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"io/ioutil"
@@ -111,7 +111,7 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	if config.Hedera.FeePercentage < 0 || config.Hedera.FeePercentage > 100 {
+	if config.Hedera.FeePercentage < fee.MinPercentage || config.Hedera.FeePercentage > fee.MaxPercentage {
 		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
 	}
 
@@ -197,7 +197,7 @@ func newClients(config Config) (*clients, error) {
 		RouterContract:  routerInstance,
 		KeyTransactor:   keyTransactor,
 		ValidatorClient: validatorClient,
-		FeeCalculator:   calculator.New(config.Hedera.FeePercentage),
+		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
 		Distributor:     distributor.New(config.Hedera.Members),
 		Signer:          signer,
 	}, nil

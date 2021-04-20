@@ -20,7 +20,7 @@ validator:
       network_type: testnet
       payer_account:
       topic_id:
-      fee_percentage: 10
+      fee_percentage: 10000 # 10.000%
       members:
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
