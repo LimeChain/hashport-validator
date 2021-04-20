@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,32 +92,29 @@ func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.Transac
 
 // SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits it as a scheduled transaction
 func (hc Node) SubmitScheduledTokenTransferTransaction(
-	tinybarAmount int64,
 	tokenID hedera.TokenID,
-	recipient,
-	sender,
+	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
+	transferTransaction := hedera.NewTransferTransaction()
 
-	transferTransaction := hedera.NewTransferTransaction().
-		AddTokenTransfer(tokenID, recipient, tinybarAmount).
-		AddTokenTransfer(tokenID, sender, -tinybarAmount)
+	for _, t := range transfers {
+		transferTransaction.AddTokenTransfer(tokenID, t.AccountID, t.Amount)
+	}
 
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }
 
-// SubmitScheduledHbarTransferTransaction creates a hbar transfer transaction and submits it as a scheduled transaction
-func (hc Node) SubmitScheduledHbarTransferTransaction(tinybarAmount int64,
-	recipient,
-	sender,
+// SubmitScheduledHbarTransferTransaction creates an hbar transfer transaction and submits it as a scheduled transaction
+func (hc Node) SubmitScheduledHbarTransferTransaction(
+	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
-	receiveAmount := hedera.HbarFromTinybar(tinybarAmount)
-	subtractedAmount := hedera.HbarFromTinybar(-tinybarAmount)
+	transferTransaction := hedera.NewTransferTransaction()
 
-	transferTransaction := hedera.NewTransferTransaction().
-		AddHbarTransfer(recipient, receiveAmount).
-		AddHbarTransfer(sender, subtractedAmount)
+	for _, t := range transfers {
+		transferTransaction.AddHbarTransfer(t.AccountID, hedera.HbarFromTinybar(t.Amount))
+	}
 
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }

@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package entity
+package transfer
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
+import "github.com/hashgraph/hedera-sdk-go/v2"
+
+// Hedera is used as a data transfer struct between packages
+type Hedera struct {
+	AccountID hedera.AccountID
+	Amount    int64
 }

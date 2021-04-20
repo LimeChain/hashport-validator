@@ -53,18 +53,18 @@ func (sr Repository) UpdateStatusSubmitted(ethTxHash, scheduleID, transactionId 
 		Error
 }
 
-func (sr Repository) UpdateStatusCompleted(txId string) error {
-	return sr.updateStatus(txId, burn_event.StatusCompleted)
+func (sr Repository) UpdateStatusCompleted(id string) error {
+	return sr.updateStatus(id, burn_event.StatusCompleted)
 }
 
-func (sr Repository) UpdateStatusFailed(txId string) error {
-	return sr.updateStatus(txId, burn_event.StatusFailed)
+func (sr Repository) UpdateStatusFailed(id string) error {
+	return sr.updateStatus(id, burn_event.StatusFailed)
 }
 
-func (sr Repository) updateStatus(txId string, status string) error {
+func (sr Repository) updateStatus(id string, status string) error {
 	return sr.dbClient.
 		Model(entity.BurnEvent{}).
-		Where("transaction_id = ?", txId).
+		Where("id = ?", id).
 		UpdateColumn("status", status).
 		Error
 }

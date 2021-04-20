@@ -23,6 +23,6 @@ type BurnEvent struct {
 	Id           string // {ethereumTxHash}-{logIndex}
 	Amount       int64
 	Recipient    hedera.AccountID
-	NativeToken  string
-	WrappedToken string
+	NativeAsset  string
+	WrappedAsset string
 }

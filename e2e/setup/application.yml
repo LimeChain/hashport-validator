@@ -18,6 +18,8 @@ hedera:
       username:
   bridge_account:
   topic_id:
+  fee_percentage: 10000 # 10%
+  members:
   sender:
     account:
     private_key:
@@ -25,6 +27,7 @@ ethereum:
   node_url:
   router_contract_address:
   block_confirmations:
+  private_key:
 tokens:
   whbar: "HBAR"
   wtoken:
