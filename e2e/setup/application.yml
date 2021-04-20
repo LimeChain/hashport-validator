@@ -27,6 +27,7 @@ ethereum:
   node_url:
   router_contract_address:
   block_confirmations:
+  private_key:
 tokens:
   whbar: "HBAR"
   wtoken:

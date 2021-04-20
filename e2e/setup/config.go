@@ -80,6 +80,7 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
+	Receiver      common.Address
 	BridgeAccount hederaSDK.AccountID
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
@@ -141,6 +142,7 @@ func newSetup(config Config) (*Setup, error) {
 		Members:       members,
 		Clients:       clients,
 		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
+		Receiver:      common.HexToAddress(clients.Signer.Address()),
 	}, nil
 }
 
@@ -155,6 +157,7 @@ type clients struct {
 	ValidatorClient *e2eClients.Validator
 	FeeCalculator   service.Fee
 	Distributor     service.Distributor
+	Signer          service.Signer
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -178,7 +181,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.Signer)
+	signer := eth.NewEthSigner(config.Ethereum.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
@@ -196,6 +199,7 @@ func newClients(config Config) (*clients, error) {
 		ValidatorClient: validatorClient,
 		FeeCalculator:   calculator.New(config.Hedera.FeePercentage),
 		Distributor:     distributor.New(config.Hedera.Members),
+		Signer:          signer,
 	}, nil
 }
 
@@ -263,7 +267,6 @@ type Config struct {
 	Ethereum     config.Ethereum `yaml:"ethereum"`
 	Tokens       Tokens          `yaml:"tokens"`
 	ValidatorUrl string          `yaml:"validator_url"`
-	Signer       string          `yaml:"eth_signer"`
 }
 
 type Tokens struct {

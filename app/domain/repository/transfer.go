@@ -22,7 +22,9 @@ import (
 )
 
 type Transfer interface {
+	// Returns Transfer. Returns nil if not found
 	GetByTransactionId(txId string) (*entity.Transfer, error)
+	// Returns Transfer with preloaded Fee table. Returns nil if not found
 	GetWithFee(txId string) (*entity.Transfer, error)
 	GetWithPreloads(txId string) (*entity.Transfer, error)
 	GetUnprocessedTransfers() ([]*entity.Transfer, error)

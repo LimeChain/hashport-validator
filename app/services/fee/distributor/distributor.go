@@ -38,7 +38,7 @@ func New(members []string) *Service {
 	for _, v := range members {
 		accountID, err := hedera.AccountIDFromString(v)
 		if err != nil {
-			log.Fatalf("Invalid bridge threshold account: [%s].", v)
+			log.Fatalf("Invalid members account: [%s].", v)
 		}
 		accountIDs = append(accountIDs, accountID)
 	}
@@ -48,8 +48,8 @@ func New(members []string) *Service {
 		logger:     config.GetLoggerFor("Fee Service")}
 }
 
-// DistributeToMembers Returns an equally distributed portion to each member
-func (s Service) DistributeToMembers(amount int64) ([]transfer.Hedera, error) {
+// CalculateMemberDistribution Returns an equally divided to each member
+func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, error) {
 	feePerAccount := amount / int64(len(s.accountIDs))
 
 	totalAmount := feePerAccount * int64(len(s.accountIDs))
@@ -69,7 +69,7 @@ func (s Service) DistributeToMembers(amount int64) ([]transfer.Hedera, error) {
 	return transfers, nil
 }
 
-// ValidAmount Returns the closest amount, which can be equally distributed to members
+// ValidAmount Returns the closest amount, which can be equally divided to members
 func (s Service) ValidAmount(amount int64) int64 {
 	feePerAccount := amount / int64(len(s.accountIDs))
 

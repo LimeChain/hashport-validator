@@ -38,6 +38,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
+// Returns Transfer. Returns nil if not found
 func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.
@@ -65,6 +66,7 @@ func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	return tx, err
 }
 
+// Returns Transfer with preloaded Fee table. Returns nil if not found
 func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.

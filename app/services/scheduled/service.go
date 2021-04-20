@@ -62,9 +62,6 @@ func (s *Service) Execute(
 	case hedera.StatusIdenticalScheduleAlreadyCreated:
 		s.handleScheduleSign(id, *txReceipt.ScheduleID)
 	case hedera.StatusSuccess:
-		s.logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].",
-			id,
-			hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String()))
 	default:
 		txID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
 		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", id, txID, txReceipt.Status)

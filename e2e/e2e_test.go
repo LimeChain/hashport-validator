@@ -41,26 +41,22 @@ import (
 )
 
 var (
-	amount               int64 = 1000000000
-	hBarSendAmount             = hedera.HbarFromTinybar(amount)
-	hbarRemovalAmount          = hedera.HbarFromTinybar(-amount)
-	whbarReceiverAddress       = common.HexToAddress(receiverAddress)
+	amount            int64 = 1000000000
+	hBarSendAmount          = hedera.HbarFromTinybar(amount)
+	hbarRemovalAmount       = hedera.HbarFromTinybar(-amount)
 )
 
 const (
-	receiverAddress         = "0x7cFae2deF15dF86CfdA9f2d25A361f1123F42eDD"
 	expectedValidatorsCount = 3
 )
 
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 
-	memo := receiverAddress
-
-	wTokenReceiverAddress := common.HexToAddress(receiverAddress)
+	memo := setupEnv.Receiver.String()
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, whbarReceiverAddress, t)
+	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -76,7 +72,7 @@ func Test_HBAR(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, wTokenReceiverAddress, t)
+	validateWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
 
 	// Step 7 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
@@ -84,6 +80,7 @@ func Test_HBAR(t *testing.T) {
 		transactionResponse.TransactionID,
 		constants.Hbar,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
+		setupEnv.Receiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -96,10 +93,10 @@ func Test_HBAR(t *testing.T) {
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 
-	wTokenReceiverAddress := common.HexToAddress(receiverAddress)
+	memo := setupEnv.Receiver.String()
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, receiverAddress, wTokenReceiverAddress, t)
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -116,7 +113,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, wTokenReceiverAddress, t)
+	validateWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
 
 	// Step 7 - Verify Database records
 	expectedTxRecord := prepareExpectedTransfer(
@@ -124,6 +121,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
+		setupEnv.Receiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -151,7 +149,7 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 		setupEnv.Clients.KeyTransactor,
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		common.HexToAddress(receiverAddress),
+		setupEnv.Receiver,
 		mintAmount,
 		signatures,
 	)
@@ -215,8 +213,8 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 	if transactionData.NativeAsset != tokenID {
 		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeAsset)
 	}
-	if transactionData.Recipient != receiverAddress {
-		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", receiverAddress, transactionData.Recipient)
+	if transactionData.Recipient != setupEnv.Receiver.String() {
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", setupEnv.Receiver.String(), transactionData.Recipient)
 	}
 	if transactionData.WrappedAsset != tokenAddress.String() {
 		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", tokenAddress.String(), transactionData.WrappedAsset)
@@ -235,7 +233,7 @@ func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entit
 	}
 }
 
-func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, amount string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
 	wrappedAsset, err := setup.WrappedAsset(routerContract, nativeAsset)
@@ -244,7 +242,7 @@ func prepareExpectedTransfer(routerContract *routerContract.Router, transactionI
 	}
 	return &entity.Transfer{
 		TransactionID:      expectedTxId.String(),
-		Receiver:           receiverAddress,
+		Receiver:           receiver,
 		NativeAsset:        nativeAsset,
 		WrappedAsset:       wrappedAsset.String(),
 		Amount:             amount,

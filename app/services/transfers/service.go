@@ -69,11 +69,11 @@ func NewService(
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
-		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))
+		log.Fatalf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e)
 	}
 	bridgeAccountID, e := hedera.AccountIDFromString(bridgeAccount)
 	if e != nil {
-		panic(fmt.Sprintf("Invalid BridgeAccountID [%s] - Error: [%s]", bridgeAccount, e))
+		log.Fatalf("Invalid BridgeAccountID [%s] - Error: [%s]", bridgeAccount, e)
 	}
 
 	return &Service{
@@ -243,9 +243,10 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, nativeAsset string) {
-	transfers, err := ts.distributor.DistributeToMembers(feeAmount)
+	transfers, err := ts.distributor.CalculateMemberDistribution(feeAmount)
 	if err != nil {
 		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)
+		return
 	}
 
 	transfers = append(transfers,

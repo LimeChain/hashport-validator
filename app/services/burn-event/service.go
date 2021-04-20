@@ -50,7 +50,7 @@ func NewService(
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
-		log.Fatalf("Invalid bridge threshold account: [%s].", bridgeAccount)
+		log.Fatalf("Invalid bridge account: [%s].", bridgeAccount)
 	}
 
 	return &Service{
@@ -91,7 +91,7 @@ func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount 
 		remainder += fee - validFee
 	}
 
-	transfers, err = s.distributorService.DistributeToMembers(validFee)
+	transfers, err = s.distributorService.CalculateMemberDistribution(validFee)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -111,6 +111,9 @@ func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount 
 
 func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
+		s.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
+			id,
+			transactionID)
 		err := s.repository.UpdateStatusSubmitted(id, scheduleID, transactionID)
 		if err != nil {
 			s.logger.Errorf(

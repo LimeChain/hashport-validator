@@ -61,7 +61,7 @@ func NewService(
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
-		panic(fmt.Sprintf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e))
+		log.Fatalf("Invalid monitoring Topic ID [%s] - Error: [%s]", topicID, e)
 	}
 
 	return &Service{
