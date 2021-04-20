@@ -69,7 +69,7 @@ func (s Service) DistributeToMembers(amount int64) ([]transfer.Hedera, error) {
 	return transfers, nil
 }
 
-// ValidAmount Returns the closes amount, which can be equally distributed to members
+// ValidAmount Returns the closest amount, which can be equally distributed to members
 func (s Service) ValidAmount(amount int64) int64 {
 	feePerAccount := amount / int64(len(s.accountIDs))
 

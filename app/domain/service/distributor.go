@@ -23,6 +23,6 @@ import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 type Distributor interface {
 	// DistributeToMembers Returns an equally distributed portion to each member
 	DistributeToMembers(validFee int64) ([]transfer.Hedera, error)
-	// ValidAmount Returns the closes amount, which can be equally distributed to member
+	// ValidAmount Returns the closest amount, which can be equally distributed to member
 	ValidAmount(amount int64) int64
 }
