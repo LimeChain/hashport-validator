@@ -23,7 +23,8 @@ import (
 
 type Transfer interface {
 	GetByTransactionId(txId string) (*entity.Transfer, error)
-	GetWithMessages(txId string) (*entity.Transfer, error)
+	GetWithFee(txId string) (*entity.Transfer, error)
+	GetWithPreloads(txId string) (*entity.Transfer, error)
 	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)

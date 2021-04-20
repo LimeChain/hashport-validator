@@ -14,16 +14,10 @@
  * limitations under the License.
  */
 
-package entity
+package service
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
+// Fee interface is implemented by the Fee Service
+type Fee interface {
+	// CalculateFee calculates the fee and remainder of a given amount
+	CalculateFee(amount int64) (fee, remainder int64)
 }

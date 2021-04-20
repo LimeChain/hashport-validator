@@ -20,7 +20,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -28,17 +31,23 @@ import (
 
 // TODO extract new service only for Ethereum TX handling
 type Services struct {
-	signer    service.Signer
-	contracts service.Contracts
-	transfers service.Transfers
-	messages  service.Messages
-	burnEvents service.BurnEvent
+	signer      service.Signer
+	contracts   service.Contracts
+	transfers   service.Transfers
+	messages    service.Messages
+	burnEvents  service.BurnEvent
+	fees        service.Fee
+	distributor service.Distributor
+	scheduled   service.Scheduled
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
 	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
 	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
+	distributor := distributor.New(c.Validator.Clients.Hedera.Validators)
+	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
@@ -46,7 +55,12 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contracts,
 		ethSigner,
 		repositories.transfer,
-		c.Validator.Clients.Hedera.TopicId)
+		repositories.fee,
+		fees,
+		distributor,
+		c.Validator.Clients.Hedera.TopicId,
+		c.Validator.Clients.Hedera.BridgeAccount,
+		scheduled)
 
 	messages := messages.NewService(
 		ethSigner,
@@ -63,14 +77,20 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		c.Validator.Clients.Hedera.PayerAccount,
 		clients.HederaNode,
 		clients.MirrorNode,
-		repositories.burnEvent)
+		repositories.burnEvent,
+		repositories.fee,
+		distributor,
+		scheduled,
+		fees)
 
 	return &Services{
-		signer:    ethSigner,
-		contracts: contracts,
-		transfers: transfers,
-		messages:  messages,
-		burnEvents: burnEvent,
+		signer:      ethSigner,
+		contracts:   contracts,
+		transfers:   transfers,
+		messages:    messages,
+		burnEvents:  burnEvent,
+		fees:        fees,
+		distributor: distributor,
 	}
 }
 

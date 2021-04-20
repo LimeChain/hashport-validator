@@ -155,15 +155,15 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 
 	r.logger.Infof("Found [%d] unprocessed TXns for Account [%s]", len(txns), r.accountID)
 	for _, tx := range txns {
-		amount, nativeToken, err := tx.GetIncomingTransfer(r.accountID.String())
+		amount, nativeAsset, err := tx.GetIncomingTransfer(r.accountID.String())
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Invalid amount. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
 
-		wrappedToken, err := r.contracts.ParseToken(nativeToken)
+		wrappedAsset, err := r.contracts.Wrapped(nativeAsset)
 		if err != nil {
-			r.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
+			r.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 			continue
 		}
 
@@ -172,7 +172,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
 		}
-		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, nativeToken, wrappedToken, m)
+		err = r.transfers.SaveRecoveredTxn(tx.TransactionID, amount, nativeAsset, wrappedAsset, m)
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Unable to persist TX. Error: [%s]", tx.TransactionID, err)
 			continue
@@ -227,8 +227,8 @@ func (r Recovery) processUnfinishedOperations() error {
 		transferMsg := transfer.New(
 			t.TransactionID,
 			t.Receiver,
-			t.NativeToken,
-			t.WrappedToken,
+			t.NativeAsset,
+			t.WrappedAsset,
 			t.Amount)
 
 		err = r.transfers.ProcessTransfer(*transferMsg)

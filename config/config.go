@@ -68,15 +68,12 @@ type Config struct {
 }
 
 type Validator struct {
-	LogLevel        string   `yaml:"log_level" env:"VALIDATOR_LOG_LEVEL"`
-	RestApiOnly     bool     `yaml:"rest_api_only" env:"VALIDATOR_REST_API_ONLY"`
-	Port            string   `yaml:"port" env:"VALIDATOR_PORT"`
-	Database        Database `yaml:"database"`
-	Clients         Clients  `yaml:"clients"`
-	Recovery        Recovery `yaml:"recovery"`
-	SendDeadline    int64    `yaml:"send_deadline" env:"VALIDATOR_SEND_DEADLINE"`
-	BaseGasUsage    uint64   `yaml:"base_gas_usage" env:"VALIDATOR_BASE_GAS_USAGE"`
-	GasPerValidator uint64   `yaml:"gas_per_validator" env:"VALIDATOR_GAS_PER_VALIDATOR"`
+	LogLevel    string   `yaml:"log_level" env:"VALIDATOR_LOG_LEVEL"`
+	RestApiOnly bool     `yaml:"rest_api_only" env:"VALIDATOR_REST_API_ONLY"`
+	Port        string   `yaml:"port" env:"VALIDATOR_PORT"`
+	Database    Database `yaml:"database"`
+	Clients     Clients  `yaml:"clients"`
+	Recovery    Recovery `yaml:"recovery"`
 }
 
 type Clients struct {
@@ -102,6 +99,8 @@ type Hedera struct {
 	BridgeAccount string   `yaml:"bridge_account" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
 	PayerAccount  string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
 	TopicId       string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
+	FeePercentage int64    `yaml:"fee_percentage" env:"VALIDATOR_CLIENTS_HEDERA_FEE_PERCENTAGE"`
+	Validators    []string `yaml:"validators" env:"VALIDATOR_CLIENTS_HEDERA_VALIDATORS"`
 }
 
 type Operator struct {

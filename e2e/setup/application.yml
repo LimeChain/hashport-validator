@@ -18,6 +18,8 @@ hedera:
       username:
   bridge_account:
   topic_id:
+  fee_percentage: 10
+  validators:
   sender:
     account:
     private_key:

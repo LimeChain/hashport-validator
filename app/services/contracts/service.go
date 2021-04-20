@@ -44,8 +44,8 @@ type Service struct {
 	logger   *log.Entry
 }
 
-func (bsc *Service) ParseToken(tokenId string) (string, error) {
-	wrappedToken, err := bsc.contract.NativeToWrappedToken(
+func (bsc *Service) Wrapped(tokenId string) (string, error) {
+	wrappedAsset, err := bsc.contract.NativeToWrapped(
 		nil,
 		common.RightPadBytes([]byte(tokenId), 32),
 	)
@@ -53,7 +53,7 @@ func (bsc *Service) ParseToken(tokenId string) (string, error) {
 		return "", err
 	}
 
-	erc20address := wrappedToken.String()
+	erc20address := wrappedAsset.String()
 	if erc20address == nilErc20Address {
 		return "", errors.New("token-not-supported")
 	}
@@ -61,17 +61,17 @@ func (bsc *Service) ParseToken(tokenId string) (string, error) {
 	return erc20address, nil
 }
 
-func (bsc *Service) NativeToken(wrappedToken common.Address) (string, error) {
-	nativeToken, err := bsc.contract.WrappedToNativeToken(nil, wrappedToken)
+func (bsc *Service) Native(wrappedAsset common.Address) (string, error) {
+	native, err := bsc.contract.WrappedToNative(nil, wrappedAsset)
 	if err != nil {
 		return "", err
 	}
 
-	if len(nativeToken) == 0 {
+	if len(native) == 0 {
 		return "", errors.New("native token not found")
 	}
 
-	return string(common.TrimRightZeroes(nativeToken)), nil
+	return string(common.TrimRightZeroes(native)), nil
 }
 
 func (bsc *Service) GetBridgeContractAddress() common.Address {

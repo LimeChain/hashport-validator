@@ -19,6 +19,9 @@ package setup
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	"io/ioutil"
 	"os"
@@ -81,6 +84,8 @@ type Setup struct {
 	SenderAccount hederaSDK.AccountID
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
+	FeePercentage int64
+	Validators    []hederaSDK.AccountID
 	Clients       *clients
 	DbValidation  *db_validation.Service
 }
@@ -105,6 +110,19 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	if config.Hedera.FeePercentage < 0 || config.Hedera.FeePercentage > 100 {
+		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
+	}
+
+	var validators []hederaSDK.AccountID
+	for _, v := range config.Hedera.Validators {
+		account, err := hederaSDK.AccountIDFromString(v)
+		if err != nil {
+			return nil, err
+		}
+		validators = append(validators, account)
+	}
+
 	clients, err := newClients(config)
 	if err != nil {
 		return nil, err
@@ -115,6 +133,8 @@ func newSetup(config Config) (*Setup, error) {
 		SenderAccount: senderAccount,
 		TopicID:       topicID,
 		TokenID:       tokenID,
+		FeePercentage: config.Hedera.FeePercentage,
+		Validators:    validators,
 		Clients:       clients,
 		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
@@ -129,6 +149,8 @@ type clients struct {
 	RouterContract  *router.Router
 	KeyTransactor   *bind.TransactOpts
 	ValidatorClient *e2eClients.Validator
+	FeeCalculator   service.Fee
+	Distributor     service.Distributor
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -168,11 +190,13 @@ func newClients(config Config) (*clients, error) {
 		RouterContract:  routerInstance,
 		KeyTransactor:   keyTransactor,
 		ValidatorClient: validatorClient,
+		FeeCalculator:   calculator.New(config.Hedera.FeePercentage),
+		Distributor:     distributor.New(config.Hedera.Validators),
 	}, nil
 }
 
-func initTokenContract(nativeToken string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := ParseToken(routerInstance, nativeToken)
+func initTokenContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := WrappedAsset(routerInstance, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -185,19 +209,19 @@ func initTokenContract(nativeToken string, routerInstance *router.Router, ethCli
 	return wTokenInstance, nil
 }
 
-func ParseToken(routerInstance *router.Router, nativeToken string) (*common.Address, error) {
+func WrappedAsset(routerInstance *router.Router, nativeAsset string) (*common.Address, error) {
 	nilErc20Address := "0x0000000000000000000000000000000000000000"
-	wrappedToken, err := routerInstance.NativeToWrappedToken(
+	wrappedAsset, err := routerInstance.NativeToWrapped(
 		nil,
-		common.RightPadBytes([]byte(nativeToken), 32),
+		common.RightPadBytes([]byte(nativeAsset), 32),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenContractHex := wrappedToken.String()
+	wTokenContractHex := wrappedAsset.String()
 	if wTokenContractHex == nilErc20Address {
-		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeToken))
+		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
 	}
 
 	address := common.HexToAddress(wTokenContractHex)
@@ -247,6 +271,8 @@ type Tokens struct {
 type Hedera struct {
 	NetworkType       string            `yaml:"network_type"`
 	BridgeAccount     string            `yaml:"bridge_account"`
+	FeePercentage     int64             `yaml:"fee_percentage"`
+	Validators        []string          `yaml:"validators"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []config.Database `yaml:"dbs"`

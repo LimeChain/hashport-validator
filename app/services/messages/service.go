@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
+	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -87,22 +87,35 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 		return false, err
 	}
 
-	wrappedToken, err := ss.contractsService.ParseToken(t.NativeToken)
+	amount, err := strconv.ParseInt(t.Amount, 10, 64)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", t.TransactionID, t.NativeToken, err)
+		ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
+		return false, err
+	}
+
+	feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", topicMessage.TransferID, err)
+		return false, err
+	}
+	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
+
+	wrappedAsset, err := ss.contractsService.Wrapped(t.NativeAsset)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err
 	}
 
 	match := t.Receiver == topicMessage.Receiver &&
-		t.Amount == topicMessage.Amount &&
-		topicMessage.WrappedToken == wrappedToken
+		topicMessage.Amount == signedAmount &&
+		topicMessage.WrappedAsset == wrappedAsset
 	return match, nil
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 func (ss *Service) ProcessSignature(tsm message.Message) error {
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedToken, tsm.Receiver, tsm.Amount)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedAsset, tsm.Receiver, tsm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
@@ -174,13 +187,13 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 // awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	for {
-		t, err := ss.transferRepository.GetByTransactionId(transferID)
+		t, err := ss.transferRepository.GetWithFee(transferID)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
 			return nil, err
 		}
 
-		if t != nil {
+		if t != nil && t.Fee.TransactionID != "" {
 			return t, nil
 		}
 		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)

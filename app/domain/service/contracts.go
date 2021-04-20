@@ -32,7 +32,7 @@ type Contracts interface {
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// Check whether a specific asset has a valid bridge token address. Returns the erc20 token address if token is valid. Returns an empty string if not.
-	ParseToken(nativeTokenId string) (string, error)
+	Wrapped(native string) (string, error)
 	// Checks whether a specific wrapped token has a corresponding native token. Returns the native token as string
-	NativeToken(wrappedToken common.Address) (string, error)
+	Native(wrapped common.Address) (string, error)
 }
