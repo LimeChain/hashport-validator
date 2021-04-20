@@ -32,8 +32,8 @@ var (
 		TransactionId: "0.0.0-0000000-1234",
 		Receiver:      "0x12345",
 		Amount:        "10000000000",
-		NativeToken:   constants.Hbar,
-		WrappedToken:  "0x45678",
+		NativeAsset:   constants.Hbar,
+		WrappedAsset:  "0x45678",
 	}
 )
 
@@ -50,8 +50,8 @@ func Test_Handle(t *testing.T) {
 		TransactionID: mt.TransactionId,
 		Receiver:      mt.Receiver,
 		Amount:        mt.Amount,
-		NativeToken:   mt.NativeToken,
-		WrappedToken:  mt.WrappedToken,
+		NativeAsset:   mt.NativeAsset,
+		WrappedAsset:  mt.WrappedAsset,
 		Status:        transfer.StatusInitial,
 	}
 

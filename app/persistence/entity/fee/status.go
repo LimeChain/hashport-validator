@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package entity
+package fee
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
-}
+const (
+	// StatusCompleted is a status set once the Fee operation is successfully completed.
+	// This is a terminal status
+	StatusCompleted = "COMPLETED"
+	// StatusFailed is a status set once the Fee operation has failed. Can be created with a failed Status
+	// This is a terminal status
+	StatusFailed = "FAILED"
+	// StatusSubmitted is set when a pending Fee operation is created.
+	StatusSubmitted = "SUBMITTED"
+)

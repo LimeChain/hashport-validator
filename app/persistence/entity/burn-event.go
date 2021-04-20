@@ -25,4 +25,5 @@ type BurnEvent struct {
 	Recipient     string
 	Status        string
 	TransactionId sql.NullString `gorm:"unique"` // id of the original scheduled transaction
+	Fee           Fee            `gorm:"foreignKey:BurnEventID"`
 }

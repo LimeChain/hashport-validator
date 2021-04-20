@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package entity
+package service
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
+import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+
+// Distributor interface is implemented by the Distributor Service
+// Handles distribution of proportional amounts to members
+type Distributor interface {
+	// CalculateMemberDistribution Returns an equally divided to each member
+	CalculateMemberDistribution(validFee int64) ([]transfer.Hedera, error)
+	// ValidAmount Returns the closest amount, which can be equally divided to members
+	ValidAmount(amount int64) int64
 }

@@ -16,14 +16,13 @@
 
 package entity
 
-type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	Receiver           string
-	NativeAsset        string
-	WrappedAsset       string
-	Amount             string
-	Status             string
-	SignatureMsgStatus string
-	Messages           []Message `gorm:"foreignKey:TransferID"`
-	Fee                Fee       `gorm:"foreignKey:TransferID"`
+import "database/sql"
+
+type Fee struct {
+	TransactionID string `gorm:"primaryKey"`
+	ScheduleID    string `gorm:"unique"`
+	Amount        string
+	Status        string
+	TransferID    sql.NullString
+	BurnEventID   sql.NullString
 }

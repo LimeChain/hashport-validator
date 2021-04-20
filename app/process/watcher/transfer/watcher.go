@@ -141,15 +141,15 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, nativeToken, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	amount, nativeAsset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	wrappedToken, err := ctw.contractService.ParseToken(nativeToken)
+	wrappedAsset, err := ctw.contractService.ToWrapped(nativeAsset)
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Could not parse nativeToken [%s] - Error: [%s]", tx.TransactionID, nativeToken, err)
+		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeToken, wrappedToken, amount)
+	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 

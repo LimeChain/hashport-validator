@@ -5,8 +5,8 @@ import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 	return comparable.TransactionID == comparing.TransactionID &&
 		comparable.Receiver == comparing.Receiver &&
-		comparable.NativeToken == comparing.NativeToken &&
-		comparable.WrappedToken == comparing.WrappedToken &&
+		comparable.NativeAsset == comparing.NativeAsset &&
+		comparable.WrappedAsset == comparing.WrappedAsset &&
 		comparable.Amount == comparing.Amount &&
 		comparable.Status == comparing.Status &&
 		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus

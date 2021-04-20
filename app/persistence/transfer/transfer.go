@@ -38,6 +38,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
+// Returns Transfer. Returns nil if not found
 func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.
@@ -54,14 +55,33 @@ func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	return tx, nil
 }
 
-func (tr Repository) GetWithMessages(txId string) (*entity.Transfer, error) {
+func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	err := tr.dbClient.
+		Preload("Fee").
 		Preload("Messages").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		Find(tx).Error
 	return tx, err
+}
+
+// Returns Transfer with preloaded Fee table. Returns nil if not found
+func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
+	tx := &entity.Transfer{}
+	result := tr.dbClient.
+		Preload("Fee").
+		Model(entity.Transfer{}).
+		Where("transaction_id = ?", txId).
+		First(tx)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return tx, nil
 }
 
 func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error) {
@@ -123,8 +143,8 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
 		Status:        status,
-		NativeToken:   ct.NativeToken,
-		WrappedToken:  ct.WrappedToken,
+		NativeAsset:   ct.NativeAsset,
+		WrappedAsset:  ct.WrappedAsset,
 	}
 	err := tr.dbClient.Create(tx).Error
 
