@@ -19,10 +19,10 @@ package service
 import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 
 // Distributor interface is implemented by the Distributor Service
-// Handles distribution of proportional amounts to validators
+// Handles distribution of proportional amounts to members
 type Distributor interface {
-	// DistributeToValidators Returns an equally distributed portion to each validator
-	DistributeToValidators(validFee int64) ([]transfer.Hedera, error)
-	// ValidAmount Returns the closes amount, which can be equally distributed to validators
+	// DistributeToMembers Returns an equally distributed portion to each member
+	DistributeToMembers(validFee int64) ([]transfer.Hedera, error)
+	// ValidAmount Returns the closes amount, which can be equally distributed to member
 	ValidAmount(amount int64) int64
 }

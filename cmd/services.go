@@ -46,7 +46,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
 	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
 	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
-	distributor := distributor.New(c.Validator.Clients.Hedera.Validators)
+	distributor := distributor.New(c.Validator.Clients.Hedera.Members)
 	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
 	transfers := transfers.NewService(

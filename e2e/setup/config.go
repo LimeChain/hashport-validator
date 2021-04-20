@@ -85,7 +85,7 @@ type Setup struct {
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	FeePercentage int64
-	Validators    []hederaSDK.AccountID
+	Members       []hederaSDK.AccountID
 	Clients       *clients
 	DbValidation  *db_validation.Service
 }
@@ -114,13 +114,17 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
 	}
 
-	var validators []hederaSDK.AccountID
-	for _, v := range config.Hedera.Validators {
+	if len(config.Hedera.Members) == 0 {
+		return nil, errors.New(fmt.Sprintf("members account ids cannot be 0"))
+	}
+
+	var members []hederaSDK.AccountID
+	for _, v := range config.Hedera.Members {
 		account, err := hederaSDK.AccountIDFromString(v)
 		if err != nil {
 			return nil, err
 		}
-		validators = append(validators, account)
+		members = append(members, account)
 	}
 
 	clients, err := newClients(config)
@@ -134,7 +138,7 @@ func newSetup(config Config) (*Setup, error) {
 		TopicID:       topicID,
 		TokenID:       tokenID,
 		FeePercentage: config.Hedera.FeePercentage,
-		Validators:    validators,
+		Members:       members,
 		Clients:       clients,
 		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 	}, nil
@@ -191,7 +195,7 @@ func newClients(config Config) (*clients, error) {
 		KeyTransactor:   keyTransactor,
 		ValidatorClient: validatorClient,
 		FeeCalculator:   calculator.New(config.Hedera.FeePercentage),
-		Distributor:     distributor.New(config.Hedera.Validators),
+		Distributor:     distributor.New(config.Hedera.Members),
 	}, nil
 }
 
@@ -272,7 +276,7 @@ type Hedera struct {
 	NetworkType       string            `yaml:"network_type"`
 	BridgeAccount     string            `yaml:"bridge_account"`
 	FeePercentage     int64             `yaml:"fee_percentage"`
-	Validators        []string          `yaml:"validators"`
+	Members           []string          `yaml:"members"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []config.Database `yaml:"dbs"`

@@ -243,9 +243,9 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, nativeAsset string) {
-	transfers, err := ts.distributor.DistributeToValidators(feeAmount)
+	transfers, err := ts.distributor.DistributeToMembers(feeAmount)
 	if err != nil {
-		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Validators. Error: [%s].", transferID, err)
+		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)
 	}
 
 	transfers = append(transfers,

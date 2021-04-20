@@ -29,13 +29,13 @@ type Service struct {
 	logger     *log.Entry
 }
 
-func New(validators []string) *Service {
-	if len(validators) == 0 {
-		log.Fatal("No validators accounts provided")
+func New(members []string) *Service {
+	if len(members) == 0 {
+		log.Fatal("No members accounts provided")
 	}
 
 	var accountIDs []hedera.AccountID
-	for _, v := range validators {
+	for _, v := range members {
 		accountID, err := hedera.AccountIDFromString(v)
 		if err != nil {
 			log.Fatalf("Invalid bridge threshold account: [%s].", v)
@@ -48,8 +48,8 @@ func New(validators []string) *Service {
 		logger:     config.GetLoggerFor("Fee Service")}
 }
 
-// DistributeToValidators Returns an equally distributed portion to each validator
-func (s Service) DistributeToValidators(amount int64) ([]transfer.Hedera, error) {
+// DistributeToMembers Returns an equally distributed portion to each member
+func (s Service) DistributeToMembers(amount int64) ([]transfer.Hedera, error) {
 	feePerAccount := amount / int64(len(s.accountIDs))
 
 	totalAmount := feePerAccount * int64(len(s.accountIDs))
@@ -69,7 +69,7 @@ func (s Service) DistributeToValidators(amount int64) ([]transfer.Hedera, error)
 	return transfers, nil
 }
 
-// ValidAmount Returns the closes amount, which can be equally distributed to validators
+// ValidAmount Returns the closes amount, which can be equally distributed to members
 func (s Service) ValidAmount(amount int64) int64 {
 	feePerAccount := amount / int64(len(s.accountIDs))
 

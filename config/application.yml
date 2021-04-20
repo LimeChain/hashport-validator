@@ -21,7 +21,7 @@ validator:
       payer_account:
       topic_id:
       fee_percentage: 10
-      validators:
+      members:
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600

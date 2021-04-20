@@ -91,7 +91,7 @@ func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount 
 		remainder += fee - validFee
 	}
 
-	transfers, err = s.distributorService.DistributeToValidators(validFee)
+	transfers, err = s.distributorService.DistributeToMembers(validFee)
 	if err != nil {
 		return 0, 0, nil, err
 	}

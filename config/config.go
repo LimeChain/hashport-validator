@@ -100,7 +100,7 @@ type Hedera struct {
 	PayerAccount  string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
 	TopicId       string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
 	FeePercentage int64    `yaml:"fee_percentage" env:"VALIDATOR_CLIENTS_HEDERA_FEE_PERCENTAGE"`
-	Validators    []string `yaml:"validators" env:"VALIDATOR_CLIENTS_HEDERA_VALIDATORS"`
+	Members       []string `yaml:"members" env:"VALIDATOR_CLIENTS_HEDERA_MEMBERS"`
 }
 
 type Operator struct {
