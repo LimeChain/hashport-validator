@@ -38,6 +38,8 @@ ethereum:
     block_confirmations:
   sender:
     private_key:
+  receiver:
+    address:
 tokens:
   whbar: "HBAR"
   wtoken:
