@@ -81,7 +81,7 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	Receiver              common.Address
+	EthReceiver           common.Address
 	HederaReceiverAccount hederaSDK.AccountID
 	BridgeAccount         hederaSDK.AccountID
 	SenderAccount         hederaSDK.AccountID
@@ -153,6 +153,7 @@ func newSetup(config Config) (*Setup, error) {
 		RouterContractAddress: config.Ethereum.ClientConfig.RouterContractAddress,
 		FeePercentage:         config.Hedera.FeePercentage,
 		Members:               members,
+		EthReceiver:           common.HexToAddress(config.Ethereum.Receiver.Address),
 	}, nil
 }
 
@@ -299,9 +300,14 @@ type EthSender struct {
 	PrivateKey string `yaml:"private_key"`
 }
 
+type EthReceiver struct {
+	Address string `yaml:"address"`
+}
+
 type Ethereum struct {
 	ClientConfig config.Ethereum `yaml:"client_configuration"`
 	Sender       EthSender       `yaml:"sender"`
+	Receiver     EthReceiver     `yaml:"receiver"`
 }
 
 type Tokens struct {

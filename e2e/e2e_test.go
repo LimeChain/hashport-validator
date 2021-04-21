@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
@@ -128,19 +129,25 @@ func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouter
 		t.Fatal(err)
 	}
 
-	routerBurn := &routerContract.RouterBurn{}
+	routerBurn := routerContract.RouterBurn{}
+	eventSignature := []byte("Burn(address,address,uint256,bytes)")
+	hash := crypto.Keccak256Hash(eventSignature)
 	for _, log := range txReceipt.Logs {
-		err = parsedAbi.UnpackIntoInterface(routerBurn, "Burn", log.Data)
-		if err != nil {
-			fmt.Println(err)
+		if log.Topics[0] != hash {
 			continue
 		}
+		account := log.Topics[1]
+		wrappedAsset := log.Topics[2]
+		err := parsedAbi.UnpackIntoInterface(&routerBurn, "Burn", log.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		if routerBurn.Amount != expectedRouterBurn.Amount {
+		if routerBurn.Amount.String() != expectedRouterBurn.Amount.String() {
 			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
 		}
 
-		if routerBurn.WrappedAsset != expectedRouterBurn.WrappedAsset {
+		if wrappedAsset != expectedRouterBurn.WrappedAsset.Hash() {
 			t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
 		}
 
@@ -148,7 +155,7 @@ func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouter
 			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
 		}
 
-		if routerBurn.Account != expectedRouterBurn.Account {
+		if account != expectedRouterBurn.Account.Hash() {
 			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
 		}
 
@@ -156,17 +163,19 @@ func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouter
 
 		return expectedId
 	}
+
 	t.Fatal("Could not retrieve valid Burn Event Log information.")
 	return ""
 }
 
 func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Transaction {
-	time.Sleep(30 * time.Second)
+	time.Sleep(120 * time.Second)
 	transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.HederaReceiverAccount, now.UnixNano())
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, transaction := range transactions.Transactions {
+		fmt.Println(transaction.TransactionID)
 		if transaction.Scheduled == true {
 			// amount, "HBAR"
 			_, _, err := transaction.GetIncomingTransfer(setupEnv.HederaReceiverAccount.String())
@@ -189,9 +198,9 @@ func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction
 	}
 
 	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", "HBAR", wrappedToken))
-
-	value := big.NewInt(0)
-	tx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, value, setupEnv.BridgeAccount.ToBytes(), *wrappedToken)
+	value := big.NewInt(1000000000)
+	setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, common.HexToAddress(setupEnv.RouterContractAddress), value)
+	tx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, value, setupEnv.HederaReceiverAccount.ToBytes(), *wrappedToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +209,7 @@ func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction
 		Account:      common.HexToAddress(setupEnv.Clients.Signer.Address()),
 		WrappedAsset: *wrappedToken,
 		Amount:       value,
-		Receiver:     setupEnv.BridgeAccount.ToBytes(),
+		Receiver:     setupEnv.HederaReceiverAccount.ToBytes(),
 	}
 
 	fmt.Println(fmt.Sprintf("Submitted Burn Transaction [%s]", tx.Hash()))
@@ -210,10 +219,10 @@ func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (*types.Transaction
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 
-	memo := setupEnv.Receiver.String()
+	memo := setupEnv.EthReceiver.String()
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -229,7 +238,7 @@ func Test_HBAR(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
+	validateWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.EthReceiver, t)
 
 	// Step 7 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := prepareExpectedTransfer(
@@ -237,7 +246,7 @@ func Test_HBAR(t *testing.T) {
 		transactionResponse.TransactionID,
 		constants.Hbar,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
-		setupEnv.Receiver.String(),
+		setupEnv.EthReceiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -250,10 +259,10 @@ func Test_HBAR(t *testing.T) {
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 
-	memo := setupEnv.Receiver.String()
+	memo := setupEnv.EthReceiver.String()
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -270,7 +279,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
+	validateWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.EthReceiver, t)
 
 	// Step 7 - Verify Database records
 	expectedTxRecord := prepareExpectedTransfer(
@@ -278,7 +287,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
-		setupEnv.Receiver.String(),
+		setupEnv.EthReceiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
@@ -306,7 +315,7 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 		setupEnv.Clients.KeyTransactor,
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		setupEnv.Receiver,
+		setupEnv.EthReceiver,
 		mintAmount,
 		signatures,
 	)
@@ -371,8 +380,8 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 	if transactionData.NativeAsset != tokenID {
 		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeAsset)
 	}
-	if transactionData.Recipient != setupEnv.Receiver.String() {
-		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", setupEnv.Receiver.String(), transactionData.Recipient)
+	if transactionData.Recipient != setupEnv.EthReceiver.String() {
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", setupEnv.EthReceiver.String(), transactionData.Recipient)
 	}
 	if transactionData.WrappedAsset != tokenAddress.String() {
 		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", tokenAddress.String(), transactionData.WrappedAsset)
