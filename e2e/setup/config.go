@@ -81,18 +81,18 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	EthReceiver           common.Address
-	HederaReceiverAccount hederaSDK.AccountID
-	BridgeAccount         hederaSDK.AccountID
-	SenderAccount         hederaSDK.AccountID
-	TopicID               hederaSDK.TopicID
-	TokenID               hederaSDK.TokenID
-	FeePercentage         int64
-	Members               []hederaSDK.AccountID
-	Clients               *clients
-	DbValidation          *db_validation.Service
-	EthSender             EthSender
-	RouterContractAddress string
+	BridgeAccount             hederaSDK.AccountID
+	HederaSender              hederaSDK.AccountID
+	HederaReceiver            hederaSDK.AccountID
+	EthSender                 EthSender
+	EthReceiver               common.Address
+	ControllerContractAddress common.Address
+	TopicID                   hederaSDK.TopicID
+	TokenID                   hederaSDK.TokenID
+	FeePercentage             int64
+	Members                   []hederaSDK.AccountID
+	Clients                   *clients
+	DbValidator               *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
@@ -141,19 +141,21 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
+
 	return &Setup{
-		HederaReceiverAccount: receiverAccount,
-		BridgeAccount:         bridgeAccount,
-		SenderAccount:         senderAccount,
-		EthSender:             config.Ethereum.Sender,
-		TopicID:               topicID,
-		TokenID:               tokenID,
-		Clients:               clients,
-		DbValidation:          db_validation.NewService(config.Hedera.DbValidationProps),
-		RouterContractAddress: config.Ethereum.ClientConfig.RouterContractAddress,
-		FeePercentage:         config.Hedera.FeePercentage,
-		Members:               members,
-		EthReceiver:           common.HexToAddress(config.Ethereum.Receiver.Address),
+		HederaReceiver:            receiverAccount,
+		BridgeAccount:             bridgeAccount,
+		HederaSender:              senderAccount,
+		EthSender:                 config.Ethereum.Sender,
+		TopicID:                   topicID,
+		TokenID:                   tokenID,
+		Clients:                   clients,
+		DbValidator:               dbValidator,
+		FeePercentage:             config.Hedera.FeePercentage,
+		Members:                   members,
+		EthReceiver:               common.HexToAddress(config.Ethereum.Receiver.Address),
+		ControllerContractAddress: common.HexToAddress(config.Ethereum.ClientConfig.ControllerContractAddress),
 	}, nil
 }
 

@@ -35,6 +35,7 @@ ethereum:
   client_configuration:
     node_url:
     router_contract_address:
+  controller_contract_address:
     block_confirmations:
   sender:
     private_key:

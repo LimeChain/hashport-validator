@@ -6,6 +6,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
@@ -31,6 +32,7 @@ func NewService(dbConfigs []config.Database) *Service {
 		newVerifier := dbVerifier{
 			transactions: transfer.NewRepository(connection),
 			messages:     message.NewRepository(connection),
+			burnEvents:   burn_event.NewRepository(connection),
 		}
 		verifiers = append(verifiers, newVerifier)
 	}
@@ -119,15 +121,16 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount str
 }
 
 func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, error) {
-	valid := false
 	for _, verifier := range s.verifiers {
 		actualBurnEvent, err := verifier.burnEvents.Get(expectedBurnRecord.Id)
 		if err != nil {
 			return false, err
 		}
-		valid = burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord)
+		if !burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord) {
+			return false, nil
+		}
 	}
-	return valid, nil
+	return true, nil
 }
 
 func contains(m entity.Message, array []entity.Message) bool {
