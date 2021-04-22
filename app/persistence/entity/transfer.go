@@ -22,6 +22,7 @@ type Transfer struct {
 	NativeAsset        string
 	WrappedAsset       string
 	Amount             string
+	RouterAddress      string
 	Status             string
 	SignatureMsgStatus string
 	Messages           []Message `gorm:"foreignKey:TransferID"`

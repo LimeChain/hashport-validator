@@ -83,6 +83,7 @@ type Setup struct {
 	Receiver      common.Address
 	BridgeAccount hederaSDK.AccountID
 	SenderAccount hederaSDK.AccountID
+	RouterAddress common.Address
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	FeePercentage int64
@@ -141,6 +142,7 @@ func newSetup(config Config) (*Setup, error) {
 		FeePercentage: config.Hedera.FeePercentage,
 		Members:       members,
 		Clients:       clients,
+		RouterAddress: common.HexToAddress(config.Ethereum.RouterContractAddress),
 		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
 		Receiver:      common.HexToAddress(clients.Signer.Address()),
 	}, nil

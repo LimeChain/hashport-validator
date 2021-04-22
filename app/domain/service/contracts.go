@@ -25,6 +25,8 @@ import (
 
 // Contracts interface is implemented by the Contracts Service providing business logic access to the Ethereum SmartContracts and other related utility functions
 type Contracts interface {
+	// Address returns the address of the contract instance
+	Address() common.Address
 	// GetMembers returns the array of bridge members currently set in the Bridge contract
 	GetMembers() []string
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not

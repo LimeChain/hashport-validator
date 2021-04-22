@@ -23,15 +23,17 @@ type Transfer struct {
 	Amount        string
 	NativeAsset   string
 	WrappedAsset  string
+	RouterAddress string
 }
 
 // New instantiates Transfer struct ready for submission to the handler
-func New(txId, receiver, nativeAsset, wrappedAsset, amount string) *Transfer {
+func New(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
 		Receiver:      receiver,
 		Amount:        amount,
 		NativeAsset:   nativeAsset,
 		WrappedAsset:  wrappedAsset,
+		RouterAddress: routerAddress,
 	}
 }

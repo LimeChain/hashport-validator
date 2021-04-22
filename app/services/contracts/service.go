@@ -74,7 +74,8 @@ func (bsc *Service) ToNative(wrappedAsset common.Address) (string, error) {
 	return string(common.TrimRightZeroes(native)), nil
 }
 
-func (bsc *Service) GetBridgeContractAddress() common.Address {
+// Address returns the address of the contract instance
+func (bsc *Service) Address() common.Address {
 	return bsc.address
 }
 
