@@ -144,18 +144,18 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		HederaReceiver:            receiverAccount,
 		BridgeAccount:             bridgeAccount,
 		HederaSender:              senderAccount,
+		HederaReceiver:            receiverAccount,
 		EthSender:                 config.Ethereum.Sender,
-		TopicID:                   topicID,
-		TokenID:                   tokenID,
-		Clients:                   clients,
-		DbValidator:               dbValidator,
-		FeePercentage:             config.Hedera.FeePercentage,
-		Members:                   members,
 		EthReceiver:               common.HexToAddress(config.Ethereum.Receiver.Address),
 		ControllerContractAddress: common.HexToAddress(config.Ethereum.ClientConfig.ControllerContractAddress),
+		TopicID:                   topicID,
+		TokenID:                   tokenID,
+		FeePercentage:             config.Hedera.FeePercentage,
+		Members:                   members,
+		Clients:                   clients,
+		DbValidator:               dbValidator,
 	}, nil
 }
 
@@ -251,18 +251,6 @@ func WrappedAsset(routerInstance *router.Router, nativeAsset string) (*common.Ad
 
 	address := common.HexToAddress(wTokenContractHex)
 	return &address, nil
-}
-
-func ParseETHToHederaToken(routerInstance *router.Router, wrappedToken common.Address) (string, error) {
-	nativeToken, err := routerInstance.WrappedToNative(
-		nil,
-		wrappedToken,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	return string(nativeToken), nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
