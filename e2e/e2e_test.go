@@ -47,8 +47,11 @@ import (
 )
 
 var (
+	receiveAmounts = map[string]uint64{
+		constants.Hbar:  100,
+		constants.Token: 100,
+	}
 	tinyBarAmount     int64 = 1000000000
-	hBarReceiveAmount int64 = 100
 	hBarSendAmount          = hedera.HbarFromTinybar(tinyBarAmount)
 	hbarRemovalAmount       = hedera.HbarFromTinybar(-tinyBarAmount)
 	now                     = time.Now()
@@ -64,7 +67,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.HederaReceiver, t)
 
 	// 1. Submit burn transaction to the bridge contract
-	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, t)
+	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
 
 	// 2. Validate burn event
 	expectedId := validateBurnEvent(setupEnv, submittedTx, expectedRouterBurn, t)
@@ -73,12 +76,40 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
 
 	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, t)
+	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
 
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		mirrorNodeScheduledTransaction.TransactionID,
-		hBarReceiveAmount,
+		int64(receiveAmounts[constants.Hbar]),
+		setupEnv.HederaReceiver,
+		expectedId)
+
+	// 6. Validate Database Record
+	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
+}
+
+func Test_Ethereum_Hedera_Token(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.HederaReceiver, t)
+
+	// 1. Submit burn transaction to the bridge contract
+	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Token, t)
+
+	// 2. Validate burn event
+	expectedId := validateBurnEvent(setupEnv, submittedTx, expectedRouterBurn, t)
+
+	// 3. Validate that the tx went through and emitted the correct events
+	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
+
+	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Token, t)
+
+	// 5. Prepare Expected Database Record
+	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
+		mirrorNodeScheduledTransaction.TransactionID,
+		int64(receiveAmounts[constants.Token]),
 		setupEnv.HederaReceiver,
 		expectedId)
 
@@ -168,12 +199,25 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
-func validateReceiverAccountBalance(setup *setup.Setup, beforeHBARBalance hedera.AccountBalance, t *testing.T) {
-	beforeTransfer := beforeHBARBalance.Hbars.AsTinybar()
-	afterTransfer := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.HederaReceiver, t).Hbars.AsTinybar()
+func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
+	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.HederaReceiver, t)
 
-	if afterTransfer-beforeTransfer != hBarReceiveAmount {
-		t.Fatalf("Expected account balance after - [%d], but was [%d]", afterTransfer, beforeTransfer)
+	var beforeTransfer uint64
+	var afterTransfer uint64
+
+	switch asset {
+	case constants.Hbar:
+		beforeTransfer = uint64(beforeHbarBalance.Hbars.AsTinybar())
+		afterTransfer = uint64(afterHbarBalance.Hbars.AsTinybar())
+	case constants.Token:
+		beforeTransfer = beforeHbarBalance.Token[setup.TokenID]
+		afterTransfer = afterHbarBalance.Token[setup.TokenID]
+	default:
+		t.Fatalf("Asset [%s] is not supported", asset)
+	}
+
+	if afterTransfer-beforeTransfer != receiveAmounts[asset] {
+		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]", setup.HederaReceiver, asset, afterTransfer, beforeTransfer)
 	}
 }
 
@@ -222,7 +266,6 @@ func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouter
 		}
 
 		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
-
 		return expectedId
 	}
 
@@ -238,18 +281,19 @@ func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Trans
 			t.Fatal(err)
 		}
 		for _, transaction := range transactions.Transactions {
-			fmt.Println(transaction.TransactionID)
 			if transaction.Scheduled == true {
 				// amount, "HBAR"
 				_, _, err := transaction.GetIncomingTransfer(setupEnv.HederaReceiver.String())
 				if err != nil {
 					t.Fatal(err)
 				}
+				// TODO: Compare after fees integration
 				return &transaction
 			}
 		}
 
 		if timeLeft > 0 {
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", setupEnv.HederaReceiver, timeLeft))
 			timeLeft -= 5
 			time.Sleep(5 * time.Second)
 			continue
@@ -300,15 +344,15 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 	return res.Hash().String()
 }
 
-func sendEthTransaction(setupEnv *setup.Setup, t *testing.T) (common.Hash, *routerContract.RouterBurn) {
-	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, "HBAR")
+func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (common.Hash, *routerContract.RouterBurn) {
+	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, asset)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", "HBAR", wrappedAsset))
+	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
 
-	approvedValue := big.NewInt(hBarReceiveAmount)
-	setupEnv.Clients.KeyTransactor.GasPrice = big.NewInt(50000000000)
+	approvedValue := new(big.Int).SetUint64(receiveAmounts[asset])
+
 	approveTx, err := setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, setupEnv.ControllerContractAddress, approvedValue)
 	if err != nil {
 		t.Fatal(err)

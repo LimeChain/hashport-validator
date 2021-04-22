@@ -17,3 +17,4 @@
 package constants
 
 const Hbar = "HBAR"
+const Token = "TOKEN"
