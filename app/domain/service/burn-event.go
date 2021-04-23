@@ -23,4 +23,6 @@ type BurnEvent interface {
 	// ProcessEvent processes the burn event by submitting the appropriate
 	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
 	ProcessEvent(event burn_event.BurnEvent)
+	// ScheduledTxID returns from the database the corresponding scheduled transaction id
+	ScheduledTxID(id string) (string, error)
 }

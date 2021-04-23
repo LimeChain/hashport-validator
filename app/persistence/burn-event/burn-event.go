@@ -18,6 +18,7 @@ package burn_event
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
 	"gorm.io/gorm"
@@ -67,4 +68,21 @@ func (sr Repository) updateStatus(id string, status string) error {
 		Where("id = ?", id).
 		UpdateColumn("status", status).
 		Error
+}
+
+func (sr Repository) Get(id string) (*entity.BurnEvent, error) {
+	burnEvent := &entity.BurnEvent{}
+	result := sr.dbClient.
+		Model(entity.BurnEvent{}).
+		Where("id = ?", id).
+		First(burnEvent)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return burnEvent, nil
 }
