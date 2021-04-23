@@ -330,8 +330,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
 		return service.TransferData{}, err
 	}
-
-	if t == nil {
+	if t == nil || t.Fee.Amount == "" {
 		return service.TransferData{}, err
 	}
 
