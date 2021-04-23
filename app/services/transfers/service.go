@@ -331,6 +331,10 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, err
 	}
 
+	if t == nil {
+		return service.TransferData{}, err
+	}
+
 	amount, err := strconv.ParseInt(t.Amount, 10, 64)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)

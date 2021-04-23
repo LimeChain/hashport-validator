@@ -57,13 +57,21 @@ func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 
 func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
-	err := tr.dbClient.
+	result := tr.dbClient.
 		Preload("Fee").
 		Preload("Messages").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Find(tx).Error
-	return tx, err
+		Find(tx)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return tx, nil
 }
 
 // Returns Transfer with preloaded Fee table. Returns nil if not found
