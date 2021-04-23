@@ -331,7 +331,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, err
 	}
 	if t == nil || t.Fee.Amount == "" {
-		return service.TransferData{}, err
+		return service.TransferData{}, nil
 	}
 
 	amount, err := strconv.ParseInt(t.Amount, 10, 64)
