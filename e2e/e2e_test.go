@@ -47,14 +47,11 @@ import (
 )
 
 var (
-	receiveAmounts = map[string]uint64{
-		constants.Hbar:  100,
-		constants.Token: 100,
-	}
-	tinyBarAmount     int64 = 1000000000
-	hBarSendAmount          = hedera.HbarFromTinybar(tinyBarAmount)
-	hbarRemovalAmount       = hedera.HbarFromTinybar(-tinyBarAmount)
-	now                     = time.Now()
+	receiveAmount     uint64 = 100
+	tinyBarAmount     int64  = 1000000000
+	hBarSendAmount           = hedera.HbarFromTinybar(tinyBarAmount)
+	hbarRemovalAmount        = hedera.HbarFromTinybar(-tinyBarAmount)
+	now                      = time.Now()
 )
 
 const (
@@ -81,7 +78,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		mirrorNodeScheduledTransaction.TransactionID,
-		int64(receiveAmounts[constants.Hbar]),
+		int64(receiveAmount),
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
@@ -109,7 +106,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		mirrorNodeScheduledTransaction.TransactionID,
-		int64(receiveAmounts[constants.Token]),
+		int64(receiveAmount),
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
@@ -216,7 +213,7 @@ func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera
 		t.Fatalf("Asset [%s] is not supported", asset)
 	}
 
-	if afterTransfer-beforeTransfer != receiveAmounts[asset] {
+	if afterTransfer-beforeTransfer != receiveAmount {
 		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, afterTransfer, beforeTransfer)
 	}
 }
@@ -351,7 +348,7 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (comm
 	}
 	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
 
-	approvedValue := new(big.Int).SetUint64(receiveAmounts[asset])
+	approvedValue := new(big.Int).SetUint64(receiveAmount)
 
 	controller, err := setupEnv.Clients.RouterContract.Controller(nil)
 	if err != nil {
