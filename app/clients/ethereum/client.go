@@ -101,7 +101,6 @@ func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onE
 			return
 		}
 
-		// TODO: Return Receipt on Success and Revert
 		if receipt.Status == 1 {
 			ec.logger.Debugf("TX [%s] was successfully mined", hex)
 			onSuccess()

@@ -81,31 +81,19 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount             hederaSDK.AccountID
-	HederaSender              hederaSDK.AccountID
-	HederaReceiver            hederaSDK.AccountID
-	EthSender                 EthSender
-	EthReceiver               common.Address
-	ControllerContractAddress common.Address
-	TopicID                   hederaSDK.TopicID
-	TokenID                   hederaSDK.TokenID
-	FeePercentage             int64
-	Members                   []hederaSDK.AccountID
-	Clients                   *clients
-	DbValidator               *db_validation.Service
+	BridgeAccount hederaSDK.AccountID
+	EthReceiver   common.Address
+	TopicID       hederaSDK.TopicID
+	TokenID       hederaSDK.TokenID
+	FeePercentage int64
+	Members       []hederaSDK.AccountID
+	Clients       *clients
+	DbValidator   *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
 func newSetup(config Config) (*Setup, error) {
 	bridgeAccount, err := hederaSDK.AccountIDFromString(config.Hedera.BridgeAccount)
-	if err != nil {
-		return nil, err
-	}
-	senderAccount, err := hederaSDK.AccountIDFromString(config.Hedera.Sender.Account)
-	if err != nil {
-		return nil, err
-	}
-	receiverAccount, err := hederaSDK.AccountIDFromString(config.Hedera.Receiver.Account)
 	if err != nil {
 		return nil, err
 	}
@@ -144,18 +132,14 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:             bridgeAccount,
-		HederaSender:              senderAccount,
-		HederaReceiver:            receiverAccount,
-		EthSender:                 config.Ethereum.Sender,
-		EthReceiver:               common.HexToAddress(config.Ethereum.Receiver.Address),
-		ControllerContractAddress: common.HexToAddress(config.Ethereum.ClientConfig.ControllerContractAddress),
-		TopicID:                   topicID,
-		TokenID:                   tokenID,
-		FeePercentage:             config.Hedera.FeePercentage,
-		Members:                   members,
-		Clients:                   clients,
-		DbValidator:               dbValidator,
+		BridgeAccount: bridgeAccount,
+		EthReceiver:   common.HexToAddress(config.Ethereum.PrivateKey),
+		TopicID:       topicID,
+		TokenID:       tokenID,
+		FeePercentage: config.Hedera.FeePercentage,
+		Members:       members,
+		Clients:       clients,
+		DbValidator:   dbValidator,
 	}, nil
 }
 
@@ -180,22 +164,22 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := ethereum.NewClient(config.Ethereum.ClientConfig)
+	ethClient := ethereum.NewClient(config.Ethereum)
 
-	routerContractAddress := common.HexToAddress(config.Ethereum.ClientConfig.RouterContractAddress)
+	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
-	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
+	wHbarInstance, err := initAssetContract(config.Tokens.WHbar, routerInstance, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenInstance, err := initTokenContract(config.Tokens.WToken, routerInstance, ethClient)
+	wTokenInstance, err := initAssetContract(config.Tokens.WToken, routerInstance, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.Ethereum.Sender.PrivateKey)
+	signer := eth.NewEthSigner(config.Ethereum.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
@@ -220,7 +204,7 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initTokenContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+func initAssetContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := WrappedAsset(routerInstance, nativeAsset)
 	if err != nil {
 		return nil, err
@@ -280,24 +264,14 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 
 // e2eConfig used to load and parse from application.yml
 type Config struct {
-	Hedera       Hedera   `yaml:"hedera"`
-	Ethereum     Ethereum `yaml:"ethereum"`
-	Tokens       Tokens   `yaml:"tokens"`
-	ValidatorUrl string   `yaml:"validator_url"`
-}
-
-type EthSender struct {
-	PrivateKey string `yaml:"private_key"`
+	Hedera       Hedera          `yaml:"hedera"`
+	Ethereum     config.Ethereum `yaml:"ethereum"`
+	Tokens       Tokens          `yaml:"tokens"`
+	ValidatorUrl string          `yaml:"validator_url"`
 }
 
 type EthReceiver struct {
 	Address string `yaml:"address"`
-}
-
-type Ethereum struct {
-	ClientConfig config.Ethereum `yaml:"client_configuration"`
-	Sender       EthSender       `yaml:"sender"`
-	Receiver     EthReceiver     `yaml:"receiver"`
 }
 
 type Tokens struct {
@@ -313,7 +287,6 @@ type Hedera struct {
 	Members           []string          `yaml:"members"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
-	Receiver          Receiver          `yaml:"receiver"`
 	DbValidationProps []config.Database `yaml:"dbs"`
 	MirrorNode        config.MirrorNode `yaml:"mirror_node"`
 }

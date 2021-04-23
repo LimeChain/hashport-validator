@@ -87,11 +87,10 @@ type Recovery struct {
 }
 
 type Ethereum struct {
-	NodeUrl                   string `yaml:"node_url" env:"VALIDATOR_CLIENTS_ETHEREUM_NODE_URL"`
-	RouterContractAddress     string `yaml:"router_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_ROUTER_CONTRACT_ADDRESS"`
-	ControllerContractAddress string `yaml:"controller_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_CONTROLLER_CONTRACT_ADDRESS"`
-	BlockConfirmations        uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_ETHEREUM_BLOCK_CONFIRMATIONS"`
-	PrivateKey                string `yaml:"private_key" env:"VALIDATOR_CLIENTS_ETHEREUM_PRIVATE_KEY"`
+	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_CLIENTS_ETHEREUM_NODE_URL"`
+	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_ROUTER_CONTRACT_ADDRESS"`
+	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_ETHEREUM_BLOCK_CONFIRMATIONS"`
+	PrivateKey            string `yaml:"private_key" env:"VALIDATOR_CLIENTS_ETHEREUM_PRIVATE_KEY"`
 }
 
 type Hedera struct {

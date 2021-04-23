@@ -26,6 +26,6 @@ func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
 	return comparing.Status == comparable.Status &&
 		//comparing.ScheduleID == comparable.ScheduleID && // TODO: This comparison needs to be discussed
 		comparing.Recipient == comparable.Recipient &&
-		comparing.Amount == comparable.Amount && // TODO: Are we keeping HBARs in an HBAR or TinyBar format
+		comparing.Amount == comparable.Amount &&
 		comparing.Id == comparable.Id
 }
