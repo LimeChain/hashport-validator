@@ -39,7 +39,7 @@ func NewService(dbConfigs []config.Database) *Service {
 	}
 }
 
-func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, routerAddress, mintAmount string, signatures []string) (bool, error) {
+func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	valid, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err
@@ -48,7 +48,7 @@ func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer,
 		return false, nil
 	}
 
-	valid, err = s.validSignatureMessages(record, routerAddress, mintAmount, signatures)
+	valid, err = s.validSignatureMessages(record, mintAmount, signatures)
 	if err != nil {
 		return false, err
 	}
@@ -71,10 +71,10 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 	return true, expectedTransferRecord, nil
 }
 
-func (s *Service) validSignatureMessages(record *entity.Transfer, routerAddress, mintAmount string, signatures []string) (bool, error) {
+func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
 
-	authMsgBytes, err := auth_message.EncodeBytesFrom(record.TransactionID, routerAddress, record.WrappedAsset, record.Receiver, mintAmount)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(record.TransactionID, record.RouterAddress, record.WrappedAsset, record.Receiver, mintAmount)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", record.TransactionID, err)
 		return false, err

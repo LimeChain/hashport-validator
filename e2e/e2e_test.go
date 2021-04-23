@@ -79,6 +79,7 @@ func Test_HBAR(t *testing.T) {
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		constants.Hbar,
+		setupEnv.RouterAddress.String(),
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		setupEnv.Receiver.String(),
 		database.ExpectedStatuses{
@@ -87,7 +88,7 @@ func Test_HBAR(t *testing.T) {
 		}, t)
 
 	// Step 8 - Verify Database Records
-	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, setupEnv.RouterAddress.String(), strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
 func Test_E2E_Token_Transfer(t *testing.T) {
@@ -120,6 +121,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
+		setupEnv.RouterAddress.String(),
 		strconv.FormatInt(amount, 10),
 		setupEnv.Receiver.String(),
 		database.ExpectedStatuses{
@@ -128,7 +130,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		}, t)
 
 	// Step 8 - Verify Database Records
-	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, setupEnv.RouterAddress.String(), strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
 func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
@@ -223,8 +225,8 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 	return transactionData, tokenAddress
 }
 
-func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.Transfer, routerAddress, mintAmount string, signatures []string, t *testing.T) {
-	exist, err := dbValidation.VerifyDatabaseRecords(expectedRecord, routerAddress, mintAmount, signatures)
+func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.Transfer, mintAmount string, signatures []string, t *testing.T) {
+	exist, err := dbValidation.VerifyDatabaseRecords(expectedRecord, mintAmount, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
@@ -233,7 +235,7 @@ func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entit
 	}
 }
 
-func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, routerAddress, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
 	wrappedAsset, err := setup.WrappedAsset(routerContract, nativeAsset)
@@ -245,6 +247,7 @@ func prepareExpectedTransfer(routerContract *routerContract.Router, transactionI
 		Receiver:           receiver,
 		NativeAsset:        nativeAsset,
 		WrappedAsset:       wrappedAsset.String(),
+		RouterAddress:      routerAddress,
 		Amount:             amount,
 		Status:             statuses.Status,
 		SignatureMsgStatus: statuses.StatusSignature,
