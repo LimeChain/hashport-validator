@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -92,7 +93,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Submit burn transaction to the bridge contract
-	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Token, t)
+	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
 
 	// 2. Validate burn event
 	expectedId := validateBurnEvent(setupEnv, submittedTx, expectedRouterBurn, t)
@@ -213,7 +214,9 @@ func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera
 		t.Fatalf("Asset [%s] is not supported", asset)
 	}
 
-	if afterTransfer-beforeTransfer != receiveAmount {
+	mintAmount := calculateMintAmount(setup, int64(receiveAmount))
+
+	if afterTransfer-beforeTransfer != uint64(mintAmount) {
 		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, afterTransfer, beforeTransfer)
 	}
 }
@@ -355,7 +358,12 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (comm
 		t.Fatal(err)
 	}
 
-	approveTx, err := setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	var approveTx *types.Transaction
+	if asset == constants.Hbar {
+		approveTx, err = setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	} else {
+		approveTx, err = setupEnv.Clients.WTokenContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
