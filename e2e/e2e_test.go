@@ -271,12 +271,8 @@ func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var entityId string
-		found := false
+
 		for _, transaction := range transactions.Transactions {
-			if transaction.EntityId != "" {
-				entityId = transaction.EntityId
-			}
 			if transaction.Scheduled == true {
 				// amount, "HBAR"
 				_, _, err := transaction.GetIncomingTransfer(setupEnv.Clients.Hedera.GetOperatorAccountID().String())
@@ -284,10 +280,17 @@ func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) string {
 					t.Fatal(err)
 				}
 				// TODO: Compare after fees integration
-				found = true
-			}
-			if found && entityId != "" {
-				return entityId
+
+				scheduleCreateTx, err := setupEnv.Clients.MirrorNode.GetTransaction(transaction.TransactionID)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				for _, tx := range scheduleCreateTx.Transactions {
+					if tx.EntityId != "" {
+						return tx.EntityId
+					}
+				}
 			}
 		}
 
