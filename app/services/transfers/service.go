@@ -142,6 +142,7 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId: txId,
+		RouterAddress: ts.contractsService.Address().String(),
 		Receiver:      memo,
 		Amount:        amount,
 		NativeAsset:   nativeAsset,
