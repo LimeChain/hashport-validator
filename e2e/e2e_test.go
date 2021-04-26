@@ -343,14 +343,19 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*typ
 	}
 	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
 
-	approvedValue := new(big.Int).SetUint64(2 * receiveAmount)
+	approvedValue := new(big.Int).SetUint64(receiveAmount)
 
 	controller, err := setupEnv.Clients.RouterContract.Controller(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	approveTx, err := setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	var approveTx *types.Transaction
+	if asset == constants.Hbar {
+		approveTx, err = setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	} else {
+		approveTx, err = setupEnv.Clients.WTokenContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
