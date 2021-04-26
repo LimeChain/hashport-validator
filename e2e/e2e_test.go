@@ -62,7 +62,8 @@ const (
 func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
-	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	// TODO: Add this after the fee validation pull request.
+	//accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
@@ -74,7 +75,8 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
 
 	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
+	// TODO: Call this function after the fee validation pull request.
+	//validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
 
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
@@ -90,7 +92,8 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 //func Test_Ethereum_Hedera_Token(t *testing.T) {
 //	setupEnv := setup.Load()
 //	now = time.Now()
-//	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+//  // TODO: Add this after the fee validation pull request.
+//	// accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 //
 //	// 1. Submit burn transaction to the bridge contract
 //	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
@@ -102,6 +105,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 //	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
 //
 //	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+//  // TODO: Call this function after the fee validation pull request.
 //	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, setupEnv.TokenID.String(), t)
 //
 //	// 5. Prepare Expected Database Record
