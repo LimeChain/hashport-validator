@@ -217,7 +217,7 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount ui
 	}
 
 	if afterTransfer-beforeTransfer != expectedReceiveAmount {
-		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, afterTransfer, beforeTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
+		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
 	}
 }
 
