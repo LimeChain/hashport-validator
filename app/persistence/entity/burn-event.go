@@ -16,7 +16,10 @@
 
 package entity
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type BurnEvent struct {
 	Id            string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
@@ -26,4 +29,8 @@ type BurnEvent struct {
 	Status        string
 	TransactionId sql.NullString `gorm:"unique"` // id of the original scheduled transaction
 	Fee           Fee            `gorm:"foreignKey:BurnEventID"`
+}
+
+func (b *BurnEvent) String() string {
+	return fmt.Sprintf("Id: [%s]\n ScheduleID: [%s]\n Amount: [%d]\n Recipient: [%s]\n Status: [%s]", b.Id, b.ScheduleID, b.Amount, b.Recipient, b.Status)
 }
