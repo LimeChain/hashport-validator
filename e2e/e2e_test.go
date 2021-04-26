@@ -62,19 +62,21 @@ const (
 func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
-	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	// TODO: Add this after the fee validation pull request.
+	//accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Submit burn transaction to the bridge contract
-	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
 
-	// 2. Validate burn event
-	expectedId := validateBurnEvent(setupEnv, submittedTx, expectedRouterBurn, t)
+	// 2. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
-	// 3. Validate that the tx went through and emitted the correct events
+	// 3. Validate that a scheduled transaction was submitted
 	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
 
 	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
+	// TODO: Call this function after the fee validation pull request.
+	//validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
 
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
@@ -90,19 +92,21 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 func Test_Ethereum_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
-	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	// TODO: Add this after the fee validation pull request.
+	// accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Submit burn transaction to the bridge contract
-	submittedTx, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
 
-	// 2. Validate burn event
-	expectedId := validateBurnEvent(setupEnv, submittedTx, expectedRouterBurn, t)
+	// 2. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
-	// 3. Validate that the tx went through and emitted the correct events
+	// 3. Validate that a scheduled transaction was submitted
 	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
 
 	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Token, t)
+	// TODO: Call this function after the fee validation pull request.
+	//validateReceiverAccountBalance(setupEnv, accountBalanceBefore, setupEnv.TokenID.String(), t)
 
 	// 5. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
@@ -203,15 +207,12 @@ func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera
 	var beforeTransfer uint64
 	var afterTransfer uint64
 
-	switch asset {
-	case constants.Hbar:
+	if asset == constants.Hbar {
 		beforeTransfer = uint64(beforeHbarBalance.Hbars.AsTinybar())
 		afterTransfer = uint64(afterHbarBalance.Hbars.AsTinybar())
-	case constants.Token:
+	} else {
 		beforeTransfer = beforeHbarBalance.Token[setup.TokenID]
 		afterTransfer = afterHbarBalance.Token[setup.TokenID]
-	default:
-		t.Fatalf("Asset [%s] is not supported", asset)
 	}
 
 	mintAmount := calculateMintAmount(setup, int64(receiveAmount))
@@ -221,14 +222,7 @@ func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera
 	}
 }
 
-func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) string {
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn Transaction Receipt.", txHash))
-	txReceipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(txHash)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(fmt.Sprintf("[%s] Burn Transaction mined and retrieved receipt.", txHash))
-
+func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) string {
 	parsedAbi, err := abi.JSON(strings.NewReader(routerContract.RouterABI))
 	if err != nil {
 		t.Fatal(err)
@@ -274,7 +268,7 @@ func validateBurnEvent(setupEnv *setup.Setup, txHash common.Hash, expectedRouter
 }
 
 func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Transaction {
-	timeLeft := 480
+	timeLeft := 180
 	for {
 		transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.Clients.Hedera.GetOperatorAccountID(), now.UnixNano())
 		if err != nil {
@@ -315,7 +309,7 @@ func calculateMintAmount(setup *setup.Setup, amount int64) int64 {
 	return remainder
 }
 
-func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
+func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -341,10 +335,10 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 	if err != nil {
 		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
 	}
-	return res.Hash().String()
+	return res.Hash()
 }
 
-func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (common.Hash, *routerContract.RouterBurn) {
+func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *routerContract.RouterBurn) {
 	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, asset)
 	if err != nil {
 		t.Fatal(err)
@@ -369,7 +363,7 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (comm
 	}
 
 	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
-	waitForTransaction(setupEnv, approveTx.Hash().String(), t)
+	waitForTransaction(setupEnv, approveTx.Hash(), t)
 
 	burnTx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, approvedValue, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), *wrappedAsset)
 	if err != nil {
@@ -383,25 +377,31 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (comm
 		Amount:       approvedValue,
 		Receiver:     setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(),
 	}
-	return burnTx.Hash(), expectedRouterBurn
+
+	burnTxHash := burnTx.Hash()
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn Transaction Receipt.", burnTxHash))
+	burnTxReceipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(burnTxHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf("[%s] Burn Transaction mined and retrieved receipt.", burnTxHash))
+
+	return burnTxReceipt, expectedRouterBurn
 }
 
-// TODO: Call only WaitForReceipt and make the function synchronous
-func waitForTransaction(setupEnv *setup.Setup, txHash string, t *testing.T) {
-	fmt.Println(fmt.Sprintf("Waiting for transaction: [%s] to be mined", txHash))
-	c1 := make(chan bool, 1)
-	onSuccess := func() {
-		fmt.Println(fmt.Sprintf("Transaction [%s] mined successfully", txHash))
-		c1 <- true
+func waitForTransaction(setupEnv *setup.Setup, txHash common.Hash, t *testing.T) {
+	receipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(txHash)
+	if err != nil {
+		t.Fatalf("[%s] - Error occurred while monitoring. Error: [%s]", txHash, err)
+		return
 	}
-	onRevert := func() {
-		t.Fatalf("Failed to mine ethereum transaction: [%s]", txHash)
+
+	if receipt.Status == 1 {
+		fmt.Println(fmt.Sprintf("TX [%s] was successfully mined", txHash))
+	} else {
+		t.Fatalf("TX [%s] reverted", txHash)
 	}
-	onError := func(err error) {
-		t.Fatalf(fmt.Sprintf("Transaction unsuccessful, Error: [%s]", err))
-	}
-	setupEnv.Clients.EthClient.WaitForTransaction(txHash, onSuccess, onRevert, onError)
-	<-c1
 }
 
 func verifyWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address, t *testing.T) {
@@ -461,7 +461,7 @@ func verifyBurnEventRecord(dbValidation *database.Service, expectedRecord *entit
 }
 
 func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, mintAmount string, signatures []string, t *testing.T) {
-	exist, err := dbValidation.VerifyDatabaseRecords(expectedRecord, mintAmount, signatures)
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, mintAmount, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
