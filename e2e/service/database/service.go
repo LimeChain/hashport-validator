@@ -42,7 +42,7 @@ func NewService(dbConfigs []config.Database) *Service {
 	}
 }
 
-func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
+func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	valid, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err

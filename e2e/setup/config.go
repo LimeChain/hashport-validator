@@ -133,7 +133,7 @@ func newSetup(config Config) (*Setup, error) {
 
 	return &Setup{
 		BridgeAccount: bridgeAccount,
-		EthReceiver:   common.HexToAddress(config.Ethereum.PrivateKey),
+		EthReceiver:   common.HexToAddress(clients.Signer.Address()),
 		TopicID:       topicID,
 		TokenID:       tokenID,
 		FeePercentage: config.Hedera.FeePercentage,
@@ -268,10 +268,6 @@ type Config struct {
 	Ethereum     config.Ethereum `yaml:"ethereum"`
 	Tokens       Tokens          `yaml:"tokens"`
 	ValidatorUrl string          `yaml:"validator_url"`
-}
-
-type EthReceiver struct {
-	Address string `yaml:"address"`
 }
 
 type Tokens struct {
