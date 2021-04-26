@@ -76,7 +76,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	entityId := validateScheduledTx(setupEnv, t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, validReceiveAmount, accountBalanceBefore, constants.Hbar, t)
+	validateReceiverAccountBalance(setupEnv, uint64(validReceiveAmount), accountBalanceBefore, constants.Hbar, t)
 
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
@@ -107,7 +107,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	entityId := validateScheduledTx(setupEnv, t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, validReceiveAmount, accountBalanceBefore, setupEnv.TokenID.String(), t)
+	validateReceiverAccountBalance(setupEnv, uint64(validReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
 
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
@@ -202,7 +202,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
-func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount int64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
+func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
 	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.Clients.Hedera.GetOperatorAccountID(), t)
 
 	var beforeTransfer uint64
@@ -216,7 +216,7 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount in
 		afterTransfer = afterHbarBalance.Token[setup.TokenID]
 	}
 
-	if afterTransfer-beforeTransfer != receiveAmount {
+	if afterTransfer-beforeTransfer != expectedReceiveAmount {
 		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, afterTransfer, beforeTransfer)
 	}
 }
