@@ -262,7 +262,7 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContr
 }
 
 func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Transaction {
-	timeLeft := 480
+	timeLeft := 60
 	for {
 		transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.Clients.Hedera.GetOperatorAccountID(), now.UnixNano())
 		if err != nil {
