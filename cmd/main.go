@@ -109,7 +109,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			&repositories.transferStatus,
 			watchersTimestamp,
 			services.contracts),
-		th.NewHandler(services.transfers, configuration.Validator.Validator))
+		th.NewHandler(services.transfers, configuration.Validator.ReadOnly))
 
 	server.AddPair(
 		addConsensusTopicWatcher(

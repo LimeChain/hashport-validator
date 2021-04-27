@@ -79,7 +79,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		scheduled,
 		fees,
-		c.Validator.Validator)
+		c.Validator.ReadOnly)
 
 	return &Services{
 		signer:      ethSigner,

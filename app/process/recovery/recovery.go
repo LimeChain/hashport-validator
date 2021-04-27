@@ -81,7 +81,7 @@ func NewProcess(
 		accountID:               account,
 		topicID:                 topic,
 		configRecoveryTimestamp: c.Recovery.StartTimestamp,
-		readOnly:                c.Validator,
+		readOnly:                c.ReadOnly,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 	}, nil
 }
