@@ -27,5 +27,15 @@ func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
 		comparing.ScheduleID == comparable.ScheduleID &&
 		comparing.Recipient == comparable.Recipient &&
 		comparing.Amount == comparable.Amount &&
-		comparing.Id == comparable.Id
+		comparing.Id == comparable.Id &&
+		comparing.TransactionId == comparable.TransactionId
+}
+
+func feeFieldsMatch(comparing, comparable *entity.Fee) bool {
+	return comparing.Status == comparable.Status &&
+		comparing.TransactionID == comparable.TransactionID &&
+		comparing.Amount == comparable.Amount &&
+		comparable.ScheduleID == comparable.ScheduleID &&
+		comparing.TransferID == comparable.TransferID &&
+		comparing.BurnEventID == comparable.BurnEventID
 }
