@@ -23,6 +23,6 @@ type BurnEvent interface {
 	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
-	// Returns BurnEvent by its Id
+	// Returns BurnEvent by its Id (represented in {ethTxHash}-{logIndex})
 	Get(txId string) (*entity.BurnEvent, error)
 }

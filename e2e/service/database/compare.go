@@ -24,7 +24,7 @@ func messagesFieldsMatch(comparing, comparable entity.Message) bool {
 
 func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
 	return comparing.Status == comparable.Status &&
-		//comparing.ScheduleID == comparable.ScheduleID && // TODO: This comparison needs to be discussed
+		comparing.ScheduleID == comparable.ScheduleID &&
 		comparing.Recipient == comparable.Recipient &&
 		comparing.Amount == comparable.Amount &&
 		comparing.Id == comparable.Id

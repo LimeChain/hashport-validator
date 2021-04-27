@@ -16,7 +16,9 @@
 
 package entity
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type BurnEvent struct {
 	Id            string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}

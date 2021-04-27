@@ -22,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
@@ -62,60 +61,68 @@ const (
 func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
-	// TODO: Add this after the fee validation pull request.
-	//accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
-	// 1. Submit burn transaction to the bridge contract
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, int64(receiveAmount))
+
+	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
 
-	// 2. Validate that the burn transaction went through and emitted the correct events
+	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
-	// 3. Validate that a scheduled transaction was submitted
-	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
+	// 4. Validate that a scheduled transaction was submitted
+	entityId := validateScheduledTx(setupEnv, t)
 
-	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	// TODO: Call this function after the fee validation pull request.
-	//validateReceiverAccountBalance(setupEnv, accountBalanceBefore, constants.Hbar, t)
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
 
-	// 5. Prepare Expected Database Record
+	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		mirrorNodeScheduledTransaction.TransactionID,
+		entityId,
 		int64(receiveAmount),
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 6. Validate Database Record
+	// 7. Wait for potential front-run database
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 }
 
 func Test_Ethereum_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
-	// TODO: Add this after the fee validation pull request.
-	// accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
-	// 1. Submit burn transaction to the bridge contract
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, int64(receiveAmount))
+
+	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
 
-	// 2. Validate that the burn transaction went through and emitted the correct events
+	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
-	// 3. Validate that a scheduled transaction was submitted
-	mirrorNodeScheduledTransaction := validateScheduledTx(setupEnv, t)
+	// 4. Validate that a scheduled transaction was submitted
+	entityId := validateScheduledTx(setupEnv, t)
 
-	// 4. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	// TODO: Call this function after the fee validation pull request.
-	//validateReceiverAccountBalance(setupEnv, accountBalanceBefore, setupEnv.TokenID.String(), t)
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
 
-	// 5. Prepare Expected Database Record
+	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		mirrorNodeScheduledTransaction.TransactionID,
+		entityId,
 		int64(receiveAmount),
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 6. Validate Database Record
+	// 7. Wait for potential front-run database
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 }
 
@@ -130,7 +137,7 @@ func Test_HBAR(t *testing.T) {
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
-	mintAmount := calculateMintAmount(setupEnv, hBarSendAmount.AsTinybar())
+	mintAmount := calculateValidAmount(setupEnv, hBarSendAmount.AsTinybar())
 
 	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, constants.Hbar, mintAmount, t)
@@ -171,7 +178,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
-	mintAmount := calculateMintAmount(setupEnv, tinyBarAmount)
+	mintAmount := calculateValidAmount(setupEnv, tinyBarAmount)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), mintAmount, t)
@@ -201,7 +208,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
-func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
+func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
 	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.Clients.Hedera.GetOperatorAccountID(), t)
 
 	var beforeTransfer uint64
@@ -215,10 +222,8 @@ func validateReceiverAccountBalance(setup *setup.Setup, beforeHbarBalance hedera
 		afterTransfer = afterHbarBalance.Token[setup.TokenID]
 	}
 
-	mintAmount := calculateMintAmount(setup, int64(receiveAmount))
-
-	if afterTransfer-beforeTransfer != uint64(mintAmount) {
-		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, afterTransfer, beforeTransfer)
+	if afterTransfer-beforeTransfer != expectedReceiveAmount {
+		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
 	}
 }
 
@@ -267,22 +272,26 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContr
 	return ""
 }
 
-func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Transaction {
+func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) string {
 	timeLeft := 180
 	for {
 		transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.Clients.Hedera.GetOperatorAccountID(), now.UnixNano())
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		for _, transaction := range transactions.Transactions {
 			if transaction.Scheduled == true {
-				// amount, "HBAR"
-				_, _, err := transaction.GetIncomingTransfer(setupEnv.Clients.Hedera.GetOperatorAccountID().String())
+				scheduleCreateTx, err := setupEnv.Clients.MirrorNode.GetTransaction(transaction.TransactionID)
 				if err != nil {
 					t.Fatal(err)
 				}
-				// TODO: Compare after fees integration
-				return &transaction
+
+				for _, tx := range scheduleCreateTx.Transactions {
+					if tx.EntityId != "" {
+						return tx.EntityId
+					}
+				}
 			}
 		}
 
@@ -296,10 +305,10 @@ func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) *mirror_node.Trans
 	}
 
 	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
-	return nil
+	return ""
 }
 
-func calculateMintAmount(setup *setup.Setup, amount int64) int64 {
+func calculateValidAmount(setup *setup.Setup, amount int64) int64 {
 	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(amount)
 	validFee := setup.Clients.Distributor.ValidAmount(fee)
 	if validFee != fee {
