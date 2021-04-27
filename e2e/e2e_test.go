@@ -155,14 +155,14 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
 	// 4. Validate that a scheduled transaction was submitted
-	entityId := validateScheduledTx(setupEnv, t)
+	scheduleId := validateScheduledTx(setupEnv, t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
 
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		entityId,
+		scheduleId,
 		receiveAmount,
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
@@ -189,14 +189,14 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
 	// 4. Validate that a scheduled transaction was submitted
-	entityId := validateScheduledTx(setupEnv, t)
+	scheduleId := validateScheduledTx(setupEnv, t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
 
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		entityId,
+		scheduleId,
 		receiveAmount,
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
