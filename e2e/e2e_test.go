@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
@@ -51,7 +52,7 @@ var (
 	tinyBarAmount     int64 = 1000000000
 	hBarSendAmount          = hedera.HbarFromTinybar(tinyBarAmount)
 	hbarRemovalAmount       = hedera.HbarFromTinybar(-tinyBarAmount)
-	now                     = time.Now()
+	now               time.Time
 )
 
 const (
@@ -60,9 +61,10 @@ const (
 
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
+	now = time.Now()
 
 	memo := setupEnv.EthReceiver.String()
-	mintAmount, fee := calculateValidAmount(setupEnv, hBarSendAmount.AsTinybar())
+	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, hBarSendAmount.AsTinybar())
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
 	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
@@ -71,7 +73,7 @@ func Test_HBAR(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Validate fee scheduled transaction
-	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, t)
+	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, constants.Hbar, mintAmount, t)
@@ -111,9 +113,10 @@ func Test_HBAR(t *testing.T) {
 
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
+	now = time.Now()
 
 	memo := setupEnv.EthReceiver.String()
-	mintAmount, fee := calculateValidAmount(setupEnv, tinyBarAmount)
+	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, tinyBarAmount)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
@@ -122,7 +125,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 3 - Validate fee scheduled transaction
-	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, t)
+	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, setupEnv.TokenID.String(), fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), mintAmount, t)
@@ -164,10 +167,9 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-	membersBalancesBefore := util.GetMembersAccountBalances(setupEnv.Clients.Hedera, setupEnv.Members, t)
 
-	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount, fee := calculateValidAmount(setupEnv, receiveAmount)
+	// 1. Calculate Expected Receive And Fee Amounts
+	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
@@ -176,15 +178,12 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
 	// 4. Validate that a scheduled transaction was submitted
-	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, t)
+	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv, constants.Hbar, expectedReceiveAmount, fee), t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
 
-	// 6. Validate members balances after transfer
-	validateMembersAccountBalances(setupEnv, uint64(fee), constants.Hbar, membersBalancesBefore, t)
-
-	// 7. Prepare Expected Database Records
+	// 6. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		scheduleID,
 		receiveAmount,
@@ -194,10 +193,10 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, "", expectedId)
 
-	// 8. Wait for potential front-run database
+	// 7. Wait for potential front-run database
 	time.Sleep(10 * time.Second)
 
-	// 9. Validate Database Records
+	// 8. Validate Database Records
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
@@ -207,10 +206,9 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-	membersBalancesBefore := util.GetMembersAccountBalances(setupEnv.Clients.Hedera, setupEnv.Members, t)
 
 	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount, fee := calculateValidAmount(setupEnv, receiveAmount)
+	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
@@ -219,15 +217,12 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
 	// 4. Validate that a scheduled transaction was submitted
-	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, t)
+	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv, setupEnv.TokenID.String(), expectedReceiveAmount, fee), t)
 
 	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
 
-	// 6. Validate members balances after transfer
-	validateMembersAccountBalances(setupEnv, uint64(fee), constants.Hbar, membersBalancesBefore, t)
-
-	// 7. Prepare Expected Database Records
+	// 6. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		scheduleID,
 		receiveAmount,
@@ -237,10 +232,10 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, "", expectedId)
 
-	// 8. Wait for potential front-run database
+	// 7. Wait for potential front-run database
 	time.Sleep(10 * time.Second)
 
-	// 9. Validate Database Records
+	// 8. Validate Database Records
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
@@ -262,32 +257,6 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount ui
 
 	if afterTransfer-beforeTransfer != expectedReceiveAmount {
 		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
-	}
-}
-
-func validateMembersAccountBalances(setup *setup.Setup, fee uint64, asset string, beforeHbarBalances []hedera.AccountBalance, t *testing.T) {
-	expected := fee / uint64(len(setup.Members))
-
-	afterHbarBalances := util.GetMembersAccountBalances(setup.Clients.Hedera, setup.Members, t)
-
-	for i, afterBalance := range afterHbarBalances {
-		beforeBalance := beforeHbarBalances[i]
-
-		var beforeTransfer uint64
-		var afterTransfer uint64
-		if asset == constants.Hbar {
-			beforeTransfer = uint64(beforeBalance.Hbars.AsTinybar())
-			afterTransfer = uint64(afterBalance.Hbars.AsTinybar())
-		} else {
-			beforeTransfer = beforeBalance.Token[setup.TokenID]
-			afterTransfer = afterBalance.Token[setup.TokenID]
-		}
-
-		actual := afterTransfer - beforeTransfer
-
-		if actual != expected {
-			t.Fatalf("[%s] Expected [%s] balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Members[i], asset, beforeTransfer+expected, afterTransfer, expected, actual)
-		}
 	}
 }
 
@@ -336,10 +305,10 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContr
 	return ""
 }
 
-func validateSubmittedScheduledTx(setupEnv *setup.Setup, t *testing.T) (transactionID, scheduleID string) {
-	receiverTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+	receiverTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), asset, expectedTransfers, t)
 
-	membersTransactionID, membersScheduleID := validateMembersScheduledTxs(setupEnv, t)
+	membersTransactionID, membersScheduleID := validateMembersScheduledTxs(setupEnv, asset, expectedTransfers, t)
 
 	if receiverTransactionID != membersTransactionID {
 		t.Fatalf("Scheduled Transactions between members are different. Receiver [%s], Member [%s]", receiverTransactionID, membersTransactionID)
@@ -352,24 +321,51 @@ func validateSubmittedScheduledTx(setupEnv *setup.Setup, t *testing.T) (transact
 	return receiverTransactionID, receiverScheduleID
 }
 
-func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, t *testing.T) (transactionID, scheduleID string) {
+func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	timeLeft := 180
 	for {
-		transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(account, now.UnixNano())
+		response, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(account, now.UnixNano())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		for _, transaction := range transactions.Transactions {
+		if len(response.Transactions) > 1 {
+			t.Fatalf("[%s] - Found [%d] new transactions, must be 1.", account, len(response.Transactions))
+		}
+
+		for _, transaction := range response.Transactions {
 			if transaction.Scheduled == true {
 				scheduleCreateTx, err := setupEnv.Clients.MirrorNode.GetTransaction(transaction.TransactionID)
 				if err != nil {
 					t.Fatal(err)
 				}
 
+				for _, expectedTransfer := range expectedTransfers {
+					found := false
+					if asset == constants.Hbar {
+						for _, transfer := range transaction.Transfers {
+							if expectedTransfer == transfer {
+								found = true
+								break
+							}
+						}
+					} else {
+						for _, transfer := range transaction.TokenTransfers {
+							if expectedTransfer == transfer {
+								found = true
+								break
+							}
+						}
+					}
+
+					if !found {
+						t.Fatalf("[%s] - Expected transfer [%v] not found.", transaction.TransactionID, expectedTransfer)
+					}
+				}
+
 				for _, tx := range scheduleCreateTx.Transactions {
 					if tx.EntityId != "" {
-						return tx.EntityId, tx.TransactionID
+						return tx.TransactionID, tx.EntityId
 					}
 				}
 			}
@@ -388,7 +384,7 @@ func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, t *tes
 	return "", ""
 }
 
-func validateMembersScheduledTxs(setupEnv *setup.Setup, t *testing.T) (transactionID, scheduleID string) {
+func validateMembersScheduledTxs(setupEnv *setup.Setup, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	if len(setupEnv.Members) == 0 {
 		return "", ""
 	}
@@ -396,7 +392,7 @@ func validateMembersScheduledTxs(setupEnv *setup.Setup, t *testing.T) (transacti
 	var transactions []string
 	var scheduleIDs []string
 	for _, member := range setupEnv.Members {
-		txID, scheduleID := validateScheduledTx(setupEnv, member, t)
+		txID, scheduleID := validateScheduledTx(setupEnv, member, asset, expectedTransfers, t)
 		transactions = append(transactions, txID)
 
 		if !util.AllSame(transactions) {
@@ -412,7 +408,7 @@ func validateMembersScheduledTxs(setupEnv *setup.Setup, t *testing.T) (transacti
 	return transactions[0], scheduleIDs[0]
 }
 
-func calculateValidAmount(setup *setup.Setup, amount int64) (receiverAmount, fee int64) {
+func calculateReceiverAndFeeAmounts(setup *setup.Setup, amount int64) (receiverAmount, fee int64) {
 	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(amount)
 	validFee := setup.Clients.Distributor.ValidAmount(fee)
 	if validFee != fee {
@@ -449,6 +445,61 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
 	}
 	return res.Hash()
+}
+
+func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asset string, amount, fee int64) []mirror_node.Transfer {
+	total := amount + fee
+	feePerMember := fee / int64(len(setupEnv.Members))
+
+	var expectedTransfers []mirror_node.Transfer
+	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+		Account: setupEnv.BridgeAccount.String(),
+		Amount:  -total,
+	},
+		mirror_node.Transfer{
+			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+			Amount:  amount,
+		})
+
+	for _, member := range setupEnv.Members {
+		expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+			Account: member.String(),
+			Amount:  feePerMember,
+		})
+	}
+
+	if asset != constants.Hbar {
+		for i := range expectedTransfers {
+			expectedTransfers[i].Token = asset
+		}
+	}
+
+	return expectedTransfers
+}
+
+func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup, asset string, fee int64) []mirror_node.Transfer {
+	feePerMember := fee / int64(len(setupEnv.Members))
+
+	var expectedTransfers []mirror_node.Transfer
+	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+		Account: setupEnv.BridgeAccount.String(),
+		Amount:  -fee,
+	})
+
+	for _, member := range setupEnv.Members {
+		expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+			Account: member.String(),
+			Amount:  feePerMember,
+		})
+	}
+
+	if asset != constants.Hbar {
+		for i := range expectedTransfers {
+			expectedTransfers[i].Token = asset
+		}
+	}
+
+	return expectedTransfers
 }
 
 func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *routerContract.RouterBurn) {

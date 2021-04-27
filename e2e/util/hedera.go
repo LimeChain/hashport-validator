@@ -31,20 +31,3 @@ func GetHederaAccountBalance(client *hedera.Client, account hedera.AccountID, t 
 	}
 	return receiverBalance
 }
-
-func GetMembersAccountBalances(client *hedera.Client, members []hedera.AccountID, t *testing.T) []hedera.AccountBalance {
-	var balances []hedera.AccountBalance
-	for _, member := range members {
-		// Get bridge account hbar balance before transfer
-		balance, err := hedera.NewAccountBalanceQuery().
-			SetAccountID(member).
-			Execute(client)
-		if err != nil {
-			t.Fatalf("Unable to query the balance of the account [%s], Error: [%s]", member, err)
-		}
-
-		balances = append(balances, balance)
-	}
-
-	return balances
-}
