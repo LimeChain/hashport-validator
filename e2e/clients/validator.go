@@ -43,7 +43,7 @@ func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferDa
 		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Get Metadata resolved with status [%d].", response.StatusCode))
+		return nil, errors.New(fmt.Sprintf("Get Transfer Data resolved with status [%d].", response.StatusCode))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)

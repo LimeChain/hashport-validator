@@ -27,6 +27,7 @@ type (
 	// Transaction struct used by the Hedera Mirror node REST API
 	Transaction struct {
 		ConsensusTimestamp   string     `json:"consensus_timestamp"`
+		EntityId             string     `json:"entity_id"`
 		TransactionHash      string     `json:"transaction_hash"`
 		ValidStartTimestamp  string     `json:"valid_start_timestamp"`
 		ChargedTxFee         int        `json:"charged_tx_fee"`
