@@ -1,6 +1,8 @@
 package database
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+)
 
 func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 	return comparable.TransactionID == comparing.TransactionID &&
@@ -18,4 +20,12 @@ func messagesFieldsMatch(comparing, comparable entity.Message) bool {
 		comparable.Hash == comparing.Hash &&
 		transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
 		comparable.Signer == comparing.Signer
+}
+
+func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
+	return comparing.Status == comparable.Status &&
+		comparing.ScheduleID == comparable.ScheduleID &&
+		comparing.Recipient == comparable.Recipient &&
+		comparing.Amount == comparable.Amount &&
+		comparing.Id == comparable.Id
 }

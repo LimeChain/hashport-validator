@@ -18,7 +18,6 @@ package ethereum
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
@@ -80,10 +79,9 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		return
 	}
 
-	eventAccount := string(common.TrimRightZeroes(eventLog.Receiver))
-	recipientAccount, err := hedera.AccountIDFromString(eventAccount)
+	recipientAccount, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to parse account [%s]. Error: [%s].", eventLog.Raw.TxHash, eventAccount, err)
+		ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
 		return
 	}
 	nativeAsset, err := ew.contracts.ToNative(eventLog.WrappedAsset)
@@ -115,7 +113,7 @@ func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue)
 		eventLog.Raw.TxHash.String(),
 		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
-		eventLog.Receiver)
+		recipientAccount.String())
 
 	q.Push(&pair.Message{Payload: burnEvent})
 }

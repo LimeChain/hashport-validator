@@ -27,7 +27,7 @@ var (
 )
 
 // WtokenABI is the input ABI used to generate the binding from.
-const WtokenABI = "[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"tokenName\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenSymbol\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newRouterAddress\",\"type\":\"address\"}],\"name\":\"ControllerAddressSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"controllerAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_controllerAddress\",\"type\":\"address\"}],\"name\":\"setControllerAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const WtokenABI = "[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"tokenName\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"tokenSymbol\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"_controller\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newController\",\"type\":\"address\"}],\"name\":\"ControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"controller\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_controller\",\"type\":\"address\"}],\"name\":\"setController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // Wtoken is an auto generated Go binding around an Ethereum contract.
 type Wtoken struct {
@@ -233,12 +233,12 @@ func (_Wtoken *WtokenCallerSession) BalanceOf(account common.Address) (*big.Int,
 	return _Wtoken.Contract.BalanceOf(&_Wtoken.CallOpts, account)
 }
 
-// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+// Controller is a free data retrieval call binding the contract method 0xf77c4791.
 //
-// Solidity: function controllerAddress() view returns(address)
-func (_Wtoken *WtokenCaller) ControllerAddress(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function controller() view returns(address)
+func (_Wtoken *WtokenCaller) Controller(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _Wtoken.contract.Call(opts, &out, "controllerAddress")
+	err := _Wtoken.contract.Call(opts, &out, "controller")
 
 	if err != nil {
 		return *new(common.Address), err
@@ -250,18 +250,18 @@ func (_Wtoken *WtokenCaller) ControllerAddress(opts *bind.CallOpts) (common.Addr
 
 }
 
-// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+// Controller is a free data retrieval call binding the contract method 0xf77c4791.
 //
-// Solidity: function controllerAddress() view returns(address)
-func (_Wtoken *WtokenSession) ControllerAddress() (common.Address, error) {
-	return _Wtoken.Contract.ControllerAddress(&_Wtoken.CallOpts)
+// Solidity: function controller() view returns(address)
+func (_Wtoken *WtokenSession) Controller() (common.Address, error) {
+	return _Wtoken.Contract.Controller(&_Wtoken.CallOpts)
 }
 
-// ControllerAddress is a free data retrieval call binding the contract method 0x4b24ea47.
+// Controller is a free data retrieval call binding the contract method 0xf77c4791.
 //
-// Solidity: function controllerAddress() view returns(address)
-func (_Wtoken *WtokenCallerSession) ControllerAddress() (common.Address, error) {
-	return _Wtoken.Contract.ControllerAddress(&_Wtoken.CallOpts)
+// Solidity: function controller() view returns(address)
+func (_Wtoken *WtokenCallerSession) Controller() (common.Address, error) {
+	return _Wtoken.Contract.Controller(&_Wtoken.CallOpts)
 }
 
 // Decimals is a free data retrieval call binding the contract method 0x313ce567.
@@ -597,25 +597,25 @@ func (_Wtoken *WtokenTransactorSession) RenounceOwnership() (*types.Transaction,
 	return _Wtoken.Contract.RenounceOwnership(&_Wtoken.TransactOpts)
 }
 
-// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+// SetController is a paid mutator transaction binding the contract method 0x92eefe9b.
 //
-// Solidity: function setControllerAddress(address _controllerAddress) returns()
-func (_Wtoken *WtokenTransactor) SetControllerAddress(opts *bind.TransactOpts, _controllerAddress common.Address) (*types.Transaction, error) {
-	return _Wtoken.contract.Transact(opts, "setControllerAddress", _controllerAddress)
+// Solidity: function setController(address _controller) returns()
+func (_Wtoken *WtokenTransactor) SetController(opts *bind.TransactOpts, _controller common.Address) (*types.Transaction, error) {
+	return _Wtoken.contract.Transact(opts, "setController", _controller)
 }
 
-// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+// SetController is a paid mutator transaction binding the contract method 0x92eefe9b.
 //
-// Solidity: function setControllerAddress(address _controllerAddress) returns()
-func (_Wtoken *WtokenSession) SetControllerAddress(_controllerAddress common.Address) (*types.Transaction, error) {
-	return _Wtoken.Contract.SetControllerAddress(&_Wtoken.TransactOpts, _controllerAddress)
+// Solidity: function setController(address _controller) returns()
+func (_Wtoken *WtokenSession) SetController(_controller common.Address) (*types.Transaction, error) {
+	return _Wtoken.Contract.SetController(&_Wtoken.TransactOpts, _controller)
 }
 
-// SetControllerAddress is a paid mutator transaction binding the contract method 0xf3d3d448.
+// SetController is a paid mutator transaction binding the contract method 0x92eefe9b.
 //
-// Solidity: function setControllerAddress(address _controllerAddress) returns()
-func (_Wtoken *WtokenTransactorSession) SetControllerAddress(_controllerAddress common.Address) (*types.Transaction, error) {
-	return _Wtoken.Contract.SetControllerAddress(&_Wtoken.TransactOpts, _controllerAddress)
+// Solidity: function setController(address _controller) returns()
+func (_Wtoken *WtokenTransactorSession) SetController(_controller common.Address) (*types.Transaction, error) {
+	return _Wtoken.Contract.SetController(&_Wtoken.TransactOpts, _controller)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
@@ -856,9 +856,9 @@ func (_Wtoken *WtokenFilterer) ParseApproval(log types.Log) (*WtokenApproval, er
 	return event, nil
 }
 
-// WtokenControllerAddressSetIterator is returned from FilterControllerAddressSet and is used to iterate over the raw logs and unpacked data for ControllerAddressSet events raised by the Wtoken contract.
-type WtokenControllerAddressSetIterator struct {
-	Event *WtokenControllerAddressSet // Event containing the contract specifics and raw log
+// WtokenControllerSetIterator is returned from FilterControllerSet and is used to iterate over the raw logs and unpacked data for ControllerSet events raised by the Wtoken contract.
+type WtokenControllerSetIterator struct {
+	Event *WtokenControllerSet // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -872,7 +872,7 @@ type WtokenControllerAddressSetIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *WtokenControllerAddressSetIterator) Next() bool {
+func (it *WtokenControllerSetIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -881,7 +881,7 @@ func (it *WtokenControllerAddressSetIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(WtokenControllerAddressSet)
+			it.Event = new(WtokenControllerSet)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -896,7 +896,7 @@ func (it *WtokenControllerAddressSetIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(WtokenControllerAddressSet)
+		it.Event = new(WtokenControllerSet)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -912,41 +912,51 @@ func (it *WtokenControllerAddressSetIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *WtokenControllerAddressSetIterator) Error() error {
+func (it *WtokenControllerSetIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *WtokenControllerAddressSetIterator) Close() error {
+func (it *WtokenControllerSetIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// WtokenControllerAddressSet represents a ControllerAddressSet event raised by the Wtoken contract.
-type WtokenControllerAddressSet struct {
-	NewRouterAddress common.Address
-	Raw              types.Log // Blockchain specific contextual infos
+// WtokenControllerSet represents a ControllerSet event raised by the Wtoken contract.
+type WtokenControllerSet struct {
+	NewController common.Address
+	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterControllerAddressSet is a free log retrieval operation binding the contract event 0x9de372f240b8a4a33f8eda3222e19f432a0105dc847c0c83b93fa02958bf2ff1.
+// FilterControllerSet is a free log retrieval operation binding the contract event 0x79f74fd5964b6943d8a1865abfb7f668c92fa3f32c0a2e3195da7d0946703ad7.
 //
-// Solidity: event ControllerAddressSet(address newRouterAddress)
-func (_Wtoken *WtokenFilterer) FilterControllerAddressSet(opts *bind.FilterOpts) (*WtokenControllerAddressSetIterator, error) {
+// Solidity: event ControllerSet(address indexed newController)
+func (_Wtoken *WtokenFilterer) FilterControllerSet(opts *bind.FilterOpts, newController []common.Address) (*WtokenControllerSetIterator, error) {
 
-	logs, sub, err := _Wtoken.contract.FilterLogs(opts, "ControllerAddressSet")
+	var newControllerRule []interface{}
+	for _, newControllerItem := range newController {
+		newControllerRule = append(newControllerRule, newControllerItem)
+	}
+
+	logs, sub, err := _Wtoken.contract.FilterLogs(opts, "ControllerSet", newControllerRule)
 	if err != nil {
 		return nil, err
 	}
-	return &WtokenControllerAddressSetIterator{contract: _Wtoken.contract, event: "ControllerAddressSet", logs: logs, sub: sub}, nil
+	return &WtokenControllerSetIterator{contract: _Wtoken.contract, event: "ControllerSet", logs: logs, sub: sub}, nil
 }
 
-// WatchControllerAddressSet is a free log subscription operation binding the contract event 0x9de372f240b8a4a33f8eda3222e19f432a0105dc847c0c83b93fa02958bf2ff1.
+// WatchControllerSet is a free log subscription operation binding the contract event 0x79f74fd5964b6943d8a1865abfb7f668c92fa3f32c0a2e3195da7d0946703ad7.
 //
-// Solidity: event ControllerAddressSet(address newRouterAddress)
-func (_Wtoken *WtokenFilterer) WatchControllerAddressSet(opts *bind.WatchOpts, sink chan<- *WtokenControllerAddressSet) (event.Subscription, error) {
+// Solidity: event ControllerSet(address indexed newController)
+func (_Wtoken *WtokenFilterer) WatchControllerSet(opts *bind.WatchOpts, sink chan<- *WtokenControllerSet, newController []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _Wtoken.contract.WatchLogs(opts, "ControllerAddressSet")
+	var newControllerRule []interface{}
+	for _, newControllerItem := range newController {
+		newControllerRule = append(newControllerRule, newControllerItem)
+	}
+
+	logs, sub, err := _Wtoken.contract.WatchLogs(opts, "ControllerSet", newControllerRule)
 	if err != nil {
 		return nil, err
 	}
@@ -956,8 +966,8 @@ func (_Wtoken *WtokenFilterer) WatchControllerAddressSet(opts *bind.WatchOpts, s
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(WtokenControllerAddressSet)
-				if err := _Wtoken.contract.UnpackLog(event, "ControllerAddressSet", log); err != nil {
+				event := new(WtokenControllerSet)
+				if err := _Wtoken.contract.UnpackLog(event, "ControllerSet", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -978,12 +988,12 @@ func (_Wtoken *WtokenFilterer) WatchControllerAddressSet(opts *bind.WatchOpts, s
 	}), nil
 }
 
-// ParseControllerAddressSet is a log parse operation binding the contract event 0x9de372f240b8a4a33f8eda3222e19f432a0105dc847c0c83b93fa02958bf2ff1.
+// ParseControllerSet is a log parse operation binding the contract event 0x79f74fd5964b6943d8a1865abfb7f668c92fa3f32c0a2e3195da7d0946703ad7.
 //
-// Solidity: event ControllerAddressSet(address newRouterAddress)
-func (_Wtoken *WtokenFilterer) ParseControllerAddressSet(log types.Log) (*WtokenControllerAddressSet, error) {
-	event := new(WtokenControllerAddressSet)
-	if err := _Wtoken.contract.UnpackLog(event, "ControllerAddressSet", log); err != nil {
+// Solidity: event ControllerSet(address indexed newController)
+func (_Wtoken *WtokenFilterer) ParseControllerSet(log types.Log) (*WtokenControllerSet, error) {
+	event := new(WtokenControllerSet)
+	if err := _Wtoken.contract.UnpackLog(event, "ControllerSet", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
