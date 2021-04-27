@@ -85,7 +85,10 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 7. Validate Database Record
+	// 7. Wait for potential front-run database
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 }
 
@@ -116,7 +119,10 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 7. Validate Database Record
+	// 7. Wait for potential front-run database
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 }
 
