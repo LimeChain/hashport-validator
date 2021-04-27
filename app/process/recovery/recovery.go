@@ -45,6 +45,7 @@ type Recovery struct {
 	topicID                 hederasdk.TopicID
 	configRecoveryTimestamp int64
 	logger                  *log.Entry
+	readOnly                bool
 }
 
 func NewProcess(
@@ -80,6 +81,7 @@ func NewProcess(
 		accountID:               account,
 		topicID:                 topic,
 		configRecoveryTimestamp: c.Recovery.StartTimestamp,
+		readOnly:                c.Validator,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 	}, nil
 }
@@ -130,10 +132,12 @@ func (r Recovery) Start(transfersFrom, messagesFrom, to int64) error {
 		return err
 	}
 
-	err = r.processUnfinishedOperations()
-	if err != nil {
-		r.logger.Error("Failed to process unfinished operations")
-		return err
+	if !r.readOnly {
+		err = r.processUnfinishedOperations()
+		if err != nil {
+			r.logger.Error("Failed to process unfinished operations")
+			return err
+		}
 	}
 
 	log.Infof("Recovery process finished successfully")
