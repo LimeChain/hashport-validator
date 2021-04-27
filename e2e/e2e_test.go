@@ -47,11 +47,11 @@ import (
 )
 
 var (
-	receiveAmount     uint64 = 100
-	tinyBarAmount     int64  = 1000000000
-	hBarSendAmount           = hedera.HbarFromTinybar(tinyBarAmount)
-	hbarRemovalAmount        = hedera.HbarFromTinybar(-tinyBarAmount)
-	now                      = time.Now()
+	receiveAmount     int64 = 100
+	tinyBarAmount     int64 = 1000000000
+	hBarSendAmount          = hedera.HbarFromTinybar(tinyBarAmount)
+	hbarRemovalAmount       = hedera.HbarFromTinybar(-tinyBarAmount)
+	now                     = time.Now()
 )
 
 const (
@@ -64,7 +64,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount := calculateValidAmount(setupEnv, int64(receiveAmount))
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
@@ -81,7 +81,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		entityId,
-		int64(receiveAmount),
+		receiveAmount,
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
@@ -98,7 +98,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
 	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount := calculateValidAmount(setupEnv, int64(receiveAmount))
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
@@ -115,7 +115,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	// 6. Prepare Expected Database Record
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		entityId,
-		int64(receiveAmount),
+		receiveAmount,
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
@@ -354,7 +354,7 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*typ
 	}
 	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
 
-	approvedValue := new(big.Int).SetUint64(receiveAmount)
+	approvedValue := big.NewInt(receiveAmount)
 
 	controller, err := setupEnv.Clients.RouterContract.Controller(nil)
 	if err != nil {
