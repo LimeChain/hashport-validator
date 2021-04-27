@@ -19,10 +19,16 @@ package e2e
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
 	"math/big"
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -41,9 +47,11 @@ import (
 )
 
 var (
-	amount            int64 = 1000000000
-	hBarSendAmount          = hedera.HbarFromTinybar(amount)
-	hbarRemovalAmount       = hedera.HbarFromTinybar(-amount)
+	receiveAmount     int64 = 100
+	tinyBarAmount     int64 = 1000000000
+	hBarSendAmount          = hedera.HbarFromTinybar(tinyBarAmount)
+	hbarRemovalAmount       = hedera.HbarFromTinybar(-tinyBarAmount)
+	now                     = time.Now()
 )
 
 const (
@@ -53,15 +61,16 @@ const (
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 
-	memo := setupEnv.Receiver.String()
+	memo := setupEnv.EthReceiver.String()
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
-	mintAmount := calculateMintAmount(setupEnv, hBarSendAmount.AsTinybar())
+	mintAmount := calculateValidAmount(setupEnv, hBarSendAmount.AsTinybar())
+
 	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, constants.Hbar, mintAmount, t)
 
@@ -72,36 +81,36 @@ func Test_HBAR(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
+	verifyWrappedAssetBalance(setupEnv, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.EthReceiver, t)
 
 	// Step 7 - Prepare Comparable Expected Transfer Record
-	expectedTxRecord := prepareExpectedTransfer(
+	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		constants.Hbar,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
-		setupEnv.Receiver.String(),
+		setupEnv.EthReceiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
 		}, t)
 
 	// Step 8 - Verify Database Records
-	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 
-	memo := setupEnv.Receiver.String()
+	memo := setupEnv.EthReceiver.String()
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, memo, setupEnv.EthReceiver, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
-	mintAmount := calculateMintAmount(setupEnv, amount)
+	mintAmount := calculateValidAmount(setupEnv, tinyBarAmount)
 
 	// Step 3 - Verify Transfer retrieved from Validator API
 	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, transactionResponse, setupEnv.TokenID.String(), mintAmount, t)
@@ -113,25 +122,203 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	waitForTransaction(setupEnv, txHash, t)
 
 	// Step 6 - Validate Token balances
-	validateWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.Receiver, t)
+	verifyWrappedAssetBalance(setupEnv, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, setupEnv.EthReceiver, t)
 
 	// Step 7 - Verify Database records
-	expectedTxRecord := prepareExpectedTransfer(
+	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
 		setupEnv.TokenID.String(),
-		strconv.FormatInt(amount, 10),
-		setupEnv.Receiver.String(),
+		strconv.FormatInt(tinyBarAmount, 10),
+		setupEnv.EthReceiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
 		}, t)
 
 	// Step 8 - Verify Database Records
-	verifyDatabaseRecords(setupEnv.DbValidation, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
 }
 
-func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) string {
+func Test_Ethereum_Hedera_HBAR(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
+
+	// 2. Submit burn transaction to the bridge contract
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
+
+	// 3. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
+
+	// 4. Validate that a scheduled transaction was submitted
+	scheduleId := validateScheduledTx(setupEnv, t)
+
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
+
+	// 6. Prepare Expected Database Record
+	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
+		scheduleId,
+		receiveAmount,
+		setupEnv.Clients.Hedera.GetOperatorAccountID(),
+		expectedId)
+
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
+	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
+}
+
+func Test_Ethereum_Hedera_Token(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
+
+	// 2. Submit burn transaction to the bridge contract
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
+
+	// 3. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
+
+	// 4. Validate that a scheduled transaction was submitted
+	scheduleId := validateScheduledTx(setupEnv, t)
+
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
+
+	// 6. Prepare Expected Database Record
+	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
+		scheduleId,
+		receiveAmount,
+		setupEnv.Clients.Hedera.GetOperatorAccountID(),
+		expectedId)
+
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
+	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
+}
+
+func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
+	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.Clients.Hedera.GetOperatorAccountID(), t)
+
+	var beforeTransfer uint64
+	var afterTransfer uint64
+
+	if asset == constants.Hbar {
+		beforeTransfer = uint64(beforeHbarBalance.Hbars.AsTinybar())
+		afterTransfer = uint64(afterHbarBalance.Hbars.AsTinybar())
+	} else {
+		beforeTransfer = beforeHbarBalance.Token[setup.TokenID]
+		afterTransfer = afterHbarBalance.Token[setup.TokenID]
+	}
+
+	if afterTransfer-beforeTransfer != expectedReceiveAmount {
+		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
+	}
+}
+
+func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) string {
+	parsedAbi, err := abi.JSON(strings.NewReader(routerContract.RouterABI))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routerBurn := routerContract.RouterBurn{}
+	eventSignature := []byte("Burn(address,address,uint256,bytes)")
+	eventSignatureHash := crypto.Keccak256Hash(eventSignature)
+	for _, log := range txReceipt.Logs {
+		if log.Topics[0] != eventSignatureHash {
+			continue
+		}
+
+		account := log.Topics[1]
+		wrappedAsset := log.Topics[2]
+		err := parsedAbi.UnpackIntoInterface(&routerBurn, "Burn", log.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if routerBurn.Amount.String() != expectedRouterBurn.Amount.String() {
+			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
+		}
+
+		if wrappedAsset != expectedRouterBurn.WrappedAsset.Hash() {
+			t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
+		}
+
+		if !reflect.DeepEqual(routerBurn.Receiver, expectedRouterBurn.Receiver) {
+			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
+		}
+
+		if account != expectedRouterBurn.Account.Hash() {
+			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
+		}
+
+		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
+		return expectedId
+	}
+
+	t.Fatal("Could not retrieve valid Burn Event Log information.")
+	return ""
+}
+
+func validateScheduledTx(setupEnv *setup.Setup, t *testing.T) string {
+	timeLeft := 180
+	for {
+		transactions, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(setupEnv.Clients.Hedera.GetOperatorAccountID(), now.UnixNano())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, transaction := range transactions.Transactions {
+			if transaction.Scheduled == true {
+				scheduleCreateTx, err := setupEnv.Clients.MirrorNode.GetTransaction(transaction.TransactionID)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				for _, tx := range scheduleCreateTx.Transactions {
+					if tx.EntityId != "" {
+						return tx.EntityId
+					}
+				}
+			}
+		}
+
+		if timeLeft > 0 {
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", setupEnv.Clients.Hedera.GetOperatorAccountID(), timeLeft))
+			timeLeft -= 10
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
+	return ""
+}
+
+func calculateValidAmount(setup *setup.Setup, amount int64) int64 {
+	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(amount)
+	validFee := setup.Clients.Distributor.ValidAmount(fee)
+	if validFee != fee {
+		remainder += fee - validFee
+	}
+
+	return remainder
+}
+
+func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress *common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -149,7 +336,7 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 		setupEnv.Clients.KeyTransactor,
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		setupEnv.Receiver,
+		setupEnv.EthReceiver,
 		mintAmount,
 		signatures,
 	)
@@ -157,27 +344,76 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 	if err != nil {
 		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
 	}
-	return res.Hash().String()
+	return res.Hash()
 }
 
-func waitForTransaction(setupEnv *setup.Setup, txHash string, t *testing.T) {
-	fmt.Println(fmt.Sprintf("Waiting for transaction: [%s] to be mined", txHash))
-	c1 := make(chan bool, 1)
-	onSuccess := func() {
-		fmt.Println(fmt.Sprintf("Transaction [%s] mined successfully", txHash))
-		c1 <- true
+func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *routerContract.RouterBurn) {
+	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, asset)
+	if err != nil {
+		t.Fatal(err)
 	}
-	onRevert := func() {
-		t.Fatalf("Failed to mine successfully ethereum transaction: [%s]", txHash)
+	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
+
+	approvedValue := big.NewInt(receiveAmount)
+
+	controller, err := setupEnv.Clients.RouterContract.Controller(nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	onError := func(err error) {
-		t.Fatalf(fmt.Sprintf("Transaction unsuccessful, Error: [%s]", err))
+
+	var approveTx *types.Transaction
+	if asset == constants.Hbar {
+		approveTx, err = setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+	} else {
+		approveTx, err = setupEnv.Clients.WTokenContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
 	}
-	setupEnv.Clients.EthClient.WaitForTransaction(txHash, onSuccess, onRevert, onError)
-	<-c1
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
+	waitForTransaction(setupEnv, approveTx.Hash(), t)
+
+	burnTx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, approvedValue, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), *wrappedAsset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+
+	expectedRouterBurn := &routerContract.RouterBurn{
+		Account:      common.HexToAddress(setupEnv.Clients.Signer.Address()),
+		WrappedAsset: *wrappedAsset,
+		Amount:       approvedValue,
+		Receiver:     setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(),
+	}
+
+	burnTxHash := burnTx.Hash()
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn Transaction Receipt.", burnTxHash))
+	burnTxReceipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(burnTxHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf("[%s] Burn Transaction mined and retrieved receipt.", burnTxHash))
+
+	return burnTxReceipt, expectedRouterBurn
 }
 
-func validateWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address, t *testing.T) {
+func waitForTransaction(setupEnv *setup.Setup, txHash common.Hash, t *testing.T) {
+	receipt, err := setupEnv.Clients.EthClient.WaitForTransactionReceipt(txHash)
+	if err != nil {
+		t.Fatalf("[%s] - Error occurred while monitoring. Error: [%s]", txHash, err)
+		return
+	}
+
+	if receipt.Status == 1 {
+		fmt.Println(fmt.Sprintf("TX [%s] was successfully mined", txHash))
+	} else {
+		t.Fatalf("TX [%s] reverted", txHash)
+	}
+}
+
+func verifyWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address, t *testing.T) {
 	var wrappedBalanceAfter *big.Int
 	var err error
 	if nativeAsset == constants.Hbar {
@@ -193,7 +429,7 @@ func validateWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mint
 	expectedBalance := new(big.Int).Add(wrappedBalanceBefore, mintAmount)
 
 	if wrappedBalanceAfter.Cmp(expectedBalance) != 0 {
-		t.Fatalf("Incorect token balance. Expected to be [%s], but was [%s].", expectedBalance, wrappedBalanceAfter)
+		t.Fatalf("Incorrect token balance. Expected to be [%s], but was [%s].", expectedBalance, wrappedBalanceAfter)
 	}
 }
 
@@ -213,8 +449,8 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 	if transactionData.NativeAsset != tokenID {
 		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeAsset)
 	}
-	if transactionData.Recipient != setupEnv.Receiver.String() {
-		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", setupEnv.Receiver.String(), transactionData.Recipient)
+	if transactionData.Recipient != setupEnv.EthReceiver.String() {
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", setupEnv.EthReceiver.String(), transactionData.Recipient)
 	}
 	if transactionData.WrappedAsset != tokenAddress.String() {
 		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", tokenAddress.String(), transactionData.WrappedAsset)
@@ -223,31 +459,23 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.Tra
 	return transactionData, tokenAddress
 }
 
-func verifyDatabaseRecords(dbValidation *database.Service, expectedRecord *entity.Transfer, mintAmount string, signatures []string, t *testing.T) {
-	exist, err := dbValidation.VerifyDatabaseRecords(expectedRecord, mintAmount, signatures)
+func verifyBurnEventRecord(dbValidation *database.Service, expectedRecord *entity.BurnEvent, t *testing.T) {
+	exist, err := dbValidation.VerifyBurnRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.Id, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.Id)
+	}
+}
+
+func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, mintAmount string, signatures []string, t *testing.T) {
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, mintAmount, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
 	if !exist {
 		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
-	}
-}
-
-func prepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
-	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
-
-	wrappedAsset, err := setup.WrappedAsset(routerContract, nativeAsset)
-	if err != nil {
-		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeAsset, err)
-	}
-	return &entity.Transfer{
-		TransactionID:      expectedTxId.String(),
-		Receiver:           receiver,
-		NativeAsset:        nativeAsset,
-		WrappedAsset:       wrappedAsset.String(),
-		Amount:             amount,
-		Status:             statuses.Status,
-		SignatureMsgStatus: statuses.StatusSignature,
 	}
 }
 
@@ -260,20 +488,16 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 
 	fmt.Println(fmt.Sprintf("WHBAR balance before transaction: [%s]", whbarBalanceBefore))
 	// Get bridge account hbar balance before transfer
-	receiverBalance, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(setup.BridgeAccount).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		t.Fatalf("Unable to query the balance of the Bridge Account, Error: [%s]", err)
-	}
+	receiverBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.BridgeAccount, t).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge account balance HBAR balance before transaction: [%d]", receiverBalance.Hbars.AsTinybar()))
+	fmt.Println(fmt.Sprintf("Bridge account balance HBAR balance before transaction: [%d]", receiverBalance))
 
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendHbarsToBridgeAccount(setup, memo)
 	if err != nil {
 		t.Fatalf("Unable to send HBARs to Bridge Account, Error: [%s]", err)
 	}
+
 	transactionReceipt, err := transactionResponse.GetReceipt(setup.Clients.Hedera)
 	if err != nil {
 		t.Fatalf("Transaction unsuccessful, Error: [%s]", err)
@@ -282,20 +506,16 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, memo string, whbarReceive
 	fmt.Println(fmt.Sprintf("Successfully sent HBAR to bridge account, Status: [%s]", transactionReceipt.Status))
 
 	// Get bridge account hbar balance after transfer
-	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(setup.BridgeAccount).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		t.Fatalf("Unable to query the balance of the Bridge Account. Error: [%s]", err)
-	}
+	receiverBalanceNew := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.BridgeAccount, t).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge Account HBAR balance after transaction: [%d]", receiverBalanceNew.Hbars.AsTinybar()))
+	fmt.Println(fmt.Sprintf("Bridge Account HBAR balance after transaction: [%d]", receiverBalanceNew))
 
 	// Verify that the custodial address has received exactly the amount sent
-	amount := receiverBalanceNew.Hbars.AsTinybar() - receiverBalance.Hbars.AsTinybar()
+	amount := receiverBalanceNew - receiverBalance
+
 	// Verify that the bridge account has received exactly the amount sent
-	if amount != hBarSendAmount.AsTinybar() {
-		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but was [%v]", hBarSendAmount.AsTinybar(), amount)
+	if amount != tinyBarAmount {
+		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but was [%v]", tinyBarAmount, amount)
 	}
 
 	return *transactionResponse, whbarBalanceBefore
@@ -310,12 +530,8 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 
 	fmt.Println(fmt.Sprintf("Token balance before transaction: [%s]", wrappedBalanceBefore))
 	// Get bridge account token balance before transfer
-	receiverBalance, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(setup.BridgeAccount).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		t.Fatalf("Unable to query the token balance of the Bridge Account, Error: [%s]", err)
-	}
+	receiverBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.BridgeAccount, t)
+
 	fmt.Println(fmt.Sprintf("Bridge account Token balance before transaction: [%d]", receiverBalance.Token[setup.TokenID]))
 
 	// Get the transaction receipt to verify the transaction was executed
@@ -330,77 +546,18 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, memo string, wTokenR
 	fmt.Println(fmt.Sprintf("Successfully sent Tokens to bridge account, Status: [%s]", transactionReceipt.Status))
 
 	// Get bridge account HTS token balance after transfer
-	receiverBalanceNew, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(setup.BridgeAccount).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		t.Fatalf("Unable to query the token balance of the Bridge Account, Error: [%s]", err)
-	}
+	receiverBalanceNew := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.BridgeAccount, t)
 
 	fmt.Println(fmt.Sprintf("Bridge Account Token balance after transaction: [%d]", receiverBalanceNew.Token[setup.TokenID]))
 
 	// Verify that the custodial address has received exactly the amount sent
 	resultAmount := receiverBalanceNew.Token[setup.TokenID] - receiverBalance.Token[setup.TokenID]
 	// Verify that the bridge account has received exactly the amount sent
-	if resultAmount != uint64(amount) {
-		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but received: [%v]", hBarSendAmount.AsTinybar(), amount)
+	if resultAmount != uint64(tinyBarAmount) {
+		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but received: [%v]", hBarSendAmount.AsTinybar(), tinyBarAmount)
 	}
 
 	return *transactionResponse, wrappedBalanceBefore
-}
-
-func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]", hBarSendAmount, memo))
-
-	res, err := hedera.NewTransferTransaction().
-		AddHbarTransfer(setup.SenderAccount, hbarRemovalAmount).
-		AddHbarTransfer(setup.BridgeAccount, hBarSendAmount).
-		SetTransactionMemo(memo).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		return nil, err
-	}
-	rec, err := res.GetReceipt(setup.Clients.Hedera)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
-	time.Sleep(1 * time.Second)
-
-	return &res, err
-}
-
-func sendTokensToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", amount, memo))
-
-	res, err := hedera.NewTransferTransaction().
-		SetTransactionMemo(memo).
-		AddTokenTransfer(setup.TokenID, setup.SenderAccount, -amount).
-		AddTokenTransfer(setup.TokenID, setup.BridgeAccount, amount).
-		Execute(setup.Clients.Hedera)
-	if err != nil {
-		return nil, err
-	}
-	rec, err := res.GetReceipt(setup.Clients.Hedera)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
-	time.Sleep(1 * time.Second)
-
-	return &res, err
-}
-
-func calculateMintAmount(setup *setup.Setup, amount int64) int64 {
-	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(amount)
-	validFee := setup.Clients.Distributor.ValidAmount(fee)
-	if validFee != fee {
-		remainder += fee - validFee
-	}
-
-	return remainder
 }
 
 func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.TransactionResponse, t *testing.T) []string {
@@ -446,4 +603,48 @@ func verifyTopicMessages(setup *setup.Setup, transactionResponse hedera.Transact
 	}
 	// Not possible end-case
 	return nil
+}
+
+func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]", hBarSendAmount, memo))
+
+	res, err := hedera.NewTransferTransaction().
+		AddHbarTransfer(setup.Clients.Hedera.GetOperatorAccountID(), hbarRemovalAmount).
+		AddHbarTransfer(setup.BridgeAccount, hBarSendAmount).
+		SetTransactionMemo(memo).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+	rec, err := res.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	time.Sleep(1 * time.Second)
+
+	return &res, err
+}
+
+func sendTokensToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", tinyBarAmount, memo))
+
+	res, err := hedera.NewTransferTransaction().
+		SetTransactionMemo(memo).
+		AddTokenTransfer(setup.TokenID, setup.Clients.Hedera.GetOperatorAccountID(), -tinyBarAmount).
+		AddTokenTransfer(setup.TokenID, setup.BridgeAccount, tinyBarAmount).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+	rec, err := res.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	time.Sleep(1 * time.Second)
+
+	return &res, err
 }

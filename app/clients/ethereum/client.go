@@ -94,7 +94,7 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 // onError is called if an error occurs while waiting for TX to go into one of the other 2 states
 func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	go func() {
-		receipt, err := ec.waitForTransactionReceipt(common.HexToHash(hex))
+		receipt, err := ec.WaitForTransactionReceipt(common.HexToHash(hex))
 		if err != nil {
 			ec.logger.Errorf("[%s] - Error occurred while monitoring. Error: [%s]", hex, err)
 			onError(err)
@@ -113,8 +113,8 @@ func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onE
 	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hex)
 }
 
-// waitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
-func (ec *Client) waitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
+// WaitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
+func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
 	for {
 		_, isPending, err := ec.Client.TransactionByHash(context.Background(), hash)
 
