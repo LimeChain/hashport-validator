@@ -37,6 +37,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
+// Get Returns Fee. Returns nil if not found
 func (r Repository) Get(id string) (*entity.Fee, error) {
 	record := &entity.Fee{}
 
