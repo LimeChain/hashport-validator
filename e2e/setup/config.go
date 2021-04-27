@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
@@ -80,25 +81,20 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	Receiver      common.Address
 	BridgeAccount hederaSDK.AccountID
-	SenderAccount hederaSDK.AccountID
+	EthReceiver   common.Address
 	RouterAddress common.Address
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	FeePercentage int64
 	Members       []hederaSDK.AccountID
 	Clients       *clients
-	DbValidation  *db_validation.Service
+	DbValidator   *db_validation.Service
 }
 
 // newSetup instantiates new Setup struct
 func newSetup(config Config) (*Setup, error) {
 	bridgeAccount, err := hederaSDK.AccountIDFromString(config.Hedera.BridgeAccount)
-	if err != nil {
-		return nil, err
-	}
-	senderAccount, err := hederaSDK.AccountIDFromString(config.Hedera.Sender.Account)
 	if err != nil {
 		return nil, err
 	}
@@ -134,17 +130,18 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
+	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
+
 	return &Setup{
 		BridgeAccount: bridgeAccount,
-		SenderAccount: senderAccount,
+		EthReceiver:   common.HexToAddress(clients.Signer.Address()),
 		TopicID:       topicID,
 		TokenID:       tokenID,
 		FeePercentage: config.Hedera.FeePercentage,
 		Members:       members,
 		Clients:       clients,
 		RouterAddress: common.HexToAddress(config.Ethereum.RouterContractAddress),
-		DbValidation:  db_validation.NewService(config.Hedera.DbValidationProps),
-		Receiver:      common.HexToAddress(clients.Signer.Address()),
+		DbValidator:   dbValidator,
 	}, nil
 }
 
@@ -156,6 +153,7 @@ type clients struct {
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
 	KeyTransactor   *bind.TransactOpts
+	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator
 	FeeCalculator   service.Fee
 	Distributor     service.Distributor
@@ -173,12 +171,12 @@ func newClients(config Config) (*clients, error) {
 	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
-	wHbarInstance, err := initTokenContract(config.Tokens.WHbar, routerInstance, ethClient)
+	wHbarInstance, err := initAssetContract(config.Tokens.WHbar, routerInstance, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenInstance, err := initTokenContract(config.Tokens.WToken, routerInstance, ethClient)
+	wTokenInstance, err := initAssetContract(config.Tokens.WToken, routerInstance, ethClient)
 	if err != nil {
 		return nil, err
 	}
@@ -191,21 +189,24 @@ func newClients(config Config) (*clients, error) {
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
+	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval)
+
 	return &clients{
 		Hedera:          hederaClient,
 		EthClient:       ethClient,
 		WHbarContract:   wHbarInstance,
 		WTokenContract:  wTokenInstance,
 		RouterContract:  routerInstance,
-		KeyTransactor:   keyTransactor,
 		ValidatorClient: validatorClient,
+		KeyTransactor:   keyTransactor,
+		MirrorNode:      mirrorNode,
 		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
 		Distributor:     distributor.New(config.Hedera.Members),
 		Signer:          signer,
 	}, nil
 }
 
-func initTokenContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+func initAssetContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := WrappedAsset(routerInstance, nativeAsset)
 	if err != nil {
 		return nil, err
@@ -285,10 +286,15 @@ type Hedera struct {
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []config.Database `yaml:"dbs"`
+	MirrorNode        config.MirrorNode `yaml:"mirror_node"`
 }
 
 // sender props from the application.yml
 type Sender struct {
 	Account    string `yaml:"account"`
 	PrivateKey string `yaml:"private_key"`
+}
+
+type Receiver struct {
+	Account string `yaml:"account"`
 }

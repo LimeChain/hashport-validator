@@ -22,7 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-event"
+	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/ethereum"
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
