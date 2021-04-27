@@ -85,7 +85,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 7. Wait for potential front-run database
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
 	time.Sleep(10 * time.Second)
 
 	// 8. Validate Database Record
@@ -119,7 +119,7 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 		setupEnv.Clients.Hedera.GetOperatorAccountID(),
 		expectedId)
 
-	// 7. Wait for potential front-run database
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
 	time.Sleep(10 * time.Second)
 
 	// 8. Validate Database Record
