@@ -2,7 +2,6 @@ package database
 
 import (
 	"encoding/hex"
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
@@ -128,8 +127,6 @@ func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, 
 			return false, err
 		}
 		if !burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord) {
-			fmt.Println(fmt.Sprintf("Actual Burn Event: %s", actualBurnEvent.String()))
-			fmt.Println(fmt.Sprintf("Expected Burn Event: %s", expectedBurnRecord.String()))
 			return false, nil
 		}
 	}
