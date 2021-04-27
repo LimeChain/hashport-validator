@@ -69,7 +69,7 @@ type Config struct {
 
 type Validator struct {
 	LogLevel string   `yaml:"log_level" env:"VALIDATOR_LOG_LEVEL"`
-	ReadOnly bool     `yaml:"rest-api-only" env:"VALIDATOR_REST_API_ONLY"`
+	ReadOnly bool     `yaml:"rest_api_only" env:"VALIDATOR_REST_API_ONLY"`
 	Port     string   `yaml:"port" env:"VALIDATOR_PORT"`
 	Database Database `yaml:"database"`
 	Clients  Clients  `yaml:"clients"`
