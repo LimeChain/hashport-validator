@@ -58,74 +58,6 @@ const (
 	expectedValidatorsCount = 3
 )
 
-func Test_Ethereum_Hedera_HBAR(t *testing.T) {
-	setupEnv := setup.Load()
-	now = time.Now()
-	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-
-	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
-
-	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
-
-	// 3. Validate that the burn transaction went through and emitted the correct events
-	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
-
-	// 4. Validate that a scheduled transaction was submitted
-	entityId := validateScheduledTx(setupEnv, t)
-
-	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
-
-	// 6. Prepare Expected Database Record
-	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		entityId,
-		receiveAmount,
-		setupEnv.Clients.Hedera.GetOperatorAccountID(),
-		expectedId)
-
-	// 7. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
-
-	// 8. Validate Database Record
-	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
-}
-
-func Test_Ethereum_Hedera_Token(t *testing.T) {
-	setupEnv := setup.Load()
-	now = time.Now()
-	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-
-	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
-
-	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
-
-	// 3. Validate that the burn transaction went through and emitted the correct events
-	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
-
-	// 4. Validate that a scheduled transaction was submitted
-	entityId := validateScheduledTx(setupEnv, t)
-
-	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
-	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
-
-	// 6. Prepare Expected Database Record
-	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
-		entityId,
-		receiveAmount,
-		setupEnv.Clients.Hedera.GetOperatorAccountID(),
-		expectedId)
-
-	// 7. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
-
-	// 8. Validate Database Record
-	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
-}
-
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 
@@ -206,6 +138,74 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	// Step 8 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+}
+
+func Test_Ethereum_Hedera_HBAR(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
+
+	// 2. Submit burn transaction to the bridge contract
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, constants.Hbar, t)
+
+	// 3. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
+
+	// 4. Validate that a scheduled transaction was submitted
+	entityId := validateScheduledTx(setupEnv, t)
+
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
+
+	// 6. Prepare Expected Database Record
+	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
+		entityId,
+		receiveAmount,
+		setupEnv.Clients.Hedera.GetOperatorAccountID(),
+		expectedId)
+
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
+	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
+}
+
+func Test_Ethereum_Hedera_Token(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+
+	// 1. Calculate Expected Receive Amount
+	expectedReceiveAmount := calculateValidAmount(setupEnv, receiveAmount)
+
+	// 2. Submit burn transaction to the bridge contract
+	burnTxReceipt, expectedRouterBurn := sendEthTransaction(setupEnv, setupEnv.TokenID.String(), t)
+
+	// 3. Validate that the burn transaction went through and emitted the correct events
+	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
+
+	// 4. Validate that a scheduled transaction was submitted
+	entityId := validateScheduledTx(setupEnv, t)
+
+	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
+
+	// 6. Prepare Expected Database Record
+	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
+		entityId,
+		receiveAmount,
+		setupEnv.Clients.Hedera.GetOperatorAccountID(),
+		expectedId)
+
+	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(10 * time.Second)
+
+	// 8. Validate Database Record
+	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 }
 
 func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
