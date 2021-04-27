@@ -27,13 +27,15 @@ import (
 // Handler is transfers event handler
 type Handler struct {
 	transfersService service.Transfers
+	readOnly         bool
 	logger           *log.Entry
 }
 
-func NewHandler(transfersService service.Transfers) *Handler {
+func NewHandler(transfersService service.Transfers, readOnly bool) *Handler {
 	return &Handler{
 		logger:           config.GetLoggerFor("Account Transfer Handler"),
 		transfersService: transfersService,
+		readOnly:         readOnly,
 	}
 }
 
@@ -55,9 +57,11 @@ func (th Handler) Handle(payload interface{}) {
 		return
 	}
 
-	err = th.transfersService.ProcessTransfer(*transferMsg)
-	if err != nil {
-		th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
-		return
+	if !th.readOnly {
+		err = th.transfersService.ProcessTransfer(*transferMsg)
+		if err != nil {
+			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
+			return
+		}
 	}
 }

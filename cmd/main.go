@@ -47,23 +47,17 @@ func main() {
 	// Prepare Node
 	server := server.NewServer()
 
-	var services *Services = nil
-	if configuration.Validator.RestApiOnly {
-		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
-		services = PrepareApiOnlyServices(configuration, *clients)
-	} else {
-		// Prepare repositories
-		repositories := PrepareRepositories(configuration.Validator.Database)
-		// Prepare Services
-		services = PrepareServices(configuration, *clients, *repositories)
+	// Prepare repositories
+	repositories := PrepareRepositories(configuration.Validator.Database)
+	// Prepare Services
+	services := PrepareServices(configuration, *clients, *repositories)
 
-		// Execute Recovery Process. Computing Watchers starting timestamp
-		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
-		if err != nil {
-			log.Fatal(err)
-		}
-		initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
+	// Execute Recovery Process. Computing Watchers starting timestamp
+	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
+	if err != nil {
+		log.Fatal(err)
 	}
+	initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
 
 	apiRouter := initializeAPIRouter(services)
 
@@ -115,7 +109,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			&repositories.transferStatus,
 			watchersTimestamp,
 			services.contracts),
-		th.NewHandler(services.transfers))
+		th.NewHandler(services.transfers, configuration.Validator.Validator))
 
 	server.AddPair(
 		addConsensusTopicWatcher(

@@ -38,6 +38,7 @@ type Service struct {
 	feeService         service.Fee
 	scheduledService   service.Scheduled
 	logger             *log.Entry
+	readOnly           bool
 }
 
 func NewService(
@@ -46,7 +47,8 @@ func NewService(
 	feeRepository repository.Fee,
 	distributor service.Distributor,
 	scheduled service.Scheduled,
-	feeService service.Fee) *Service {
+	feeService service.Fee,
+	readOnly bool) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -60,6 +62,7 @@ func NewService(
 		distributorService: distributor,
 		feeService:         feeService,
 		scheduledService:   scheduled,
+		readOnly:           readOnly,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
@@ -68,6 +71,10 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	err := s.repository.Create(event.Id, event.Amount, event.Recipient.String())
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.Id, err)
+		return
+	}
+
+	if s.readOnly {
 		return
 	}
 

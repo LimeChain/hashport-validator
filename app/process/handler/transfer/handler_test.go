@@ -40,7 +40,7 @@ var (
 func InitializeHandler() (*Handler, *service.MockTransferService) {
 	mocks.Setup()
 
-	return NewHandler(mocks.MTransferService), mocks.MTransferService
+	return NewHandler(mocks.MTransferService, false), mocks.MTransferService
 }
 
 func Test_Handle(t *testing.T) {
