@@ -22,10 +22,16 @@ func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter,
 
 		transferData, err := transfersService.TransferData(transferID)
 		if err != nil {
-			render.Status(r, http.StatusInternalServerError)
-			render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
-
 			logger.Errorf("Router resolved with an error. Error [%s].", err)
+			switch err {
+			case service.ErrNotFound:
+				render.Status(r, http.StatusNotFound)
+				render.JSON(w, r, response.ErrorResponse(err))
+			default:
+				render.Status(r, http.StatusInternalServerError)
+				render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
+			}
+
 			return
 		}
 

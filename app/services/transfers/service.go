@@ -142,6 +142,7 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId: txId,
+		RouterAddress: ts.contractsService.Address().String(),
 		Receiver:      memo,
 		Amount:        amount,
 		NativeAsset:   nativeAsset,
@@ -194,7 +195,7 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.WrappedAsset, tm.Receiver, wrappedAmount)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.RouterAddress, tm.WrappedAsset, tm.Receiver, wrappedAmount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
@@ -209,6 +210,7 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 
 	signatureMessage := message.NewSignature(
 		tm.TransactionId,
+		tm.RouterAddress,
 		tm.Receiver,
 		wrappedAmount,
 		signature,
@@ -329,6 +331,9 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
 		return service.TransferData{}, err
 	}
+	if t == nil || t.Fee.Amount == "" {
+		return service.TransferData{}, service.ErrNotFound
+	}
 
 	amount, err := strconv.ParseInt(t.Amount, 10, 64)
 	if err != nil {
@@ -352,11 +357,12 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
-		Recipient:    t.Receiver,
-		Amount:       signedAmount,
-		NativeAsset:  t.NativeAsset,
-		WrappedAsset: t.WrappedAsset,
-		Signatures:   signatures,
-		Majority:     reachedMajority,
+		Recipient:     t.Receiver,
+		RouterAddress: t.RouterAddress,
+		Amount:        signedAmount,
+		NativeAsset:   t.NativeAsset,
+		WrappedAsset:  t.WrappedAsset,
+		Signatures:    signatures,
+		Majority:      reachedMajority,
 	}, nil
 }

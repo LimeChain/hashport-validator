@@ -106,7 +106,8 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 		return false, err
 	}
 
-	match := t.Receiver == topicMessage.Receiver &&
+	match := topicMessage.Receiver == t.Receiver &&
+		topicMessage.RouterAddress == t.RouterAddress &&
 		topicMessage.Amount == signedAmount &&
 		topicMessage.WrappedAsset == wrappedAsset
 	return match, nil
@@ -115,7 +116,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 func (ss *Service) ProcessSignature(tsm message.Message) error {
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.WrappedAsset, tsm.Receiver, tsm.Amount)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.RouterAddress, tsm.WrappedAsset, tsm.Receiver, tsm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err

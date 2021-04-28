@@ -229,7 +229,8 @@ func (r Recovery) processUnfinishedOperations() error {
 			t.Receiver,
 			t.NativeAsset,
 			t.WrappedAsset,
-			t.Amount)
+			t.Amount,
+			r.contracts.Address().String())
 
 		err = r.transfers.ProcessTransfer(*transferMsg)
 		if err != nil {

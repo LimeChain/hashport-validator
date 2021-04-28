@@ -14,26 +14,8 @@
  * limitations under the License.
  */
 
-package transfer
+package service
 
-// Transfer serves as a model between Transfer Watcher and Handler
-type Transfer struct {
-	TransactionId string
-	Receiver      string
-	Amount        string
-	NativeAsset   string
-	WrappedAsset  string
-	RouterAddress string
-}
+import "errors"
 
-// New instantiates Transfer struct ready for submission to the handler
-func New(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		Receiver:      receiver,
-		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
-		RouterAddress: routerAddress,
-	}
-}
+var ErrNotFound = errors.New("not found")

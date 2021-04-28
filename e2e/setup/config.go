@@ -83,6 +83,7 @@ func getConfig(config *Config, path string) error {
 type Setup struct {
 	BridgeAccount hederaSDK.AccountID
 	EthReceiver   common.Address
+	RouterAddress common.Address
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	FeePercentage int64
@@ -139,6 +140,7 @@ func newSetup(config Config) (*Setup, error) {
 		FeePercentage: config.Hedera.FeePercentage,
 		Members:       members,
 		Clients:       clients,
+		RouterAddress: common.HexToAddress(config.Ethereum.RouterContractAddress),
 		DbValidator:   dbValidator,
 	}, nil
 }

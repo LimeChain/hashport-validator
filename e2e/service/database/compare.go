@@ -22,6 +22,7 @@ import (
 
 func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 	return comparable.TransactionID == comparing.TransactionID &&
+		comparable.RouterAddress == comparing.RouterAddress &&
 		comparable.Receiver == comparing.Receiver &&
 		comparable.NativeAsset == comparing.NativeAsset &&
 		comparable.WrappedAsset == comparing.WrappedAsset &&
