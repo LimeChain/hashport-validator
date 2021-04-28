@@ -20,7 +20,7 @@ func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		eventID := chi.URLParam(r, "id")
 
-		txID, err := burnService.ScheduledTxID(eventID)
+		txID, err := burnService.TransactionID(eventID)
 		if err != nil {
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))

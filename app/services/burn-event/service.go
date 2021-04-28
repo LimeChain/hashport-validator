@@ -109,8 +109,8 @@ func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount 
 	return remainder, validFee, transfers, nil
 }
 
-// ScheduledTxID returns from the database the corresponding scheduled transaction id
-func (s *Service) ScheduledTxID(id string) (string, error) {
+// TransactionID returns the corresponding transaction id
+func (s *Service) TransactionID(id string) (string, error) {
 	event, err := s.repository.Get(id)
 	if err != nil {
 		s.logger.Errorf("[%s] - failed to get event.", id)
