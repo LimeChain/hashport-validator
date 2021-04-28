@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package repository
+package util
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+func AllSame(arr []string) bool {
+	for i := 1; i < len(arr); i++ {
+		if arr[i] != arr[0] {
+			return false
+		}
+	}
 
-type Fee interface {
-	// Returns Fee. Returns nil if not found
-	Get(txId string) (*entity.Fee, error)
-	Create(entity *entity.Fee) error
-	UpdateStatusCompleted(txId string) error
-	UpdateStatusFailed(txId string) error
+	return true
 }
