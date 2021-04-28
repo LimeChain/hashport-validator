@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-package transfer
+package util
 
-// Transfer serves as a model between Transfer Watcher and Handler
-type Transfer struct {
-	TransactionId string
-	Receiver      string
-	Amount        string
-	NativeAsset   string
-	WrappedAsset  string
-	RouterAddress string
-}
-
-// New instantiates Transfer struct ready for submission to the handler
-func New(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		Receiver:      receiver,
-		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
-		RouterAddress: routerAddress,
+func AllSame(arr []string) bool {
+	for i := 1; i < len(arr); i++ {
+		if arr[i] != arr[0] {
+			return false
+		}
 	}
+
+	return true
 }

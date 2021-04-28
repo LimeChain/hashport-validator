@@ -19,6 +19,8 @@ package repository
 import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 
 type Fee interface {
+	// Returns Fee. Returns nil if not found
+	Get(txId string) (*entity.Fee, error)
 	Create(entity *entity.Fee) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
