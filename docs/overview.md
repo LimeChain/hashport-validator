@@ -58,14 +58,14 @@ All validators, except the one that successfully created the Transaction execute
 
 4. **Providing Authorisation Signature**
    Each of the Validators sign the following authorisation message:
-   `{hedera-tx-id}{router-address}{native-token}{receiver}{amount}` using their EVM-compatible private key.
+   `{hedera-tx-id}{router-address}{wrapped-token}{receiver}{amount}` using their EVM-compatible private key.
    The authorisation is then submitted to a topic in Hedera Consensus Service
 
 5. **Waiting for Supermajority**
    Alice's UI or API waits for a supermajority of the signatures. She can either watch the topic messages stream or fetch the data directly from Validator nodes.
 
 6. **Submitting the EVM Transaction**
-   Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The signature contains the raw data signed in the message: `hedera-tx`, `native-token-address`, `receiver` and the `amount` as well as the set of signatures from the Validators.
+   Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The signature contains the raw data signed in the message: `{hedera-tx-id}{router-address}{wrapped-token}{receiver}{amount}`
 
 7. **Mint Operation**
    The smart contract verifies that no reply attack is being executed (by checking the `hedera-tx-id` and verifies the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped token to the `receiving` address.
@@ -85,7 +85,7 @@ The transfer of assets from the EVM chain to Hedera is described in the followin
 2. **Burn Operation**
    The smart contract transfers the wrapped tokens from Alice's address and burns them. At the end of the process a `Burn` event is emitted containing the information about the burned token, the amount and the receiver.
 3. **Picking up the Transfer**
-   Validator nodes watch for `Burn` events and once such occurs, they prepare and submit `ScheduleCreate` operation that transfers the `service fee` amount from the `Bridge` account to the list of validators equally. Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with IDENTICAL_SCHEDULE_ALREADY_CREATED error, and the transaction receipt will include the ScheduleIDand the TransactionID of the first submitted transaction.
-   All validators, except the one that successfully created the Transaction execute ScheduleSign and once n out of m validators execute the Sign operation, the transfer of the fees will be executed.
+   Validator nodes watch for `Burn` events and once such occurs, they prepare and submit `ScheduleCreate` operation that transfers the `service fee` amount from the `Bridge` account to the list of validators equally. Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `IDENTICAL_SCHEDULE_ALREADY_CREATED` error, and the transaction receipt will include the `ScheduleID` and the `TransactionID` of the first submitted transaction.
+   All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the transfer of the fees will be executed.
 4. **Unlocking the Asset**
    Each Validator performs a `ScheduleCreate` operation that transfers `amount-serviceFee` `Hbar` to the receiving Hedera Account. All validators that got their `ScheduleCreate` rejected, submit an equivalent `ScheduleSign`. Once `n out of m` validators execute the Sign operation, the transfer is completed.
