@@ -16,11 +16,11 @@ var (
 )
 
 // GET: .../events/:id/tx
-func getTx(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.Request) {
+func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		eventID := chi.URLParam(r, "id")
 
-		scheduledID, err := burnService.ScheduledTxID(eventID)
+		txID, err := burnService.ScheduledTxID(eventID)
 		if err != nil {
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
@@ -29,12 +29,12 @@ func getTx(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		render.JSON(w, r, scheduledID)
+		render.JSON(w, r, txID)
 	}
 }
 
 func NewRouter(service service.BurnEvent) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/{id}/tx", getTx(service))
+	r.Get("/{id}/tx", getTxID(service))
 	return r
 }
