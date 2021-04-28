@@ -91,6 +91,7 @@ func Test_HBAR(t *testing.T) {
 	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
+		setupEnv.RouterAddress.String(),
 		constants.Hbar,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		setupEnv.EthReceiver.String(),
@@ -143,6 +144,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.Clients.RouterContract,
 		transactionResponse.TransactionID,
+		setupEnv.RouterAddress.String(),
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(tinyBarAmount, 10),
 		setupEnv.EthReceiver.String(),

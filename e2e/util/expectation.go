@@ -69,7 +69,7 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 	return fee
 }
 
-func PrepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func PrepareExpectedTransfer(routerContract *routerContract.Router, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
 	wrappedAsset, err := setup.WrappedAsset(routerContract, nativeAsset)
@@ -80,6 +80,7 @@ func PrepareExpectedTransfer(routerContract *routerContract.Router, transactionI
 		TransactionID:      expectedTxId.String(),
 		Receiver:           receiver,
 		NativeAsset:        nativeAsset,
+		RouterAddress:      routerAddress,
 		WrappedAsset:       wrappedAsset.String(),
 		Amount:             amount,
 		Status:             statuses.Status,

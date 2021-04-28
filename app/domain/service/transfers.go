@@ -41,10 +41,11 @@ type Transfers interface {
 }
 
 type TransferData struct {
-	Recipient    string   `json:"recipient"`
-	Amount       string   `json:"amount"`
-	NativeAsset  string   `json:"nativeAsset"`
-	WrappedAsset string   `json:"wrappedAsset"`
-	Signatures   []string `json:"signatures"`
-	Majority     bool     `json:"majority"`
+	Recipient     string   `json:"recipient"`
+	RouterAddress string   `json:"routerAddress"`
+	Amount        string   `json:"amount"`
+	NativeAsset   string   `json:"nativeAsset"`
+	WrappedAsset  string   `json:"wrappedAsset"`
+	Signatures    []string `json:"signatures"`
+	Majority      bool     `json:"majority"`
 }

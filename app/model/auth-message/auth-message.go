@@ -25,7 +25,7 @@ import (
 
 // EncodeBytesFrom returns the array of bytes representing an
 // authorisation signature ready to be signed by Ethereum Private Key
-func EncodeBytesFrom(txId, wrappedAsset, receiverEthAddress, amount string) ([]byte, error) {
+func EncodeBytesFrom(txId, routerAddress, wrappedAsset, receiverEthAddress, amount string) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func EncodeBytesFrom(txId, wrappedAsset, receiverEthAddress, amount string) ([]b
 		return nil, err
 	}
 
-	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(wrappedAsset), common.HexToAddress(receiverEthAddress), amountBn)
+	bytesToHash, err := args.Pack([]byte(txId), common.HexToAddress(routerAddress), common.HexToAddress(wrappedAsset), common.HexToAddress(receiverEthAddress), amountBn)
 	return keccak(bytesToHash), nil
 }
 
@@ -58,6 +58,9 @@ func generateArguments() (abi.Arguments, error) {
 	return abi.Arguments{
 		{
 			Type: bytesType,
+		},
+		{
+			Type: addressType,
 		},
 		{
 			Type: addressType,
