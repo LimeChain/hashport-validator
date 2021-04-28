@@ -7,7 +7,7 @@
 - **Token Developers** - the developers of HTS tokens
 - **Validators** - parties/entities that are running the Validator node. They are providing authorisation for the minting and burning of wrapped tokens on the EVM-based chain as-well as transferring wrapped tokens back to Hedera.
   
-**Asset - description**
+**Assets**
 - **WHBAR** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HBAR on the EVM-based chain. In other words we can say that Hbar is the `native` asset and `WHBAR` is the `wrapped` asset.
 - **WHTS** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HTS token on the EVM-based chain. In this case, `HTS` token is a `native` one and `WHTS` token is `wrapped`
 
