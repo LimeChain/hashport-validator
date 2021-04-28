@@ -83,5 +83,6 @@ func (sr Repository) Get(id string) (*entity.BurnEvent, error) {
 		}
 		return nil, result.Error
 	}
+
 	return burnEvent, nil
 }
