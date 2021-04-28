@@ -1,15 +1,21 @@
 # Overview
 
 ### Terminology
+
+**Actors**
 - **Users** - end-users that want to transfer HBAR or HTS tokens from Hedera to EVM-based chain or Wrapped HBAR and Wrapped Tokens from EVM-based chain to Hedera
 - **Token Developers** - the developers of HTS tokens
 - **Validators** - parties/entities that are running the Validator node. They are providing authorisation for the minting and burning of wrapped tokens on the EVM-based chain as-well as transferring wrapped tokens back to Hedera.
-- **WHBAR** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HBAR on the EVM-based chain. In other words we can say that Hbar is the `native` asset and `WHBAR` is the `non-native` asset.
-- **WHTS** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HTS token on the EVM-based chain. In this case, `HTS` token is a `native` one and `WHTS` token is `non-native`.
+  
+**Asset - description**
+- **WHBAR** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HBAR on the EVM-based chain. In other words we can say that Hbar is the `native` asset and `WHBAR` is the `wrapped` asset.
+- **WHTS** - ERC20 token issued and operated by Bridge validators. The token represents "wrapped" HTS token on the EVM-based chain. In this case, `HTS` token is a `native` one and `WHTS` token is `wrapped`
+
+**Accounts**
+- **Bridge Account** - Hedera threshold account (`n/m`), where `m` is the number of validators. Each validator has a Hedera compatible private key - 1 out of `m` that has `1/m` control over this threshold account. The funds transferred through the bridge (Hedera -> EVM) are sent to the Bridge account. The funds transferred back to Hedera (EVM -> Hedera) are sent from the Bridge account to the recipient's account.
+- **Fee Account** - Hedera threshold account (`n/m`), where `m` is the number of validators. Each validator has a Hedera compatible private key - 1 out of `m` that has `1/m` control over this threshold account. The account is being used to pay for the transaction fees for transferring Assets from the bridge account to the recipient account.
 
 ### Governance
-There are 2 setups for both of the Networks. On one side, there are 2 Hedera Bridge Accounts which are `n/m` threshold acccounts. Each validator has a Hedera compatible private key - 1 out of `m` that has `1/m` control over those threshold accounts.
-From now on, we will refer to them as `Bridge` and `Fee` accounts.
 
 The setup on the EVM chain is the same - [Gnosis MultiSig](https://github.com/gnosis/safe-contracts) is to be used with the same `n/m` threshold configuration. Each validator has an EVM compatible private key - 1 out of `m` that as `1/m` control over the threshold account.
 The Gnosis Multisig is configured as owner of:
@@ -22,6 +28,8 @@ Validators can add new members or remove members from the validator set. We expe
 Two transactions must be executed in order for the Validator set to change.
 1. On Hedera, `Crypto Update` transaction that modifies the `n/m` threshold accounts (`Bridge` and `Fees`)
 2. On the EVM chain, `updateMember` transaction that modifies the list of members in the `Router` contract (it may add or remove a member)
+
+**Note**: Once a new validator is added, he can safely run a validator node with the correct credentials configured, and he will be authorising bridge transfers and accruing fees.
 
 ### Fees
 The main incentive for becoming a Validator is the service fee paid by users. The fee is a percentage of the transferred amount, paid on the native asset.
@@ -43,20 +51,21 @@ The transfer of assets from Hedera to the EVM chain is described in the followin
    The Bridge validator nodes listen for new incoming transfers to the `Bridge` Account. Once they pick up the new transaction, they verify the `state proof` and validate that the `memo` contains a valid EVM address configured as receiver of the wrapped asset.
 3. **Paying out fees**
 
-3.1 Each of the Validators create a Schedule Create transaction transferring the `service fee` amount from the `Bridge` account to the list of validators equally *(f.e if the service fee is `7 HBAR` and there are `7` validators, the Schedule Create Transfer will contain Transfer list crediting `1 HBAR` to each of the validators.)*
-3.2 Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `TRANSACTION_ALREADY_SCHEDULED` error, and the transaction receipt will include the `ScheduleID` of the first submitted transaction.
-All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the  transfer of the fees will be executed.
+   **3.1** Each of the Validators create a Schedule Create transaction transferring the `service fee` amount from the `Bridge` account to the list of validators equally *(f.e if the service fee is `7 HBAR` and there are `7` validators, the Schedule Create Transfer will contain Transfer list crediting `1 HBAR` to each of the validators.)*
+
+   **3.2** Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `IDENTICAL_SCHEDULE_ALREADY_CREATED` error, and the transaction receipt will include the `ScheduleID` of the first submitted transaction.
+All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the transfer of the fees will be executed.
 
 4. **Providing Authorisation Signature**
    Each of the Validators sign the following authorisation message:
-   `{hedera-tx-id}{native-token}{receiver}{amount}` using their EVM-compatible private key.
+   `{hedera-tx-id}{router-address}{native-token}{receiver}{amount}` using their EVM-compatible private key.
    The authorisation is then submitted to a topic in Hedera Consensus Service
 
 5. **Waiting for Supermajority**
    Alice's UI or API waits for a supermajority of the signatures. She can either watch the topic messages stream or fetch the data directly from Validator nodes.
 
 6. **Submitting the EVM Transaction**
-   Once supermajority is reached, Alice submits an the transaction to the EVM chain, claiming her wrapped asset. The signature contains the raw data signed in the message: `hedera-tx`, `native-token-address`, `receiver` and the `amount` as well as the set of signatures from the Validators.
+   Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The signature contains the raw data signed in the message: `hedera-tx`, `native-token-address`, `receiver` and the `amount` as well as the set of signatures from the Validators.
 
 7. **Mint Operation**
    The smart contract verifies that no reply attack is being executed (by checking the `hedera-tx-id` and verifies the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped token to the `receiving` address.
@@ -76,7 +85,7 @@ The transfer of assets from the EVM chain to Hedera is described in the followin
 2. **Burn Operation**
    The smart contract transfers the wrapped tokens from Alice's address and burns them. At the end of the process a `Burn` event is emitted containing the information about the burned token, the amount and the receiver.
 3. **Picking up the Transfer**
-   Validator nodes watch for `Burn` events and once such occurs, they prepare and submit `ScheduleCreate` operation that transfers the `service fee` amount from the `Bridge` account to the list of validators equally. Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity in the process, and all the others will fail with `TRANSACTION_ALREADY_SCHEDULED` error and pointer to the ID of the created Scheduled TX.
-   All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the  transfer of the fees are executed.
+   Validator nodes watch for `Burn` events and once such occurs, they prepare and submit `ScheduleCreate` operation that transfers the `service fee` amount from the `Bridge` account to the list of validators equally. Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with IDENTICAL_SCHEDULE_ALREADY_CREATED error, and the transaction receipt will include the ScheduleIDand the TransactionID of the first submitted transaction.
+   All validators, except the one that successfully created the Transaction execute ScheduleSign and once n out of m validators execute the Sign operation, the transfer of the fees will be executed.
 4. **Unlocking the Asset**
    Each Validator performs a `ScheduleCreate` operation that transfers `amount-serviceFee` `Hbar` to the receiving Hedera Account. All validators that got their `ScheduleCreate` rejected, submit an equivalent `ScheduleSign`. Once `n out of m` validators execute the Sign operation, the transfer is completed.
