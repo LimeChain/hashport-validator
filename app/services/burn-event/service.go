@@ -109,7 +109,8 @@ func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount 
 	return remainder, validFee, transfers, nil
 }
 
-// TransactionID returns the corresponding transaction id
+// TransactionID returns the corresponding Scheduled Transaction paying out the
+// fees to validators and the amount being bridged to the receiver address
 func (s *Service) TransactionID(id string) (string, error) {
 	event, err := s.repository.Get(id)
 	if err != nil {
@@ -118,7 +119,7 @@ func (s *Service) TransactionID(id string) (string, error) {
 	}
 
 	if event == nil {
-		return "", nil
+		return "", service.ErrNotFound
 	}
 
 	return event.TransactionId.String, nil
