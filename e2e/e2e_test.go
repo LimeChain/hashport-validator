@@ -182,10 +182,13 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	// 4. Validate that a scheduled transaction was submitted
 	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv, constants.Hbar, expectedReceiveAmount, fee), t)
 
-	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	// 5. Validate Event Transaction ID retrieved from Validator API
+	validateEventTransactionIDFromValidatorAPI(setupEnv, expectedId, transactionID, t)
+
+	// 6. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, t)
 
-	// 6. Prepare Expected Database Records
+	// 7. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		scheduleID,
 		receiveAmount,
@@ -195,10 +198,10 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, "", expectedId)
 
-	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	// 8. Wait for validators to update DB state after Scheduled TX is mined
 	time.Sleep(10 * time.Second)
 
-	// 8. Validate Database Records
+	// 9. Validate Database Records
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
@@ -221,10 +224,13 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	// 4. Validate that a scheduled transaction was submitted
 	transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv, setupEnv.TokenID.String(), expectedReceiveAmount, fee), t)
 
-	// 5. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	// 5. Validate Event Transaction ID retrieved from Validator API
+	validateEventTransactionIDFromValidatorAPI(setupEnv, expectedId, transactionID, t)
+
+	// 6. Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	validateReceiverAccountBalance(setupEnv, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), t)
 
-	// 6. Prepare Expected Database Records
+	// 7. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedBurnEventRecord(
 		scheduleID,
 		receiveAmount,
@@ -234,10 +240,10 @@ func Test_Ethereum_Hedera_Token(t *testing.T) {
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, "", expectedId)
 
-	// 7. Wait for validators to update DB state after Scheduled TX is mined
+	// 8. Wait for validators to update DB state after Scheduled TX is mined
 	time.Sleep(10 * time.Second)
 
-	// 8. Validate Database Records
+	// 9. Validate Database Records
 	verifyBurnEventRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
@@ -587,6 +593,17 @@ func verifyWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mintAm
 
 	if wrappedBalanceAfter.Cmp(expectedBalance) != 0 {
 		t.Fatalf("Incorrect token balance. Expected to be [%s], but was [%s].", expectedBalance, wrappedBalanceAfter)
+	}
+}
+
+func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, expectedTxID string, t *testing.T) {
+	actualTxID, err := setupEnv.Clients.ValidatorClient.GetEventTransactionID(eventID)
+	if err != nil {
+		t.Fatalf("[%s] - Failed to get event transaction ID. Error: [%s]", eventID, err)
+	}
+
+	if actualTxID != expectedTxID {
+		t.Fatalf("Expected Event TX ID [%s] did not match actual TX ID [%s]", expectedTxID, actualTxID)
 	}
 }
 
