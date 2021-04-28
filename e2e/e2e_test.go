@@ -599,7 +599,7 @@ func verifyWrappedAssetBalance(setupEnv *setup.Setup, nativeAsset string, mintAm
 func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, expectedTxID string, t *testing.T) {
 	actualTxID, err := setupEnv.Clients.ValidatorClient.GetEventTransactionID(eventID)
 	if err != nil {
-		t.Fatalf("Failed to get event transaction ID. Error: [%s]", err)
+		t.Fatalf("[%s] - Failed to get event transaction ID. Error: [%s]", eventID, err)
 	}
 
 	if actualTxID != expectedTxID {
