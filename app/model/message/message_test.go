@@ -21,7 +21,7 @@ var (
 
 func expectedSignature() *model.TopicEthSignatureMessage {
 	return &model.TopicEthSignatureMessage{
-		TransferID:           "0.0.6969-123321-420",
+		TransferID:           "0.0.123321-123321-420",
 		RouterAddress:        "0xsomerouteraddress",
 		WrappedAsset:         "0xwrappedasset",
 		Receiver:             "0xsomereceiver",
