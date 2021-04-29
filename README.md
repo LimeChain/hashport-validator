@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# Hedera - Ethereum Bridge
+# Hedera - EVM Bridge
 
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -13,18 +13,11 @@
 </div>
 
 ## Overview 
-This repository contains the Hedera <-> Ethereum Bridge Node. The bridge is operated by a set of validators who are running the Bridge Node software.  
-The diagram below shows the operations involved for the Hedera -> Ethereum bridging solution.
-
-<p align="center">
-
-![Hedera-Ethereum-MVP](docs/images/hedera-eth-mvp.png "Hedera->Ethereum") 
-
-</p>
+This repository contains the Hedera <-> EVM Bridge Node. The bridge is operated by a set of validators who are running the Bridge Node software.
 
 ## Technologies
 The Validator node is using Hedera Consensus Service for aggregating authorisation signatures resolving the need for nodes to have p2p communication and providing traceability for the bridging operations.
-The node is a Go service with several watchers and handlers for Crypto Transfer, Message submission and Ethereum events.
+The node is a Go service with several watchers and handlers for Transfers, Message submission and EVM-based events.
 Postgres is used for persisting state.
 
 ## Prerequisite Tools
@@ -44,6 +37,7 @@ docker-compose up
 ```
 
 ## Documentation
+ - [Overview](docs/overview.md)
  - [Installation](docs/installation.md)
  - [Configuration](docs/configuration.md)
  - [Testing](docs/testing.md)
