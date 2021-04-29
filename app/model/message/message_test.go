@@ -2,8 +2,8 @@ package message
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/golang/protobuf/proto"
+	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -16,6 +16,7 @@ var (
 	stringTs                = "123.123"
 	invalidStringTs         = "invalidTs"
 	invalidStringData       = "1-1-1-1-1-1"
+	now                     = time.Now()
 )
 
 func expectedSignature() *model.TopicEthSignatureMessage {
@@ -47,14 +48,13 @@ func Test_FromBytesWithInvalidBytes(t *testing.T) {
 }
 
 func Test_FromBytesWithTSWorks(t *testing.T) {
-	now := time.Now().UnixNano()
 	expectedSignature := expectedSignature()
-	expectedSignature.TransactionTimestamp = now
+	expectedSignature.TransactionTimestamp = now.UnixNano()
 	expectedBytes, err := proto.Marshal(expectedSignature)
 	if err != nil {
 		t.Fatal(err)
 	}
-	actualSignature, err := FromBytesWithTS(expectedBytes, now)
+	actualSignature, err := FromBytesWithTS(expectedBytes, now.UnixNano())
 	assert.Nil(t, err)
 	signatureEqualFields(t, expectedSignature, actualSignature.TopicEthSignatureMessage)
 }
@@ -88,9 +88,6 @@ func Test_FromStringWithInvalidData(t *testing.T) {
 }
 
 func Test_FromStringWorks(t *testing.T) {
-	now := time.Now()
-	nowString := fmt.Sprintf("%d.%d", now.Unix(), now.Nanosecond())
-
 	expected := expectedSignature()
 	expected.TransactionTimestamp = now.UnixNano()
 
@@ -101,7 +98,7 @@ func Test_FromStringWorks(t *testing.T) {
 
 	validData := base64.StdEncoding.EncodeToString(bytes)
 
-	result, err := FromString(validData, nowString)
+	result, err := FromString(validData, timestampHelper.String(now.UnixNano()))
 	assert.Nil(t, err)
 	signatureEqualFields(t, expected, result.TopicEthSignatureMessage)
 }
