@@ -27,6 +27,7 @@ import (
 // authorisation signature ready to be signed by Ethereum Private Key
 func EncodeBytesFrom(txId, routerAddress, wrappedAsset, receiverEthAddress, amount string) ([]byte, error) {
 	args, err := generateArguments()
+	// Is this error check necessary?
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +41,7 @@ func EncodeBytesFrom(txId, routerAddress, wrappedAsset, receiverEthAddress, amou
 }
 
 func generateArguments() (abi.Arguments, error) {
+	// There is no way to increase coverage here
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, err
