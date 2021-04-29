@@ -1,7 +1,6 @@
 package auth_message
 
 import (
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -16,14 +15,13 @@ const (
 )
 
 func Test_EncodeBytesFromWithInvalidAmount(t *testing.T) {
-	expectedError := errors.New("error")
 	actualResult, err := EncodeBytesFrom(txId,
 		routerAddress,
 		wrappedAsset,
 		receiverAddress,
 		invalidAmount)
 
-	assert.IsType(t, expectedError, err)
+	assert.Error(t, err)
 	assert.Nil(t, actualResult)
 }
 
