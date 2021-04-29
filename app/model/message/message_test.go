@@ -66,7 +66,7 @@ func Test_FromBytesWithTSWithInvalidBytes(t *testing.T) {
 }
 
 func Test_NewSignatureWorks(t *testing.T) {
-	actualSignature := NewSignature("0.0.6969-123321-420",
+	actualSignature := NewSignature("0.0.123321-123321-420",
 		"0xsomerouteraddress",
 		"0xsomereceiver",
 		"100",
