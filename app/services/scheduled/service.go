@@ -3,6 +3,7 @@ package scheduled
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/transaction"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -42,18 +43,18 @@ func (s *Service) Execute(
 	transactionResponse, err := s.executeScheduledTransaction(id, nativeAsset, transfers)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
-		onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+		onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.GetTransactionID().String()))
 		return
 	}
 
-	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
+	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.GetTransactionID().String())
 	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
 		id,
 		scheduledTxID)
 
 	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", id, transactionResponse.TransactionID)
+		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", id, transactionResponse.GetTransactionID())
 		onExecutionFail(scheduledTxID)
 		return
 	}
@@ -63,7 +64,7 @@ func (s *Service) Execute(
 		s.handleScheduleSign(id, *txReceipt.ScheduleID)
 	case hedera.StatusSuccess:
 	default:
-		txID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
+		txID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.GetTransactionID().String())
 		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", id, txID, txReceipt.Status)
 
 		onExecutionFail(txID)
@@ -84,9 +85,9 @@ func (s *Service) Execute(
 	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onMinedSuccess, onMinedFail)
 }
 
-func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
+func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers []transfer.Hedera) (transaction.Response, error) {
 	var tokenID hedera.TokenID
-	var transactionResponse *hedera.TransactionResponse
+	var transactionResponse transaction.Response
 	var err error
 
 	if nativeAsset == constants.Hbar {
@@ -101,7 +102,6 @@ func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers 
 		transactionResponse, err = s.hederaNodeClient.
 			SubmitScheduledTokenTransferTransaction(tokenID, transfers, s.payerAccount, id)
 	}
-
 	return transactionResponse, err
 }
 

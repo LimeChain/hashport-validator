@@ -18,6 +18,7 @@ package client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
@@ -28,9 +29,9 @@ type HederaNode interface {
 	// specified HCS `topicId`
 	SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error)
 	// SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits it as a scheduled transaction
-	SubmitScheduledTokenTransferTransaction(tokenID hedera.TokenID, transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
+	SubmitScheduledTokenTransferTransaction(tokenID hedera.TokenID, transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (transaction.Response, error)
 	// SubmitScheduledHbarTransferTransaction creates an hbar transfer transaction and submits it as a scheduled transfer transaction
-	SubmitScheduledHbarTransferTransaction(transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
+	SubmitScheduledHbarTransferTransaction(transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (transaction.Response, error)
 	// SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
 	SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error)
 }

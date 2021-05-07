@@ -17,16 +17,36 @@
 package mocks
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/db"
+	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
+	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/transaction"
 )
 
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
 var MTransferService *service.MockTransferService
+var MDistributorService *service.MockDistrubutorService
+var MScheduledService *service.MockScheduledService
+var MFeeService *service.MockFeeService
 var MBridgeContractService *MockBridgeContract
+var MBurnEventRepository *db.MockBurnEventRepository
+var MFeeRepository *db.MockFeeRepository
+var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
+var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
+var MHederaTransactionResponse *transaction.MockTransactionResponse
 
 func Setup() {
 	MBridgeContractService = &MockBridgeContract{}
 	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
 	MTransferService = &service.MockTransferService{}
+	MScheduledService = &service.MockScheduledService{}
+	MFeeService = &service.MockFeeService{}
+	MBurnEventRepository = &db.MockBurnEventRepository{}
+	MFeeRepository = &db.MockFeeRepository{}
+	MDistributorService = &service.MockDistrubutorService{}
+	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
+	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
+	MHederaTransactionResponse = &transaction.MockTransactionResponse{}
 }

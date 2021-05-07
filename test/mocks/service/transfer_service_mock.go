@@ -50,14 +50,6 @@ func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*enti
 	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) VerifyFee(tm transfer.Transfer) error {
-	args := mts.Called(tm)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
 func (mts *MockTransferService) TransferData(txId string) (service.TransferData, error) {
 	args := mts.Called(txId)
 	if args.Get(0) == nil {

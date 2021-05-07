@@ -125,6 +125,7 @@ func (s *Service) TransactionID(id string) (string, error) {
 	return event.TransactionId.String, nil
 }
 
+// TODO: Unit tests with the ScheduledService
 func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		s.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
@@ -175,12 +176,12 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			s.logger.Errorf("[%s] Fee - Failed to create failed record. Error [%s].", transactionID, err)
 			return
 		}
-
 	}
 
 	return onExecutionSuccess, onExecutionFail
 }
 
+// TODO: Unit tests with the ScheduledService
 func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 		s.logger.Debugf("[%s] - Scheduled TX execution successful.", id)
