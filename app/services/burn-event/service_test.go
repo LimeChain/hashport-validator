@@ -7,6 +7,7 @@ import (
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	feeRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,11 @@ var (
 		NativeAsset:  "0.0.222222",
 		WrappedAsset: "0.0.000000",
 	}
+	mockBurnEventId = "some-burnevent-id"
+	id              = "0.0.123123"
+	txId            = "0.0.123123@123123-321321"
+	scheduleId      = "0.0.666666"
+	fee             = "10000"
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -121,7 +127,6 @@ func Test_TransactionID(t *testing.T) {
 	setup()
 
 	expectedTransactionId := "0.0.123123-123412.123412"
-	mockBurnEventId := "some-burnevent-id"
 	mockBurnEventRecord := &entity.BurnEvent{
 		TransactionId: sql.NullString{String: expectedTransactionId, Valid: true},
 	}
@@ -137,7 +142,6 @@ func Test_TransactionIDRepositoryError(t *testing.T) {
 	setup()
 
 	expectedError := errors.New("connection-refused")
-	mockBurnEventId := "some-burnevent-id"
 
 	mocks.MBurnEventRepository.On("Get", mockBurnEventId).Return(nil, expectedError)
 
@@ -150,13 +154,195 @@ func Test_TransactionIDNotFound(t *testing.T) {
 	setup()
 
 	expectedError := errors.New("not found")
-	mockBurnEventId := "some-burnevent-id"
-
 	mocks.MBurnEventRepository.On("Get", mockBurnEventId).Return(nil, nil)
 
 	actualTransactionId, err := s.TransactionID(mockBurnEventId)
 	assert.Error(t, expectedError, err)
 	assert.Empty(t, actualTransactionId)
+}
+
+func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Amount:        fee,
+		Status:        feeRepo.StatusSubmitted,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
+	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
+
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess(txId, scheduleId)
+}
+
+func Test_ScheduledExecutionUpdateStatusFails(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Amount:        fee,
+		Status:        feeRepo.StatusSubmitted,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(errors.New("update-status-failed"))
+	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
+
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess(txId, scheduleId)
+}
+
+func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Amount:        fee,
+		Status:        feeRepo.StatusSubmitted,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
+	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
+
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess(txId, scheduleId)
+}
+
+func Test_ScheduledExecutionFailCallback(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		Amount:        fee,
+		Status:        feeRepo.StatusFailed,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
+
+	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	onError(txId)
+}
+
+func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Amount:        fee,
+		Status:        feeRepo.StatusFailed,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-failed"))
+	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
+
+	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	onError(txId)
+}
+
+func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
+	setup()
+
+	mockEntityFee := &entity.Fee{
+		TransactionID: txId,
+		Amount:        fee,
+		Status:        feeRepo.StatusFailed,
+		BurnEventID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
+
+	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	onError(txId)
+}
+
+func Test_ScheduledTxMinedExecutionSuccessCallback(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(nil)
+
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	onSuccess(txId)
+}
+
+func Test_ScheduledTxMinedExecutionSuccessUpdateStatusFails(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(errors.New("update-status-fail"))
+	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusCompleted", txId)
+
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	onSuccess(txId)
+}
+
+func Test_ScheduledTxMinedExecutionFailCallback(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(nil)
+
+	_, onFail := s.scheduledTxMinedCallbacks(id)
+	onFail(txId)
+}
+
+func Test_ScheduledTxMinedExecutionFailUpdateStatusFailedFails(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-fail"))
+	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusFailed", txId)
+
+	_, onFail := s.scheduledTxMinedCallbacks(id)
+	onFail(txId)
+}
+
+func Test_ScheduledTxMinedExecutionFailFeeUpdateFails(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(errors.New("update-fail"))
+
+	_, onFail := s.scheduledTxMinedCallbacks(id)
+	onFail(txId)
+}
+
+func Test_ScheduledTxMinedExecutionSuccessFeeUpdateFails(t *testing.T) {
+	setup()
+
+	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-fail"))
+
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	onSuccess(txId)
 }
 
 func setup() {

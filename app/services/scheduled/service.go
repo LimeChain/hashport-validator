@@ -43,7 +43,9 @@ func (s *Service) Execute(
 	transactionResponse, err := s.executeScheduledTransaction(id, nativeAsset, transfers)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
-		onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.GetTransactionID().String()))
+		if transactionResponse != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.GetTransactionID().String()))
+		}
 		return
 	}
 
@@ -96,7 +98,7 @@ func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers 
 	} else {
 		tokenID, err = hedera.TokenIDFromString(nativeAsset)
 		if err != nil {
-			s.logger.Errorf("[%s] - failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
+			s.logger.Errorf("[%s] - Failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
 			return nil, err
 		}
 		transactionResponse, err = s.hederaNodeClient.
