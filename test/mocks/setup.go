@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
-	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/transaction"
 )
 
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
@@ -35,7 +34,6 @@ var MBurnEventRepository *repository.MockBurnEventRepository
 var MFeeRepository *repository.MockFeeRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
-var MHederaTransactionResponse *transaction.MockTransactionResponse
 
 func Setup() {
 	MBridgeContractService = &MockBridgeContract{}
@@ -48,5 +46,4 @@ func Setup() {
 	MDistributorService = &service.MockDistrubutorService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
-	MHederaTransactionResponse = &transaction.MockTransactionResponse{}
 }

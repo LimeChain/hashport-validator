@@ -18,7 +18,6 @@ package hedera_node_client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
@@ -46,27 +45,27 @@ func (m *MockHederaNodeClient) SubmitScheduledTokenTransferTransaction(
 	tokenID hedera.TokenID,
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
-	memo string) (transaction.Response, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 	args := m.Called(tokenID, transfers, payerAccountID, memo)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(transaction.Response), nil
+		return args.Get(0).(*hedera.TransactionResponse), nil
 	}
 
-	return args.Get(0).(transaction.Response), args.Get(1).(error)
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
 func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
-	memo string) (transaction.Response, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 	args := m.Called(transfers, payerAccountID, memo)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(transaction.Response), nil
+		return args.Get(0).(*hedera.TransactionResponse), nil
 	}
 
-	return args.Get(0).(transaction.Response), args.Get(1).(error)
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
 func (m *MockHederaNodeClient) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
