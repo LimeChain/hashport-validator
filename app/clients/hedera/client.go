@@ -20,8 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/transaction"
-	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -97,7 +95,7 @@ func (hc Node) SubmitScheduledTokenTransferTransaction(
 	tokenID hedera.TokenID,
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
-	memo string) (transaction.Response, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 	transferTransaction := hedera.NewTransferTransaction()
 
 	for _, t := range transfers {
@@ -111,7 +109,7 @@ func (hc Node) SubmitScheduledTokenTransferTransaction(
 func (hc Node) SubmitScheduledHbarTransferTransaction(
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
-	memo string) (transaction.Response, error) {
+	memo string) (*hedera.TransactionResponse, error) {
 	transferTransaction := hedera.NewTransferTransaction()
 
 	for _, t := range transfers {
@@ -122,7 +120,7 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 }
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits to HCS
-func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (transaction.Response, error) {
+func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
 	tx, err := tx.FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, err
@@ -144,7 +142,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		SetScheduleMemo(memo)
 
 	response, err := scheduledTx.Execute(hc.GetClient())
-	return hederahelper.NewWrappedTransactionResponse(response), err
+	return &response, err
 }
 
 func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
