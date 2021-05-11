@@ -36,7 +36,7 @@ var (
 	id              = "0.0.123123"
 	txId            = "0.0.123123@123123-321321"
 	scheduleId      = "0.0.666666"
-	fee             = "10000"
+	feeAmount       = "10000"
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -167,7 +167,7 @@ func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -178,7 +178,7 @@ func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
 
-	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onSuccess(txId, scheduleId)
 }
 
@@ -188,7 +188,7 @@ func Test_ScheduledExecutionUpdateStatusFails(t *testing.T) {
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -199,7 +199,7 @@ func Test_ScheduledExecutionUpdateStatusFails(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(errors.New("update-status-failed"))
 	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
 
-	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onSuccess(txId, scheduleId)
 }
 
@@ -209,7 +209,7 @@ func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -220,7 +220,7 @@ func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
 
-	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, fee)
+	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onSuccess(txId, scheduleId)
 }
 
@@ -229,7 +229,7 @@ func Test_ScheduledExecutionFailCallback(t *testing.T) {
 
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -240,7 +240,7 @@ func Test_ScheduledExecutionFailCallback(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
 
-	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onError(txId)
 }
 
@@ -250,7 +250,7 @@ func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -261,7 +261,7 @@ func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-failed"))
 	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
 
-	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onError(txId)
 }
 
@@ -270,7 +270,7 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 
 	mockEntityFee := &entity.Fee{
 		TransactionID: txId,
-		Amount:        fee,
+		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
 		BurnEventID: sql.NullString{
 			String: id,
@@ -281,7 +281,7 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
 
-	_, onError := s.scheduledTxExecutionCallbacks(id, fee)
+	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onError(txId)
 }
 
