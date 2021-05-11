@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	s             = &Service{}
 	hederaAccount = hedera.AccountID{
 		Shard:   0,
 		Realm:   0,
@@ -32,6 +31,7 @@ var (
 		NativeAsset:  "0.0.222222",
 		WrappedAsset: "0.0.000000",
 	}
+	s               = &Service{}
 	mockBurnEventId = "some-burnevent-id"
 	id              = "0.0.123123"
 	txId            = "0.0.123123@123123-321321"
