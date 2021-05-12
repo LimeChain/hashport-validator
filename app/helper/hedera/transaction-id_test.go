@@ -37,7 +37,7 @@ func Test_ToMirrorNodeTransactionID(t *testing.T) {
 }
 
 func Test_FromHederaTransactionID(t *testing.T) {
-	hederaTransactionID, _ := hedera.TransactionIdFromString(transactionID)
+	hederaTransactionID, err := hedera.TransactionIdFromString(transactionID)
 
 	res := FromHederaTransactionID(&hederaTransactionID)
 	assert.Equal(t, expectedAccountID, res.AccountId)
@@ -45,4 +45,5 @@ func Test_FromHederaTransactionID(t *testing.T) {
 	assert.Equal(t, expectedNanos, res.Nanos)
 	assert.Equal(t, expectedTransactionID, res.String())
 	assert.Equal(t, expectedTimestamp, res.Timestamp())
+	assert.Nil(t, err)
 }

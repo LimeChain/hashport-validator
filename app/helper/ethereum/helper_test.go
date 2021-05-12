@@ -39,7 +39,7 @@ func Test_DecodeSignature(t *testing.T) {
 
 func Test_DecodeSignatureError(t *testing.T) {
 	_, _, err := DecodeSignature(invalidSignature)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func Test_RecoverSignerFromBytes(t *testing.T) {
@@ -50,7 +50,7 @@ func Test_RecoverSignerFromBytes(t *testing.T) {
 
 func Test_RecoverSignerFromBytesError(t *testing.T) {
 	_, err := RecoverSignerFromBytes(invalidHashedData, signatureBytes)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func Test_RecoverSignerFromString(t *testing.T) {
@@ -62,10 +62,10 @@ func Test_RecoverSignerFromString(t *testing.T) {
 
 func Test_RecoverSignerFromStringWrongMsg(t *testing.T) {
 	_, _, err := RecoverSignerFromStr(signature, invalidHashedData)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func Test_RecoverSignerFromStringWrongSig(t *testing.T) {
 	_, _, err := RecoverSignerFromStr(invalidSignature, hashedData)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

@@ -17,7 +17,6 @@
 package timestamp
 
 import (
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -37,14 +36,12 @@ func Test_Validate(t *testing.T)  {
 
 func Test_NonValidNanos(t *testing.T)  {
 	_, err := FromString(nonValidNanos)
-	assert.Error(t, err, errors.New("invalid timestamp nanos provided"))
-	assert.NotNil(t, err)
+	assert.EqualError(t, err, "invalid timestamp nanos provided")
 }
 
 func Test_NonValidSeconds(t *testing.T)  {
 	_, err := FromString(nonValidSeconds)
-	assert.Error(t, err, errors.New("invalid timestamp seconds provided"))
-	assert.NotNil(t, err)
+	assert.EqualError(t, err, "invalid timestamp seconds provided")
 }
 
 func Test_String(t *testing.T)  {

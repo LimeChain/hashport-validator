@@ -29,7 +29,6 @@ const (
 )
 
 func Test_StringToBigInt(t *testing.T) {
-
 	value, err := ToBigInt(validNumber)
 	assert.IsType(t, big.Int{}, *value)
 	assert.Nil(t, err)
@@ -37,5 +36,5 @@ func Test_StringToBigInt(t *testing.T) {
 
 func Test_ToBigIntError(t *testing.T) {
 	_, err := ToBigInt(notValidNumber)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

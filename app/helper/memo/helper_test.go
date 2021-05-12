@@ -17,7 +17,6 @@
 package memo
 
 import (
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -36,14 +35,12 @@ func Test_Validate(t *testing.T)  {
 
 func Test_WrongAddress(t *testing.T)  {
 	_, err := Validate(nonValidEthAddressBase64)
-	expectedError := errors.New("Memo is invalid or has invalid encoding format: [0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB6*]")
-	assert.Equal(t, expectedError.Error(), err.Error())
-	assert.NotNil(t, err)
+	expectedError := "Memo is invalid or has invalid encoding format: [0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB6*]"
+	assert.EqualError(t, err, expectedError)
 }
 
 func Test_InvalidAddress(t *testing.T)  {
 	_, err := Validate(nonValidEthAddress)
-	expectedError := errors.New("Invalid base64 string provided: [illegal base64 data at input byte 0]")
-	assert.Error(t, expectedError, err)
-	assert.NotNil(t, err)
+	expectedError := "Invalid base64 string provided: [illegal base64 data at input byte 0]"
+	assert.EqualError(t, err, expectedError)
 }
