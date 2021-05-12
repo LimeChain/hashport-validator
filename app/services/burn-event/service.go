@@ -175,7 +175,6 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			s.logger.Errorf("[%s] Fee - Failed to create failed record. Error [%s].", transactionID, err)
 			return
 		}
-
 	}
 
 	return onExecutionSuccess, onExecutionFail

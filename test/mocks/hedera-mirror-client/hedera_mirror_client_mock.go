@@ -44,30 +44,21 @@ func (m *MockHederaMirrorClient) GetMessagesForTopicBetween(topicId hedera.Topic
 	return args.Get(0).([]mirror_node.Message), args.Get(1).(error)
 }
 
+func (m *MockHederaMirrorClient) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]mirror_node.Message, error) {
+	args := m.Called(topicId, from)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]mirror_node.Message), nil
+	}
+	return args.Get(0).([]mirror_node.Message), args.Get(1).(error)
+}
+
 func (m *MockHederaMirrorClient) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	m.Called(txId, onSuccess, onFailure)
 }
 
-func (m *MockHederaMirrorClient) GetMessagesForTopicAfterTimestamp(topicId hedera.TopicID, timestamp int64) (*mirror_node.Messages, error) {
-	args := m.Called(topicId, timestamp)
-
-	if args.Get(1) == nil {
-		return args.Get(0).(*mirror_node.Messages), nil
-	}
-	return args.Get(0).(*mirror_node.Messages), args.Get(1).(error)
-}
-
 func (m *MockHederaMirrorClient) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*mirror_node.Response, error) {
 	args := m.Called(accountId, milestoneTimestamp)
-
-	if args.Get(1) == nil {
-		return args.Get(0).(*mirror_node.Response), nil
-	}
-	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
-}
-
-func (m *MockHederaMirrorClient) GetAccountTransaction(transactionID string) (*mirror_node.Response, error) {
-	args := m.Called(transactionID)
 
 	if args.Get(1) == nil {
 		return args.Get(0).(*mirror_node.Response), nil
@@ -88,4 +79,22 @@ func (m *MockHederaMirrorClient) GetStateProof(transactionID string) ([]byte, er
 func (m *MockHederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
 	args := m.Called(accountID)
 	return args.Get(0).(bool)
+}
+
+func (m *MockHederaMirrorClient) TopicExists(topicID hedera.TopicID) bool {
+	args := m.Called(topicID)
+	return args.Get(0).(bool)
+}
+
+func (m *MockHederaMirrorClient) GetTransaction(transactionID string) (*mirror_node.Response, error) {
+	args := m.Called(transactionID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*mirror_node.Response), nil
+	}
+	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func()) {
+	m.Called(txId /*, onSuccess, onFailure*/)
 }
