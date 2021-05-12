@@ -54,6 +54,6 @@ func Test_String(t *testing.T)  {
 
 func Test_ToHumanReadable(t *testing.T)  {
 	res := ToHumanReadable(timestampInt64)
-	expectedDate := "2020-09-01T04:44:35.008554496+03:00"
+	expectedDate := "2020-09-01T04:44:35.008554496Z"
 	assert.Equal(t, expectedDate, res)
 }
