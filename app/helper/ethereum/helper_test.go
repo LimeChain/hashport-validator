@@ -23,11 +23,13 @@ import (
 )
 
 var (
-	signature = "e1e013272549101580c5fe79f8958c0ca4c559df93a162f7c3b5049308150aef1e38ffae06c603d5aecdd0d07202d9a14c4b33beb9c0e66606054844da62ce5d1c"
-	invalidSignature = "0xb722ebf2400c2b67f73dbed19cf113e61b6a09320936ae9665c3ab125be8d6a945b040cdd8e2b82cc63c8a0bdf3ecaa2c675e48bf3fefb2c8de61defb6b1960d1b"
-	signatureBytes = []byte{225, 224, 19, 39, 37, 73, 16, 21, 128, 197, 254, 121, 248, 149, 140, 12, 164, 197, 89, 223, 147, 161, 98, 247, 195, 181, 4, 147, 8, 21, 10, 239, 30, 56, 255, 174, 6, 198, 3, 213, 174, 205, 208, 208, 114, 2, 217, 161, 76, 75, 51, 190, 185, 192, 230, 102, 6, 5, 72, 68, 218, 98, 206, 93, 1}
-	hashedData = []byte{251, 0, 78, 78, 113, 46, 99, 87, 61, 58, 142, 57, 214, 119, 55, 51, 200, 234, 182, 103, 168, 35, 143, 137, 207, 39, 48, 247, 171, 4, 159, 26}
-	invalidHashedData = []byte{0, 78, 78, 113, 46, 99, 87, 61, 58, 142, 57, 214, 119, 55, 51, 200, 234, 182, 103, 168, 35, 143, 137, 207, 39, 48, 247, 171, 4, 159, 26}
+	expectedAddress       = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+	signature             = "69b6640d0a0b32538def8cfeb0bc9aa21a7b83fac2486b99d7e438c1020494394aa6c9a59c9f55450c4a6496cc8cd216fedcb38b6e82248ff9ba718b8ae4cd3b1b"
+	invalidSignature      = "0xb722ebf2400c2b67f73dbed19cf113e61b6a09320936ae9665c3ab125be8d6a945b040cdd8e2b82cc63c8a0bdf3ecaa2c675e48bf3fefb2c8de61defb6b1960d1b"
+	signatureBytes        = []byte{105, 182, 100, 13, 10, 11, 50, 83, 141, 239, 140, 254, 176, 188, 154, 162, 26, 123, 131, 250, 194, 72, 107, 153, 215, 228, 56, 193, 2, 4, 148, 57, 74, 166, 201, 165, 156, 159, 85, 69, 12, 74, 100, 150, 204, 140, 210, 22, 254, 220, 179, 139, 110, 130, 36, 143, 249, 186, 113, 139, 138, 228, 205, 59, 0}
+	invalidSignatureBytes = []byte{105, 182, 100, 13, 10, 11, 50, 83, 141, 239, 140, 254, 176, 188, 154, 162, 26, 123, 131, 250, 194, 72, 107, 153, 215, 228, 56, 193, 2, 4, 148, 57, 74, 166, 201, 165, 156, 159, 85, 69, 12, 74, 100, 150, 204, 140, 210, 22, 254, 220, 179, 139, 110, 130, 36, 143, 249, 186, 113, 139, 138, 228, 205, 59, 59, 0}
+	hashedData            = []byte{251, 0, 78, 78, 113, 46, 99, 87, 61, 58, 142, 57, 214, 119, 55, 51, 200, 234, 182, 103, 168, 35, 143, 137, 207, 39, 48, 247, 171, 4, 159, 26}
+	invalidHashedData     = []byte{0, 78, 78, 113, 46, 99, 87, 61, 58, 142, 57, 214, 119, 55, 51, 200, 234, 182, 103, 168, 35, 143, 137, 207, 39, 48, 247, 171, 4, 159, 26}
 )
 
 func Test_DecodeSignature(t *testing.T) {
@@ -45,6 +47,7 @@ func Test_DecodeSignatureError(t *testing.T) {
 func Test_RecoverSignerFromBytes(t *testing.T) {
 	signerAddress, err := RecoverSignerFromBytes(hashedData, signatureBytes)
 	fmt.Println(signerAddress)
+	assert.Equal(t, expectedAddress, signerAddress)
 	assert.Nil(t, err)
 }
 
@@ -55,7 +58,7 @@ func Test_RecoverSignerFromBytesError(t *testing.T) {
 
 func Test_RecoverSignerFromString(t *testing.T) {
 	signerAddress, signatureHex, err := RecoverSignerFromStr(signature, hashedData)
-	fmt.Println(signerAddress)
+	assert.Equal(t, expectedAddress, signerAddress)
 	assert.Equal(t, signature, signatureHex)
 	assert.Nil(t, err)
 }
@@ -68,4 +71,14 @@ func Test_RecoverSignerFromStringWrongMsg(t *testing.T) {
 func Test_RecoverSignerFromStringWrongSig(t *testing.T) {
 	_, _, err := RecoverSignerFromStr(invalidSignature, hashedData)
 	assert.Error(t, err)
+}
+
+func Test_switchSignatureValueVLengthErr(t *testing.T) {
+	_, _, err := switchSignatureValueV(invalidSignatureBytes)
+	assert.Error(t, err)
+}
+
+func Test_switchSignatureValueV(t *testing.T) {
+	_, _, err := switchSignatureValueV(signatureBytes)
+	assert.Nil(t, err)
 }
