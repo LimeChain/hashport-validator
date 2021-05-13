@@ -17,7 +17,6 @@
 package ethereum
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -46,7 +45,6 @@ func Test_DecodeSignatureError(t *testing.T) {
 
 func Test_RecoverSignerFromBytes(t *testing.T) {
 	signerAddress, err := RecoverSignerFromBytes(hashedData, signatureBytes)
-	fmt.Println(signerAddress)
 	assert.Equal(t, expectedAddress, signerAddress)
 	assert.Nil(t, err)
 }
