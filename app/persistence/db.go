@@ -31,6 +31,10 @@ type Database struct {
 	connection *gorm.DB
 }
 
+func (db *Database) GetConnection() *gorm.DB {
+	return db.connection
+}
+
 func NewDatabase() *Database {
 	return &Database{}
 }

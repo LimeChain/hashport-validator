@@ -56,7 +56,7 @@ func main() {
 	} else {
 		db := persistence.NewDatabase()
 		// Prepare repositories
-		repositories := PrepareRepositories(db.ConnectWithMigration(configuration.Validator.Database))
+		repositories := PrepareRepositories(db)
 		// Prepare Services
 		services = PrepareServices(configuration, *clients, *repositories)
 

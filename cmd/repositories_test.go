@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"gorm.io/gorm"
 	"testing"
 )
 
@@ -35,6 +36,7 @@ var (
 
 func TestPrepareRepositories(t *testing.T) {
 	mocks.Setup()
-	res := PrepareRepositories(testConfig)
+	mocks.MDatabase.On("GetConnection").Return(&gorm.DB{})
+	res := PrepareRepositories(mocks.MDatabase)
 	fmt.Println(res)
 }

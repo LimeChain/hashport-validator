@@ -7,4 +7,5 @@ import (
 
 type Database interface {
 	ConnectWithMigration(config config.Database) *gorm.DB
+	GetConnection() *gorm.DB
 }

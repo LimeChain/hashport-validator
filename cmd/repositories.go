@@ -17,13 +17,13 @@
 package main
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/database"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
-	"gorm.io/gorm"
 )
 
 // Repositories struct holding the referenced repositories
@@ -37,7 +37,8 @@ type Repositories struct {
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
-func PrepareRepositories(connection *gorm.DB) *Repositories {
+func PrepareRepositories(db database.Database) *Repositories {
+	connection := db.GetConnection()
 	return &Repositories{
 		transferStatus: status.NewRepositoryForStatus(connection, status.Transfer),
 		messageStatus:  status.NewRepositoryForStatus(connection, status.Message),
