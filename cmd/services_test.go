@@ -17,11 +17,26 @@
 package main
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	tc "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 	"testing"
 )
 
 func TestPrepareServices(t *testing.T) {
-	assert.Nil(t, nil)
+	client := PrepareClients(tc.TestConfig.Validator.Clients)
+
+	mocks.Setup()
+	mocks.MDatabase.On("GetConnection").Return(&gorm.DB{})
+	repositories := PrepareRepositories(mocks.MDatabase)
+
+	res := PrepareServices(tc.TestConfig, *client, *repositories)
+	assert.NotEmpty(t, res)
 }
 
+func TestPrepareApiOnlyServices(t *testing.T) {
+	client := PrepareClients(tc.TestConfig.Validator.Clients)
+	res := PrepareApiOnlyServices(tc.TestConfig, *client)
+	assert.NotEmpty(t, res)
+}

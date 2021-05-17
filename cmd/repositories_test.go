@@ -17,26 +17,15 @@
 package main
 
 import (
-	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"testing"
-)
-
-var (
-	testConfig = config.Database{
-		Host:     "localhost",
-		Name:     "hedera_validator",
-		Password: "validator_pass",
-		Port:     "5432",
-		Username: "validator",
-	}
 )
 
 func TestPrepareRepositories(t *testing.T) {
 	mocks.Setup()
 	mocks.MDatabase.On("GetConnection").Return(&gorm.DB{})
 	res := PrepareRepositories(mocks.MDatabase)
-	fmt.Println(res)
+	assert.NotEmpty(t, res)
 }
