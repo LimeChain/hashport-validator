@@ -33,7 +33,7 @@ func ToMirrorNodeTransactionID(txId string) string {
 	return fmt.Sprintf(
 		"%s-%s-%s",
 		accId,
-		split[0],
+		fmt.Sprintf("%09s", split[0]),
 		fmt.Sprintf("%09s", split[1]))
 }
 

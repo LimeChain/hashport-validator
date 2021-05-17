@@ -17,6 +17,7 @@
 package fee
 
 import (
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -34,6 +35,24 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 		dbClient: dbClient,
 		logger:   config.GetLoggerFor("Fee Repository"),
 	}
+}
+
+// Returns Fee. Returns nil if not found
+func (r Repository) Get(id string) (*entity.Fee, error) {
+	record := &entity.Fee{}
+
+	result := r.dbClient.
+		Model(entity.Fee{}).
+		Where("transaction_id = ?", id).
+		First(record)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return record, nil
 }
 
 func (r Repository) Create(entity *entity.Fee) error {

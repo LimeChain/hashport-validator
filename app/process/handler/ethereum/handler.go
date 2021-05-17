@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package burn_event
+package ethereum
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"

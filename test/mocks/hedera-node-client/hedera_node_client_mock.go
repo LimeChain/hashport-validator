@@ -18,6 +18,7 @@ package hedera_node_client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -40,17 +41,37 @@ func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicI
 	return args.Get(0).(*hedera.TransactionID), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
-	tinybarAmount int64,
-	recipient,
-	bridgeAccountID,
+func (m *MockHederaNodeClient) SubmitScheduledTokenTransferTransaction(
+	tokenID hedera.TokenID,
+	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
-	nonce string) (*hedera.TransactionID, *hedera.ScheduleID, error) {
-	args := m.Called(tinybarAmount, recipient, bridgeAccountID, payerAccountID, nonce)
+	memo string) (*hedera.TransactionResponse, error) {
+	args := m.Called(tokenID, transfers, payerAccountID, memo)
 
-	if args.Get(2) == nil {
-		return args.Get(0).(*hedera.TransactionID), args.Get(1).(*hedera.ScheduleID), nil
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
 	}
 
-	return args.Get(0).(*hedera.TransactionID), args.Get(1).(*hedera.ScheduleID), args.Get(1).(error)
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
+}
+
+func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
+	transfers []transfer.Hedera,
+	payerAccountID hedera.AccountID,
+	memo string) (*hedera.TransactionResponse, error) {
+	args := m.Called(transfers, payerAccountID, memo)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
+}
+
+func (m *MockHederaNodeClient) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
+	args := m.Called(scheduleID)
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }

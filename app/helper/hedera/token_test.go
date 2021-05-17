@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
-package repository
+package hedera
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
-type BurnEvent interface {
-	Create(id string, amount int64, recipient string) error
-	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
-	UpdateStatusCompleted(txId string) error
-	UpdateStatusFailed(txId string) error
-	// Returns BurnEvent by its Id (represented in {ethTxHash}-{logIndex})
-	Get(txId string) (*entity.BurnEvent, error)
+const (
+	validTokenID = "0.0.1234"
+	invalidTokenID = "0.01234"
+)
+func Test_IsTokenID(t *testing.T) {
+	res := IsTokenID(validTokenID)
+	assert.True(t, res)
+}
+
+func Test_IsTokenIDError(t *testing.T) {
+	res := IsTokenID(invalidTokenID)
+	assert.False(t, res)
 }

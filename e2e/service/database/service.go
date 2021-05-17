@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 LimeChain Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package database
 
 import (
@@ -6,7 +22,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -16,6 +34,8 @@ import (
 type dbVerifier struct {
 	transactions repository.Transfer
 	messages     repository.Message
+	burnEvents   repository.BurnEvent
+	fee          repository.Fee
 }
 
 type Service struct {
@@ -30,6 +50,8 @@ func NewService(dbConfigs []config.Database) *Service {
 		newVerifier := dbVerifier{
 			transactions: transfer.NewRepository(connection),
 			messages:     message.NewRepository(connection),
+			burnEvents:   burn_event.NewRepository(connection),
+			fee:          fee.NewRepository(connection),
 		}
 		verifiers = append(verifiers, newVerifier)
 	}
@@ -39,7 +61,7 @@ func NewService(dbConfigs []config.Database) *Service {
 	}
 }
 
-func (s *Service) VerifyDatabaseRecords(expectedTransferRecord *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
+func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	valid, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err
@@ -111,6 +133,32 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount str
 			}
 		}
 		if len(messages) != len(expectedMessageRecords) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, error) {
+	for _, verifier := range s.verifiers {
+		actualBurnEvent, err := verifier.burnEvents.Get(expectedBurnRecord.Id)
+		if err != nil {
+			return false, err
+		}
+		if !burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
+	for _, verifier := range s.verifiers {
+		actual, err := verifier.fee.Get(expectedRecord.TransactionID)
+		if err != nil {
+			return false, err
+		}
+		if !feeFieldsMatch(actual, expectedRecord) {
 			return false, nil
 		}
 	}

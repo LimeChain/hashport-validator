@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package repository
+package util
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+func AllSame(arr []string) bool {
+	for i := 1; i < len(arr); i++ {
+		if arr[i] != arr[0] {
+			return false
+		}
+	}
 
-type BurnEvent interface {
-	Create(id string, amount int64, recipient string) error
-	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
-	UpdateStatusCompleted(txId string) error
-	UpdateStatusFailed(txId string) error
-	// Returns BurnEvent by its Id (represented in {ethTxHash}-{logIndex})
-	Get(txId string) (*entity.BurnEvent, error)
+	return true
 }

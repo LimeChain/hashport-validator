@@ -1,4 +1,4 @@
-package transfer
+package burn_event
 
 import (
 	"fmt"
@@ -11,16 +11,16 @@ import (
 )
 
 var (
-	Route  = "/transfers"
+	Route  = "/events"
 	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
-// GET: .../transfers/:id
-func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
+// GET: .../events/:id/tx
+func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		transferID := chi.URLParam(r, "id")
+		eventID := chi.URLParam(r, "id")
 
-		transferData, err := transfersService.TransferData(transferID)
+		txID, err := burnService.TransactionID(eventID)
 		if err != nil {
 			logger.Errorf("Router resolved with an error. Error [%s].", err)
 			switch err {
@@ -35,12 +35,12 @@ func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter,
 			return
 		}
 
-		render.JSON(w, r, transferData)
+		render.JSON(w, r, txID)
 	}
 }
 
-func NewRouter(service service.Transfers) chi.Router {
+func NewRouter(service service.BurnEvent) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/{id}", getTransfer(service))
+	r.Get("/{id}/tx", getTxID(service))
 	return r
 }

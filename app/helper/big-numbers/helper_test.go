@@ -14,15 +14,27 @@
  * limitations under the License.
  */
 
-package repository
+package big_numbers
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+import (
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
+)
 
-type BurnEvent interface {
-	Create(id string, amount int64, recipient string) error
-	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
-	UpdateStatusCompleted(txId string) error
-	UpdateStatusFailed(txId string) error
-	// Returns BurnEvent by its Id (represented in {ethTxHash}-{logIndex})
-	Get(txId string) (*entity.BurnEvent, error)
+const (
+	validNumber            = "54321"
+	notValidNumber   = "0xsomerouteraddress"
+
+)
+
+func Test_StringToBigInt(t *testing.T) {
+	value, err := ToBigInt(validNumber)
+	assert.IsType(t, big.Int{}, *value)
+	assert.Nil(t, err)
+}
+
+func Test_ToBigIntError(t *testing.T) {
+	_, err := ToBigInt(notValidNumber)
+	assert.Error(t, err)
 }

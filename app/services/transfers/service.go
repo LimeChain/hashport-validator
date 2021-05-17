@@ -142,6 +142,7 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId: txId,
+		RouterAddress: ts.contractsService.Address().String(),
 		Receiver:      memo,
 		Amount:        amount,
 		NativeAsset:   nativeAsset,
@@ -331,7 +332,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, err
 	}
 	if t == nil || t.Fee.Amount == "" {
-		return service.TransferData{}, err
+		return service.TransferData{}, service.ErrNotFound
 	}
 
 	amount, err := strconv.ParseInt(t.Amount, 10, 64)

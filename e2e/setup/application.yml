@@ -1,5 +1,6 @@
+#E2E ETH-Hedera
 hedera:
-  network_type:
+  bridge_account:
   dbs:
     - host:
       name:
@@ -16,18 +17,23 @@ hedera:
       password:
       port:
       username:
-  bridge_account:
-  topic_id:
   fee_percentage: 10000 # 10%
   members:
+  mirror_node:
+    api_address:
+    client_address:
+    max_retries:
+    polling_interval:
+  network_type:
   sender:
     account:
     private_key:
+  topic_id:
 ethereum:
-  node_url:
-  router_contract_address:
   block_confirmations:
+  node_url:
   private_key:
+  router_contract_address:
 tokens:
   whbar: "HBAR"
   wtoken:
