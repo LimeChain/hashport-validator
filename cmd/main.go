@@ -54,7 +54,7 @@ func main() {
 		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 		services = PrepareApiOnlyServices(configuration, *clients)
 	} else {
-		db := persistence.NewDatabase()
+		db := persistence.NewDatabase(configuration.Validator.Database)
 		// Prepare repositories
 		repositories := PrepareRepositories(db)
 		// Prepare Services

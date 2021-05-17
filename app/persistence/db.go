@@ -35,7 +35,8 @@ func (db *Database) GetConnection() *gorm.DB {
 	return db.connection
 }
 
-func NewDatabase() *Database {
+func NewDatabase(config config.Database) *Database {
+	ConnectWithMigration(config)
 	return &Database{}
 }
 
@@ -83,9 +84,8 @@ func migrateDb(db *gorm.DB) {
 }
 
 // Connect and Migrate
-func (db *Database) ConnectWithMigration(config config.Database) *gorm.DB {
+func ConnectWithMigration(config config.Database) *gorm.DB {
 	gorm := Connect(config)
 	migrateDb(gorm)
-	db.connection = gorm
-	return db.connection
+	return gorm
 }
