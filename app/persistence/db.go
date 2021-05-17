@@ -27,6 +27,14 @@ import (
 	"time"
 )
 
+type Database struct {
+	connection *gorm.DB
+}
+
+func NewDatabase() *Database {
+	return &Database{}
+}
+
 // Establish connection to the Postgres Database
 func Connect(dbConfig config.Database) *gorm.DB {
 	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Name, dbConfig.Password)
@@ -71,8 +79,9 @@ func migrateDb(db *gorm.DB) {
 }
 
 // Connect and Migrate
-func ConnectWithMigration(dbConfig config.Database) *gorm.DB {
-	gorm := Connect(dbConfig)
+func (db *Database) ConnectWithMigration(config config.Database) *gorm.DB {
+	gorm := Connect(config)
 	migrateDb(gorm)
-	return gorm
+	db.connection = gorm
+	return db.connection
 }

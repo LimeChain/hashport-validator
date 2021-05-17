@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"testing"
 )
 
@@ -33,6 +34,7 @@ var (
 )
 
 func TestPrepareRepositories(t *testing.T) {
+	mocks.Setup()
 	res := PrepareRepositories(testConfig)
 	fmt.Println(res)
 }
