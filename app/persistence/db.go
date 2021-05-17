@@ -36,8 +36,9 @@ func (db *Database) GetConnection() *gorm.DB {
 }
 
 func NewDatabase(config config.Database) *Database {
-	ConnectWithMigration(config)
-	return &Database{}
+	return &Database{
+		connection: ConnectWithMigration(config),
+	}
 }
 
 // Establish connection to the Postgres Database
