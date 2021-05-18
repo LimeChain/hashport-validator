@@ -12,7 +12,7 @@ In order to initiate transfer, the user needs to submit a deposit transaction to
 For example, if the user wants to transfer **100 HBAR-s** with **10 HBAR-s** service fee (the exact amount of the service fee is configured by the validators) in order to receive **90 WHBAR-s** on address _0x700d8a76b37f672a06ab89fe1ec95acfba799f1c_, the user needs to initiate transfer of **100 HBAR-s** to the bridge account and **add the receiving EVM address as MEMO to the transfer**.
 
 >Transfer amount: 100 HBAR
-Memo: 0x700d8a76b37f672a06ab89fe1ec95acfba799f1c
+>Memo: 0x700d8a76b37f672a06ab89fe1ec95acfba799f1c
 
 Once the transaction is successfully mined by HCS, you have successfully deposited your requested transfer to the bridge account.
 
@@ -31,7 +31,7 @@ The response is in JSON format and contains the following data:
 ```go
     Recipient 		string 		`json:"recipient"`
     RouterAddress 	string 		`json:"routerAddress"`
-    Amount 			string 		`json:"amount"`
+    Amount 		string 		`json:"amount"`
     NativeAsset 	string 		`json:"nativeAsset"`
     WrappedAsset 	string 		`json:"wrappedAsset"`
     Signatures 		[]string 	`json:"signatures"`
