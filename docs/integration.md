@@ -5,12 +5,21 @@ The Bridge provides users with functionality to transfer HBAR or HTS tokens from
 
 This functionality allows users to transfer HBAR or any HTS token supported by the bridge and receive a wrapped version of the asset on the EVM chain.
 
-### 1.1 How it works
-The user needs to submit a transaction to Hedera account that is controlled by the bridge. **The transfer must contain MEMO with a valid receiving EVM address.** For every transfer a service fee is charged, which is configurable by the validators.
+### 1.1 Initiating the transfer
 
-Once the transaction is successfully mined by HCS, you have successfully deposited your requested transfer to the bridge account. The validators are notified that crypto or token transfer has occurred and start providing their signatures. Each of them publishes his signature to a _Hedera Topic_ used specifically for that purpose. As soon as the last necessary validator publishes his signature and supermajority is reached, a scheduled transaction is created that transfers the service fee to each Validator.
+In order to initiate transfer, the user needs to submit a transaction to Hedera account that is controlled by the bridge. **The transfer must contain MEMO with a valid receiving EVM address.** For every transfer a service fee is charged, which is configurable by the validators.
 
-### 1.2 Checking status of the transfer
+For example, if the user wants to transfer **100 HBAR-s** with **10 HBAR-s** service fee (the exact amount of the service fee is configured by the validators) in order to receive **90 WHBAR-s** on address _0x700d8a76b37f672a06ab89fe1ec95acfba799f1c_, the user needs to initiate transfer of **100 HBAR-s** to the bridge account and **add the receiving EVM address as MEMO to the transfer**.
+
+>Transfer amount: 100 HBAR
+Memo: 0x700d8a76b37f672a06ab89fe1ec95acfba799f1c
+
+Once the transaction is successfully mined by HCS, you have successfully deposited your requested transfer to the bridge account.
+
+### 1.2 Transaction verification
+After the transfer is completed, the validators are notified that crypto or token transfer has occurred and start providing their signatures. Each of them publishes his signature to a _Hedera Topic_ used specifically for that purpose. As soon as the last necessary validator publishes his signature and supermajority is reached, a scheduled transaction is created that transfers the service fee to each Validator. The user needs to wait for this process to be completed before claiming their wrapped token.
+
+### 1.3 Checking status of the transfer
 Users can check the status of the transfer by making a API call to any of the validators like this:
 
     GET VALIDATOR_HOST:PORT/transfers/TRANSACTION_ID HTTP/1.1
@@ -38,7 +47,7 @@ Property | Description
 **Signatures** | Array of all provided signatures by the validators at the moment
 **Majority** | True if supermajority is reached and the transfer can be completed
 
-### 1.3 Claiming wrapped token
+### 1.4 Claiming wrapped token
 When supermajority is reached only one step remains: for the user to claim their Wrapped version of HBAR or HTS token. In order to do that, the user must sign and submit a **mint transaction** to the Bridge Router Contract.
 
 The mint operation can be constructed using the following arguments:
@@ -76,7 +85,7 @@ In order to get the corresponding Hedera native asset, one can query the followi
 
 where  `address`  represents the ERC20 address of the wrapped asset and  `bytes`  represent the HTS Entity ID or simply  `HBAR`  (in the case for HBAR-s).
 
-### 2.1 Burn the wrapped asset
+### 2.2 Burn the wrapped asset
 Transfer from EVM-chain to Hedera is achieved by submitting a **burn operation** to the Router Contract.
 There are two supported contract functions by which this can be done:
 
@@ -88,7 +97,10 @@ Argument | Description
 **receiver** | The Hedera account to receive the wrapped tokens
 **wrappedAsset** | The corresponding wrapped asset contract address
 
-In order to call the _burn_ function first the user must **permit** the operation to be executed by the Router Contract. This can be done by calling the _permit_ function in the corresponding _wrappedAsset_.
+>Note: The receiver `AccountID` must be serialized by Hedera SDK as such:
+>`accountId._toProto().serializeBinary()`
+
+In order to call the _burn_ function first the user must **permit** the operation to be executed by the Router Contract. This can be done by calling the _permit_ function in the corresponding _wrappedAsset_ contract.
 ```
 function permit(address owner, address spender, uint256 amount, uint256 deadline, uint8 v,bytes32 r, bytes32 s)
 ```
@@ -138,7 +150,7 @@ async function createPermit(
         };  
     }
 ```
-
+> Note: **deadline** is the timestamp after which the _permit_ for _burn operation_ will not be active. The user can set it however he likes.
 
 - `burnWithPermit(wrappedAsset: address, receiver: bytes, amount: uint256, deadline: uint256, v, r ,s)`
 
@@ -185,7 +197,7 @@ burnWithPermit(tokenAddress, receiver!._toProto().serializeBinary(), amount, dea
 After the burn operation is completed a _burn_ event is fired which is captured by the validators. The event contains information about the burned amount and the receiver. After the validators capture the event they distribute the service fee and schedule a transaction to transfer the remaining amount to the receiving Hedera account.
 >Note: In the case when the collected fee can not be divided equally between the validators the remainder from the devision is transferred to the receiving Hedera account.
 
-### 2.2 Monitoring the Transfer
+### 2.3 Monitoring the Transfer
 
 The user can receive information about any scheduled transaction from Hedera mirror node. In order to do that the user needs the `SCHEDULED_TRANSACTION_ID`. The ID if the transaction can be retrieved by querying any of the validators at
 
