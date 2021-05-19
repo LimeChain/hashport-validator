@@ -46,13 +46,14 @@ Property | Description
 ---------- | ----------
 **Recipient** | EVM address of the receiver
 **RouterAddress** | Address of the router contract
-**Amount** | Transfer amount
+**Amount** | The transfer original transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars.
 **NativeAsset** | Alias for the transferred asset
 **WrappedAsset** | Alias for the wrapped asset
 **Signatures** | Array of all provided signatures by the validators up until this moment
 **Majority** | True if supermajority is reached and the wrapped token may be claimed
 
 ### Step 3. Claiming Wrapped Asset
+
 Once supermajority is reached the users can claim _wrapped version_ of the asset. In order to do that, the user must sign and submit a **mint transaction** to the Bridge Router Contract.
 
 The mint operation can be constructed using the following arguments:
@@ -61,10 +62,10 @@ The mint operation can be constructed using the following arguments:
 
 Argument | Description
 ---------- | ----------
-**transactionId** | The Hedera `TransactionID` of the Deposit transaction.  TODO add info on how to transform TXID to bytes
+**transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)`
 **wrappedAsset** | The corresponding `wrappedAsset` to claim. Must be the same as `wrappedAsset` returned from the Validator API query.
 **receiver** | The address receiving the tokens. Must be the same as the one specified in the `memo`
-**amount** | The amount to be minted. Keep in mind that this amount is `amount=original-serviceFee`. TODO verify it
+**amount** | The amount to be minted. Keep in mind that this amount is `amount=original-serviceFee`. The amount returned from the Validator API can be used directly as that amount reflects the charged service fee.
 **signatures** | The array of signatures provided by the Validator API
 
 ### Service Fee
@@ -211,7 +212,7 @@ After the burn operation is completed a _burn_ event is fired which is captured 
 
 The user can query the Validator API in order to get information on the Bridge transfer using the EVM `TX Hash` and the `logIndex` of the `burn` event that is emitted as part of the `burn` / `burnWithPermit` transactions.
 
-    GET {validator_host}:{validator_port}/api/v1/events/{burn_event_id}
+    GET {validator_host}:{validator_port}/api/v1/events/{burn_event_id}/tx
 
 where `burn_event_id` is the id of the Ethereum burn event. It must be constructed in the form:
 
@@ -222,6 +223,6 @@ Parameter| Description
 txHash | Transaction hash of the `burn` or `burnWithPermit` transactions
 logIndex | Index of the burn event in the transaction receipt
 
-Example format: TODO
-
-TODO add info on what is the response from the Validator API
+Example format: `0x00cf6cbfbfd1f48dbcdef5cf2ce982085422434ce9a8fd21246cb2f39de8a94a-14`
+If the transfer is not processed yet, the response will be `404`. 
+if the transfer has been processed, and the funds have been transferred, the `ScheduledTransaction ID` is returned. Using the Scheduled Transaction ID, users can query the Mirror node and see the details of the transfer  
