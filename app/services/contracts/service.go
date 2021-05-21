@@ -129,6 +129,7 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 		select {
 		case err := <-sub.Err():
 			bsc.logger.Errorf("MemberUpdated Event Logs subscription failed. Error [%s].", err)
+			go bsc.listenForMemberUpdatedEvent()
 			return
 		case <-events:
 			bsc.updateMembers()

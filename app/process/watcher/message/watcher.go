@@ -103,7 +103,7 @@ func (cmw Watcher) beginWatching(q *pair.Queue) {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
 		if err != nil {
 			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
-			cmw.restart(q)
+			go cmw.beginWatching(q)
 			return
 		}
 
@@ -134,13 +134,13 @@ func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q *pair.Queue) {
 	q.Push(&pair.Message{Payload: msg})
 }
 
-func (cmw *Watcher) restart(q *pair.Queue) {
-	if cmw.maxRetries > 0 {
-		cmw.maxRetries--
-		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
-		time.Sleep(5 * time.Second)
-		go cmw.beginWatching(q)
-		return
-	}
-	cmw.logger.Errorf("Watcher failed: [Too many retries]")
-}
+//func (cmw *Watcher) restart(q *pair.Queue) {
+//	if cmw.maxRetries > 0 {
+//		cmw.maxRetries--
+//		cmw.logger.Infof("Watcher is trying to reconnect. Connections left [%d]", cmw.maxRetries)
+//		time.Sleep(5 * time.Second)
+//		go cmw.beginWatching(q)
+//		return
+//	}
+//	cmw.logger.Errorf("Watcher failed: [Too many retries]")
+//}

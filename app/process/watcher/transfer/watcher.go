@@ -117,7 +117,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
 			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
-			ctw.restart(q)
+			go ctw.beginWatching(q)
 			return
 		}
 
@@ -163,13 +163,13 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 	q.Push(&pair.Message{Payload: transferMessage})
 }
 
-func (ctw *Watcher) restart(q *pair.Queue) {
-	if ctw.maxRetries > 0 {
-		ctw.maxRetries--
-		ctw.logger.Infof("Watcher is trying to reconnect")
-		time.Sleep(5 * time.Second)
-		go ctw.beginWatching(q)
-		return
-	}
-	ctw.logger.Errorf("Watcher failed: [Too many retries]")
-}
+//func (ctw *Watcher) restart(q *pair.Queue) {
+//	if ctw.maxRetries > 0 {
+//		ctw.maxRetries--
+//		ctw.logger.Infof("Watcher is trying to reconnect")
+//		time.Sleep(5 * time.Second)
+//		go ctw.beginWatching(q)
+//		return
+//	}
+//	ctw.logger.Errorf("Watcher failed: [Too many retries]")
+//}
