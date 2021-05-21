@@ -159,14 +159,3 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractService.Address().String())
 	q.Push(&pair.Message{Payload: transferMessage})
 }
-
-//func (ctw *Watcher) restart(q *pair.Queue) {
-//	if ctw.maxRetries > 0 {
-//		ctw.maxRetries--
-//		ctw.logger.Infof("Watcher is trying to reconnect")
-//		time.Sleep(5 * time.Second)
-//		go ctw.beginWatching(q)
-//		return
-//	}
-//	ctw.logger.Errorf("Watcher failed: [Too many retries]")
-//}
