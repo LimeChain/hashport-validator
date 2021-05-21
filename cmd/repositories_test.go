@@ -17,6 +17,11 @@
 package main
 
 import (
+	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -26,6 +31,22 @@ import (
 func TestPrepareRepositories(t *testing.T) {
 	mocks.Setup()
 	mocks.MDatabase.On("GetConnection").Return(&gorm.DB{})
-	res := PrepareRepositories(mocks.MDatabase)
-	assert.NotEmpty(t, res)
+	repositories := PrepareRepositories(mocks.MDatabase)
+
+	assert.IsType(t, &fee.Repository{}, repositories.fee)
+	assert.IsType(t, &message.Repository{}, repositories.message)
+	assert.IsType(t, &status.Repository{}, repositories.messageStatus)
+	assert.IsType(t, &burn_event.Repository{}, repositories.burnEvent)
+	assert.IsType(t, &transfer.Repository{}, repositories.transfer)
+	assert.IsType(t, &status.Repository{}, repositories.transferStatus)
+
+	assert.NotEmpty(t, repositories)
+
+	assert.NotEmpty(t, repositories.fee)
+	assert.NotEmpty(t, repositories.message)
+	assert.NotEmpty(t, repositories.messageStatus)
+	assert.NotEmpty(t, repositories.burnEvent)
+	assert.NotEmpty(t, repositories.transfer)
+	assert.NotEmpty(t, repositories.transferStatus)
+
 }
