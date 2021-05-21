@@ -39,7 +39,6 @@ type Watcher struct {
 	accountID        hedera.AccountID
 	pollingInterval  time.Duration
 	statusRepository repository.Status
-	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
 	contractService  service.Contracts
@@ -51,7 +50,6 @@ func NewWatcher(
 	accountID string,
 	pollingInterval time.Duration,
 	repository repository.Status,
-	maxRetries int,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *Watcher {
@@ -66,7 +64,6 @@ func NewWatcher(
 		accountID:        id,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
-		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractService:  contractService,
@@ -117,7 +114,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
 			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
-			ctw.restart(q)
+			go ctw.beginWatching(q)
 			return
 		}
 
@@ -161,15 +158,4 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 
 	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractService.Address().String())
 	q.Push(&pair.Message{Payload: transferMessage})
-}
-
-func (ctw *Watcher) restart(q *pair.Queue) {
-	if ctw.maxRetries > 0 {
-		ctw.maxRetries--
-		ctw.logger.Infof("Watcher is trying to reconnect")
-		time.Sleep(5 * time.Second)
-		go ctw.beginWatching(q)
-		return
-	}
-	ctw.logger.Errorf("Watcher failed: [Too many retries]")
 }
