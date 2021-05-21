@@ -112,7 +112,6 @@ type MirrorNode struct {
 	ClientAddress   string        `yaml:"client_address" env:"VALIDATOR_CLIENTS_MIRROR_NODE_CLIENT_ADDRESS"`
 	ApiAddress      string        `yaml:"api_address" env:"VALIDATOR_CLIENTS_MIRROR_NODE_API_ADDRESS"`
 	PollingInterval time.Duration `yaml:"polling_interval" env:"VALIDATOR_CLIENTS_MIRROR_NODE_POLLING_INTERVAL"`
-	MaxRetries      int           `yaml:"max_retries" env:"VALIDATOR_CLIENTS_MIRROR_NODE_TOPIC_ID"`
 }
 
 type Database struct {

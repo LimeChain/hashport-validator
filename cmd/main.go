@@ -152,7 +152,6 @@ func addTransferWatcher(configuration *config.Config,
 		account,
 		configuration.Validator.Clients.MirrorNode.PollingInterval,
 		*repository,
-		configuration.Validator.Clients.MirrorNode.MaxRetries,
 		startTimestamp,
 		contractService)
 }
@@ -168,6 +167,5 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		topic,
 		repository,
 		configuration.Validator.Clients.MirrorNode.PollingInterval,
-		configuration.Validator.Clients.MirrorNode.MaxRetries,
 		startTimestamp)
 }
