@@ -39,7 +39,6 @@ type Watcher struct {
 	accountID        hedera.AccountID
 	pollingInterval  time.Duration
 	statusRepository repository.Status
-	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
 	contractService  service.Contracts
@@ -51,7 +50,6 @@ func NewWatcher(
 	accountID string,
 	pollingInterval time.Duration,
 	repository repository.Status,
-	maxRetries int,
 	startTimestamp int64,
 	contractService service.Contracts,
 ) *Watcher {
@@ -66,7 +64,6 @@ func NewWatcher(
 		accountID:        id,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
-		maxRetries:       maxRetries,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractService:  contractService,

@@ -22,7 +22,6 @@ Name                                      | Description                         
 `hedera.members`                          | The Hedera account ids of the validators, to which their bridge fees will be sent (if Bridge accepts Hedera Tokens, associations with these tokens will be required). Used to assert balances after transactions.
 `hedera.mirror_node.api_address`          | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
 `hedera.mirror_node.client_address`       | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
-`hedera.mirror_node.max_retries`          | The maximum number of retries that the mirror node has to continue monitoring after a failure, before stopping completely.
 `hedera.mirror_node.polling_interval`     | How often (in seconds) the application will poll the mirror node for new transactions.
 `hedera.network_type`                     | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
 `hedera.sender.account`                   | The account that will be sending assets through the bridge.

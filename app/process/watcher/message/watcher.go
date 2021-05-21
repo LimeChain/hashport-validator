@@ -37,12 +37,11 @@ type Watcher struct {
 	topicID          hedera.TopicID
 	statusRepository repository.Status
 	pollingInterval  time.Duration
-	maxRetries       int
 	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(client client.MirrorNode, topicID string, repository repository.Status, pollingInterval time.Duration, maxRetries int, startTimestamp int64) *Watcher {
+func NewWatcher(client client.MirrorNode, topicID string, repository repository.Status, pollingInterval time.Duration, startTimestamp int64) *Watcher {
 	id, err := hedera.TopicIDFromString(topicID)
 	if err != nil {
 		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
@@ -54,7 +53,6 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
 		pollingInterval:  pollingInterval,
-		maxRetries:       maxRetries,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID)),
 	}
 }
