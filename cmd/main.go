@@ -22,6 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/ethereum"
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
@@ -53,8 +54,9 @@ func main() {
 		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 		services = PrepareApiOnlyServices(configuration, *clients)
 	} else {
+		db := persistence.NewDatabase(configuration.Validator.Database)
 		// Prepare repositories
-		repositories := PrepareRepositories(configuration.Validator.Database)
+		repositories := PrepareRepositories(db)
 		// Prepare Services
 		services = PrepareServices(configuration, *clients, *repositories)
 

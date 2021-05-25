@@ -17,14 +17,13 @@
 package main
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/database"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
 // Repositories struct holding the referenced repositories
@@ -38,14 +37,14 @@ type Repositories struct {
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
-func PrepareRepositories(config config.Database) *Repositories {
-	db := persistence.ConnectWithMigration(config)
+func PrepareRepositories(db database.Database) *Repositories {
+	connection := db.GetConnection()
 	return &Repositories{
-		transferStatus: status.NewRepositoryForStatus(db, status.Transfer),
-		messageStatus:  status.NewRepositoryForStatus(db, status.Message),
-		transfer:       transfer.NewRepository(db),
-		message:        message.NewRepository(db),
-		burnEvent:      burn_event.NewRepository(db),
-		fee:            fee.NewRepository(db),
+		transferStatus: status.NewRepositoryForStatus(connection, status.Transfer),
+		messageStatus:  status.NewRepositoryForStatus(connection, status.Message),
+		transfer:       transfer.NewRepository(connection),
+		message:        message.NewRepository(connection),
+		burnEvent:      burn_event.NewRepository(connection),
+		fee:            fee.NewRepository(connection),
 	}
 }
