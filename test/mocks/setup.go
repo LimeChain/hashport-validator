@@ -17,6 +17,7 @@
 package mocks
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
@@ -34,8 +35,10 @@ var MBurnEventRepository *repository.MockBurnEventRepository
 var MFeeRepository *repository.MockFeeRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
+var MDatabase *database.MockDatabase
 
 func Setup() {
+	MDatabase = &database.MockDatabase{}
 	MBridgeContractService = &MockBridgeContract{}
 	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
 	MTransferService = &service.MockTransferService{}
