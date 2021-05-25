@@ -25,7 +25,6 @@ validator:
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600
-      max_retries: 10
       polling_interval: 5
   log_level: info
   port: 5200

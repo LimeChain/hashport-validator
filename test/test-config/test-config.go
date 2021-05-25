@@ -42,6 +42,7 @@ var (
 					ClientAddress:   "",
 					ApiAddress:      "",
 					PollingInterval: 0,
+					MaxRetries:      0,
 				},
 				Hedera: config.Hedera{
 					NetworkType: "testnet",
