@@ -11,12 +11,12 @@ Estimations are calculated by [Hedera Fee Calculator](https://hedera.com/fees) a
 
 Parameter | Value
 ------ | -------
-# payer sigs | 1
+payer sigs | 1
 byte size | 304 bytes _(for 3 validators)_
-# scheduled txn sigs | 1
+scheduled txn sigs | 1
 expiration | 1 hour
 transaction memo size | 31 bytes
-# admin keys | 1
+admin keys | 1
 Entity memo size | 0 bytes
 Non-scheduling payer? | Yes
 
@@ -27,8 +27,8 @@ Non-scheduling payer? | Yes
 The estimation is based on the following parameters:
 Parameter | Value
 ------ | -------
-# payer sigs | 1
-# scheduled txn sigs | 1
+payer sigs | 1
+scheduled txn sigs | 1
 expiration | 1 hour
 
 -   1x  `ConsensusMessageSubmit`  -> Submitting the authorisation signature
@@ -38,8 +38,8 @@ expiration | 1 hour
 The estimation is based on the following parameters:
 Parameter | Value
 ------ | -------
-# payer sigs | 1
-# total sigs | 1
+payer sigs | 1
+total sigs | 1
 Size of message | 309
 Transaction memo size | 0 bytes
 
@@ -64,12 +64,12 @@ Estimations are calculated by Hedera Fee Calculator and are based on the followi
 
 Parameter | Value
 ------ | -------
-# payer sigs | 1
+payer sigs | 1
 byte size | 410 bytes _(for 3 Validators)_
-# scheduled txn sigs | 1
+scheduled txn sigs | 1
 expiration | 1 hour
 transaction memo size | 68 bytes
-# admin keys | 1
+admin keys | 1
 Entity memo size | 0 bytes
 Non-scheduling payer? | Yes
 
