@@ -49,6 +49,7 @@ Transaction memo size | 0 bytes
 
 In order for the user to receive wrapped tokens he must submit `mint` transaction to the contract.
 
+**Estimated gas needed for this operation**: 107500 GWei
 **Estimated tx fee needed for this transaction**: 0.00107 MATIC
 
 ### Ethereum to Hedera transfers require the following transactions per validator:
@@ -81,4 +82,5 @@ Non-scheduling payer? | Yes
 #### Burn Operation
 In order for the user to receive HTS tokens he must submit `burnWithPermit` transaction to the contract.
 
+**Estimated gas needed for this operation**: 76900 GWei
 **Estimated tx fee needed for this transaction**:  0.000768 MATIC
