@@ -39,6 +39,7 @@ docker-compose up
 ## Documentation
  - [Overview](docs/overview.md)
  - [Integration](docs/integration.md)
+ - [Transaction costs](docs/transaction-costs.md)
  - [Installation](docs/installation.md)
  - [Configuration](docs/configuration.md)
  - [Testing](docs/testing.md)
