@@ -17,14 +17,19 @@
 package ethereum
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	tc "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"math/big"
+	"sync"
 	"testing"
+)
+
+var (
+	onExecution = "Pending"
+	wg          sync.WaitGroup
 )
 
 func TestNewClient(t *testing.T) {
@@ -98,7 +103,7 @@ func TestValidateContractDeployedAt(t *testing.T) {
 	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	contractAddress := "0xbaA7610B498f7527D58bDced6046a8e7202180FD"
 	address, err := nodeClient.ValidateContractDeployedAt(contractAddress)
-	assert.NotNil(t, address)
+	assert.Equal(t, *address, common.HexToAddress(contractAddress))
 	assert.Nil(t, err)
 }
 
@@ -113,19 +118,32 @@ func TestValidateContractNonContractAddress(t *testing.T) {
 func TestWaitForTransaction(t *testing.T) {
 	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x7c39eecd9af35f2a59bda7c0a600fea0cc99b26444de5418e7eba0285b2a99e8"
+
+	wg.Add(1)
 	nodeClient.WaitForTransaction(transactionHash, onSuccess, onRevert, onError)
+	wg.Wait()
+
+	assert.Equal(t, "Success", onExecution)
 }
 
 func TestWaitForTransactionRevert(t *testing.T) {
 	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x9634c0496039bee73555688efd5943a5cf86caa0d4826edb0a7d7642fc8e0392"
+	wg.Add(1)
 	nodeClient.WaitForTransaction(transactionHash, onSuccess, onRevert, onError)
+	wg.Wait()
+
+	assert.Equal(t, "Revert", onExecution)
 }
 
 func TestWaitForTransactionError(t *testing.T) {
 	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x9634c0496039bee73555688efd5943a5cf86caa0d4826edb0a7d7642fc8e0390"
+	wg.Add(1)
 	nodeClient.WaitForTransaction(transactionHash, onSuccess, onRevert, onError)
+	wg.Wait()
+
+	assert.Equal(t, "Error", onExecution)
 }
 
 func TestWaitForTransactionReceipt(t *testing.T) {
@@ -186,13 +204,16 @@ func TestWaitForConfirmationsBlockError(t *testing.T) {
 }
 
 func onSuccess() {
-	fmt.Println("Success")
+	onExecution = "Success"
+	defer wg.Done()
 }
 
 func onRevert() {
-	fmt.Println("Revert")
+	onExecution = "Revert"
+	defer wg.Done()
 }
 
 func onError(err error) {
-	fmt.Println("Error")
+	onExecution = "Error"
+	defer wg.Done()
 }
