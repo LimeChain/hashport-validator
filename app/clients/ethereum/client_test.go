@@ -35,6 +35,10 @@ var (
 func TestNewClient(t *testing.T) {
 	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	assert.NotNil(t, nodeClient)
+	assert.Equal(t, nodeClient.config.PrivateKey, tc.TestConfig.Validator.Clients.Ethereum.PrivateKey)
+	assert.Equal(t, nodeClient.config.NodeUrl, tc.TestConfig.Validator.Clients.Ethereum.NodeUrl)
+	assert.Equal(t, nodeClient.config.BlockConfirmations, tc.TestConfig.Validator.Clients.Ethereum.BlockConfirmations)
+	assert.Equal(t, nodeClient.config.RouterContractAddress, tc.TestConfig.Validator.Clients.Ethereum.RouterContractAddress)
 }
 
 func TestGetClient(t *testing.T) {
