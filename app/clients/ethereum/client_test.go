@@ -30,10 +30,10 @@ import (
 var (
 	onExecution = "Pending"
 	wg          sync.WaitGroup
+	nodeClient  = NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 )
 
 func TestNewClient(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	assert.NotNil(t, nodeClient)
 	assert.Equal(t, nodeClient.config.PrivateKey, tc.TestConfig.Validator.Clients.Ethereum.PrivateKey)
 	assert.Equal(t, nodeClient.config.NodeUrl, tc.TestConfig.Validator.Clients.Ethereum.NodeUrl)
@@ -42,7 +42,6 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetClient(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	assert.NotNil(t, nodeClient)
 
 	client := nodeClient.GetClient()
@@ -97,14 +96,12 @@ func TestNewClientDialError(t *testing.T) {
 }
 
 func TestChainID(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	chainID := nodeClient.ChainID()
 	expectedChainID := big.NewInt(3)
 	assert.Equal(t, expectedChainID, chainID)
 }
 
 func TestValidateContractDeployedAt(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	contractAddress := "0xbaA7610B498f7527D58bDced6046a8e7202180FD"
 	address, err := nodeClient.ValidateContractDeployedAt(contractAddress)
 	assert.Equal(t, *address, common.HexToAddress(contractAddress))
@@ -112,7 +109,6 @@ func TestValidateContractDeployedAt(t *testing.T) {
 }
 
 func TestValidateContractNonContractAddress(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	contractAddress := "0xbaA7610B498f7527D58bDced6046a8e7202180Ff"
 	address, err := nodeClient.ValidateContractDeployedAt(contractAddress)
 	assert.NotNil(t, err)
@@ -120,7 +116,6 @@ func TestValidateContractNonContractAddress(t *testing.T) {
 }
 
 func TestWaitForTransaction(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x7c39eecd9af35f2a59bda7c0a600fea0cc99b26444de5418e7eba0285b2a99e8"
 
 	wg.Add(1)
@@ -131,7 +126,6 @@ func TestWaitForTransaction(t *testing.T) {
 }
 
 func TestWaitForTransactionRevert(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x9634c0496039bee73555688efd5943a5cf86caa0d4826edb0a7d7642fc8e0392"
 	wg.Add(1)
 	nodeClient.WaitForTransaction(transactionHash, onSuccess, onRevert, onError)
@@ -141,7 +135,6 @@ func TestWaitForTransactionRevert(t *testing.T) {
 }
 
 func TestWaitForTransactionError(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x9634c0496039bee73555688efd5943a5cf86caa0d4826edb0a7d7642fc8e0390"
 	wg.Add(1)
 	nodeClient.WaitForTransaction(transactionHash, onSuccess, onRevert, onError)
@@ -151,7 +144,6 @@ func TestWaitForTransactionError(t *testing.T) {
 }
 
 func TestWaitForTransactionReceipt(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x7c39eecd9af35f2a59bda7c0a600fea0cc99b26444de5418e7eba0285b2a99e8"
 	receipt, err := nodeClient.WaitForTransactionReceipt(common.HexToHash(transactionHash))
 	expectedStatus := uint64(1)
@@ -160,7 +152,6 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 }
 
 func TestWaitForTransactionReceiptError(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	transactionHash := "0x9634c0496039bee73555688efd5943a5cf86caa0d4826edb0a7d7642fc8e0390"
 	receipt, err := nodeClient.WaitForTransactionReceipt(common.HexToHash(transactionHash))
 	assert.Nil(t, receipt)
@@ -168,7 +159,6 @@ func TestWaitForTransactionReceiptError(t *testing.T) {
 }
 
 func TestWaitForConfirmations(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	raw := types.Log{
 		Address: common.HexToAddress("0xbaA7610B498f7527D58bDced6046a8e7202180FD"),
 		Topics: []common.Hash{
@@ -188,7 +178,6 @@ func TestWaitForConfirmations(t *testing.T) {
 }
 
 func TestWaitForConfirmationsBlockError(t *testing.T) {
-	nodeClient := NewClient(tc.TestConfig.Validator.Clients.Ethereum)
 	raw := types.Log{
 		Address: common.HexToAddress("0xbaA7610B498f7527D58bDced6046a8e7202180FD"),
 		Topics: []common.Hash{
