@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	validTokenID = "0.0.1234"
+	validTokenID   = "0.0.1234"
 	invalidTokenID = "0.01234"
 )
+
 func Test_IsTokenID(t *testing.T) {
 	res := IsTokenID(validTokenID)
 	assert.True(t, res)

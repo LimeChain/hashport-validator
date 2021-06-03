@@ -22,24 +22,25 @@ import (
 )
 
 const (
-	validEthAddressBase64 = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjY1"
-	validEthAddress = "0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65"
-	nonValidEthAddress = "0"
+	validEthAddressBase64    = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjY1"
+	validEthAddress          = "0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65"
+	nonValidEthAddress       = "0"
 	nonValidEthAddressBase64 = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjYq"
 )
-func Test_Validate(t *testing.T)  {
+
+func Test_Validate(t *testing.T) {
 	decodedAddress, err := Validate(validEthAddressBase64)
-	assert.Equal(t,decodedAddress, validEthAddress)
+	assert.Equal(t, decodedAddress, validEthAddress)
 	assert.Nil(t, err)
 }
 
-func Test_WrongAddress(t *testing.T)  {
+func Test_WrongAddress(t *testing.T) {
 	_, err := Validate(nonValidEthAddressBase64)
 	expectedError := "Memo is invalid or has invalid encoding format: [0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB6*]"
 	assert.EqualError(t, err, expectedError)
 }
 
-func Test_InvalidAddress(t *testing.T)  {
+func Test_InvalidAddress(t *testing.T) {
 	_, err := Validate(nonValidEthAddress)
 	expectedError := "Invalid base64 string provided: [illegal base64 data at input byte 0]"
 	assert.EqualError(t, err, expectedError)

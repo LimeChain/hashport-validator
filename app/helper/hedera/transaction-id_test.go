@@ -23,12 +23,12 @@ import (
 )
 
 const (
-	transactionID = "0.0.9401@1598924675.82525000"
+	transactionID         = "0.0.9401@1598924675.82525000"
 	expectedTransactionID = "0.0.9401-1598924675-082525000"
-	expectedAccountID = "0.0.9401"
-	expectedSeconds = "1598924675"
-	expectedNanos = "082525000"
-	expectedTimestamp = "1598924675.082525000"
+	expectedAccountID     = "0.0.9401"
+	expectedSeconds       = "1598924675"
+	expectedNanos         = "082525000"
+	expectedTimestamp     = "1598924675.082525000"
 )
 
 func Test_ToMirrorNodeTransactionID(t *testing.T) {
