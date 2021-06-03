@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	validNumber            = "54321"
-	notValidNumber   = "0xsomerouteraddress"
-
+	validNumber    = "54321"
+	notValidNumber = "0xsomerouteraddress"
 )
 
 func Test_StringToBigInt(t *testing.T) {
