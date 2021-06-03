@@ -26,8 +26,6 @@ import (
 	"testing"
 )
 
-var nodeClient = NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-
 func TestGetClientForTestnet(t *testing.T) {
 	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	client := nodeClient.GetClient()
@@ -112,6 +110,8 @@ func TestGetClientPrivateKeyError(t *testing.T) {
 }
 
 func TestSubmitTopicConsensusMessage(t *testing.T) {
+	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
+
 	msg := []byte{0, 1, 2, 3, 4}
 	topicID, _ := hedera.TopicIDFromString("0.0.1870757")
 	id, err := nodeClient.SubmitTopicConsensusMessage(topicID, msg)
@@ -120,6 +120,8 @@ func TestSubmitTopicConsensusMessage(t *testing.T) {
 }
 
 func TestSubmitTopicConsensusMessageError(t *testing.T) {
+	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
+
 	msg := []byte{0}
 	topicID, _ := hedera.TopicIDFromString("")
 	response, err := nodeClient.SubmitTopicConsensusMessage(topicID, msg)
@@ -128,6 +130,7 @@ func TestSubmitTopicConsensusMessageError(t *testing.T) {
 }
 
 func TestSubmitScheduleSign(t *testing.T) {
+	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	scheduleID, err := hedera.ScheduleIDFromString("0.0.0")
 
 	txResponse, err := nodeClient.SubmitScheduleSign(scheduleID)
@@ -136,6 +139,7 @@ func TestSubmitScheduleSign(t *testing.T) {
 }
 
 func TestSubmitScheduledTokenTransferTransaction(t *testing.T) {
+	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	tokenID, err := hedera.TokenIDFromString("0.0.447200")
 
 	if err != nil {
@@ -161,6 +165,8 @@ func TestSubmitScheduledTokenTransferTransaction(t *testing.T) {
 }
 
 func TestSubmitScheduledHbarTransferTransaction(t *testing.T) {
+	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
+
 	var transfers []transfer.Hedera
 
 	recipient, _ := hedera.AccountIDFromString("0.0.263546")
