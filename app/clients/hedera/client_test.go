@@ -22,18 +22,20 @@ import (
 	tc "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
-func TestNewNodeClient(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-	assert.NotNil(t, nodeClient)
-}
+var nodeClient = NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 
 func TestGetClientForTestnet(t *testing.T) {
 	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	client := nodeClient.GetClient()
 	assert.NotNil(t, client)
+	clientNetwork := client.GetNetwork()
+	for key, _ := range clientNetwork {
+		assert.True(t, strings.Contains(key, "testnet"))
+	}
 }
 
 func TestGetClientForPreviewnet(t *testing.T) {
@@ -42,6 +44,10 @@ func TestGetClientForPreviewnet(t *testing.T) {
 	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	client := nodeClient.GetClient()
 	assert.NotNil(t, client)
+	clientNetwork := client.GetNetwork()
+	for key, _ := range clientNetwork {
+		assert.True(t, strings.Contains(key, "previewnet"))
+	}
 }
 
 func TestGetClientForMainnet(t *testing.T) {
@@ -50,6 +56,12 @@ func TestGetClientForMainnet(t *testing.T) {
 	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	client := nodeClient.GetClient()
 	assert.NotNil(t, client)
+
+	clientNetwork := client.GetNetwork()
+	for key, _ := range clientNetwork {
+		assert.False(t, strings.Contains(key, "testnet"))
+		assert.False(t, strings.Contains(key, "previewnet"))
+	}
 }
 
 func TestGetClientForNetworkError(t *testing.T) {
@@ -99,15 +111,7 @@ func TestGetClientPrivateKeyError(t *testing.T) {
 	assert.True(t, fatal)
 }
 
-func TestGetClient(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-	client := nodeClient.GetClient()
-	assert.NotNil(t, client)
-}
-
 func TestSubmitTopicConsensusMessage(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-
 	msg := []byte{0, 1, 2, 3, 4}
 	topicID, _ := hedera.TopicIDFromString("0.0.1870757")
 	id, err := nodeClient.SubmitTopicConsensusMessage(topicID, msg)
@@ -116,16 +120,14 @@ func TestSubmitTopicConsensusMessage(t *testing.T) {
 }
 
 func TestSubmitTopicConsensusMessageError(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-
 	msg := []byte{0}
 	topicID, _ := hedera.TopicIDFromString("")
-	_, err := nodeClient.SubmitTopicConsensusMessage(topicID, msg)
+	response, err := nodeClient.SubmitTopicConsensusMessage(topicID, msg)
+	assert.False(t, response.GetScheduled())
 	assert.Error(t, err)
 }
 
 func TestSubmitScheduleSign(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	scheduleID, err := hedera.ScheduleIDFromString("0.0.0")
 
 	txResponse, err := nodeClient.SubmitScheduleSign(scheduleID)
@@ -134,7 +136,6 @@ func TestSubmitScheduleSign(t *testing.T) {
 }
 
 func TestSubmitScheduledTokenTransferTransaction(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
 	tokenID, err := hedera.TokenIDFromString("0.0.447200")
 
 	if err != nil {
@@ -160,8 +161,6 @@ func TestSubmitScheduledTokenTransferTransaction(t *testing.T) {
 }
 
 func TestSubmitScheduledHbarTransferTransaction(t *testing.T) {
-	nodeClient := NewNodeClient(tc.TestConfig.Validator.Clients.Hedera)
-
 	var transfers []transfer.Hedera
 
 	recipient, _ := hedera.AccountIDFromString("0.0.263546")
