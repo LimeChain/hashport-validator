@@ -21,35 +21,35 @@ import (
 	"testing"
 )
 
-const(
-	validTimestamp = "1598924675.82525000"
-	timestampInt64 int64 = 1598924675082525000
-	nonValidNanos = "1598924675.82525000423423541521512"
-	nonValidSeconds = "1598924675423423541521512.82525000"
+const (
+	validTimestamp        = "1598924675.82525000"
+	timestampInt64  int64 = 1598924675082525000
+	nonValidNanos         = "1598924675.82525000423423541521512"
+	nonValidSeconds       = "1598924675423423541521512.82525000"
 )
 
-func Test_Validate(t *testing.T)  {
+func Test_Validate(t *testing.T) {
 	timestamp, err := FromString(validTimestamp)
-	assert.Equal(t, timestampInt64,  timestamp)
+	assert.Equal(t, timestampInt64, timestamp)
 	assert.Nil(t, err)
 }
 
-func Test_NonValidNanos(t *testing.T)  {
+func Test_NonValidNanos(t *testing.T) {
 	_, err := FromString(nonValidNanos)
 	assert.EqualError(t, err, "invalid timestamp nanos provided")
 }
 
-func Test_NonValidSeconds(t *testing.T)  {
+func Test_NonValidSeconds(t *testing.T) {
 	_, err := FromString(nonValidSeconds)
 	assert.EqualError(t, err, "invalid timestamp seconds provided")
 }
 
-func Test_String(t *testing.T)  {
+func Test_String(t *testing.T) {
 	res := String(timestampInt64)
 	assert.Equal(t, validTimestamp, res)
 }
 
-func Test_ToHumanReadable(t *testing.T)  {
+func Test_ToHumanReadable(t *testing.T) {
 	res := ToHumanReadable(timestampInt64)
 	expectedDate := "2020-09-01T01:44:35.008554496Z"
 	assert.Equal(t, expectedDate, res)
