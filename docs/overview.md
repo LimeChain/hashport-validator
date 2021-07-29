@@ -37,6 +37,8 @@ For example transferring 100 HBAR from Hedera to the EVM chain (WHBAR) is going 
 
 *Note: The Service fee is configurable property and determined by the validators*
 
+## Hedera Native Assets
+
 ### Transferring HBAR/HTS from Hedera to the EVM chain
 
 The transfer of assets from Hedera to the EVM chain is described in the following sequence diagram.
@@ -65,7 +67,7 @@ All validators, except the one that successfully created the Transaction execute
    Alice's UI or API waits for a supermajority of the signatures. She can either watch the topic messages stream or fetch the data directly from Validator nodes.
 
 6. **Submitting the EVM Transaction**
-   Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The signature contains the raw data signed in the message: `{hedera-tx-id}{router-address}{wrapped-token}{receiver}{amount}`
+   Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The transaction contains the raw data signed in the message: `{hedera-tx-id}{router-address}{wrapped-token}{receiver}{amount}`
 
 7. **Mint Operation**
    The smart contract verifies that no reply attack is being executed (by checking the `hedera-tx-id` and verifies the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped token to the `receiving` address.
@@ -89,3 +91,55 @@ The transfer of assets from the EVM chain to Hedera is described in the followin
    All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the transfer of the fees will be executed.
 4. **Unlocking the Asset**
    Each Validator performs a `ScheduleCreate` operation that transfers `amount-serviceFee` `Hbar` to the receiving Hedera Account. All validators that got their `ScheduleCreate` rejected, submit an equivalent `ScheduleSign`. Once `n out of m` validators execute the Sign operation, the transfer is completed.
+
+
+## EVM Native Assets
+In order for an EVM native asset to be bridged to Hedera and mapped ot HTS token, the Governance mechanism must:
+1. Deploy the corresponding HTS token
+2. Map the EVM token to the HTS token
+3. Whitelist the EVM asset in the contract and specify the service fee
+
+The HTS token mapped to EVM token has the following configuration:
+- The name and symbol of the Token is the same as the EVM one
+- Decimals of the token are set to `8` due to HTS <> EVM compatibility issues
+- The `bridge account` is used as a `treasury` for the Token. This enforces the "owner" of the token to be the shared Hedera account that is governed by the Validator set. 
+- The `supplyKey` for the Token is a `ThresholdKey` equivalent to the `bridge account`, meaning that in order for tokens to be minted or burned, `n/m` validators must sign the `mint/burn` transactions.
+
+Once the steps above are performed, a given EVM asset can be transferred through the bridge in both directions.
+
+### EVM to Hedera
+The following sequence diagram demonstrates the process of transferring ERC20 Token from EVM chain to Hedera:
+
+TODO diagram
+
+#### Steps
+
+1. **Lock** - Performed by the User
+Alice calls the `lock` function of the `Router` contract specifying the `address` of the Token, the `amount` she wants to bridge and the recipient `Hedera Account` that will receive the tokens.
+The contract verifies that the specified token is supported, transfers the Token from `Alice`s account, charges a service fee (% of the token amount), distributes the fee to all validators of the Bridge and emits a `lock`-ing event with all of the required metadata.
+2. **Event Monitoring** - Ongoing process performed by Validator nodes
+Validator nodes are monitoring the `router` contract for `lock` events. Once such event is emitted, each validator computes the corresponding `Hedera HTS` token `ID` of the bridged asset. 
+3. **Minting the Tokens** - Performed by Validators
+Validators create `Scheduled Mint` transactions. Once the required `n/m` keys have executed either `ScheduleCreate` or `ScheduleSign` operation, the specified in the `EVM` transaction tokens, are minted to the `treasury`. (Note: `TokenMint` operation can mint tokens only to the treasury).
+4. **Transferring the Tokens** - Performed by Validators
+Validators create `ScheduleTransfer` transactions that transfer the newly minted tokens from the `Treasury` to Alice's `Hedera Account`.
+
+### Hedera to EVM
+The following sequence diagram demonstrates the process of transferring HTS Tokens mapped to ERC20 Tokens from Hedera to the source EVM chain:
+
+TODO diagram
+
+#### Steps
+1. **Initiate the transfer** - Performed by the User
+Alice executes a `CryptoTransfer` operation sending the mapped HTS tokens (that she wants to transfer back to the EVM chain) to the corresponding `treasury` account of the HTS tokens. In the `memo` of the transaction, she encodes the following information: `{chainId}-{receiving-address}`, where `chainId` is the [chain ID used in EVM based chains](https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties) and `{receiving-address}` is the EVM address that will receive the EVM native tokens.
+2. **Transfers Monitoring** - Ongoing process performed by Validators
+Validator nodes are monitoring new incoming transfers towards the configured `treasury` (reused for all Bridge supported tokens). Once such transfer is picked up, Validators are executing state proof verification and proceed with the bridging.
+3. **Burning the tokens** - Performed by Validators
+Validators create `ScheduleBurn` operation that removes the `amount` sent to the treasury from the treasury account. Once `n/m` keys (validators) have executed either `ScheduleCreate` or `ScheduleSign` operation, the specified amount of tokens gets burned and the total supply of the `HTS` token is reduced.
+4. **Providing authorisation signature** - Performed by Validators
+Each of the Validators sign the following authorisation message:
+   `{chain-id}{router-address}{hedera-tx-id}{native-asset}{receiver}{amount}` using their EVM-compatible private key. The signature is then submitted to a topic in Hedera Consensus Service.
+5. **Waiting for Supermajority**
+   Alice waits for a supermajority of the signatures. She can either watch the topic messages stream or fetch the data directly from Validator nodes.
+6. **Unlocking the EVM native tokens** - Performed by the User
+Once supermajority is reached, Alice submits `unlock` transaction to the EVM chain. The transaction contains the raw data signed in the authorisation signatures, as-well as the signatures. The smart contract verifies the authenticity of the signatures, charges `service` fee and transfers the requested token to the specified `recipient` address.
