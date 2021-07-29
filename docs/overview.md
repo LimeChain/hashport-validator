@@ -39,7 +39,7 @@ For example transferring 100 HBAR from Hedera to the EVM chain (WHBAR) is going 
 
 ## Hedera Native Assets
 
-### Transferring HBAR/HTS from Hedera to the EVM chain
+### Hedera to EVM
 
 The transfer of assets from Hedera to the EVM chain is described in the following sequence diagram.
 <p align="center">
@@ -72,7 +72,7 @@ All validators, except the one that successfully created the Transaction execute
 7. **Mint Operation**
    The smart contract verifies that no reply attack is being executed (by checking the `hedera-tx-id` and verifies the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped token to the `receiving` address.
 
-### Transferring WHBAR/WHTS from the EVM chain to Hedera
+### EVM to Hedera
 
 The transfer of assets from the EVM chain to Hedera is described in the following sequence diagram.
 
