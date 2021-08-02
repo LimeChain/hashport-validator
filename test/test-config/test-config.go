@@ -33,7 +33,7 @@ var (
 			},
 			Clients: config.Clients{
 				Ethereum: config.Ethereum{
-					NodeUrl:               "wss://ropsten.infura.io/ws/v3/8b64d65996d24dc0aae2e0c6029e5a9b",
+					NodeUrl:               "wss://ropsten.infura.io/ws/v3/64364afbcf794ff9a00deabde636b7e1",
 					RouterContractAddress: "B5762f4159e7bFE24B5E7E9a2e829F535744d30e",
 					BlockConfirmations:    5,
 					PrivateKey:            "9f6da11eecc0fd7cb081d2aee88092ee3436397916c894ad6cd80a79009c0ded",
