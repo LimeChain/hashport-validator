@@ -5,8 +5,8 @@
 
 n | Estimated transaction cost
 ------ | ------  
-3 Validators | 0.0102$ or 0.04365ℏ
-7 Validators | 0.0104$ or 0.044585ℏ
+3 Validators | $0.0102 or 0.04365ℏ
+7 Validators | $0.0104 or 0.044585ℏ
 
 Estimations are calculated by [Hedera Fee Calculator](https://hedera.com/fees) and are based on the following
 parameters:
