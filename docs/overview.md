@@ -110,7 +110,9 @@ Once the steps above are performed, a given EVM asset can be transferred through
 ### EVM to Hedera
 The following sequence diagram demonstrates the process of transferring ERC20 Token from EVM chain to Hedera:
 
-TODO diagram
+<p align="center">
+  <img src="./assets/evm-to-hedera-native.png">
+</p>
 
 #### Steps
 
@@ -127,7 +129,9 @@ Validators create `ScheduleTransfer` transactions that transfer the newly minted
 ### Hedera to EVM
 The following sequence diagram demonstrates the process of transferring HTS Tokens mapped to ERC20 Tokens from Hedera to the source EVM chain:
 
-TODO diagram
+<p align="center">
+  <img src="./assets/hedera-to-evm-native.png">
+</p>
 
 #### Steps
 1. **Initiate the transfer** - Performed by the User
