@@ -22,6 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
@@ -36,6 +37,7 @@ type Services struct {
 	transfers   service.Transfers
 	messages    service.Messages
 	burnEvents  service.BurnEvent
+	lockEvents  service.LockEvent
 	fees        service.Fee
 	distributor service.Distributor
 	scheduled   service.Scheduled
@@ -52,6 +54,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
+		// TODO: Wait for new contract to implement WaitForLockEvents channel function
 		contracts,
 		ethSigner,
 		repositories.transfer,
@@ -80,12 +83,21 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled,
 		fees)
 
+	lockEvent := lock_event.NewService(
+		c.Validator.Clients.Hedera.BridgeAccount,
+		repositories.lockEvent,
+		repositories.fee,
+		distributor,
+		scheduled,
+		fees)
+
 	return &Services{
 		signer:      ethSigner,
 		contracts:   contracts,
 		transfers:   transfers,
 		messages:    messages,
 		burnEvents:  burnEvent,
+		lockEvents:  lockEvent,
 		fees:        fees,
 		distributor: distributor,
 	}

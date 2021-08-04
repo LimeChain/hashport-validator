@@ -67,12 +67,12 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 			go ew.listenForEvents(q)
 			return
 		case eventLog := <-events:
-			go ew.handleLog(eventLog, q)
+			go ew.handleBurnLog(eventLog, q)
 		}
 	}
 }
 
-func (ew *Watcher) handleLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
+func (ew *Watcher) handleBurnLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
 	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {

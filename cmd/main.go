@@ -33,6 +33,7 @@ import (
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/router/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -107,6 +108,8 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
+	// TODO: Examine this behaviour later
+	apiRouter.AddV1Router(lock_event.Route, lock_event.NewRouter(services.lockEvents))
 	return apiRouter
 }
 
