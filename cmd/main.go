@@ -138,7 +138,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			services.messages))
 
 	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Validator.Clients.Ethereum),
-		beh.NewHandler(services.burnEvents))
+		beh.NewHandler(services.burnEvents, services.lockEvents))
 }
 
 func addTransferWatcher(configuration *config.Config,

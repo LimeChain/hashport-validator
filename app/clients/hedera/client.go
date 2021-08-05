@@ -64,6 +64,11 @@ func (hc Node) GetClient() *hedera.Client {
 	return hc.client
 }
 
+// SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
+func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+	return nil, errors.New("NOT SUPPORTED YET")
+}
+
 // SubmitTopicConsensusMessage submits the provided message bytes to the
 // specified HCS `topicId`
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
