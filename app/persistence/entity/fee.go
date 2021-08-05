@@ -25,4 +25,5 @@ type Fee struct {
 	Status        string
 	TransferID    sql.NullString
 	BurnEventID   sql.NullString
+	LockEventID   sql.NullString
 }

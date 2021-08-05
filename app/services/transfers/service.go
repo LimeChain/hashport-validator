@@ -260,7 +260,7 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(feeAmount, 10))
 	onSuccess, onFail := ts.scheduledTxMinedCallbacks()
 
-	ts.scheduledService.Execute(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
 func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {

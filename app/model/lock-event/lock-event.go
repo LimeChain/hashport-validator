@@ -16,6 +16,14 @@
 
 package lock_event
 
+import "github.com/hashgraph/hedera-sdk-go/v2"
+
 type LockEvent struct {
 	// TODO: Place proper arguments here after call with Georgi A.
+	Id           string
+	Amount       int64
+	Recipient    hedera.AccountID
+	NativeAsset  string
+	WrappedAsset string
+	ChainId      uint8
 }

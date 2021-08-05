@@ -80,7 +80,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 	onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.Id, strconv.FormatInt(feeAmount, 10))
 	onSuccess, onFail := s.scheduledTxMinedCallbacks(event.Id)
 
-	s.scheduledService.Execute(event.Id, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	s.scheduledService.ExecuteScheduledTransferTransaction(event.Id, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
 func (s *Service) prepareTransfers(event burn_event.BurnEvent) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {

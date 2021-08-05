@@ -60,7 +60,7 @@ func Test_ProcessEvent(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
-	mocks.MScheduledService.On("Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
+	mocks.MScheduledService.On("ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
 
 	s.ProcessEvent(burnEvent)
 }
@@ -86,7 +86,7 @@ func Test_ProcessEventCreateFail(t *testing.T) {
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", burnEvent.Amount)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mockFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", mockValidFee)
-	mocks.MScheduledService.AssertNotCalled(t, "Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }
@@ -112,7 +112,7 @@ func Test_ProcessEventCalculateMemberDistributionFails(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return(nil, errors.New("invalid-result"))
-	mocks.MScheduledService.AssertNotCalled(t, "Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }

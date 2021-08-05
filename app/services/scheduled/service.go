@@ -35,11 +35,11 @@ func New(
 }
 
 // Execute submits a scheduled transaction and executes provided functions when necessary
-func (s *Service) Execute(
+func (s *Service) ExecuteScheduledTransferTransaction(
 	id, nativeAsset string,
 	transfers []transfer.Hedera,
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	transactionResponse, err := s.executeScheduledTransaction(id, nativeAsset, transfers)
+	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
@@ -86,7 +86,7 @@ func (s *Service) Execute(
 	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onMinedSuccess, onMinedFail)
 }
 
-func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
+func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
 	var tokenID hedera.TokenID
 	var transactionResponse *hedera.TransactionResponse
 	var err error
@@ -103,6 +103,24 @@ func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers 
 		transactionResponse, err = s.hederaNodeClient.
 			SubmitScheduledTokenTransferTransaction(tokenID, transfers, s.payerAccount, id)
 	}
+	return transactionResponse, err
+}
+
+// TODO: Find a way to place this method
+func (s *Service) executeScheduledMintTransaction(id, nativeAsset string, amount int64) (*hedera.TransactionResponse, error) {
+	var tokenID hedera.TokenID
+	var transactionResponse *hedera.TransactionResponse
+	var err error
+
+	tokenID, err = hedera.TokenIDFromString(nativeAsset)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
+		return nil, err
+	}
+
+	transactionResponse, err = s.hederaNodeClient.
+		SubmitScheduledTokenMintTransaction(tokenID, amount, s.payerAccount, id)
+
 	return transactionResponse, err
 }
 

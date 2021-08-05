@@ -16,8 +16,16 @@
 
 package entity
 
+import "database/sql"
+
 // TODO: Put proper GORM entity model here
 
 type LockEvent struct {
-	Id string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
+	Id            string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
+	ScheduleID    string
+	Amount        int64
+	Recipient     string
+	Status        string
+	TransactionId sql.NullString `gorm:"unique"` // id of the original scheduled transaction
+	Fee           Fee            `gorm:"foreignKey:LockEventID"`
 }

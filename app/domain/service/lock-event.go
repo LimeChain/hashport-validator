@@ -16,8 +16,18 @@
 
 package service
 
-// TODO: Do interface
+import (
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+)
+
+// TODO: Define interface methods
 
 // BurnEvent is the major service used for processing BurnEvent operations
 type LockEvent interface {
+	// ProcessEvent processes the burn event by submitting the appropriate
+	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
+	ProcessEvent(event lock_event.LockEvent)
+	// TransactionID returns the corresponding Scheduled Transaction paying out the
+	// fees to validators and the amount being bridged to the receiver address
+	TransactionID(id string) (string, error)
 }
