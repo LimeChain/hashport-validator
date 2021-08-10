@@ -31,3 +31,19 @@ validator:
   recovery:
     start_timestamp:
   rest-api-only: false
+asset-mappings:
+  networks:
+    0: # Hedera
+      tokens:
+        "HBAR": # Wrapped Assets
+            1: "0xsomeETHaddress" # Wrapped HBAR on Ethereum
+            137: "0xsomePOLYaddress" # Wrapped HBAR on Polygon
+    1:                                # Ethereum Mainnet
+      evm_client:
+        block_confirmations: 5
+        node_url:
+        private_key:
+        router_contract_address:
+      tokens:
+        "0xsomeDAIaddress": # DAI address
+            0: "some-hts-token"     # DAI HTS token on Hedera; 0 is Hedera
