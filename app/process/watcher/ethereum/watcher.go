@@ -33,38 +33,40 @@ import (
 )
 
 type Watcher struct {
-	config    config.Ethereum
-	contracts service.Contracts
-	ethClient client.Ethereum
-	logger    *log.Entry
+	routerContractAddress string
+	contracts             service.Contracts
+	ethClient             client.EVM
+	logger                *log.Entry
+	mappings              config.AssetMappings
 }
 
-func NewWatcher(contracts service.Contracts, ethClient client.Ethereum, config config.Ethereum) *Watcher {
+func NewWatcher(contracts service.Contracts, ethClient client.EVM, mappings c.AssetMappings) *Watcher {
 	return &Watcher{
-		config:    config,
-		contracts: contracts,
-		ethClient: ethClient,
-		logger:    c.GetLoggerFor(fmt.Sprintf("Ethereum Router Watcher [%s]", config.RouterContractAddress)),
+		routerContractAddress: ethClient.GetRouterContractAddress(),
+		contracts:             contracts,
+		ethClient:             ethClient,
+		logger:                c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", ethClient.GetRouterContractAddress())),
+		mappings:              mappings,
 	}
 }
 
 func (ew *Watcher) Watch(queue *pair.Queue) {
 	go ew.listenForEvents(queue)
-	ew.logger.Infof("Listening for events at contract [%s]", ew.config.RouterContractAddress)
+	ew.logger.Infof("Listening for events at contract [%s]", ew.routerContractAddress)
 }
 
 func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	burnEvents := make(chan *router.RouterBurn)
 	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.routerContractAddress, err)
 		return
 	}
 
 	lockEvents := make(chan *router.RouterLock)
 	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.routerContractAddress, err)
 		return
 	}
 
@@ -100,9 +102,9 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q *pair.Queue) {
 		return
 	}
 
-	// TODO: Figure out the mapping
-	nativeAsset, err := ew.contracts.ToNative(eventLog.Token)
-	if err != nil {
+	// TODO: Replace with external configuration service. Ask whether ew.ethClient.ChainID() is a correct way of chainID recognition
+	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.ethClient.ChainID(), eventLog.Token.String())]
+	if nativeAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
 		return
 	}
@@ -148,9 +150,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 		return
 	}
 
-	// TODO: Figure out the mapping
-	nativeAsset, err := ew.contracts.ToNative(eventLog.Token)
-	if err != nil {
+	// TODO: Replace with external configuration service
+	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.ethClient.ChainID(), eventLog.Token.String())]
+	if nativeAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
 		return
 	}
@@ -180,5 +182,5 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&pair.Message{Payload: lockEvent})
+	q.Push(&pair.Message{Payload: lockEvent, ChainId: eventLog.TargetChain})
 }

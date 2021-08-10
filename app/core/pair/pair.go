@@ -16,6 +16,8 @@
 
 package pair
 
+import "math/big"
+
 type Watcher interface {
 	Watch(queue *Queue)
 }
@@ -24,15 +26,15 @@ type Handler interface {
 	Handle(interface{})
 }
 
-// Pair represents a pair of a watcher and a handler, to which the watcher pushes messages
-// which the handler processes
+// Pair represents a pair of a watcher and handlers, to which the watcher pushes messages
+// which the handlers process
 type Pair struct {
-	queue   *Queue
-	watcher Watcher
-	handler Handler
+	queue    *Queue
+	watcher  Watcher
+	handlers map[*big.Int]Handler
 }
 
-// Listen begins the actions of the handler and the watcher
+// Listen begins the actions of the handlers and the watcher
 func (p *Pair) Listen() {
 	p.handle()
 	p.watch()
@@ -42,7 +44,7 @@ func (p *Pair) Listen() {
 func (p *Pair) handle() {
 	go func() {
 		for messages := range p.queue.channel {
-			go p.handler.Handle(messages.Payload)
+			go p.handlers[messages.ChainId].Handle(messages.Payload)
 		}
 	}()
 }
@@ -52,10 +54,10 @@ func (p *Pair) watch() {
 	go p.watcher.Watch(p.queue)
 }
 
-func NewPair(watcher Watcher, handler Handler) *Pair {
+func NewPair(watcher Watcher, handler map[*big.Int]Handler) *Pair {
 	return &Pair{
-		watcher: watcher,
-		handler: handler,
-		queue:   NewQueue(),
+		watcher:  watcher,
+		handlers: handler,
+		queue:    NewQueue(),
 	}
 }

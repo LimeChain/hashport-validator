@@ -23,7 +23,7 @@ import (
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 )
 
-// Contracts interface is implemented by the Contracts Service providing business logic access to the Ethereum SmartContracts and other related utility functions
+// Contracts interface is implemented by the Contracts Service providing business logic access to the EVM SmartContracts and other related utility functions
 type Contracts interface {
 	// Address returns the address of the contract instance
 	Address() common.Address

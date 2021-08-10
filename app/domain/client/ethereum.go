@@ -23,7 +23,7 @@ import (
 	"math/big"
 )
 
-type Ethereum interface {
+type EVM interface {
 	ChainID() *big.Int
 	GetClient() *ethclient.Client
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
@@ -34,4 +34,8 @@ type Ethereum interface {
 	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
 	// WaitForConfirmations starts a loop which ends either when we reach the target block number or an error occurs with block number retrieval
 	WaitForConfirmations(raw types.Log) error
+	// GetRouterContractAddress retrieves the router contract address for the specific EVM Client
+	GetRouterContractAddress() string
+	// GetRouterContractAddress retrieves private key used for the specific EVM Client
+	GetPrivateKey() string
 }

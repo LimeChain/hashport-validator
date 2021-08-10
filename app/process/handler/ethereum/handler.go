@@ -34,7 +34,7 @@ func NewHandler(burnService service.BurnEvent, lockService service.LockEvent) *H
 	return &Handler{
 		lockService: lockService,
 		burnService: burnService,
-		logger:      config.GetLoggerFor("Ethereum Event Handler"),
+		logger:      config.GetLoggerFor("EVM Event Handler"),
 	}
 }
 

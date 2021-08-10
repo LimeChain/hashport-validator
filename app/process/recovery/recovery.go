@@ -29,13 +29,14 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math/big"
 	"time"
 )
 
 type Recovery struct {
 	transfers               service.Transfers
 	messages                service.Messages
-	contracts               service.Contracts
+	contractServices        map[*big.Int]service.Contracts
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
 	transferRepo            repository.Transfer
@@ -45,18 +46,20 @@ type Recovery struct {
 	topicID                 hederasdk.TopicID
 	configRecoveryTimestamp int64
 	logger                  *log.Entry
+	mappings                config.AssetMappings
 }
 
 func NewProcess(
 	c config.Validator,
 	transfers service.Transfers,
 	messages service.Messages,
-	contracts service.Contracts,
+	contractServices map[*big.Int]service.Contracts,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
 	transferRepo repository.Transfer,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
+	mappings config.AssetMappings,
 ) (*Recovery, error) {
 	account, err := hederasdk.AccountIDFromString(c.Clients.Hedera.BridgeAccount)
 	if err != nil {
@@ -71,7 +74,7 @@ func NewProcess(
 	return &Recovery{
 		transfers:               transfers,
 		messages:                messages,
-		contracts:               contracts,
+		contractServices:        contractServices,
 		statusTransferRepo:      statusTransferRepo,
 		statusMessagesRepo:      statusMessagesRepo,
 		transferRepo:            transferRepo,
@@ -81,6 +84,7 @@ func NewProcess(
 		topicID:                 topic,
 		configRecoveryTimestamp: c.Recovery.StartTimestamp,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
+		mappings:                mappings,
 	}, nil
 }
 
@@ -161,8 +165,8 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		wrappedAsset, err := r.contracts.ToWrapped(nativeAsset)
-		if err != nil {
+		wrappedAsset := r.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
+		if wrappedAsset == "" {
 			r.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 			continue
 		}
@@ -224,13 +228,15 @@ func (r Recovery) processUnfinishedOperations() error {
 	}
 
 	for _, t := range unprocessedTransfers {
+		// TODO: remove mockChainID and add targetChainID in t (*entity.Transfer)
+		mockChainID := big.NewInt(1)
 		transferMsg := transfer.New(
 			t.TransactionID,
 			t.Receiver,
 			t.NativeAsset,
 			t.WrappedAsset,
 			t.Amount,
-			r.contracts.Address().String())
+			r.contractServices[mockChainID].Address().String())
 
 		err = r.transfers.ProcessTransfer(*transferMsg)
 		if err != nil {

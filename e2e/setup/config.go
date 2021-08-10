@@ -19,7 +19,6 @@ package setup
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/old-router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -141,7 +140,7 @@ func newSetup(config Config) (*Setup, error) {
 		FeePercentage: config.Hedera.FeePercentage,
 		Members:       members,
 		Clients:       clients,
-		RouterAddress: common.HexToAddress(config.Ethereum.RouterContractAddress),
+		RouterAddress: common.HexToAddress(config.EVM.RouterContractAddress),
 		DbValidator:   dbValidator,
 	}, nil
 }
@@ -152,7 +151,7 @@ type clients struct {
 	EthClient       *ethereum.Client
 	WHbarContract   *wtoken.Wtoken
 	WTokenContract  *wtoken.Wtoken
-	RouterContract  *old_router.Router
+	RouterContract  *router.Router
 	KeyTransactor   *bind.TransactOpts
 	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator
@@ -167,22 +166,22 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := ethereum.NewClient(config.Ethereum)
+	ethClient := ethereum.NewClient(config.EVM)
 
-	routerContractAddress := common.HexToAddress(config.Ethereum.RouterContractAddress)
+	routerContractAddress := common.HexToAddress(config.EVM.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
 
-	wHbarInstance, err := initAssetContract(config.Tokens.WHbar, routerInstance, ethClient)
+	wHbarInstance, err := initAssetContract(config.Tokens.WHbar, config.AssetMappings, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenInstance, err := initAssetContract(config.Tokens.WToken, routerInstance, ethClient)
+	wTokenInstance, err := initAssetContract(config.Tokens.WToken, config.AssetMappings, ethClient)
 	if err != nil {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.Ethereum.PrivateKey)
+	signer := eth.NewEthSigner(config.EVM.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
@@ -207,8 +206,8 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initAssetContract(nativeAsset string, routerInstance *router.Router, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := WrappedAsset(routerInstance, nativeAsset)
+func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := WrappedAsset(nativeAssets, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -221,18 +220,10 @@ func initAssetContract(nativeAsset string, routerInstance *router.Router, ethCli
 	return wTokenInstance, nil
 }
 
-func WrappedAsset(routerInstance *router.Router, nativeAsset string) (*common.Address, error) {
-	nilErc20Address := "0x0000000000000000000000000000000000000000"
-	wrappedAsset, err := routerInstance.NativeToWrapped(
-		nil,
-		common.RightPadBytes([]byte(nativeAsset), 32),
-	)
-	if err != nil {
-		return nil, err
-	}
+func WrappedAsset(nativeAssets config.AssetMappings, nativeAsset string) (*common.Address, error) {
+	wTokenContractHex := nativeAssets.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
 
-	wTokenContractHex := wrappedAsset.String()
-	if wTokenContractHex == nilErc20Address {
+	if wTokenContractHex == "" {
 		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
 	}
 
@@ -267,10 +258,11 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 
 // e2eConfig used to load and parse from application.yml
 type Config struct {
-	Hedera       Hedera          `yaml:"hedera"`
-	Ethereum     config.Ethereum `yaml:"ethereum"`
-	Tokens       Tokens          `yaml:"tokens"`
-	ValidatorUrl string          `yaml:"validator_url"`
+	Hedera        Hedera               `yaml:"hedera"`
+	EVM           config.EVM           `yaml:"ethereum"`
+	Tokens        Tokens               `yaml:"tokens"`
+	ValidatorUrl  string               `yaml:"validator_url"`
+	AssetMappings config.AssetMappings `yaml:"asset-mappings"`
 }
 
 type Tokens struct {

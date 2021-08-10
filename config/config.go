@@ -89,7 +89,7 @@ type AssetMappings struct {
 }
 
 type Network struct {
-	EVMClient    Ethereum                  `yaml:"evm_client"`
+	EVMClient    EVM                       `yaml:"evm_client"`
 	NativeAssets map[string]map[int]string `yaml:"tokens"`
 }
 
@@ -103,16 +103,16 @@ type Validator struct {
 }
 
 type Clients struct {
-	Ethereum   Ethereum   `yaml:"ethereum"`
-	MirrorNode MirrorNode `yaml:"mirror_node"`
-	Hedera     Hedera     `yaml:"hedera"`
+	EVM        map[int64]EVM `yaml:"evm"`
+	MirrorNode MirrorNode    `yaml:"mirror_node"`
+	Hedera     Hedera        `yaml:"hedera"`
 }
 
 type Recovery struct {
 	StartTimestamp int64 `yaml:"start_timestamp" env:"VALIDATOR_RECOVERY_START_TIMESTAMP"`
 }
 
-type Ethereum struct {
+type EVM struct {
 	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_CLIENTS_ETHEREUM_NODE_URL"`
 	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_ROUTER_CONTRACT_ADDRESS"`
 	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_ETHEREUM_BLOCK_CONFIRMATIONS"`

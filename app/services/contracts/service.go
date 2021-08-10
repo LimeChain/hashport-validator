@@ -37,7 +37,7 @@ const (
 type Service struct {
 	address  common.Address
 	contract *router.Router
-	Client   client.Ethereum
+	Client   client.EVM
 	mutex    sync.Mutex
 	members  Members
 	logger   *log.Entry
@@ -111,15 +111,15 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.Ethereum, c config.Ethereum) *Service {
-	contractAddress, err := client.ValidateContractDeployedAt(c.RouterContractAddress)
+func NewService(client client.EVM) *Service {
+	contractAddress, err := client.ValidateContractDeployedAt(client.GetRouterContractAddress())
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	contractInstance, err := router.NewRouter(*contractAddress, client.GetClient())
 	if err != nil {
-		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", c.RouterContractAddress, err)
+		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", client.GetRouterContractAddress(), err)
 	}
 
 	contractService := &Service{

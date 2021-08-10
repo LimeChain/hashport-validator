@@ -28,25 +28,31 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"math/big"
 )
 
-// TODO extract new service only for Ethereum TX handling
+// TODO extract new service only for EVM TX handling
 type Services struct {
-	signer      service.Signer
-	contracts   service.Contracts
-	transfers   service.Transfers
-	messages    service.Messages
-	burnEvents  service.BurnEvent
-	lockEvents  service.LockEvent
-	fees        service.Fee
-	distributor service.Distributor
-	scheduled   service.Scheduled
+	signers          map[*big.Int]service.Signer
+	contractServices map[*big.Int]service.Contracts
+	transfers        service.Transfers
+	messages         service.Messages
+	burnEvents       service.BurnEvent
+	lockEvents       service.LockEvent
+	fees             service.Fee
+	distributor      service.Distributor
+	scheduled        service.Scheduled
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
-	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	ethereumSigners := make(map[*big.Int]service.Signer)
+	contractServices := make(map[*big.Int]service.Contracts)
+	for _, client := range clients.EVMClients {
+		ethereumSigners[client.ChainID()] = eth.NewEthSigner(client.GetPrivateKey())
+		contractServices[client.ChainID()] = contracts.NewService(client)
+	}
+
 	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
 	distributor := distributor.New(c.Validator.Clients.Hedera.Members)
 	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
@@ -55,8 +61,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		// TODO: Wait for new contract to implement WaitForLockEvents channel function
-		contracts,
-		ethSigner,
+		contractServices,
+		ethereumSigners,
 		repositories.transfer,
 		repositories.fee,
 		fees,
@@ -66,14 +72,15 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled)
 
 	messages := messages.NewService(
-		ethSigner,
-		contracts,
+		ethereumSigners,
+		contractServices,
 		repositories.transfer,
 		repositories.message,
 		clients.HederaNode,
 		clients.MirrorNode,
-		clients.Ethereum,
-		c.Validator.Clients.Hedera.TopicId)
+		clients.EVMClients,
+		c.Validator.Clients.Hedera.TopicId,
+		c.AssetMappings)
 
 	burnEvent := burn_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
@@ -92,23 +99,27 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		fees)
 
 	return &Services{
-		signer:      ethSigner,
-		contracts:   contracts,
-		transfers:   transfers,
-		messages:    messages,
-		burnEvents:  burnEvent,
-		lockEvents:  lockEvent,
-		fees:        fees,
-		distributor: distributor,
+		signers:          ethereumSigners,
+		contractServices: contractServices,
+		transfers:        transfers,
+		messages:         messages,
+		burnEvents:       burnEvent,
+		lockEvents:       lockEvent,
+		fees:             fees,
+		distributor:      distributor,
 	}
 }
 
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractService := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	contractServices := make(map[*big.Int]service.Contracts)
+	for _, client := range clients.EVMClients {
+		contractService := contracts.NewService(client)
+		contractServices[client.ChainID()] = contractService
+	}
 
 	return &Services{
-		contracts: contractService,
+		contractServices: contractServices,
 	}
 }

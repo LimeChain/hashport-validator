@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -37,6 +38,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 )
 
 func main() {
@@ -79,12 +81,13 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 	r, err := recovery.NewProcess(configuration.Validator,
 		services.transfers,
 		services.messages,
-		services.contracts,
+		services.contractServices,
 		repository.transferStatus,
 		repository.messageStatus,
 		repository.transfer,
 		client.MirrorNode,
-		client.HederaNode)
+		client.HederaNode,
+		configuration.AssetMappings)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
@@ -121,8 +124,9 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			&repositories.transferStatus,
 			watchersTimestamp,
-			services.contracts),
-		th.NewHandler(services.transfers))
+			services.contractServices),
+		map[*big.Int]pair.Handler{big.NewInt(0): th.NewHandler(services.transfers)},
+	)
 
 	server.AddPair(
 		addConsensusTopicWatcher(
@@ -130,15 +134,23 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp),
-		mh.NewHandler(
+		map[*big.Int]pair.Handler{big.NewInt(0): mh.NewHandler(
 			configuration.Validator.Clients.Hedera.TopicId,
 			repositories.transfer,
 			repositories.message,
-			services.contracts,
-			services.messages))
+			services.contractServices,
+			services.messages)},
+	)
 
-	server.AddPair(ethereum.NewWatcher(services.contracts, clients.Ethereum, configuration.Validator.Clients.Ethereum),
-		beh.NewHandler(services.burnEvents, services.lockEvents))
+	for _, ethereumClient := range clients.EVMClients {
+		ethereumHandlers := make(map[*big.Int]beh.Handler)
+		handler := beh.NewHandler(services.burnEvents, services.lockEvents)
+		ethereumHandlers[ethereumClient.ChainID()] = *handler
+		server.AddPair(
+			// TODO: Replace mappings with external configuration service
+			ethereum.NewWatcher(services.contractServices[ethereumClient.ChainID()], ethereumClient, configuration.AssetMappings),
+			map[*big.Int]pair.Handler{ethereumClient.ChainID(): beh.NewHandler(services.burnEvents, services.lockEvents)})
+	}
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -146,7 +158,7 @@ func addTransferWatcher(configuration *config.Config,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	startTimestamp int64,
-	contractService service.Contracts,
+	contractServices map[*big.Int]service.Contracts,
 ) *tw.Watcher {
 	account := configuration.Validator.Clients.Hedera.BridgeAccount
 
@@ -158,7 +170,8 @@ func addTransferWatcher(configuration *config.Config,
 		configuration.Validator.Clients.MirrorNode.PollingInterval,
 		*repository,
 		startTimestamp,
-		contractService)
+		contractServices,
+		configuration.AssetMappings)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,

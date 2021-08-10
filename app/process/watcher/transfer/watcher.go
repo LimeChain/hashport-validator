@@ -30,6 +30,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math/big"
 	"time"
 )
 
@@ -41,7 +42,8 @@ type Watcher struct {
 	statusRepository repository.Status
 	startTimestamp   int64
 	logger           *log.Entry
-	contractService  service.Contracts
+	contractServices map[*big.Int]service.Contracts
+	mappings         config.AssetMappings
 }
 
 func NewWatcher(
@@ -51,7 +53,8 @@ func NewWatcher(
 	pollingInterval time.Duration,
 	repository repository.Status,
 	startTimestamp int64,
-	contractService service.Contracts,
+	contractServices map[*big.Int]service.Contracts,
+	mappings config.AssetMappings,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -66,7 +69,8 @@ func NewWatcher(
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractService:  contractService,
+		contractServices: contractServices,
+		mappings:         mappings,
 	}
 }
 
@@ -144,8 +148,9 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	wrappedAsset, err := ctw.contractService.ToWrapped(nativeAsset)
-	if err != nil {
+	// TODO: Figure indexing out, for now we are simply looking at mapping of Hedera native asset to Ethereum wrapped asset
+	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
+	if wrappedAsset == "" {
 		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 		return
 	}
@@ -156,6 +161,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractService.Address().String())
-	q.Push(&pair.Message{Payload: transferMessage})
+	mockChainID := big.NewInt(1)
+	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
+	q.Push(&pair.Message{Payload: transferMessage, ChainId: mockChainID})
 }

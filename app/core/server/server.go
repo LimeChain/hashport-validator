@@ -21,6 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 	"net/http"
 )
 
@@ -35,8 +36,8 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) AddPair(watcher pair.Watcher, handler pair.Handler) {
-	s.pairs = append(s.pairs, pair.NewPair(watcher, handler))
+func (s *Server) AddPair(watcher pair.Watcher, handlers map[*big.Int]pair.Handler) {
+	s.pairs = append(s.pairs, pair.NewPair(watcher, handlers))
 }
 
 // Run starts every pair's Listen and serves the chi.Mux on a given port

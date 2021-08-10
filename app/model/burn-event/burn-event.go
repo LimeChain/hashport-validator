@@ -18,7 +18,7 @@ package burn_event
 
 import "github.com/hashgraph/hedera-sdk-go/v2"
 
-// BurnEvent serves as a model between Ethereum Watcher and Handler
+// BurnEvent serves as a model between EVM Watcher and Handler
 type BurnEvent struct {
 	Id           string // {ethereumTxHash}-{logIndex}
 	Amount       int64
