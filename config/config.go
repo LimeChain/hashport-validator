@@ -37,11 +37,25 @@ func LoadConfig() Config {
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
 
+	// TODO: Replace this configuration with an external configuration service
+	loadWrappedToNativeAssets(&configuration.AssetMappings)
+
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
 	}
 
 	return configuration
+}
+
+func loadWrappedToNativeAssets(mappings *NativeAssets) {
+	for networkId, network := range mappings.Networks {
+		mappings.Networks[networkId].WrappedToNative = make(map[string]string)
+		for ntwKey, references := range network.NativeToWrapped {
+			for _, reference := range references {
+				mappings.Networks[networkId].WrappedToNative[reference] = ntwKey
+			}
+		}
+	}
 }
 
 func GetConfig(config *Config, path string) error {
@@ -64,7 +78,25 @@ func GetConfig(config *Config, path string) error {
 }
 
 type Config struct {
-	Validator Validator `yaml:"validator"`
+	Validator     Validator    `yaml:"validator"`
+	AssetMappings NativeAssets `yaml:"native-assets"`
+}
+
+type NativeAssets struct {
+	Networks map[int]*Network `yaml:"networks,omitempty"`
+}
+
+type Network struct {
+	EVMClient       EVMClient                 `yaml:"evm_client"`
+	NativeToWrapped map[string]map[int]string `yaml:"tokens"`
+	WrappedToNative map[string]string
+}
+
+type EVMClient struct {
+	BlockConfirmations    int    `yaml:"block_confirmations"`
+	NodeUrl               string `yaml:"node_url"`
+	PrivateKey            string `yaml:"private_key"`
+	RouterContractAddress string `yaml:"router_contract_address"`
 }
 
 type Validator struct {

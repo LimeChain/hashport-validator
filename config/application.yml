@@ -31,3 +31,22 @@ validator:
   recovery:
     start_timestamp:
   rest-api-only: false
+native-assets:
+  networks:
+    0: # Hedera
+      tokens:
+        "HBAR": # Wrapped Assets
+            1: "0x5b7576310ec2d7a3e19979fcedac0e93699012ea" # Wrapped HBAR on Ethereum
+            137: "0x09124dbcc5a588c77239e59d7fa7ab5b457e5042" # Wrapped HBAR on Polygon
+        "0.0.1049": # Some imaginary HTS native token
+            1: "0xbb0e17ef65f82ab018d8edd776e8dd940327b28b" # Wrapped Imaginary HTS native token on Ethereum
+            137: "0xdac17f958d2ee523a2206206994597c13d831ec7" # Wrapped imaginary HTS native token on Polygon
+    1:                                # Ethereum Mainnet
+      evm_client:
+        block_confirmations: 5
+        node_url:
+        private_key:
+        router_contract_address:
+      tokens:
+        "0x6b175474e89094c44da98b954eedeac495271d0f": # DAI address
+            0: "0.0.1050"     # DAI HTS token on Hedera; 0 is Hedera
