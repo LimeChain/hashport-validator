@@ -48,7 +48,7 @@ func LoadConfig() Config {
 	return configuration
 }
 
-func loadWrappedToNativeAssets(mappings *NativeAssets) {
+func loadWrappedToNativeAssets(mappings *AssetMappings) {
 	mappings.WrappedToNative = make(map[string]string)
 	for _, network := range mappings.NativeToWrappedByNetwork {
 		for nativeChainId, nativeAssetMapping := range network.NativeAssets {
@@ -79,11 +79,11 @@ func GetConfig(config *Config, path string) error {
 }
 
 type Config struct {
-	Validator     Validator    `yaml:"validator"`
-	AssetMappings NativeAssets `yaml:"native-assets"`
+	Validator     Validator     `yaml:"validator"`
+	AssetMappings AssetMappings `yaml:"asset-mappings"`
 }
 
-type NativeAssets struct {
+type AssetMappings struct {
 	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
 	WrappedToNative          map[string]string
 }

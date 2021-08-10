@@ -31,7 +31,7 @@ validator:
   recovery:
     start_timestamp:
   rest-api-only: false
-native-assets:
+asset-mappings:
   networks:
     0: # Hedera
       tokens:
