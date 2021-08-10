@@ -17,6 +17,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,11 +49,11 @@ func LoadConfig() Config {
 }
 
 func loadWrappedToNativeAssets(mappings *NativeAssets) {
-	for networkId, network := range mappings.Networks {
-		mappings.Networks[networkId].WrappedToNative = make(map[string]string)
-		for ntwKey, references := range network.NativeToWrapped {
-			for _, reference := range references {
-				mappings.Networks[networkId].WrappedToNative[reference] = ntwKey
+	mappings.WrappedToNative = make(map[string]string)
+	for _, network := range mappings.NativeToWrappedByNetwork {
+		for nativeChainId, nativeAssetMapping := range network.NativeAssets {
+			for chainId, wrappedAsset := range nativeAssetMapping {
+				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = nativeChainId
 			}
 		}
 	}
@@ -83,13 +84,13 @@ type Config struct {
 }
 
 type NativeAssets struct {
-	Networks map[int]*Network `yaml:"networks,omitempty"`
+	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
+	WrappedToNative          map[string]string
 }
 
 type Network struct {
-	EVMClient       EVMClient                 `yaml:"evm_client"`
-	NativeToWrapped map[string]map[int]string `yaml:"tokens"`
-	WrappedToNative map[string]string
+	EVMClient    EVMClient                 `yaml:"evm_client"`
+	NativeAssets map[string]map[int]string `yaml:"tokens"`
 }
 
 type EVMClient struct {
