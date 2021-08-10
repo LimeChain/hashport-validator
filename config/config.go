@@ -17,6 +17,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -37,11 +38,25 @@ func LoadConfig() Config {
 	GetConfig(&configuration, defaultConfigFile)
 	GetConfig(&configuration, mainConfigFile)
 
+	// TODO: Replace this configuration with an external configuration service
+	loadWrappedToNativeAssets(&configuration.AssetMappings)
+
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
 	}
 
 	return configuration
+}
+
+func loadWrappedToNativeAssets(mappings *AssetMappings) {
+	mappings.WrappedToNative = make(map[string]string)
+	for nativeChainId, network := range mappings.NativeToWrappedByNetwork {
+		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
+			for chainId, wrappedAsset := range nativeAssetMapping {
+				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = fmt.Sprintf("%s-%d", nativeAsset, nativeChainId)
+			}
+		}
+	}
 }
 
 func GetConfig(config *Config, path string) error {
@@ -64,7 +79,18 @@ func GetConfig(config *Config, path string) error {
 }
 
 type Config struct {
-	Validator Validator `yaml:"validator"`
+	Validator     Validator     `yaml:"validator"`
+	AssetMappings AssetMappings `yaml:"asset-mappings"`
+}
+
+type AssetMappings struct {
+	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
+	WrappedToNative          map[string]string
+}
+
+type Network struct {
+	EVMClient    Ethereum                  `yaml:"evm_client"`
+	NativeAssets map[string]map[int]string `yaml:"tokens"`
 }
 
 type Validator struct {
