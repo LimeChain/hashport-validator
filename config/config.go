@@ -50,8 +50,8 @@ func LoadConfig() Config {
 
 func loadWrappedToNativeAssets(mappings *AssetMappings) {
 	mappings.WrappedToNative = make(map[string]string)
-	for nativeChainId, chain := range mappings.NativeToWrappedByChain {
-		for nativeAsset, nativeAssetMapping := range chain.NativeAssets {
+	for nativeChainId, network := range mappings.NativeToWrappedByNetwork {
+		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
 			for chainId, wrappedAsset := range nativeAssetMapping {
 				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = fmt.Sprintf("%s-%d", nativeAsset, nativeChainId)
 			}
@@ -84,20 +84,13 @@ type Config struct {
 }
 
 type AssetMappings struct {
-	NativeToWrappedByChain map[int]*Network `yaml:"networks,omitempty"`
-	WrappedToNative        map[string]string
+	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
+	WrappedToNative          map[string]string
 }
 
 type Network struct {
-	EVMClient    EVMClient                 `yaml:"evm_client"`
+	EVMClient    Ethereum                  `yaml:"evm_client"`
 	NativeAssets map[string]map[int]string `yaml:"tokens"`
-}
-
-type EVMClient struct {
-	BlockConfirmations    int    `yaml:"block_confirmations"`
-	NodeUrl               string `yaml:"node_url"`
-	PrivateKey            string `yaml:"private_key"`
-	RouterContractAddress string `yaml:"router_contract_address"`
 }
 
 type Validator struct {
