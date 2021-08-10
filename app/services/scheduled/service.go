@@ -106,6 +106,10 @@ func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, t
 	return transactionResponse, err
 }
 
+func (s *Service) ExecuteScheduledMintTransaction(id, nativeAsset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	// TODO: Implement Scheduled Mint Execution Function
+}
+
 // TODO: Find a way to place this method
 func (s *Service) executeScheduledMintTransaction(id, nativeAsset string, amount int64) (*hedera.TransactionResponse, error) {
 	var tokenID hedera.TokenID

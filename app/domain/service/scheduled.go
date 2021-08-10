@@ -21,6 +21,8 @@ import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 // Scheduled interface is implemented by the Scheduled Service
 // Provides business logic for execution of Scheduled Transactions
 type Scheduled interface {
-	// ExecuteScheduledTransferTransaction submits a scheduled transaction and executes provided functions when necessary
+	// ExecuteScheduledTransferTransaction submits a scheduled transfer transaction and executes provided functions when necessary
 	ExecuteScheduledTransferTransaction(id, nativeAsset string, transfers []transfer.Hedera, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
+	// ExecuteScheduledMintTransaction submits a scheduled mint transaction and executes provided functions when necessary
+	ExecuteScheduledMintTransaction(id, nativeAsset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 }

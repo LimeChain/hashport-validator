@@ -73,14 +73,14 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router
 }
 
 func (bsc *Service) updateMembers() {
-	membersCount, err := bsc.contract.NativeTokensCount(nil)
+	membersCount, err := bsc.contract.MembersCount(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get members count", err)
 	}
 
 	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
-		addr, err := bsc.contract.NativeTokenAt(nil, big.NewInt(int64(i)))
+		addr, err := bsc.contract.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
 			bsc.logger.Fatal("Failed to get member address", err)
 		}
@@ -92,8 +92,8 @@ func (bsc *Service) updateMembers() {
 }
 
 func (bsc *Service) listenForMemberUpdatedEvent() {
-	events := make(chan *router.RouterNativeTokenUpdated)
-	sub, err := bsc.contract.WatchNativeTokenUpdated(nil, events)
+	events := make(chan *router.RouterMemberUpdated)
+	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
 	}
