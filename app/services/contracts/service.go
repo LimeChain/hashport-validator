@@ -17,8 +17,8 @@
 package contracts
 
 import (
-	"errors"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math/big"
@@ -27,7 +27,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	routerAbi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,41 +36,15 @@ const (
 
 type Service struct {
 	address  common.Address
-	contract *routerAbi.Router
+	contract *router.Router
 	Client   client.Ethereum
 	mutex    sync.Mutex
 	members  Members
 	logger   *log.Entry
 }
 
-func (bsc *Service) ToWrapped(nativeAsset string) (string, error) {
-	wrappedAsset, err := bsc.contract.NativeToWrapped(
-		nil,
-		common.RightPadBytes([]byte(nativeAsset), 32),
-	)
-	if err != nil {
-		return "", err
-	}
-
-	erc20address := wrappedAsset.String()
-	if erc20address == nilErc20Address {
-		return "", errors.New("token-not-supported")
-	}
-
-	return erc20address, nil
-}
-
-func (bsc *Service) ToNative(wrappedAsset common.Address) (string, error) {
-	native, err := bsc.contract.WrappedToNative(nil, wrappedAsset)
-	if err != nil {
-		return "", err
-	}
-
-	if len(native) == 0 {
-		return "", errors.New("native token not found")
-	}
-
-	return string(common.TrimRightZeroes(native)), nil
+func (bsc *Service) WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterLock) (event.Subscription, error) {
+	return bsc.contract.WatchLock(opts, sink)
 }
 
 // Address returns the address of the contract instance
@@ -95,19 +68,19 @@ func (bsc *Service) IsMember(address string) bool {
 }
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
-func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *routerAbi.RouterBurn) (event.Subscription, error) {
-	return bsc.contract.WatchBurn(opts, sink, nil, nil)
+func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
+	return bsc.contract.WatchBurn(opts, sink)
 }
 
 func (bsc *Service) updateMembers() {
-	membersCount, err := bsc.contract.MembersCount(nil)
+	membersCount, err := bsc.contract.NativeTokensCount(nil)
 	if err != nil {
 		bsc.logger.Fatal("Failed to get members count", err)
 	}
 
 	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
-		addr, err := bsc.contract.MemberAt(nil, big.NewInt(int64(i)))
+		addr, err := bsc.contract.NativeTokenAt(nil, big.NewInt(int64(i)))
 		if err != nil {
 			bsc.logger.Fatal("Failed to get member address", err)
 		}
@@ -119,8 +92,8 @@ func (bsc *Service) updateMembers() {
 }
 
 func (bsc *Service) listenForMemberUpdatedEvent() {
-	events := make(chan *routerAbi.RouterMemberUpdated)
-	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
+	events := make(chan *router.RouterNativeTokenUpdated)
+	sub, err := bsc.contract.WatchNativeTokenUpdated(nil, events)
 	if err != nil {
 		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
 	}
@@ -144,7 +117,7 @@ func NewService(client client.Ethereum, c config.Ethereum) *Service {
 		log.Fatal(err)
 	}
 
-	contractInstance, err := routerAbi.NewRouter(*contractAddress, client.GetClient())
+	contractInstance, err := router.NewRouter(*contractAddress, client.GetClient())
 	if err != nil {
 		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", c.RouterContractAddress, err)
 	}

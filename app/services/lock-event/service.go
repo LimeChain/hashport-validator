@@ -17,7 +17,6 @@
 package lock_event
 
 import (
-	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -126,7 +125,7 @@ func (s *Service) TransactionID(id string) (string, error) {
 		return "", service.ErrNotFound
 	}
 
-	return event.TransactionId.String, nil
+	return event.ScheduleMintTxId.String, nil
 }
 
 func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -146,10 +145,6 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			ScheduleID:    scheduleID,
 			Amount:        feeAmount,
 			Status:        fee.StatusSubmitted,
-			LockEventID: sql.NullString{
-				String: id,
-				Valid:  true,
-			},
 		})
 		if err != nil {
 			s.logger.Errorf(
@@ -170,10 +165,6 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			TransactionID: transactionID,
 			Amount:        feeAmount,
 			Status:        fee.StatusFailed,
-			LockEventID: sql.NullString{
-				String: id,
-				Valid:  true,
-			},
 		})
 		if err != nil {
 			s.logger.Errorf("[%s] Fee - Failed to create failed record. Error [%s].", transactionID, err)

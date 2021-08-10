@@ -22,12 +22,9 @@ import (
 
 // TODO: Define interface methods
 
-// BurnEvent is the major service used for processing BurnEvent operations
+// LockEvent is the major service used for processing BurnEvent operations
 type LockEvent interface {
-	// ProcessEvent processes the burn event by submitting the appropriate
-	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
+	// ProcessEvent processes the lock event by submitting the appropriate
+	// Scheduled Mint and Transfer transactions
 	ProcessEvent(event lock_event.LockEvent)
-	// TransactionID returns the corresponding Scheduled Transaction paying out the
-	// fees to validators and the amount being bridged to the receiver address
-	TransactionID(id string) (string, error)
 }

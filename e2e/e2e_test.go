@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/old-router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -33,7 +34,6 @@ import (
 	"testing"
 	"time"
 
-	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
@@ -268,13 +268,13 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount ui
 	}
 }
 
-func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *routerContract.RouterBurn, t *testing.T) string {
-	parsedAbi, err := abi.JSON(strings.NewReader(routerContract.RouterABI))
+func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *old_router.RouterBurn, t *testing.T) string {
+	parsedAbi, err := abi.JSON(strings.NewReader(old_router.RouterABI))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	routerBurn := routerContract.RouterBurn{}
+	routerBurn := old_router.RouterBurn{}
 	eventSignature := []byte("Burn(address,address,uint256,bytes)")
 	eventSignatureHash := crypto.Keccak256Hash(eventSignature)
 	for _, log := range txReceipt.Logs {
@@ -510,7 +510,7 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 	return expectedTransfers
 }
 
-func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *routerContract.RouterBurn) {
+func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *old_router.RouterBurn) {
 	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, asset)
 	if err != nil {
 		t.Fatal(err)
@@ -543,7 +543,7 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*typ
 	}
 	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
 
-	expectedRouterBurn := &routerContract.RouterBurn{
+	expectedRouterBurn := &old_router.RouterBurn{
 		Account:      common.HexToAddress(setupEnv.Clients.Signer.Address()),
 		WrappedAsset: *wrappedAsset,
 		Amount:       approvedValue,

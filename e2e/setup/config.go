@@ -19,6 +19,8 @@ package setup
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/old-router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
@@ -33,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -151,7 +152,7 @@ type clients struct {
 	EthClient       *ethereum.Client
 	WHbarContract   *wtoken.Wtoken
 	WTokenContract  *wtoken.Wtoken
-	RouterContract  *router.Router
+	RouterContract  *old_router.Router
 	KeyTransactor   *bind.TransactOpts
 	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator

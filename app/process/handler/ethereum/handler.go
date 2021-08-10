@@ -34,22 +34,23 @@ func NewHandler(burnService service.BurnEvent, lockService service.LockEvent) *H
 	return &Handler{
 		lockService: lockService,
 		burnService: burnService,
-		logger:      config.GetLoggerFor("Scheduled Transaction Handler"),
+		logger:      config.GetLoggerFor("Ethereum Event Handler"),
 	}
 }
 
 func (sth Handler) Handle(payload interface{}) {
+	// TODO: Modify logic so that we do not log improperly
 	burnEvent, ok := payload.(*burn_event.BurnEvent)
 	if ok {
 		sth.burnService.ProcessEvent(*burnEvent)
 		return
 	}
-	sth.logger.Errorf("Could not cast payload [%s] to [burnEvent]", payload)
 
 	lockEvent, ok := payload.(*lock_event.LockEvent)
 	if ok {
 		sth.lockService.ProcessEvent(*lockEvent)
 		return
 	}
-	sth.logger.Errorf("Could not cast payload [%s] to [lockEvent]", payload)
+
+	sth.logger.Errorf("Could not cast payload [%s] to any of the events: [burnEvent, lockEvent]", payload)
 }

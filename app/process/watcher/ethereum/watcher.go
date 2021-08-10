@@ -18,9 +18,8 @@ package ethereum
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	routerContract "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -55,16 +54,15 @@ func (ew *Watcher) Watch(queue *pair.Queue) {
 }
 
 func (ew *Watcher) listenForEvents(q *pair.Queue) {
-	burnEvents := make(chan *routerContract.RouterBurn)
+	burnEvents := make(chan *router.RouterBurn)
 	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
 		return
 	}
 
-	// TODO: Replace RouterBurn -> RouterLock and WatchLockEventLogs -> WatchBurnEventLogs
-	lockEvents := make(chan *routerContract.RouterBurn)
-	lockSubscription, err := ew.contracts.WatchBurnEventLogs(nil, lockEvents)
+	lockEvents := make(chan *router.RouterLock)
+	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.config.RouterContractAddress, err)
 		return
@@ -88,7 +86,7 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	}
 }
 
-func (ew *Watcher) handleBurnLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
+func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q *pair.Queue) {
 	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
@@ -101,9 +99,11 @@ func (ew *Watcher) handleBurnLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
 		return
 	}
-	nativeAsset, err := ew.contracts.ToNative(eventLog.WrappedAsset)
+
+	// TODO: Figure out the mapping
+	nativeAsset, err := ew.contracts.ToNative(eventLog.Token)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (ew *Watcher) handleBurnLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:    recipientAccount,
 		NativeAsset:  nativeAsset,
-		WrappedAsset: eventLog.WrappedAsset.String(),
+		WrappedAsset: eventLog.Token.String(),
 	}
 
 	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
@@ -126,22 +126,15 @@ func (ew *Watcher) handleBurnLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		return
 	}
 
-	ew.logger.Infof("[%s] - New Burn Event Log from [%s], with Amount [%s], Receiver Address [%s] has been found.",
+	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
-		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
 	q.Push(&pair.Message{Payload: burnEvent})
 }
 
-// TODO: Use RouterLock when the contract is ready
-func (ew *Watcher) handleLockLog(eventLog *routerContract.RouterBurn, q *pair.Queue) {
-	// TODO: ignore mock chain ID for now
-	// var mockChainID uint8 = 1
-	mockNativeToken := common.Address{}
-	mockWrappedToken, _ := ew.contracts.ToWrapped(mockNativeToken.String())
-
+func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 	ew.logger.Debugf("[%s] - New Lock Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
@@ -149,7 +142,6 @@ func (ew *Watcher) handleLockLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		return
 	}
 
-	// TODO: Parse Lock Function Parameters properly
 	recipientAccount, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -157,9 +149,9 @@ func (ew *Watcher) handleLockLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 	}
 
 	// TODO: Figure out the mapping
-	nativeAsset, err := ew.contracts.ToNative(eventLog.WrappedAsset)
+	nativeAsset, err := ew.contracts.ToNative(eventLog.Token)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.WrappedAsset, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
 		return
 	}
 
@@ -168,13 +160,13 @@ func (ew *Watcher) handleLockLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		return
 	}
 
-	// TODO: Place proper parameters here
 	lockEvent := &lock_event.LockEvent{
 		Amount:       eventLog.Amount.Int64(),
 		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:    recipientAccount,
 		NativeAsset:  nativeAsset,
-		WrappedAsset: mockWrappedToken,
+		WrappedAsset: eventLog.Token.String(),
+		ChainId:      eventLog.TargetChain,
 	}
 
 	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
@@ -183,9 +175,8 @@ func (ew *Watcher) handleLockLog(eventLog *routerContract.RouterBurn, q *pair.Qu
 		return
 	}
 
-	ew.logger.Infof("[%s] - New Lock Event Log from [%s], with Amount [%s], Receiver Address [%s] has been found.",
+	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
-		eventLog.Account.Hex(),
 		eventLog.Amount.String(),
 		recipientAccount.String())
 

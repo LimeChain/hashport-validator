@@ -47,8 +47,7 @@ func PrepareRepositories(db database.Database) *Repositories {
 		transfer:       transfer.NewRepository(connection),
 		message:        message.NewRepository(connection),
 		burnEvent:      burn_event.NewRepository(connection),
-		// TODO: Define Lock Event interface
-		lockEvent: lock_event.NewRepository(connection),
-		fee:       fee.NewRepository(connection),
+		lockEvent:      lock_event.NewRepository(connection),
+		fee:            fee.NewRepository(connection),
 	}
 }

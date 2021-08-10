@@ -16,7 +16,7 @@
 
 package lock_event
 
-// TODO: Put statuses here
+// TODO: IMPORTANT: Put statuses here
 const (
 	// StatusCompleted is a status set once the LockEvent operation is successfully completed.
 	// This is a terminal status
