@@ -22,10 +22,11 @@ import (
 )
 
 type LockEvent struct {
-	Id           string
-	Amount       int64
-	Recipient    hedera.AccountID
-	NativeAsset  string
-	WrappedAsset string
-	ChainId      *big.Int
+	Id            string
+	Amount        int64
+	Recipient     hedera.AccountID
+	NativeAsset   string
+	WrappedAsset  string
+	SourceChainId *big.Int
+	TargetChainId *big.Int
 }

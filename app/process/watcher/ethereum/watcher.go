@@ -163,12 +163,13 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 	}
 
 	lockEvent := &lock_event.LockEvent{
-		Amount:       eventLog.Amount.Int64(),
-		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		Recipient:    recipientAccount,
-		NativeAsset:  nativeAsset,
-		WrappedAsset: eventLog.Token.String(),
-		ChainId:      eventLog.TargetChain,
+		Amount:        eventLog.Amount.Int64(),
+		Id:            fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+		Recipient:     recipientAccount,
+		NativeAsset:   nativeAsset,
+		WrappedAsset:  eventLog.Token.String(),
+		SourceChainId: ew.ethClient.ChainID(),
+		TargetChainId: eventLog.TargetChain,
 	}
 
 	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
@@ -182,5 +183,5 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&pair.Message{Payload: lockEvent, ChainId: eventLog.TargetChain})
+	q.Push(&pair.Message{Payload: lockEvent, ChainId: ew.ethClient.ChainID()})
 }
