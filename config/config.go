@@ -50,10 +50,10 @@ func LoadConfig() Config {
 
 func loadWrappedToNativeAssets(mappings *AssetMappings) {
 	mappings.WrappedToNative = make(map[string]string)
-	for _, network := range mappings.NativeToWrappedByNetwork {
-		for nativeChainId, nativeAssetMapping := range network.NativeAssets {
+	for nativeChainId, chain := range mappings.NativeToWrappedByChain {
+		for nativeAsset, nativeAssetMapping := range chain.NativeAssets {
 			for chainId, wrappedAsset := range nativeAssetMapping {
-				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = nativeChainId
+				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = fmt.Sprintf("%s-%d", nativeAsset, nativeChainId)
 			}
 		}
 	}
@@ -84,8 +84,8 @@ type Config struct {
 }
 
 type AssetMappings struct {
-	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
-	WrappedToNative          map[string]string
+	NativeToWrappedByChain map[int]*Network `yaml:"networks,omitempty"`
+	WrappedToNative        map[string]string
 }
 
 type Network struct {
