@@ -161,7 +161,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	mockChainID := big.NewInt(1)
+	mockChainID := big.NewInt(0)
 	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
 	q.Push(&pair.Message{Payload: transferMessage, ChainId: mockChainID})
 }
