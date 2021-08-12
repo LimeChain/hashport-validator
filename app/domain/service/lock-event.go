@@ -20,8 +20,6 @@ import (
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 )
 
-// TODO: Define interface methods
-
 // LockEvent is the major service used for processing BurnEvent operations
 type LockEvent interface {
 	// ProcessEvent processes the lock event by submitting the appropriate

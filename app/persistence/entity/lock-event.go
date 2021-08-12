@@ -18,8 +18,6 @@ package entity
 
 import "database/sql"
 
-// TODO: Put proper GORM entity model here
-
 type LockEvent struct {
 	Id                   string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
 	ScheduleTransferID   string

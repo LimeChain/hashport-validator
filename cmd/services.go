@@ -60,7 +60,6 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
-		// TODO: Wait for new contract to implement WaitForLockEvents channel function
 		contractServices,
 		ethereumSigners,
 		repositories.transfer,

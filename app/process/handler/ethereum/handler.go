@@ -39,18 +39,12 @@ func NewHandler(burnService service.BurnEvent, lockService service.LockEvent) *H
 }
 
 func (sth Handler) Handle(payload interface{}) {
-	// TODO: Modify logic so that we do not log improperly
-	burnEvent, ok := payload.(*burn_event.BurnEvent)
-	if ok {
-		sth.burnService.ProcessEvent(*burnEvent)
-		return
+	switch event := payload.(type) {
+	case *burn_event.BurnEvent:
+		sth.burnService.ProcessEvent(*event)
+	case *lock_event.LockEvent:
+		sth.lockService.ProcessEvent(*event)
+	default:
+		sth.logger.Errorf("Could not cast payload [%s] to any of the events: [burnEvent, lockEvent]", payload)
 	}
-
-	lockEvent, ok := payload.(*lock_event.LockEvent)
-	if ok {
-		sth.lockService.ProcessEvent(*lockEvent)
-		return
-	}
-
-	sth.logger.Errorf("Could not cast payload [%s] to any of the events: [burnEvent, lockEvent]", payload)
 }
