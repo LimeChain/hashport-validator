@@ -93,10 +93,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	lockEvent := lock_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
 		repositories.lockEvent,
-		repositories.fee,
-		distributor,
-		scheduled,
-		fees)
+		scheduled)
 
 	return &Services{
 		signers:          ethereumSigners,

@@ -200,9 +200,9 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
 }
 
-// WaitForScheduledTransferTransaction Polls the transaction at intervals. Depending on the
+// WaitForScheduledTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
-func (c Client) WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func()) {
+func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {
 	go func() {
 		for {
 			response, err := c.GetTransaction(txId)

@@ -17,13 +17,12 @@
 package lock_event
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
+	lock_event_status "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/lock-event"
 	"gorm.io/gorm"
 )
-
-// TODO: Put proper repository model with correct parameters here
 
 type Repository struct {
 	dbClient *gorm.DB
@@ -35,26 +34,49 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (sr Repository) Create(id string, amount int64, recipient string) error {
+func (sr Repository) Create(id string, amount int64, recipient, nativeAsset, wrappedAsset string) error {
 	return sr.dbClient.Create(&entity.LockEvent{
-		Id: id,
+		Id:           id,
+		Amount:       amount,
+		Recipient:    recipient,
+		NativeAsset:  nativeAsset,
+		WrappedAsset: wrappedAsset,
+		Status:       lock_event_status.StatusInitial,
 	}).Error
 }
 
-func (sr Repository) UpdateStatusSubmitted(ethTxHash, scheduleID, transactionId string) error {
+func (sr Repository) UpdateStatusScheduledTokenMintSubmitted(ethTxHash, scheduledTokenMintID, originalScheduledTokenMintID string) error {
 	return sr.dbClient.
 		Model(entity.LockEvent{}).
 		Where("id = ?", ethTxHash).
-		Updates(entity.LockEvent{}).
+		Updates(entity.LockEvent{Status: lock_event_status.StatusMintSubmitted, ScheduleMintID: scheduledTokenMintID, ScheduleMintTxId: sql.NullString{
+			String: originalScheduledTokenMintID,
+			Valid:  true,
+		}}).
 		Error
 }
 
+func (sr Repository) UpdateStatusScheduledTokenTransferSubmitted(ethTxHash, scheduledTokenTransferID, originalScheduledTokenTransferID string) error {
+	return sr.dbClient.
+		Model(entity.LockEvent{}).
+		Where("id = ?", ethTxHash).
+		Updates(entity.LockEvent{Status: lock_event_status.StatusTransferSubmitted, ScheduleTransferID: scheduledTokenTransferID, ScheduleTransferTxId: sql.NullString{
+			String: originalScheduledTokenTransferID,
+			Valid:  true,
+		}}).
+		Error
+}
+
+func (sr Repository) UpdateStatusScheduledTokenMintCompleted(id string) error {
+	return sr.updateStatus(id, lock_event_status.StatusMintCompleted)
+}
+
 func (sr Repository) UpdateStatusCompleted(id string) error {
-	return sr.updateStatus(id, burn_event.StatusCompleted)
+	return sr.updateStatus(id, lock_event_status.StatusCompleted)
 }
 
 func (sr Repository) UpdateStatusFailed(id string) error {
-	return sr.updateStatus(id, burn_event.StatusFailed)
+	return sr.updateStatus(id, lock_event_status.StatusFailed)
 }
 
 func (sr Repository) updateStatus(id string, status string) error {

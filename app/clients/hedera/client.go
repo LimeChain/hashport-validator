@@ -66,7 +66,8 @@ func (hc Node) GetClient() *hedera.Client {
 
 // SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
 func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
-	return nil, errors.New("NOT SUPPORTED YET")
+	tokenMintTx := hedera.NewTokenMintTransaction().SetTokenID(tokenID).SetAmount(uint64(amount))
+	return hc.submitScheduledMintTransaction(payerAccountID, memo, tokenMintTx)
 }
 
 // SubmitTopicConsensusMessage submits the provided message bytes to the
@@ -137,6 +138,27 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
+	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
+}
+
+// submitScheduledMintTransaction freezes the input transaction, signs with operator and submits to HCS
+func (hc Node) submitScheduledMintTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TokenMintTransaction) (*hedera.TransactionResponse, error) {
+	// TODO: extract 147 to 154 to a different method
+	tx, err := tx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTransaction, err := tx.
+		SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
+}
+
+func (hc Node) submitScheduledTransaction(signedTransaction hedera.ITransaction, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	scheduledTx, err := hedera.NewScheduleCreateTransaction().
 		SetScheduledTransaction(signedTransaction)
 	if err != nil {

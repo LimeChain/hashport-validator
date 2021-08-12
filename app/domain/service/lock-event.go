@@ -25,6 +25,6 @@ import (
 // LockEvent is the major service used for processing BurnEvent operations
 type LockEvent interface {
 	// ProcessEvent processes the lock event by submitting the appropriate
-	// Scheduled Mint and Transfer transactions
+	// Scheduled Token Mint and Transfer transactions
 	ProcessEvent(event lock_event.LockEvent)
 }

@@ -30,10 +30,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	nilErc20Address = "0x0000000000000000000000000000000000000000"
-)
-
 type Service struct {
 	address  common.Address
 	contract *router.Router
@@ -131,7 +127,7 @@ func NewService(client client.EVM) *Service {
 
 	contractService.updateMembers()
 
-	go contractService.listenForMemberUpdatedEvent()
+	//go contractService.listenForMemberUpdatedEvent() // TODO: remove comment when new contract is ready
 
 	return contractService
 }

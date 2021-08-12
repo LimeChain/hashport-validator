@@ -41,7 +41,7 @@ type MirrorNode interface {
 	// WaitForTransaction Polls the transaction at intervals. Depending on the
 	// result, the corresponding `onSuccess` and `onFailure` functions are called
 	WaitForTransaction(txId string, onSuccess, onFailure func())
-	// WaitForScheduledTransferTransaction Polls the transaction at intervals. Depending on the
+	// WaitForScheduledTransaction Polls the transaction at intervals. Depending on the
 	// result, the corresponding `onSuccess` and `onFailure` functions are called
-	WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func())
+	WaitForScheduledTransaction(txId string, onSuccess, onFailure func())
 }

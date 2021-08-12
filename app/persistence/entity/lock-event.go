@@ -24,10 +24,11 @@ type LockEvent struct {
 	Id                   string `gorm:"primaryKey"` // represents {ethTxHash}-{logIndex}
 	ScheduleTransferID   string
 	ScheduleMintID       string
+	NativeAsset          string
+	WrappedAsset         string
 	Amount               int64
 	Recipient            string
 	Status               string
-	ScheduleTransferTxId sql.NullString `gorm:"unique"`                 // id of the original scheduled transfer transaction
-	ScheduleMintTxId     sql.NullString `gorm:"unique"`                 // id of the original scheduled mint transaction
-	Fee                  Fee            `gorm:"foreignKey:LockEventID"` // TODO: Review whether we need to populate this
+	ScheduleTransferTxId sql.NullString `gorm:"unique"` // id of the original scheduled transfer transaction
+	ScheduleMintTxId     sql.NullString `gorm:"unique"` // id of the original scheduled token mint transaction
 }

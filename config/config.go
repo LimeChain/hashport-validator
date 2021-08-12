@@ -84,13 +84,13 @@ type Config struct {
 }
 
 type AssetMappings struct {
-	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
+	NativeToWrappedByNetwork map[int64]*Network `yaml:"networks,omitempty"`
 	WrappedToNative          map[string]string
 }
 
 type Network struct {
-	EVMClient    EVM                       `yaml:"evm_client"`
-	NativeAssets map[string]map[int]string `yaml:"tokens"`
+	EVMClient    EVM                         `yaml:"evm_client"`
+	NativeAssets map[string]map[int64]string `yaml:"tokens"`
 }
 
 type Validator struct {

@@ -48,6 +48,60 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 		return
 	}
 
+	s.awaitCreationOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+}
+
+func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
+	var tokenID hedera.TokenID
+	var transactionResponse *hedera.TransactionResponse
+	var err error
+
+	if nativeAsset == constants.Hbar {
+		transactionResponse, err = s.hederaNodeClient.
+			SubmitScheduledHbarTransferTransaction(transfers, s.payerAccount, id)
+	} else {
+		tokenID, err = hedera.TokenIDFromString(nativeAsset)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
+			return nil, err
+		}
+		transactionResponse, err = s.hederaNodeClient.
+			SubmitScheduledTokenTransferTransaction(tokenID, transfers, s.payerAccount, id)
+	}
+	return transactionResponse, err
+}
+
+func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	transactionResponse, err := s.executeScheduledTokenMintTransaction(id, asset, amount)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
+		if transactionResponse != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+		}
+		return
+	}
+
+	s.awaitCreationOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+}
+
+func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount int64) (*hedera.TransactionResponse, error) {
+	var tokenID hedera.TokenID
+	var transactionResponse *hedera.TransactionResponse
+	var err error
+
+	tokenID, err = hedera.TokenIDFromString(asset)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to parse token [%s] to TokenID. Error [%s].", id, asset, err)
+		return nil, err
+	}
+
+	transactionResponse, err = s.hederaNodeClient.
+		SubmitScheduledTokenMintTransaction(tokenID, amount, s.payerAccount, id)
+
+	return transactionResponse, err
+}
+
+func (s *Service) awaitCreationOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
 	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
 		id,
@@ -83,49 +137,7 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 		onFail(transactionID)
 	}
 
-	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onMinedSuccess, onMinedFail)
-}
-
-func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
-	var tokenID hedera.TokenID
-	var transactionResponse *hedera.TransactionResponse
-	var err error
-
-	if nativeAsset == constants.Hbar {
-		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledHbarTransferTransaction(transfers, s.payerAccount, id)
-	} else {
-		tokenID, err = hedera.TokenIDFromString(nativeAsset)
-		if err != nil {
-			s.logger.Errorf("[%s] - Failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
-			return nil, err
-		}
-		transactionResponse, err = s.hederaNodeClient.
-			SubmitScheduledTokenTransferTransaction(tokenID, transfers, s.payerAccount, id)
-	}
-	return transactionResponse, err
-}
-
-func (s *Service) ExecuteScheduledMintTransaction(id, nativeAsset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	// TODO: Implement Scheduled Mint Execution Function
-}
-
-// TODO: Find a way to place this method
-func (s *Service) executeScheduledMintTransaction(id, nativeAsset string, amount int64) (*hedera.TransactionResponse, error) {
-	var tokenID hedera.TokenID
-	var transactionResponse *hedera.TransactionResponse
-	var err error
-
-	tokenID, err = hedera.TokenIDFromString(nativeAsset)
-	if err != nil {
-		s.logger.Errorf("[%s] - Failed to parse native token [%s] to TokenID. Error [%s].", id, nativeAsset, err)
-		return nil, err
-	}
-
-	transactionResponse, err = s.hederaNodeClient.
-		SubmitScheduledTokenMintTransaction(tokenID, amount, s.payerAccount, id)
-
-	return transactionResponse, err
+	s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
 }
 
 func (s *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {

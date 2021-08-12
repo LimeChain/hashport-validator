@@ -19,9 +19,10 @@ package repository
 import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 
 type LockEvent interface {
-	// TODO: Refactor this to fit whatever LockEvent provides
-	Create(id string, amount int64, recipient string) error
-	UpdateStatusSubmitted(id, scheduleID, transactionId string) error
+	Create(id string, amount int64, recipient, nativeAsset, wrappedAsset string) error
+	UpdateStatusScheduledTokenMintSubmitted(id, scheduleID, transactionId string) error
+	UpdateStatusScheduledTokenTransferSubmitted(id, scheduleID, transactionId string) error
+	UpdateStatusScheduledTokenMintCompleted(id string) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
 	// Returns LockEvent by its Id (represented in {ethTxHash}-{logIndex})

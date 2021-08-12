@@ -151,14 +151,14 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 	}
 
 	// TODO: Replace with external configuration service
-	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.ethClient.ChainID(), eventLog.Token.String())]
-	if nativeAsset == "" {
+	wrappedAsset := ew.mappings.NativeToWrappedByNetwork[ew.ethClient.ChainID().Int64()].NativeAssets[eventLog.Token.String()][eventLog.TargetChain.Int64()]
+	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
 		return
 	}
 
-	if nativeAsset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset) {
-		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeAsset)
+	if wrappedAsset != constants.Hbar && !hederahelper.IsTokenID(wrappedAsset) {
+		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, wrappedAsset)
 		return
 	}
 
@@ -166,8 +166,8 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 		Amount:        eventLog.Amount.Int64(),
 		Id:            fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		Recipient:     recipientAccount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  eventLog.Token.String(),
+		NativeAsset:   eventLog.Token.String(),
+		WrappedAsset:  wrappedAsset,
 		SourceChainId: ew.ethClient.ChainID(),
 		TargetChainId: eventLog.TargetChain,
 	}
