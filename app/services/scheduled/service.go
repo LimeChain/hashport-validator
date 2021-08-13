@@ -48,7 +48,7 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 		return
 	}
 
-	s.awaitCreationOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail, false)
 }
 
 func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
@@ -81,7 +81,7 @@ func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64
 		return
 	}
 
-	s.awaitCreationOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail, true)
 }
 
 func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount int64) (*hedera.TransactionResponse, error) {
@@ -101,7 +101,7 @@ func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount 
 	return transactionResponse, err
 }
 
-func (s *Service) awaitCreationOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string), synchronized bool) {
 	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
 	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
 		id,
@@ -137,6 +137,10 @@ func (s *Service) awaitCreationOrSignScheduledTransaction(transactionResponse *h
 		onFail(transactionID)
 	}
 
+	if synchronized {
+		go s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
+		return
+	}
 	s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
 }
 
