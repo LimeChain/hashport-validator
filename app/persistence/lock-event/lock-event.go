@@ -34,14 +34,16 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (sr Repository) Create(id string, amount int64, recipient, nativeAsset, wrappedAsset string) error {
+func (sr Repository) Create(id string, amount int64, recipient, nativeAsset, wrappedAsset string, sourceChainId, targetChainId int64) error {
 	return sr.dbClient.Create(&entity.LockEvent{
-		Id:           id,
-		Amount:       amount,
-		Recipient:    recipient,
-		NativeAsset:  nativeAsset,
-		WrappedAsset: wrappedAsset,
-		Status:       lock_event_status.StatusInitial,
+		Id:            id,
+		Amount:        amount,
+		Recipient:     recipient,
+		NativeAsset:   nativeAsset,
+		WrappedAsset:  wrappedAsset,
+		SourceChainID: sourceChainId,
+		TargetChainID: targetChainId,
+		Status:        lock_event_status.StatusInitial,
 	}).Error
 }
 

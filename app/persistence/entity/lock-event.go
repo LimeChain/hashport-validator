@@ -25,6 +25,8 @@ type LockEvent struct {
 	NativeAsset          string
 	WrappedAsset         string
 	Amount               int64
+	SourceChainID        int64
+	TargetChainID        int64
 	Recipient            string
 	Status               string
 	ScheduleTransferTxId sql.NullString `gorm:"unique"` // id of the original scheduled transfer transaction

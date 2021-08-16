@@ -57,7 +57,7 @@ func NewService(
 }
 
 func (s Service) ProcessEvent(event lock_event.LockEvent) {
-	err := s.repository.Create(event.Id, event.Amount, event.Recipient.String(), event.NativeAsset, event.WrappedAsset)
+	err := s.repository.Create(event.Id, event.Amount, event.Recipient.String(), event.NativeAsset, event.WrappedAsset, event.SourceChainId.Int64(), event.TargetChainId.Int64())
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a lock event record. Error [%s].", event.Id, err)
 		return
