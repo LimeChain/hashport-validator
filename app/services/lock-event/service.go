@@ -63,13 +63,22 @@ func (s Service) ProcessEvent(event lock_event.LockEvent) {
 		return
 	}
 
-	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE)
 	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_MINT_TYPE)
-
 	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_MINT_TYPE)
-	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE)
 
-	s.scheduledService.ExecuteScheduledMintTransaction(event.Id, event.WrappedAsset, event.Amount, onExecutionMintSuccess, onExecutionMintFail, onTokenMintSuccess, onTokenMintFail)
+	err = s.scheduledService.ExecuteScheduledMintTransaction(
+		event.Id,
+		event.WrappedAsset,
+		event.Amount,
+		onExecutionMintSuccess,
+		onExecutionMintFail,
+		onTokenMintSuccess,
+		onTokenMintFail,
+	)
+	if err != nil {
+		s.logger.Errorf("[%s] - Execution of Scheduled Mint Transaction failed. Error [%s].", event.Id, err)
+		return
+	}
 
 	transfers := []transfer.Hedera{
 		{
@@ -82,7 +91,18 @@ func (s Service) ProcessEvent(event lock_event.LockEvent) {
 		},
 	}
 
-	s.scheduledService.ExecuteScheduledTransferTransaction(event.Id, event.WrappedAsset, transfers, onExecutionTransferSuccess, onExecutionTransferFail, onTransferSuccess, onTransferFail)
+	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE)
+	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE)
+
+	s.scheduledService.ExecuteScheduledTransferTransaction(
+		event.Id,
+		event.WrappedAsset,
+		transfers,
+		onExecutionTransferSuccess,
+		onExecutionTransferFail,
+		onTransferSuccess,
+		onTransferFail,
+	)
 }
 
 func (s *Service) scheduledTxExecutionCallbacks(id, txType string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
