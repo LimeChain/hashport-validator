@@ -28,14 +28,6 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) Native(wrappedAsset common.Address) (string, error) {
-	panic("implement me")
-}
-
-func (m *MockBridgeContract) Wrapped(nativeAsset string) (string, error) {
-	panic("implement me")
-}
-
 func (m *MockBridgeContract) IsMember(address string) bool {
 	panic("implement me")
 }
@@ -44,7 +36,11 @@ func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<
 	panic("implement me")
 }
 
-func (m *MockBridgeContract) GetBridgeContractAddress() common.Address {
+func (m *MockBridgeContract) WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterLock) (event.Subscription, error) {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) Address() common.Address {
 	return common.HexToAddress("0x0000000000000000000000000000000000000000")
 }
 

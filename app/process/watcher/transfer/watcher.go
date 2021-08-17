@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -74,7 +75,7 @@ func NewWatcher(
 	}
 }
 
-func (ctw Watcher) Watch(q *pair.Queue) {
+func (ctw Watcher) Watch(q qi.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
 		return
@@ -108,7 +109,7 @@ func (ctw Watcher) updateStatusTimestamp(ts int64) {
 	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (ctw Watcher) beginWatching(q *pair.Queue) {
+func (ctw Watcher) beginWatching(q qi.Queue) {
 	milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Fatalf("Failed to retrieve Transfer Watcher Status timestamp. Error [%s]", err)
@@ -140,7 +141,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue) {
+func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, nativeAsset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
@@ -163,5 +164,5 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 
 	mockChainID := big.NewInt(0)
 	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
-	q.Push(&pair.Message{Payload: transferMessage, ChainId: mockChainID})
+	q.Push(&queue.Message{Payload: transferMessage, ChainId: mockChainID})
 }

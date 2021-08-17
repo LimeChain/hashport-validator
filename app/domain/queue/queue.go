@@ -14,26 +14,13 @@
  * limitations under the License.
  */
 
-package pair
+package queue
 
-import "math/big"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
+)
 
-type Message struct {
-	Payload interface{}
-	ChainId *big.Int
-}
-
-// Queue is a wrapper of a go channel, particularly to restrict actions on the channel itself
-type Queue struct {
-	channel chan *Message
-}
-
-// Push pushes a message to the channel
-func (q *Queue) Push(message *Message) {
-	q.channel <- message
-}
-
-func NewQueue() *Queue {
-	ch := make(chan *Message)
-	return &Queue{channel: ch}
+type Queue interface {
+	Push(message *queue.Message)
+	Channel() chan *queue.Message
 }

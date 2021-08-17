@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
@@ -50,12 +51,12 @@ func NewWatcher(contracts service.Contracts, ethClient client.EVM, mappings c.As
 	}
 }
 
-func (ew *Watcher) Watch(queue *pair.Queue) {
+func (ew *Watcher) Watch(queue qi.Queue) {
 	go ew.listenForEvents(queue)
 	ew.logger.Infof("Listening for events at contract [%s]", ew.routerContractAddress)
 }
 
-func (ew *Watcher) listenForEvents(q *pair.Queue) {
+func (ew *Watcher) listenForEvents(q qi.Queue) {
 	burnEvents := make(chan *router.RouterBurn)
 	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
@@ -88,11 +89,16 @@ func (ew *Watcher) listenForEvents(q *pair.Queue) {
 	}
 }
 
-func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q *pair.Queue) {
+func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
+	}
+
+	if len(eventLog.Receiver) == 0 {
+		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
 
@@ -133,14 +139,19 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q *pair.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&pair.Message{Payload: burnEvent})
+	q.Push(&queue.Message{Payload: burnEvent})
 }
 
-func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
+func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	ew.logger.Debugf("[%s] - New Lock Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
-		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
+	}
+
+	if len(eventLog.Receiver) == 0 {
+		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
 
@@ -183,5 +194,5 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&pair.Message{Payload: lockEvent, ChainId: ew.ethClient.ChainID()})
+	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.ethClient.ChainID()})
 }

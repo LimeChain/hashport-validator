@@ -18,8 +18,10 @@ package mocks
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
+	ethereum_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/ethereum-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
@@ -30,13 +32,17 @@ var MTransferService *service.MockTransferService
 var MDistributorService *service.MockDistrubutorService
 var MScheduledService *service.MockScheduledService
 var MFeeService *service.MockFeeService
+var MBurnService *service.MockBurnService
+var MLockService *service.MockLockService
 var MBridgeContractService *MockBridgeContract
 var MBurnEventRepository *repository.MockBurnEventRepository
 var MLockEventRepository *repository.MockLockEventRepository
 var MFeeRepository *repository.MockFeeRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
+var MEthereumClient *ethereum_client.MockEthereumClient
 var MDatabase *database.MockDatabase
+var MQueue *queue.MockQueue
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -45,10 +51,14 @@ func Setup() {
 	MTransferService = &service.MockTransferService{}
 	MScheduledService = &service.MockScheduledService{}
 	MFeeService = &service.MockFeeService{}
+	MLockService = &service.MockLockService{}
+	MBurnService = &service.MockBurnService{}
 	MBurnEventRepository = &repository.MockBurnEventRepository{}
 	MLockEventRepository = &repository.MockLockEventRepository{}
 	MFeeRepository = &repository.MockFeeRepository{}
 	MDistributorService = &service.MockDistrubutorService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
+	MEthereumClient = &ethereum_client.MockEthereumClient{}
+	MQueue = &queue.MockQueue{}
 }

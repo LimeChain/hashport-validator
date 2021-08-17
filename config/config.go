@@ -84,7 +84,7 @@ type Config struct {
 }
 
 type AssetMappings struct {
-	NativeToWrappedByNetwork map[int64]*Network `yaml:"networks,omitempty"`
+	NativeToWrappedByNetwork map[int64]Network `yaml:"networks,omitempty"`
 	WrappedToNative          map[string]string
 }
 
