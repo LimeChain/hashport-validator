@@ -24,5 +24,5 @@ type Scheduled interface {
 	// ExecuteScheduledTransferTransaction submits a scheduled transfer transaction and executes provided functions when necessary
 	ExecuteScheduledTransferTransaction(id, asset string, transfers []transfer.Hedera, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 	// ExecuteScheduledMintTransaction submits a scheduled mint transaction and executes provided functions when necessary
-	ExecuteScheduledMintTransaction(id, asset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) error
+	ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 }

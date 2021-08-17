@@ -7,6 +7,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -49,8 +50,11 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 		}
 		return
 	}
-
-	s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail, false)
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled transfer transaction. Error [%s].", id, err)
+		return
+	}
 }
 
 func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
@@ -73,17 +77,23 @@ func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, t
 	return transactionResponse, err
 }
 
-func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) error {
+func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTokenMintTransaction(id, asset, amount)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 		}
-		return err
+		*status <- lock_event.FAIL
+		return
 	}
 
-	return s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail, true)
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled mint transaction. Error [%s].", id, err)
+		*status <- lock_event.FAIL
+		return
+	}
 }
 
 func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount int64) (*hedera.TransactionResponse, error) {
@@ -103,7 +113,7 @@ func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount 
 	return transactionResponse, err
 }
 
-func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string), synchronized bool) error {
+func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) error {
 	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
 	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
 		id,
@@ -138,12 +148,7 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 	onMinedFail := func() {
 		onFail(transactionID)
 	}
-
-	if synchronized {
-		go s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
-		return nil
-	}
-	s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
+	go s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
 	return nil
 }
 
