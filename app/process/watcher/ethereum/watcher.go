@@ -105,7 +105,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q *pair.Queue) {
 	// TODO: Replace with external configuration service. Ask whether ew.ethClient.ChainID() is a correct way of chainID recognition
 	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.ethClient.ChainID(), eventLog.Token.String())]
 	if nativeAsset == "" {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q *pair.Queue) {
 	// TODO: Replace with external configuration service
 	wrappedAsset := ew.mappings.NativeToWrappedByNetwork[ew.ethClient.ChainID().Int64()].NativeAssets[eventLog.Token.String()][eventLog.TargetChain.Int64()]
 	if wrappedAsset == "" {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Token, err)
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
