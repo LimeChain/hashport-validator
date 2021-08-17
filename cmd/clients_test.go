@@ -17,11 +17,12 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	tc "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	"github.com/stretchr/testify/assert"
+	"math/big"
 	"testing"
 )
 
@@ -29,11 +30,11 @@ func TestPrepareClients(t *testing.T) {
 	clients := PrepareClients(tc.TestConfig.Validator.Clients)
 	assert.NotEmpty(t, clients)
 
-	assert.IsType(t, &ethereum.Client{}, clients.Ethereum)
+	assert.IsType(t, map[*big.Int]client.EVM{}, clients.EVMClients)
 	assert.IsType(t, &hedera.Node{}, clients.HederaNode)
 	assert.IsType(t, &mirror_node.Client{}, clients.MirrorNode)
 
-	assert.NotEmpty(t, clients.Ethereum)
+	assert.NotEmpty(t, clients.EVMClients)
 	assert.NotEmpty(t, clients.HederaNode)
 	assert.NotEmpty(t, clients.MirrorNode)
 }
