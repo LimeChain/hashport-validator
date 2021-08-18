@@ -25,7 +25,7 @@ import (
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math/big"
@@ -46,10 +46,10 @@ type Services struct {
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	ethereumSigners := make(map[*big.Int]service.Signer)
+	evmSigners := make(map[*big.Int]service.Signer)
 	contractServices := make(map[*big.Int]service.Contracts)
 	for _, client := range clients.EVMClients {
-		ethereumSigners[client.ChainID()] = eth.NewEthSigner(client.GetPrivateKey())
+		evmSigners[client.ChainID()] = evm.NewEVMSigner(client.GetPrivateKey())
 		contractServices[client.ChainID()] = contracts.NewService(client)
 	}
 
@@ -61,7 +61,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		contractServices,
-		ethereumSigners,
+		evmSigners,
 		repositories.transfer,
 		repositories.fee,
 		fees,
@@ -71,7 +71,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled)
 
 	messages := messages.NewService(
-		ethereumSigners,
+		evmSigners,
 		contractServices,
 		repositories.transfer,
 		repositories.message,
@@ -95,7 +95,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled)
 
 	return &Services{
-		signers:          ethereumSigners,
+		signers:          evmSigners,
 		contractServices: contractServices,
 		transfers:        transfers,
 		messages:         messages,

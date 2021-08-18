@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package ethereum
+package evm
 
 import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -36,17 +36,17 @@ import (
 type Watcher struct {
 	routerContractAddress string
 	contracts             service.Contracts
-	ethClient             client.EVM
+	evmClient             client.EVM
 	logger                *log.Entry
 	mappings              config.AssetMappings
 }
 
-func NewWatcher(contracts service.Contracts, ethClient client.EVM, mappings c.AssetMappings) *Watcher {
+func NewWatcher(contracts service.Contracts, evmClient client.EVM, mappings c.AssetMappings) *Watcher {
 	return &Watcher{
-		routerContractAddress: ethClient.GetRouterContractAddress(),
+		routerContractAddress: evmClient.GetRouterContractAddress(),
 		contracts:             contracts,
-		ethClient:             ethClient,
-		logger:                c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", ethClient.GetRouterContractAddress())),
+		evmClient:             evmClient,
+		logger:                c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", evmClient.GetRouterContractAddress())),
 		mappings:              mappings,
 	}
 }
@@ -108,8 +108,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	// TODO: Replace with external configuration service. Ask whether ew.ethClient.ChainID() is a correct way of chainID recognition
-	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.ethClient.ChainID(), eventLog.Token.String())]
+	// TODO: Replace with external configuration service. Ask whether ew.evmClient.ChainID() is a correct way of chainID recognition
+	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.evmClient.ChainID(), eventLog.Token.String())]
 	if nativeAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -120,6 +120,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
+	// TODO: We will need to parse the targetChain as-well in order to be able to transfer from Polygon to Ethereum f.e. not only Polygon to Hedera.
 	burnEvent := &burn_event.BurnEvent{
 		Amount:       eventLog.Amount.Int64(),
 		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
@@ -128,7 +129,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		WrappedAsset: eventLog.Token.String(),
 	}
 
-	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
 		return
@@ -162,12 +163,13 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	// TODO: Replace with external configuration service
-	wrappedAsset := ew.mappings.NativeToWrappedByNetwork[ew.ethClient.ChainID().Int64()].NativeAssets[eventLog.Token.String()][eventLog.TargetChain.Int64()]
+	wrappedAsset := ew.mappings.NativeToWrappedByNetwork[ew.evmClient.ChainID().Int64()].NativeAssets[eventLog.Token.String()][eventLog.TargetChain.Int64()]
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
+	// TODO: This must be removed when we want to have support for multiple chains not only Hedera 1:1 EVM chain.
 	if wrappedAsset != constants.Hbar && !hederahelper.IsTokenID(wrappedAsset) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, wrappedAsset)
 		return
@@ -179,20 +181,22 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		Recipient:     recipientAccount,
 		NativeAsset:   eventLog.Token.String(),
 		WrappedAsset:  wrappedAsset,
-		SourceChainId: ew.ethClient.ChainID(),
+		SourceChainId: ew.evmClient.ChainID(),
 		TargetChainId: eventLog.TargetChain,
 	}
 
-	err = ew.ethClient.WaitForConfirmations(eventLog.Raw)
+	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
 		return
 	}
 
-	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s] has been found.",
+	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
-		recipientAccount.String())
+		recipientAccount.String(),
+		ew.evmClient.ChainID().Int64(),
+		eventLog.TargetChain.Int64())
 
-	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.ethClient.ChainID()})
+	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.evmClient.ChainID()})
 }

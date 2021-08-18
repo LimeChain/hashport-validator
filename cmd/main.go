@@ -24,11 +24,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
-	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/ethereum"
+	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/evm"
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
@@ -139,14 +139,14 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			services.messages)},
 	)
 
-	for _, ethereumClient := range clients.EVMClients {
-		ethereumHandlers := make(map[*big.Int]beh.Handler)
+	for _, evmClient := range clients.EVMClients {
+		evmHandlers := make(map[*big.Int]beh.Handler)
 		handler := beh.NewHandler(services.burnEvents, services.lockEvents)
-		ethereumHandlers[ethereumClient.ChainID()] = *handler
+		evmHandlers[evmClient.ChainID()] = *handler
 		server.AddPair(
 			// TODO: Replace mappings with external configuration service
-			ethereum.NewWatcher(services.contractServices[ethereumClient.ChainID()], ethereumClient, configuration.AssetMappings),
-			map[*big.Int]pair.Handler{ethereumClient.ChainID(): beh.NewHandler(services.burnEvents, services.lockEvents)})
+			evm.NewWatcher(services.contractServices[evmClient.ChainID()], evmClient, configuration.AssetMappings),
+			map[*big.Int]pair.Handler{evmClient.ChainID(): beh.NewHandler(services.burnEvents, services.lockEvents)})
 	}
 }
 

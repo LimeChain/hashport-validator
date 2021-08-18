@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package ethereum
+package evm
 
 import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -51,7 +51,7 @@ func Test_HandleLockLog_Removed_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Raw.Removed = false
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -62,7 +62,7 @@ func Test_HandleLockLog_EmptyReceiver_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Receiver = hederaBytes
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -73,44 +73,44 @@ func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Receiver = hederaBytes
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleLockLog_UnsupportedAsset_Fails(t *testing.T) {
 	setup()
-	mocks.MEthereumClient.On("ChainID").Return(big.NewInt(32))
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(32))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
-	mocks.MEthereumClient.On("ChainID").Return(big.NewInt(2))
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(2))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleLockLog_IsNotTokenNorHbar_Fails(t *testing.T) {
 	setup()
-	mocks.MEthereumClient.On("ChainID").Return(big.NewInt(32))
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(32))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
-	mocks.MEthereumClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
+	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
 	setup()
-	mocks.MEthereumClient.On("ChainID").Return(big.NewInt(33))
-	mocks.MEthereumClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
@@ -119,8 +119,8 @@ func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
 
 func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
-	mocks.MEthereumClient.On("ChainID").Return(big.NewInt(33))
-	mocks.MEthereumClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &lock_event.LockEvent{
 		Amount:        lockLog.Amount.Int64(),
 		Id:            fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
@@ -140,7 +140,7 @@ func setup() {
 	w = &Watcher{
 		routerContractAddress: "0xsomeaddress",
 		contracts:             mocks.MBridgeContractService,
-		ethClient:             mocks.MEthereumClient,
+		evmClient:             mocks.MEVMClient,
 		logger:                config.GetLoggerFor("Burn Event Service"),
 		mappings: config.AssetMappings{
 			NativeToWrappedByNetwork: map[int64]config.Network{

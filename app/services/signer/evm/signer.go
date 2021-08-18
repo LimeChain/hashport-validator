@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package eth
+package evm
 
 import (
 	"crypto/ecdsa"
@@ -28,7 +28,7 @@ type Signer struct {
 	privateKey *ecdsa.PrivateKey
 }
 
-func NewEthSigner(privateKey string) *Signer {
+func NewEVMSigner(privateKey string) *Signer {
 	pk, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
 		log.Fatalf("Invalid EVM Private Key provided: [%s]", privateKey)

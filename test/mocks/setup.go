@@ -18,7 +18,7 @@ package mocks
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
-	ethereum_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/ethereum-client"
+	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
@@ -40,7 +40,7 @@ var MLockEventRepository *repository.MockLockEventRepository
 var MFeeRepository *repository.MockFeeRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
-var MEthereumClient *ethereum_client.MockEthereumClient
+var MEVMClient *evm_client.MockEVMClient
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
 
@@ -59,6 +59,6 @@ func Setup() {
 	MDistributorService = &service.MockDistrubutorService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
-	MEthereumClient = &ethereum_client.MockEthereumClient{}
+	MEVMClient = &evm_client.MockEVMClient{}
 	MQueue = &queue.MockQueue{}
 }

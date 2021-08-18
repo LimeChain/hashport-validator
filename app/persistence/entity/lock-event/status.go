@@ -25,10 +25,10 @@ const (
 	StatusFailed = "FAILED"
 	// StatusInitial is the initial status on LockEvent Record creation
 	StatusInitial = "INITIAL"
-	// StatusTransferSubmitted is set once the Hedera Scheduled Token Transfer Transaction (Create/Sign)
+	// StatusTransferSubmitted is set once the Hedera Scheduled Token Transfer Transaction (Create/Sign) has been successfully submitted
 	StatusTransferSubmitted = "TOKEN_TRANSFER_SUBMITTED"
-	// StatusSubmitted is set once the Hedera Scheduled Token Mint Transaction (Create/Sign)
+	// StatusMintSubmitted is set once the Hedera Scheduled Token Mint Transaction (Create/Sign) has been successfully submitted
 	StatusMintSubmitted = "TOKEN_MINT_SUBMITTED"
-	// StatusMintCompleted is set once the Hedera Scheduled Token Mint Transaction (Create/Sign)
+	// StatusMintCompleted is set once the Hedera Scheduled Token Mint Transaction (Create/Sign) has successfully executed
 	StatusMintCompleted = "TOKEN_MINT_COMPLETED"
 )

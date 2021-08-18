@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ethereum
+package evm
 
 import (
 	"context"

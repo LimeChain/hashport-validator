@@ -19,11 +19,11 @@ package util
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"strconv"
@@ -69,10 +69,10 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 	return fee
 }
 
-func PrepareExpectedTransfer(routerContract *router.Router, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func PrepareExpectedTransfer(assetMappings config.AssetMappings, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
-	wrappedAsset, err := setup.WrappedAsset(routerContract, nativeAsset)
+	wrappedAsset, err := setup.WrappedAsset(assetMappings, nativeAsset)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeAsset, err)
 	}

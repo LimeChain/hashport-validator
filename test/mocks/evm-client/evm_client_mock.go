@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ethereum_client
+package evm_client
 
 import (
 	"github.com/ethereum/go-ethereum/common"
@@ -24,21 +24,21 @@ import (
 	"math/big"
 )
 
-type MockEthereumClient struct {
+type MockEVMClient struct {
 	mock.Mock
 }
 
-func (m *MockEthereumClient) ChainID() *big.Int {
+func (m *MockEVMClient) ChainID() *big.Int {
 	args := m.Called()
 	return args.Get(0).(*big.Int)
 }
 
-func (m *MockEthereumClient) GetClient() *ethclient.Client {
+func (m *MockEVMClient) GetClient() *ethclient.Client {
 	args := m.Called()
 	return args.Get(0).(*ethclient.Client)
 }
 
-func (m *MockEthereumClient) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
+func (m *MockEVMClient) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
 	args := m.Called(contractAddress)
 
 	if args.Get(1) == nil {
@@ -47,11 +47,11 @@ func (m *MockEthereumClient) ValidateContractDeployedAt(contractAddress string) 
 	return args.Get(0).(*common.Address), args.Get(1).(error)
 }
 
-func (m *MockEthereumClient) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
+func (m *MockEVMClient) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	m.Called(hex, onSuccess, onRevert, onError)
 }
 
-func (m *MockEthereumClient) WaitForConfirmations(raw types.Log) error {
+func (m *MockEVMClient) WaitForConfirmations(raw types.Log) error {
 	args := m.Called(raw)
 
 	if args.Get(0) == nil {
@@ -60,12 +60,12 @@ func (m *MockEthereumClient) WaitForConfirmations(raw types.Log) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockEthereumClient) GetRouterContractAddress() string {
+func (m *MockEVMClient) GetRouterContractAddress() string {
 	args := m.Called()
 	return args.Get(0).(string)
 }
 
-func (m *MockEthereumClient) GetPrivateKey() string {
+func (m *MockEVMClient) GetPrivateKey() string {
 	args := m.Called()
 	return args.Get(0).(string)
 }

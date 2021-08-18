@@ -125,7 +125,7 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }
 
-// submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits to HCS
+// submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
 func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
 	tx, err := tx.FreezeWith(hc.GetClient())
 	if err != nil {

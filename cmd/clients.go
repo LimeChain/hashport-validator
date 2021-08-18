@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -36,7 +36,7 @@ type Clients struct {
 func PrepareClients(config config.Clients) *Clients {
 	EVMClients := make(map[*big.Int]client.EVM)
 	for chainId, ec := range config.EVM {
-		EVMClients[big.NewInt(chainId)] = ethereum.NewClient(ec)
+		EVMClients[big.NewInt(chainId)] = evm.NewClient(ec)
 	}
 
 	return &Clients{

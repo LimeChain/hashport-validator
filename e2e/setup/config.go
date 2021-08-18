@@ -19,7 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
@@ -33,9 +33,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/wtoken"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
+	evm_signer "github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"gopkg.in/yaml.v2"
@@ -90,6 +90,7 @@ type Setup struct {
 	Members       []hederaSDK.AccountID
 	Clients       *clients
 	DbValidator   *db_validation.Service
+	AssetMappings config.AssetMappings
 }
 
 // newSetup instantiates new Setup struct
@@ -142,13 +143,14 @@ func newSetup(config Config) (*Setup, error) {
 		Clients:       clients,
 		RouterAddress: common.HexToAddress(config.EVM.RouterContractAddress),
 		DbValidator:   dbValidator,
+		AssetMappings: config.AssetMappings,
 	}, nil
 }
 
 // clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
-	EthClient       *ethereum.Client
+	EthClient       *evm.Client
 	WHbarContract   *wtoken.Wtoken
 	WTokenContract  *wtoken.Wtoken
 	RouterContract  *router.Router
@@ -166,7 +168,7 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := ethereum.NewClient(config.EVM)
+	ethClient := evm.NewClient(config.EVM)
 
 	routerContractAddress := common.HexToAddress(config.EVM.RouterContractAddress)
 	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
@@ -181,7 +183,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	signer := eth.NewEthSigner(config.EVM.PrivateKey)
+	signer := evm_signer.NewEVMSigner(config.EVM.PrivateKey)
 	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
 	if err != nil {
 		return nil, err
@@ -206,13 +208,13 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, ethClient *ethereum.Client) (*wtoken.Wtoken, error) {
+func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := WrappedAsset(nativeAssets, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenInstance, err := wtoken.NewWtoken(*wTokenContractAddress, ethClient.Client)
+	wTokenInstance, err := wtoken.NewWtoken(*wTokenContractAddress, evmClient.Client)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ import "github.com/hashgraph/hedera-sdk-go/v2"
 
 // BurnEvent serves as a model between EVM Watcher and Handler
 type BurnEvent struct {
-	Id           string // {ethereumTxHash}-{logIndex}
+	Id           string // {evmTxHash}-{logIndex}
 	Amount       int64
 	Recipient    hedera.AccountID
 	NativeAsset  string

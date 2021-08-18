@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ethereum
+package evm
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	ethHandler *Handler
+	evmHandler *Handler
 )
 
 func Test_NewHandler(t *testing.T) {
@@ -53,7 +53,7 @@ func Test_Handle_Lock(t *testing.T) {
 		TargetChainId: nil,
 	}
 	mocks.MLockService.On("ProcessEvent", *someLockEvent).Return()
-	ethHandler.Handle(someLockEvent)
+	evmHandler.Handle(someLockEvent)
 	mocks.MLockService.AssertCalled(t, "ProcessEvent", *someLockEvent)
 	mocks.MBurnService.AssertNotCalled(t, "ProcessEvent", mock.Anything)
 }
@@ -68,21 +68,21 @@ func Test_Handle_Burn(t *testing.T) {
 		WrappedAsset: "",
 	}
 	mocks.MBurnService.On("ProcessEvent", *someBurnEvent).Return()
-	ethHandler.Handle(someBurnEvent)
+	evmHandler.Handle(someBurnEvent)
 	mocks.MBurnService.AssertCalled(t, "ProcessEvent", *someBurnEvent)
 	mocks.MLockService.AssertNotCalled(t, "ProcessEvent", mock.Anything)
 }
 
 func Test_Handle_InvalidPayload(t *testing.T) {
 	setup()
-	ethHandler.Handle("this-is-invalid-payload")
+	evmHandler.Handle("this-is-invalid-payload")
 	mocks.MBurnService.AssertNotCalled(t, "ProcessEvent", mock.Anything)
 	mocks.MLockService.AssertNotCalled(t, "ProcessEvent", mock.Anything)
 }
 
 func setup() {
 	mocks.Setup()
-	ethHandler = &Handler{
+	evmHandler = &Handler{
 		lockService: mocks.MLockService,
 		burnService: mocks.MBurnService,
 		logger:      config.GetLoggerFor("EVM Event Handler"),

@@ -19,7 +19,7 @@ package database
 import (
 	"encoding/hex"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
@@ -105,7 +105,7 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount str
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 
 	for _, signature := range signatures {
-		signer, signature, err := ethereum.RecoverSignerFromStr(signature, authMsgBytes)
+		signer, signature, err := evm.RecoverSignerFromStr(signature, authMsgBytes)
 		if err != nil {
 			s.logger.Errorf("[%s] - Signature Retrieval failed. Error: [%s]", record.TransactionID, err)
 			return false, err

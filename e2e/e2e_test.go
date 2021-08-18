@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/old-router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/old-router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -89,7 +89,7 @@ func Test_HBAR(t *testing.T) {
 
 	// Step 8 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		setupEnv.Clients.RouterContract,
+		setupEnv.AssetMappings,
 		transactionResponse.TransactionID,
 		setupEnv.RouterAddress.String(),
 		constants.Hbar,
@@ -142,7 +142,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		setupEnv.Clients.RouterContract,
+		setupEnv.AssetMappings,
 		transactionResponse.TransactionID,
 		setupEnv.RouterAddress.String(),
 		setupEnv.TokenID.String(),
@@ -165,7 +165,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
-func Test_Ethereum_Hedera_HBAR(t *testing.T) {
+func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -207,7 +207,7 @@ func Test_Ethereum_Hedera_HBAR(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
-func Test_Ethereum_Hedera_Token(t *testing.T) {
+func Test_EVM_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -442,10 +442,11 @@ func submitMintTransaction(setupEnv *setup.Setup, transactionResponse hedera.Tra
 
 	res, err := setupEnv.Clients.RouterContract.Mint(
 		setupEnv.Clients.KeyTransactor,
+		big.NewInt(0),
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		setupEnv.EthReceiver,
 		mintAmount,
+		setupEnv.EthReceiver,
 		signatures,
 	)
 
@@ -511,7 +512,7 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 }
 
 func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*types.Receipt, *old_router.RouterBurn) {
-	wrappedAsset, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, asset)
+	wrappedAsset, err := setup.WrappedAsset(setupEnv.AssetMappings, asset)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -519,16 +520,11 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*typ
 
 	approvedValue := big.NewInt(receiveAmount)
 
-	controller, err := setupEnv.Clients.RouterContract.Controller(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	var approveTx *types.Transaction
 	if asset == constants.Hbar {
-		approveTx, err = setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+		approveTx, err = setupEnv.Clients.WHbarContract.Approve(setupEnv.Clients.KeyTransactor, setupEnv.RouterAddress, approvedValue)
 	} else {
-		approveTx, err = setupEnv.Clients.WTokenContract.Approve(setupEnv.Clients.KeyTransactor, controller, approvedValue)
+		approveTx, err = setupEnv.Clients.WTokenContract.Approve(setupEnv.Clients.KeyTransactor, setupEnv.RouterAddress, approvedValue)
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -537,7 +533,7 @@ func sendEthTransaction(setupEnv *setup.Setup, asset string, t *testing.T) (*typ
 	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
 	waitForTransaction(setupEnv, approveTx.Hash(), t)
 
-	burnTx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, approvedValue, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), *wrappedAsset)
+	burnTx, err := setupEnv.Clients.RouterContract.Burn(setupEnv.Clients.KeyTransactor, *wrappedAsset, approvedValue, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -608,7 +604,7 @@ func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, 
 }
 
 func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, txResponse hedera.TransactionResponse, tokenID string, expectedSendAmount int64, t *testing.T) (*service.TransferData, *common.Address) {
-	tokenAddress, err := setup.WrappedAsset(setupEnv.Clients.RouterContract, tokenID)
+	tokenAddress, err := setup.WrappedAsset(setupEnv.AssetMappings, tokenID)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", tokenID, err)
 	}

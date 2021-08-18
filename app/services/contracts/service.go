@@ -18,7 +18,7 @@ package contracts
 
 import (
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math/big"
@@ -127,7 +127,7 @@ func NewService(client client.EVM) *Service {
 
 	contractService.updateMembers()
 
-	//go contractService.listenForMemberUpdatedEvent() // TODO: remove comment when new contract is ready
+	go contractService.listenForMemberUpdatedEvent()
 
 	return contractService
 }
