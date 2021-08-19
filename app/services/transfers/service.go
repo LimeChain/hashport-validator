@@ -36,7 +36,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 	"strconv"
 )
 
@@ -44,8 +43,8 @@ type Service struct {
 	logger             *log.Entry
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
-	contractServices   map[*big.Int]service.Contracts
-	ethSigners         map[*big.Int]service.Signer
+	contractServices   map[int64]service.Contracts
+	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
 	feeRepository      repository.Fee
 	distributor        service.Distributor
@@ -58,8 +57,8 @@ type Service struct {
 func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
-	contractServices map[*big.Int]service.Contracts,
-	signers map[*big.Int]service.Signer,
+	contractServices map[int64]service.Contracts,
+	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
 	feeRepository repository.Fee,
 	feeService service.Fee,
@@ -142,7 +141,7 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 // SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
 	// TODO: Add ChainID to the parameters and remove mockChainID
-	mockChainID := big.NewInt(1)
+	mockChainID := int64(80001)
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId: txId,
 		RouterAddress: ts.contractServices[mockChainID].Address().String(),
@@ -205,7 +204,7 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	}
 
 	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
-	mockChainID := big.NewInt(1)
+	mockChainID := int64(80001)
 	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
@@ -359,7 +358,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	}
 
 	// TODO: remove mockChainID and add TargetChainID to the parameters of t (*entity.Transfer)
-	mockChainID := big.NewInt(1)
+	mockChainID := int64(80001)
 	requiredSigCount := len(ts.contractServices[mockChainID].GetMembers())/2 + 1
 	reachedMajority := len(t.Messages) >= requiredSigCount
 

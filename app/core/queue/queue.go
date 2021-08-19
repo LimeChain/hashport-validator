@@ -16,11 +16,9 @@
 
 package queue
 
-import "math/big"
-
 type Message struct {
 	Payload interface{}
-	ChainId *big.Int
+	ChainId int64
 }
 
 // Queue is a wrapper of a go channel, particularly to restrict actions on the channel itself

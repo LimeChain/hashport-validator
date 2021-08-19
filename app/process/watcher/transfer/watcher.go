@@ -31,7 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
 	"time"
 )
 
@@ -43,7 +42,7 @@ type Watcher struct {
 	statusRepository repository.Status
 	startTimestamp   int64
 	logger           *log.Entry
-	contractServices map[*big.Int]service.Contracts
+	contractServices map[int64]service.Contracts
 	mappings         config.AssetMappings
 }
 
@@ -54,7 +53,7 @@ func NewWatcher(
 	pollingInterval time.Duration,
 	repository repository.Status,
 	startTimestamp int64,
-	contractServices map[*big.Int]service.Contracts,
+	contractServices map[int64]service.Contracts,
 	mappings config.AssetMappings,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
@@ -150,7 +149,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	}
 
 	// TODO: Figure indexing out, for now we are simply looking at mapping of Hedera native asset to Ethereum wrapped asset
-	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
+	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][80001]
 	if wrappedAsset == "" {
 		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 		return
@@ -162,7 +161,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	mockChainID := big.NewInt(0)
+	mockChainID := int64(80001)
 	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
-	q.Push(&queue.Message{Payload: transferMessage, ChainId: mockChainID})
+	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 }

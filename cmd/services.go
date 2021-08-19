@@ -28,13 +28,12 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"math/big"
 )
 
 // TODO extract new service only for EVM TX handling
 type Services struct {
-	signers          map[*big.Int]service.Signer
-	contractServices map[*big.Int]service.Contracts
+	signers          map[int64]service.Signer
+	contractServices map[int64]service.Contracts
 	transfers        service.Transfers
 	messages         service.Messages
 	burnEvents       service.BurnEvent
@@ -46,11 +45,12 @@ type Services struct {
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	evmSigners := make(map[*big.Int]service.Signer)
-	contractServices := make(map[*big.Int]service.Contracts)
+	evmSigners := make(map[int64]service.Signer)
+	contractServices := make(map[int64]service.Contracts)
 	for _, client := range clients.EVMClients {
-		evmSigners[client.ChainID()] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[client.ChainID()] = contracts.NewService(client)
+		chainId := client.ChainID().Int64()
+		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
+		contractServices[chainId] = contracts.NewService(client)
 	}
 
 	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
@@ -109,10 +109,10 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractServices := make(map[*big.Int]service.Contracts)
+	contractServices := make(map[int64]service.Contracts)
 	for _, client := range clients.EVMClients {
 		contractService := contracts.NewService(client)
-		contractServices[client.ChainID()] = contractService
+		contractServices[client.ChainID().Int64()] = contractService
 	}
 
 	return &Services{

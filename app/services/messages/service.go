@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"strconv"
 	"time"
 
@@ -39,26 +38,26 @@ import (
 )
 
 type Service struct {
-	ethSigners         map[*big.Int]service.Signer
-	contractServices   map[*big.Int]service.Contracts
+	ethSigners         map[int64]service.Signer
+	contractServices   map[int64]service.Contracts
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
 	hederaClient       client.HederaNode
 	mirrorClient       client.MirrorNode
-	ethClients         map[*big.Int]client.EVM
+	ethClients         map[int64]client.EVM
 	logger             *log.Entry
 	mappings           config.AssetMappings
 }
 
 func NewService(
-	ethSigners map[*big.Int]service.Signer,
-	contractServices map[*big.Int]service.Contracts,
+	ethSigners map[int64]service.Signer,
+	contractServices map[int64]service.Contracts,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	hederaClient client.HederaNode,
 	mirrorClient client.MirrorNode,
-	ethClients map[*big.Int]client.EVM,
+	ethClients map[int64]client.EVM,
 	topicID string,
 	mappings config.AssetMappings,
 ) *Service {
@@ -105,7 +104,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
 	// TODO: Discuss how this behavior will be implemented... 0 for Hashgraph?
-	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[0].NativeAssets[t.NativeAsset][1]
+	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[0].NativeAssets[t.NativeAsset][80001]
 	if wrappedAsset == "" {
 		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err
@@ -185,7 +184,7 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 	address := crypto.PubkeyToAddress(*unmarshalledPublicKey)
 
 	// TODO: remove mockChainID
-	mockChainID := big.NewInt(1)
+	mockChainID := int64(80001)
 	if !ss.contractServices[mockChainID].IsMember(address.String()) {
 		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", transferID, authMessageStr)
 		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))

@@ -198,5 +198,5 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
-	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.evmClient.ChainID()})
+	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.evmClient.ChainID().Int64()})
 }
