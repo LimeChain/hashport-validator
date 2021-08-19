@@ -50,6 +50,7 @@ const (
 func Load() *Setup {
 	var configuration Config
 	err := getConfig(&configuration, e2eConfigPath)
+	config.LoadWrappedToNativeAssets(&configuration.AssetMappings)
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
 	}
@@ -82,8 +83,6 @@ func getConfig(config *Config, path string) error {
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
 	BridgeAccount hederaSDK.AccountID
-	EthReceiver   common.Address
-	RouterAddress common.Address
 	TopicID       hederaSDK.TopicID
 	TokenID       hederaSDK.TokenID
 	FeePercentage int64
@@ -135,13 +134,11 @@ func newSetup(config Config) (*Setup, error) {
 
 	return &Setup{
 		BridgeAccount: bridgeAccount,
-		EthReceiver:   common.HexToAddress(clients.Signer.Address()),
 		TopicID:       topicID,
 		TokenID:       tokenID,
 		FeePercentage: config.Hedera.FeePercentage,
 		Members:       members,
 		Clients:       clients,
-		RouterAddress: common.HexToAddress(config.EVM.RouterContractAddress),
 		DbValidator:   dbValidator,
 		AssetMappings: config.AssetMappings,
 	}, nil
@@ -150,16 +147,11 @@ func newSetup(config Config) (*Setup, error) {
 // clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
-	EthClient       *evm.Client
-	WHbarContract   *wtoken.Wtoken
-	WTokenContract  *wtoken.Wtoken
-	RouterContract  *router.Router
-	KeyTransactor   *bind.TransactOpts
+	EVM             map[int64]EVMUtils
 	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator
 	FeeCalculator   service.Fee
 	Distributor     service.Distributor
-	Signer          service.Signer
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -168,25 +160,39 @@ func newClients(config Config) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethClient := evm.NewClient(config.EVM)
 
-	routerContractAddress := common.HexToAddress(config.EVM.RouterContractAddress)
-	routerInstance, err := router.NewRouter(routerContractAddress, ethClient.Client)
+	EVM := make(map[int64]EVMUtils)
+	for chainId, conf := range config.EVM {
+		evmClient := evm.NewClient(conf)
+		routerContractAddress := common.HexToAddress(conf.RouterContractAddress)
+		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-	wHbarInstance, err := initAssetContract(config.Tokens.WHbar, config.AssetMappings, ethClient)
-	if err != nil {
-		return nil, err
-	}
+		wHbarInstance, err := initAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
+		if err != nil {
+			return nil, err
+		}
 
-	wTokenInstance, err := initAssetContract(config.Tokens.WToken, config.AssetMappings, ethClient)
-	if err != nil {
-		return nil, err
-	}
+		wTokenInstance, err := initAssetContract(config.Tokens.WToken, config.AssetMappings, 0, chainId, evmClient)
+		if err != nil {
+			return nil, err
+		}
 
-	signer := evm_signer.NewEVMSigner(config.EVM.PrivateKey)
-	keyTransactor, err := signer.NewKeyTransactor(ethClient.ChainID())
-	if err != nil {
-		return nil, err
+		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
+		keyTransactor, err := signer.NewKeyTransactor(evmClient.ChainID())
+		if err != nil {
+			return nil, err
+		}
+
+		EVM[chainId] = EVMUtils{
+			EVMClient:      evmClient,
+			WHbarContract:  wHbarInstance,
+			WTokenContract: wTokenInstance,
+			RouterContract: routerInstance,
+			KeyTransactor:  keyTransactor,
+			Signer:         signer,
+			Receiver:       common.HexToAddress(signer.Address()),
+			RouterAddress:  routerContractAddress,
+		}
 	}
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
@@ -195,21 +201,16 @@ func newClients(config Config) (*clients, error) {
 
 	return &clients{
 		Hedera:          hederaClient,
-		EthClient:       ethClient,
-		WHbarContract:   wHbarInstance,
-		WTokenContract:  wTokenInstance,
-		RouterContract:  routerInstance,
+		EVM:             EVM,
 		ValidatorClient: validatorClient,
-		KeyTransactor:   keyTransactor,
 		MirrorNode:      mirrorNode,
 		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
 		Distributor:     distributor.New(config.Hedera.Members),
-		Signer:          signer,
 	}, nil
 }
 
-func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := WrappedAsset(nativeAssets, nativeAsset)
+func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +223,8 @@ func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, ev
 	return wTokenInstance, nil
 }
 
-func WrappedAsset(nativeAssets config.AssetMappings, nativeAsset string) (*common.Address, error) {
-	wTokenContractHex := nativeAssets.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
+func NativeToWrappedAsset(nativeAssets config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (*common.Address, error) {
+	wTokenContractHex := nativeAssets.NativeToWrappedByNetwork[sourceChain].NativeAssets[nativeAsset][targetChain]
 
 	if wTokenContractHex == "" {
 		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
@@ -261,10 +262,21 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 // e2eConfig used to load and parse from application.yml
 type Config struct {
 	Hedera        Hedera               `yaml:"hedera"`
-	EVM           config.EVM           `yaml:"ethereum"`
+	EVM           map[int64]config.EVM `yaml:"evm"`
 	Tokens        Tokens               `yaml:"tokens"`
 	ValidatorUrl  string               `yaml:"validator_url"`
 	AssetMappings config.AssetMappings `yaml:"asset-mappings"`
+}
+
+type EVMUtils struct {
+	EVMClient      *evm.Client
+	WHbarContract  *wtoken.Wtoken
+	WTokenContract *wtoken.Wtoken
+	RouterContract *router.Router
+	KeyTransactor  *bind.TransactOpts
+	Signer         *evm_signer.Signer
+	Receiver       common.Address
+	RouterAddress  common.Address
 }
 
 type Tokens struct {

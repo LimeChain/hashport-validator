@@ -69,10 +69,10 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 	return fee
 }
 
-func PrepareExpectedTransfer(assetMappings config.AssetMappings, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func PrepareExpectedTransfer(assetMappings config.AssetMappings, sourceChainId, targetChainId int64, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
 
-	wrappedAsset, err := setup.WrappedAsset(assetMappings, nativeAsset)
+	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, nativeAsset)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeAsset, err)
 	}

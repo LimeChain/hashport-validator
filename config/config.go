@@ -39,7 +39,7 @@ func LoadConfig() Config {
 	GetConfig(&configuration, mainConfigFile)
 
 	// TODO: Replace this configuration with an external configuration service
-	loadWrappedToNativeAssets(&configuration.AssetMappings)
+	LoadWrappedToNativeAssets(&configuration.AssetMappings)
 
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
@@ -48,7 +48,7 @@ func LoadConfig() Config {
 	return configuration
 }
 
-func loadWrappedToNativeAssets(mappings *AssetMappings) {
+func LoadWrappedToNativeAssets(mappings *AssetMappings) {
 	mappings.WrappedToNative = make(map[string]string)
 	for nativeChainId, network := range mappings.NativeToWrappedByNetwork {
 		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
