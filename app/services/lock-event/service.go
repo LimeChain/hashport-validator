@@ -108,8 +108,8 @@ statusBlocker:
 		},
 	}
 
-	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, nil)
-	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, nil)
+	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, &status)
+	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, &status)
 
 	s.scheduledService.ExecuteScheduledTransferTransaction(
 		event.Id,
