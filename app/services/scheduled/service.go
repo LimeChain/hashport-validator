@@ -33,7 +33,7 @@ func New(
 		payerAccount:     payer,
 		hederaNodeClient: hederaNodeClient,
 		mirrorNodeClient: mirrorNodeClient,
-		logger:           config.GetLoggerFor("Burn Event Service"),
+		logger:           config.GetLoggerFor("Scheduled Service"),
 	}
 }
 

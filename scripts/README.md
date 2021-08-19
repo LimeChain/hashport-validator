@@ -1,5 +1,4 @@
 1. Run bridge-setup.go with privateKey, accountId and network as flags to generate the configurations
-
     `go run ./scripts/bridge/setup.go --privateKey=/your private key/ --accountID=/your account id/ --network=/previewnet|testnet|mainnet/ --members=/int, the count of the wanted bridge custodians/`
 
 2. Run create.go to create custom token and associate it with hedera
