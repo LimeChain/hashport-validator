@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -28,14 +28,19 @@ import (
 type Clients struct {
 	HederaNode client.HederaNode
 	MirrorNode client.MirrorNode
-	Ethereum   client.Ethereum
+	EVMClients map[int64]client.EVM
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Clients) *Clients {
+	EVMClients := make(map[int64]client.EVM)
+	for chainId, ec := range config.EVM {
+		EVMClients[chainId] = evm.NewClient(ec)
+	}
+
 	return &Clients{
 		HederaNode: hedera.NewNodeClient(config.Hedera),
 		MirrorNode: mirror_node.NewClient(config.MirrorNode.ApiAddress, config.MirrorNode.PollingInterval),
-		Ethereum:   ethereum.NewClient(config.Ethereum),
+		EVMClients: EVMClients,
 	}
 }

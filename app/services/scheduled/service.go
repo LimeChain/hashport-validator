@@ -1,10 +1,13 @@
 package scheduled
 
 import (
+	"errors"
+	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -30,16 +33,16 @@ func New(
 		payerAccount:     payer,
 		hederaNodeClient: hederaNodeClient,
 		mirrorNodeClient: mirrorNodeClient,
-		logger:           config.GetLoggerFor("Burn Event Service"),
+		logger:           config.GetLoggerFor("Scheduled Service"),
 	}
 }
 
 // Execute submits a scheduled transaction and executes provided functions when necessary
-func (s *Service) Execute(
+func (s *Service) ExecuteScheduledTransferTransaction(
 	id, nativeAsset string,
 	transfers []transfer.Hedera,
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	transactionResponse, err := s.executeScheduledTransaction(id, nativeAsset, transfers)
+	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
@@ -47,46 +50,14 @@ func (s *Service) Execute(
 		}
 		return
 	}
-
-	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
-	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
-		id,
-		scheduledTxID)
-
-	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]", id, transactionResponse.TransactionID.String())
-		onExecutionFail(scheduledTxID)
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled transfer transaction. Error [%s].", id, err)
 		return
 	}
-
-	switch txReceipt.Status {
-	case hedera.StatusIdenticalScheduleAlreadyCreated:
-		s.handleScheduleSign(id, *txReceipt.ScheduleID)
-	case hedera.StatusSuccess:
-	default:
-		txID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
-		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", id, txID, txReceipt.Status)
-
-		onExecutionFail(txID)
-		return
-	}
-
-	transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
-	onExecutionSuccess(transactionID, txReceipt.ScheduleID.String())
-
-	onMinedSuccess := func() {
-		onSuccess(transactionID)
-	}
-
-	onMinedFail := func() {
-		onFail(transactionID)
-	}
-
-	s.mirrorNodeClient.WaitForScheduledTransferTransaction(transactionID, onMinedSuccess, onMinedFail)
 }
 
-func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
+func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
 	var tokenID hedera.TokenID
 	var transactionResponse *hedera.TransactionResponse
 	var err error
@@ -104,6 +75,81 @@ func (s *Service) executeScheduledTransaction(id, nativeAsset string, transfers 
 			SubmitScheduledTokenTransferTransaction(tokenID, transfers, s.payerAccount, id)
 	}
 	return transactionResponse, err
+}
+
+func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	transactionResponse, err := s.executeScheduledTokenMintTransaction(id, asset, amount)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
+		if transactionResponse != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+		}
+		*status <- lock_event.FAIL
+		return
+	}
+
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled mint transaction. Error [%s].", id, err)
+		*status <- lock_event.FAIL
+		return
+	}
+}
+
+func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount int64) (*hedera.TransactionResponse, error) {
+	var tokenID hedera.TokenID
+	var transactionResponse *hedera.TransactionResponse
+	var err error
+
+	tokenID, err = hedera.TokenIDFromString(asset)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to parse token [%s] to TokenID. Error [%s].", id, asset, err)
+		return nil, err
+	}
+
+	transactionResponse, err = s.hederaNodeClient.
+		SubmitScheduledTokenMintTransaction(tokenID, amount, s.payerAccount, id)
+
+	return transactionResponse, err
+}
+
+func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.TransactionResponse, id string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) error {
+	scheduledTxID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
+	s.logger.Infof("[%s] - Successfully submitted scheduled transaction [%s].",
+		id,
+		scheduledTxID)
+
+	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]. %s", id, transactionResponse.TransactionID.String(), err)
+		onExecutionFail(scheduledTxID)
+		return err
+	}
+
+	switch txReceipt.Status {
+	case hedera.StatusIdenticalScheduleAlreadyCreated:
+		s.handleScheduleSign(id, *txReceipt.ScheduleID)
+	case hedera.StatusSuccess:
+	default:
+		txID := hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String())
+		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", id, txID, txReceipt.Status)
+
+		onExecutionFail(txID)
+		return errors.New(fmt.Sprintf("receipt-status: %s", txReceipt.Status))
+	}
+
+	transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())
+	onExecutionSuccess(transactionID, txReceipt.ScheduleID.String())
+
+	onMinedSuccess := func() {
+		onSuccess(transactionID)
+	}
+
+	onMinedFail := func() {
+		onFail(transactionID)
+	}
+	go s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
+	return nil
 }
 
 func (s *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {

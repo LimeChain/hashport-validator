@@ -18,7 +18,6 @@ package message
 
 import (
 	"fmt"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -30,7 +29,7 @@ import (
 type Handler struct {
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
-	contracts          service.Contracts
+	contracts          map[int64]service.Contracts
 	messages           service.Messages
 	logger             *log.Entry
 }
@@ -39,7 +38,7 @@ func NewHandler(
 	topicId string,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
-	contractsService service.Contracts,
+	contractServices map[int64]service.Contracts,
 	messages service.Messages,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
@@ -50,7 +49,7 @@ func NewHandler(
 	return &Handler{
 		transferRepository: transferRepository,
 		messageRepository:  messageRepository,
-		contracts:          contractsService,
+		contracts:          contractServices,
 		messages:           messages,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 	}
@@ -105,8 +104,11 @@ func (cmh *Handler) checkMajority(transferID string) (majorityReached bool, err 
 		return false, err
 	}
 
-	requiredSigCount := len(cmh.contracts.GetMembers())/2 + 1
-	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), len(cmh.contracts.GetMembers()))
+	// TODO: remove mockChainID and add actual parameter
+	mockChainID := int64(80001)
+	membersCount := len(cmh.contracts[mockChainID].GetMembers())
+	requiredSigCount := membersCount/2 + 1
+	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
 	return len(signatureMessages) >= requiredSigCount,
 		nil

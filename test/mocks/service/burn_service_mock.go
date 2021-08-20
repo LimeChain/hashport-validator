@@ -14,33 +14,26 @@
  * limitations under the License.
  */
 
-package ethereum
+package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/mock"
 )
 
-type Handler struct {
-	service service.BurnEvent
-	logger  *log.Entry
+type MockBurnService struct {
+	mock.Mock
 }
 
-func NewHandler(service service.BurnEvent) *Handler {
-	return &Handler{
-		service: service,
-		logger:  config.GetLoggerFor("Scheduled Transaction Handler"),
+func (m *MockBurnService) TransactionID(id string) (string, error) {
+	args := m.Called(id)
+
+	if args[1] == nil {
+		return args[0].(string), nil
 	}
+	return args[0].(string), args[1].(error)
 }
 
-func (sth Handler) Handle(payload interface{}) {
-	burnEvent, ok := payload.(*burn_event.BurnEvent)
-	if !ok {
-		sth.logger.Errorf("Could not cast payload [%s]", payload)
-		return
-	}
-
-	sth.service.ProcessEvent(*burnEvent)
+func (m *MockBurnService) ProcessEvent(event burn_event.BurnEvent) {
+	m.Called(event)
 }

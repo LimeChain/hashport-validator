@@ -21,6 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
@@ -33,6 +34,7 @@ type Repositories struct {
 	transfer       repository.Transfer
 	message        repository.Message
 	burnEvent      repository.BurnEvent
+	lockEvent      repository.LockEvent
 	fee            repository.Fee
 }
 
@@ -45,6 +47,7 @@ func PrepareRepositories(db database.Database) *Repositories {
 		transfer:       transfer.NewRepository(connection),
 		message:        message.NewRepository(connection),
 		burnEvent:      burn_event.NewRepository(connection),
+		lockEvent:      lock_event.NewRepository(connection),
 		fee:            fee.NewRepository(connection),
 	}
 }

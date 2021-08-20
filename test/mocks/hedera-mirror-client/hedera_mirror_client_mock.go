@@ -95,6 +95,6 @@ func (m *MockHederaMirrorClient) GetTransaction(transactionID string) (*mirror_n
 	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
 }
 
-func (m *MockHederaMirrorClient) WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func()) {
+func (m *MockHederaMirrorClient) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {
 	m.Called(txId /*, onSuccess, onFailure*/)
 }

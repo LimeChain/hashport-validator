@@ -29,7 +29,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/ethereum"
+	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -38,26 +38,28 @@ import (
 )
 
 type Service struct {
-	ethSigner          service.Signer
-	contractsService   service.Contracts
+	ethSigners         map[int64]service.Signer
+	contractServices   map[int64]service.Contracts
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
 	hederaClient       client.HederaNode
 	mirrorClient       client.MirrorNode
-	ethClient          client.Ethereum
+	ethClients         map[int64]client.EVM
 	logger             *log.Entry
+	mappings           config.AssetMappings
 }
 
 func NewService(
-	ethSigner service.Signer,
-	contractsService service.Contracts,
+	ethSigners map[int64]service.Signer,
+	contractServices map[int64]service.Contracts,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	hederaClient client.HederaNode,
 	mirrorClient client.MirrorNode,
-	ethClient client.Ethereum,
+	ethClients map[int64]client.EVM,
 	topicID string,
+	mappings config.AssetMappings,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -65,15 +67,16 @@ func NewService(
 	}
 
 	return &Service{
-		ethSigner:          ethSigner,
-		contractsService:   contractsService,
+		ethSigners:         ethSigners,
+		contractServices:   contractServices,
 		messageRepository:  messageRepository,
 		transferRepository: transferRepository,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Messages Service")),
 		topicID:            tID,
 		hederaClient:       hederaClient,
 		mirrorClient:       mirrorClient,
-		ethClient:          ethClient,
+		ethClients:         ethClients,
+		mappings:           mappings,
 	}
 }
 
@@ -100,8 +103,9 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
-	wrappedAsset, err := ss.contractsService.ToWrapped(t.NativeAsset)
-	if err != nil {
+	// TODO: Discuss how this behavior will be implemented... 0 for Hashgraph?
+	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[0].NativeAssets[t.NativeAsset][80001]
+	if wrappedAsset == "" {
 		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err
 	}
@@ -178,7 +182,10 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 		return common.Address{}, err
 	}
 	address := crypto.PubkeyToAddress(*unmarshalledPublicKey)
-	if !ss.contractsService.IsMember(address.String()) {
+
+	// TODO: remove mockChainID
+	mockChainID := int64(80001)
+	if !ss.contractServices[mockChainID].IsMember(address.String()) {
 		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", transferID, authMessageStr)
 		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
 	}

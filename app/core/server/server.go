@@ -35,8 +35,8 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) AddPair(watcher pair.Watcher, handler pair.Handler) {
-	s.pairs = append(s.pairs, pair.NewPair(watcher, handler))
+func (s *Server) AddPair(watcher pair.Watcher, handlers map[int64]pair.Handler) {
+	s.pairs = append(s.pairs, pair.NewPair(watcher, handlers))
 }
 
 // Run starts every pair's Listen and serves the chi.Mux on a given port

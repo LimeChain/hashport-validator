@@ -24,7 +24,7 @@ import (
 )
 
 // EncodeBytesFrom returns the array of bytes representing an
-// authorisation signature ready to be signed by Ethereum Private Key
+// authorisation signature ready to be signed by EVM Private Key
 func EncodeBytesFrom(txId, routerAddress, wrappedAsset, receiverEthAddress, amount string) ([]byte, error) {
 	args, err := generateArguments()
 	if err != nil {
