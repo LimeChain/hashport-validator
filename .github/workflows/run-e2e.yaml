@@ -5,6 +5,8 @@ on:
       - main
   pull_request:
 
+concurrency: e2e
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
