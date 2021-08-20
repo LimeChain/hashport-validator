@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ethereum
+package evm
 
 import (
 	"context"
@@ -30,17 +30,17 @@ import (
 	"time"
 )
 
-// Client Ethereum JSON RPC Client
+// Client EVM JSON RPC Client
 type Client struct {
 	chainId *big.Int
-	config  config.Ethereum
+	config  config.EVM
 	*ethclient.Client
 	logger *log.Entry
 }
 
-// NewClient creates new instance of an Ethereum client
-func NewClient(c config.Ethereum) *Client {
-	logger := config.GetLoggerFor(fmt.Sprintf("Ethereum Client"))
+// NewClient creates new instance of an EVM client
+func NewClient(c config.EVM) *Client {
+	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client"))
 	if c.BlockConfirmations < 1 {
 		logger.Fatalf("BlockConfirmations should be a positive number")
 	}
@@ -67,7 +67,7 @@ func (ec *Client) ChainID() *big.Int {
 	return ec.chainId
 }
 
-// GetClients returns the instance of a ethclient already established connection to a JSON RPC Ethereum Node
+// GetClients returns the instance of a ethclient already established connection to a JSON RPC EVM Node
 func (ec *Client) GetClient() *ethclient.Client {
 	return ec.Client
 }
@@ -82,7 +82,7 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	}
 
 	if len(bytecode) == 0 {
-		return nil, errors.New(fmt.Sprintf("Provided address [%s] is not an Ethereum smart contract.", contractAddress))
+		return nil, errors.New(fmt.Sprintf("Provided address [%s] is not an EVM smart contract.", contractAddress))
 	}
 
 	return &address, nil
@@ -136,6 +136,14 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return ec.Client.TransactionReceipt(context.Background(), hash)
 }
 
+func (ec *Client) GetRouterContractAddress() string {
+	return ec.config.RouterContractAddress
+}
+
+func (ec *Client) GetPrivateKey() string {
+	return ec.config.PrivateKey
+}
+
 func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	target := raw.BlockNumber + ec.config.BlockConfirmations
 	for {
@@ -148,7 +156,7 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 		if target <= currentBlockNumber {
 			receipt, err := ec.TransactionReceipt(context.Background(), raw.TxHash)
 			if errors.Is(ethereum.NotFound, err) {
-				ec.logger.Infof("[%s] Ethereum TX went into an uncle block.", raw.TxHash.String())
+				ec.logger.Infof("[%s] EVM TX went into an uncle block.", raw.TxHash.String())
 				return err
 			}
 			if err != nil {

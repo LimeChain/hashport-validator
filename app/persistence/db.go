@@ -73,6 +73,7 @@ func tryConnection(connectionStr string) *gorm.DB {
 // Migrate tables
 func migrateDb(db *gorm.DB) {
 	err := db.AutoMigrate(
+		entity.LockEvent{},
 		entity.BurnEvent{},
 		entity.Transfer{},
 		entity.Fee{},

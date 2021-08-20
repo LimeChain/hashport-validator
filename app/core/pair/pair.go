@@ -16,23 +16,28 @@
 
 package pair
 
+import (
+	q "github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
+)
+
 type Watcher interface {
-	Watch(queue *Queue)
+	Watch(queue queue.Queue)
 }
 
 type Handler interface {
 	Handle(interface{})
 }
 
-// Pair represents a pair of a watcher and a handler, to which the watcher pushes messages
-// which the handler processes
+// Pair represents a pair of a watcher and handlers, to which the watcher pushes messages
+// which the handlers process
 type Pair struct {
-	queue   *Queue
-	watcher Watcher
-	handler Handler
+	queue    queue.Queue
+	watcher  Watcher
+	handlers map[int64]Handler
 }
 
-// Listen begins the actions of the handler and the watcher
+// Listen begins the actions of the handlers and the watcher
 func (p *Pair) Listen() {
 	p.handle()
 	p.watch()
@@ -41,8 +46,8 @@ func (p *Pair) Listen() {
 // handle subscribes to the channel messages, processing them synchronously
 func (p *Pair) handle() {
 	go func() {
-		for messages := range p.queue.channel {
-			go p.handler.Handle(messages.Payload)
+		for messages := range p.queue.Channel() {
+			go p.handlers[messages.ChainId].Handle(messages.Payload)
 		}
 	}()
 }
@@ -52,10 +57,10 @@ func (p *Pair) watch() {
 	go p.watcher.Watch(p.queue)
 }
 
-func NewPair(watcher Watcher, handler Handler) *Pair {
+func NewPair(watcher Watcher, handlers map[int64]Handler) *Pair {
 	return &Pair{
-		watcher: watcher,
-		handler: handler,
-		queue:   NewQueue(),
+		watcher:  watcher,
+		handlers: handlers,
+		queue:    q.NewQueue(),
 	}
 }

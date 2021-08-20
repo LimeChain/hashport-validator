@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
@@ -57,7 +58,7 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 	}
 }
 
-func (cmw Watcher) Watch(q *pair.Queue) {
+func (cmw Watcher) Watch(q qi.Queue) {
 	if !cmw.client.TopicExists(cmw.topicID) {
 		cmw.logger.Errorf("Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
 		return
@@ -91,7 +92,7 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 	cmw.logger.Tracef("Updated Topic Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (cmw Watcher) beginWatching(q *pair.Queue) {
+func (cmw Watcher) beginWatching(q qi.Queue) {
 	milestoneTimestamp, err := cmw.statusRepository.GetLastFetchedTimestamp(cmw.topicID.String())
 	if err != nil {
 		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
@@ -120,7 +121,7 @@ func (cmw Watcher) beginWatching(q *pair.Queue) {
 	}
 }
 
-func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q *pair.Queue) {
+func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)
@@ -129,5 +130,6 @@ func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q *pair.Queue) {
 		return
 	}
 
-	q.Push(&pair.Message{Payload: msg})
+	// TODO: Figure this one out
+	q.Push(&queue.Message{Payload: msg, ChainId: 0})
 }

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 LimeChain Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package burn_event
 
 import (
@@ -60,7 +76,7 @@ func Test_ProcessEvent(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
-	mocks.MScheduledService.On("Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
+	mocks.MScheduledService.On("ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
 
 	s.ProcessEvent(burnEvent)
 }
@@ -86,7 +102,7 @@ func Test_ProcessEventCreateFail(t *testing.T) {
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", burnEvent.Amount)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mockFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", mockValidFee)
-	mocks.MScheduledService.AssertNotCalled(t, "Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }
@@ -112,7 +128,7 @@ func Test_ProcessEventCalculateMemberDistributionFails(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return(nil, errors.New("invalid-result"))
-	mocks.MScheduledService.AssertNotCalled(t, "Execute", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }

@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -41,7 +42,8 @@ type Watcher struct {
 	statusRepository repository.Status
 	startTimestamp   int64
 	logger           *log.Entry
-	contractService  service.Contracts
+	contractServices map[int64]service.Contracts
+	mappings         config.AssetMappings
 }
 
 func NewWatcher(
@@ -51,7 +53,8 @@ func NewWatcher(
 	pollingInterval time.Duration,
 	repository repository.Status,
 	startTimestamp int64,
-	contractService service.Contracts,
+	contractServices map[int64]service.Contracts,
+	mappings config.AssetMappings,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -66,11 +69,12 @@ func NewWatcher(
 		statusRepository: repository,
 		startTimestamp:   startTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractService:  contractService,
+		contractServices: contractServices,
+		mappings:         mappings,
 	}
 }
 
-func (ctw Watcher) Watch(q *pair.Queue) {
+func (ctw Watcher) Watch(q qi.Queue) {
 	if !ctw.client.AccountExists(ctw.accountID) {
 		ctw.logger.Errorf("Could not start monitoring account [%s] - Account not found.", ctw.accountID.String())
 		return
@@ -104,7 +108,7 @@ func (ctw Watcher) updateStatusTimestamp(ts int64) {
 	ctw.logger.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(ts))
 }
 
-func (ctw Watcher) beginWatching(q *pair.Queue) {
+func (ctw Watcher) beginWatching(q qi.Queue) {
 	milestoneTimestamp, err := ctw.statusRepository.GetLastFetchedTimestamp(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Fatalf("Failed to retrieve Transfer Watcher Status timestamp. Error [%s]", err)
@@ -136,7 +140,7 @@ func (ctw Watcher) beginWatching(q *pair.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue) {
+func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, nativeAsset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
@@ -144,8 +148,9 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	wrappedAsset, err := ctw.contractService.ToWrapped(nativeAsset)
-	if err != nil {
+	// TODO: Figure indexing out, for now we are simply looking at mapping of Hedera native asset to Ethereum wrapped asset
+	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][80001]
+	if wrappedAsset == "" {
 		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 		return
 	}
@@ -156,6 +161,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q *pair.Queue)
 		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractService.Address().String())
-	q.Push(&pair.Message{Payload: transferMessage})
+	mockChainID := int64(80001)
+	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
+	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 }

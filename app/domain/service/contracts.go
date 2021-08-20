@@ -20,10 +20,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
-	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/ethereum/contracts/router"
+	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 )
 
-// Contracts interface is implemented by the Contracts Service providing business logic access to the Ethereum SmartContracts and other related utility functions
+// Contracts interface is implemented by the Contracts Service providing business logic access to the EVM SmartContracts and other related utility functions
 type Contracts interface {
 	// Address returns the address of the contract instance
 	Address() common.Address
@@ -33,8 +33,6 @@ type Contracts interface {
 	IsMember(address string) bool
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
-	// Check whether a specific asset has a valid bridge token address. Returns the erc20 token address if native asset is valid. Returns an empty string if not.
-	ToWrapped(native string) (string, error)
-	// Checks whether a specific wrapped token has a corresponding native token. Returns the native token as string
-	ToNative(wrapped common.Address) (string, error)
+	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
+	WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterLock) (event.Subscription, error)
 }

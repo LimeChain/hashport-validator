@@ -200,43 +200,41 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
 }
 
-// WaitForScheduledTransferTransaction Polls the transaction at intervals. Depending on the
+// WaitForScheduledTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
-func (c Client) WaitForScheduledTransferTransaction(txId string, onSuccess, onFailure func()) {
-	go func() {
-		for {
-			response, err := c.GetTransaction(txId)
-			if response != nil && response.isNotFound() {
-				continue
-			}
-			if err != nil {
-				c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err)
-				return
-			}
-
-			if len(response.Transactions) > 1 {
-				success := false
-				for _, transaction := range response.Transactions {
-					if transaction.Scheduled && transaction.Result == hedera.StatusSuccess.String() {
-						success = true
-						break
-					}
-				}
-
-				if success {
-					c.logger.Debugf("Scheduled TX [%s] was successfully mined", txId)
-					onSuccess()
-				} else {
-					c.logger.Debugf("Scheduled TX [%s] has failed", txId)
-					onFailure()
-				}
-				return
-			}
-			c.logger.Tracef("Pinged Mirror Node for Scheduled TX [%s]. No update", txId)
-			time.Sleep(c.pollingInterval * time.Second)
-		}
-	}()
+func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {
 	c.logger.Debugf("Added new Scheduled TX [%s] for monitoring", txId)
+	for {
+		response, err := c.GetTransaction(txId)
+		if response != nil && response.isNotFound() {
+			continue
+		}
+		if err != nil {
+			c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err)
+			return
+		}
+
+		if len(response.Transactions) > 1 {
+			success := false
+			for _, transaction := range response.Transactions {
+				if transaction.Scheduled && transaction.Result == hedera.StatusSuccess.String() {
+					success = true
+					break
+				}
+			}
+
+			if success {
+				c.logger.Debugf("Scheduled TX [%s] was successfully mined", txId)
+				onSuccess()
+			} else {
+				c.logger.Debugf("Scheduled TX [%s] has failed", txId)
+				onFailure()
+			}
+			return
+		}
+		c.logger.Tracef("Pinged Mirror Node for Scheduled TX [%s]. No update", txId)
+		time.Sleep(c.pollingInterval * time.Second)
+	}
 }
 
 func (c Client) get(query string) (*http.Response, error) {

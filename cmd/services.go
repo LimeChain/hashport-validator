@@ -22,29 +22,37 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/eth"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
-// TODO extract new service only for Ethereum TX handling
+// TODO extract new service only for EVM TX handling
 type Services struct {
-	signer      service.Signer
-	contracts   service.Contracts
-	transfers   service.Transfers
-	messages    service.Messages
-	burnEvents  service.BurnEvent
-	fees        service.Fee
-	distributor service.Distributor
-	scheduled   service.Scheduled
+	signers          map[int64]service.Signer
+	contractServices map[int64]service.Contracts
+	transfers        service.Transfers
+	messages         service.Messages
+	burnEvents       service.BurnEvent
+	lockEvents       service.LockEvent
+	fees             service.Fee
+	distributor      service.Distributor
+	scheduled        service.Scheduled
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	ethSigner := eth.NewEthSigner(c.Validator.Clients.Ethereum.PrivateKey)
-	contracts := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	evmSigners := make(map[int64]service.Signer)
+	contractServices := make(map[int64]service.Contracts)
+	for _, client := range clients.EVMClients {
+		chainId := client.ChainID().Int64()
+		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
+		contractServices[chainId] = contracts.NewService(client)
+	}
+
 	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
 	distributor := distributor.New(c.Validator.Clients.Hedera.Members)
 	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
@@ -52,8 +60,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
-		contracts,
-		ethSigner,
+		contractServices,
+		evmSigners,
 		repositories.transfer,
 		repositories.fee,
 		fees,
@@ -63,14 +71,15 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled)
 
 	messages := messages.NewService(
-		ethSigner,
-		contracts,
+		evmSigners,
+		contractServices,
 		repositories.transfer,
 		repositories.message,
 		clients.HederaNode,
 		clients.MirrorNode,
-		clients.Ethereum,
-		c.Validator.Clients.Hedera.TopicId)
+		clients.EVMClients,
+		c.Validator.Clients.Hedera.TopicId,
+		c.AssetMappings)
 
 	burnEvent := burn_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
@@ -80,23 +89,33 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled,
 		fees)
 
+	lockEvent := lock_event.NewService(
+		c.Validator.Clients.Hedera.BridgeAccount,
+		repositories.lockEvent,
+		scheduled)
+
 	return &Services{
-		signer:      ethSigner,
-		contracts:   contracts,
-		transfers:   transfers,
-		messages:    messages,
-		burnEvents:  burnEvent,
-		fees:        fees,
-		distributor: distributor,
+		signers:          evmSigners,
+		contractServices: contractServices,
+		transfers:        transfers,
+		messages:         messages,
+		burnEvents:       burnEvent,
+		lockEvents:       lockEvent,
+		fees:             fees,
+		distributor:      distributor,
 	}
 }
 
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractService := contracts.NewService(clients.Ethereum, c.Validator.Clients.Ethereum)
+	contractServices := make(map[int64]service.Contracts)
+	for _, client := range clients.EVMClients {
+		contractService := contracts.NewService(client)
+		contractServices[client.ChainID().Int64()] = contractService
+	}
 
 	return &Services{
-		contracts: contractService,
+		contractServices: contractServices,
 	}
 }

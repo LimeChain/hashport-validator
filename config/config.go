@@ -39,7 +39,7 @@ func LoadConfig() Config {
 	GetConfig(&configuration, mainConfigFile)
 
 	// TODO: Replace this configuration with an external configuration service
-	loadWrappedToNativeAssets(&configuration.AssetMappings)
+	LoadWrappedToNativeAssets(&configuration.AssetMappings)
 
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
@@ -48,7 +48,7 @@ func LoadConfig() Config {
 	return configuration
 }
 
-func loadWrappedToNativeAssets(mappings *AssetMappings) {
+func LoadWrappedToNativeAssets(mappings *AssetMappings) {
 	mappings.WrappedToNative = make(map[string]string)
 	for nativeChainId, network := range mappings.NativeToWrappedByNetwork {
 		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
@@ -84,13 +84,13 @@ type Config struct {
 }
 
 type AssetMappings struct {
-	NativeToWrappedByNetwork map[int]*Network `yaml:"networks,omitempty"`
+	NativeToWrappedByNetwork map[int64]Network `yaml:"networks,omitempty"`
 	WrappedToNative          map[string]string
 }
 
 type Network struct {
-	EVMClient    Ethereum                  `yaml:"evm_client"`
-	NativeAssets map[string]map[int]string `yaml:"tokens"`
+	EVMClient    EVM                         `yaml:"evm_client"`
+	NativeAssets map[string]map[int64]string `yaml:"tokens"`
 }
 
 type Validator struct {
@@ -103,16 +103,16 @@ type Validator struct {
 }
 
 type Clients struct {
-	Ethereum   Ethereum   `yaml:"ethereum"`
-	MirrorNode MirrorNode `yaml:"mirror_node"`
-	Hedera     Hedera     `yaml:"hedera"`
+	EVM        map[int64]EVM `yaml:"evm"`
+	MirrorNode MirrorNode    `yaml:"mirror_node"`
+	Hedera     Hedera        `yaml:"hedera"`
 }
 
 type Recovery struct {
 	StartTimestamp int64 `yaml:"start_timestamp" env:"VALIDATOR_RECOVERY_START_TIMESTAMP"`
 }
 
-type Ethereum struct {
+type EVM struct {
 	NodeUrl               string `yaml:"node_url" env:"VALIDATOR_CLIENTS_ETHEREUM_NODE_URL"`
 	RouterContractAddress string `yaml:"router_contract_address" env:"VALIDATOR_CLIENTS_ETHEREUM_ROUTER_CONTRACT_ADDRESS"`
 	BlockConfirmations    uint64 `yaml:"block_confirmations" env:"VALIDATOR_CLIENTS_ETHEREUM_BLOCK_CONFIRMATIONS"`

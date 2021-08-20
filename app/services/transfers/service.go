@@ -43,8 +43,8 @@ type Service struct {
 	logger             *log.Entry
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
-	contractsService   service.Contracts
-	ethSigner          service.Signer
+	contractServices   map[int64]service.Contracts
+	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
 	feeRepository      repository.Fee
 	distributor        service.Distributor
@@ -57,8 +57,8 @@ type Service struct {
 func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
-	contractsService service.Contracts,
-	signer service.Signer,
+	contractServices map[int64]service.Contracts,
+	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
 	feeRepository repository.Fee,
 	feeService service.Fee,
@@ -80,8 +80,8 @@ func NewService(
 		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
-		contractsService:   contractsService,
-		ethSigner:          signer,
+		contractServices:   contractServices,
+		ethSigners:         signers,
 		transferRepository: transferRepository,
 		feeRepository:      feeRepository,
 		topicID:            tID,
@@ -138,11 +138,13 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 	return tx, nil
 }
 
-// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
+// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
+	// TODO: Add ChainID to the parameters and remove mockChainID
+	mockChainID := int64(80001)
 	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
 		TransactionId: txId,
-		RouterAddress: ts.contractsService.Address().String(),
+		RouterAddress: ts.contractServices[mockChainID].Address().String(),
 		Receiver:      memo,
 		Amount:        amount,
 		NativeAsset:   nativeAsset,
@@ -201,7 +203,9 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	signatureBytes, err := ts.ethSigner.Sign(authMsgHash)
+	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
+	mockChainID := int64(80001)
+	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
@@ -260,7 +264,7 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(feeAmount, 10))
 	onSuccess, onFail := ts.scheduledTxMinedCallbacks()
 
-	ts.scheduledService.Execute(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
 func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -353,7 +357,9 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		signatures = append(signatures, m.Signature)
 	}
 
-	requiredSigCount := len(ts.contractsService.GetMembers())/2 + 1
+	// TODO: remove mockChainID and add TargetChainID to the parameters of t (*entity.Transfer)
+	mockChainID := int64(80001)
+	requiredSigCount := len(ts.contractServices[mockChainID].GetMembers())/2 + 1
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
