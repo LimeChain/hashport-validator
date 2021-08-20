@@ -184,14 +184,15 @@ func newClients(config Config) (*clients, error) {
 		}
 
 		EVM[chainId] = EVMUtils{
-			EVMClient:      evmClient,
-			WHbarContract:  wHbarInstance,
-			WTokenContract: wTokenInstance,
-			RouterContract: routerInstance,
-			KeyTransactor:  keyTransactor,
-			Signer:         signer,
-			Receiver:       common.HexToAddress(signer.Address()),
-			RouterAddress:  routerContractAddress,
+			EVMClient:             evmClient,
+			WHbarContract:         wHbarInstance,
+			WTokenContract:        wTokenInstance,
+			RouterContract:        routerInstance,
+			KeyTransactor:         keyTransactor,
+			Signer:                signer,
+			Receiver:              common.HexToAddress(signer.Address()),
+			RouterAddress:         routerContractAddress,
+			WTokenContractAddress: config.Tokens.WToken,
 		}
 	}
 
@@ -269,14 +270,15 @@ type Config struct {
 }
 
 type EVMUtils struct {
-	EVMClient      *evm.Client
-	WHbarContract  *wtoken.Wtoken
-	WTokenContract *wtoken.Wtoken
-	RouterContract *router.Router
-	KeyTransactor  *bind.TransactOpts
-	Signer         *evm_signer.Signer
-	Receiver       common.Address
-	RouterAddress  common.Address
+	EVMClient             *evm.Client
+	WHbarContract         *wtoken.Wtoken
+	WTokenContract        *wtoken.Wtoken
+	RouterContract        *router.Router
+	KeyTransactor         *bind.TransactOpts
+	Signer                *evm_signer.Signer
+	Receiver              common.Address
+	RouterAddress         common.Address
+	WTokenContractAddress string
 }
 
 type Tokens struct {

@@ -269,16 +269,30 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	chainId := int64(3)
 	evm := setupEnv.Clients.EVM[chainId]
-	// Step 2: Submit Lock Txn from a deployed smart contract (0x528baBabAa0f3cb1C78A4D2511f23DE807BB9303)
-	sendLockEthTransaction(setupEnv.Clients.Hedera, evm, setupEnv.AssetMappings, setupEnv.TokenID.String(), chainId, 0, t)
+	now = time.Now()
+
+	// Step 2: Submit Lock Txn from a deployed smart contract
+	receipt, expectedLockEventLog := sendLockEthTransaction(setupEnv.Clients.Hedera, evm, setupEnv.AssetMappings, setupEnv.TokenID.String(), chainId, 0, t)
+
 	// Step 3: Validate Lock Event was emitted with correct data
+	validateLockEvent(receipt, expectedLockEventLog, t)
+
 	// Step 4: Validate that a scheduled token mint txn was submitted successfully
+	//transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+	_, _ = validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+
 	// Step 5: Validate that database statuses were updated correctly
+
 	// Step 6: Validate that the scheduled token mint txn was executed successfully
+
 	// Step 7: Validate database statuses were updated to TokenMintCompleted
+
 	// Step 8: Validate that a scheduled transfer txn was submitted successfully
+
 	// Step 9: Validate that database statuses were updated correctly
+
 	// Step 10: Validate that token transfer was executed successfully
+
 	// Step 11: Validate Treasury(BridgeAccount) Balance and Receiver Balance
 }
 
@@ -336,6 +350,49 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *old_router.
 
 		if account != expectedRouterBurn.Account.Hash() {
 			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
+		}
+
+		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
+		return expectedId
+	}
+
+	t.Fatal("Could not retrieve valid Burn Event Log information.")
+	return ""
+}
+
+func validateLockEvent(txReceipt *types.Receipt, expectedRouterLock *router.RouterLock, t *testing.T) string {
+	parsedAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routerLock := router.RouterLock{}
+	eventSignature := []byte("Lock(uint256,address,bytes,uint256,uint256)")
+	eventSignatureHash := crypto.Keccak256Hash(eventSignature)
+	for _, log := range txReceipt.Logs {
+		if log.Topics[0] != eventSignatureHash {
+			continue
+		}
+
+		err := parsedAbi.UnpackIntoInterface(&routerLock, "Lock", log.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if routerLock.Amount.String() != expectedRouterLock.Amount.String() {
+			t.Fatalf("Expected Lock Event Amount [%v], but actually was [%v]", expectedRouterLock.Amount, routerLock.Amount)
+		}
+
+		if routerLock.TargetChain.String() != expectedRouterLock.TargetChain.String() {
+			t.Fatalf("Expected Lock Event Target Chain [%v], but actually was [%v]", expectedRouterLock.TargetChain, routerLock.TargetChain)
+		}
+
+		if routerLock.Token.String() != expectedRouterLock.Token.String() {
+			t.Fatalf("Expected Lock Event Token [%v], but actually was [%v]", expectedRouterLock.Token, routerLock.Token)
+		}
+
+		if !reflect.DeepEqual(routerLock.Receiver, expectedRouterLock.Receiver) {
+			t.Fatalf("Expected Lock Event Receiver [%v], but actually was [%v]", expectedRouterLock.Receiver, routerLock.Receiver)
 		}
 
 		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
@@ -519,6 +576,26 @@ func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asse
 	return expectedTransfers
 }
 
+func generateMirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string, amount int64) []mirror_node.Transfer {
+	var expectedTransfers []mirror_node.Transfer
+	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+		Account: setupEnv.BridgeAccount.String(),
+		Amount:  -amount,
+	},
+		mirror_node.Transfer{
+			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+			Amount:  amount,
+		})
+
+	if asset != constants.Hbar {
+		for i := range expectedTransfers {
+			expectedTransfers[i].Token = asset
+		}
+	}
+
+	return expectedTransfers
+}
+
 func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup, asset string, fee int64) []mirror_node.Transfer {
 	feePerMember := fee / int64(len(setupEnv.Members))
 
@@ -626,8 +703,8 @@ func sendLockEthTransaction(hedera *hedera.Client, evm setup.EVMUtils, assetMapp
 	fmt.Println(fmt.Sprintf("[%s] Submitted Lock Transaction", lockTx.Hash()))
 
 	expectedRouterLock := &router.RouterLock{
-		TargetChain: big.NewInt(0),
-		Token:       common.Address{},
+		TargetChain: big.NewInt(targetChainId),
+		Token:       *wrappedHederaAsset,
 		Receiver:    hedera.GetOperatorAccountID().ToBytes(),
 		Amount:      approvedValue,
 		ServiceFee:  big.NewInt(0),
