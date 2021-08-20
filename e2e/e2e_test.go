@@ -22,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/old-router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -315,13 +314,13 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount ui
 	}
 }
 
-func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *old_router.RouterBurn, t *testing.T) string {
-	parsedAbi, err := abi.JSON(strings.NewReader(old_router.RouterABI))
+func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *router.RouterBurn, t *testing.T) string {
+	parsedAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	routerBurn := old_router.RouterBurn{}
+	routerBurn := router.RouterBurn{}
 	eventSignature := []byte("Burn(address,address,uint256,bytes)")
 	eventSignatureHash := crypto.Keccak256Hash(eventSignature)
 	for _, log := range txReceipt.Logs {
@@ -329,8 +328,8 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *old_router.
 			continue
 		}
 
-		account := log.Topics[1]
-		wrappedAsset := log.Topics[2]
+		//account := log.Topics[1]
+		//wrappedAsset := log.Topics[2]
 		err := parsedAbi.UnpackIntoInterface(&routerBurn, "Burn", log.Data)
 		if err != nil {
 			t.Fatal(err)
@@ -340,17 +339,17 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *old_router.
 			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
 		}
 
-		if wrappedAsset != expectedRouterBurn.WrappedAsset.Hash() {
-			t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
-		}
+		//if wrappedAsset != expectedRouterBurn.WrappedAsset.Hash() {
+		//	t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
+		//}
 
 		if !reflect.DeepEqual(routerBurn.Receiver, expectedRouterBurn.Receiver) {
 			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
 		}
 
-		if account != expectedRouterBurn.Account.Hash() {
-			t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
-		}
+		//if account != expectedRouterBurn.Account.Hash() {
+		//	t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
+		//}
 
 		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
 		return expectedId
@@ -621,7 +620,7 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 	return expectedTransfers
 }
 
-func sendBurnEthTransaction(hedera *hedera.Client, assetMappings config.AssetMappings, evm setup.EVMUtils, asset string, sourceChainId, targetChainId int64, t *testing.T) (*types.Receipt, *old_router.RouterBurn) {
+func sendBurnEthTransaction(hedera *hedera.Client, assetMappings config.AssetMappings, evm setup.EVMUtils, asset string, sourceChainId, targetChainId int64, t *testing.T) (*types.Receipt, *router.RouterBurn) {
 	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, asset)
 	if err != nil {
 		t.Fatal(err)
@@ -652,11 +651,11 @@ func sendBurnEthTransaction(hedera *hedera.Client, assetMappings config.AssetMap
 	}
 	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
 
-	expectedRouterBurn := &old_router.RouterBurn{
-		Account:      common.HexToAddress(evm.Signer.Address()),
-		WrappedAsset: *wrappedAsset,
-		Amount:       approvedValue,
-		Receiver:     hedera.GetOperatorAccountID().ToBytes(),
+	expectedRouterBurn := &router.RouterBurn{
+		//Account:      common.HexToAddress(evm.Signer.Address()),
+		//WrappedAsset: *wrappedAsset,
+		Amount:   approvedValue,
+		Receiver: hedera.GetOperatorAccountID().ToBytes(),
 	}
 
 	burnTxHash := burnTx.Hash()
