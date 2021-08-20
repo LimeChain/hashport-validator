@@ -130,7 +130,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 		SourceChainId: big.NewInt(33),
 		TargetChainId: lockLog.TargetChain,
 	}
-	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, ChainId: big.NewInt(33)}).Return()
+	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, ChainId: 33}).Return()
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 }

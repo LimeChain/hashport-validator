@@ -30,7 +30,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
 	"time"
 )
 
@@ -132,5 +131,5 @@ func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
 	}
 
 	// TODO: Figure this one out
-	q.Push(&queue.Message{Payload: msg, ChainId: big.NewInt(0)})
+	q.Push(&queue.Message{Payload: msg, ChainId: 0})
 }

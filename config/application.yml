@@ -8,11 +8,6 @@ validator:
     username: validator
   clients:
     evm:
-      1:
-        block_confirmations: 5
-        node_url:
-        private_key:
-        router_contract_address:
     hedera:
       operator:
         account_id:
@@ -34,17 +29,17 @@ validator:
   rest-api-only: false
 asset-mappings:
   networks:
-    0: # Hedera
-      tokens:
-        "HBAR": # Wrapped Assets
-            1: "0xsomeETHaddress" # Wrapped HBAR on Ethereum
-            137: "0xsomePOLYaddress" # Wrapped HBAR on Polygon
-    1: # Ethereum Mainnet
-      evm_client:
-        block_confirmations: 5
-        node_url:
-        private_key:
-        router_contract_address:
-      tokens:
-        "0xsomeDAIaddress": # DAI address
-            0: "some-hts-token" # DAI HTS token on Hedera; 0 is Hedera
+#    0: # Hedera
+#      tokens:
+#        "HBAR": # Wrapped Assets
+#            1: "0xsomeETHaddress" # Wrapped HBAR on Ethereum
+#            137: "0xsomePOLYaddress" # Wrapped HBAR on Polygon
+#    1: # Ethereum Mainnet
+#      evm_client:
+#        block_confirmations: 5
+#        node_url:
+#        private_key:
+#        router_contract_address:
+#      tokens:
+#        "0xsomeDAIaddress": # DAI address
+#            0: "some-hts-token" # DAI HTS token on Hedera; 0 is Hedera

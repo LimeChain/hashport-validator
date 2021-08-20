@@ -65,7 +65,7 @@ func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := int64(3)
+	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := evm.Receiver.String()
@@ -81,7 +81,7 @@ func Test_HBAR(t *testing.T) {
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, constants.Hbar, mintAmount, chainId, 0, t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, constants.Hbar, mintAmount, 0, chainId, t)
 
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, transactionResponse, transactionData, tokenAddress, t)
@@ -123,7 +123,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := int64(3)
+	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := evm.Receiver.String()
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, tinyBarAmount)
@@ -138,7 +138,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, setupEnv.TokenID.String(), fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, setupEnv.TokenID.String(), mintAmount, chainId, 0, t)
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, setupEnv.TokenID.String(), mintAmount, 0, chainId, t)
 
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, transactionResponse, transactionData, tokenAddress, t)

@@ -29,14 +29,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
 	"time"
 )
 
 type Recovery struct {
 	transfers               service.Transfers
 	messages                service.Messages
-	contractServices        map[*big.Int]service.Contracts
+	contractServices        map[int64]service.Contracts
 	statusTransferRepo      repository.Status
 	statusMessagesRepo      repository.Status
 	transferRepo            repository.Transfer
@@ -53,7 +52,7 @@ func NewProcess(
 	c config.Validator,
 	transfers service.Transfers,
 	messages service.Messages,
-	contractServices map[*big.Int]service.Contracts,
+	contractServices map[int64]service.Contracts,
 	statusTransferRepo repository.Status,
 	statusMessagesRepo repository.Status,
 	transferRepo repository.Transfer,
@@ -229,7 +228,7 @@ func (r Recovery) processUnfinishedOperations() error {
 
 	for _, t := range unprocessedTransfers {
 		// TODO: remove mockChainID and add targetChainID in t (*entity.Transfer)
-		mockChainID := big.NewInt(1)
+		mockChainID := int64(80001)
 		transferMsg := transfer.New(
 			t.TransactionID,
 			t.Receiver,

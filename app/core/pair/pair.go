@@ -19,7 +19,6 @@ package pair
 import (
 	q "github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
-	"math/big"
 )
 
 type Watcher interface {
@@ -35,7 +34,7 @@ type Handler interface {
 type Pair struct {
 	queue    queue.Queue
 	watcher  Watcher
-	handlers map[*big.Int]Handler
+	handlers map[int64]Handler
 }
 
 // Listen begins the actions of the handlers and the watcher
@@ -58,10 +57,10 @@ func (p *Pair) watch() {
 	go p.watcher.Watch(p.queue)
 }
 
-func NewPair(watcher Watcher, handler map[*big.Int]Handler) *Pair {
+func NewPair(watcher Watcher, handlers map[int64]Handler) *Pair {
 	return &Pair{
 		watcher:  watcher,
-		handlers: handler,
+		handlers: handlers,
 		queue:    q.NewQueue(),
 	}
 }

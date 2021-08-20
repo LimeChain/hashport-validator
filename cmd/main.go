@@ -37,7 +37,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 )
 
 func main() {
@@ -122,7 +121,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			&repositories.transferStatus,
 			watchersTimestamp,
 			services.contractServices),
-		map[*big.Int]pair.Handler{big.NewInt(0): th.NewHandler(services.transfers)},
+		map[int64]pair.Handler{0: th.NewHandler(services.transfers)},
 	)
 
 	server.AddPair(
@@ -131,7 +130,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp),
-		map[*big.Int]pair.Handler{big.NewInt(0): mh.NewHandler(
+		map[int64]pair.Handler{0: mh.NewHandler(
 			configuration.Validator.Clients.Hedera.TopicId,
 			repositories.transfer,
 			repositories.message,
@@ -140,13 +139,14 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	)
 
 	for _, evmClient := range clients.EVMClients {
-		evmHandlers := make(map[*big.Int]beh.Handler)
+		evmHandlers := make(map[int64]beh.Handler)
 		handler := beh.NewHandler(services.burnEvents, services.lockEvents)
-		evmHandlers[evmClient.ChainID()] = *handler
+		chainId := evmClient.ChainID().Int64()
+		evmHandlers[chainId] = *handler
 		server.AddPair(
 			// TODO: Replace mappings with external configuration service
-			evm.NewWatcher(services.contractServices[evmClient.ChainID()], evmClient, configuration.AssetMappings),
-			map[*big.Int]pair.Handler{evmClient.ChainID(): beh.NewHandler(services.burnEvents, services.lockEvents)})
+			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.AssetMappings),
+			map[int64]pair.Handler{chainId: beh.NewHandler(services.burnEvents, services.lockEvents)})
 	}
 }
 
@@ -155,7 +155,7 @@ func addTransferWatcher(configuration *config.Config,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	startTimestamp int64,
-	contractServices map[*big.Int]service.Contracts,
+	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
 	account := configuration.Validator.Clients.Hedera.BridgeAccount
 

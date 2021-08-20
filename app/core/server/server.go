@@ -21,7 +21,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 	"net/http"
 )
 
@@ -36,7 +35,7 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) AddPair(watcher pair.Watcher, handlers map[*big.Int]pair.Handler) {
+func (s *Server) AddPair(watcher pair.Watcher, handlers map[int64]pair.Handler) {
 	s.pairs = append(s.pairs, pair.NewPair(watcher, handlers))
 }
 
