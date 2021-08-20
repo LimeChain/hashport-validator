@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	tc "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"testing"
 )
 
@@ -30,7 +29,7 @@ func TestPrepareClients(t *testing.T) {
 	clients := PrepareClients(tc.TestConfig.Validator.Clients)
 	assert.NotEmpty(t, clients)
 
-	assert.IsType(t, map[*big.Int]client.EVM{}, clients.EVMClients)
+	assert.IsType(t, map[int64]client.EVM{}, clients.EVMClients)
 	assert.IsType(t, &hedera.Node{}, clients.HederaNode)
 	assert.IsType(t, &mirror_node.Client{}, clients.MirrorNode)
 
