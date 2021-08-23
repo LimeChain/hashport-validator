@@ -267,37 +267,38 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
-func Test_EVM_Hedera_Native_Token(t *testing.T) {
-	// Step 1: Initialize setup, smart contracts, etc.
-	setupEnv := setup.Load()
-	chainId := int64(3)
-	evm := setupEnv.Clients.EVM[chainId]
-	now = time.Now()
-
-	// Step 2: Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendLockEthTransaction(setupEnv.Clients.Hedera, evm, setupEnv.AssetMappings, setupEnv.TokenID.String(), chainId, 0, t)
-
-	// Step 3: Validate Lock Event was emitted with correct data
-	validateLockEvent(receipt, expectedLockEventLog, t)
-
-	// Step 4: Validate that a scheduled token mint txn was submitted successfully
-	//transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
-	_, _ = validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
-
-	// Step 5: Validate that database statuses were updated correctly
-
-	// Step 6: Validate that the scheduled token mint txn was executed successfully
-
-	// Step 7: Validate database statuses were updated to TokenMintCompleted
-
-	// Step 8: Validate that a scheduled transfer txn was submitted successfully
-
-	// Step 9: Validate that database statuses were updated correctly
-
-	// Step 10: Validate that token transfer was executed successfully
-
-	// Step 11: Validate Treasury(BridgeAccount) Balance and Receiver Balance
-}
+// TODO: uncomment when finished
+//func Test_EVM_Hedera_Native_Token(t *testing.T) {
+//	// Step 1: Initialize setup, smart contracts, etc.
+//	setupEnv := setup.Load()
+//	chainId := int64(3)
+//	evm := setupEnv.Clients.EVM[chainId]
+//	now = time.Now()
+//
+//	// Step 2: Submit Lock Txn from a deployed smart contract
+//	receipt, expectedLockEventLog := sendLockEthTransaction(setupEnv.Clients.Hedera, evm, setupEnv.AssetMappings, setupEnv.TokenID.String(), chainId, 0, t)
+//
+//	// Step 3: Validate Lock Event was emitted with correct data
+//	validateLockEvent(receipt, expectedLockEventLog, t)
+//
+//	// Step 4: Validate that a scheduled token mint txn was submitted successfully
+//	//transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+//	_, _ = validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+//
+//	// Step 5: Validate that database statuses were updated correctly
+//
+//	// Step 6: Validate that the scheduled token mint txn was executed successfully
+//
+//	// Step 7: Validate database statuses were updated to TokenMintCompleted
+//
+//	// Step 8: Validate that a scheduled transfer txn was submitted successfully
+//
+//	// Step 9: Validate that database statuses were updated correctly
+//
+//	// Step 10: Validate that token transfer was executed successfully
+//
+//	// Step 11: Validate Treasury(BridgeAccount) Balance and Receiver Balance
+//}
 
 func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
 	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.Clients.Hedera.GetOperatorAccountID(), t)
