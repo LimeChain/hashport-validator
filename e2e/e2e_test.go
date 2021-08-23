@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -25,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
@@ -269,34 +271,87 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	chainId := int64(3)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
+	bridgeAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, t)
+	receiverAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, setupEnv.TokenID.String())
+	if err != nil {
+		panic(fmt.Sprintf("Token [%s] not supported", setupEnv.TokenID.String()))
+	}
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := sendLockEthTransaction(setupEnv.Clients.Hedera, evm, setupEnv.AssetMappings, setupEnv.TokenID.String(), chainId, 0, t)
 
 	// Step 3: Validate Lock Event was emitted with correct data
-	validateLockEvent(receipt, expectedLockEventLog, t)
+	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
+
+	mintTransfer := []mirror_node.Transfer{
+		{
+			Account: setupEnv.BridgeAccount.String(),
+			Amount:  receiveAmount,
+			Token:   setupEnv.TokenID.String(),
+		},
+	}
 
 	// Step 4: Validate that a scheduled token mint txn was submitted successfully
-	//transactionID, scheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
-	_, _ = validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+	bridgeMintTransactionID, bridgeScheduleID := validateScheduledMintTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, t)
 
-	// Step 5: Validate that database statuses were updated correctly
+	// Step 5: Validate that Database statuses were changed correctly
+	expectedLockEventRecord := util.PrepareExpectedLockEventRecord(receiveAmount,
+		setupEnv.Clients.Hedera.GetOperatorAccountID(),
+		lockEventId,
+		"",
+		bridgeMintTransactionID,
+		"",
+		bridgeScheduleID,
+		setupEnv.TokenID.String(),
+		wrappedAsset.String(),
+		chainId,
+		0,
+		lock_event.StatusMintCompleted)
+	verifyLockEventRecord(setupEnv.DbValidator, expectedLockEventRecord, t)
 
-	// Step 6: Validate that the scheduled token mint txn was executed successfully
+	// Step 6: Validate treasury balance was increased correctly. TODO: Resolve Status and Data tracking between scheduled txns
+	//validateAccountBalance(setupEnv, setupEnv.BridgeAccount, uint64(receiveAmount), bridgeAccountBalanceBefore, setupEnv.TokenID.String(), t)
 
-	// Step 7: Validate database statuses were updated to TokenMintCompleted
+	// Step 7: Validate that a scheduled transfer txn was submitted successfully
+	//receiverTokenTransferTransactionID, receiverScheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
+	receiverTokenTransferTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
 
-	// Step 8: Validate that a scheduled transfer txn was submitted successfully
+	// Step 8: Validate that database statuses were updated correctly
+	expectedLockEventRecord.ScheduleTransferID = receiverTokenTransferTransactionID
+	expectedLockEventRecord.ScheduleTransferTxId = sql.NullString{
+		String: receiverScheduleID,
+		Valid:  true,
+	}
+	expectedLockEventRecord.Status = lock_event.StatusCompleted
+	verifyLockEventRecord(setupEnv.DbValidator, expectedLockEventRecord, t)
 
-	// Step 9: Validate that database statuses were updated correctly
-
-	// Step 10: Validate that token transfer was executed successfully
-
-	// Step 11: Validate Treasury(BridgeAccount) Balance and Receiver Balance
+	// Step 9: Validate Treasury(BridgeAccount) Balance and Receiver Balance
+	validateAccountBalance(setupEnv, setupEnv.BridgeAccount, 0, bridgeAccountBalanceBefore, setupEnv.TokenID.String(), t)
+	validateAccountBalance(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), uint64(receiveAmount), receiverAccountBalanceBefore, setupEnv.TokenID.String(), t)
 }
 
 func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
 	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, setup.Clients.Hedera.GetOperatorAccountID(), t)
+
+	var beforeTransfer uint64
+	var afterTransfer uint64
+
+	if asset == constants.Hbar {
+		beforeTransfer = uint64(beforeHbarBalance.Hbars.AsTinybar())
+		afterTransfer = uint64(afterHbarBalance.Hbars.AsTinybar())
+	} else {
+		beforeTransfer = beforeHbarBalance.Token[setup.TokenID]
+		afterTransfer = afterHbarBalance.Token[setup.TokenID]
+	}
+
+	if afterTransfer-beforeTransfer != expectedReceiveAmount {
+		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
+	}
+}
+
+func validateAccountBalance(setup *setup.Setup, hederaID hedera.AccountID, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
+	afterHbarBalance := util.GetHederaAccountBalance(setup.Clients.Hedera, hederaID, t)
 
 	var beforeTransfer uint64
 	var afterTransfer uint64
@@ -418,6 +473,77 @@ func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedT
 	return receiverTransactionID, receiverScheduleID
 }
 
+func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+	timeLeft := 180
+	for {
+		response, err := setupEnv.Clients.MirrorNode.GetAccountTokenMintTransactionsAfterTimestamp(account, now.UnixNano())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(response.Transactions) > 1 {
+			t.Fatalf("[%s] - Found [%d] new transactions, must be 1.", account, len(response.Transactions))
+		}
+
+		txId, entityId := listenForTx(response, setupEnv.Clients.MirrorNode, expectedTransfers, asset, t)
+		if txId != "" && entityId != "" {
+			return txId, entityId
+		}
+
+		if timeLeft > 0 {
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			timeLeft -= 10
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
+	return "", ""
+}
+
+func listenForTx(response *mirror_node.Response, mirrorNode *mirror_node.Client, expectedTransfers []mirror_node.Transfer, asset string, t *testing.T) (string, string) {
+	for _, transaction := range response.Transactions {
+		if transaction.Scheduled == true {
+			scheduleCreateTx, err := mirrorNode.GetTransaction(transaction.TransactionID)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, expectedTransfer := range expectedTransfers {
+				found := false
+				if asset == constants.Hbar {
+					for _, transfer := range transaction.Transfers {
+						if expectedTransfer == transfer {
+							found = true
+							break
+						}
+					}
+				} else {
+					for _, transfer := range transaction.TokenTransfers {
+						if expectedTransfer == transfer {
+							found = true
+							break
+						}
+					}
+				}
+
+				if !found {
+					t.Fatalf("[%s] - Expected transfer [%v] not found.", transaction.TransactionID, expectedTransfer)
+				}
+			}
+
+			for _, tx := range scheduleCreateTx.Transactions {
+				if tx.EntityId != "" {
+					return tx.TransactionID, tx.EntityId
+				}
+			}
+		}
+	}
+	return "", ""
+}
+
 func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	timeLeft := 180
 	for {
@@ -430,42 +556,9 @@ func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset 
 			t.Fatalf("[%s] - Found [%d] new transactions, must be 1.", account, len(response.Transactions))
 		}
 
-		for _, transaction := range response.Transactions {
-			if transaction.Scheduled == true {
-				scheduleCreateTx, err := setupEnv.Clients.MirrorNode.GetTransaction(transaction.TransactionID)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				for _, expectedTransfer := range expectedTransfers {
-					found := false
-					if asset == constants.Hbar {
-						for _, transfer := range transaction.Transfers {
-							if expectedTransfer == transfer {
-								found = true
-								break
-							}
-						}
-					} else {
-						for _, transfer := range transaction.TokenTransfers {
-							if expectedTransfer == transfer {
-								found = true
-								break
-							}
-						}
-					}
-
-					if !found {
-						t.Fatalf("[%s] - Expected transfer [%v] not found.", transaction.TransactionID, expectedTransfer)
-					}
-				}
-
-				for _, tx := range scheduleCreateTx.Transactions {
-					if tx.EntityId != "" {
-						return tx.TransactionID, tx.EntityId
-					}
-				}
-			}
+		txId, entityId := listenForTx(response, setupEnv.Clients.MirrorNode, expectedTransfers, asset, t)
+		if txId != "" && entityId != "" {
+			return txId, entityId
 		}
 
 		if timeLeft > 0 {
@@ -576,20 +669,17 @@ func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asse
 }
 
 func generateMirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string, amount int64) []mirror_node.Transfer {
-	var expectedTransfers []mirror_node.Transfer
-	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
-		Account: setupEnv.BridgeAccount.String(),
-		Amount:  -amount,
-	},
-		mirror_node.Transfer{
+	expectedTransfers := []mirror_node.Transfer{
+		{
+			Account: setupEnv.BridgeAccount.String(),
+			Amount:  -amount,
+			Token:   asset,
+		},
+		{
 			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 			Amount:  amount,
-		})
-
-	if asset != constants.Hbar {
-		for i := range expectedTransfers {
-			expectedTransfers[i].Token = asset
-		}
+			Token:   asset,
+		},
 	}
 
 	return expectedTransfers
@@ -795,6 +885,16 @@ func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, t
 
 func verifyBurnEventRecord(dbValidation *database.Service, expectedRecord *entity.BurnEvent, t *testing.T) {
 	exist, err := dbValidation.VerifyBurnRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.Id, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.Id)
+	}
+}
+
+func verifyLockEventRecord(dbValidation *database.Service, expectedRecord *entity.LockEvent, t *testing.T) {
+	exist, err := dbValidation.VerifyLockRecord(expectedRecord)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.Id, err)
 	}

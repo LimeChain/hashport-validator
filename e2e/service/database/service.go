@@ -25,6 +25,7 @@ import (
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -35,6 +36,7 @@ type dbVerifier struct {
 	transactions repository.Transfer
 	messages     repository.Message
 	burnEvents   repository.BurnEvent
+	lockEvents   repository.LockEvent
 	fee          repository.Fee
 }
 
@@ -51,6 +53,7 @@ func NewService(dbConfigs []config.Database) *Service {
 			transactions: transfer.NewRepository(connection),
 			messages:     message.NewRepository(connection),
 			burnEvents:   burn_event.NewRepository(connection),
+			lockEvents:   lock_event.NewRepository(connection),
 			fee:          fee.NewRepository(connection),
 		}
 		verifiers = append(verifiers, newVerifier)
@@ -146,6 +149,19 @@ func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, 
 			return false, err
 		}
 		if !burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (s *Service) VerifyLockRecord(expectedLockRecord *entity.LockEvent) (bool, error) {
+	for _, verifier := range s.verifiers {
+		actualLockEvent, err := verifier.lockEvents.Get(expectedLockRecord.Id)
+		if err != nil {
+			return false, err
+		}
+		if !lockEventsFieldsMatch(actualLockEvent, expectedLockRecord) {
 			return false, nil
 		}
 	}
