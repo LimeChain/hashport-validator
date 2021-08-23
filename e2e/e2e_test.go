@@ -534,8 +534,8 @@ func submitMintTransaction(evm setup.EVMUtils, transactionResponse hedera.Transa
 		big.NewInt(0),
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		mintAmount,
 		evm.Receiver,
+		mintAmount,
 		signatures,
 	)
 
@@ -645,7 +645,8 @@ func sendBurnEthTransaction(hedera *hedera.Client, assetMappings config.AssetMap
 	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
 	waitForTransaction(evm, approveTx.Hash(), t)
 
-	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, *wrappedAsset, approvedValue, hedera.GetOperatorAccountID().ToBytes())
+	// TODO: ID
+	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, big.NewInt(0), *wrappedAsset, approvedValue, hedera.GetOperatorAccountID().ToBytes())
 	if err != nil {
 		t.Fatal(err)
 	}
