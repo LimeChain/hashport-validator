@@ -21,10 +21,11 @@ var (
 
 func expectedSignature() *model.TopicEthSignatureMessage {
 	return &model.TopicEthSignatureMessage{
+		SourceChainId:        0,
+		TargetChainId:        1,
 		TransferID:           "0.0.123321-123321-420",
-		RouterAddress:        "0xsomerouteraddress",
-		WrappedAsset:         "0xwrappedasset",
-		Receiver:             "0xsomereceiver",
+		Asset:                "0xasset",
+		Recipient:            "0xsomereceiver",
 		Amount:               "100",
 		Signature:            "somesigneddatahere",
 		TransactionTimestamp: 0,
@@ -66,12 +67,14 @@ func Test_FromBytesWithTSWithInvalidBytes(t *testing.T) {
 }
 
 func Test_NewSignatureWorks(t *testing.T) {
-	actualSignature := NewSignature("0.0.123321-123321-420",
-		"0xsomerouteraddress",
+	actualSignature := NewSignature(
+		0,
+		1,
+		"0.0.123321-123321-420",
+		"0xasset",
 		"0xsomereceiver",
 		"100",
-		"somesigneddatahere",
-		"0xwrappedasset")
+		"somesigneddatahere")
 	signatureEqualFields(t, expectedSignature(), actualSignature.TopicEthSignatureMessage)
 }
 
@@ -115,12 +118,14 @@ func Test_ToBytes(t *testing.T) {
 }
 
 func signatureEqualFields(t *testing.T, expected, actual *model.TopicEthSignatureMessage) {
-	identical := expected.Amount == actual.Amount &&
-		expected.Receiver == actual.Receiver &&
-		expected.WrappedAsset == actual.WrappedAsset &&
-		expected.TransactionTimestamp == actual.TransactionTimestamp &&
-		expected.Signature == actual.Signature &&
-		expected.RouterAddress == actual.RouterAddress &&
-		expected.TransferID == actual.TransferID
+	identical :=
+		expected.SourceChainId == actual.SourceChainId &&
+			expected.TargetChainId == actual.TargetChainId &&
+			expected.TransferID == actual.TransferID &&
+			expected.Asset == actual.Asset &&
+			expected.Amount == actual.Amount &&
+			expected.Recipient == actual.Recipient &&
+			expected.Signature == actual.Signature &&
+			expected.TransactionTimestamp == actual.TransactionTimestamp
 	assert.True(t, identical, "Signature fields were not equal.")
 }

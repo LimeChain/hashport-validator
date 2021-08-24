@@ -67,6 +67,7 @@ func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
+	// TODO: id
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
@@ -97,8 +98,8 @@ func Test_HBAR(t *testing.T) {
 	// Step 8 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.AssetMappings,
-		chainId,
 		0,
+		chainId,
 		transactionResponse.TransactionID,
 		evm.RouterAddress.String(),
 		constants.Hbar,
@@ -126,6 +127,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
+	// TODO: id
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := evm.Receiver.String()
@@ -155,8 +157,8 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
 		setupEnv.AssetMappings,
-		chainId,
 		0,
+		chainId,
 		transactionResponse.TransactionID,
 		evm.RouterAddress.String(),
 		setupEnv.TokenID.String(),
@@ -182,7 +184,8 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 // Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
-	chainId := int64(3)
+	// TODO: id
+	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -191,7 +194,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.Clients.Hedera, setupEnv.AssetMappings, evm, constants.Hbar, chainId, 0, t)
+	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.Clients.Hedera, setupEnv.AssetMappings, evm, constants.Hbar, 0, chainId, t)
 
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
@@ -227,7 +230,8 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 // Test_EVM_Hedera_Token recreates a real life situation of a user who wants to return a Hedera native token from the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera one) gets burned, then the amount gets unlocked on the Hedera bridge account, forwarding it to the recipient account.
 func Test_EVM_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
-	chainId := int64(3)
+	// TODO: id
+	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -236,7 +240,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.Clients.Hedera, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), chainId, 0, t)
+	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.Clients.Hedera, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), 0, chainId, t)
 
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
@@ -377,7 +381,7 @@ func validateBurnEvent(txReceipt *types.Receipt, expectedRouterBurn *router.Rout
 	}
 
 	routerBurn := router.RouterBurn{}
-	eventSignature := []byte("Burn(address,address,uint256,bytes)")
+	eventSignature := []byte("Burn(uint256,address,uint256,bytes)")
 	eventSignatureHash := crypto.Keccak256Hash(eventSignature)
 	for _, log := range txReceipt.Logs {
 		if log.Topics[0] != eventSignatureHash {
@@ -628,8 +632,8 @@ func submitMintTransaction(evm setup.EVMUtils, transactionResponse hedera.Transa
 		big.NewInt(0),
 		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
 		*tokenAddress,
-		mintAmount,
 		evm.Receiver,
+		mintAmount,
 		signatures,
 	)
 
@@ -736,7 +740,8 @@ func sendBurnEthTransaction(hedera *hedera.Client, assetMappings config.AssetMap
 	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
 	waitForTransaction(evm, approveTx.Hash(), t)
 
-	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, *wrappedAsset, approvedValue, hedera.GetOperatorAccountID().ToBytes())
+	// TODO: ID
+	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, big.NewInt(0), *wrappedAsset, approvedValue, hedera.GetOperatorAccountID().ToBytes())
 	if err != nil {
 		t.Fatal(err)
 	}
