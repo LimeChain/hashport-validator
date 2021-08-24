@@ -6,18 +6,21 @@ import (
 )
 
 const (
+	sourceChainId   = int64(0)
+	targetChainId   = int64(1)
 	txId            = "0.0.123-123321-123321"
-	routerAddress   = "0xsomerouteraddress"
-	wrappedAsset    = "0x00000"
+	asset           = "0x00000"
 	receiverAddress = "0xsomeaddress"
 	invalidAmount   = "invalidamount"
 	amount          = "100"
 )
 
 func Test_EncodeBytesFromWithInvalidAmount(t *testing.T) {
-	actualResult, err := EncodeBytesFrom(txId,
-		routerAddress,
-		wrappedAsset,
+	actualResult, err := EncodeBytesFrom(
+		sourceChainId,
+		targetChainId,
+		txId,
+		asset,
 		receiverAddress,
 		invalidAmount)
 
@@ -26,9 +29,11 @@ func Test_EncodeBytesFromWithInvalidAmount(t *testing.T) {
 }
 
 func Test_EncodeBytesFromWorks(t *testing.T) {
-	actualResult, err := EncodeBytesFrom(txId,
-		routerAddress,
-		wrappedAsset,
+	actualResult, err := EncodeBytesFrom(
+		sourceChainId,
+		targetChainId,
+		txId,
+		asset,
 		receiverAddress,
 		amount)
 
