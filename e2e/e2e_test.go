@@ -62,6 +62,7 @@ const (
 	expectedValidatorsCount = 3
 )
 
+// Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
@@ -120,6 +121,7 @@ func Test_HBAR(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
+// Test_E2E_Token_Transfer recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
 func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
@@ -177,6 +179,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
+// Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	chainId := int64(3)
@@ -221,6 +224,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
+// Test_EVM_Hedera_Token recreates a real life situation of a user who wants to return a Hedera native token from the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera one) gets burned, then the amount gets unlocked on the Hedera bridge account, forwarding it to the recipient account.
 func Test_EVM_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	chainId := int64(3)
@@ -265,6 +269,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
+// Test_EVM_Hedera_Native_Token recreates a real life situation of a user who wants to bridge an EVM native token to the Hedera infrastructure. A new wrapped token (corresponding to the native EVM one) gets minted to the bridge account, then gets transferred to the recipient account.
 func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
@@ -310,11 +315,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		lock_event.StatusMintCompleted)
 	verifyLockEventRecord(setupEnv.DbValidator, expectedLockEventRecord, t)
 
-	// Step 6: Validate treasury balance was increased correctly. TODO: Resolve Status and Data tracking between scheduled txns
-	//validateAccountBalance(setupEnv, setupEnv.BridgeAccount, uint64(receiveAmount), bridgeAccountBalanceBefore, setupEnv.TokenID.String(), t)
-
 	// Step 7: Validate that a scheduled transfer txn was submitted successfully
-	//receiverTokenTransferTransactionID, receiverScheduleID := validateSubmittedScheduledTx(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
 	receiverTokenTransferTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForLockEvent(setupEnv, setupEnv.TokenID.String(), receiveAmount), t)
 
 	// Step 8: Validate that database statuses were updated correctly
