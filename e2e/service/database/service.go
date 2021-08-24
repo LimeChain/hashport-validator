@@ -96,7 +96,8 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
 
-	authMsgBytes, err := auth_message.EncodeBytesFrom(record.TransactionID, record.RouterAddress, record.WrappedAsset, record.Receiver, mintAmount)
+	// TODO: ids
+	authMsgBytes, err := auth_message.EncodeBytesFrom(int64(0), int64(80001), record.TransactionID, record.WrappedAsset, record.Receiver, mintAmount)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", record.TransactionID, err)
 		return false, err
