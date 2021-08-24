@@ -47,7 +47,7 @@ type WrappedTokenParams struct {
 }
 
 // RouterABI is the input ABI used to generate the binding from.
-const RouterABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"enumIDiamondCut.FacetCutAction\",\"name\":\"action\",\"type\":\"uint8\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"indexed\":false,\"internalType\":\"structIDiamondCut.FacetCut[]\",\"name\":\"_diamondCut\",\"type\":\"tuple[]\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_init\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"DiamondCut\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"targetChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"}],\"name\":\"Lock\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"NativeTokenUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"}],\"name\":\"Unlock\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"sourceChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"nativeToken\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"WrappedTokenDeployed\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"administrativeNonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"_v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"_r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_s\",\"type\":\"bytes32\"}],\"name\":\"burnWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"claimedRewardsPerAccount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_nativeToken\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"}],\"internalType\":\"structWrappedTokenParams\",\"name\":\"_tokenParams\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"deployWrappedToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"enumIDiamondCut.FacetCutAction\",\"name\":\"action\",\"type\":\"uint8\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"internalType\":\"structIDiamondCut.FacetCut[]\",\"name\":\"_diamondCut\",\"type\":\"tuple[]\"},{\"internalType\":\"address\",\"name\":\"_init\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"diamondCut\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"_functionSelector\",\"type\":\"bytes4\"}],\"name\":\"facetAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"facetAddress_\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"facetAddresses\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"facetAddresses_\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_facet\",\"type\":\"address\"}],\"name\":\"facetFunctionSelectors\",\"outputs\":[{\"internalType\":\"bytes4[]\",\"name\":\"facetFunctionSelectors_\",\"type\":\"bytes4[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"facets\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"internalType\":\"structIDiamondLoupe.Facet[]\",\"name\":\"facets_\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_ethHash\",\"type\":\"bytes32\"}],\"name\":\"hashesUsed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_precision\",\"type\":\"uint256\"}],\"name\":\"initFeeCalculator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_members\",\"type\":\"address[]\"}],\"name\":\"initGovernance\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initRouter\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"}],\"name\":\"lock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"_v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"_r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_s\",\"type\":\"bytes32\"}],\"name\":\"lockWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"nativeTokenAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nativeTokensCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFeePercentage\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"tokenFeeData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"serviceFeePercentage\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"unlock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"updateNativeToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const RouterABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"targetChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Claim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"enumIDiamondCut.FacetCutAction\",\"name\":\"action\",\"type\":\"uint8\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"indexed\":false,\"internalType\":\"structIDiamondCut.FacetCut[]\",\"name\":\"_diamondCut\",\"type\":\"tuple[]\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_init\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"DiamondCut\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"targetChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receiver\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"}],\"name\":\"Lock\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"member\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"MemberUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"percentage\",\"type\":\"uint256\"}],\"name\":\"MembersPercentageUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"sourceChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"NativeTokenUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newServiceFee\",\"type\":\"uint256\"}],\"name\":\"ServiceFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"sourceChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"transactionId\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"serviceFee\",\"type\":\"uint256\"}],\"name\":\"Unlock\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"sourceChain\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"nativeToken\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"wrappedToken\",\"type\":\"address\"}],\"name\":\"WrappedTokenDeployed\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"_v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"_r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_s\",\"type\":\"bytes32\"}],\"name\":\"burnWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"claimedRewardsPerAccount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_nativeToken\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"}],\"internalType\":\"structWrappedTokenParams\",\"name\":\"_tokenParams\",\"type\":\"tuple\"}],\"name\":\"deployWrappedToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"enumIDiamondCut.FacetCutAction\",\"name\":\"action\",\"type\":\"uint8\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"internalType\":\"structIDiamondCut.FacetCut[]\",\"name\":\"_diamondCut\",\"type\":\"tuple[]\"},{\"internalType\":\"address\",\"name\":\"_init\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"diamondCut\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"_functionSelector\",\"type\":\"bytes4\"}],\"name\":\"facetAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"facetAddress_\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"facetAddresses\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"facetAddresses_\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_facet\",\"type\":\"address\"}],\"name\":\"facetFunctionSelectors\",\"outputs\":[{\"internalType\":\"bytes4[]\",\"name\":\"facetFunctionSelectors_\",\"type\":\"bytes4[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"facets\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"facetAddress\",\"type\":\"address\"},{\"internalType\":\"bytes4[]\",\"name\":\"functionSelectors\",\"type\":\"bytes4[]\"}],\"internalType\":\"structIDiamondLoupe.Facet[]\",\"name\":\"facets_\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_ethHash\",\"type\":\"bytes32\"}],\"name\":\"hashesUsed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_precision\",\"type\":\"uint256\"}],\"name\":\"initFeeCalculator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_members\",\"type\":\"address[]\"},{\"internalType\":\"uint256\",\"name\":\"_percentage\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_precision\",\"type\":\"uint256\"}],\"name\":\"initGovernance\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initRouter\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_member\",\"type\":\"address\"}],\"name\":\"isMember\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"}],\"name\":\"lock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_targetChain\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_receiver\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"_v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"_r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_s\",\"type\":\"bytes32\"}],\"name\":\"lockWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"memberAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersPercentage\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"membersPrecision\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_wrappedToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"nativeTokenAt\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nativeTokensCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"owner_\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"serviceFeePrecision\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFeePercentage\",\"type\":\"uint256\"}],\"name\":\"setServiceFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"tokenFeeData\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"serviceFeePercentage\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feesAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"previousAccrued\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accumulator\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_sourceChain\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_transactionId\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"bytes[]\",\"name\":\"_signatures\",\"type\":\"bytes[]\"}],\"name\":\"unlock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"}],\"name\":\"updateMember\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_percentage\",\"type\":\"uint256\"}],\"name\":\"updateMembersPercentage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nativeToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_serviceFee\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"}],\"name\":\"updateNativeToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // Router is an auto generated Go binding around an Ethereum contract.
 type Router struct {
@@ -189,37 +189,6 @@ func (_Router *RouterTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Tr
 // Transact invokes the (paid) contract method with params as input values.
 func (_Router *RouterTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _Router.Contract.contract.Transact(opts, method, params...)
-}
-
-// AdministrativeNonce is a free data retrieval call binding the contract method 0x2567516a.
-//
-// Solidity: function administrativeNonce() view returns(uint256)
-func (_Router *RouterCaller) AdministrativeNonce(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "administrativeNonce")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// AdministrativeNonce is a free data retrieval call binding the contract method 0x2567516a.
-//
-// Solidity: function administrativeNonce() view returns(uint256)
-func (_Router *RouterSession) AdministrativeNonce() (*big.Int, error) {
-	return _Router.Contract.AdministrativeNonce(&_Router.CallOpts)
-}
-
-// AdministrativeNonce is a free data retrieval call binding the contract method 0x2567516a.
-//
-// Solidity: function administrativeNonce() view returns(uint256)
-func (_Router *RouterCallerSession) AdministrativeNonce() (*big.Int, error) {
-	return _Router.Contract.AdministrativeNonce(&_Router.CallOpts)
 }
 
 // ClaimedRewardsPerAccount is a free data retrieval call binding the contract method 0x1b3738d5.
@@ -377,12 +346,12 @@ func (_Router *RouterCallerSession) Facets() ([]IDiamondLoupeFacet, error) {
 	return _Router.Contract.Facets(&_Router.CallOpts)
 }
 
-// HashesUsed is a free data retrieval call binding the contract method 0xde430c0a.
+// HashesUsed is a free data retrieval call binding the contract method 0xb826c58b.
 //
-// Solidity: function hashesUsed(uint256 _chainId, bytes32 _ethHash) view returns(bool)
-func (_Router *RouterCaller) HashesUsed(opts *bind.CallOpts, _chainId *big.Int, _ethHash [32]byte) (bool, error) {
+// Solidity: function hashesUsed(bytes32 _ethHash) view returns(bool)
+func (_Router *RouterCaller) HashesUsed(opts *bind.CallOpts, _ethHash [32]byte) (bool, error) {
 	var out []interface{}
-	err := _Router.contract.Call(opts, &out, "hashesUsed", _chainId, _ethHash)
+	err := _Router.contract.Call(opts, &out, "hashesUsed", _ethHash)
 
 	if err != nil {
 		return *new(bool), err
@@ -394,18 +363,18 @@ func (_Router *RouterCaller) HashesUsed(opts *bind.CallOpts, _chainId *big.Int, 
 
 }
 
-// HashesUsed is a free data retrieval call binding the contract method 0xde430c0a.
+// HashesUsed is a free data retrieval call binding the contract method 0xb826c58b.
 //
-// Solidity: function hashesUsed(uint256 _chainId, bytes32 _ethHash) view returns(bool)
-func (_Router *RouterSession) HashesUsed(_chainId *big.Int, _ethHash [32]byte) (bool, error) {
-	return _Router.Contract.HashesUsed(&_Router.CallOpts, _chainId, _ethHash)
+// Solidity: function hashesUsed(bytes32 _ethHash) view returns(bool)
+func (_Router *RouterSession) HashesUsed(_ethHash [32]byte) (bool, error) {
+	return _Router.Contract.HashesUsed(&_Router.CallOpts, _ethHash)
 }
 
-// HashesUsed is a free data retrieval call binding the contract method 0xde430c0a.
+// HashesUsed is a free data retrieval call binding the contract method 0xb826c58b.
 //
-// Solidity: function hashesUsed(uint256 _chainId, bytes32 _ethHash) view returns(bool)
-func (_Router *RouterCallerSession) HashesUsed(_chainId *big.Int, _ethHash [32]byte) (bool, error) {
-	return _Router.Contract.HashesUsed(&_Router.CallOpts, _chainId, _ethHash)
+// Solidity: function hashesUsed(bytes32 _ethHash) view returns(bool)
+func (_Router *RouterCallerSession) HashesUsed(_ethHash [32]byte) (bool, error) {
+	return _Router.Contract.HashesUsed(&_Router.CallOpts, _ethHash)
 }
 
 // IsMember is a free data retrieval call binding the contract method 0xa230c524.
@@ -501,6 +470,68 @@ func (_Router *RouterCallerSession) MembersCount() (*big.Int, error) {
 	return _Router.Contract.MembersCount(&_Router.CallOpts)
 }
 
+// MembersPercentage is a free data retrieval call binding the contract method 0x689538d8.
+//
+// Solidity: function membersPercentage() view returns(uint256)
+func (_Router *RouterCaller) MembersPercentage(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "membersPercentage")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MembersPercentage is a free data retrieval call binding the contract method 0x689538d8.
+//
+// Solidity: function membersPercentage() view returns(uint256)
+func (_Router *RouterSession) MembersPercentage() (*big.Int, error) {
+	return _Router.Contract.MembersPercentage(&_Router.CallOpts)
+}
+
+// MembersPercentage is a free data retrieval call binding the contract method 0x689538d8.
+//
+// Solidity: function membersPercentage() view returns(uint256)
+func (_Router *RouterCallerSession) MembersPercentage() (*big.Int, error) {
+	return _Router.Contract.MembersPercentage(&_Router.CallOpts)
+}
+
+// MembersPrecision is a free data retrieval call binding the contract method 0x64feffee.
+//
+// Solidity: function membersPrecision() view returns(uint256)
+func (_Router *RouterCaller) MembersPrecision(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "membersPrecision")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MembersPrecision is a free data retrieval call binding the contract method 0x64feffee.
+//
+// Solidity: function membersPrecision() view returns(uint256)
+func (_Router *RouterSession) MembersPrecision() (*big.Int, error) {
+	return _Router.Contract.MembersPrecision(&_Router.CallOpts)
+}
+
+// MembersPrecision is a free data retrieval call binding the contract method 0x64feffee.
+//
+// Solidity: function membersPrecision() view returns(uint256)
+func (_Router *RouterCallerSession) MembersPrecision() (*big.Int, error) {
+	return _Router.Contract.MembersPrecision(&_Router.CallOpts)
+}
+
 // NativeTokenAt is a free data retrieval call binding the contract method 0x352036ff.
 //
 // Solidity: function nativeTokenAt(uint256 _index) view returns(address)
@@ -563,6 +594,99 @@ func (_Router *RouterCallerSession) NativeTokensCount() (*big.Int, error) {
 	return _Router.Contract.NativeTokensCount(&_Router.CallOpts)
 }
 
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address owner_)
+func (_Router *RouterCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "owner")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address owner_)
+func (_Router *RouterSession) Owner() (common.Address, error) {
+	return _Router.Contract.Owner(&_Router.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address owner_)
+func (_Router *RouterCallerSession) Owner() (common.Address, error) {
+	return _Router.Contract.Owner(&_Router.CallOpts)
+}
+
+// ServiceFeePrecision is a free data retrieval call binding the contract method 0x6d4b6bf5.
+//
+// Solidity: function serviceFeePrecision() view returns(uint256)
+func (_Router *RouterCaller) ServiceFeePrecision(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "serviceFeePrecision")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// ServiceFeePrecision is a free data retrieval call binding the contract method 0x6d4b6bf5.
+//
+// Solidity: function serviceFeePrecision() view returns(uint256)
+func (_Router *RouterSession) ServiceFeePrecision() (*big.Int, error) {
+	return _Router.Contract.ServiceFeePrecision(&_Router.CallOpts)
+}
+
+// ServiceFeePrecision is a free data retrieval call binding the contract method 0x6d4b6bf5.
+//
+// Solidity: function serviceFeePrecision() view returns(uint256)
+func (_Router *RouterCallerSession) ServiceFeePrecision() (*big.Int, error) {
+	return _Router.Contract.ServiceFeePrecision(&_Router.CallOpts)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_Router *RouterCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
+	var out []interface{}
+	err := _Router.contract.Call(opts, &out, "supportsInterface", interfaceId)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_Router *RouterSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _Router.Contract.SupportsInterface(&_Router.CallOpts, interfaceId)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_Router *RouterCallerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _Router.Contract.SupportsInterface(&_Router.CallOpts, interfaceId)
+}
+
 // TokenFeeData is a free data retrieval call binding the contract method 0xeb6fc3b1.
 //
 // Solidity: function tokenFeeData(address _token) view returns(uint256 serviceFeePercentage, uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
@@ -581,14 +705,11 @@ func (_Router *RouterCaller) TokenFeeData(opts *bind.CallOpts, _token common.Add
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	})
-	if err != nil {
-		return *outstruct, err
-	}
 
-	outstruct.ServiceFeePercentage = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-	outstruct.FeesAccrued = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
-	outstruct.PreviousAccrued = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
-	outstruct.Accumulator = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
+	outstruct.ServiceFeePercentage = out[0].(*big.Int)
+	outstruct.FeesAccrued = out[1].(*big.Int)
+	outstruct.PreviousAccrued = out[2].(*big.Int)
+	outstruct.Accumulator = out[3].(*big.Int)
 
 	return *outstruct, err
 
@@ -618,46 +739,46 @@ func (_Router *RouterCallerSession) TokenFeeData(_token common.Address) (struct 
 	return _Router.Contract.TokenFeeData(&_Router.CallOpts, _token)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x44d17187.
+// Burn is a paid mutator transaction binding the contract method 0xd1979252.
 //
-// Solidity: function burn(address _wrappedToken, uint256 _amount, bytes _receiver) returns()
-func (_Router *RouterTransactor) Burn(opts *bind.TransactOpts, _wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "burn", _wrappedToken, _amount, _receiver)
+// Solidity: function burn(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver) returns()
+func (_Router *RouterTransactor) Burn(opts *bind.TransactOpts, _targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "burn", _targetChain, _wrappedToken, _amount, _receiver)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x44d17187.
+// Burn is a paid mutator transaction binding the contract method 0xd1979252.
 //
-// Solidity: function burn(address _wrappedToken, uint256 _amount, bytes _receiver) returns()
-func (_Router *RouterSession) Burn(_wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
-	return _Router.Contract.Burn(&_Router.TransactOpts, _wrappedToken, _amount, _receiver)
+// Solidity: function burn(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver) returns()
+func (_Router *RouterSession) Burn(_targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
+	return _Router.Contract.Burn(&_Router.TransactOpts, _targetChain, _wrappedToken, _amount, _receiver)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x44d17187.
+// Burn is a paid mutator transaction binding the contract method 0xd1979252.
 //
-// Solidity: function burn(address _wrappedToken, uint256 _amount, bytes _receiver) returns()
-func (_Router *RouterTransactorSession) Burn(_wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
-	return _Router.Contract.Burn(&_Router.TransactOpts, _wrappedToken, _amount, _receiver)
+// Solidity: function burn(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver) returns()
+func (_Router *RouterTransactorSession) Burn(_targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte) (*types.Transaction, error) {
+	return _Router.Contract.Burn(&_Router.TransactOpts, _targetChain, _wrappedToken, _amount, _receiver)
 }
 
-// BurnWithPermit is a paid mutator transaction binding the contract method 0xfb828b1d.
+// BurnWithPermit is a paid mutator transaction binding the contract method 0xd7c28714.
 //
-// Solidity: function burnWithPermit(address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
-func (_Router *RouterTransactor) BurnWithPermit(opts *bind.TransactOpts, _wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "burnWithPermit", _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
+// Solidity: function burnWithPermit(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
+func (_Router *RouterTransactor) BurnWithPermit(opts *bind.TransactOpts, _targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "burnWithPermit", _targetChain, _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
 }
 
-// BurnWithPermit is a paid mutator transaction binding the contract method 0xfb828b1d.
+// BurnWithPermit is a paid mutator transaction binding the contract method 0xd7c28714.
 //
-// Solidity: function burnWithPermit(address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
-func (_Router *RouterSession) BurnWithPermit(_wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
-	return _Router.Contract.BurnWithPermit(&_Router.TransactOpts, _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
+// Solidity: function burnWithPermit(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
+func (_Router *RouterSession) BurnWithPermit(_targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
+	return _Router.Contract.BurnWithPermit(&_Router.TransactOpts, _targetChain, _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
 }
 
-// BurnWithPermit is a paid mutator transaction binding the contract method 0xfb828b1d.
+// BurnWithPermit is a paid mutator transaction binding the contract method 0xd7c28714.
 //
-// Solidity: function burnWithPermit(address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
-func (_Router *RouterTransactorSession) BurnWithPermit(_wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
-	return _Router.Contract.BurnWithPermit(&_Router.TransactOpts, _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
+// Solidity: function burnWithPermit(uint256 _targetChain, address _wrappedToken, uint256 _amount, bytes _receiver, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) returns()
+func (_Router *RouterTransactorSession) BurnWithPermit(_targetChain *big.Int, _wrappedToken common.Address, _amount *big.Int, _receiver []byte, _deadline *big.Int, _v uint8, _r [32]byte, _s [32]byte) (*types.Transaction, error) {
+	return _Router.Contract.BurnWithPermit(&_Router.TransactOpts, _targetChain, _wrappedToken, _amount, _receiver, _deadline, _v, _r, _s)
 }
 
 // Claim is a paid mutator transaction binding the contract method 0x1e83409a.
@@ -681,46 +802,46 @@ func (_Router *RouterTransactorSession) Claim(_token common.Address) (*types.Tra
 	return _Router.Contract.Claim(&_Router.TransactOpts, _token)
 }
 
-// DeployWrappedToken is a paid mutator transaction binding the contract method 0x3b10603a.
+// DeployWrappedToken is a paid mutator transaction binding the contract method 0xcc408333.
 //
-// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) DeployWrappedToken(opts *bind.TransactOpts, _sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "deployWrappedToken", _sourceChain, _nativeToken, _tokenParams, _signatures)
+// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams) returns()
+func (_Router *RouterTransactor) DeployWrappedToken(opts *bind.TransactOpts, _sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "deployWrappedToken", _sourceChain, _nativeToken, _tokenParams)
 }
 
-// DeployWrappedToken is a paid mutator transaction binding the contract method 0x3b10603a.
+// DeployWrappedToken is a paid mutator transaction binding the contract method 0xcc408333.
 //
-// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams, bytes[] _signatures) returns()
-func (_Router *RouterSession) DeployWrappedToken(_sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.DeployWrappedToken(&_Router.TransactOpts, _sourceChain, _nativeToken, _tokenParams, _signatures)
+// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams) returns()
+func (_Router *RouterSession) DeployWrappedToken(_sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams) (*types.Transaction, error) {
+	return _Router.Contract.DeployWrappedToken(&_Router.TransactOpts, _sourceChain, _nativeToken, _tokenParams)
 }
 
-// DeployWrappedToken is a paid mutator transaction binding the contract method 0x3b10603a.
+// DeployWrappedToken is a paid mutator transaction binding the contract method 0xcc408333.
 //
-// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) DeployWrappedToken(_sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.DeployWrappedToken(&_Router.TransactOpts, _sourceChain, _nativeToken, _tokenParams, _signatures)
+// Solidity: function deployWrappedToken(uint256 _sourceChain, bytes _nativeToken, (string,string,uint8) _tokenParams) returns()
+func (_Router *RouterTransactorSession) DeployWrappedToken(_sourceChain *big.Int, _nativeToken []byte, _tokenParams WrappedTokenParams) (*types.Transaction, error) {
+	return _Router.Contract.DeployWrappedToken(&_Router.TransactOpts, _sourceChain, _nativeToken, _tokenParams)
 }
 
-// DiamondCut is a paid mutator transaction binding the contract method 0x41ea4fdb.
+// DiamondCut is a paid mutator transaction binding the contract method 0x1f931c1c.
 //
-// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) DiamondCut(opts *bind.TransactOpts, _diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "diamondCut", _diamondCut, _init, _calldata, _signatures)
+// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata) returns()
+func (_Router *RouterTransactor) DiamondCut(opts *bind.TransactOpts, _diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "diamondCut", _diamondCut, _init, _calldata)
 }
 
-// DiamondCut is a paid mutator transaction binding the contract method 0x41ea4fdb.
+// DiamondCut is a paid mutator transaction binding the contract method 0x1f931c1c.
 //
-// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata, bytes[] _signatures) returns()
-func (_Router *RouterSession) DiamondCut(_diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.DiamondCut(&_Router.TransactOpts, _diamondCut, _init, _calldata, _signatures)
+// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata) returns()
+func (_Router *RouterSession) DiamondCut(_diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte) (*types.Transaction, error) {
+	return _Router.Contract.DiamondCut(&_Router.TransactOpts, _diamondCut, _init, _calldata)
 }
 
-// DiamondCut is a paid mutator transaction binding the contract method 0x41ea4fdb.
+// DiamondCut is a paid mutator transaction binding the contract method 0x1f931c1c.
 //
-// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) DiamondCut(_diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.DiamondCut(&_Router.TransactOpts, _diamondCut, _init, _calldata, _signatures)
+// Solidity: function diamondCut((address,uint8,bytes4[])[] _diamondCut, address _init, bytes _calldata) returns()
+func (_Router *RouterTransactorSession) DiamondCut(_diamondCut []IDiamondCutFacetCut, _init common.Address, _calldata []byte) (*types.Transaction, error) {
+	return _Router.Contract.DiamondCut(&_Router.TransactOpts, _diamondCut, _init, _calldata)
 }
 
 // InitFeeCalculator is a paid mutator transaction binding the contract method 0xe3c9d084.
@@ -744,25 +865,25 @@ func (_Router *RouterTransactorSession) InitFeeCalculator(_precision *big.Int) (
 	return _Router.Contract.InitFeeCalculator(&_Router.TransactOpts, _precision)
 }
 
-// InitGovernance is a paid mutator transaction binding the contract method 0x8f98a45b.
+// InitGovernance is a paid mutator transaction binding the contract method 0x286f40c2.
 //
-// Solidity: function initGovernance(address[] _members) returns()
-func (_Router *RouterTransactor) InitGovernance(opts *bind.TransactOpts, _members []common.Address) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "initGovernance", _members)
+// Solidity: function initGovernance(address[] _members, uint256 _percentage, uint256 _precision) returns()
+func (_Router *RouterTransactor) InitGovernance(opts *bind.TransactOpts, _members []common.Address, _percentage *big.Int, _precision *big.Int) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "initGovernance", _members, _percentage, _precision)
 }
 
-// InitGovernance is a paid mutator transaction binding the contract method 0x8f98a45b.
+// InitGovernance is a paid mutator transaction binding the contract method 0x286f40c2.
 //
-// Solidity: function initGovernance(address[] _members) returns()
-func (_Router *RouterSession) InitGovernance(_members []common.Address) (*types.Transaction, error) {
-	return _Router.Contract.InitGovernance(&_Router.TransactOpts, _members)
+// Solidity: function initGovernance(address[] _members, uint256 _percentage, uint256 _precision) returns()
+func (_Router *RouterSession) InitGovernance(_members []common.Address, _percentage *big.Int, _precision *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.InitGovernance(&_Router.TransactOpts, _members, _percentage, _precision)
 }
 
-// InitGovernance is a paid mutator transaction binding the contract method 0x8f98a45b.
+// InitGovernance is a paid mutator transaction binding the contract method 0x286f40c2.
 //
-// Solidity: function initGovernance(address[] _members) returns()
-func (_Router *RouterTransactorSession) InitGovernance(_members []common.Address) (*types.Transaction, error) {
-	return _Router.Contract.InitGovernance(&_Router.TransactOpts, _members)
+// Solidity: function initGovernance(address[] _members, uint256 _percentage, uint256 _precision) returns()
+func (_Router *RouterTransactorSession) InitGovernance(_members []common.Address, _percentage *big.Int, _precision *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.InitGovernance(&_Router.TransactOpts, _members, _percentage, _precision)
 }
 
 // InitRouter is a paid mutator transaction binding the contract method 0xe5026ea2.
@@ -828,46 +949,67 @@ func (_Router *RouterTransactorSession) LockWithPermit(_targetChain *big.Int, _n
 	return _Router.Contract.LockWithPermit(&_Router.TransactOpts, _targetChain, _nativeToken, _amount, _receiver, _deadline, _v, _r, _s)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x914442d7.
+// Mint is a paid mutator transaction binding the contract method 0x2148199d.
 //
-// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, uint256 _amount, address _receiver, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) Mint(opts *bind.TransactOpts, _sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _amount *big.Int, _receiver common.Address, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "mint", _sourceChain, _transactionId, _wrappedToken, _amount, _receiver, _signatures)
+// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, address _receiver, uint256 _amount, bytes[] _signatures) returns()
+func (_Router *RouterTransactor) Mint(opts *bind.TransactOpts, _sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _receiver common.Address, _amount *big.Int, _signatures [][]byte) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "mint", _sourceChain, _transactionId, _wrappedToken, _receiver, _amount, _signatures)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x914442d7.
+// Mint is a paid mutator transaction binding the contract method 0x2148199d.
 //
-// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, uint256 _amount, address _receiver, bytes[] _signatures) returns()
-func (_Router *RouterSession) Mint(_sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _amount *big.Int, _receiver common.Address, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint(&_Router.TransactOpts, _sourceChain, _transactionId, _wrappedToken, _amount, _receiver, _signatures)
+// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, address _receiver, uint256 _amount, bytes[] _signatures) returns()
+func (_Router *RouterSession) Mint(_sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _receiver common.Address, _amount *big.Int, _signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.Mint(&_Router.TransactOpts, _sourceChain, _transactionId, _wrappedToken, _receiver, _amount, _signatures)
 }
 
-// Mint is a paid mutator transaction binding the contract method 0x914442d7.
+// Mint is a paid mutator transaction binding the contract method 0x2148199d.
 //
-// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, uint256 _amount, address _receiver, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) Mint(_sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _amount *big.Int, _receiver common.Address, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.Mint(&_Router.TransactOpts, _sourceChain, _transactionId, _wrappedToken, _amount, _receiver, _signatures)
+// Solidity: function mint(uint256 _sourceChain, bytes _transactionId, address _wrappedToken, address _receiver, uint256 _amount, bytes[] _signatures) returns()
+func (_Router *RouterTransactorSession) Mint(_sourceChain *big.Int, _transactionId []byte, _wrappedToken common.Address, _receiver common.Address, _amount *big.Int, _signatures [][]byte) (*types.Transaction, error) {
+	return _Router.Contract.Mint(&_Router.TransactOpts, _sourceChain, _transactionId, _wrappedToken, _receiver, _amount, _signatures)
 }
 
-// SetServiceFee is a paid mutator transaction binding the contract method 0x35cba138.
+// SetServiceFee is a paid mutator transaction binding the contract method 0xef2fa169.
 //
-// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) SetServiceFee(opts *bind.TransactOpts, _token common.Address, _serviceFeePercentage *big.Int, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "setServiceFee", _token, _serviceFeePercentage, _signatures)
+// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage) returns()
+func (_Router *RouterTransactor) SetServiceFee(opts *bind.TransactOpts, _token common.Address, _serviceFeePercentage *big.Int) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "setServiceFee", _token, _serviceFeePercentage)
 }
 
-// SetServiceFee is a paid mutator transaction binding the contract method 0x35cba138.
+// SetServiceFee is a paid mutator transaction binding the contract method 0xef2fa169.
 //
-// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage, bytes[] _signatures) returns()
-func (_Router *RouterSession) SetServiceFee(_token common.Address, _serviceFeePercentage *big.Int, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.SetServiceFee(&_Router.TransactOpts, _token, _serviceFeePercentage, _signatures)
+// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage) returns()
+func (_Router *RouterSession) SetServiceFee(_token common.Address, _serviceFeePercentage *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.SetServiceFee(&_Router.TransactOpts, _token, _serviceFeePercentage)
 }
 
-// SetServiceFee is a paid mutator transaction binding the contract method 0x35cba138.
+// SetServiceFee is a paid mutator transaction binding the contract method 0xef2fa169.
 //
-// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) SetServiceFee(_token common.Address, _serviceFeePercentage *big.Int, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.SetServiceFee(&_Router.TransactOpts, _token, _serviceFeePercentage, _signatures)
+// Solidity: function setServiceFee(address _token, uint256 _serviceFeePercentage) returns()
+func (_Router *RouterTransactorSession) SetServiceFee(_token common.Address, _serviceFeePercentage *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.SetServiceFee(&_Router.TransactOpts, _token, _serviceFeePercentage)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address _newOwner) returns()
+func (_Router *RouterTransactor) TransferOwnership(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "transferOwnership", _newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address _newOwner) returns()
+func (_Router *RouterSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
+	return _Router.Contract.TransferOwnership(&_Router.TransactOpts, _newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address _newOwner) returns()
+func (_Router *RouterTransactorSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
+	return _Router.Contract.TransferOwnership(&_Router.TransactOpts, _newOwner)
 }
 
 // Unlock is a paid mutator transaction binding the contract method 0x3b68d993.
@@ -891,46 +1033,67 @@ func (_Router *RouterTransactorSession) Unlock(_sourceChain *big.Int, _transacti
 	return _Router.Contract.Unlock(&_Router.TransactOpts, _sourceChain, _transactionId, _nativeToken, _amount, _receiver, _signatures)
 }
 
-// UpdateMember is a paid mutator transaction binding the contract method 0x9b6af648.
+// UpdateMember is a paid mutator transaction binding the contract method 0x05566101.
 //
-// Solidity: function updateMember(address _account, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) UpdateMember(opts *bind.TransactOpts, _account common.Address, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "updateMember", _account, _status, _signatures)
+// Solidity: function updateMember(address _account, bool _status) returns()
+func (_Router *RouterTransactor) UpdateMember(opts *bind.TransactOpts, _account common.Address, _status bool) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "updateMember", _account, _status)
 }
 
-// UpdateMember is a paid mutator transaction binding the contract method 0x9b6af648.
+// UpdateMember is a paid mutator transaction binding the contract method 0x05566101.
 //
-// Solidity: function updateMember(address _account, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterSession) UpdateMember(_account common.Address, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.UpdateMember(&_Router.TransactOpts, _account, _status, _signatures)
+// Solidity: function updateMember(address _account, bool _status) returns()
+func (_Router *RouterSession) UpdateMember(_account common.Address, _status bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateMember(&_Router.TransactOpts, _account, _status)
 }
 
-// UpdateMember is a paid mutator transaction binding the contract method 0x9b6af648.
+// UpdateMember is a paid mutator transaction binding the contract method 0x05566101.
 //
-// Solidity: function updateMember(address _account, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) UpdateMember(_account common.Address, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.UpdateMember(&_Router.TransactOpts, _account, _status, _signatures)
+// Solidity: function updateMember(address _account, bool _status) returns()
+func (_Router *RouterTransactorSession) UpdateMember(_account common.Address, _status bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateMember(&_Router.TransactOpts, _account, _status)
 }
 
-// UpdateNativeToken is a paid mutator transaction binding the contract method 0x61dba72f.
+// UpdateMembersPercentage is a paid mutator transaction binding the contract method 0xfdc738c1.
 //
-// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterTransactor) UpdateNativeToken(opts *bind.TransactOpts, _nativeToken common.Address, _serviceFee *big.Int, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.contract.Transact(opts, "updateNativeToken", _nativeToken, _serviceFee, _status, _signatures)
+// Solidity: function updateMembersPercentage(uint256 _percentage) returns()
+func (_Router *RouterTransactor) UpdateMembersPercentage(opts *bind.TransactOpts, _percentage *big.Int) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "updateMembersPercentage", _percentage)
 }
 
-// UpdateNativeToken is a paid mutator transaction binding the contract method 0x61dba72f.
+// UpdateMembersPercentage is a paid mutator transaction binding the contract method 0xfdc738c1.
 //
-// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterSession) UpdateNativeToken(_nativeToken common.Address, _serviceFee *big.Int, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.UpdateNativeToken(&_Router.TransactOpts, _nativeToken, _serviceFee, _status, _signatures)
+// Solidity: function updateMembersPercentage(uint256 _percentage) returns()
+func (_Router *RouterSession) UpdateMembersPercentage(_percentage *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.UpdateMembersPercentage(&_Router.TransactOpts, _percentage)
 }
 
-// UpdateNativeToken is a paid mutator transaction binding the contract method 0x61dba72f.
+// UpdateMembersPercentage is a paid mutator transaction binding the contract method 0xfdc738c1.
 //
-// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status, bytes[] _signatures) returns()
-func (_Router *RouterTransactorSession) UpdateNativeToken(_nativeToken common.Address, _serviceFee *big.Int, _status bool, _signatures [][]byte) (*types.Transaction, error) {
-	return _Router.Contract.UpdateNativeToken(&_Router.TransactOpts, _nativeToken, _serviceFee, _status, _signatures)
+// Solidity: function updateMembersPercentage(uint256 _percentage) returns()
+func (_Router *RouterTransactorSession) UpdateMembersPercentage(_percentage *big.Int) (*types.Transaction, error) {
+	return _Router.Contract.UpdateMembersPercentage(&_Router.TransactOpts, _percentage)
+}
+
+// UpdateNativeToken is a paid mutator transaction binding the contract method 0x414c9d64.
+//
+// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status) returns()
+func (_Router *RouterTransactor) UpdateNativeToken(opts *bind.TransactOpts, _nativeToken common.Address, _serviceFee *big.Int, _status bool) (*types.Transaction, error) {
+	return _Router.contract.Transact(opts, "updateNativeToken", _nativeToken, _serviceFee, _status)
+}
+
+// UpdateNativeToken is a paid mutator transaction binding the contract method 0x414c9d64.
+//
+// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status) returns()
+func (_Router *RouterSession) UpdateNativeToken(_nativeToken common.Address, _serviceFee *big.Int, _status bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateNativeToken(&_Router.TransactOpts, _nativeToken, _serviceFee, _status)
+}
+
+// UpdateNativeToken is a paid mutator transaction binding the contract method 0x414c9d64.
+//
+// Solidity: function updateNativeToken(address _nativeToken, uint256 _serviceFee, bool _status) returns()
+func (_Router *RouterTransactorSession) UpdateNativeToken(_nativeToken common.Address, _serviceFee *big.Int, _status bool) (*types.Transaction, error) {
+	return _Router.Contract.UpdateNativeToken(&_Router.TransactOpts, _nativeToken, _serviceFee, _status)
 }
 
 // RouterBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the Router contract.
@@ -1002,15 +1165,16 @@ func (it *RouterBurnIterator) Close() error {
 
 // RouterBurn represents a Burn event raised by the Router contract.
 type RouterBurn struct {
-	Token    common.Address
-	Amount   *big.Int
-	Receiver []byte
-	Raw      types.Log // Blockchain specific contextual infos
+	TargetChain *big.Int
+	Token       common.Address
+	Amount      *big.Int
+	Receiver    []byte
+	Raw         types.Log // Blockchain specific contextual infos
 }
 
-// FilterBurn is a free log retrieval operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// FilterBurn is a free log retrieval operation binding the contract event 0x97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992.
 //
-// Solidity: event Burn(address token, uint256 amount, bytes receiver)
+// Solidity: event Burn(uint256 targetChain, address token, uint256 amount, bytes receiver)
 func (_Router *RouterFilterer) FilterBurn(opts *bind.FilterOpts) (*RouterBurnIterator, error) {
 
 	logs, sub, err := _Router.contract.FilterLogs(opts, "Burn")
@@ -1020,9 +1184,9 @@ func (_Router *RouterFilterer) FilterBurn(opts *bind.FilterOpts) (*RouterBurnIte
 	return &RouterBurnIterator{contract: _Router.contract, event: "Burn", logs: logs, sub: sub}, nil
 }
 
-// WatchBurn is a free log subscription operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// WatchBurn is a free log subscription operation binding the contract event 0x97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992.
 //
-// Solidity: event Burn(address token, uint256 amount, bytes receiver)
+// Solidity: event Burn(uint256 targetChain, address token, uint256 amount, bytes receiver)
 func (_Router *RouterFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *RouterBurn) (event.Subscription, error) {
 
 	logs, sub, err := _Router.contract.WatchLogs(opts, "Burn")
@@ -1057,9 +1221,9 @@ func (_Router *RouterFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *Rout
 	}), nil
 }
 
-// ParseBurn is a log parse operation binding the contract event 0x8d38f5a0c1764ff1cca876ce8fe136163fddfce925659e6ad05437cfff6fd392.
+// ParseBurn is a log parse operation binding the contract event 0x97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992.
 //
-// Solidity: event Burn(address token, uint256 amount, bytes receiver)
+// Solidity: event Burn(uint256 targetChain, address token, uint256 amount, bytes receiver)
 func (_Router *RouterFilterer) ParseBurn(log types.Log) (*RouterBurn, error) {
 	event := new(RouterBurn)
 	if err := _Router.contract.UnpackLog(event, "Burn", log); err != nil {
@@ -1614,6 +1778,140 @@ func (_Router *RouterFilterer) ParseMemberUpdated(log types.Log) (*RouterMemberU
 	return event, nil
 }
 
+// RouterMembersPercentageUpdatedIterator is returned from FilterMembersPercentageUpdated and is used to iterate over the raw logs and unpacked data for MembersPercentageUpdated events raised by the Router contract.
+type RouterMembersPercentageUpdatedIterator struct {
+	Event *RouterMembersPercentageUpdated // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RouterMembersPercentageUpdatedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RouterMembersPercentageUpdated)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RouterMembersPercentageUpdated)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RouterMembersPercentageUpdatedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RouterMembersPercentageUpdatedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RouterMembersPercentageUpdated represents a MembersPercentageUpdated event raised by the Router contract.
+type RouterMembersPercentageUpdated struct {
+	Percentage *big.Int
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterMembersPercentageUpdated is a free log retrieval operation binding the contract event 0xb339d3f6a27cb4c153ea35beb698f2543e6cace02d90c4204cde521e9dbaebbb.
+//
+// Solidity: event MembersPercentageUpdated(uint256 percentage)
+func (_Router *RouterFilterer) FilterMembersPercentageUpdated(opts *bind.FilterOpts) (*RouterMembersPercentageUpdatedIterator, error) {
+
+	logs, sub, err := _Router.contract.FilterLogs(opts, "MembersPercentageUpdated")
+	if err != nil {
+		return nil, err
+	}
+	return &RouterMembersPercentageUpdatedIterator{contract: _Router.contract, event: "MembersPercentageUpdated", logs: logs, sub: sub}, nil
+}
+
+// WatchMembersPercentageUpdated is a free log subscription operation binding the contract event 0xb339d3f6a27cb4c153ea35beb698f2543e6cace02d90c4204cde521e9dbaebbb.
+//
+// Solidity: event MembersPercentageUpdated(uint256 percentage)
+func (_Router *RouterFilterer) WatchMembersPercentageUpdated(opts *bind.WatchOpts, sink chan<- *RouterMembersPercentageUpdated) (event.Subscription, error) {
+
+	logs, sub, err := _Router.contract.WatchLogs(opts, "MembersPercentageUpdated")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RouterMembersPercentageUpdated)
+				if err := _Router.contract.UnpackLog(event, "MembersPercentageUpdated", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseMembersPercentageUpdated is a log parse operation binding the contract event 0xb339d3f6a27cb4c153ea35beb698f2543e6cace02d90c4204cde521e9dbaebbb.
+//
+// Solidity: event MembersPercentageUpdated(uint256 percentage)
+func (_Router *RouterFilterer) ParseMembersPercentageUpdated(log types.Log) (*RouterMembersPercentageUpdated, error) {
+	event := new(RouterMembersPercentageUpdated)
+	if err := _Router.contract.UnpackLog(event, "MembersPercentageUpdated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // RouterMintIterator is returned from FilterMint and is used to iterate over the raw logs and unpacked data for Mint events raised by the Router contract.
 type RouterMintIterator struct {
 	Event *RouterMint // Event containing the contract specifics and raw log
@@ -1683,15 +1981,17 @@ func (it *RouterMintIterator) Close() error {
 
 // RouterMint represents a Mint event raised by the Router contract.
 type RouterMint struct {
-	Token    common.Address
-	Amount   *big.Int
-	Receiver common.Address
-	Raw      types.Log // Blockchain specific contextual infos
+	SourceChain   *big.Int
+	TransactionId []byte
+	Token         common.Address
+	Amount        *big.Int
+	Receiver      common.Address
+	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterMint is a free log retrieval operation binding the contract event 0xbcad3d7d3dfccb90d49c6063bf70f828901fefc88937d90af74e58e6e55bc39d.
+// FilterMint is a free log retrieval operation binding the contract event 0x0579df6e9dbf066ba9fbd51ef5241e2b9f9c042a70289e8e5333d714ed4e5787.
 //
-// Solidity: event Mint(address token, uint256 amount, address receiver)
+// Solidity: event Mint(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver)
 func (_Router *RouterFilterer) FilterMint(opts *bind.FilterOpts) (*RouterMintIterator, error) {
 
 	logs, sub, err := _Router.contract.FilterLogs(opts, "Mint")
@@ -1701,9 +2001,9 @@ func (_Router *RouterFilterer) FilterMint(opts *bind.FilterOpts) (*RouterMintIte
 	return &RouterMintIterator{contract: _Router.contract, event: "Mint", logs: logs, sub: sub}, nil
 }
 
-// WatchMint is a free log subscription operation binding the contract event 0xbcad3d7d3dfccb90d49c6063bf70f828901fefc88937d90af74e58e6e55bc39d.
+// WatchMint is a free log subscription operation binding the contract event 0x0579df6e9dbf066ba9fbd51ef5241e2b9f9c042a70289e8e5333d714ed4e5787.
 //
-// Solidity: event Mint(address token, uint256 amount, address receiver)
+// Solidity: event Mint(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver)
 func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *RouterMint) (event.Subscription, error) {
 
 	logs, sub, err := _Router.contract.WatchLogs(opts, "Mint")
@@ -1738,9 +2038,9 @@ func (_Router *RouterFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *Rout
 	}), nil
 }
 
-// ParseMint is a log parse operation binding the contract event 0xbcad3d7d3dfccb90d49c6063bf70f828901fefc88937d90af74e58e6e55bc39d.
+// ParseMint is a log parse operation binding the contract event 0x0579df6e9dbf066ba9fbd51ef5241e2b9f9c042a70289e8e5333d714ed4e5787.
 //
-// Solidity: event Mint(address token, uint256 amount, address receiver)
+// Solidity: event Mint(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver)
 func (_Router *RouterFilterer) ParseMint(log types.Log) (*RouterMint, error) {
 	event := new(RouterMint)
 	if err := _Router.contract.UnpackLog(event, "Mint", log); err != nil {
@@ -1880,6 +2180,159 @@ func (_Router *RouterFilterer) WatchNativeTokenUpdated(opts *bind.WatchOpts, sin
 func (_Router *RouterFilterer) ParseNativeTokenUpdated(log types.Log) (*RouterNativeTokenUpdated, error) {
 	event := new(RouterNativeTokenUpdated)
 	if err := _Router.contract.UnpackLog(event, "NativeTokenUpdated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// RouterOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the Router contract.
+type RouterOwnershipTransferredIterator struct {
+	Event *RouterOwnershipTransferred // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RouterOwnershipTransferredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RouterOwnershipTransferred)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RouterOwnershipTransferred)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RouterOwnershipTransferredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RouterOwnershipTransferredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RouterOwnershipTransferred represents a OwnershipTransferred event raised by the Router contract.
+type RouterOwnershipTransferred struct {
+	PreviousOwner common.Address
+	NewOwner      common.Address
+	Raw           types.Log // Blockchain specific contextual infos
+}
+
+// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_Router *RouterFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*RouterOwnershipTransferredIterator, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _Router.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &RouterOwnershipTransferredIterator{contract: _Router.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
+}
+
+// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_Router *RouterFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *RouterOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _Router.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RouterOwnershipTransferred)
+				if err := _Router.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_Router *RouterFilterer) ParseOwnershipTransferred(log types.Log) (*RouterOwnershipTransferred, error) {
+	event := new(RouterOwnershipTransferred)
+	if err := _Router.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -2091,16 +2544,18 @@ func (it *RouterUnlockIterator) Close() error {
 
 // RouterUnlock represents a Unlock event raised by the Router contract.
 type RouterUnlock struct {
-	Token      common.Address
-	Amount     *big.Int
-	Receiver   common.Address
-	ServiceFee *big.Int
-	Raw        types.Log // Blockchain specific contextual infos
+	SourceChain   *big.Int
+	TransactionId []byte
+	Token         common.Address
+	Amount        *big.Int
+	Receiver      common.Address
+	ServiceFee    *big.Int
+	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterUnlock is a free log retrieval operation binding the contract event 0xe9dd21edb9d48d83b9a32dee73f3307e8a8bcf2b8bc87bb7974dbd0510e53caa.
+// FilterUnlock is a free log retrieval operation binding the contract event 0x483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73.
 //
-// Solidity: event Unlock(address token, uint256 amount, address receiver, uint256 serviceFee)
+// Solidity: event Unlock(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver, uint256 serviceFee)
 func (_Router *RouterFilterer) FilterUnlock(opts *bind.FilterOpts) (*RouterUnlockIterator, error) {
 
 	logs, sub, err := _Router.contract.FilterLogs(opts, "Unlock")
@@ -2110,9 +2565,9 @@ func (_Router *RouterFilterer) FilterUnlock(opts *bind.FilterOpts) (*RouterUnloc
 	return &RouterUnlockIterator{contract: _Router.contract, event: "Unlock", logs: logs, sub: sub}, nil
 }
 
-// WatchUnlock is a free log subscription operation binding the contract event 0xe9dd21edb9d48d83b9a32dee73f3307e8a8bcf2b8bc87bb7974dbd0510e53caa.
+// WatchUnlock is a free log subscription operation binding the contract event 0x483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73.
 //
-// Solidity: event Unlock(address token, uint256 amount, address receiver, uint256 serviceFee)
+// Solidity: event Unlock(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver, uint256 serviceFee)
 func (_Router *RouterFilterer) WatchUnlock(opts *bind.WatchOpts, sink chan<- *RouterUnlock) (event.Subscription, error) {
 
 	logs, sub, err := _Router.contract.WatchLogs(opts, "Unlock")
@@ -2147,9 +2602,9 @@ func (_Router *RouterFilterer) WatchUnlock(opts *bind.WatchOpts, sink chan<- *Ro
 	}), nil
 }
 
-// ParseUnlock is a log parse operation binding the contract event 0xe9dd21edb9d48d83b9a32dee73f3307e8a8bcf2b8bc87bb7974dbd0510e53caa.
+// ParseUnlock is a log parse operation binding the contract event 0x483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73.
 //
-// Solidity: event Unlock(address token, uint256 amount, address receiver, uint256 serviceFee)
+// Solidity: event Unlock(uint256 sourceChain, bytes transactionId, address token, uint256 amount, address receiver, uint256 serviceFee)
 func (_Router *RouterFilterer) ParseUnlock(log types.Log) (*RouterUnlock, error) {
 	event := new(RouterUnlock)
 	if err := _Router.contract.UnpackLog(event, "Unlock", log); err != nil {

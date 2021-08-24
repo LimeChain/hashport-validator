@@ -202,14 +202,15 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.TransactionId, tm.RouterAddress, tm.WrappedAsset, tm.Receiver, wrappedAmount)
+	// TODO: ids
+	mockChainID := int64(80001)
+	authMsgHash, err := auth_message.EncodeBytesFrom(0, mockChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, wrappedAmount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 
 	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
-	mockChainID := int64(80001)
 	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
@@ -217,13 +218,15 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
+	// TODO: ids
 	signatureMessage := message.NewSignature(
+		0,
+		uint64(mockChainID),
 		tm.TransactionId,
-		tm.RouterAddress,
+		tm.WrappedAsset,
 		tm.Receiver,
 		wrappedAmount,
-		signature,
-		tm.WrappedAsset)
+		signature)
 
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {

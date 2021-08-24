@@ -31,6 +31,7 @@ import (
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type Watcher struct {
@@ -109,11 +110,13 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	// TODO: Replace with external configuration service. Ask whether ew.evmClient.ChainID() is a correct way of chainID recognition
-	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.evmClient.ChainID(), eventLog.Token.String())]
+	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.evmClient.ChainID().Int64(), eventLog.Token.String())]
 	if nativeAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
+	// TODO: refactor
+	nativeAsset = strings.Split(nativeAsset, "-")[0]
 
 	if nativeAsset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeAsset)
@@ -140,7 +143,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&queue.Message{Payload: burnEvent})
+	q.Push(&queue.Message{Payload: burnEvent, ChainId: ew.evmClient.ChainID().Int64()})
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
