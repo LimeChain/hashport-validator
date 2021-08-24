@@ -104,23 +104,25 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
 	// TODO: Discuss how this behavior will be implemented... 0 for Hashgraph?
-	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[0].NativeAssets[t.NativeAsset][80001]
+	// TODO: switch int64 to uint64
+	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[int64(topicMessage.SourceChainId)].NativeAssets[t.NativeAsset][int64(topicMessage.TargetChainId)]
 	if wrappedAsset == "" {
 		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err
 	}
 
-	match := topicMessage.Receiver == t.Receiver &&
-		topicMessage.RouterAddress == t.RouterAddress &&
-		topicMessage.Amount == signedAmount &&
-		topicMessage.WrappedAsset == wrappedAsset
+	// TODO: update checks when DB Transfer model is updated
+	match :=
+		topicMessage.Recipient == t.Receiver &&
+			topicMessage.Amount == signedAmount &&
+			topicMessage.Asset == wrappedAsset
 	return match, nil
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 func (ss *Service) ProcessSignature(tsm message.Message) error {
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeBytesFrom(tsm.TransferID, tsm.RouterAddress, tsm.WrappedAsset, tsm.Receiver, tsm.Amount)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return err
