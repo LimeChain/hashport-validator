@@ -37,6 +37,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"strings"
 )
 
 type Service struct {
@@ -93,27 +94,31 @@ func NewService(
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
+func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (int64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
-		return "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
 	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
 	if e != nil {
-		return "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+		return 0, "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
 	}
 
 	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
 	if e != nil {
-		return "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+		return 0, "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
 	}
 
 	if !verified {
-		return "", errors.New("invalid state proof")
+		return 0, "", errors.New("invalid state proof")
 	}
 
-	return m, nil
+	memoArgs := strings.Split(m, "-")
+	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
+	evmAddress := memoArgs[1]
+
+	return chainId, evmAddress, nil
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers

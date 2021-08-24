@@ -170,7 +170,7 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		m, err := r.transfers.SanityCheckTransfer(tx)
+		_, m, err := r.transfers.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue
