@@ -224,8 +224,8 @@ func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, so
 	return wTokenInstance, nil
 }
 
-func NativeToWrappedAsset(nativeAssets config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (*common.Address, error) {
-	wTokenContractHex := nativeAssets.NativeToWrappedByNetwork[sourceChain].NativeAssets[nativeAsset][targetChain]
+func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (*common.Address, error) {
+	wTokenContractHex := assetMappings.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wTokenContractHex == "" {
 		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))

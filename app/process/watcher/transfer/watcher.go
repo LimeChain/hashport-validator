@@ -142,7 +142,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, nativeAsset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
@@ -162,14 +162,16 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	// target chain : chainId
 	// if this returns anything -> this token is a native token from hedera and has to get bridged to the target chain from the contract
 	// else : WrappedToNative -> this token is a wrapped token from any other chain and has to get bridged back to the target chain
-	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][chainId]
-	if wrappedAsset == "" {
-		_ = ctw.mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, nativeAsset)]
 
-		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
-		return
+	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
+	if targetChainAsset == "" {
+		targetChainAsset = ctw.mappings.WrappedToNative(asset, chainId, 0)
+		if targetChainAsset == "" {
+			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+			return
+		}
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, evmAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[chainId].Address().String())
+	transferMessage := transfer.New(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String())
 	q.Push(&queue.Message{Payload: transferMessage, ChainId: chainId})
 }

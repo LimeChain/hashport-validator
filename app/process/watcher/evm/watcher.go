@@ -31,7 +31,6 @@ import (
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type Watcher struct {
@@ -110,13 +109,11 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	// TODO: Replace with external configuration service. Ask whether ew.evmClient.ChainID() is a correct way of chainID recognition
-	nativeAsset := ew.mappings.WrappedToNative[fmt.Sprintf("%d-%s", ew.evmClient.ChainID().Int64(), eventLog.Token.String())]
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
 	if nativeAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
-	// TODO: refactor
-	nativeAsset = strings.Split(nativeAsset, "-")[0]
 
 	if nativeAsset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeAsset)
@@ -166,7 +163,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	// TODO: Replace with external configuration service
-	wrappedAsset := ew.mappings.NativeToWrappedByNetwork[ew.evmClient.ChainID().Int64()].NativeAssets[eventLog.Token.String()][eventLog.TargetChain.Int64()]
+	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
