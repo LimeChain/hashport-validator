@@ -56,12 +56,12 @@ func Test_Handle(t *testing.T) {
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("ProcessTransfer", mt).Return(nil)
+	mockedService.On("ProcessNativeTransfer", mt).Return(nil)
 
 	ctHandler.Handle(&mt)
 
 	mockedService.AssertCalled(t, "InitiateNewTransfer", mt)
-	mockedService.AssertCalled(t, "ProcessTransfer", mt)
+	mockedService.AssertCalled(t, "ProcessNativeTransfer", mt)
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {
@@ -72,7 +72,7 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 	ctHandler.Handle(invalidTransferPayload)
 
 	mockedService.AssertNotCalled(t, "InitiateNewTransfer")
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
@@ -82,7 +82,7 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	ctHandler.Handle(&mt)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
 func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
@@ -99,7 +99,7 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 
 	ctHandler.Handle(&mt)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
 func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
@@ -113,7 +113,7 @@ func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("ProcessTransfer", mt).Return(errors.New("some-error"))
+	mockedService.On("ProcessNativeTransfer", mt).Return(errors.New("some-error"))
 
 	ctHandler.Handle(&mt)
 }

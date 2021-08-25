@@ -23,7 +23,7 @@ func Test_New(t *testing.T) {
 		WrappedAsset:  wrappedAsset,
 		RouterAddress: routerAddress,
 	}
-	actualTransfer := New(txId,
+	actualTransfer := NewNative(txId,
 		receiver,
 		nativeAsset,
 		wrappedAsset,

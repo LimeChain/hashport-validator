@@ -185,7 +185,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) ProcessTransfer(tm model.Transfer) error {
+func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 	intAmount, err := strconv.ParseInt(tm.Amount, 10, 64)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", tm.TransactionId, err)
@@ -228,6 +228,40 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		wrappedAmount,
 		signature)
 
+	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+}
+
+func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
+	// TODO: ids
+	mockChainID := int64(80001)
+	authMsgHash, err := auth_message.EncodeBytesFrom(0, mockChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, tm.Amount)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+
+	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
+	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+	signature := hex.EncodeToString(signatureBytes)
+
+	// TODO: ids
+	signatureMessage := message.NewSignature(
+		0,
+		uint64(mockChainID),
+		tm.TransactionId,
+		tm.WrappedAsset,
+		tm.Receiver,
+		tm.Amount,
+		signature)
+
+	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+}
+
+func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *message.Message) error {
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", signatureMessage.TransferID, err)

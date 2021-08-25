@@ -16,6 +16,14 @@
 
 package transfer
 
+type NativeTransfer struct {
+	Transfer
+}
+
+type WrappedTransfer struct {
+	Transfer
+}
+
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId string
@@ -26,14 +34,30 @@ type Transfer struct {
 	RouterAddress string
 }
 
-// New instantiates Transfer struct ready for submission to the handler
-func New(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		Receiver:      receiver,
-		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
-		RouterAddress: routerAddress,
+// NewNative instantiates Transfer struct ready for submission to the handler
+func NewNative(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *NativeTransfer {
+	return &NativeTransfer{
+		Transfer: Transfer{
+			TransactionId: txId,
+			Receiver:      receiver,
+			Amount:        amount,
+			NativeAsset:   nativeAsset,
+			WrappedAsset:  wrappedAsset,
+			RouterAddress: routerAddress,
+		},
+	}
+}
+
+// NewNative instantiates Transfer struct ready for submission to the handler
+func NewWrapped(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *WrappedTransfer {
+	return &WrappedTransfer{
+		Transfer: Transfer{
+			TransactionId: txId,
+			Receiver:      receiver,
+			Amount:        amount,
+			NativeAsset:   nativeAsset,
+			WrappedAsset:  wrappedAsset,
+			RouterAddress: routerAddress,
+		},
 	}
 }

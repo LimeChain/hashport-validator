@@ -55,7 +55,13 @@ func (th Handler) Handle(payload interface{}) {
 		return
 	}
 
-	err = th.transfersService.ProcessTransfer(*transferMsg)
+	switch payload.(type) {
+	case model.NativeTransfer:
+		err = th.transfersService.ProcessNativeTransfer(*transferMsg)
+	case model.WrappedTransfer:
+		err = th.transfersService.ProcessWrappedTransfer(*transferMsg)
+	}
+
 	if err != nil {
 		th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
 		return
