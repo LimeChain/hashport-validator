@@ -44,6 +44,29 @@ func PrepareExpectedBurnEventRecord(scheduleID string, amount int64, recipient h
 	}
 }
 
+func PrepareExpectedLockEventRecord(amount int64, recipient hedera.AccountID, burnEventId, transferTransactionID, mintTransactionID, scheduleTransferID, scheduleMintID, nativeAsset, wrappedAsset string, sourceChainID, targetChainID int64, status string) *entity.LockEvent {
+	return &entity.LockEvent{
+		Id:                 burnEventId,
+		ScheduleTransferID: scheduleTransferID,
+		ScheduleMintID:     scheduleMintID,
+		NativeAsset:        nativeAsset,
+		WrappedAsset:       wrappedAsset,
+		Amount:             amount,
+		SourceChainID:      sourceChainID,
+		TargetChainID:      targetChainID,
+		Recipient:          recipient.String(),
+		Status:             status,
+		ScheduleTransferTxId: sql.NullString{
+			String: transferTransactionID,
+			Valid:  true,
+		},
+		ScheduleMintTxId: sql.NullString{
+			String: mintTransactionID,
+			Valid:  true,
+		},
+	}
+}
+
 func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, transferID, burnEventID string) *entity.Fee {
 	fee := &entity.Fee{
 		TransactionID: transactionID,
@@ -81,7 +104,7 @@ func PrepareExpectedTransfer(assetMappings config.AssetMappings, sourceChainId, 
 		Receiver:           receiver,
 		NativeAsset:        nativeAsset,
 		RouterAddress:      routerAddress,
-		WrappedAsset:       wrappedAsset.String(),
+		WrappedAsset:       wrappedAsset,
 		Amount:             amount,
 		Status:             statuses.Status,
 		SignatureMsgStatus: statuses.StatusSignature,

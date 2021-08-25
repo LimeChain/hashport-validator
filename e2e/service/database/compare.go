@@ -56,3 +56,15 @@ func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
 		comparing.Id == comparable.Id &&
 		comparing.TransactionId == comparable.TransactionId
 }
+
+func lockEventsFieldsMatch(comparing, comparable *entity.LockEvent) bool {
+	return comparing.Recipient == comparable.Recipient &&
+		comparing.Amount == comparable.Amount &&
+		comparing.Id == comparable.Id
+	// TODO: Come up with a way to track ALL statuses asynchronously
+	//comparing.ScheduleMintID == comparable.ScheduleMintID &&
+	//comparing.ScheduleMintTxId == comparable.ScheduleMintTxId &&
+	//comparing.ScheduleTransferID == comparable.ScheduleTransferID &&
+	//comparing.Status == comparable.Status &&
+	//comparing.ScheduleTransferTxId == comparable.ScheduleTransferTxId
+}

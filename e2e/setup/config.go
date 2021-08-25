@@ -82,14 +82,15 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount hederaSDK.AccountID
-	TopicID       hederaSDK.TopicID
-	TokenID       hederaSDK.TokenID
-	FeePercentage int64
-	Members       []hederaSDK.AccountID
-	Clients       *clients
-	DbValidator   *db_validation.Service
-	AssetMappings config.AssetMappings
+	BridgeAccount         hederaSDK.AccountID
+	TopicID               hederaSDK.TopicID
+	TokenID               hederaSDK.TokenID
+	NativeEvmTokenAddress string
+	FeePercentage         int64
+	Members               []hederaSDK.AccountID
+	Clients               *clients
+	DbValidator           *db_validation.Service
+	AssetMappings         config.AssetMappings
 }
 
 // newSetup instantiates new Setup struct
@@ -133,14 +134,15 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount: bridgeAccount,
-		TopicID:       topicID,
-		TokenID:       tokenID,
-		FeePercentage: config.Hedera.FeePercentage,
-		Members:       members,
-		Clients:       clients,
-		DbValidator:   dbValidator,
-		AssetMappings: config.AssetMappings,
+		BridgeAccount:         bridgeAccount,
+		TopicID:               topicID,
+		TokenID:               tokenID,
+		NativeEvmTokenAddress: config.Tokens.EvmNativeToken,
+		FeePercentage:         config.Hedera.FeePercentage,
+		Members:               members,
+		Clients:               clients,
+		DbValidator:           dbValidator,
+		AssetMappings:         config.AssetMappings,
 	}, nil
 }
 
@@ -167,12 +169,17 @@ func newClients(config Config) (*clients, error) {
 		routerContractAddress := common.HexToAddress(conf.RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-		wHbarInstance, err := initAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
+		wHbarInstance, err := initWrappedAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
 		if err != nil {
 			return nil, err
 		}
 
-		wTokenInstance, err := initAssetContract(config.Tokens.WToken, config.AssetMappings, 0, chainId, evmClient)
+		wTokenInstance, err := initWrappedAssetContract(config.Tokens.WToken, config.AssetMappings, 0, chainId, evmClient)
+		if err != nil {
+			return nil, err
+		}
+
+		nativeTokenInstance, err := initNativeAssetContract(config.Tokens.EvmNativeToken, evmClient)
 		if err != nil {
 			return nil, err
 		}
@@ -187,6 +194,7 @@ func newClients(config Config) (*clients, error) {
 			EVMClient:             evmClient,
 			WHbarContract:         wHbarInstance,
 			WTokenContract:        wTokenInstance,
+			NativeEvmContract:     nativeTokenInstance,
 			RouterContract:        routerInstance,
 			KeyTransactor:         keyTransactor,
 			Signer:                signer,
@@ -210,29 +218,27 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+func initWrappedAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
 
-	wTokenInstance, err := wtoken.NewWtoken(*wTokenContractAddress, evmClient.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	return wTokenInstance, nil
+	return initNativeAssetContract(wTokenContractAddress, evmClient)
 }
 
-func NativeToWrappedAsset(nativeAssets config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (*common.Address, error) {
-	wTokenContractHex := nativeAssets.NativeToWrappedByNetwork[sourceChain].NativeAssets[nativeAsset][targetChain]
+func initNativeAssetContract(nativeAsset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+	return wtoken.NewWtoken(common.HexToAddress(nativeAsset), evmClient.Client)
+}
 
-	if wTokenContractHex == "" {
-		return nil, errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
+func NativeToWrappedAsset(nativeAssets config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (string, error) {
+	wrappedAsset := nativeAssets.NativeToWrappedByNetwork[sourceChain].NativeAssets[nativeAsset][targetChain]
+
+	if wrappedAsset == "" {
+		return "", errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
 	}
 
-	address := common.HexToAddress(wTokenContractHex)
-	return &address, nil
+	return wrappedAsset, nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
@@ -273,6 +279,7 @@ type EVMUtils struct {
 	EVMClient             *evm.Client
 	WHbarContract         *wtoken.Wtoken
 	WTokenContract        *wtoken.Wtoken
+	NativeEvmContract     *wtoken.Wtoken
 	RouterContract        *router.Router
 	KeyTransactor         *bind.TransactOpts
 	Signer                *evm_signer.Signer
@@ -282,8 +289,9 @@ type EVMUtils struct {
 }
 
 type Tokens struct {
-	WHbar  string `yaml:"whbar"`
-	WToken string `yaml:"wtoken"`
+	WHbar          string `yaml:"whbar"`
+	WToken         string `yaml:"wtoken"`
+	EvmNativeToken string `yaml:"evm_native_token"`
 }
 
 // hedera props from the application.yml

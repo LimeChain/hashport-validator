@@ -22,6 +22,8 @@ import (
 )
 
 type MirrorNode interface {
+	// GetAccountTokenMintTransactionsAfterTimestamp queries the hedera mirror node for transactions on a certain account with type TokenMint
+	GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
 	GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
 	// GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
 	GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]mirror_node.Transaction, error)
