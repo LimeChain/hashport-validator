@@ -156,7 +156,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
 	if targetChainAsset == "" {
-		targetChainAsset = ctw.mappings.WrappedToNative(asset, chainId, 0)
+		targetChainAsset = ctw.mappings.WrappedToNative(asset, 0, chainId)
 		if targetChainAsset == "" {
 			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
 			return
