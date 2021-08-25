@@ -147,21 +147,12 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-	// Source chain: 0
-	// Hedera -> EVM (native or not)
-	// {cId - evmAddress}
+
 	chainId, evmAddress, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-
-	// TODO: Figure indexing out, for now we are simply looking at mapping of Hedera native asset to Ethereum wrapped asset
-	// source chain : 0
-	// asset to bridge : comes from transfer (0.0.whatever)
-	// target chain : chainId
-	// if this returns anything -> this token is a native token from hedera and has to get bridged to the target chain from the contract
-	// else : WrappedToNative -> this token is a wrapped token from any other chain and has to get bridged back to the target chain
 
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
 	if targetChainAsset == "" {
