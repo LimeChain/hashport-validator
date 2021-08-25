@@ -69,6 +69,7 @@ func Test_HBAR(t *testing.T) {
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
+
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, hBarSendAmount.AsTinybar())
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
