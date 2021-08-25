@@ -164,5 +164,5 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	}
 
 	transferMessage := transfer.New(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String())
-	q.Push(&queue.Message{Payload: transferMessage, ChainId: chainId})
+	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 }
