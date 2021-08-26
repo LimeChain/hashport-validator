@@ -235,7 +235,8 @@ func (r Recovery) processUnfinishedOperations() error {
 			t.NativeAsset,
 			t.WrappedAsset,
 			t.Amount,
-			r.contractServices[mockChainID].Address().String())
+			r.contractServices[mockChainID].Address().String(),
+			t.TargetChainID)
 
 		err = r.transfers.ProcessNativeTransfer(transferMsg.Transfer)
 		if err != nil {

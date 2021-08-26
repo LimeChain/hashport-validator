@@ -166,6 +166,7 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		NativeAsset:   ct.NativeAsset,
 		WrappedAsset:  ct.WrappedAsset,
 		RouterAddress: ct.RouterAddress,
+		TargetChainID: ct.TargetChainID,
 	}
 	err := tr.dbClient.Create(tx).Error
 

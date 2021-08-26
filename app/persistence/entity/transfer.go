@@ -25,6 +25,7 @@ type Transfer struct {
 	RouterAddress      string
 	Status             string
 	SignatureMsgStatus string
+	TargetChainID      int64
 	Messages           []Message `gorm:"foreignKey:TransferID"`
 	Fee                Fee       `gorm:"foreignKey:TransferID"`
 }
