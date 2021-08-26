@@ -171,7 +171,7 @@ func setup() {
 					},
 				},
 			},
-			WrappedToNative: make(map[string]string),
+			WrappedToNativeByNetwork: make(map[int64]map[string]map[int64]string),
 		},
 	}
 }

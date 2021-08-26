@@ -17,7 +17,6 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,12 +47,18 @@ func LoadConfig() Config {
 	return configuration
 }
 
-func LoadWrappedToNativeAssets(mappings *AssetMappings) {
-	mappings.WrappedToNative = make(map[string]string)
-	for nativeChainId, network := range mappings.NativeToWrappedByNetwork {
+func LoadWrappedToNativeAssets(a *AssetMappings) {
+	a.WrappedToNativeByNetwork = map[int64]map[string]map[int64]string{}
+	for nativeChainId, network := range a.NativeToWrappedByNetwork {
 		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
-			for chainId, wrappedAsset := range nativeAssetMapping {
-				mappings.WrappedToNative[fmt.Sprintf("%d-%s", chainId, wrappedAsset)] = fmt.Sprintf("%s-%d", nativeAsset, nativeChainId)
+			for wrappedChainId, wrappedAsset := range nativeAssetMapping {
+				if a.WrappedToNativeByNetwork[wrappedChainId] == nil {
+					a.WrappedToNativeByNetwork[wrappedChainId] = make(map[string]map[int64]string)
+				}
+				if a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset] == nil {
+					a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset] = make(map[int64]string)
+				}
+				a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset][nativeChainId] = nativeAsset
 			}
 		}
 	}
@@ -85,7 +90,15 @@ type Config struct {
 
 type AssetMappings struct {
 	NativeToWrappedByNetwork map[int64]Network `yaml:"networks,omitempty"`
-	WrappedToNative          map[string]string
+	WrappedToNativeByNetwork map[int64]map[string]map[int64]string
+}
+
+func (a *AssetMappings) NativeToWrapped(nativeAsset string, nativeChainId, wrappedChainId int64) string {
+	return a.NativeToWrappedByNetwork[nativeChainId].NativeAssets[nativeAsset][wrappedChainId]
+}
+
+func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId, nativeChainId int64) string {
+	return a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset][nativeChainId]
 }
 
 type Network struct {

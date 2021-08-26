@@ -24,9 +24,9 @@ import (
 )
 
 // Validate sanity checks and instantiates new Memo struct from base64 encoded string
-func Validate(ethAddress string) (string, error) {
-	encodingFormat := regexp.MustCompile("^0x([A-Fa-f0-9]){40}$")
-	decodedMemo, e := base64.StdEncoding.DecodeString(ethAddress)
+func Validate(chainAndEVMAddress string) (string, error) {
+	encodingFormat := regexp.MustCompile("^[1-9]([0-9]+)?-0x([A-Fa-f0-9]){40}$")
+	decodedMemo, e := base64.StdEncoding.DecodeString(chainAndEVMAddress)
 	if e != nil {
 		return "", errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
 	}
