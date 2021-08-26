@@ -20,15 +20,12 @@ func (mts *MockTransferService) ProcessTransfer(tm transfer.Transfer) error {
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (string, error) {
+func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (int64, string, error) {
 	args := mts.Called(tx)
-	if args.Get(0) == nil {
-		return "", args.Get(1).(error)
+	if args.Get(2) == nil {
+		return args.Get(0).(int64), args.Get(1).(string), nil
 	}
-	if args.Get(1) == nil {
-		return args.Get(0).(string), nil
-	}
-	return args.Get(0).(string), args.Get(1).(error)
+	return args.Get(0).(int64), args.Get(1).(string), args.Get(2).(error)
 }
 
 func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset, evmAddress string) error {

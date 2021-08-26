@@ -231,8 +231,8 @@ func initNativeAssetContract(nativeAsset string, evmClient *evm.Client) (*wtoken
 	return wtoken.NewWtoken(common.HexToAddress(nativeAsset), evmClient.Client)
 }
 
-func NativeToWrappedAsset(nativeAssets config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (string, error) {
-	wrappedAsset := nativeAssets.NativeToWrappedByNetwork[sourceChain].NativeAssets[nativeAsset][targetChain]
+func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (string, error) {
+	wrappedAsset := assetMappings.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
 		return "", errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))

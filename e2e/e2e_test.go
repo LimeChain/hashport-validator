@@ -71,7 +71,8 @@ func Test_HBAR(t *testing.T) {
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
-	memo := evm.Receiver.String()
+	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
+
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, hBarSendAmount.AsTinybar())
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
@@ -130,7 +131,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	// TODO: id
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
-	memo := evm.Receiver.String()
+	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, tinyBarAmount)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account

@@ -164,13 +164,13 @@ func (r Recovery) transfersRecovery(from int64, to int64) error {
 			continue
 		}
 
-		wrappedAsset := r.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][1]
+		wrappedAsset := r.mappings.NativeToWrapped(nativeAsset, 0, 1)
 		if wrappedAsset == "" {
 			r.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
 			continue
 		}
 
-		m, err := r.transfers.SanityCheckTransfer(tx)
+		_, m, err := r.transfers.SanityCheckTransfer(tx)
 		if err != nil {
 			r.logger.Errorf("[%s] - Skipping recovery. Failed sanity check. Error: [%s]", tx.TransactionID, err)
 			continue

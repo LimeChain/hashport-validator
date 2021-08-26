@@ -103,9 +103,8 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
-	// TODO: Discuss how this behavior will be implemented... 0 for Hashgraph?
 	// TODO: switch int64 to uint64
-	wrappedAsset := ss.mappings.NativeToWrappedByNetwork[int64(topicMessage.SourceChainId)].NativeAssets[t.NativeAsset][int64(topicMessage.TargetChainId)]
+	wrappedAsset := ss.mappings.NativeToWrapped(t.NativeAsset, int64(topicMessage.SourceChainId), int64(topicMessage.TargetChainId))
 	if wrappedAsset == "" {
 		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
 		return false, err

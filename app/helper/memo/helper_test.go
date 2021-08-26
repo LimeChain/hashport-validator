@@ -22,15 +22,15 @@ import (
 )
 
 const (
-	validEthAddressBase64    = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjY1"
-	validEthAddress          = "0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65"
+	validMemoBase64          = "My0weDM4RTg5MzdiNUE3YjlmMzc5YjE3MGI5OUY1YkRlQjJiMzY0ZGZCNjU="
+	validMemo                = "3-0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65"
 	nonValidEthAddress       = "0"
 	nonValidEthAddressBase64 = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjYq"
 )
 
 func Test_Validate(t *testing.T) {
-	decodedAddress, err := Validate(validEthAddressBase64)
-	assert.Equal(t, decodedAddress, validEthAddress)
+	decodedAddress, err := Validate(validMemoBase64)
+	assert.Equal(t, validMemo, decodedAddress)
 	assert.Nil(t, err)
 }
 

@@ -142,26 +142,27 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 
 func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, nativeAsset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	// TODO: Figure indexing out, for now we are simply looking at mapping of Hedera native asset to Ethereum wrapped asset
-	wrappedAsset := ctw.mappings.NativeToWrappedByNetwork[0].NativeAssets[nativeAsset][80001]
-	if wrappedAsset == "" {
-		ctw.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", tx.TransactionID, nativeAsset, err)
-		return
-	}
-
-	ethAddress, err := ctw.transfers.SanityCheckTransfer(tx)
+	chainId, evmAddress, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
-	mockChainID := int64(80001)
-	transferMessage := transfer.New(tx.TransactionID, ethAddress, nativeAsset, wrappedAsset, amount, ctw.contractServices[mockChainID].Address().String())
+	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
+	if targetChainAsset == "" {
+		targetChainAsset = ctw.mappings.WrappedToNative(asset, 0, chainId)
+		if targetChainAsset == "" {
+			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+			return
+		}
+	}
+
+	transferMessage := transfer.New(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String())
 	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 }
