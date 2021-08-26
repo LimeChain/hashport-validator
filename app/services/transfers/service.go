@@ -28,7 +28,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	memo "github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -202,26 +203,22 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	// TODO: ids
-	mockChainID := int64(80001)
-	authMsgHash, err := auth_message.EncodeBytesFrom(0, mockChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, wrappedAmount)
+	authMsgHash, err := auth_message.EncodeBytesFrom(0, tm.TargetChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, wrappedAmount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 
-	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
-	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
+	signatureBytes, err := ts.ethSigners[tm.TargetChainID].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	// TODO: ids
 	signatureMessage := message.NewSignature(
 		0,
-		uint64(mockChainID),
+		uint64(tm.TargetChainID),
 		tm.TransactionId,
 		tm.WrappedAsset,
 		tm.Receiver,
@@ -232,26 +229,44 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
-	// TODO: ids
-	mockChainID := int64(80001)
-	authMsgHash, err := auth_message.EncodeBytesFrom(0, mockChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, tm.Amount)
+	intAmount, err := strconv.ParseInt(tm.Amount, 10, 64)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+	status := make(chan string)
+	onExecutionBurnSuccess, onExecutionBurnFail := ts.scheduledBurnTxExecutionCallbacks(tm.TransactionId, &status)
+	onTokenBurnSuccess, onTokenBurnFail := ts.scheduledBurnTxMinedCallbacks(tm.TransactionId, &status)
+	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.WrappedAsset, intAmount, &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
+
+statusBlocker:
+	for {
+		switch <-status {
+		case sync.DONE:
+			ts.logger.Debugf("[%s] - Proceeding to sign and submit unlock permission messages.", tm.TransactionId)
+			break statusBlocker
+		case sync.FAIL:
+			ts.logger.Errorf("[%s] - Failed to await the execution of Scheduled Burn Transaction.", tm.TransactionId)
+			return errors.New("failed-scheduled-burn")
+		}
+	}
+
+	authMsgHash, err := auth_message.EncodeBytesFrom(0, tm.TargetChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, tm.Amount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 
-	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
-	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
+	signatureBytes, err := ts.ethSigners[tm.TargetChainID].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	// TODO: ids
 	signatureMessage := message.NewSignature(
 		0,
-		uint64(mockChainID),
+		uint64(tm.TargetChainID),
 		tm.TransactionId,
 		tm.WrappedAsset,
 		tm.Receiver,
@@ -307,6 +322,60 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	onSuccess, onFail := ts.scheduledTxMinedCallbacks()
 
 	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+}
+
+func (s *Service) scheduledBurnTxExecutionCallbacks(id string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+	onExecutionSuccess = func(transactionID, scheduleID string) {
+		var err error
+		s.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
+			id,
+			transactionID)
+		err = s.transferRepository.UpdateStatusScheduledTokenBurnSubmitted(id)
+		if err != nil {
+			*status <- sync.FAIL
+			s.logger.Errorf(
+				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
+				id, transactionID, scheduleID, err)
+			return
+		}
+	}
+
+	onExecutionFail = func(transactionID string) {
+		*status <- sync.FAIL
+		err := s.transferRepository.UpdateStatusScheduledTokenBurnFailed(id)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
+			return
+		}
+	}
+
+	return onExecutionSuccess, onExecutionFail
+}
+
+func (s *Service) scheduledBurnTxMinedCallbacks(id string, status *chan string) (onSuccess, onFail func(transactionID string)) {
+	onSuccess = func(transactionID string) {
+		s.logger.Debugf("[%s] - Scheduled TX execution successful.", id)
+
+		err := s.transferRepository.UpdateStatusScheduledTokenBurnCompleted(id)
+		if err != nil {
+			*status <- sync.FAIL
+			s.logger.Errorf("[%s] - Failed to update scheduled burn status completed. Error [%s].", id, err)
+			return
+		}
+		*status <- sync.DONE
+	}
+
+	onFail = func(transactionID string) {
+		*status <- sync.FAIL
+		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
+		err := s.transferRepository.UpdateStatusScheduledTokenBurnFailed(id)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
+			return
+		}
+	}
+
+	return onSuccess, onFail
 }
 
 func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {

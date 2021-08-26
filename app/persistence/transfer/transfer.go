@@ -145,6 +145,18 @@ func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
 	return tr.updateSignatureStatus(txId, transfer.StatusSignatureFailed)
 }
 
+func (tr Repository) UpdateStatusScheduledTokenBurnSubmitted(txId string) error {
+	return tr.updateSignatureStatus(txId, transfer.StatusScheduledTokenBurnSubmitted)
+}
+
+func (tr Repository) UpdateStatusScheduledTokenBurnFailed(txId string) error {
+	return tr.updateSignatureStatus(txId, transfer.StatusScheduledTokenBurnFailed)
+}
+
+func (tr Repository) UpdateStatusScheduledTokenBurnCompleted(txId string) error {
+	return tr.updateSignatureStatus(txId, transfer.StatusScheduledTokenBurnCompleted)
+}
+
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,

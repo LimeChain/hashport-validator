@@ -32,10 +32,11 @@ type Transfer struct {
 	NativeAsset   string
 	WrappedAsset  string
 	RouterAddress string
+	TargetChainID int64
 }
 
 // NewNative instantiates Transfer struct ready for submission to the handler
-func NewNative(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *NativeTransfer {
+func NewNative(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string, targetChainID int64) *NativeTransfer {
 	return &NativeTransfer{
 		Transfer: Transfer{
 			TransactionId: txId,
@@ -44,12 +45,13 @@ func NewNative(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress 
 			NativeAsset:   nativeAsset,
 			WrappedAsset:  wrappedAsset,
 			RouterAddress: routerAddress,
+			TargetChainID: targetChainID,
 		},
 	}
 }
 
 // NewNative instantiates Transfer struct ready for submission to the handler
-func NewWrapped(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *WrappedTransfer {
+func NewWrapped(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string, targetChainID int64) *WrappedTransfer {
 	return &WrappedTransfer{
 		Transfer: Transfer{
 			TransactionId: txId,
@@ -58,6 +60,7 @@ func NewWrapped(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress
 			NativeAsset:   nativeAsset,
 			WrappedAsset:  wrappedAsset,
 			RouterAddress: routerAddress,
+			TargetChainID: targetChainID,
 		},
 	}
 }

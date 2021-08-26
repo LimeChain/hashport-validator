@@ -21,4 +21,12 @@ const (
 	// StatusSignatureFailed is a SignatureStatus set if the signature submission TX fails.
 	// This is a terminal status
 	StatusSignatureFailed = "SIGNATURE_FAILED"
+	// StatusScheduledTokenBurnSubmitted is a ScheduledTokenBurn status set if the scheduled token burn TX gets submitted successfully.
+	StatusScheduledTokenBurnSubmitted = "SCHEDULED_TOKEN_BURN_SUBMITTED"
+	// StatusScheduledTokenBurnFailed is a ScheduledTokenBurn status set if the scheduled token burn TX fails.
+	// This is a terminal status
+	StatusScheduledTokenBurnFailed = "SCHEDULED_TOKEN_BURN_FAILED"
+	// StatusScheduledTokenBurnCompleted is a ScheduledTokenBurn status set if the scheduled token burn TX completes successfully.
+	// This is a terminal status
+	StatusScheduledTokenBurnCompleted = "SCHEDULED_TOKEN_BURN_COMPLETED"
 )
