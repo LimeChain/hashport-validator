@@ -34,6 +34,7 @@ import (
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -47,6 +48,7 @@ type Service struct {
 	contractServices   map[int64]service.Contracts
 	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
+	scheduleRepository repository.Schedule
 	feeRepository      repository.Fee
 	distributor        service.Distributor
 	feeService         service.Fee
@@ -61,6 +63,7 @@ func NewService(
 	contractServices map[int64]service.Contracts,
 	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
+	scheduleRepository repository.Schedule,
 	feeRepository repository.Fee,
 	feeService service.Fee,
 	distributor service.Distributor,
@@ -84,6 +87,7 @@ func NewService(
 		contractServices:   contractServices,
 		ethSigners:         signers,
 		transferRepository: transferRepository,
+		scheduleRepository: scheduleRepository,
 		feeRepository:      feeRepository,
 		topicID:            tID,
 		feeService:         feeService,
@@ -143,25 +147,26 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 	return tx, nil
 }
 
-// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
+//// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
 func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
-	// TODO: Add ChainID to the parameters and remove mockChainID
-	mockChainID := int64(80001)
-	err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
-		TransactionId: txId,
-		RouterAddress: ts.contractServices[mockChainID].Address().String(),
-		Receiver:      memo,
-		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
-	})
-	if err != nil {
-		ts.logger.Errorf("[%s] - Something went wrong while saving new Recovered Transaction. Error [%s]", txId, err)
-		return err
-	}
-
-	ts.logger.Infof("Added new Transaction Record with Txn ID [%s]", txId)
-	return err
+	//// TODO: Add ChainID to the parameters and remove mockChainID
+	//mockChainID := int64(80001)
+	//err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
+	//	TransactionId: txId,
+	//	RouterAddress: ts.contractServices[mockChainID].Address().String(),
+	//	Receiver:      memo,
+	//	Amount:        amount,
+	//	NativeAsset:   nativeAsset,
+	//	WrappedAsset:  wrappedAsset,
+	//})
+	//if err != nil {
+	//	ts.logger.Errorf("[%s] - Something went wrong while saving new Recovered Transaction. Error [%s]", txId, err)
+	//	return err
+	//}
+	//
+	//ts.logger.Infof("Added new Transaction Record with Txn ID [%s]", txId)
+	//return err
+	return nil
 }
 
 func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
@@ -202,28 +207,24 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	// TODO: ids
-	mockChainID := int64(80001)
-	authMsgHash, err := auth_message.EncodeBytesFrom(0, mockChainID, tm.TransactionId, tm.WrappedAsset, tm.Receiver, wrappedAmount)
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, wrappedAmount)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 
-	// TODO: remove mockChainID and add TargetChainID in tm (model.Transfer)
-	signatureBytes, err := ts.ethSigners[mockChainID].Sign(authMsgHash)
+	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	// TODO: ids
 	signatureMessage := message.NewSignature(
-		0,
-		uint64(mockChainID),
+		uint64(tm.SourceChainId),
+		uint64(tm.TargetChainId),
 		tm.TransactionId,
-		tm.WrappedAsset,
+		tm.TargetAsset,
 		tm.Receiver,
 		wrappedAmount,
 		signature)
@@ -277,7 +278,23 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 
 func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
-		err := ts.feeRepository.Create(&entity.Fee{
+		err := ts.scheduleRepository.Create(&entity.Schedule{
+			TransactionID: transactionID,
+			ScheduleID:    scheduleID,
+			Operation:     schedule.TRANSFER,
+			Status:        fee.StatusSubmitted, // TODO: not fee
+			TransferID: sql.NullString{
+				String: transferID,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			ts.logger.Errorf(
+				"[%s] Fee - Failed to create Schedule Record [%s]. Error [%s].",
+				transferID, transactionID, err)
+			return
+		}
+		err = ts.feeRepository.Create(&entity.Fee{
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Amount:        feeAmount,
@@ -296,7 +313,22 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 	}
 
 	onExecutionFail = func(transactionID string) {
-		err := ts.feeRepository.Create(&entity.Fee{
+		err := ts.scheduleRepository.Create(&entity.Schedule{
+			TransactionID: transactionID,
+			Operation:     schedule.TRANSFER,
+			Status:        fee.StatusSubmitted, // TODO: not fee
+			TransferID: sql.NullString{
+				String: transferID,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			ts.logger.Errorf(
+				"[%s] Fee - Failed to create failed Schedule Record [%s]. Error [%s].",
+				transferID, transactionID, err)
+			return
+		}
+		err = ts.feeRepository.Create(&entity.Fee{
 			Amount: feeAmount,
 			Status: fee.StatusFailed,
 			TransferID: sql.NullString{
@@ -317,7 +349,13 @@ func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transacti
 	onSuccess = func(transactionID string) {
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution successful.", transactionID)
 
-		err := ts.feeRepository.UpdateStatusCompleted(transactionID)
+		err := ts.scheduleRepository.UpdateStatusCompleted(transactionID)
+		if err != nil {
+			ts.logger.Errorf("[%s] Schedule - Failed to update status completed. Error [%s].", transactionID, err)
+			return
+		}
+
+		err = ts.feeRepository.UpdateStatusCompleted(transactionID)
 		if err != nil {
 			ts.logger.Errorf("[%s] Fee - Failed to update status completed. Error [%s].", transactionID, err)
 			return
@@ -326,7 +364,14 @@ func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transacti
 
 	onFail = func(transactionID string) {
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution has failed.", transactionID)
-		err := ts.feeRepository.UpdateStatusFailed(transactionID)
+
+		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
+		if err != nil {
+			ts.logger.Errorf("[%s] Schedule - Failed to update status failed. Error [%s].", transactionID, err)
+			return
+		}
+
+		err = ts.feeRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
 			ts.logger.Errorf("[%s] Fee - Failed to update status failed. Error [%s].", transactionID, err)
 			return
@@ -365,17 +410,18 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		signatures = append(signatures, m.Signature)
 	}
 
-	// TODO: remove mockChainID and add TargetChainID to the parameters of t (*entity.Transfer)
-	mockChainID := int64(80001)
-	requiredSigCount := len(ts.contractServices[mockChainID].GetMembers())/2 + 1
+	requiredSigCount := len(ts.contractServices[t.TargetChainID].GetMembers())/2 + 1
 	reachedMajority := len(t.Messages) >= requiredSigCount
 
 	return service.TransferData{
 		Recipient:     t.Receiver,
-		RouterAddress: t.RouterAddress,
+		RouterAddress: ts.contractServices[t.TargetChainID].Address().String(),
 		Amount:        signedAmount,
+		SourceChainId: t.SourceChainID,
+		TargetChainId: t.TargetChainID,
+		SourceAsset:   t.SourceAsset,
 		NativeAsset:   t.NativeAsset,
-		WrappedAsset:  t.WrappedAsset,
+		TargetAsset:   t.TargetAsset,
 		Signatures:    signatures,
 		Majority:      reachedMajority,
 	}, nil

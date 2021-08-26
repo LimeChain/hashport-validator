@@ -83,7 +83,7 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 		return
 	}
 
-	majorityReached, err := cmh.checkMajority(tsm.TransferID)
+	majorityReached, err := cmh.checkMajority(tsm.TransferID, int64(tsm.TargetChainId))
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached", tsm.TransferID)
 		return
@@ -97,16 +97,14 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 	}
 }
 
-func (cmh *Handler) checkMajority(transferID string) (majorityReached bool, err error) {
+func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (majorityReached bool, err error) {
 	signatureMessages, err := cmh.messageRepository.Get(transferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)
 		return false, err
 	}
 
-	// TODO: remove mockChainID and add actual parameter
-	mockChainID := int64(80001)
-	membersCount := len(cmh.contracts[mockChainID].GetMembers())
+	membersCount := len(cmh.contracts[targetChainId].GetMembers())
 	requiredSigCount := membersCount/2 + 1
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 

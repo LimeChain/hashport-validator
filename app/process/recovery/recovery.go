@@ -231,9 +231,14 @@ func (r Recovery) processUnfinishedOperations() error {
 		mockChainID := int64(80001)
 		transferMsg := transfer.New(
 			t.TransactionID,
+			t.SourceChainID,
+			// TODO:
+			t.TargetChainID,
+			t.NativeChainID,
 			t.Receiver,
+			t.SourceAsset,
+			t.TargetAsset,
 			t.NativeAsset,
-			t.WrappedAsset,
 			t.Amount,
 			r.contractServices[mockChainID].Address().String())
 

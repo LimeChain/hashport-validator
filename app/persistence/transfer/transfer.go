@@ -148,12 +148,15 @@ func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
+		SourceChainID: ct.SourceChainId,
+		TargetChainID: ct.TargetChainId,
+		NativeChainID: ct.NativeChainId,
+		SourceAsset:   ct.SourceAsset,
+		TargetAsset:   ct.TargetAsset,
+		NativeAsset:   ct.NativeAsset,
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
 		Status:        status,
-		NativeAsset:   ct.NativeAsset,
-		WrappedAsset:  ct.WrappedAsset,
-		RouterAddress: ct.RouterAddress,
 	}
 	err := tr.dbClient.Create(tx).Error
 

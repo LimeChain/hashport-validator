@@ -147,7 +147,7 @@ func (ss *Service) ProcessSignature(tsm message.Message) error {
 	}
 
 	// Verify Signature
-	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransferID, authMessageStr)
+	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransferID, int64(tsm.TargetChainId), authMessageStr)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (ss *Service) ProcessSignature(tsm message.Message) error {
 	return nil
 }
 
-func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID, authMessageStr string) (common.Address, error) {
+func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID string, targetChainId int64, authMessageStr string) (common.Address, error) {
 	publicKey, err := crypto.Ecrecover(authMsgBytes, signatureBytes)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to recover public key. Hash [%s]. Error: [%s]", transferID, authMessageStr, err)
@@ -184,9 +184,7 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 	}
 	address := crypto.PubkeyToAddress(*unmarshalledPublicKey)
 
-	// TODO: remove mockChainID
-	mockChainID := int64(80001)
-	if !ss.contractServices[mockChainID].IsMember(address.String()) {
+	if !ss.contractServices[targetChainId].IsMember(address.String()) {
 		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", transferID, authMessageStr)
 		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
 	}

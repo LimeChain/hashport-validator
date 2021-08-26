@@ -63,6 +63,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contractServices,
 		evmSigners,
 		repositories.transfer,
+		repositories.schedule,
 		repositories.fee,
 		fees,
 		distributor,
@@ -83,7 +84,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	burnEvent := burn_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
-		repositories.burnEvent,
+		repositories.transfer,
+		repositories.schedule,
 		repositories.fee,
 		distributor,
 		scheduled,
@@ -91,7 +93,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	lockEvent := lock_event.NewService(
 		c.Validator.Clients.Hedera.BridgeAccount,
-		repositories.lockEvent,
+		repositories.transfer,
+		repositories.schedule,
 		scheduled)
 
 	return &Services{

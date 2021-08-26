@@ -19,21 +19,31 @@ package transfer
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId string
+	SourceChainId int64
+	TargetChainId int64
+	NativeChainId int64
+	SourceAsset   string
+	TargetAsset   string
+	NativeAsset   string
 	Receiver      string
 	Amount        string
-	NativeAsset   string
-	WrappedAsset  string
 	RouterAddress string
 }
 
 // New instantiates Transfer struct ready for submission to the handler
-func New(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string) *Transfer {
+func New(txId string,
+	sourceChainId, targetChainId, nativeChainId int64,
+	receiver, sourceAsset, targetAsset, nativeAsset, amount, routerAddress string) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
+		SourceChainId: sourceChainId,
+		TargetChainId: targetChainId,
+		NativeChainId: nativeChainId,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
 		Receiver:      receiver,
 		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
 		RouterAddress: routerAddress,
 	}
 }

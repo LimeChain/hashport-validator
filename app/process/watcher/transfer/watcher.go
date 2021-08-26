@@ -148,21 +148,40 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	chainId, evmAddress, err := ctw.transfers.SanityCheckTransfer(tx)
+	chainId, receiverAddress, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
 
+	nativeAsset := &config.NativeAsset{
+		ChainId: 0,
+		Asset:   asset,
+	}
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
 	if targetChainAsset == "" {
-		targetChainAsset = ctw.mappings.WrappedToNative(asset, 0, chainId)
+		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
+		if nativeAsset == nil {
+			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+			return
+		}
+		targetChainAsset = ctw.mappings.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, chainId)
 		if targetChainAsset == "" {
 			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
 			return
 		}
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String())
+	transferMessage := transfer.New(
+		tx.TransactionID,
+		0,
+		chainId,
+		nativeAsset.ChainId,
+		receiverAddress,
+		asset,
+		targetChainAsset,
+		nativeAsset.Asset,
+		amount,
+		ctw.contractServices[chainId].Address().String())
 	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 }

@@ -22,13 +22,16 @@ import (
 
 func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 	return comparable.TransactionID == comparing.TransactionID &&
-		comparable.RouterAddress == comparing.RouterAddress &&
-		comparable.Receiver == comparing.Receiver &&
+		comparable.SourceChainID == comparing.SourceChainID &&
+		comparable.TargetChainID == comparing.TargetChainID &&
+		comparable.NativeChainID == comparing.NativeChainID &&
+		comparable.SourceAsset == comparing.SourceAsset &&
+		comparable.TargetAsset == comparing.TargetAsset &&
 		comparable.NativeAsset == comparing.NativeAsset &&
-		comparable.WrappedAsset == comparing.WrappedAsset &&
+		comparable.Receiver == comparing.Receiver &&
 		comparable.Amount == comparing.Amount &&
-		comparable.Status == comparing.Status &&
-		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus
+		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus &&
+		comparable.Status == comparing.Status
 }
 
 func messagesFieldsMatch(comparing, comparable entity.Message) bool {
@@ -39,32 +42,19 @@ func messagesFieldsMatch(comparing, comparable entity.Message) bool {
 		comparable.Signer == comparing.Signer
 }
 
-func feeFieldsMatch(comparing, comparable *entity.Fee) bool {
+func feeFieldsMatch(comparing, comparable entity.Fee) bool {
 	return comparing.Status == comparable.Status &&
 		comparing.TransactionID == comparable.TransactionID &&
 		comparing.Amount == comparable.Amount &&
-		comparable.ScheduleID == comparable.ScheduleID &&
-		comparing.TransferID == comparable.TransferID &&
-		comparing.BurnEventID == comparable.BurnEventID
-}
-
-func burnEventsFieldsMatch(comparing, comparable *entity.BurnEvent) bool {
-	return comparing.Status == comparable.Status &&
 		comparing.ScheduleID == comparable.ScheduleID &&
-		comparing.Recipient == comparable.Recipient &&
-		comparing.Amount == comparable.Amount &&
-		comparing.Id == comparable.Id &&
-		comparing.TransactionId == comparable.TransactionId
+		comparing.TransferID == comparable.TransferID
 }
 
-func lockEventsFieldsMatch(comparing, comparable *entity.LockEvent) bool {
-	return comparing.Recipient == comparable.Recipient &&
-		comparing.Amount == comparable.Amount &&
-		comparing.Id == comparable.Id
-	// TODO: Come up with a way to track ALL statuses asynchronously
-	//comparing.ScheduleMintID == comparable.ScheduleMintID &&
-	//comparing.ScheduleMintTxId == comparable.ScheduleMintTxId &&
-	//comparing.ScheduleTransferID == comparable.ScheduleTransferID &&
-	//comparing.Status == comparable.Status &&
-	//comparing.ScheduleTransferTxId == comparable.ScheduleTransferTxId
+func scheduleFieldsMatch(comparing, comparable entity.Schedule) bool {
+	return comparing.TransactionID == comparable.TransactionID &&
+		comparing.ScheduleID == comparable.ScheduleID &&
+		comparing.Operation == comparable.Operation &&
+		comparing.TransferID.String == comparable.TransferID.String &&
+		comparing.TransferID.Valid == comparable.TransferID.Valid &&
+		comparing.Status == comparable.Status
 }

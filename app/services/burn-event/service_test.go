@@ -185,7 +185,7 @@ func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
@@ -227,7 +227,7 @@ func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
@@ -247,7 +247,7 @@ func Test_ScheduledExecutionFailCallback(t *testing.T) {
 		TransactionID: txId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
@@ -268,7 +268,7 @@ func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
@@ -288,7 +288,7 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 		TransactionID: txId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
@@ -366,7 +366,7 @@ func setup() {
 	s = &Service{
 		bridgeAccount:      hederaAccount,
 		feeRepository:      mocks.MFeeRepository,
-		repository:         mocks.MBurnEventRepository,
+		repository:         mocks.MTransferRepository,
 		distributorService: mocks.MDistributorService,
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,

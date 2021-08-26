@@ -35,8 +35,7 @@ var MFeeService *service.MockFeeService
 var MBurnService *service.MockBurnService
 var MLockService *service.MockLockService
 var MBridgeContractService *MockBridgeContract
-var MBurnEventRepository *repository.MockBurnEventRepository
-var MLockEventRepository *repository.MockLockEventRepository
+var MTransferRepository *repository.MockTransferRepository
 var MFeeRepository *repository.MockFeeRepository
 var MStatusRepository *repository.MockStatusRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
@@ -54,8 +53,6 @@ func Setup() {
 	MFeeService = &service.MockFeeService{}
 	MLockService = &service.MockLockService{}
 	MBurnService = &service.MockBurnService{}
-	MBurnEventRepository = &repository.MockBurnEventRepository{}
-	MLockEventRepository = &repository.MockLockEventRepository{}
 	MFeeRepository = &repository.MockFeeRepository{}
 	MStatusRepository = &repository.MockStatusRepository{}
 	MDistributorService = &service.MockDistrubutorService{}
