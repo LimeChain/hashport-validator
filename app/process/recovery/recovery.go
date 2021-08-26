@@ -227,15 +227,13 @@ func (r Recovery) processUnfinishedOperations() error {
 	}
 
 	for _, t := range unprocessedTransfers {
-		// TODO: remove mockChainID and add targetChainID in t (*entity.Transfer)
-		mockChainID := int64(80001)
 		transferMsg := transfer.NewNative(
 			t.TransactionID,
 			t.Receiver,
 			t.NativeAsset,
 			t.WrappedAsset,
 			t.Amount,
-			r.contractServices[mockChainID].Address().String(),
+			r.contractServices[t.TargetChainID].Address().String(),
 			t.TargetChainID)
 
 		err = r.transfers.ProcessNativeTransfer(transferMsg.Transfer)
