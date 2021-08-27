@@ -183,5 +183,5 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		nativeAsset.Asset,
 		amount,
 		ctw.contractServices[chainId].Address().String())
-	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
+	q.Push(&queue.Message{Payload: transferMessage, Topic: "HEDERA_TRANSFER"})
 }

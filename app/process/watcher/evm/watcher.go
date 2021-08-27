@@ -157,7 +157,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount.String())
 
-	q.Push(&queue.Message{Payload: burnEvent, ChainId: ew.evmClient.ChainID().Int64()})
+	q.Push(&queue.Message{Payload: burnEvent, Topic: "EVM_EVENT"})
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
@@ -220,5 +220,5 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
-	q.Push(&queue.Message{Payload: lockEvent, ChainId: ew.evmClient.ChainID().Int64()})
+	q.Push(&queue.Message{Payload: lockEvent, Topic: "EVM_EVENT"})
 }

@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -113,40 +112,35 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 }
 
 func initializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config, watchersTimestamp int64) {
-	server.AddPair(
-		addTransferWatcher(
-			&configuration,
-			services.transfers,
-			clients.MirrorNode,
-			&repositories.transferStatus,
-			watchersTimestamp,
-			services.contractServices),
-		map[int64]pair.Handler{0: th.NewHandler(services.transfers)},
-	)
+	server.AddWatcher(addTransferWatcher(
+		&configuration,
+		services.transfers,
+		clients.MirrorNode,
+		&repositories.transferStatus,
+		watchersTimestamp,
+		services.contractServices))
 
-	server.AddPair(
+	server.AddHandler("HEDERA_TRANSFER", th.NewHandler(services.transfers))
+
+	server.AddWatcher(
 		addConsensusTopicWatcher(
 			&configuration,
 			clients.MirrorNode,
 			repositories.messageStatus,
-			watchersTimestamp),
-		map[int64]pair.Handler{0: mh.NewHandler(
-			configuration.Validator.Clients.Hedera.TopicId,
-			repositories.transfer,
-			repositories.message,
-			services.contractServices,
-			services.messages)},
-	)
+			watchersTimestamp))
+	server.AddHandler("HEDERA_TOPIC_MSG", mh.NewHandler(
+		configuration.Validator.Clients.Hedera.TopicId,
+		repositories.transfer,
+		repositories.message,
+		services.contractServices,
+		services.messages))
+
+	server.AddHandler("EVM_EVENT", beh.NewHandler(services.burnEvents, services.lockEvents))
 
 	for _, evmClient := range clients.EVMClients {
-		evmHandlers := make(map[int64]beh.Handler)
-		handler := beh.NewHandler(services.burnEvents, services.lockEvents)
 		chainId := evmClient.ChainID().Int64()
-		evmHandlers[chainId] = *handler
-		server.AddPair(
-			// TODO: Replace mappings with external configuration service
-			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.AssetMappings),
-			map[int64]pair.Handler{chainId: beh.NewHandler(services.burnEvents, services.lockEvents)})
+		server.AddWatcher(
+			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.AssetMappings))
 	}
 }
 

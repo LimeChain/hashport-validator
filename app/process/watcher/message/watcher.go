@@ -130,6 +130,5 @@ func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
 		return
 	}
 
-	// TODO: Figure this one out
-	q.Push(&queue.Message{Payload: msg, ChainId: 0})
+	q.Push(&queue.Message{Payload: msg, Topic: "HEDERA_TOPIC_MSG"})
 }
