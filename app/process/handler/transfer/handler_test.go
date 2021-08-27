@@ -33,7 +33,7 @@ var (
 		Receiver:      "0x12345",
 		Amount:        "10000000000",
 		NativeAsset:   constants.Hbar,
-		WrappedAsset:  "0x45678",
+		TargetAsset:   "0x45678",
 	}
 )
 
@@ -51,7 +51,7 @@ func Test_Handle(t *testing.T) {
 		Receiver:      mt.Receiver,
 		Amount:        mt.Amount,
 		NativeAsset:   mt.NativeAsset,
-		WrappedAsset:  mt.WrappedAsset,
+		TargetAsset:   mt.TargetAsset,
 		Status:        transfer.StatusInitial,
 	}
 

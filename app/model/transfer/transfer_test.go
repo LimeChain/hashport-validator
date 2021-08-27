@@ -7,12 +7,14 @@ import (
 
 const (
 	txId          = "0.0.123123-123321-420"
-	sourceChainId = uint64(0)
-	targetChainId = uint64(1)
+	sourceChainId = int64(0)
+	targetChainId = int64(1)
+	nativeChainId = int64(0)
 	receiver      = "0xreceiver"
 	amount        = "100"
+	sourceAsset   = "0.0.123"
 	nativeAsset   = "0.0.123"
-	wrappedAsset  = "0xwrapped00123"
+	targetAsset   = "0xwrapped00123"
 	routerAddress = "0xrouteraddress"
 )
 
@@ -23,16 +25,19 @@ func Test_New(t *testing.T) {
 		TargetChainId: targetChainId,
 		Receiver:      receiver,
 		Amount:        amount,
+		SourceAsset:   sourceAsset,
 		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
+		TargetAsset:   targetAsset,
 		RouterAddress: routerAddress,
 	}
 	actualTransfer := New(txId,
 		sourceChainId,
 		targetChainId,
+		nativeChainId,
 		receiver,
 		nativeAsset,
-		wrappedAsset,
+		targetAsset,
+		sourceAsset,
 		amount,
 		routerAddress)
 	assert.Equal(t, expectedTransfer, actualTransfer)

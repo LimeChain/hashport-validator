@@ -127,7 +127,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	// TODO: Delete this
 	if nativeAsset.Asset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset.Asset) {
-		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, nativeAsset)
+		ew.logger.Errorf("[%s] - Invalid Native Token [%v].", eventLog.Raw.TxHash, nativeAsset)
 		return
 	}
 
