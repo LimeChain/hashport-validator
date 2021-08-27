@@ -62,7 +62,7 @@ func (r Repository) updateStatus(txId string, status string) error {
 	return err
 }
 
-// Returns Fee. Returns nil if not found
+// Get Returns Schedule. Returns nil if not found
 func (r Repository) Get(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
 

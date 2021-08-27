@@ -139,7 +139,7 @@ statusBlocker:
 
 func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
-		s.logger.Debugf("[%s] - Updating db status to [%s] Submitted with TransactionID [%s].",
+		s.logger.Debugf("[%s] - Updating db status Submitted with TransactionID [%s].",
 			id,
 			transactionID)
 		err := s.scheduleRepository.Create(&entity.Schedule{

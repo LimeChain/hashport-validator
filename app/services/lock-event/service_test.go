@@ -20,10 +20,10 @@ import (
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"testing"
 )
 
@@ -34,17 +34,18 @@ var (
 		Account: 222222,
 	}
 	lockEvent = lock_event.LockEvent{
-		Id:     "0.0.444444",
-		Amount: 111,
-		Recipient: hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 222222,
+		Transfer: transfer.Transfer{
+			TransactionId: "0x19283812312-2",
+			SourceChainId: 3,
+			TargetChainId: 0,
+			NativeChainId: 0,
+			SourceAsset:   "0x1283",
+			TargetAsset:   "0.0.222222",
+			NativeAsset:   "0.1283",
+			Receiver:      "0.0.1234",
+			Amount:        "111",
+			RouterAddress: "",
 		},
-		NativeAsset:   "0.0.222222",
-		WrappedAsset:  "0.0.000000",
-		SourceChainId: big.NewInt(3),
-		TargetChainId: big.NewInt(0),
 	}
 	s               = &Service{}
 	mockLockEventId = "some-lock-event-id"
@@ -58,7 +59,8 @@ func Test_New(t *testing.T) {
 	setup()
 	actualService := NewService(
 		hederaAccount.String(),
-		mocks.MLockEventRepository,
+		mocks.MTransferRepository,
+		mocks.MScheduleRepository,
 		mocks.MScheduledService)
 	assert.Equal(t, s, actualService)
 }
@@ -67,10 +69,11 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 	setup()
 	actualService := NewService(
 		hederaAccount.String(),
-		mocks.MLockEventRepository,
+		mocks.MTransferRepository,
+		mocks.MScheduleRepository,
 		mocks.MScheduledService)
 
-	mocks.MLockEventRepository.On("Create", lockEvent.Id, lockEvent.Amount, lockEvent.Recipient.String(), lockEvent.NativeAsset, lockEvent.WrappedAsset, lockEvent.SourceChainId.Int64(), lockEvent.TargetChainId.Int64()).Return(errors.New("e"))
+	mocks.MTransferRepository.On("Create", &lockEvent.Transfer).Return(nil, errors.New("e"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledMintTransaction")
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction")
 
@@ -210,9 +213,10 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 func setup() {
 	mocks.Setup()
 	s = &Service{
-		bridgeAccount:    hederaAccount,
-		repository:       mocks.MLockEventRepository,
-		scheduledService: mocks.MScheduledService,
-		logger:           config.GetLoggerFor("Lock Event Service"),
+		bridgeAccount:      hederaAccount,
+		repository:         mocks.MTransferRepository,
+		scheduleRepository: mocks.MScheduleRepository,
+		scheduledService:   mocks.MScheduledService,
+		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }
