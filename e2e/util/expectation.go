@@ -103,10 +103,11 @@ func PrepareExpectedTransfer(assetMappings config.AssetMappings, sourceChainId, 
 		TransactionID:      expectedTxId.String(),
 		Receiver:           receiver,
 		NativeAsset:        nativeAsset,
-		RouterAddress:      routerAddress,
 		WrappedAsset:       wrappedAsset,
 		Amount:             amount,
+		RouterAddress:      routerAddress,
 		Status:             statuses.Status,
 		SignatureMsgStatus: statuses.StatusSignature,
+		TargetChainID:      targetChainId,
 	}
 }

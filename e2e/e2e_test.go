@@ -182,6 +182,69 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
+// Test_E2E_Hedera_EVM_Native_Token_Transfer recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
+func Test_E2E_Hedera_EVM_Native_Token_Transfer(t *testing.T) {
+	setupEnv := setup.Load()
+	now = time.Now()
+
+	// TODO: id
+	chainId := int64(80001)
+	evm := setupEnv.Clients.EVM[chainId]
+	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
+	unlockAmount := int64(1000)
+
+	// Step 1 - Verify the transfer of HTS to the Bridge Account
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, t)
+
+	// Step 2 - Verify the submitted topic messages
+	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
+
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmTokenAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	burnTransfer := []mirror_node.Transfer{
+		{
+			Account: setupEnv.BridgeAccount.String(),
+			Amount:  unlockAmount, // TODO: examine what amount exactly will be sent
+			Token:   wrappedAsset,
+		},
+	}
+
+	// Step 3 - Validate fee scheduled transaction
+	_, _ = validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
+
+	// Step 4 - Verify Transfer retrieved from Validator API
+	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, setupEnv.TokenID.String(), unlockAmount, 0, chainId, t)
+
+	// Step 5 - Submit Mint transaction
+	txHash := submitUnlockTransaction(evm, transactionResponse, transactionData, tokenAddress, t)
+
+	// Step 6 - Wait for transaction to be mined
+	waitForTransaction(evm, txHash, t)
+
+	// Step 7 - Validate Token balances
+	verifyWrappedAssetBalance(evm, setupEnv.TokenID.String(), big.NewInt(unlockAmount), wrappedBalanceBefore, evm.Receiver, t)
+
+	// Step 8 - Verify Database records
+	expectedTxRecord := util.PrepareExpectedTransfer(
+		setupEnv.AssetMappings,
+		0,
+		chainId,
+		transactionResponse.TransactionID,
+		evm.RouterAddress.String(),
+		setupEnv.TokenID.String(),
+		strconv.FormatInt(tinyBarAmount, 10),
+		evm.Receiver.String(),
+		database.ExpectedStatuses{
+			Status:          entity_transfer.StatusCompleted,
+			StatusSignature: entity_transfer.StatusSignatureMined,
+		}, t)
+
+	// Step 9 - Verify Database Records
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(unlockAmount, 10), receivedSignatures, t)
+}
+
 // Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
@@ -507,6 +570,36 @@ func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, as
 	return "", ""
 }
 
+func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+	timeLeft := 180
+	for {
+		response, err := setupEnv.Clients.MirrorNode.GetAccountTokenBurnTransactionsAfterTimestamp(account, now.UnixNano())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(response.Transactions) > 1 {
+			t.Fatalf("[%s] - Found [%d] new transactions, must be 1.", account, len(response.Transactions))
+		}
+
+		txId, entityId := listenForTx(response, setupEnv.Clients.MirrorNode, expectedTransfers, asset, t)
+		if txId != "" && entityId != "" {
+			return txId, entityId
+		}
+
+		if timeLeft > 0 {
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			timeLeft -= 10
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
+	return "", ""
+}
+
 func listenForTx(response *mirror_node.Response, mirrorNode *mirror_node.Client, expectedTransfers []mirror_node.Transfer, asset string, t *testing.T) (string, string) {
 	for _, transaction := range response.Transactions {
 		if transaction.Scheduled == true {
@@ -633,6 +726,36 @@ func submitMintTransaction(evm setup.EVMUtils, transactionResponse hedera.Transa
 		tokenAddress,
 		evm.Receiver,
 		mintAmount,
+		signatures,
+	)
+
+	if err != nil {
+		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
+	}
+	return res.Hash()
+}
+
+func submitUnlockTransaction(evm setup.EVMUtils, transactionResponse hedera.TransactionResponse, transactionData *service.TransferData, tokenAddress common.Address, t *testing.T) common.Hash {
+	var signatures [][]byte
+	for i := 0; i < len(transactionData.Signatures); i++ {
+		signature, err := hex.DecodeString(transactionData.Signatures[i])
+		if err != nil {
+			t.Fatalf("Failed to decode signature with error: [%s]", err)
+		}
+		signatures = append(signatures, signature)
+	}
+	unlockAmount, ok := new(big.Int).SetString(transactionData.Amount, 10)
+	if !ok {
+		t.Fatalf("Could not convert mint amount [%s] to big int", transactionData.Amount)
+	}
+
+	res, err := evm.RouterContract.Unlock(
+		evm.KeyTransactor,
+		big.NewInt(0),
+		[]byte(hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()),
+		tokenAddress,
+		unlockAmount,
+		evm.Receiver,
 		signatures,
 	)
 
