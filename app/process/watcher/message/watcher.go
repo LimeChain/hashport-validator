@@ -28,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"time"
@@ -130,5 +131,5 @@ func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
 		return
 	}
 
-	q.Push(&queue.Message{Payload: msg, Topic: "HEDERA_TOPIC_MSG"})
+	q.Push(&queue.Message{Payload: msg, Topic: constants.TopicMessageValidation})
 }

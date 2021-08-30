@@ -23,9 +23,12 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
-	beh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/evm"
+	burn_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-message"
+	fee_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/fee-message"
+	fee_transfer "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/fee-transfer"
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
-	th "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/transfer"
+	message_submission "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message-submission"
+	mint_hts "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/mint-hts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
@@ -35,6 +38,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -88,18 +92,19 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
-	transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo, err := r.ComputeIntervals()
+	transfersRecoveryFrom, _, recoveryTo, err := r.ComputeIntervals()
 	if err != nil {
 		log.Fatalf("Could not compute recovery interval. Error [%s]", err)
 	}
 	if transfersRecoveryFrom <= 0 {
 		log.Infof("Skipping Recovery process. Nothing to recover")
-	} else {
-		err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
-		if err != nil {
-			log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: [%s].", transfersRecoveryFrom, recoveryTo, err)
-		}
 	}
+	//else {
+	//err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
+	//if err != nil {
+	//	log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: [%s].", transfersRecoveryFrom, recoveryTo, err)
+	//}
+	//}
 	return err, recoveryTo
 }
 
@@ -120,7 +125,19 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		watchersTimestamp,
 		services.contractServices))
 
-	server.AddHandler("HEDERA_TRANSFER", th.NewHandler(services.transfers))
+	server.AddHandler(constants.TopicMessageSubmission,
+		message_submission.NewHandler(
+			clients.HederaNode,
+			clients.MirrorNode,
+			services.signers,
+			services.transfers,
+			repositories.transfer,
+			configuration.Validator.Clients.Hedera.TopicId))
+
+	server.AddHandler(constants.HederaMintHtsTransfer, mint_hts.NewHandler(services.lockEvents))
+	server.AddHandler(constants.HederaBurnMessageSubmission, burn_message.NewHandler())
+	server.AddHandler(constants.HederaFeeTransfer, fee_transfer.NewHandler(services.burnEvents))
+	server.AddHandler(constants.HederaTransferMessageSubmission, fee_message.NewHandler(services.transfers))
 
 	server.AddWatcher(
 		addConsensusTopicWatcher(
@@ -128,14 +145,12 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			clients.MirrorNode,
 			repositories.messageStatus,
 			watchersTimestamp))
-	server.AddHandler("HEDERA_TOPIC_MSG", mh.NewHandler(
+	server.AddHandler(constants.TopicMessageValidation, mh.NewHandler(
 		configuration.Validator.Clients.Hedera.TopicId,
 		repositories.transfer,
 		repositories.message,
 		services.contractServices,
 		services.messages))
-
-	server.AddHandler("EVM_EVENT", beh.NewHandler(services.burnEvents, services.lockEvents))
 
 	for _, evmClient := range clients.EVMClients {
 		chainId := evmClient.ChainID().Int64()

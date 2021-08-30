@@ -29,6 +29,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"time"
@@ -148,7 +149,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	chainId, receiverAddress, err := ctw.transfers.SanityCheckTransfer(tx)
+	targetChainId, receiverAddress, err := ctw.transfers.SanityCheckTransfer(tx)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
@@ -158,16 +159,15 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		ChainId: 0,
 		Asset:   asset,
 	}
-	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
+	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
 	if targetChainAsset == "" {
 		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
 		if nativeAsset == nil {
 			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
 			return
 		}
-		targetChainAsset = ctw.mappings.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, chainId)
-		if targetChainAsset == "" {
-			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+		if nativeAsset.ChainId != targetChainId {
+			ctw.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", tx.TransactionID, nativeAsset.Asset, nativeAsset.ChainId, targetChainId)
 			return
 		}
 	}
@@ -175,13 +175,18 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	transferMessage := transfer.New(
 		tx.TransactionID,
 		0,
-		chainId,
+		targetChainId,
 		nativeAsset.ChainId,
 		receiverAddress,
 		asset,
 		targetChainAsset,
 		nativeAsset.Asset,
 		amount,
-		ctw.contractServices[chainId].Address().String())
-	q.Push(&queue.Message{Payload: transferMessage, Topic: "HEDERA_TRANSFER"})
+		ctw.contractServices[targetChainId].Address().String())
+	if nativeAsset.ChainId == 0 {
+		transferMessage.HasFee = true
+		q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
+	} else {
+		q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
+	}
 }

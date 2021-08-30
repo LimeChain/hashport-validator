@@ -78,29 +78,9 @@ func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-func Test_HandleLockLog_UnsupportedAsset_Fails(t *testing.T) {
-	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(32))
-
-	w.handleLockLog(lockLog, mocks.MQueue)
-
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
 func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(2))
-
-	w.handleLockLog(lockLog, mocks.MQueue)
-
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
-func Test_HandleLockLog_IsNotTokenNorHbar_Fails(t *testing.T) {
-	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(32))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
@@ -136,7 +116,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 			RouterAddress: "",
 		},
 	}
-	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, ChainId: 33}).Return()
+	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, Topic: "MINT_HTS_TRANSFER"}).Return()
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 }

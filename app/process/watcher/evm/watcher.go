@@ -18,13 +18,13 @@ package evm
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -103,12 +103,6 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	recipientAccount, err := hedera.AccountIDFromBytes(eventLog.Receiver)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
-		return
-	}
-
 	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), ew.evmClient.ChainID().Int64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
@@ -118,17 +112,22 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	targetAsset := nativeAsset.Asset
 	// This is the case when you are bridging wrapped to wrapped
 	if eventLog.TargetChain.Int64() != nativeAsset.ChainId {
-		targetAsset = ew.mappings.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
-		if targetAsset == "" {
-			ew.logger.Errorf("[%s] - Failed to retrieve wrapped asset for[%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
-			return
-		}
+		ew.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
+		return
 	}
 
-	// TODO: Delete this
-	if nativeAsset.Asset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset.Asset) {
-		ew.logger.Errorf("[%s] - Invalid Native Token [%v].", eventLog.Raw.TxHash, nativeAsset)
-		return
+	recipientAccount := ""
+	fmt.Println(eventLog.TargetChain.Int64())
+	var err error
+	if eventLog.TargetChain.Int64() == 0 {
+		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
+			return
+		}
+		recipientAccount = recipient.String()
+	} else {
+		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
 	burnEvent := &burn_event.BurnEvent{
@@ -140,7 +139,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			SourceAsset:   eventLog.Token.String(),
 			TargetAsset:   targetAsset,
 			NativeAsset:   nativeAsset.Asset,
-			Receiver:      recipientAccount.String(),
+			Receiver:      recipientAccount,
 			Amount:        eventLog.Amount.String(),
 			// TODO: set router address
 		},
@@ -155,9 +154,14 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
-		recipientAccount.String())
+		recipientAccount)
 
-	q.Push(&queue.Message{Payload: burnEvent, Topic: "EVM_EVENT"})
+	if burnEvent.TargetChainId == 0 {
+		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
+	} else {
+		t := &burnEvent.Transfer
+		q.Push(&queue.Message{Payload: t, Topic: constants.TopicMessageSubmission})
+	}
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
@@ -173,22 +177,24 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	recipientAccount, err := hedera.AccountIDFromBytes(eventLog.Receiver)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
-		return
+	recipientAccount := ""
+	fmt.Println(eventLog.TargetChain.Int64())
+	var err error
+	if eventLog.TargetChain.Int64() == 0 {
+		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
+			return
+		}
+		recipientAccount = recipient.String()
+	} else {
+		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
 	// TODO: Replace with external configuration service
 	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
-		return
-	}
-
-	// TODO: This must be removed when we want to have support for multiple chains not only Hedera 1:1 EVM chain.
-	if wrappedAsset != constants.Hbar && !hederahelper.IsTokenID(wrappedAsset) {
-		ew.logger.Errorf("[%s] - Invalid Native Token [%s].", eventLog.Raw.TxHash, wrappedAsset)
 		return
 	}
 
@@ -201,7 +207,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			SourceAsset:   eventLog.Token.String(),
 			TargetAsset:   wrappedAsset,
 			NativeAsset:   eventLog.Token.String(),
-			Receiver:      recipientAccount.String(),
+			Receiver:      recipientAccount,
 			Amount:        eventLog.Amount.String(),
 			// TODO: set router address
 		},
@@ -216,9 +222,14 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
-		recipientAccount.String(),
+		recipientAccount,
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
-	q.Push(&queue.Message{Payload: lockEvent, Topic: "EVM_EVENT"})
+	if lockEvent.TargetChainId == 0 {
+		q.Push(&queue.Message{Payload: lockEvent, Topic: constants.HederaMintHtsTransfer})
+	} else {
+		t := &lockEvent.Transfer
+		q.Push(&queue.Message{Payload: t, Topic: constants.TopicMessageSubmission})
+	}
 }

@@ -28,6 +28,7 @@ type Transfer struct {
 	Receiver      string
 	Amount        string
 	RouterAddress string
+	HasFee        bool
 }
 
 // New instantiates Transfer struct ready for submission to the handler

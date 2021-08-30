@@ -388,22 +388,31 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
 		return service.TransferData{}, err
 	}
-	if t == nil || t.Fee.Amount == "" {
+
+	if t == nil {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	amount, err := strconv.ParseInt(t.Amount, 10, 64)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
-		return service.TransferData{}, err
+	// TODO: remove when fee check is not here
+	if t != nil && t.HasFee && t.Fee.Amount == "" {
+		return service.TransferData{}, service.ErrNotFound
 	}
 
-	feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
-		return service.TransferData{}, err
+	signedAmount := t.Amount
+	if t.HasFee {
+		amount, err := strconv.ParseInt(t.Amount, 10, 64)
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
+			return service.TransferData{}, err
+		}
+
+		feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
+			return service.TransferData{}, err
+		}
+		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
-	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
 
 	var signatures []string
 	for _, m := range t.Messages {

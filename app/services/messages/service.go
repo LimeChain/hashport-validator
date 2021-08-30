@@ -90,31 +90,40 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 		return false, err
 	}
 
-	amount, err := strconv.ParseInt(t.Amount, 10, 64)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
-		return false, err
+	signedAmount := t.Amount
+	if t.HasFee {
+		amount, err := strconv.ParseInt(t.Amount, 10, 64)
+		if err != nil {
+			ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
+			return false, err
+		}
+
+		feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
+		if err != nil {
+			ss.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", topicMessage.TransferID, err)
+			return false, err
+		}
+		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
 
-	feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", topicMessage.TransferID, err)
-		return false, err
-	}
-	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
+	//targetAsset := ss.mappings.NativeToWrapped(t.SourceAsset, int64(topicMessage.SourceChainId), int64(topicMessage.TargetChainId))
+	//if targetAsset == "" {
+	//	ss.logger.Errorf("[%s] - Could not parse native asset [%s]", t.TransactionID, t.NativeAsset)
+	//	nativeAsset := ss.mappings.WrappedToNative(t.NativeAsset, int64(topicMessage.SourceChainId))
+	//	if nativeAsset == nil {
+	//		ss.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+	//		return
+	//	}
+	//	return false, err
+	//}
 
-	// TODO: switch int64 to uint64
-	wrappedAsset := ss.mappings.NativeToWrapped(t.NativeAsset, int64(topicMessage.SourceChainId), int64(topicMessage.TargetChainId))
-	if wrappedAsset == "" {
-		ss.logger.Errorf("[%s] - Could not parse native asset [%s] - Error: [%s]", t.TransactionID, t.NativeAsset, err)
-		return false, err
-	}
-
-	// TODO: update checks when DB Transfer model is updated
 	match :=
 		topicMessage.Recipient == t.Receiver &&
 			topicMessage.Amount == signedAmount &&
-			topicMessage.Asset == wrappedAsset
+			topicMessage.Asset == t.TargetAsset &&
+			int64(topicMessage.TargetChainId) == t.TargetChainID &&
+			int64(topicMessage.SourceChainId) == t.SourceChainID &&
+			topicMessage.TransferID == t.TransactionID
 	return match, nil
 }
 
@@ -200,9 +209,15 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 			return nil, err
 		}
 
-		if t != nil && t.Fee.TransactionID != "" {
-			return t, nil
+		if t != nil {
+			if !t.HasFee {
+				return t, nil
+			}
+			if t.HasFee && t.Fee.TransactionID != "" {
+				return t, nil
+			}
 		}
+
 		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
 		time.Sleep(5 * time.Second)
 	}
