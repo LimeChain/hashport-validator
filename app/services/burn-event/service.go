@@ -21,7 +21,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
@@ -68,7 +67,7 @@ func NewService(
 	}
 }
 
-func (s Service) ProcessEvent(event burn_event.BurnEvent) {
+func (s Service) ProcessEvent(event transfer.Transfer) {
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
@@ -79,7 +78,7 @@ func (s Service) ProcessEvent(event burn_event.BurnEvent) {
 		s.logger.Errorf("[%s] - Failed to parse event account [%s]. Error [%s].", event.TransactionId, event.Receiver, err)
 	}
 
-	_, err = s.repository.Create(&event.Transfer)
+	_, err = s.repository.Create(&event)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.TransactionId, err)
 		return

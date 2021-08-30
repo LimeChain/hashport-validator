@@ -2,7 +2,7 @@ package fee_transfer
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +20,7 @@ func NewHandler(burnService service.BurnEvent) *Handler {
 }
 
 func (fth Handler) Handle(payload interface{}) {
-	event, ok := payload.(*burn_event.BurnEvent)
+	event, ok := payload.(*transfer.Transfer)
 	if !ok {
 		fth.logger.Errorf("Could not cast payload [%s]", payload)
 		return

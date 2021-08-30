@@ -17,7 +17,7 @@
 package service
 
 import (
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -34,6 +34,6 @@ func (m *MockBurnService) TransactionID(id string) (string, error) {
 	return args[0].(string), args[1].(error)
 }
 
-func (m *MockBurnService) ProcessEvent(event burn_event.BurnEvent) {
+func (m *MockBurnService) ProcessEvent(event transfer.Transfer) {
 	m.Called(event)
 }

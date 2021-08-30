@@ -403,7 +403,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 
 // Test_EVM_Native_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Native_to_EVM_Token(t *testing.T) {
-	// Step 1: Initialize setup, smart contracts, etc.
+	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 	// TODO: id
 	chainId := int64(80001)
@@ -425,28 +425,28 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Step 2: Submit Lock Txn from a deployed smart contract
+	// Step 2 - Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmTokenAddress, 5, evm.Receiver.Bytes(), t)
 
-	// Step 3: Validate Lock Event was emitted with correct data
+	// Step 3 - Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
 
 	// Step 4 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, lockEventId, t)
 
-	// Step 4 - Verify Transfer retrieved from Validator API
+	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmTokenAddress, receiveAmount, wrappedAsset, t)
 
-	// Step 5 - Submit Mint transaction
+	// Step 6 - Submit Mint transaction
 	txHash := submitMintTransaction(wrappedEvm, lockEventId, transactionData, common.HexToAddress(wrappedAsset), t)
 
-	// Step 6 - Wait for transaction to be mined
+	// Step 7 - Wait for transaction to be mined
 	waitForTransaction(wrappedEvm, txHash, t)
 
-	// Step 7 - Validate Token balances
+	// Step 8 - Validate Token balances
 	verifyWrappedAssetBalance(wrappedEvm, wrappedAsset, big.NewInt(receiveAmount), wrappedBalanceBefore, evm.Receiver, t)
 
-	// Step 5: Validate that Database statuses were changed correctly
+	// Step 9 - Prepare expected Transfer record
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
 		chainId,
 		5,
@@ -462,13 +462,13 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 			StatusSignature: entity_transfer.StatusSignatureMined,
 		})
 
-	// Step 9 - Verify Database Records
+	// Step 10 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, strconv.FormatInt(receiveAmount, 10), receivedSignatures, t)
 }
 
 // Test_EVM_Wrapped_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
-	// Step 1: Initialize setup, smart contracts, etc.
+	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 	// TODO: id
 	chainId := int64(80001)
@@ -490,28 +490,28 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Step 2: Submit Lock Txn from a deployed smart contract
+	// Step 2 - Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmTokenAddress, 80001, 5, nativeEvm.Receiver.Bytes(), t)
 
-	// Step 3: Validate Burn Event was emitted with correct data
+	// Step 3 - Validate Burn Event was emitted with correct data
 	burnEventId := validateBurnEvent(receipt, expectedLockEventLog, t)
 
 	// Step 4 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, burnEventId, t)
 
-	// Step 4 - Verify Transfer retrieved from Validator API
+	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verifyTransferFromValidatorAPI(setupEnv, nativeEvm, burnEventId, setupEnv.NativeEvmTokenAddress, receiveAmount, setupEnv.NativeEvmTokenAddress, t)
 
-	// Step 5 - Submit Mint transaction
+	// Step 6 - Submit Mint transaction
 	txHash := submitUnlockTransaction(nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmTokenAddress), t)
 
-	// Step 6 - Wait for transaction to be mined
+	// Step 7 - Wait for transaction to be mined
 	waitForTransaction(nativeEvm, txHash, t)
 
-	// Step 7 - Validate Token balances
+	// Step 8 - Validate Token balances
 	verifyWrappedAssetBalance(nativeEvm, setupEnv.NativeEvmTokenAddress, big.NewInt(receiveAmount), nativeBalanceBefore, nativeEvm.Receiver, t)
 
-	// Step 5: Validate that Database statuses were changed correctly
+	// Step 9 - Prepare expected Transfer record
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
 		5,
 		chainId,

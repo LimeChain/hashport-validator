@@ -39,7 +39,7 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 
 func Test_Invalid_Payload(t *testing.T) {
 	setup()
-	tr := &transfer.Transfer{
+	tr := transfer.Transfer{
 		TransactionId: "",
 		SourceChainId: 0,
 		TargetChainId: 0,
@@ -51,7 +51,7 @@ func Test_Invalid_Payload(t *testing.T) {
 		Amount:        "0",
 		RouterAddress: "",
 	}
-	//mocks.MTransferService.On("InitiateTransfer", someLockEvent).Return(someLockEvent, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(tr, nil)
 	msHandler.Handle(tr)
 }
 

@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -129,19 +128,17 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	burnEvent := &burn_event.BurnEvent{
-		Transfer: transfer.Transfer{
-			TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-			SourceChainId: ew.evmClient.ChainID().Int64(),
-			TargetChainId: eventLog.TargetChain.Int64(),
-			NativeChainId: nativeAsset.ChainId,
-			SourceAsset:   eventLog.Token.String(),
-			TargetAsset:   targetAsset,
-			NativeAsset:   nativeAsset.Asset,
-			Receiver:      recipientAccount,
-			Amount:        eventLog.Amount.String(),
-			// TODO: set router address
-		},
+	burnEvent := &transfer.Transfer{
+		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+		SourceChainId: ew.evmClient.ChainID().Int64(),
+		TargetChainId: eventLog.TargetChain.Int64(),
+		NativeChainId: nativeAsset.ChainId,
+		SourceAsset:   eventLog.Token.String(),
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset.Asset,
+		Receiver:      recipientAccount,
+		Amount:        eventLog.Amount.String(),
+		// TODO: set router address
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
@@ -158,8 +155,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	if burnEvent.TargetChainId == 0 {
 		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
 	} else {
-		t := &burnEvent.Transfer
-		q.Push(&queue.Message{Payload: t, Topic: constants.TopicMessageSubmission})
+		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
 	}
 }
 

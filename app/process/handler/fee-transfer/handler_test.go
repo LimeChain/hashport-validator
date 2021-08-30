@@ -1,7 +1,6 @@
 package fee_transfer
 
 import (
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -24,19 +23,17 @@ func Test_NewHandler(t *testing.T) {
 
 func Test_Handle_Burn(t *testing.T) {
 	setup()
-	someEvent := &burn_event.BurnEvent{
-		Transfer: transfer.Transfer{
-			TransactionId: "",
-			SourceChainId: 0,
-			TargetChainId: 0,
-			NativeChainId: 0,
-			SourceAsset:   "",
-			TargetAsset:   "",
-			NativeAsset:   "",
-			Receiver:      "",
-			Amount:        "0",
-			RouterAddress: "",
-		},
+	someEvent := &transfer.Transfer{
+		TransactionId: "",
+		SourceChainId: 0,
+		TargetChainId: 0,
+		NativeChainId: 0,
+		SourceAsset:   "",
+		TargetAsset:   "",
+		NativeAsset:   "",
+		Receiver:      "",
+		Amount:        "0",
+		RouterAddress: "",
 	}
 	mocks.MBurnService.On("ProcessEvent", *someEvent).Return()
 	feeTransferHandler.Handle(someEvent)
