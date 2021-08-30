@@ -17,12 +17,12 @@
 package service
 
 import (
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
 // LockEvent is the major service used for processing BurnEvent operations
 type LockEvent interface {
 	// ProcessEvent processes the lock event by submitting the appropriate
 	// Scheduled Token Mint and Transfer transactions
-	ProcessEvent(event lock_event.LockEvent)
+	ProcessEvent(event transfer.Transfer)
 }

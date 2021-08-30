@@ -26,7 +26,6 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -198,19 +197,17 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	lockEvent := &lock_event.LockEvent{
-		Transfer: transfer.Transfer{
-			TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-			SourceChainId: ew.evmClient.ChainID().Int64(),
-			TargetChainId: eventLog.TargetChain.Int64(),
-			NativeChainId: ew.evmClient.ChainID().Int64(),
-			SourceAsset:   eventLog.Token.String(),
-			TargetAsset:   wrappedAsset,
-			NativeAsset:   eventLog.Token.String(),
-			Receiver:      recipientAccount,
-			Amount:        eventLog.Amount.String(),
-			// TODO: set router address
-		},
+	tr := &transfer.Transfer{
+		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+		SourceChainId: ew.evmClient.ChainID().Int64(),
+		TargetChainId: eventLog.TargetChain.Int64(),
+		NativeChainId: ew.evmClient.ChainID().Int64(),
+		SourceAsset:   eventLog.Token.String(),
+		TargetAsset:   wrappedAsset,
+		NativeAsset:   eventLog.Token.String(),
+		Receiver:      recipientAccount,
+		Amount:        eventLog.Amount.String(),
+		// TODO: set router address
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
@@ -226,10 +223,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
-	if lockEvent.TargetChainId == 0 {
-		q.Push(&queue.Message{Payload: lockEvent, Topic: constants.HederaMintHtsTransfer})
+	if tr.TargetChainId == 0 {
+		q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
 	} else {
-		t := &lockEvent.Transfer
-		q.Push(&queue.Message{Payload: t, Topic: constants.TopicMessageSubmission})
+		q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
 	}
 }

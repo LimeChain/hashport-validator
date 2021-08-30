@@ -1,7 +1,6 @@
 package mint_hts
 
 import (
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -24,23 +23,21 @@ func Test_NewHandler(t *testing.T) {
 
 func Test_Handle_Lock(t *testing.T) {
 	setup()
-	someLockEvent := &lock_event.LockEvent{
-		Transfer: transfer.Transfer{
-			TransactionId: "",
-			SourceChainId: 0,
-			TargetChainId: 0,
-			NativeChainId: 0,
-			SourceAsset:   "",
-			TargetAsset:   "",
-			NativeAsset:   "",
-			Receiver:      "",
-			Amount:        "0",
-			RouterAddress: "",
-		},
+	tr := &transfer.Transfer{
+		TransactionId: "",
+		SourceChainId: 0,
+		TargetChainId: 0,
+		NativeChainId: 0,
+		SourceAsset:   "",
+		TargetAsset:   "",
+		NativeAsset:   "",
+		Receiver:      "",
+		Amount:        "0",
+		RouterAddress: "",
 	}
-	mocks.MLockService.On("ProcessEvent", *someLockEvent).Return()
-	mintHtsHandler.Handle(someLockEvent)
-	mocks.MLockService.AssertCalled(t, "ProcessEvent", *someLockEvent)
+	mocks.MLockService.On("ProcessEvent", *tr).Return()
+	mintHtsHandler.Handle(tr)
+	mocks.MLockService.AssertCalled(t, "ProcessEvent", *tr)
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {

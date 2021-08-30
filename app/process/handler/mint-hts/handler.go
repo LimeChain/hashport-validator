@@ -2,7 +2,7 @@ package mint_hts
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +20,7 @@ func NewHandler(lockService service.LockEvent) *Handler {
 }
 
 func (mhh Handler) Handle(payload interface{}) {
-	event, ok := payload.(*lock_event.LockEvent)
+	event, ok := payload.(*model.Transfer)
 	if !ok {
 		mhh.logger.Errorf("Could not cast payload [%s]", payload)
 		return
