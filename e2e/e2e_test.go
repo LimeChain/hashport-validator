@@ -96,20 +96,24 @@ func Test_HBAR(t *testing.T) {
 	// Step 7 - Validate Token balances
 	verifyWrappedAssetBalance(evm, constants.Hbar, big.NewInt(mintAmount), wrappedBalanceBefore, receiver, t)
 
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, constants.Hbar)
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
+	}
+
 	// Step 8 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		setupEnv.AssetMappings,
-		0,
 		chainId,
 		transactionResponse.TransactionID,
 		evm.RouterAddress.String(),
 		constants.Hbar,
+		wrappedAsset,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		receiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
-		}, t)
+		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -155,20 +159,24 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	// Step 7 - Validate Token balances
 	verifyWrappedAssetBalance(evm, setupEnv.TokenID.String(), big.NewInt(mintAmount), wrappedBalanceBefore, evm.Receiver, t)
 
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, setupEnv.TokenID.String())
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
+	}
+
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		setupEnv.AssetMappings,
-		0,
 		chainId,
 		transactionResponse.TransactionID,
 		evm.RouterAddress.String(),
 		setupEnv.TokenID.String(),
+		wrappedAsset,
 		strconv.FormatInt(tinyBarAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
-		}, t)
+		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -194,10 +202,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	unlockAmount := int64(10)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, unlockAmount, t)
-
-	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
+	transactionResponse /*wrappedBalanceBefore*/, _ := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, unlockAmount, t)
 
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmTokenAddress)
 	if err != nil {
@@ -206,40 +211,43 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	burnTransfer := []mirror_node.Transfer{
 		{
 			Account: setupEnv.BridgeAccount.String(),
-			Amount:  unlockAmount, // TODO: examine what amount exactly will be sent
+			Amount:  -unlockAmount, // TODO: examine what amount exactly will be sent
 			Token:   wrappedAsset,
 		},
 	}
 
-	// Step 3 - Validate fee scheduled transaction
-	_, _ = validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
+	// Step 2 - Validate fee scheduled transaction
+	go validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
+
+	// Step 3 - Verify the submitted topic messages
+	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, setupEnv.TokenID.String(), unlockAmount, 0, chainId, t)
+	// TODO: Fix after merge
+	//transactionData, tokenAddress := verifyTransferFromValidatorAPI(setupEnv, evm, transactionResponse, setupEnv.TokenID.String(), unlockAmount, 0, chainId, t)
 
-	// Step 5 - Submit Mint transaction
-	txHash := submitUnlockTransaction(evm, transactionResponse, transactionData, tokenAddress, t)
-
-	// Step 6 - Wait for transaction to be mined
-	waitForTransaction(evm, txHash, t)
-
+	//// Step 5 - Submit Mint transaction
+	//txHash := submitUnlockTransaction(evm, transactionResponse, transactionData, tokenAddress, t)
+	//
+	//// Step 6 - Wait for transaction to be mined
+	//waitForTransaction(evm, txHash, t)
+	//
 	// Step 7 - Validate Token balances
-	verifyWrappedAssetBalance(evm, setupEnv.TokenID.String(), big.NewInt(unlockAmount), wrappedBalanceBefore, evm.Receiver, t)
+	//verifyWrappedAssetBalance(evm, setupEnv.TokenID.String(), big.NewInt(unlockAmount), wrappedBalanceBefore, evm.Receiver, t)
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		setupEnv.AssetMappings,
-		0,
 		chainId,
 		transactionResponse.TransactionID,
 		evm.RouterAddress.String(),
+		setupEnv.NativeEvmTokenAddress,
 		setupEnv.TokenID.String(),
-		strconv.FormatInt(tinyBarAmount, 10),
+		strconv.FormatInt(unlockAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
 			Status:          entity_transfer.StatusCompleted,
 			StatusSignature: entity_transfer.StatusSignatureMined,
-		}, t)
+		})
 
 	// Step 9 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(unlockAmount, 10), receivedSignatures, t)
@@ -1027,8 +1035,8 @@ func verifyFeeRecord(dbValidation *database.Service, expectedRecord *entity.Fee,
 	}
 }
 
-func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, mintAmount string, signatures []string, t *testing.T) {
-	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, mintAmount, signatures)
+func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, amount string, signatures []string, t *testing.T) {
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, amount, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}

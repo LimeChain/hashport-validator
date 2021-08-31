@@ -23,11 +23,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 	"strconv"
-	"testing"
 )
 
 func PrepareExpectedBurnEventRecord(scheduleID string, amount int64, recipient hedera.AccountID, burnEventId string, transactionID string) *entity.BurnEvent {
@@ -92,13 +89,8 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 	return fee
 }
 
-func PrepareExpectedTransfer(assetMappings config.AssetMappings, sourceChainId, targetChainId int64, transactionID hedera.TransactionID, routerAddress, nativeAsset, amount, receiver string, statuses database.ExpectedStatuses, t *testing.T) *entity.Transfer {
+func PrepareExpectedTransfer(targetChainId int64, transactionID hedera.TransactionID, routerAddress, nativeAsset, wrappedAsset, amount, receiver string, statuses database.ExpectedStatuses) *entity.Transfer {
 	expectedTxId := hederahelper.FromHederaTransactionID(&transactionID)
-
-	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, nativeAsset)
-	if err != nil {
-		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nativeAsset, err)
-	}
 	return &entity.Transfer{
 		TransactionID:      expectedTxId.String(),
 		Receiver:           receiver,

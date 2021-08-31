@@ -53,7 +53,7 @@ func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.A
 }
 
 func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
 		accountId.String(),
 		timestampHelper.String(from))
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
