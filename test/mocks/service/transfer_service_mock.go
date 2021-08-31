@@ -12,7 +12,15 @@ type MockTransferService struct {
 	mock.Mock
 }
 
-func (mts *MockTransferService) ProcessTransfer(tm transfer.Transfer) error {
+func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) error {
+	args := mts.Called(tm)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
+func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil

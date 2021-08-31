@@ -48,20 +48,25 @@ func LoadConfig() Config {
 }
 
 func LoadWrappedToNativeAssets(a *AssetMappings) {
-	a.WrappedToNativeByNetwork = map[int64]map[string]map[int64]string{}
+	a.WrappedToNativeByNetwork = map[int64]map[string]*NativeAsset{}
 	for nativeChainId, network := range a.NativeToWrappedByNetwork {
 		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping {
 				if a.WrappedToNativeByNetwork[wrappedChainId] == nil {
-					a.WrappedToNativeByNetwork[wrappedChainId] = make(map[string]map[int64]string)
+					a.WrappedToNativeByNetwork[wrappedChainId] = make(map[string]*NativeAsset)
 				}
-				if a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset] == nil {
-					a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset] = make(map[int64]string)
+				a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset] = &NativeAsset{
+					ChainId: nativeChainId,
+					Asset:   nativeAsset,
 				}
-				a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset][nativeChainId] = nativeAsset
 			}
 		}
 	}
+}
+
+type NativeAsset struct {
+	ChainId int64
+	Asset   string
 }
 
 func GetConfig(config *Config, path string) error {
@@ -90,15 +95,15 @@ type Config struct {
 
 type AssetMappings struct {
 	NativeToWrappedByNetwork map[int64]Network `yaml:"networks,omitempty"`
-	WrappedToNativeByNetwork map[int64]map[string]map[int64]string
+	WrappedToNativeByNetwork map[int64]map[string]*NativeAsset
 }
 
 func (a *AssetMappings) NativeToWrapped(nativeAsset string, nativeChainId, wrappedChainId int64) string {
 	return a.NativeToWrappedByNetwork[nativeChainId].NativeAssets[nativeAsset][wrappedChainId]
 }
 
-func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId, nativeChainId int64) string {
-	return a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset][nativeChainId]
+func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId int64) *NativeAsset {
+	return a.WrappedToNativeByNetwork[wrappedChainId][wrappedAsset]
 }
 
 type Network struct {

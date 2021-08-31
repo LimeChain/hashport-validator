@@ -12,22 +12,27 @@ const (
 	nativeAsset   = "0.0.123"
 	wrappedAsset  = "0xwrapped00123"
 	routerAddress = "0xrouteraddress"
+	chainId       = 3
 )
 
 func Test_New(t *testing.T) {
-	expectedTransfer := &Transfer{
-		TransactionId: txId,
-		Receiver:      receiver,
-		Amount:        amount,
-		NativeAsset:   nativeAsset,
-		WrappedAsset:  wrappedAsset,
-		RouterAddress: routerAddress,
+	expectedTransfer := &NativeTransfer{
+		Transfer: Transfer{
+			TransactionId: txId,
+			Receiver:      receiver,
+			Amount:        amount,
+			NativeAsset:   nativeAsset,
+			WrappedAsset:  wrappedAsset,
+			RouterAddress: routerAddress,
+			TargetChainID: chainId,
+		},
 	}
-	actualTransfer := New(txId,
+	actualTransfer := NewNative(txId,
 		receiver,
 		nativeAsset,
 		wrappedAsset,
 		amount,
-		routerAddress)
+		routerAddress,
+		chainId)
 	assert.Equal(t, expectedTransfer, actualTransfer)
 }

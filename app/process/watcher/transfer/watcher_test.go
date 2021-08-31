@@ -31,10 +31,11 @@ var (
 		},
 	}
 	onlyWrappedToNative = config.AssetMappings{
-		WrappedToNativeByNetwork: map[int64]map[string]map[int64]string{
+		WrappedToNativeByNetwork: map[int64]map[string]*config.NativeAsset{
 			0: {
-				"0.0.111111": {
-					3: "0xevmaddress",
+				"0.0.111111": &config.NativeAsset{
+					ChainId: 3,
+					Asset:   "0xevmaddress",
 				},
 			},
 		},
