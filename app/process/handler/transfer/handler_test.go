@@ -36,8 +36,8 @@ var (
 		NativeAsset:   constants.Hbar,
 		WrappedAsset:  "0x45678",
 	}
-	mnt = model.NativeTransfer{Transfer: mt}
-	mwt = model.WrappedTransfer{Transfer: mt}
+	mnt = &model.NativeTransfer{Transfer: mt}
+	mwt = &model.WrappedTransfer{Transfer: mt}
 )
 
 func InitializeHandler() (*Handler, *service.MockTransferService) {
