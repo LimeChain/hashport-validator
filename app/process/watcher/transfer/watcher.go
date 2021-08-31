@@ -161,9 +161,9 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	targetChainAsset = ctw.mappings.WrappedToNative(asset, 0, chainId)
-	if targetChainAsset != "" {
-		transferMessage := transfer.NewWrapped(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String(), chainId)
+	native := ctw.mappings.WrappedToNative(asset, 0)
+	if native.Asset != "" {
+		transferMessage := transfer.NewWrapped(tx.TransactionID, evmAddress, native.Asset, asset, amount, ctw.contractServices[chainId].Address().String(), chainId)
 		q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
 		return
 	}

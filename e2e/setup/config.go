@@ -169,10 +169,10 @@ func newClients(config Config) (*clients, error) {
 		routerContractAddress := common.HexToAddress(conf.RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-		wHbarInstance, err := initWrappedAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
-		if err != nil {
-			return nil, err
-		}
+		//wHbarInstance, err := initWrappedAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
+		//if err != nil {
+		//	return nil, err
+		//}
 
 		wTokenInstance, err := initWrappedAssetContract(config.Tokens.WToken, config.AssetMappings, 0, chainId, evmClient)
 		if err != nil {
@@ -191,8 +191,8 @@ func newClients(config Config) (*clients, error) {
 		}
 
 		EVM[chainId] = EVMUtils{
-			EVMClient:             evmClient,
-			WHbarContract:         wHbarInstance,
+			EVMClient: evmClient,
+			//WHbarContract:         wHbarInstance,
 			WTokenContract:        wTokenInstance,
 			NativeEvmContract:     nativeTokenInstance,
 			RouterContract:        routerInstance,

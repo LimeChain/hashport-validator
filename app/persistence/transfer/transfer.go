@@ -193,7 +193,7 @@ func (tr Repository) updateStatus(txId string, status string) error {
 }
 
 func (tr Repository) updateSignatureStatus(txId string, status string) error {
-	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{transfer.StatusSignatureSubmitted, transfer.StatusSignatureMined, transfer.StatusSignatureFailed})
+	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{transfer.StatusSignatureSubmitted, transfer.StatusSignatureMined, transfer.StatusSignatureFailed, transfer.StatusScheduledTokenBurnCompleted, transfer.StatusScheduledTokenBurnFailed, transfer.StatusScheduledTokenBurnSubmitted})
 }
 
 func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {

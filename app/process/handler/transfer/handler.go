@@ -41,7 +41,7 @@ func NewHandler(transfersService service.Transfers) *Handler {
 func (th Handler) Handle(payload interface{}) {
 	var err error
 	switch t := payload.(type) {
-	case model.NativeTransfer:
+	case *model.NativeTransfer:
 		err = th.initiateTransferAndCheckStatus(t.Transfer)
 		if err != nil {
 			return
@@ -52,7 +52,7 @@ func (th Handler) Handle(payload interface{}) {
 			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", t.TransactionId, err)
 			return
 		}
-	case model.WrappedTransfer:
+	case *model.WrappedTransfer:
 		err = th.initiateTransferAndCheckStatus(t.Transfer)
 		if err != nil {
 			return

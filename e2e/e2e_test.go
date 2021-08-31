@@ -135,7 +135,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, tinyBarAmount)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, tinyBarAmount, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -182,8 +182,8 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
 
-// Test_E2E_Hedera_EVM_Native_Token_Transfer recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
-func Test_E2E_Hedera_EVM_Native_Token_Transfer(t *testing.T) {
+// Test_E2E_Hedera_EVM_Native_Token recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
+func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
@@ -191,10 +191,10 @@ func Test_E2E_Hedera_EVM_Native_Token_Transfer(t *testing.T) {
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	unlockAmount := int64(1000)
+	unlockAmount := int64(10)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, t)
+	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, evm, memo, evm.Receiver, unlockAmount, t)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, transactionResponse, t)
@@ -1079,7 +1079,7 @@ func verifyTransferToBridgeAccount(setup *setup.Setup, evm setup.EVMUtils, memo 
 	return *transactionResponse, whbarBalanceBefore
 }
 
-func verifyTokenTransferToBridgeAccount(setup *setup.Setup, evm setup.EVMUtils, memo string, wTokenReceiverAddress common.Address, t *testing.T) (hedera.TransactionResponse, *big.Int) {
+func verifyTokenTransferToBridgeAccount(setup *setup.Setup, evm setup.EVMUtils, memo string, wTokenReceiverAddress common.Address, amount int64, t *testing.T) (hedera.TransactionResponse, *big.Int) {
 	// Get the wrapped hts token balance of the receiver before the transfer
 	wrappedBalanceBefore, err := evm.WTokenContract.BalanceOf(&bind.CallOpts{}, wTokenReceiverAddress)
 	if err != nil {
@@ -1093,7 +1093,7 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, evm setup.EVMUtils, 
 	fmt.Println(fmt.Sprintf("Bridge account Token balance before transaction: [%d]", receiverBalance.Token[setup.TokenID]))
 
 	// Get the transaction receipt to verify the transaction was executed
-	transactionResponse, err := sendTokensToBridgeAccount(setup, memo)
+	transactionResponse, err := sendTokensToBridgeAccount(setup, memo, amount)
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Unable to send Tokens to Bridge Account, Error: [%s]", err))
 	}
@@ -1111,7 +1111,7 @@ func verifyTokenTransferToBridgeAccount(setup *setup.Setup, evm setup.EVMUtils, 
 	// Verify that the custodial address has received exactly the amount sent
 	resultAmount := receiverBalanceNew.Token[setup.TokenID] - receiverBalance.Token[setup.TokenID]
 	// Verify that the bridge account has received exactly the amount sent
-	if resultAmount != uint64(tinyBarAmount) {
+	if resultAmount != uint64(amount) {
 		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but received: [%v]", hBarSendAmount.AsTinybar(), tinyBarAmount)
 	}
 
@@ -1185,13 +1185,13 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string) (*hedera.Transact
 	return &res, err
 }
 
-func sendTokensToBridgeAccount(setup *setup.Setup, memo string) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", tinyBarAmount, memo))
+func sendTokensToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", amount, memo))
 
 	res, err := hedera.NewTransferTransaction().
 		SetTransactionMemo(memo).
-		AddTokenTransfer(setup.TokenID, setup.Clients.Hedera.GetOperatorAccountID(), -tinyBarAmount).
-		AddTokenTransfer(setup.TokenID, setup.BridgeAccount, tinyBarAmount).
+		AddTokenTransfer(setup.TokenID, setup.Clients.Hedera.GetOperatorAccountID(), -amount).
+		AddTokenTransfer(setup.TokenID, setup.BridgeAccount, amount).
 		Execute(setup.Clients.Hedera)
 	if err != nil {
 		return nil, err
