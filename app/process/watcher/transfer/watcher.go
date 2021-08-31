@@ -155,14 +155,18 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	}
 
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, chainId)
-	if targetChainAsset == "" {
-		targetChainAsset = ctw.mappings.WrappedToNative(asset, 0, chainId)
-		if targetChainAsset == "" {
-			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
-			return
-		}
+	if targetChainAsset != "" {
+		transferMessage := transfer.NewNative(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String(), chainId)
+		q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
+		return
 	}
 
-	transferMessage := transfer.New(tx.TransactionID, evmAddress, asset, targetChainAsset, amount, ctw.contractServices[chainId].Address().String())
-	q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
+	native := ctw.mappings.WrappedToNative(asset, 0)
+	if native != nil {
+		transferMessage := transfer.NewWrapped(tx.TransactionID, evmAddress, native.Asset, asset, amount, ctw.contractServices[chainId].Address().String(), chainId)
+		q.Push(&queue.Message{Payload: transferMessage, ChainId: 0})
+		return
+	}
+
+	ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
 }

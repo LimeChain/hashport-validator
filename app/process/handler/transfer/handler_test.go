@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -35,6 +36,8 @@ var (
 		NativeAsset:   constants.Hbar,
 		WrappedAsset:  "0x45678",
 	}
+	mnt = &model.NativeTransfer{Transfer: mt}
+	mwt = &model.WrappedTransfer{Transfer: mt}
 )
 
 func InitializeHandler() (*Handler, *service.MockTransferService) {
@@ -47,21 +50,21 @@ func Test_Handle(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mt.TransactionId,
-		Receiver:      mt.Receiver,
-		Amount:        mt.Amount,
-		NativeAsset:   mt.NativeAsset,
-		WrappedAsset:  mt.WrappedAsset,
+		TransactionID: mnt.TransactionId,
+		Receiver:      mnt.Receiver,
+		Amount:        mnt.Amount,
+		NativeAsset:   mnt.NativeAsset,
+		WrappedAsset:  mnt.WrappedAsset,
 		Status:        transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("ProcessTransfer", mt).Return(nil)
+	mockedService.On("ProcessNativeTransfer", mt).Return(nil)
 
-	ctHandler.Handle(&mt)
+	ctHandler.Handle(mnt)
 
 	mockedService.AssertCalled(t, "InitiateNewTransfer", mt)
-	mockedService.AssertCalled(t, "ProcessTransfer", mt)
+	mockedService.AssertCalled(t, "ProcessNativeTransfer", mt)
 }
 
 func Test_Handle_Encoding_Fails(t *testing.T) {
@@ -72,7 +75,7 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 	ctHandler.Handle(invalidTransferPayload)
 
 	mockedService.AssertNotCalled(t, "InitiateNewTransfer")
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
@@ -80,40 +83,58 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	mockedService.On("InitiateNewTransfer", mt).Return(nil, errors.New("some-error"))
 
-	ctHandler.Handle(&mt)
+	ctHandler.Handle(mnt)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
 func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mt.TransactionId,
-		Receiver:      mt.Receiver,
-		Amount:        mt.Amount,
+		TransactionID: mnt.TransactionId,
+		Receiver:      mnt.Receiver,
+		Amount:        mnt.Amount,
 		Status:        transfer.StatusCompleted,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 
-	ctHandler.Handle(&mt)
+	ctHandler.Handle(mnt)
 
-	mockedService.AssertNotCalled(t, "ProcessTransfer")
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
 
-func Test_Handle_ProcessTransfer_Fails(t *testing.T) {
+func Test_Handle_ProcessNativeTransfer_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mt.TransactionId,
-		Receiver:      mt.Receiver,
-		Amount:        mt.Amount,
+		TransactionID: mnt.TransactionId,
+		Receiver:      mnt.Receiver,
+		Amount:        mnt.Amount,
 		Status:        transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("ProcessTransfer", mt).Return(errors.New("some-error"))
+	mockedService.On("ProcessNativeTransfer", mt).Return(errors.New("some-error"))
+	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
 
-	ctHandler.Handle(&mt)
+	ctHandler.Handle(mnt)
+}
+
+func Test_Handle_ProcessWrappedTransfer_Fails(t *testing.T) {
+	ctHandler, mockedService := InitializeHandler()
+
+	tx := &entity.Transfer{
+		TransactionID: mwt.TransactionId,
+		Receiver:      mwt.Receiver,
+		Amount:        mwt.Amount,
+		Status:        transfer.StatusInitial,
+	}
+
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
+	mockedService.On("ProcessWrappedTransfer", mt).Return(errors.New("some-error"))
+	mockedService.AssertNotCalled(t, "ProcessNativeTransfer", mock.Anything)
+
+	ctHandler.Handle(mwt)
 }

@@ -20,17 +20,11 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	SCHEDULED_MINT_TYPE     = "mint"
-	SCHEDULED_TRANSFER_TYPE = "transfer"
-	DONE                    = "DONE"
-	FAIL                    = "FAIL"
 )
 
 type Service struct {
@@ -69,8 +63,8 @@ func (s Service) ProcessEvent(event lock_event.LockEvent) {
 
 	status := make(chan string)
 
-	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_MINT_TYPE, &status)
-	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_MINT_TYPE, &status)
+	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.Id, sync.SCHEDULED_MINT_TYPE, &status)
+	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.Id, sync.SCHEDULED_MINT_TYPE, &status)
 
 	s.scheduledService.ExecuteScheduledMintTransaction(
 		event.Id,
@@ -88,10 +82,10 @@ func (s Service) ProcessEvent(event lock_event.LockEvent) {
 statusBlocker:
 	for {
 		switch <-status {
-		case DONE:
+		case sync.DONE:
 			s.logger.Debugf("[%s] - Proceeding to submit the Scheduled Transfer Transaction.", event.Id)
 			break statusBlocker
-		case FAIL:
+		case sync.FAIL:
 			s.logger.Errorf("[%s] - Failed to await the execution of Scheduled Mint Transaction.", event.Id)
 			return
 		}
@@ -108,8 +102,8 @@ statusBlocker:
 		},
 	}
 
-	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, &status)
-	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, SCHEDULED_TRANSFER_TYPE, &status)
+	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.Id, sync.SCHEDULED_TRANSFER_TYPE, &status)
+	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.Id, sync.SCHEDULED_TRANSFER_TYPE, &status)
 
 	s.scheduledService.ExecuteScheduledTransferTransaction(
 		event.Id,
@@ -130,13 +124,13 @@ func (s *Service) scheduledTxExecutionCallbacks(id, txType string, status *chan 
 			txType,
 			transactionID)
 		switch txType {
-		case SCHEDULED_MINT_TYPE:
+		case sync.SCHEDULED_MINT_TYPE:
 			err = s.repository.UpdateStatusScheduledTokenMintSubmitted(id, scheduleID, transactionID)
-		case SCHEDULED_TRANSFER_TYPE:
+		case sync.SCHEDULED_TRANSFER_TYPE:
 			err = s.repository.UpdateStatusScheduledTokenTransferSubmitted(id, scheduleID, transactionID)
 		}
 		if err != nil {
-			*status <- FAIL
+			*status <- sync.FAIL
 			s.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled %s status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				id, txType, transactionID, scheduleID, err)
@@ -145,7 +139,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, txType string, status *chan 
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*status <- FAIL
+		*status <- sync.FAIL
 		err := s.repository.UpdateStatusFailed(id)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
@@ -162,21 +156,21 @@ func (s *Service) scheduledTxMinedCallbacks(id, txType string, status *chan stri
 
 		var err error
 		switch txType {
-		case SCHEDULED_MINT_TYPE:
+		case sync.SCHEDULED_MINT_TYPE:
 			err = s.repository.UpdateStatusScheduledTokenMintCompleted(id)
-		case SCHEDULED_TRANSFER_TYPE:
+		case sync.SCHEDULED_TRANSFER_TYPE:
 			err = s.repository.UpdateStatusCompleted(id)
 		}
 		if err != nil {
-			*status <- FAIL
+			*status <- sync.FAIL
 			s.logger.Errorf("[%s] - Failed to update scheduled %s status completed. Error [%s].", id, txType, err)
 			return
 		}
-		*status <- DONE
+		*status <- sync.DONE
 	}
 
 	onFail = func(transactionID string) {
-		*status <- FAIL
+		*status <- sync.FAIL
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
 		err := s.repository.UpdateStatusFailed(id)
 		if err != nil {
