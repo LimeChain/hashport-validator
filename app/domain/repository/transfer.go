@@ -36,4 +36,9 @@ type Transfer interface {
 	UpdateStatusSignatureSubmitted(txId string) error
 	UpdateStatusSignatureMined(txId string) error
 	UpdateStatusSignatureFailed(txId string) error
+
+	// Hedera -> EVM additional statuses
+	UpdateStatusScheduledTokenBurnSubmitted(txId string) error
+	UpdateStatusScheduledTokenBurnFailed(txId string) error
+	UpdateStatusScheduledTokenBurnCompleted(txId string) error
 }

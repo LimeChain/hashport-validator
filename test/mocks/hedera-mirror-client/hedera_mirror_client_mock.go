@@ -26,6 +26,15 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
+func (m *MockHederaMirrorClient) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error) {
+	args := m.Called(accountId, from)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*mirror_node.Response), nil
+	}
+	return args.Get(0).(*mirror_node.Response), args.Get(1).(error)
+}
+
 func (m *MockHederaMirrorClient) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error) {
 	args := m.Called(accountId, from)
 

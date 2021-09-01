@@ -32,9 +32,12 @@ type Transfers interface {
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
-	// ProcessTransfer processes the transfer message by signing the required
+	// ProcessNativeTransfer processes the native transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
-	ProcessTransfer(tm transfer.Transfer) error
+	ProcessNativeTransfer(tm transfer.Transfer) error
+	// ProcessWrappedTransfer processes the wrapped transfer message by signing the required
+	// authorisation signature submitting it into the required HCS Topic
+	ProcessWrappedTransfer(tm transfer.Transfer) error
 	// TransferData returns from the database the given transfer, its signatures and
 	// calculates if its messages have reached super majority
 	TransferData(txId string) (TransferData, error)

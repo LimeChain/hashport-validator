@@ -6,8 +6,8 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
+		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 		}
@@ -80,18 +80,37 @@ func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, t
 func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTokenMintTransaction(id, asset, amount)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled transaction. Error [%s].", id, err)
+		s.logger.Errorf("[%s] - Failed to submit scheduled mint transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 		}
-		*status <- lock_event.FAIL
+		*status <- sync.FAIL
 		return
 	}
 
 	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create/sign scheduled mint transaction. Error [%s].", id, err)
-		*status <- lock_event.FAIL
+		*status <- sync.FAIL
+		return
+	}
+}
+
+func (s *Service) ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	transactionResponse, err := s.executeScheduledTokenBurnTransaction(id, asset, amount)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to submit scheduled burn transaction. Error [%s].", id, err)
+		if transactionResponse != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+		}
+		*status <- sync.FAIL
+		return
+	}
+
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled burn transaction. Error [%s].", id, err)
+		*status <- sync.FAIL
 		return
 	}
 }
@@ -109,6 +128,23 @@ func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount 
 
 	transactionResponse, err = s.hederaNodeClient.
 		SubmitScheduledTokenMintTransaction(tokenID, amount, s.payerAccount, id)
+
+	return transactionResponse, err
+}
+
+func (s *Service) executeScheduledTokenBurnTransaction(id string, asset string, amount int64) (*hedera.TransactionResponse, error) {
+	var tokenID hedera.TokenID
+	var transactionResponse *hedera.TransactionResponse
+	var err error
+
+	tokenID, err = hedera.TokenIDFromString(asset)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to parse token [%s] to TokenID. Error [%s].", id, asset, err)
+		return nil, err
+	}
+
+	transactionResponse, err = s.hederaNodeClient.
+		SubmitScheduledTokenBurnTransaction(tokenID, amount, s.payerAccount, id)
 
 	return transactionResponse, err
 }

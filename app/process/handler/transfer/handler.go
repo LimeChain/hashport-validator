@@ -17,6 +17,7 @@
 package transfer
 
 import (
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
@@ -38,26 +39,41 @@ func NewHandler(transfersService service.Transfers) *Handler {
 }
 
 func (th Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+	t, ok := payload.(*model.Transfer)
 	if !ok {
 		th.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
+	err := th.initiateTransferAndCheckStatus(*t)
+	if err != nil {
+		return
+	}
 
-	transactionRecord, err := th.transfersService.InitiateNewTransfer(*transferMsg)
+	if t.SourceChainId == 0 {
+		err = th.transfersService.ProcessNativeTransfer(*t)
+		if err != nil {
+			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", t.TransactionId, err)
+			return
+		}
+	} else {
+		err = th.transfersService.ProcessWrappedTransfer(*t)
+		if err != nil {
+			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", t.TransactionId, err)
+			return
+		}
+	}
+}
+
+func (th Handler) initiateTransferAndCheckStatus(transferMsg model.Transfer) error {
+	transactionRecord, err := th.transfersService.InitiateNewTransfer(transferMsg)
 	if err != nil {
 		th.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", transferMsg.TransactionId, err)
-		return
+		return err
 	}
 
 	if transactionRecord.Status != transfer.StatusInitial {
 		th.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
-		return
+		return errors.New("previously-added-record")
 	}
-
-	err = th.transfersService.ProcessTransfer(*transferMsg)
-	if err != nil {
-		th.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
-		return
-	}
+	return nil
 }
