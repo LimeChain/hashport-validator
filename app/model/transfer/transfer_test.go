@@ -40,7 +40,6 @@ func Test_New(t *testing.T) {
 		targetAsset,
 		sourceAsset,
 		amount,
-		routerAddress,
-		chainId)
+		routerAddress)
 	assert.Equal(t, expectedTransfer, actualTransfer)
 }
