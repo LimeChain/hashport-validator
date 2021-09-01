@@ -16,7 +16,6 @@ const (
 	nativeAsset   = "0.0.123"
 	targetAsset   = "0xwrapped00123"
 	routerAddress = "0xrouteraddress"
-	chainId       = 3
 )
 
 func Test_New(t *testing.T) {

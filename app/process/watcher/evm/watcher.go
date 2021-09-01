@@ -115,7 +115,6 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	recipientAccount := ""
-	fmt.Println(eventLog.TargetChain.Int64())
 	var err error
 	if eventLog.TargetChain.Int64() == 0 {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
@@ -173,7 +172,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	recipientAccount := ""
-	fmt.Println(eventLog.TargetChain.Int64())
 	var err error
 	if eventLog.TargetChain.Int64() == 0 {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
