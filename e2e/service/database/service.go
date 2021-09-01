@@ -22,11 +22,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -35,9 +34,8 @@ import (
 type dbVerifier struct {
 	transactions repository.Transfer
 	messages     repository.Message
-	burnEvents   repository.BurnEvent
-	lockEvents   repository.LockEvent
 	fee          repository.Fee
+	schedule     repository.Schedule
 }
 
 type Service struct {
@@ -52,9 +50,8 @@ func NewService(dbConfigs []config.Database) *Service {
 		newVerifier := dbVerifier{
 			transactions: transfer.NewRepository(connection),
 			messages:     message.NewRepository(connection),
-			burnEvents:   burn_event.NewRepository(connection),
-			lockEvents:   lock_event.NewRepository(connection),
 			fee:          fee.NewRepository(connection),
+			schedule:     schedule.NewRepository(connection),
 		}
 		verifiers = append(verifiers, newVerifier)
 	}
@@ -83,6 +80,30 @@ func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *enti
 	return true, nil
 }
 
+func (s *Service) VerifyTransferRecord(expectedTransferRecord *entity.Transfer) (bool, error) {
+	valid, _, err := s.validTransactionRecord(expectedTransferRecord)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *Service) VerifyScheduleRecord(expectedRecord *entity.Schedule) (bool, error) {
+	valid, err := s.validScheduleRecord(expectedRecord)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer) (bool, *entity.Transfer, error) {
 	for _, verifier := range s.verifiers {
 		actualDbTx, err := verifier.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)
@@ -96,11 +117,23 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 	return true, expectedTransferRecord, nil
 }
 
+func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, error) {
+	for _, verifier := range s.verifiers {
+		actualDbTx, err := verifier.schedule.Get(expectedRecord.TransactionID)
+		if err != nil {
+			return false, err
+		}
+		if !scheduleFieldsMatch(*expectedRecord, *actualDbTx) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
 
-	// TODO: ids
-	authMsgBytes, err := auth_message.EncodeBytesFrom(int64(0), int64(80001), record.TransactionID, record.WrappedAsset, record.Receiver, mintAmount)
+	authMsgBytes, err := auth_message.EncodeBytesFrom(record.SourceChainID, record.TargetChainID, record.TransactionID, record.TargetAsset, record.Receiver, mintAmount)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", record.TransactionID, err)
 		return false, err
@@ -143,39 +176,13 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount str
 	return true, nil
 }
 
-func (s *Service) VerifyBurnRecord(expectedBurnRecord *entity.BurnEvent) (bool, error) {
-	for _, verifier := range s.verifiers {
-		actualBurnEvent, err := verifier.burnEvents.Get(expectedBurnRecord.Id)
-		if err != nil {
-			return false, err
-		}
-		if !burnEventsFieldsMatch(actualBurnEvent, expectedBurnRecord) {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
-func (s *Service) VerifyLockRecord(expectedLockRecord *entity.LockEvent) (bool, error) {
-	for _, verifier := range s.verifiers {
-		actualLockEvent, err := verifier.lockEvents.Get(expectedLockRecord.Id)
-		if err != nil {
-			return false, err
-		}
-		if !lockEventsFieldsMatch(actualLockEvent, expectedLockRecord) {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 	for _, verifier := range s.verifiers {
 		actual, err := verifier.fee.Get(expectedRecord.TransactionID)
 		if err != nil {
 			return false, err
 		}
-		if !feeFieldsMatch(actual, expectedRecord) {
+		if !feeFieldsMatch(*actual, *expectedRecord) {
 			return false, nil
 		}
 	}

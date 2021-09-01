@@ -36,7 +36,13 @@ func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEt
 		return nil, err
 	}
 
-	bytesToHash, err := args.Pack(big.NewInt(sourceChainId), big.NewInt(targetChainId), []byte(txId), common.HexToAddress(asset), common.HexToAddress(receiverEthAddress), amountBn)
+	bytesToHash, err := args.Pack(
+		big.NewInt(sourceChainId),
+		big.NewInt(targetChainId),
+		[]byte(txId),
+		common.HexToAddress(asset),
+		common.HexToAddress(receiverEthAddress),
+		amountBn)
 	return keccak(bytesToHash), nil
 }
 

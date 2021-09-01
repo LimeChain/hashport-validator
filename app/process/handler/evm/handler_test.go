@@ -17,9 +17,9 @@
 package evm
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -44,13 +44,18 @@ func Test_NewHandler(t *testing.T) {
 func Test_Handle_Lock(t *testing.T) {
 	setup()
 	someLockEvent := &lock_event.LockEvent{
-		Id:            "",
-		Amount:        0,
-		Recipient:     hedera.AccountID{},
-		NativeAsset:   "",
-		WrappedAsset:  "",
-		SourceChainId: nil,
-		TargetChainId: nil,
+		Transfer: transfer.Transfer{
+			TransactionId: "",
+			SourceChainId: 0,
+			TargetChainId: 0,
+			NativeChainId: 0,
+			SourceAsset:   "",
+			TargetAsset:   "",
+			NativeAsset:   "",
+			Receiver:      "",
+			Amount:        "0",
+			RouterAddress: "",
+		},
 	}
 	mocks.MLockService.On("ProcessEvent", *someLockEvent).Return()
 	evmHandler.Handle(someLockEvent)
@@ -61,11 +66,18 @@ func Test_Handle_Lock(t *testing.T) {
 func Test_Handle_Burn(t *testing.T) {
 	setup()
 	someBurnEvent := &burn_event.BurnEvent{
-		Id:           "",
-		Amount:       0,
-		Recipient:    hedera.AccountID{},
-		NativeAsset:  "",
-		WrappedAsset: "",
+		Transfer: transfer.Transfer{
+			TransactionId: "",
+			SourceChainId: 0,
+			TargetChainId: 0,
+			NativeChainId: 0,
+			SourceAsset:   "",
+			TargetAsset:   "",
+			NativeAsset:   "",
+			Receiver:      "",
+			Amount:        "0",
+			RouterAddress: "",
+		},
 	}
 	mocks.MBurnService.On("ProcessEvent", *someBurnEvent).Return()
 	evmHandler.Handle(someBurnEvent)

@@ -241,6 +241,15 @@ func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targe
 	return wrappedAsset, nil
 }
 
+func WrappedToNativeAsset(assetMappings config.AssetMappings, sourceChainId int64, asset string) (*config.NativeAsset, error) {
+	targetAsset := assetMappings.WrappedToNative(asset, sourceChainId)
+	if targetAsset == nil {
+		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
+	}
+
+	return targetAsset, nil
+}
+
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
 	var client *hederaSDK.Client
 	switch networkType {

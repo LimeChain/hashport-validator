@@ -27,6 +27,7 @@ import (
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/model/burn-event"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -108,25 +109,41 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	// TODO: Replace with external configuration service. Ask whether ew.evmClient.ChainID() is a correct way of chainID recognition
 	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), ew.evmClient.ChainID().Int64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
+	targetAsset := nativeAsset.Asset
+	// This is the case when you are bridging wrapped to wrapped
+	if eventLog.TargetChain.Int64() != nativeAsset.ChainId {
+		targetAsset = ew.mappings.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
+		if targetAsset == "" {
+			ew.logger.Errorf("[%s] - Failed to retrieve wrapped asset for[%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
+			return
+		}
+	}
+
+	// TODO: Delete this
 	if nativeAsset.Asset != constants.Hbar && !hederahelper.IsTokenID(nativeAsset.Asset) {
 		ew.logger.Errorf("[%s] - Invalid Native Token [%v].", eventLog.Raw.TxHash, nativeAsset)
 		return
 	}
 
-	// TODO: We will need to parse the targetChain as-well in order to be able to transfer from Polygon to Ethereum f.e. not only Polygon to Hedera.
 	burnEvent := &burn_event.BurnEvent{
-		Amount:       eventLog.Amount.Int64(),
-		Id:           fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		Recipient:    recipientAccount,
-		NativeAsset:  nativeAsset.Asset,
-		WrappedAsset: eventLog.Token.String(),
+		Transfer: transfer.Transfer{
+			TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+			SourceChainId: ew.evmClient.ChainID().Int64(),
+			TargetChainId: eventLog.TargetChain.Int64(),
+			NativeChainId: nativeAsset.ChainId,
+			SourceAsset:   eventLog.Token.String(),
+			TargetAsset:   targetAsset,
+			NativeAsset:   nativeAsset.Asset,
+			Receiver:      recipientAccount.String(),
+			Amount:        eventLog.Amount.String(),
+			// TODO: set router address
+		},
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
@@ -176,13 +193,18 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	lockEvent := &lock_event.LockEvent{
-		Amount:        eventLog.Amount.Int64(),
-		Id:            fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		Recipient:     recipientAccount,
-		NativeAsset:   eventLog.Token.String(),
-		WrappedAsset:  wrappedAsset,
-		SourceChainId: ew.evmClient.ChainID(),
-		TargetChainId: eventLog.TargetChain,
+		Transfer: transfer.Transfer{
+			TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
+			SourceChainId: ew.evmClient.ChainID().Int64(),
+			TargetChainId: eventLog.TargetChain.Int64(),
+			NativeChainId: ew.evmClient.ChainID().Int64(),
+			SourceAsset:   eventLog.Token.String(),
+			TargetAsset:   wrappedAsset,
+			NativeAsset:   eventLog.Token.String(),
+			Receiver:      recipientAccount.String(),
+			Amount:        eventLog.Amount.String(),
+			// TODO: set router address
+		},
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)

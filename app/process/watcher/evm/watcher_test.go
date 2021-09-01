@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -122,13 +123,18 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &lock_event.LockEvent{
-		Amount:        lockLog.Amount.Int64(),
-		Id:            fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		Recipient:     hederaAcc,
-		NativeAsset:   lockLog.Token.String(),
-		WrappedAsset:  constants.Hbar,
-		SourceChainId: big.NewInt(33),
-		TargetChainId: lockLog.TargetChain,
+		Transfer: transfer.Transfer{
+			TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
+			SourceChainId: int64(33),
+			TargetChainId: lockLog.TargetChain.Int64(),
+			NativeChainId: int64(33),
+			SourceAsset:   lockLog.Token.String(),
+			TargetAsset:   constants.Hbar,
+			NativeAsset:   lockLog.Token.String(),
+			Receiver:      hederaAcc.String(),
+			Amount:        lockLog.Amount.String(),
+			RouterAddress: "",
+		},
 	}
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, ChainId: 33}).Return()
 
