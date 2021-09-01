@@ -191,6 +191,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
 			return
 		}
+		// TODO:
 		//err = s.repository.UpdateStatusFailed(id)
 		//if err != nil {
 		//	s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
@@ -243,6 +244,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
 			return
 		}
+		// TODO:
 		//err = s.repository.UpdateStatusFailed(transactionID)
 		//if err != nil {
 		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)

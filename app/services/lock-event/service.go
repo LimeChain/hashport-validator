@@ -206,6 +206,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string) (onS
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
 			return
 		}
+		// TODO:
 		//err = s.repository.UpdateStatusFailed(transactionID)
 		//if err != nil {
 		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)
