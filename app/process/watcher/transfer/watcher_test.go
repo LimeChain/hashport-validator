@@ -90,7 +90,7 @@ func Test_NewMemo_CorrectCorrelation(t *testing.T) {
 
 func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
 	w := initializeWatcher()
-	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(0), "0xevmaddress", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(3), "0xevmaddress", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 
 	w.mappings = onlyWrappedToNative
