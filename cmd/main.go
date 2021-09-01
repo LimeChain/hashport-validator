@@ -135,7 +135,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			configuration.Validator.Clients.Hedera.TopicId))
 
 	server.AddHandler(constants.HederaMintHtsTransfer, mint_hts.NewHandler(services.lockEvents))
-	server.AddHandler(constants.HederaBurnMessageSubmission, burn_message.NewHandler())
+	server.AddHandler(constants.HederaBurnMessageSubmission, burn_message.NewHandler(services.transfers))
 	server.AddHandler(constants.HederaFeeTransfer, fee_transfer.NewHandler(services.burnEvents))
 	server.AddHandler(constants.HederaTransferMessageSubmission, fee_message.NewHandler(services.transfers))
 

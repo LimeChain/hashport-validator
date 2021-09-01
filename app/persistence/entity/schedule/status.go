@@ -17,6 +17,7 @@
 package schedule
 
 const (
+	BURN     = "burn"
 	MINT     = "mint"
 	TRANSFER = "transfer"
 )

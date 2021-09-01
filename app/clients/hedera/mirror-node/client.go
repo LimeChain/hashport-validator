@@ -52,6 +52,13 @@ func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.A
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+		accountId.String(),
+		timestampHelper.String(from))
+	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
 func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
@@ -178,7 +185,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				continue
 			}
 			if err != nil {
-				c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err.Error())
+				c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err.Error())
 				return
 			}
 
@@ -217,7 +224,7 @@ func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure fu
 			continue
 		}
 		if err != nil {
-			c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err)
+			c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err)
 			return
 		}
 

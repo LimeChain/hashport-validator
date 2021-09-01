@@ -35,4 +35,6 @@ type HederaNode interface {
 	SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error)
 	// SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
 	SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
+	// SubmitScheduledTokenBurnTransaction creates a token burn transaction and submits it as a scheduled burn transaction
+	SubmitScheduledTokenBurnTransaction(id hedera.TokenID, amount int64, account hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
 }

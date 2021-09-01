@@ -28,7 +28,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	memo "github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -190,7 +191,7 @@ func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRev
 	return onSuccess, onRevert
 }
 
-func (ts *Service) ProcessTransfer(tm model.Transfer) error {
+func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 	intAmount, err := strconv.ParseInt(tm.Amount, 10, 64)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", tm.TransactionId, err)
@@ -229,6 +230,58 @@ func (ts *Service) ProcessTransfer(tm model.Transfer) error {
 		wrappedAmount,
 		signature)
 
+	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+}
+
+func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
+	intAmount, err := strconv.ParseInt(tm.Amount, 10, 64)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+	status := make(chan string)
+	onExecutionBurnSuccess, onExecutionBurnFail := ts.scheduledBurnTxExecutionCallbacks(tm.TransactionId, &status)
+	onTokenBurnSuccess, onTokenBurnFail := ts.scheduledBurnTxMinedCallbacks(&status)
+	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.SourceAsset, intAmount, &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
+
+statusBlocker:
+	for {
+		switch <-status {
+		case sync.DONE:
+			ts.logger.Debugf("[%s] - Proceeding to sign and submit unlock permission messages.", tm.TransactionId)
+			break statusBlocker
+		case sync.FAIL:
+			ts.logger.Errorf("[%s] - Failed to await the execution of Scheduled Burn Transaction.", tm.TransactionId)
+			return errors.New("failed-scheduled-burn")
+		}
+	}
+
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+
+	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return err
+	}
+	signature := hex.EncodeToString(signatureBytes)
+
+	signatureMessage := message.NewSignature(
+		uint64(tm.SourceChainId),
+		uint64(tm.TargetChainId),
+		tm.TransactionId,
+		tm.TargetAsset,
+		tm.Receiver,
+		tm.Amount,
+		signature)
+
+	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+}
+
+func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *message.Message) error {
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", signatureMessage.TransferID, err)
@@ -274,6 +327,85 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	onSuccess, onFail := ts.scheduledTxMinedCallbacks()
 
 	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+}
+
+func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+	onExecutionSuccess = func(transactionID, scheduleID string) {
+		ts.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
+			transferID,
+			transactionID)
+		err := ts.scheduleRepository.Create(&entity.Schedule{
+			TransactionID: transactionID,
+			ScheduleID:    scheduleID,
+			Operation:     schedule.BURN,
+			Status:        fee.StatusSubmitted, // TODO: not fee
+			TransferID: sql.NullString{
+				String: transferID,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			*status <- sync.FAIL
+			ts.logger.Errorf(
+				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
+				transferID, transactionID, scheduleID, err)
+			return
+		}
+	}
+
+	onExecutionFail = func(transactionID string) {
+		*status <- sync.FAIL
+		err := ts.scheduleRepository.Create(&entity.Schedule{
+			TransactionID: transactionID,
+			Operation:     schedule.BURN,
+			Status:        fee.StatusSubmitted, // TODO: not fee
+			TransferID: sql.NullString{
+				String: transferID,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", transferID, err)
+			return
+		}
+	}
+
+	return onExecutionSuccess, onExecutionFail
+}
+
+func (ts *Service) scheduledBurnTxMinedCallbacks(status *chan string) (onSuccess, onFail func(transactionID string)) {
+	onSuccess = func(transactionID string) {
+		ts.logger.Debugf("[%s] - Scheduled TX execution successful.", transactionID)
+
+		err := ts.scheduleRepository.UpdateStatusCompleted(transactionID)
+		if err != nil {
+			ts.logger.Errorf("[%s] Schedule - Failed to update status completed. Error [%s].", transactionID, err)
+			return
+		}
+		if err != nil {
+			*status <- sync.FAIL
+			ts.logger.Errorf("[%s] - Failed to update scheduled burn status completed. Error [%s].", transactionID, err)
+			return
+		}
+		*status <- sync.DONE
+	}
+
+	onFail = func(transactionID string) {
+		*status <- sync.FAIL
+		ts.logger.Debugf("[%s] - Scheduled TX execution has failed.", transactionID)
+		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
+		if err != nil {
+			ts.logger.Errorf("[%s] Schedule - Failed to update status failed. Error [%s].", transactionID, err)
+			return
+		}
+
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)
+			return
+		}
+	}
+
+	return onSuccess, onFail
 }
 
 func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {

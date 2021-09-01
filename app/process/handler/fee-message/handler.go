@@ -55,7 +55,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	err = fmh.transfersService.ProcessTransfer(*transferMsg)
+	err = fmh.transfersService.ProcessNativeTransfer(*transferMsg)
 	if err != nil {
 		fmh.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
 		return

@@ -25,6 +25,10 @@ type MockScheduledService struct {
 	mock.Mock
 }
 
+func (mss *MockScheduledService) ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	mss.Called(id, asset, amount)
+}
+
 func (mss *MockScheduledService) ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	mss.Called(id, asset, amount)
 }

@@ -86,7 +86,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	// In case a topic message for given transfer is being processed before the actual transfer
 	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to await incoming transfer. Error: [%s]", topicMessage.TransferID, err)
+		ss.logger.Errorf("[%s] - Failed to await incoming transfer and its fee. Error: [%s]", topicMessage.TransferID, err)
 		return false, err
 	}
 

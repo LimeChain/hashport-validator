@@ -17,20 +17,46 @@
 package burn_message
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	logger *log.Entry
+	transfersService service.Transfers
+	logger           *log.Entry
 }
 
-func NewHandler() *Handler {
+func NewHandler(transferService service.Transfers) *Handler {
 	return &Handler{
-		logger: config.GetLoggerFor("Hedera Burn and Topic Message Handler"),
+		transfersService: transferService,
+		logger:           config.GetLoggerFor("Hedera Burn and Topic Message Handler"),
 	}
 }
 
 func (mhh Handler) Handle(payload interface{}) {
-	// TODO:
+	transferMsg, ok := payload.(*model.Transfer)
+	if !ok {
+		mhh.logger.Errorf("Could not cast payload [%s]", payload)
+		return
+	}
+
+	transactionRecord, err := mhh.transfersService.InitiateNewTransfer(*transferMsg)
+	if err != nil {
+		mhh.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", transferMsg.TransactionId, err)
+		return
+	}
+
+	if transactionRecord.Status != transfer.StatusInitial {
+		mhh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
+		return
+	}
+
+	err = mhh.transfersService.ProcessWrappedTransfer(*transferMsg)
+	if err != nil {
+		mhh.logger.Errorf("[%s] - Processing failed. Error: [%s]", transferMsg.TransactionId, err)
+		return
+	}
 }
