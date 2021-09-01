@@ -24,9 +24,12 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	feeRepo "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
+	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 )
 
@@ -37,22 +40,43 @@ var (
 		Account: 222222,
 	}
 	burnEvent = burn_event.BurnEvent{
-		Amount: 111,
-		Recipient: hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 222222,
+		Transfer: transfer.Transfer{
+			TransactionId: "0x1aFA123",
+			SourceChainId: 80001,
+			TargetChainId: 0,
+			NativeChainId: 0,
+			SourceAsset:   "0x1Af32C",
+			TargetAsset:   "0.0.22222",
+			NativeAsset:   "0.0.22222",
+			Receiver:      "0.0.1337",
+			Amount:        "100",
+			RouterAddress: "0xFFFA",
 		},
-		Id:           "0.0.444444",
-		NativeAsset:  "0.0.222222",
-		WrappedAsset: "0.0.000000",
 	}
-	s               = &Service{}
-	mockBurnEventId = "some-burnevent-id"
-	id              = "0.0.123123"
-	txId            = "0.0.123123@123123-321321"
-	scheduleId      = "0.0.666666"
-	feeAmount       = "10000"
+	s                    = &Service{}
+	mockBurnEventId      = "some-burnevent-id"
+	id                   = "0.0.123123"
+	txId                 = "0.0.123123@123123-321321"
+	scheduleId           = "0.0.666666"
+	feeAmount            = "10000"
+	burnEventReceiver, _ = hedera.AccountIDFromString(burnEvent.Receiver)
+	burnEventAmount, _   = strconv.ParseInt(burnEvent.Amount, 10, 64)
+	entityTransfer       = &entity.Transfer{
+		TransactionID:      burnEvent.TransactionId,
+		SourceChainID:      burnEvent.SourceChainId,
+		TargetChainID:      burnEvent.TargetChainId,
+		NativeChainID:      burnEvent.NativeChainId,
+		SourceAsset:        burnEvent.SourceAsset,
+		TargetAsset:        burnEvent.TargetAsset,
+		NativeAsset:        burnEvent.NativeAsset,
+		Receiver:           burnEvent.Receiver,
+		Amount:             burnEvent.Amount,
+		SignatureMsgStatus: "",
+		Status:             lock_event.StatusInitial,
+		Messages:           nil,
+		Fee:                entity.Fee{},
+		Schedules:          nil,
+	}
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -63,20 +87,20 @@ func Test_ProcessEvent(t *testing.T) {
 	mockValidFee := int64(11)
 	mockTransfersAfterPreparation := []transfer.Hedera{
 		{
-			AccountID: burnEvent.Recipient,
+			AccountID: burnEventReceiver,
 			Amount:    mockRemainder + (mockFee - mockValidFee),
 		},
 		{
 			AccountID: s.bridgeAccount,
-			Amount:    -burnEvent.Amount,
+			Amount:    -burnEventAmount,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("Create", burnEvent.Id, burnEvent.Amount, burnEvent.Recipient.String()).Return(nil)
-	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
+	mocks.MTransferRepository.On("Create", &burnEvent.Transfer).Return(entityTransfer, nil)
+	mocks.MFeeService.On("CalculateFee", burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
-	mocks.MScheduledService.On("ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
+	mocks.MScheduledService.On("ExecuteScheduledTransferTransaction", burnEvent.TransactionId, burnEvent.NativeAsset, mockTransfersAfterPreparation).Return()
 
 	s.ProcessEvent(burnEvent)
 }
@@ -89,20 +113,20 @@ func Test_ProcessEventCreateFail(t *testing.T) {
 	mockValidFee := int64(11)
 	mockTransfersAfterPreparation := []transfer.Hedera{
 		{
-			AccountID: burnEvent.Recipient,
+			AccountID: burnEventReceiver,
 			Amount:    mockRemainder,
 		},
 		{
 			AccountID: s.bridgeAccount,
-			Amount:    -burnEvent.Amount,
+			Amount:    -burnEventAmount,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("Create", burnEvent.Id, burnEvent.Amount, burnEvent.Recipient.String()).Return(errors.New("invalid-result"))
-	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", burnEvent.Amount)
+	mocks.MTransferRepository.On("Create", &burnEvent.Transfer).Return(nil, errors.New("invalid-result"))
+	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", burnEventAmount)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mockFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", mockValidFee)
-	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.TransactionId, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }
@@ -115,27 +139,33 @@ func Test_ProcessEventCalculateMemberDistributionFails(t *testing.T) {
 	mockValidFee := int64(11)
 	mockTransfersAfterPreparation := []transfer.Hedera{
 		{
-			AccountID: burnEvent.Recipient,
+			AccountID: burnEventReceiver,
 			Amount:    mockRemainder,
 		},
 		{
 			AccountID: s.bridgeAccount,
-			Amount:    -burnEvent.Amount,
+			Amount:    -burnEventAmount,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("Create", burnEvent.Id, burnEvent.Amount, burnEvent.Recipient.String()).Return(nil)
-	mocks.MFeeService.On("CalculateFee", burnEvent.Amount).Return(mockFee, mockRemainder)
+	mocks.MTransferRepository.On("Create", &burnEvent.Transfer).Return(entityTransfer, nil)
+	mocks.MFeeService.On("CalculateFee", burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return(nil, errors.New("invalid-result"))
-	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.Id, burnEvent.NativeAsset, mockTransfersAfterPreparation)
+	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", burnEvent.TransactionId, burnEvent.NativeAsset, mockTransfersAfterPreparation)
 
 	s.ProcessEvent(burnEvent)
 }
 
 func Test_New(t *testing.T) {
 	setup()
-	actualService := NewService(hederaAccount.String(), mocks.MBurnEventRepository, mocks.MFeeRepository, mocks.MDistributorService, mocks.MScheduledService, mocks.MFeeService)
+	actualService := NewService(hederaAccount.String(),
+		mocks.MTransferRepository,
+		mocks.MScheduleRepository,
+		mocks.MFeeRepository,
+		mocks.MDistributorService,
+		mocks.MScheduledService,
+		mocks.MFeeService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -143,11 +173,12 @@ func Test_TransactionID(t *testing.T) {
 	setup()
 
 	expectedTransactionId := "0.0.123123-123412.123412"
-	mockBurnEventRecord := &entity.BurnEvent{
-		TransactionId: sql.NullString{String: expectedTransactionId, Valid: true},
+	mockBurnEventRecord := &entity.Schedule{
+		TransactionID: expectedTransactionId,
+		TransferID:    sql.NullString{String: expectedTransactionId, Valid: true},
 	}
 
-	mocks.MBurnEventRepository.On("Get", mockBurnEventId).Return(mockBurnEventRecord, nil)
+	mocks.MScheduleRepository.On("GetTransferByTransactionID", mockBurnEventId).Return(mockBurnEventRecord, nil)
 
 	actualTransactionId, err := s.TransactionID(mockBurnEventId)
 	assert.Nil(t, err)
@@ -159,7 +190,7 @@ func Test_TransactionIDRepositoryError(t *testing.T) {
 
 	expectedError := errors.New("connection-refused")
 
-	mocks.MBurnEventRepository.On("Get", mockBurnEventId).Return(nil, expectedError)
+	mocks.MScheduleRepository.On("GetTransferByTransactionID", mockBurnEventId).Return(nil, expectedError)
 
 	actualTransactionId, err := s.TransactionID(mockBurnEventId)
 	assert.Error(t, expectedError, err)
@@ -169,8 +200,8 @@ func Test_TransactionIDRepositoryError(t *testing.T) {
 func Test_TransactionIDNotFound(t *testing.T) {
 	setup()
 
-	expectedError := errors.New("not found")
-	mocks.MBurnEventRepository.On("Get", mockBurnEventId).Return(nil, nil)
+	expectedError := errors.New("not-found")
+	mocks.MScheduleRepository.On("GetTransferByTransactionID", mockBurnEventId).Return(nil, expectedError)
 
 	actualTransactionId, err := s.TransactionID(mockBurnEventId)
 	assert.Error(t, expectedError, err)
@@ -185,14 +216,24 @@ func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Operation:     schedule.TRANSFER,
+		Status:        feeRepo.StatusSubmitted,
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
-	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(nil, nil)
+	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil, nil)
 
 	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
 	onSuccess(txId, scheduleId)
@@ -206,13 +247,23 @@ func Test_ScheduledExecutionUpdateStatusFails(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Operation:     schedule.TRANSFER,
+		Status:        feeRepo.StatusSubmitted,
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(errors.New("update-status-failed"))
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(errors.New("update-status-failed"))
 	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
 
 	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
@@ -227,13 +278,23 @@ func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusSubmitted,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Operation:     schedule.TRANSFER,
+		Status:        feeRepo.StatusSubmitted,
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusSubmitted", id, scheduleId, txId).Return(nil)
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
 
 	onSuccess, _ := s.scheduledTxExecutionCallbacks(id, feeAmount)
@@ -247,13 +308,21 @@ func Test_ScheduledExecutionFailCallback(t *testing.T) {
 		TransactionID: txId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		Status:        feeRepo.StatusFailed,
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(nil)
 
 	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
@@ -268,13 +337,21 @@ func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
 		ScheduleID:    scheduleId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		Status:        feeRepo.StatusFailed,
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-failed"))
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(errors.New("update-status-failed"))
 	mocks.MFeeRepository.AssertNotCalled(t, "Create", mockEntityFee)
 
 	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
@@ -288,13 +365,22 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 		TransactionID: txId,
 		Amount:        feeAmount,
 		Status:        feeRepo.StatusFailed,
-		BurnEventID: sql.NullString{
+		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
 		},
 	}
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mockEntitySchedule := &entity.Schedule{
+		TransactionID: txId,
+		Status:        feeRepo.StatusFailed,
+		TransferID: sql.NullString{
+			String: id,
+			Valid:  true,
+		},
+	}
+
+	mocks.MScheduleRepository.On("Create", mockEntitySchedule).Return(nil)
 	mocks.MFeeRepository.On("Create", mockEntityFee).Return(errors.New("create-failed"))
 
 	_, onError := s.scheduledTxExecutionCallbacks(id, feeAmount)
@@ -304,7 +390,8 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 func Test_ScheduledTxMinedExecutionSuccessCallback(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(nil)
 
 	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
@@ -314,7 +401,8 @@ func Test_ScheduledTxMinedExecutionSuccessCallback(t *testing.T) {
 func Test_ScheduledTxMinedExecutionSuccessUpdateStatusFails(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(errors.New("update-status-fail"))
+	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-status-fail"))
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusCompleted", txId)
 
 	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
@@ -324,7 +412,7 @@ func Test_ScheduledTxMinedExecutionSuccessUpdateStatusFails(t *testing.T) {
 func Test_ScheduledTxMinedExecutionFailCallback(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MScheduleRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(nil)
 
 	_, onFail := s.scheduledTxMinedCallbacks(id)
@@ -334,7 +422,7 @@ func Test_ScheduledTxMinedExecutionFailCallback(t *testing.T) {
 func Test_ScheduledTxMinedExecutionFailUpdateStatusFailedFails(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-fail"))
+	mocks.MScheduleRepository.On("UpdateStatusFailed", id).Return(errors.New("update-status-fail"))
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusFailed", txId)
 
 	_, onFail := s.scheduledTxMinedCallbacks(id)
@@ -344,7 +432,7 @@ func Test_ScheduledTxMinedExecutionFailUpdateStatusFailedFails(t *testing.T) {
 func Test_ScheduledTxMinedExecutionFailFeeUpdateFails(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusFailed", id).Return(nil)
+	mocks.MScheduleRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(errors.New("update-fail"))
 
 	_, onFail := s.scheduledTxMinedCallbacks(id)
@@ -354,7 +442,8 @@ func Test_ScheduledTxMinedExecutionFailFeeUpdateFails(t *testing.T) {
 func Test_ScheduledTxMinedExecutionSuccessFeeUpdateFails(t *testing.T) {
 	setup()
 
-	mocks.MBurnEventRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
+	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-fail"))
 
 	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
@@ -366,7 +455,8 @@ func setup() {
 	s = &Service{
 		bridgeAccount:      hederaAccount,
 		feeRepository:      mocks.MFeeRepository,
-		repository:         mocks.MBurnEventRepository,
+		repository:         mocks.MTransferRepository,
+		scheduleRepository: mocks.MScheduleRepository,
 		distributorService: mocks.MDistributorService,
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,

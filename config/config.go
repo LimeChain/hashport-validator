@@ -64,11 +64,6 @@ func LoadWrappedToNativeAssets(a *AssetMappings) {
 	}
 }
 
-type NativeAsset struct {
-	ChainId int64
-	Asset   string
-}
-
 func GetConfig(config *Config, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return err
@@ -98,8 +93,13 @@ type AssetMappings struct {
 	WrappedToNativeByNetwork map[int64]map[string]*NativeAsset
 }
 
-func (a *AssetMappings) NativeToWrapped(nativeAsset string, nativeChainId, wrappedChainId int64) string {
-	return a.NativeToWrappedByNetwork[nativeChainId].NativeAssets[nativeAsset][wrappedChainId]
+type NativeAsset struct {
+	ChainId int64
+	Asset   string
+}
+
+func (a *AssetMappings) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
+	return a.NativeToWrappedByNetwork[nativeChainId].NativeAssets[nativeAsset][targetChainId]
 }
 
 func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId int64) *NativeAsset {

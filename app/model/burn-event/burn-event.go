@@ -16,13 +16,8 @@
 
 package burn_event
 
-import "github.com/hashgraph/hedera-sdk-go/v2"
+import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 
-// BurnEvent serves as a model between EVM Watcher and Handler
 type BurnEvent struct {
-	Id           string // {evmTxHash}-{logIndex}
-	Amount       int64
-	Recipient    hedera.AccountID
-	NativeAsset  string
-	WrappedAsset string
+	transfer.Transfer
 }

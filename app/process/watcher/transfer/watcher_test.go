@@ -31,6 +31,15 @@ var (
 		},
 	}
 	onlyWrappedToNative = config.AssetMappings{
+		NativeToWrappedByNetwork: map[int64]config.Network{
+			3: {
+				NativeAssets: map[string]map[int64]string{
+					"0xevmaddress": {
+						0: "0.0.11111",
+					},
+				},
+			},
+		},
 		WrappedToNativeByNetwork: map[int64]map[string]*config.NativeAsset{
 			0: {
 				"0.0.111111": &config.NativeAsset{
@@ -65,7 +74,7 @@ func Test_NewMemo_CorrectCorrelation(t *testing.T) {
 
 func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
 	w := initializeWatcher()
-	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(3), "0xevmaddress", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(0), "0xevmaddress", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 
 	w.mappings = onlyWrappedToNative
@@ -85,6 +94,6 @@ func initializeWatcher() *Watcher {
 		5,
 		mocks.MStatusRepository,
 		0,
-		map[int64]service2.Contracts{3: mocks.MBridgeContractService},
+		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		config.AssetMappings{})
 }

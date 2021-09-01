@@ -39,26 +39,24 @@ func NewHandler(transfersService service.Transfers) *Handler {
 }
 
 func (th Handler) Handle(payload interface{}) {
-	var err error
-	switch t := payload.(type) {
-	case *model.NativeTransfer:
-		err = th.initiateTransferAndCheckStatus(t.Transfer)
-		if err != nil {
-			return
-		}
+	t, ok := payload.(*model.Transfer)
+	if !ok {
+		th.logger.Errorf("Could not cast payload [%s]", payload)
+		return
+	}
+	err := th.initiateTransferAndCheckStatus(*t)
+	if err != nil {
+		return
+	}
 
-		err = th.transfersService.ProcessNativeTransfer(t.Transfer)
+	if t.SourceChainId == 0 {
+		err = th.transfersService.ProcessNativeTransfer(*t)
 		if err != nil {
 			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", t.TransactionId, err)
 			return
 		}
-	case *model.WrappedTransfer:
-		err = th.initiateTransferAndCheckStatus(t.Transfer)
-		if err != nil {
-			return
-		}
-
-		err = th.transfersService.ProcessWrappedTransfer(t.Transfer)
+	} else {
+		err = th.transfersService.ProcessWrappedTransfer(*t)
 		if err != nil {
 			th.logger.Errorf("[%s] - Processing failed. Error: [%s]", t.TransactionId, err)
 			return

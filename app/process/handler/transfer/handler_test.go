@@ -34,7 +34,7 @@ var (
 		Receiver:      "0x12345",
 		Amount:        "10000000000",
 		NativeAsset:   constants.Hbar,
-		WrappedAsset:  "0x45678",
+		TargetAsset:   "0x45678",
 	}
 	mnt = &model.NativeTransfer{Transfer: mt}
 	mwt = &model.WrappedTransfer{Transfer: mt}
@@ -50,11 +50,11 @@ func Test_Handle(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mnt.TransactionId,
-		Receiver:      mnt.Receiver,
-		Amount:        mnt.Amount,
-		NativeAsset:   mnt.NativeAsset,
-		WrappedAsset:  mnt.WrappedAsset,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
+		NativeAsset:   mt.NativeAsset,
+		TargetAsset:   mt.TargetAsset,
 		Status:        transfer.StatusInitial,
 	}
 

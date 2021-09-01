@@ -16,51 +16,35 @@
 
 package transfer
 
-type NativeTransfer struct {
-	Transfer
-}
-
-type WrappedTransfer struct {
-	Transfer
-}
-
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId string
+	SourceChainId int64
+	TargetChainId int64
+	NativeChainId int64
+	SourceAsset   string
+	TargetAsset   string
+	NativeAsset   string
 	Receiver      string
 	Amount        string
-	NativeAsset   string
-	WrappedAsset  string
 	RouterAddress string
 	TargetChainID int64
 }
 
-// NewNative instantiates Transfer struct ready for submission to the handler
-func NewNative(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string, targetChainID int64) *NativeTransfer {
-	return &NativeTransfer{
-		Transfer: Transfer{
-			TransactionId: txId,
-			Receiver:      receiver,
-			Amount:        amount,
-			NativeAsset:   nativeAsset,
-			WrappedAsset:  wrappedAsset,
-			RouterAddress: routerAddress,
-			TargetChainID: targetChainID,
-		},
-	}
-}
-
-// NewNative instantiates Transfer struct ready for submission to the handler
-func NewWrapped(txId, receiver, nativeAsset, wrappedAsset, amount, routerAddress string, targetChainID int64) *WrappedTransfer {
-	return &WrappedTransfer{
-		Transfer: Transfer{
-			TransactionId: txId,
-			Receiver:      receiver,
-			Amount:        amount,
-			NativeAsset:   nativeAsset,
-			WrappedAsset:  wrappedAsset,
-			RouterAddress: routerAddress,
-			TargetChainID: targetChainID,
-		},
+// New instantiates Transfer struct ready for submission to the handler
+func New(txId string,
+	sourceChainId, targetChainId, nativeChainId int64,
+	receiver, sourceAsset, targetAsset, nativeAsset, amount, routerAddress string) *Transfer {
+	return &Transfer{
+		TransactionId: txId,
+		SourceChainId: sourceChainId,
+		TargetChainId: targetChainId,
+		NativeChainId: nativeChainId,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
+		Receiver:      receiver,
+		Amount:        amount,
+		RouterAddress: routerAddress,
 	}
 }

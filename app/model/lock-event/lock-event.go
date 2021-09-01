@@ -16,17 +16,8 @@
 
 package lock_event
 
-import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
-	"math/big"
-)
+import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 
 type LockEvent struct {
-	Id            string
-	Amount        int64
-	Recipient     hedera.AccountID
-	NativeAsset   string
-	WrappedAsset  string
-	SourceChainId *big.Int
-	TargetChainId *big.Int
+	transfer.Transfer
 }

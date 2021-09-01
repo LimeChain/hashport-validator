@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package entity
+package repository
 
-import "database/sql"
+import "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 
-type Fee struct {
-	TransactionID string `gorm:"primaryKey"`
-	ScheduleID    string `gorm:"unique"`
-	Amount        string
-	Status        string
-	TransferID    sql.NullString
-	BurnEventID   sql.NullString
+type Schedule interface {
+	// Returns Schedule. Returns nil if not found
+	Get(txId string) (*entity.Schedule, error)
+	Create(entity *entity.Schedule) error
+	UpdateStatusCompleted(txId string) error
+	UpdateStatusFailed(txId string) error
+	GetTransferByTransactionID(id string) (*entity.Schedule, error)
 }

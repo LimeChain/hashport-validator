@@ -47,8 +47,11 @@ type TransferData struct {
 	Recipient     string   `json:"recipient"`
 	RouterAddress string   `json:"routerAddress"`
 	Amount        string   `json:"amount"`
+	SourceChainId int64    `json:"sourceChainId"`
+	TargetChainId int64    `json:"targetChainId"`
+	SourceAsset   string   `json:"sourceAsset"`
 	NativeAsset   string   `json:"nativeAsset"`
-	WrappedAsset  string   `json:"wrappedAsset"`
+	TargetAsset   string   `json:"wrappedAsset"`
 	Signatures    []string `json:"signatures"`
 	Majority      bool     `json:"majority"`
 }

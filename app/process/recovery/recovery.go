@@ -227,16 +227,19 @@ func (r Recovery) processUnfinishedOperations() error {
 	}
 
 	for _, t := range unprocessedTransfers {
-		transferMsg := transfer.NewNative(
+		transferMsg := transfer.New(
 			t.TransactionID,
+			t.SourceChainID,
+			t.TargetChainID,
+			t.NativeChainID,
 			t.Receiver,
+			t.SourceAsset,
+			t.TargetAsset,
 			t.NativeAsset,
-			t.WrappedAsset,
 			t.Amount,
-			r.contractServices[t.TargetChainID].Address().String(),
-			t.TargetChainID)
+			r.contractServices[t.TargetChainID].Address().String())
 
-		err = r.transfers.ProcessNativeTransfer(transferMsg.Transfer)
+		err = r.transfers.ProcessNativeTransfer(*transferMsg)
 		if err != nil {
 			r.logger.Errorf("Processing of TX [%s] failed", transferMsg.TransactionId)
 			continue

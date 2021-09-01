@@ -19,10 +19,9 @@ package main
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/database"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/persistence/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 )
@@ -33,9 +32,8 @@ type Repositories struct {
 	messageStatus  repository.Status
 	transfer       repository.Transfer
 	message        repository.Message
-	burnEvent      repository.BurnEvent
-	lockEvent      repository.LockEvent
 	fee            repository.Fee
+	schedule       repository.Schedule
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
@@ -46,8 +44,7 @@ func PrepareRepositories(db database.Database) *Repositories {
 		messageStatus:  status.NewRepositoryForStatus(connection, status.Message),
 		transfer:       transfer.NewRepository(connection),
 		message:        message.NewRepository(connection),
-		burnEvent:      burn_event.NewRepository(connection),
-		lockEvent:      lock_event.NewRepository(connection),
 		fee:            fee.NewRepository(connection),
+		schedule:       schedule.NewRepository(connection),
 	}
 }
