@@ -51,6 +51,7 @@ func Load() *Setup {
 	var configuration Config
 	err := getConfig(&configuration, e2eConfigPath)
 	config.LoadWrappedToNativeAssets(&configuration.AssetMappings)
+	config.LoadNativeHederaFees(&configuration.AssetMappings, &configuration.Hedera.FeePercentages)
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
 	}
@@ -86,7 +87,7 @@ type Setup struct {
 	TopicID               hederaSDK.TopicID
 	TokenID               hederaSDK.TokenID
 	NativeEvmTokenAddress string
-	FeePercentage         int64
+	FeePercentages        map[string]int64
 	Members               []hederaSDK.AccountID
 	Clients               *clients
 	DbValidator           *db_validation.Service
@@ -109,8 +110,10 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	if config.Hedera.FeePercentage < fee.MinPercentage || config.Hedera.FeePercentage > fee.MaxPercentage {
-		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
+	for _, f := range config.Hedera.FeePercentages {
+		if f < fee.MinPercentage || f > fee.MaxPercentage {
+			return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentages))
+		}
 	}
 
 	if len(config.Hedera.Members) == 0 {
@@ -138,7 +141,7 @@ func newSetup(config Config) (*Setup, error) {
 		TopicID:               topicID,
 		TokenID:               tokenID,
 		NativeEvmTokenAddress: config.Tokens.EvmNativeToken,
-		FeePercentage:         config.Hedera.FeePercentage,
+		FeePercentages:        config.Hedera.FeePercentages,
 		Members:               members,
 		Clients:               clients,
 		DbValidator:           dbValidator,
@@ -213,7 +216,7 @@ func newClients(config Config) (*clients, error) {
 		EVM:             EVM,
 		ValidatorClient: validatorClient,
 		MirrorNode:      mirrorNode,
-		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
+		FeeCalculator:   fee.New(config.Hedera.FeePercentages),
 		Distributor:     distributor.New(config.Hedera.Members),
 	}, nil
 }
@@ -305,9 +308,9 @@ type Tokens struct {
 
 // hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string            `yaml:"network_type"`
-	BridgeAccount     string            `yaml:"bridge_account"`
-	FeePercentage     int64             `yaml:"fee_percentage"`
+	NetworkType       string `yaml:"network_type"`
+	BridgeAccount     string `yaml:"bridge_account"`
+	FeePercentages    map[string]int64
 	Members           []string          `yaml:"members"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`

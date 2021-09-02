@@ -25,23 +25,25 @@ const MaxPercentage = 100000
 const MinPercentage = 0
 
 type Service struct {
-	feePercentage int64
-	logger        *log.Entry
+	feePercentages map[string]int64
+	logger         *log.Entry
 }
 
-func New(feePercentage int64) *Service {
-	if feePercentage < MinPercentage || feePercentage > MaxPercentage {
-		log.Fatalf("Invalid fee percentage: [%d]", feePercentage)
+func New(feePercentages map[string]int64) *Service {
+	for _, fee := range feePercentages {
+		if fee < MinPercentage || fee > MaxPercentage {
+			log.Fatalf("Invalid fee percentage: [%d]", fee)
+		}
 	}
 
 	return &Service{
-		feePercentage: feePercentage,
-		logger:        config.GetLoggerFor("Fee Service")}
+		feePercentages: feePercentages,
+		logger:         config.GetLoggerFor("Fee Service")}
 }
 
-// CalculateFee calculates the fee and remainder of a given amount
-func (s Service) CalculateFee(amount int64) (fee, remainder int64) {
-	fee = amount * s.feePercentage / MaxPercentage
+// CalculateFee calculates the fee and remainder of a given token and amount
+func (s Service) CalculateFee(token string, amount int64) (fee, remainder int64) {
+	fee = amount * s.feePercentages[token] / MaxPercentage
 	remainder = amount - fee
 
 	totalAmount := remainder + fee

@@ -151,28 +151,37 @@ func setup() {
 		mappings: config.AssetMappings{
 			NativeToWrappedByNetwork: map[int64]config.Network{
 				2: {
-					NativeAssets: map[string]map[int64]string{
+					Native: map[string]config.Mappings{
 						"0x0000000000000000000000000000000000000000": {
-							0: "",
+							FeePercentage: 10000,
+							Assets: map[int64]string{
+								0: "",
+							},
 						},
 					},
 				},
 				3: {
-					NativeAssets: map[string]map[int64]string{
+					Native: map[string]config.Mappings{
 						"0x0000000000000000000000000000000000000000": {},
 					},
 				},
 				32: {
-					NativeAssets: map[string]map[int64]string{
+					Native: map[string]config.Mappings{
 						"0x0000000000000000000000000000000000000000": {
-							0: "asd",
+							FeePercentage: 10000,
+							Assets: map[int64]string{
+								0: "asd",
+							},
 						},
 					},
 				},
 				33: {
-					NativeAssets: map[string]map[int64]string{
+					Native: map[string]config.Mappings{
 						"0x0000000000000000000000000000000000000000": {
-							0: constants.Hbar,
+							FeePercentage: 10000,
+							Assets: map[int64]string{
+								0: constants.Hbar,
+							},
 						},
 					},
 				},
