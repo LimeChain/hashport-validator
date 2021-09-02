@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
@@ -60,14 +59,14 @@ func NewService(
 	}
 }
 
-func (s Service) ProcessEvent(event lock_event.LockEvent) {
+func (s Service) ProcessEvent(event transfer.Transfer) {
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
 	}
 	// TODO: Based on the sourceChain we should trigger different logic.
 	// In one case handler for hedera scheduled transactions in another case EVM handler to publish signatures in HCS
-	_, err = s.repository.Create(&event.Transfer)
+	_, err = s.repository.Create(&event)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a lock event record. Error [%s].", event.TransactionId, err)
 		return
@@ -207,6 +206,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string) (onS
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
 			return
 		}
+		// TODO:
 		//err = s.repository.UpdateStatusFailed(transactionID)
 		//if err != nil {
 		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)

@@ -14,15 +14,32 @@
  * limitations under the License.
  */
 
-package service
+package fee_transfer
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 )
 
-// LockEvent is the major service used for processing BurnEvent operations
-type LockEvent interface {
-	// ProcessEvent processes the lock event by submitting the appropriate
-	// Scheduled Token Mint and Transfer transactions
-	ProcessEvent(event transfer.Transfer)
+type Handler struct {
+	burnService service.BurnEvent
+	logger      *log.Entry
+}
+
+func NewHandler(burnService service.BurnEvent) *Handler {
+	return &Handler{
+		burnService: burnService,
+		logger:      config.GetLoggerFor("Hedera Fee and Schedule Transfer Handler"),
+	}
+}
+
+func (fth Handler) Handle(payload interface{}) {
+	event, ok := payload.(*transfer.Transfer)
+	if !ok {
+		fth.logger.Errorf("Could not cast payload [%s]", payload)
+		return
+	}
+	fth.burnService.ProcessEvent(*event)
 }
