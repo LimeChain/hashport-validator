@@ -17,3 +17,13 @@
 package constants
 
 const Hbar = "HBAR"
+
+// Handler topics
+const (
+	HederaFeeTransfer               = "HEDERA_FEE_TRANSFER"
+	HederaTransferMessageSubmission = "HEDERA_TRANSFER_MSG_SUBMISSION"
+	HederaBurnMessageSubmission     = "BURN_TOPIC_MSG_SUBMISSION"
+	HederaMintHtsTransfer           = "HEDERA_MINT_HTS_TRANSFER"
+	TopicMessageSubmission          = "TOPIC_MSG_SUBMISSION"
+	TopicMessageValidation          = "TOPIC_MSG_VALIDATION"
+)

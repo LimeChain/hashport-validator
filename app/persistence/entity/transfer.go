@@ -30,6 +30,7 @@ type Transfer struct {
 	Amount             string
 	SignatureMsgStatus string
 	Status             string
+	HasFee             bool
 	Messages           []Message  `gorm:"foreignKey:TransferID"`
 	Fee                Fee        `gorm:"foreignKey:TransferID"`
 	Schedules          []Schedule `gorm:"foreignKey:TransferID"`

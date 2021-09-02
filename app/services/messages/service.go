@@ -83,65 +83,47 @@ func NewService(
 // SanityCheckSignature performs validation on the topic message metadata.
 // Validates it against the Transaction Record metadata from DB
 func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, error) {
-	expectedNativeAsset := ""
-	expectedWrappedAsset := ""
+	// In case a topic message for given transfer is being processed before the actual transfer
+	t, err := ss.awaitTransfer(topicMessage.TransferID)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to await incoming transfer and its fee. Error: [%s]", topicMessage.TransferID, err)
+		return false, err
+	}
 
-	var t *entity.Transfer
-	var feeAmount int64
-	var err error
-
-	// TODO: switch int64 to uint64
-	asset := ss.mappings.NativeToWrapped(topicMessage.Asset, 0, int64(topicMessage.SourceChainId))
-	if asset != "" {
-		// In case a topic message for given transfer is being processed before the actual transfer
-		t, err = ss.awaitTransferAndFee(topicMessage.TransferID)
+	signedAmount := t.Amount
+	if t.HasFee {
+		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
-			ss.logger.Errorf("[%s] - Failed to await incoming transfer and its fee. Error: [%s]", topicMessage.TransferID, err)
+			ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
 			return false, err
 		}
-		feeAmount, err = strconv.ParseInt(t.Fee.Amount, 10, 64)
+
+		feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", topicMessage.TransferID, err)
 			return false, err
 		}
-
-		expectedNativeAsset = topicMessage.Asset
-		expectedWrappedAsset = asset
+		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
 
-	// TODO: switch int64 to uint64
-	nativeAsset := ss.mappings.WrappedToNative(topicMessage.Asset, 0).Asset
-	if asset == "" && nativeAsset != "" {
-		asset = nativeAsset
-		t, err = ss.awaitTransfer(topicMessage.TransferID)
-		if err != nil {
-			ss.logger.Errorf("[%s] - Failed to await incoming transfer. Error: [%s]", topicMessage.TransferID, err)
-			return false, err
-		}
-
-		expectedNativeAsset = asset
-		expectedWrappedAsset = topicMessage.Asset
-	}
-
-	if asset == "" {
-		ss.logger.Errorf("[%s] - Could not parse asset [%s]", topicMessage.TransferID, topicMessage.Asset)
-		return false, errors.New("unsupported-token")
-	}
-
-	amount, err := strconv.ParseInt(t.Amount, 10, 64)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
-		return false, err
-	}
-
-	signedAmount := strconv.FormatInt(amount-feeAmount, 10)
+	//targetAsset := ss.mappings.NativeToWrapped(t.SourceAsset, int64(topicMessage.SourceChainId), int64(topicMessage.TargetChainId))
+	//if targetAsset == "" {
+	//	ss.logger.Errorf("[%s] - Could not parse native asset [%s]", t.TransactionID, t.NativeAsset)
+	//	nativeAsset := ss.mappings.WrappedToNative(t.NativeAsset, int64(topicMessage.SourceChainId))
+	//	if nativeAsset == nil {
+	//		ss.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+	//		return
+	//	}
+	//	return false, err
+	//}
 
 	match :=
 		topicMessage.Recipient == t.Receiver &&
 			topicMessage.Amount == signedAmount &&
-			expectedNativeAsset == t.NativeAsset &&
-			expectedWrappedAsset == t.TargetAsset &&
-			topicMessage.TargetChainId == uint64(t.TargetChainID)
+			topicMessage.Asset == t.TargetAsset &&
+			int64(topicMessage.TargetChainId) == t.TargetChainID &&
+			int64(topicMessage.SourceChainId) == t.SourceChainID &&
+			topicMessage.TransferID == t.TransactionID
 	return match, nil
 }
 
@@ -218,8 +200,8 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 	return address, nil
 }
 
-// awaitTransferAndFee checks until given transfer is found
-func (ss *Service) awaitTransferAndFee(transferID string) (*entity.Transfer, error) {
+// awaitTransfer checks until given transfer is found
+func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	for {
 		t, err := ss.transferRepository.GetWithFee(transferID)
 		if err != nil {
@@ -227,26 +209,15 @@ func (ss *Service) awaitTransferAndFee(transferID string) (*entity.Transfer, err
 			return nil, err
 		}
 
-		if t != nil && t.Fee.TransactionID != "" {
-			return t, nil
-		}
-		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
-		time.Sleep(5 * time.Second)
-	}
-}
-
-// awaitTransfer checks until given transfer is found
-func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
-	for {
-		t, err := ss.transferRepository.GetByTransactionId(transferID)
-		if err != nil {
-			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
-			return nil, err
-		}
-
 		if t != nil {
-			return t, nil
+			if !t.HasFee {
+				return t, nil
+			}
+			if t.HasFee && t.Fee.TransactionID != "" {
+				return t, nil
+			}
 		}
+
 		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
 		time.Sleep(5 * time.Second)
 	}

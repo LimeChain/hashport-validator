@@ -19,7 +19,6 @@ package lock_event
 import (
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -33,19 +32,17 @@ var (
 		Realm:   0,
 		Account: 222222,
 	}
-	lockEvent = lock_event.LockEvent{
-		Transfer: transfer.Transfer{
-			TransactionId: "0x19283812312-2",
-			SourceChainId: 3,
-			TargetChainId: 0,
-			NativeChainId: 0,
-			SourceAsset:   "0x1283",
-			TargetAsset:   "0.0.222222",
-			NativeAsset:   "0.1283",
-			Receiver:      "0.0.1234",
-			Amount:        "111",
-			RouterAddress: "",
-		},
+	lockEvent = transfer.Transfer{
+		TransactionId: "0x19283812312-2",
+		SourceChainId: 3,
+		TargetChainId: 0,
+		NativeChainId: 0,
+		SourceAsset:   "0x1283",
+		TargetAsset:   "0.0.222222",
+		NativeAsset:   "0.1283",
+		Receiver:      "0.0.1234",
+		Amount:        "111",
+		RouterAddress: "",
 	}
 	s               = &Service{}
 	mockLockEventId = "some-lock-event-id"
@@ -73,7 +70,7 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 		mocks.MScheduleRepository,
 		mocks.MScheduledService)
 
-	mocks.MTransferRepository.On("Create", &lockEvent.Transfer).Return(nil, errors.New("e"))
+	mocks.MTransferRepository.On("Create", &lockEvent).Return(nil, errors.New("e"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledMintTransaction")
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction")
 

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package lock_event
+package schedule
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-
-type LockEvent struct {
-	transfer.Transfer
-}
+const (
+	BURN     = "burn"
+	MINT     = "mint"
+	TRANSFER = "transfer"
+)

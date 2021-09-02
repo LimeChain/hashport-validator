@@ -18,7 +18,7 @@ package queue
 
 type Message struct {
 	Payload interface{}
-	ChainId int64
+	Topic   string
 }
 
 // Queue is a wrapper of a go channel, particularly to restrict actions on the channel itself

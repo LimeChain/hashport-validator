@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package transfer
+package fee_message
 
 import (
 	"errors"
@@ -22,9 +22,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	mocks "github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
-	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -36,8 +35,6 @@ var (
 		NativeAsset:   constants.Hbar,
 		TargetAsset:   "0x45678",
 	}
-	mnt = &model.NativeTransfer{Transfer: mt}
-	mwt = &model.WrappedTransfer{Transfer: mt}
 )
 
 func InitializeHandler() (*Handler, *service.MockTransferService) {
@@ -61,7 +58,7 @@ func Test_Handle(t *testing.T) {
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 	mockedService.On("ProcessNativeTransfer", mt).Return(nil)
 
-	ctHandler.Handle(mnt)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertCalled(t, "InitiateNewTransfer", mt)
 	mockedService.AssertCalled(t, "ProcessNativeTransfer", mt)
@@ -83,7 +80,7 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 	mockedService.On("InitiateNewTransfer", mt).Return(nil, errors.New("some-error"))
 
-	ctHandler.Handle(mnt)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
@@ -92,15 +89,15 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mnt.TransactionId,
-		Receiver:      mnt.Receiver,
-		Amount:        mnt.Amount,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
 		Status:        transfer.StatusCompleted,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 
-	ctHandler.Handle(mnt)
+	ctHandler.Handle(&mt)
 
 	mockedService.AssertNotCalled(t, "ProcessNativeTransfer")
 }
@@ -109,32 +106,14 @@ func Test_Handle_ProcessNativeTransfer_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 
 	tx := &entity.Transfer{
-		TransactionID: mnt.TransactionId,
-		Receiver:      mnt.Receiver,
-		Amount:        mnt.Amount,
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
 		Status:        transfer.StatusInitial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 	mockedService.On("ProcessNativeTransfer", mt).Return(errors.New("some-error"))
-	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
 
-	ctHandler.Handle(mnt)
-}
-
-func Test_Handle_ProcessWrappedTransfer_Fails(t *testing.T) {
-	ctHandler, mockedService := InitializeHandler()
-
-	tx := &entity.Transfer{
-		TransactionID: mwt.TransactionId,
-		Receiver:      mwt.Receiver,
-		Amount:        mwt.Amount,
-		Status:        transfer.StatusInitial,
-	}
-
-	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
-	mockedService.On("ProcessWrappedTransfer", mt).Return(errors.New("some-error"))
-	mockedService.AssertNotCalled(t, "ProcessNativeTransfer", mock.Anything)
-
-	ctHandler.Handle(mwt)
+	ctHandler.Handle(&mt)
 }
