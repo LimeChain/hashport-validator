@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/mock"
@@ -120,41 +121,48 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
-	w = &Watcher{
-		routerContractAddress: "0xsomeaddress",
-		contracts:             mocks.MBridgeContractService,
-		evmClient:             mocks.MEVMClient,
-		logger:                config.GetLoggerFor("Burn Event Service"),
-		mappings: config.AssetMappings{
-			NativeToWrappedByNetwork: map[int64]config.Network{
-				2: {
-					NativeAssets: map[string]map[int64]string{
-						"0x0000000000000000000000000000000000000000": {
-							0: "",
-						},
-					},
-				},
-				3: {
-					NativeAssets: map[string]map[int64]string{
-						"0x0000000000000000000000000000000000000000": {},
-					},
-				},
-				32: {
-					NativeAssets: map[string]map[int64]string{
-						"0x0000000000000000000000000000000000000000": {
-							0: "asd",
-						},
-					},
-				},
-				33: {
-					NativeAssets: map[string]map[int64]string{
-						"0x0000000000000000000000000000000000000000": {
-							0: constants.Hbar,
-						},
+
+	networks := map[int64]*parser.Network{
+		2: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
 					},
 				},
 			},
-			WrappedToNativeByNetwork: make(map[int64]map[string]*config.NativeAsset),
 		},
+		3: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
+					},
+				},
+			},
+		},
+		32: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
+					},
+				},
+			},
+		},
+		33: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: constants.Hbar,
+					},
+				},
+			}},
+	}
+	w = &Watcher{
+		contracts: mocks.MBridgeContractService,
+		evmClient: mocks.MEVMClient,
+		logger:    config.GetLoggerFor("Burn Event Service"),
+		mappings:  config.LoadAssets(networks),
 	}
 }
