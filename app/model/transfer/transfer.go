@@ -28,7 +28,7 @@ type Transfer struct {
 	Receiver      string
 	Amount        string
 	RouterAddress string
-	TargetChainID int64
+	HasFee        bool
 }
 
 // New instantiates Transfer struct ready for submission to the handler

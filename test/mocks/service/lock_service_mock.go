@@ -17,7 +17,7 @@
 package service
 
 import (
-	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/model/lock-event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -25,6 +25,6 @@ type MockLockService struct {
 	mock.Mock
 }
 
-func (m *MockLockService) ProcessEvent(event lock_event.LockEvent) {
+func (m *MockLockService) ProcessEvent(event transfer.Transfer) {
 	m.Called(event)
 }

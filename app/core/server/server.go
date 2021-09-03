@@ -18,31 +18,54 @@ package server
 
 import (
 	"github.com/go-chi/chi"
-	"github.com/limechain/hedera-eth-bridge-validator/app/core/pair"
+	q "github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
+type Watcher interface {
+	Watch(queue queue.Queue)
+}
+
+type Handler interface {
+	Handle(interface{})
+}
+
 type Server struct {
-	logger *log.Entry
-	pairs  []*pair.Pair
+	logger   *log.Entry
+	watchers []Watcher
+	handlers map[string]Handler
+	queue    queue.Queue
 }
 
 func NewServer() *Server {
 	return &Server{
-		logger: config.GetLoggerFor("Server"),
+		logger:   config.GetLoggerFor("Server"),
+		handlers: make(map[string]Handler),
+		queue:    q.NewQueue(),
 	}
 }
 
-func (s *Server) AddPair(watcher pair.Watcher, handlers map[int64]pair.Handler) {
-	s.pairs = append(s.pairs, pair.NewPair(watcher, handlers))
+func (s *Server) AddWatcher(watcher Watcher) {
+	s.watchers = append(s.watchers, watcher)
 }
 
-// Run starts every pair's Listen and serves the chi.Mux on a given port
+func (s *Server) AddHandler(topic string, handler Handler) {
+	s.handlers[topic] = handler
+}
+
+// Run starts every handler and watcher, serving the chi.Mux on a given port
 func (s *Server) Run(chi *chi.Mux, port string) {
-	for _, p := range s.pairs {
-		p.Listen()
+	go func() {
+		for message := range s.queue.Channel() {
+			go s.handlers[message.Topic].Handle(message.Payload)
+		}
+	}()
+
+	for _, watcher := range s.watchers {
+		go watcher.Watch(s.queue)
 	}
 	s.logger.Infof("Listening on port [%s]", port)
 	s.logger.Fatal(http.ListenAndServe(port, chi))

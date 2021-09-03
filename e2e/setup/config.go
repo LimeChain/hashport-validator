@@ -172,21 +172,6 @@ func newClients(config Config) (*clients, error) {
 		routerContractAddress := common.HexToAddress(conf.RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-		wHbarInstance, err := initWrappedAssetContract(config.Tokens.WHbar, config.AssetMappings, 0, chainId, evmClient)
-		if err != nil {
-			return nil, err
-		}
-
-		wTokenInstance, err := initWrappedAssetContract(config.Tokens.WToken, config.AssetMappings, 0, chainId, evmClient)
-		if err != nil {
-			return nil, err
-		}
-
-		nativeTokenInstance, err := initNativeAssetContract(config.Tokens.EvmNativeToken, evmClient)
-		if err != nil {
-			return nil, err
-		}
-
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(evmClient.ChainID())
 		if err != nil {
@@ -195,9 +180,6 @@ func newClients(config Config) (*clients, error) {
 
 		EVM[chainId] = EVMUtils{
 			EVMClient:             evmClient,
-			WHbarContract:         wHbarInstance,
-			WTokenContract:        wTokenInstance,
-			NativeEvmContract:     nativeTokenInstance,
 			RouterContract:        routerInstance,
 			KeyTransactor:         keyTransactor,
 			Signer:                signer,
@@ -221,17 +203,17 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func initWrappedAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+func InitWrappedAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
 
-	return initNativeAssetContract(wTokenContractAddress, evmClient)
+	return InitAssetContract(wTokenContractAddress, evmClient)
 }
 
-func initNativeAssetContract(nativeAsset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	return wtoken.NewWtoken(common.HexToAddress(nativeAsset), evmClient.Client)
+func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.Client)
 }
 
 func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (string, error) {
@@ -289,9 +271,6 @@ type Config struct {
 
 type EVMUtils struct {
 	EVMClient             *evm.Client
-	WHbarContract         *wtoken.Wtoken
-	WTokenContract        *wtoken.Wtoken
-	NativeEvmContract     *wtoken.Wtoken
 	RouterContract        *router.Router
 	KeyTransactor         *bind.TransactOpts
 	Signer                *evm_signer.Signer

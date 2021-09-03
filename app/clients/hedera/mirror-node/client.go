@@ -185,7 +185,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				continue
 			}
 			if err != nil {
-				c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err.Error())
+				c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err.Error())
 				return
 			}
 
@@ -224,7 +224,7 @@ func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure fu
 			continue
 		}
 		if err != nil {
-			c.logger.Errorf("[%s] Error while trying to get account. Error: [%s].", txId, err)
+			c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err)
 			return
 		}
 
