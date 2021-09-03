@@ -50,12 +50,12 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	for _, client := range clients.EVMClients {
 		chainId := client.ChainID().Int64()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client)
+		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress)
 	}
 
-	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
-	distributor := distributor.New(c.Validator.Clients.Hedera.Members)
-	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
+	fees := calculator.New(c.Bridge.Hedera.Tokens["HBAR"].FeePercentage) // TODO:
+	distributor := distributor.New(c.Bridge.Hedera.Members)
+	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
@@ -67,8 +67,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		repositories.fee,
 		fees,
 		distributor,
-		c.Validator.Clients.Hedera.TopicId,
-		c.Validator.Clients.Hedera.BridgeAccount,
+		c.Bridge.TopicId,
+		c.Bridge.Hedera.BridgeAccount,
 		scheduled)
 
 	messages := messages.NewService(
@@ -79,11 +79,11 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.HederaNode,
 		clients.MirrorNode,
 		clients.EVMClients,
-		c.Validator.Clients.Hedera.TopicId,
-		c.AssetMappings)
+		c.Bridge.TopicId,
+		c.Bridge.Assets)
 
 	burnEvent := burn_event.NewService(
-		c.Validator.Clients.Hedera.BridgeAccount,
+		c.Bridge.Hedera.BridgeAccount,
 		repositories.transfer,
 		repositories.schedule,
 		repositories.fee,
@@ -92,7 +92,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		fees)
 
 	lockEvent := lock_event.NewService(
-		c.Validator.Clients.Hedera.BridgeAccount,
+		c.Bridge.Hedera.BridgeAccount,
 		repositories.transfer,
 		repositories.schedule,
 		scheduled)
@@ -114,7 +114,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
 	contractServices := make(map[int64]service.Contracts)
 	for _, client := range clients.EVMClients {
-		contractService := contracts.NewService(client)
+		contractService := contracts.NewService(client, c.Bridge.EVMs[client.ChainID().Int64()].RouterContractAddress)
 		contractServices[client.ChainID().Int64()] = contractService
 	}
 

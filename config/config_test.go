@@ -38,7 +38,7 @@ func Test_GetConfig(t *testing.T) {
 	}
 
 	// Test we get no error when existing path is provided
-	err = GetConfig(&configuration, mainConfigFile)
+	err = GetConfig(&configuration, "node.yml")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

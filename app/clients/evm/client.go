@@ -33,13 +33,13 @@ import (
 // Client EVM JSON RPC Client
 type Client struct {
 	chainId *big.Int
-	config  config.EVM
+	config  config.Evm
 	*ethclient.Client
 	logger *log.Entry
 }
 
 // NewClient creates new instance of an EVM client
-func NewClient(c config.EVM) *Client {
+func NewClient(c config.Evm) *Client {
 	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client"))
 	if c.BlockConfirmations < 1 {
 		logger.Fatalf("BlockConfirmations should be a positive number")
@@ -67,7 +67,7 @@ func (ec *Client) ChainID() *big.Int {
 	return ec.chainId
 }
 
-// GetClients returns the instance of a ethclient already established connection to a JSON RPC EVM Node
+// GetClient returns the instance of an ethclient already established connection to a JSON RPC EVM Node
 func (ec *Client) GetClient() *ethclient.Client {
 	return ec.Client
 }
@@ -134,10 +134,6 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	}
 
 	return ec.Client.TransactionReceipt(context.Background(), hash)
-}
-
-func (ec *Client) GetRouterContractAddress() string {
-	return ec.config.RouterContractAddress
 }
 
 func (ec *Client) GetPrivateKey() string {

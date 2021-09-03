@@ -45,11 +45,11 @@ type Recovery struct {
 	topicID                 hederasdk.TopicID
 	configRecoveryTimestamp int64
 	logger                  *log.Entry
-	mappings                config.AssetMappings
+	mappings                config.Assets
 }
 
 func NewProcess(
-	c config.Validator,
+	c config.Node,
 	transfers service.Transfers,
 	messages service.Messages,
 	contractServices map[int64]service.Contracts,
@@ -58,17 +58,19 @@ func NewProcess(
 	transferRepo repository.Transfer,
 	mirrorClient client.MirrorNode,
 	nodeClient client.HederaNode,
-	mappings config.AssetMappings,
+	mappings config.Assets,
 ) (*Recovery, error) {
-	account, err := hederasdk.AccountIDFromString(c.Clients.Hedera.BridgeAccount)
-	if err != nil {
-		return nil, err
-	}
+	// TODO:
+	//account, err := hederasdk.AccountIDFromString(c.Clients.Hedera.BridgeAccount)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	topic, err := hederasdk.TopicIDFromString(c.Clients.Hedera.TopicId)
-	if err != nil {
-		return nil, err
-	}
+	// TODO:
+	//topic, err := hederasdk.TopicIDFromString(c.Clients.Hedera.TopicId)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return &Recovery{
 		transfers:               transfers,
@@ -79,8 +81,8 @@ func NewProcess(
 		transferRepo:            transferRepo,
 		mirrorClient:            mirrorClient,
 		nodeClient:              nodeClient,
-		accountID:               account,
-		topicID:                 topic,
+		accountID:               hederasdk.AccountID{}, // TODO:
+		topicID:                 hederasdk.TopicID{},   // TODO:
 		configRecoveryTimestamp: c.Recovery.StartTimestamp,
 		logger:                  config.GetLoggerFor(fmt.Sprintf("Recovery")),
 		mappings:                mappings,
