@@ -33,15 +33,3 @@ func Test_CalculateFee(t *testing.T) {
 	assert.Equal(t, expectedFee, fee)
 	assert.Equal(t, expectedRemainder, remainder)
 }
-
-func Test_CalculateFee_WithRemainder(t *testing.T) {
-	service := New(feePercentages)
-
-	fee, remainder := service.CalculateFee("0.0.123321", 2000)
-
-	expectedFee := int64(2)
-	expectedRemainder := int64(19)
-
-	assert.Equal(t, expectedFee, fee)
-	assert.Equal(t, expectedRemainder, remainder)
-}
