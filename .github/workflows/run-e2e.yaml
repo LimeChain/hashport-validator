@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
          echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/node.yml
-         echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./examples/three-validators/bob/config/bridge.yml
+         echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./examples/three-validators/carol/config/bridge.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
       - name: Perform health check on nodes
