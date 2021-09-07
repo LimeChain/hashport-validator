@@ -203,7 +203,7 @@ func (fmh Handler) Handle(payload interface{}) {
 
 							err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
 							if err != nil {
-								fmh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId)
+								fmh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId, err)
 							}
 							isFound = true
 						}

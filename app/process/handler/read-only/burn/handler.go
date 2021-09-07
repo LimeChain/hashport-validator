@@ -150,7 +150,7 @@ func (mhh Handler) Handle(payload interface{}) {
 
 							err = mhh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
 							if err != nil {
-								mhh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId)
+								mhh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId, err)
 							}
 							isFound = true
 						}
