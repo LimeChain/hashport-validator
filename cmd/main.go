@@ -29,6 +29,11 @@ import (
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	message_submission "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message-submission"
 	mint_hts "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/mint-hts"
+	rbh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/burn"
+	rfh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee"
+	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
+	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
+	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
@@ -54,23 +59,18 @@ func main() {
 	server := server.NewServer()
 
 	var services *Services = nil
-	if !configuration.Node.Validator {
-		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
-		services = PrepareApiOnlyServices(configuration, *clients)
-	} else {
-		db := persistence.NewDatabase(configuration.Node.Database)
-		// Prepare repositories
-		repositories := PrepareRepositories(db)
-		// Prepare Services
-		services = PrepareServices(configuration, *clients, *repositories)
+	db := persistence.NewDatabase(configuration.Node.Database)
+	// Prepare repositories
+	repositories := PrepareRepositories(db)
+	// Prepare Services
+	services = PrepareServices(configuration, *clients, *repositories)
 
-		// Execute Recovery Process. Computing Watchers starting timestamp
-		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
-		if err != nil {
-			log.Fatal(err)
-		}
-		initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
+	// Execute Recovery Process. Computing Watchers starting timestamp
+	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
+	if err != nil {
+		log.Fatal(err)
 	}
+	initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
 
 	apiRouter := initializeAPIRouter(services)
 
@@ -155,8 +155,37 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	for _, evmClient := range clients.EVMClients {
 		chainId := evmClient.ChainID().Int64()
 		server.AddWatcher(
-			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.Bridge.Assets))
+			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.Bridge.Assets, configuration.Node.Validator))
 	}
+
+	// Register read-only handlers
+	server.AddHandler(constants.ReadOnlyHederaTransfer, rfth.NewHandler(
+		repositories.fee,
+		repositories.schedule,
+		clients.MirrorNode,
+		configuration.Bridge.Hedera.BridgeAccount,
+		services.distributor,
+		services.fees,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyHederaFeeTransfer, rfh.NewHandler(
+		repositories.fee,
+		repositories.schedule,
+		clients.MirrorNode,
+		configuration.Bridge.Hedera.BridgeAccount,
+		services.distributor,
+		services.fees,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyHederaBurn, rbh.NewHandler(
+		configuration.Bridge.Hedera.BridgeAccount,
+		clients.MirrorNode,
+		repositories.schedule,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyHederaMintHtsTransfer, rmth.NewHandler(
+		repositories.schedule,
+		configuration.Bridge.Hedera.BridgeAccount,
+		clients.MirrorNode,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -177,7 +206,8 @@ func addTransferWatcher(configuration *config.Config,
 		*repository,
 		startTimestamp,
 		contractServices,
-		configuration.Bridge.Assets)
+		configuration.Bridge.Assets,
+		configuration.Node.Validator)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,

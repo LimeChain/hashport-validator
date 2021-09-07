@@ -26,6 +26,7 @@ import (
 type EVM interface {
 	ChainID() *big.Int
 	GetClient() *ethclient.Client
+	GetBlockTimestamp(blockNumber *big.Int) (uint64, error)
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
 	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
 	// onSuccess is called once the TX is successfully mined

@@ -16,10 +16,15 @@
 
 package service
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+)
 
 // BurnEvent is the major service used for processing BurnEvent operations
 type BurnEvent interface {
+	// PrepareTransfers TODO:
+	PrepareTransfers(amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error)
 	// ProcessEvent processes the burn event by submitting the appropriate
 	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
 	ProcessEvent(transfer transfer.Transfer)

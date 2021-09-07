@@ -45,25 +45,44 @@ func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Clie
 	}
 }
 
-func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
+func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
 		accountId.String(),
-		timestampHelper.String(from))
+		from)
+	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+	return c.GetAccountTokenMintTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
+}
+
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+		accountId.String(),
+		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+	return c.GetAccountTokenBurnTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
+}
+
+func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=debit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
-		timestampHelper.String(from))
+		from)
+	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+func (c Client) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
+		accountId.String(),
+		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
 func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
-		accountId.String(),
-		timestampHelper.String(from))
-	return c.getTransactionsByQuery(transactionsDownloadQuery)
+	return c.GetAccountCreditTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
 // GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
@@ -123,6 +142,37 @@ func (c Client) GetTransaction(transactionID string) (*Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+// GetScheduledTransaction gets the Scheduled transaction of an executed transaction
+func (c Client) GetScheduledTransaction(transactionID string) (*Response, error) {
+	return c.GetTransaction(fmt.Sprintf("%s?scheduled=false", transactionID))
+}
+
+// GetSchedule retrieves a schedule entity by its id
+func (c Client) GetSchedule(scheduleID string) (*Schedule, error) {
+	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "schedules/", scheduleID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *Schedule
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
 }
 
 func (c Client) GetStateProof(transactionID string) ([]byte, error) {
@@ -257,7 +307,12 @@ func (c Client) get(query string) (*http.Response, error) {
 
 func (c Client) getTransactionsByQuery(query string) (*Response, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
-	httpResponse, e := c.get(transactionsQuery)
+
+	return c.getAndParse(transactionsQuery)
+}
+
+func (c Client) getAndParse(query string) (*Response, error) {
+	httpResponse, e := c.get(query)
 	if e != nil {
 		return nil, e
 	}

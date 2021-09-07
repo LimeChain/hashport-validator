@@ -71,11 +71,13 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
+		return
 	}
 
 	receiver, err := hedera.AccountIDFromString(event.Receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event account [%s]. Error [%s].", event.TransactionId, event.Receiver, err)
+		return
 	}
 
 	_, err = s.repository.Create(&event)
@@ -84,7 +86,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
-	_, feeAmount, transfers, err := s.prepareTransfers(amount, receiver)
+	_, feeAmount, transfers, err := s.PrepareTransfers(amount, receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to prepare transfers. Error [%s].", event.TransactionId, err)
 		return
@@ -96,7 +98,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
-func (s *Service) prepareTransfers(amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
+func (s *Service) PrepareTransfers(amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
 	fee, remainder := s.feeService.CalculateFee(amount)
 
 	validFee := s.distributorService.ValidAmount(fee)

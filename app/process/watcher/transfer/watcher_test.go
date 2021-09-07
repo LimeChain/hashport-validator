@@ -90,5 +90,6 @@ func initializeWatcher() *Watcher {
 		mocks.MStatusRepository,
 		0,
 		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-		assets)
+		assets,
+		true)
 }

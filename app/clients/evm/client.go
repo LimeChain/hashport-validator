@@ -88,6 +88,17 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	return &address, nil
 }
 
+// GetBlockTimestamp retrieves the timestamp of the given block
+func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {
+	block, err := ec.Client.BlockByNumber(context.Background(), blockNumber)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return block.Time(), nil
+}
+
 // WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
 // onSuccess is called once the TX is successfully mined
 // onRevert is called once the TX is mined but it reverted
