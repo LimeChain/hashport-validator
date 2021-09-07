@@ -43,6 +43,7 @@ type Handler struct {
 	distributor        service.Distributor
 	feeService         service.Fee
 	transfersService   service.Transfers
+	transferRepository repository.Transfer
 	logger             *log.Entry
 }
 
@@ -53,6 +54,7 @@ func NewHandler(
 	bridgeAccount string,
 	distributor service.Distributor,
 	feeService service.Fee,
+	transferRepository repository.Transfer,
 	transfersService service.Transfers) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -67,6 +69,7 @@ func NewHandler(
 		transfersService:   transfersService,
 		distributor:        distributor,
 		feeService:         feeService,
+		transferRepository: transferRepository,
 	}
 }
 
@@ -195,6 +198,12 @@ func (fmh Handler) Handle(payload interface{}) {
 							})
 							if err != nil {
 								fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
+								break
+							}
+
+							err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+							if err != nil {
+								fmh.logger.Errorf("[%s] - Failed to update status completed [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
 								break
 							}
 							isFound = true

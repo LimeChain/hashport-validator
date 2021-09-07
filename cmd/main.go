@@ -166,7 +166,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		configuration.Bridge.Hedera.BridgeAccount,
 		services.distributor,
 		services.fees,
-		services.transfers))
+		services.transfers,
+		repositories.transfer))
 	server.AddHandler(constants.ReadOnlyHederaFeeTransfer, rfh.NewHandler(
 		repositories.fee,
 		repositories.schedule,
@@ -174,17 +175,20 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		configuration.Bridge.Hedera.BridgeAccount,
 		services.distributor,
 		services.fees,
+		repositories.transfer,
 		services.transfers))
 	server.AddHandler(constants.ReadOnlyHederaBurn, rbh.NewHandler(
 		configuration.Bridge.Hedera.BridgeAccount,
 		clients.MirrorNode,
 		repositories.schedule,
+		repositories.transfer,
 		services.transfers))
 	server.AddHandler(constants.ReadOnlyHederaMintHtsTransfer, rmth.NewHandler(
 		repositories.schedule,
 		configuration.Bridge.Hedera.BridgeAccount,
 		clients.MirrorNode,
-		services.transfers))
+		services.transfers,
+		repositories.transfer))
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 

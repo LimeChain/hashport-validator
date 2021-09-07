@@ -45,6 +45,21 @@ services:
       - ./carol/db:/var/lib/postgresql/data
     ports:
       - 8432:5432
+  dave_db:
+    image: postgres:9.6-alpine
+    restart: unless-stopped
+    stop_grace_period: 2m
+    stop_signal: SIGTERM
+    tty: true
+    environment:
+      POSTGRES_DB: hedera_validator
+      POSTGRES_PASSWORD: validator_pass
+      POSTGRES_USER: validator
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - ./dave/db:/var/lib/postgresql/data
+    ports:
+      - 9432:5432
   alice:
     image: eth-hedera-validator
     build:
@@ -87,3 +102,16 @@ services:
       - 8200:5200
     depends_on:
       - "carol_db"
+  dave_read_only:
+    image: eth-hedera-validator
+    environment:
+      VALIDATOR_DATABASE_HOST: dave_db
+    volumes:
+      - ./dave/config/bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
+      - ./dave/config/node.yml:/src/hedera-eth-bridge-validator/config/node.yml
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 9200:5200
+    depends_on:
+      - "dave_db"

@@ -39,6 +39,7 @@ type Handler struct {
 	mirrorNode         client.MirrorNode
 	bridgeAccount      hedera.AccountID
 	transfersService   service.Transfers
+	transferRepository repository.Transfer
 	logger             *log.Entry
 }
 
@@ -46,7 +47,8 @@ func NewHandler(
 	scheduleRepository repository.Schedule,
 	bridgeAccount string,
 	mirrorNode client.MirrorNode,
-	transfersService service.Transfers) *Handler {
+	transfersService service.Transfers,
+	transferRepository repository.Transfer) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -57,6 +59,7 @@ func NewHandler(
 		mirrorNode:         mirrorNode,
 		logger:             config.GetLoggerFor("Hedera Mint and Transfer Handler"),
 		transfersService:   transfersService,
+		transferRepository: transferRepository,
 	}
 }
 
@@ -228,6 +231,11 @@ func (fmh Handler) Handle(payload interface{}) {
 							if err != nil {
 								fmh.logger.Errorf("[%s] - Failed to save scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
 								break
+							}
+
+							err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+							if err != nil {
+								fmh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId)
 							}
 							isFound = true
 						}

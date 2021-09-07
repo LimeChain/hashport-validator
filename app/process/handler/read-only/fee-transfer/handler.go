@@ -43,6 +43,7 @@ type Handler struct {
 	feeService         service.Fee
 	distributorService service.Distributor
 	transfersService   service.Transfers
+	transferRepository repository.Transfer
 	logger             *log.Entry
 }
 
@@ -53,7 +54,8 @@ func NewHandler(
 	bridgeAccount string,
 	distributorService service.Distributor,
 	feeService service.Fee,
-	transfersService service.Transfers) *Handler {
+	transfersService service.Transfers,
+	transferRepository repository.Transfer) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -67,6 +69,7 @@ func NewHandler(
 		feeService:         feeService,
 		logger:             config.GetLoggerFor("Hedera Fee and Schedule Transfer Read-only Handler"),
 		transfersService:   transfersService,
+		transferRepository: transferRepository,
 	}
 }
 
@@ -196,6 +199,11 @@ func (fmh Handler) Handle(payload interface{}) {
 							if err != nil {
 								fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
 								break
+							}
+
+							err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+							if err != nil {
+								fmh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId)
 							}
 							isFound = true
 						}

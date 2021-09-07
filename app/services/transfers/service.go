@@ -173,20 +173,10 @@ func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset stri
 func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := ts.transferRepository.UpdateStatusSignatureMined(txId)
-		if err != nil {
-			ts.logger.Errorf("[%s] - Failed to update status signature mined. Error [%s].", txId, err)
-			return
-		}
 	}
 
 	onRevert = func() {
 		ts.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
-		err := ts.transferRepository.UpdateStatusSignatureFailed(txId)
-		if err != nil {
-			ts.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", txId, err)
-			return
-		}
 	}
 	return onSuccess, onRevert
 }
@@ -293,13 +283,6 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *mes
 		sigMsgBytes)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", signatureMessage.TransferID, err)
-		return err
-	}
-
-	// Update Transfer Record
-	err = ts.transferRepository.UpdateStatusSignatureSubmitted(signatureMessage.TransferID)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to update. Error [%s].", signatureMessage.TransferID, err)
 		return err
 	}
 

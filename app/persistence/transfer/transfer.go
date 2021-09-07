@@ -92,20 +92,6 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	return tx, nil
 }
 
-func (tr Repository) GetInitialAndSignatureSubmittedTx() ([]*entity.Transfer, error) {
-	var transfers []*entity.Transfer
-
-	err := tr.dbClient.
-		Model(entity.Transfer{}).
-		Where("status = ? OR status = ?", transfer.StatusInitial, transfer.StatusSignatureSubmitted).
-		Find(&transfers).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return transfers, nil
-}
-
 // Create creates new record of Transfer
 func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
 	return tr.create(ct, transfer.StatusInitial)
@@ -123,26 +109,6 @@ func (tr *Repository) SaveRecoveredTxn(ct *model.Transfer) error {
 
 func (tr Repository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, transfer.StatusCompleted)
-}
-
-func (tr Repository) UpdateStatusSignatureSubmitted(txId string) error {
-	err := tr.dbClient.
-		Model(entity.Transfer{}).
-		Where("transaction_id = ?", txId).
-		Updates(entity.Transfer{SignatureMsgStatus: transfer.StatusSignatureSubmitted, Status: transfer.StatusInProgress}).
-		Error
-	if err == nil {
-		tr.logger.Debugf("[%s] - Updated Status to [%s] and SignatureMsgStatus to [%s]", txId, transfer.StatusInProgress, transfer.StatusSignatureSubmitted)
-	}
-	return err
-}
-
-func (tr Repository) UpdateStatusSignatureMined(txId string) error {
-	return tr.updateSignatureStatus(txId, transfer.StatusSignatureMined)
-}
-
-func (tr Repository) UpdateStatusSignatureFailed(txId string) error {
-	return tr.updateSignatureStatus(txId, transfer.StatusSignatureFailed)
 }
 
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
@@ -181,10 +147,6 @@ func (tr Repository) updateStatus(txId string, status string) error {
 		tr.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, status)
 	}
 	return err
-}
-
-func (tr Repository) updateSignatureStatus(txId string, status string) error {
-	return tr.baseUpdateStatus("signature_msg_status", txId, status, []string{transfer.StatusSignatureSubmitted, transfer.StatusSignatureMined, transfer.StatusSignatureFailed})
 }
 
 func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
