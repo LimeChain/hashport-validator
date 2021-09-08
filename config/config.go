@@ -39,6 +39,7 @@ func LoadConfig() Config {
 
 	// TODO: Replace this configuration with an external configuration service
 	LoadWrappedToNativeAssets(&configuration.AssetMappings)
+	LoadNativeHederaFees(&configuration.AssetMappings, &configuration.Validator.Clients.Hedera.FeePercentages)
 
 	if err := env.Parse(&configuration); err != nil {
 		panic(err)
@@ -47,11 +48,20 @@ func LoadConfig() Config {
 	return configuration
 }
 
+func LoadNativeHederaFees(mappings *AssetMappings, hederaFeePercentages *map[string]int64) {
+	hederaMappings := mappings.NativeToWrappedByNetwork[0]
+	feePercentages := map[string]int64{}
+	for nativeTokenID, nativeToken := range hederaMappings.Native {
+		feePercentages[nativeTokenID] = nativeToken.FeePercentage
+	}
+	*hederaFeePercentages = feePercentages
+}
+
 func LoadWrappedToNativeAssets(a *AssetMappings) {
 	a.WrappedToNativeByNetwork = map[int64]map[string]*NativeAsset{}
 	for nativeChainId, network := range a.NativeToWrappedByNetwork {
-		for nativeAsset, nativeAssetMapping := range network.NativeAssets {
-			for wrappedChainId, wrappedAsset := range nativeAssetMapping {
+		for nativeAsset, native := range network.Native {
+			for wrappedChainId, wrappedAsset := range native.Assets {
 				if a.WrappedToNativeByNetwork[wrappedChainId] == nil {
 					a.WrappedToNativeByNetwork[wrappedChainId] = make(map[string]*NativeAsset)
 				}
@@ -99,7 +109,7 @@ type NativeAsset struct {
 }
 
 func (a *AssetMappings) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
-	return a.NativeToWrappedByNetwork[nativeChainId].NativeAssets[nativeAsset][targetChainId]
+	return a.NativeToWrappedByNetwork[nativeChainId].Native[nativeAsset].Assets[targetChainId]
 }
 
 func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId int64) *NativeAsset {
@@ -107,8 +117,13 @@ func (a *AssetMappings) WrappedToNative(wrappedAsset string, wrappedChainId int6
 }
 
 type Network struct {
-	EVMClient    EVM                         `yaml:"evm_client"`
-	NativeAssets map[string]map[int64]string `yaml:"tokens"`
+	EVMClient EVM                 `yaml:"evm_client"`
+	Native    map[string]Mappings `yaml:"tokens"`
+}
+
+type Mappings struct {
+	FeePercentage int64            `yaml:"fee_percentage"`
+	Assets        map[int64]string `yaml:"mappings"`
 }
 
 type Validator struct {
@@ -138,13 +153,13 @@ type EVM struct {
 }
 
 type Hedera struct {
-	NetworkType   string   `yaml:"network_type" env:"VALIDATOR_CLIENTS_HEDERA_NETWORK_TYPE"`
-	Operator      Operator `yaml:"operator"`
-	BridgeAccount string   `yaml:"bridge_account" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
-	PayerAccount  string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
-	TopicId       string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
-	FeePercentage int64    `yaml:"fee_percentage" env:"VALIDATOR_CLIENTS_HEDERA_FEE_PERCENTAGE"`
-	Members       []string `yaml:"members" env:"VALIDATOR_CLIENTS_HEDERA_MEMBERS"`
+	NetworkType    string   `yaml:"network_type" env:"VALIDATOR_CLIENTS_HEDERA_NETWORK_TYPE"`
+	Operator       Operator `yaml:"operator"`
+	BridgeAccount  string   `yaml:"bridge_account" env:"VALIDATOR_CLIENTS_HEDERA_BRIDGE_ACCOUNT"`
+	PayerAccount   string   `yaml:"payer_account" env:"VALIDATOR_CLIENTS_HEDERA_PAYER_ACCOUNT"`
+	TopicId        string   `yaml:"topic_id" env:"VALIDATOR_CLIENTS_HEDERA_TOPIC_ID"`
+	FeePercentages map[string]int64
+	Members        []string `yaml:"members" env:"VALIDATOR_CLIENTS_HEDERA_MEMBERS"`
 }
 
 type Operator struct {
