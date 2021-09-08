@@ -53,7 +53,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress)
 	}
 
-	fees := calculator.New(c.Bridge.Hedera.Tokens["HBAR"].FeePercentage) // TODO:
+	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
