@@ -79,7 +79,7 @@ func Test_HBAR(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
 
-	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, hBarSendAmount.AsTinybar())
+	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, constants.Hbar, hBarSendAmount.AsTinybar())
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
 	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, targetAsset, evm, memo, receiver, t)
@@ -138,7 +138,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, tinyBarAmount)
+	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), tinyBarAmount)
 
 	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, setupEnv.TokenID.String())
 	if err != nil {
@@ -207,7 +207,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	}
 
 	// 1. Calculate Expected Receive And Fee Amounts
-	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
+	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, constants.Hbar, receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.AssetMappings, evm, constants.Hbar, 0, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), t)
@@ -265,7 +265,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	}
 
 	// 1. Calculate Expected Receive Amount
-	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, receiveAmount)
+	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), receiveAmount)
 
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(
@@ -905,8 +905,8 @@ func validateMembersScheduledTxs(setupEnv *setup.Setup, asset string, expectedTr
 	return transactions[0], scheduleIDs[0]
 }
 
-func calculateReceiverAndFeeAmounts(setup *setup.Setup, amount int64) (receiverAmount, fee int64) {
-	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(amount)
+func calculateReceiverAndFeeAmounts(setup *setup.Setup, token string, amount int64) (receiverAmount, fee int64) {
+	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(token, amount)
 	validFee := setup.Clients.Distributor.ValidAmount(fee)
 	if validFee != fee {
 		remainder += fee - validFee

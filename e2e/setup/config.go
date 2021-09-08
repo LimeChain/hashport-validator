@@ -53,18 +53,22 @@ func Load() *Setup {
 		Hedera: Hedera{
 			NetworkType:       e2eConfig.Hedera.NetworkType,
 			BridgeAccount:     e2eConfig.Hedera.BridgeAccount,
-			FeePercentage:     e2eConfig.Hedera.FeePercentage,
 			Members:           e2eConfig.Hedera.Members,
 			TopicID:           e2eConfig.Hedera.TopicID,
 			Sender:            Sender(e2eConfig.Hedera.Sender),
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
 			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
 		},
-		EVM:           make(map[int64]config.Evm),
-		Tokens:        Tokens(e2eConfig.Tokens),
-		ValidatorUrl:  e2eConfig.ValidatorUrl,
-		Bridge:        e2eConfig.Bridge,
-		AssetMappings: config.LoadAssets(e2eConfig.Bridge.Networks),
+		EVM:            make(map[int64]config.Evm),
+		Tokens:         Tokens(e2eConfig.Tokens),
+		ValidatorUrl:   e2eConfig.ValidatorUrl,
+		Bridge:         e2eConfig.Bridge,
+		AssetMappings:  config.LoadAssets(e2eConfig.Bridge.Networks),
+		FeePercentages: map[string]int64{},
+	}
+
+	if e2eConfig.Bridge.Networks[0] != nil {
+		configuration.FeePercentages = config.LoadHederaFeePercentages(e2eConfig.Bridge.Networks[0].Tokens)
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
@@ -87,7 +91,7 @@ type Setup struct {
 	TopicID               hederaSDK.TopicID
 	TokenID               hederaSDK.TokenID
 	NativeEvmTokenAddress string
-	FeePercentage         int64
+	FeePercentages        map[string]int64
 	Members               []hederaSDK.AccountID
 	Clients               *clients
 	DbValidator           *db_validation.Service
@@ -110,8 +114,10 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	if config.Hedera.FeePercentage < fee.MinPercentage || config.Hedera.FeePercentage > fee.MaxPercentage {
-		return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentage))
+	for token, fp := range config.FeePercentages {
+		if fp < fee.MinPercentage || fp > fee.MaxPercentage {
+			return nil, errors.New(fmt.Sprintf("[%s] - invalid fee percentage [%d]", token, fp))
+		}
 	}
 
 	if len(config.Hedera.Members) == 0 {
@@ -139,7 +145,7 @@ func newSetup(config Config) (*Setup, error) {
 		TopicID:               topicID,
 		TokenID:               tokenID,
 		NativeEvmTokenAddress: config.Tokens.EvmNativeToken,
-		FeePercentage:         config.Hedera.FeePercentage,
+		FeePercentages:        config.FeePercentages,
 		Members:               members,
 		Clients:               clients,
 		DbValidator:           dbValidator,
@@ -196,7 +202,7 @@ func newClients(config Config) (*clients, error) {
 		EVM:             EVM,
 		ValidatorClient: validatorClient,
 		MirrorNode:      mirrorNode,
-		FeeCalculator:   fee.New(config.Hedera.FeePercentage),
+		FeeCalculator:   fee.New(config.FeePercentages),
 		Distributor:     distributor.New(config.Hedera.Members),
 	}, nil
 }
@@ -260,12 +266,13 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 
 // Config used to load and parse from application.yml
 type Config struct {
-	Hedera        Hedera
-	EVM           map[int64]config.Evm
-	Tokens        Tokens
-	ValidatorUrl  string
-	Bridge        parser.Bridge
-	AssetMappings config.Assets
+	Hedera         Hedera
+	EVM            map[int64]config.Evm
+	Tokens         Tokens
+	ValidatorUrl   string
+	Bridge         parser.Bridge
+	AssetMappings  config.Assets
+	FeePercentages map[string]int64
 }
 
 type EVMUtils struct {
@@ -288,7 +295,6 @@ type Tokens struct {
 type Hedera struct {
 	NetworkType       string
 	BridgeAccount     string
-	FeePercentage     int64
 	Members           []string
 	TopicID           string
 	Sender            Sender

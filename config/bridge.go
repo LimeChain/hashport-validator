@@ -28,10 +28,11 @@ type Bridge struct {
 }
 
 type BridgeHedera struct {
-	BridgeAccount string
-	PayerAccount  string
-	Members       []string
-	Tokens        map[string]HederaToken
+	BridgeAccount  string
+	PayerAccount   string
+	Members        []string
+	Tokens         map[string]HederaToken
+	FeePercentages map[string]int64
 }
 
 type HederaToken struct {
@@ -67,6 +68,7 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			for name, value := range value.Tokens {
 				config.Hedera.Tokens[name] = HederaToken(value)
 			}
+			config.Hedera.FeePercentages = LoadHederaFeePercentages(value.Tokens)
 			continue
 		}
 		config.EVMs[key] = BridgeEvm{
@@ -79,4 +81,13 @@ func NewBridge(bridge parser.Bridge) Bridge {
 	}
 
 	return config
+}
+
+func LoadHederaFeePercentages(tokens map[string]parser.Token) map[string]int64 {
+	feePercentages := map[string]int64{}
+	for token, value := range tokens {
+		feePercentages[token] = value.FeePercentage
+	}
+
+	return feePercentages
 }

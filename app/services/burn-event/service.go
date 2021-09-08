@@ -86,7 +86,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
-	_, feeAmount, transfers, err := s.prepareTransfers(amount, receiver)
+	_, feeAmount, transfers, err := s.prepareTransfers(event.NativeAsset, amount, receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to prepare transfers. Error [%s].", event.TransactionId, err)
 		return
@@ -98,8 +98,8 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
-func (s *Service) prepareTransfers(amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
-	fee, remainder := s.feeService.CalculateFee(amount)
+func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
+	fee, remainder := s.feeService.CalculateFee(token, amount)
 
 	validFee := s.distributorService.ValidAmount(fee)
 	if validFee != fee {

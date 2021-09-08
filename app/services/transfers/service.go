@@ -188,7 +188,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	fee, remainder := ts.feeService.CalculateFee(intAmount)
+	fee, remainder := ts.feeService.CalculateFee(tm.NativeAsset, intAmount)
 	validFee := ts.distributor.ValidAmount(fee)
 	if validFee != fee {
 		remainder += fee - validFee
