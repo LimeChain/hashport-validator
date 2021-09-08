@@ -53,7 +53,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		contractServices[chainId] = contracts.NewService(client)
 	}
 
-	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentage)
+	fees := calculator.New(c.Validator.Clients.Hedera.FeePercentages)
 	distributor := distributor.New(c.Validator.Clients.Hedera.Members)
 	scheduled := scheduled.New(c.Validator.Clients.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 

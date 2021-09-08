@@ -38,9 +38,12 @@ var (
 	onlyNativeToWrapped = config.AssetMappings{
 		NativeToWrappedByNetwork: map[int64]config.Network{
 			0: {
-				NativeAssets: map[string]map[int64]string{
+				Native: map[string]config.Mappings{
 					"0.0.111111": {
-						3: "0xevmaddress",
+						FeePercentage: 10000,
+						Assets: map[int64]string{
+							3: "0xevmaddress",
+						},
 					},
 				},
 			},
@@ -49,9 +52,11 @@ var (
 	onlyWrappedToNative = config.AssetMappings{
 		NativeToWrappedByNetwork: map[int64]config.Network{
 			3: {
-				NativeAssets: map[string]map[int64]string{
+				Native: map[string]config.Mappings{
 					"0xevmaddress": {
-						0: "0.0.11111",
+						Assets: map[int64]string{
+							0: "0.0.11111",
+						},
 					},
 				},
 			},
