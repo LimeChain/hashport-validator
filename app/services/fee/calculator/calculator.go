@@ -30,9 +30,9 @@ type Service struct {
 }
 
 func New(feePercentages map[string]int64) *Service {
-	for _, fee := range feePercentages {
+	for token, fee := range feePercentages {
 		if fee < MinPercentage || fee > MaxPercentage {
-			log.Fatalf("Invalid fee percentage: [%d]", fee)
+			log.Fatalf("[%s] Invalid fee percentage: [%d]", token, fee)
 		}
 	}
 
