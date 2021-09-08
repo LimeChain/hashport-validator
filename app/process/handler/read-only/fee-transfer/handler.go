@@ -99,7 +99,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	calculatedFee, remainder := fmh.feeService.CalculateFee(intAmount)
+	calculatedFee, remainder := fmh.feeService.CalculateFee(transferMsg.TargetAsset, intAmount)
 
 	validFee := fmh.distributorService.ValidAmount(calculatedFee)
 	if validFee != calculatedFee {
