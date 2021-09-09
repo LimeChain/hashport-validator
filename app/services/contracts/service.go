@@ -17,6 +17,7 @@
 package contracts
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -61,6 +62,16 @@ func (bsc *Service) IsMember(address string) bool {
 		}
 	}
 	return false
+}
+
+// ParseBurnLog parses a general typed log to a RouterBurn event
+func (bsc *Service) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
+	return bsc.contract.ParseBurn(log)
+}
+
+// ParseLockLog parses a general typed log to a RouterLock event
+func (bsc *Service) ParseLockLog(log types.Log) (*router.RouterLock, error) {
+	return bsc.contract.ParseLock(log)
 }
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract

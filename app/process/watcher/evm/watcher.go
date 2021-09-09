@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
@@ -96,31 +96,75 @@ func NewWatcher(
 
 func (ew *Watcher) Watch(queue qi.Queue) {
 	go ew.listenForEvents(queue)
+
+	ew.processPastLogs(queue)
 	ew.logger.Infof("Listening for events at contract [%s]", ew.contracts.Address())
 }
 
-func (ew *Watcher) listenForEvents(q qi.Queue) {
-	block, err := ew.repository.GetLastFetchedTimestamp(ew.contracts.Address().String())
+func (ew Watcher) processPastLogs(queue qi.Queue) {
+	fromBlock, err := ew.repository.GetLastFetchedTimestamp(ew.contracts.Address().String())
 	if err != nil {
 		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status timestamp. Error [%s]", err)
-	}
-	ew.logger.Infof("Watching for Events after Block [%d]", block)
-
-	uintBlock := uint64(block)
-	watchOps := &bind.WatchOpts{
-		Start: &uintBlock,
+		return
 	}
 
+	ew.logger.Infof("Processing events from [%d]", fromBlock)
+
+	// TODO: Figure out a way to dynamically get the hash of the event (ABI)
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+		},
+	}
+	addresses := []common.Address{
+		ew.contracts.Address(),
+	}
+	query := &ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetInt64(fromBlock),
+		Addresses: addresses,
+		Topics:    topics,
+	}
+	logs, err := ew.evmClient.GetClient().FilterLogs(context.Background(), *query)
+	if err != nil {
+		ew.logger.Errorf("Failed to to filter logs. Error: [%s]", err)
+		return
+	}
+
+	for _, log := range logs {
+		if len(log.Topics) > 0 {
+			if log.Topics[0] == lockHash {
+				lock, err := ew.contracts.ParseLockLog(log)
+				if err != nil {
+					ew.logger.Errorf("Could not parse lock log [%s]. Error [%s].", lock.Raw.TxHash.String(), err)
+					continue
+				}
+				go ew.handleLockLog(lock, queue)
+			} else if log.Topics[0] == burnHash {
+				burn, err := ew.contracts.ParseBurnLog(log)
+				if err != nil {
+					ew.logger.Errorf("Could not parse lock log [%s]. Error [%s].", burn.Raw.TxHash.String(), err)
+				}
+				go ew.handleBurnLog(burn, queue)
+			}
+		}
+	}
+}
+
+func (ew *Watcher) listenForEvents(q qi.Queue) {
 	burnEvents := make(chan *router.RouterBurn)
 
-	burnSubscription, err := ew.contracts.WatchBurnEventLogs(watchOps, burnEvents)
+	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
 	}
 
 	lockEvents := make(chan *router.RouterLock)
-	lockSubscription, err := ew.contracts.WatchLockEventLogs(watchOps, lockEvents)
+	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
