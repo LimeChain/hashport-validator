@@ -39,11 +39,15 @@ type Watcher struct {
 	topicID          hedera.TopicID
 	statusRepository repository.Status
 	pollingInterval  time.Duration
-	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(client client.MirrorNode, topicID string, repository repository.Status, pollingInterval time.Duration, startTimestamp int64) *Watcher {
+func NewWatcher(
+	client client.MirrorNode,
+	topicID string,
+	repository repository.Status,
+	pollingInterval time.Duration,
+	startTimestamp int64) *Watcher {
 	id, err := hedera.TopicIDFromString(topicID)
 	if err != nil {
 		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
@@ -77,7 +81,6 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 		client:           client,
 		topicID:          id,
 		statusRepository: repository,
-		startTimestamp:   startTimestamp,
 		pollingInterval:  pollingInterval,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID)),
 	}
@@ -90,7 +93,6 @@ func (cmw Watcher) Watch(q qi.Queue) {
 	}
 
 	cmw.beginWatching(q)
-	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
@@ -106,6 +108,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 	if err != nil {
 		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
 	}
+	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)

@@ -19,6 +19,7 @@ package mocks
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/stretchr/testify/mock"
@@ -26,6 +27,14 @@ import (
 
 type MockBridgeContract struct {
 	mock.Mock
+}
+
+func (m *MockBridgeContract) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
+	panic("implement me")
+}
+
+func (m *MockBridgeContract) ParseLockLog(log types.Log) (*router.RouterLock, error) {
+	panic("implement me")
 }
 
 func (m *MockBridgeContract) IsMember(address string) bool {
