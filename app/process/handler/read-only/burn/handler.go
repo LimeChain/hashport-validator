@@ -19,7 +19,6 @@ package burn
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -30,7 +29,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type Handler struct {
@@ -80,19 +78,19 @@ func (mhh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	amount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
-	if err != nil {
-		mhh.logger.Errorf("[%s] - Failed to parse string amount. Error [%s]", transferMsg.TransactionId, err)
-		return
-	}
-
-	burnTransfer := []mirror_node.Transfer{
-		{
-			Account: mhh.bridgeAccount.String(),
-			Amount:  -amount,
-			Token:   transferMsg.SourceAsset,
-		},
-	}
+	//amount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
+	//if err != nil {
+	//	mhh.logger.Errorf("[%s] - Failed to parse string amount. Error [%s]", transferMsg.TransactionId, err)
+	//	return
+	//}
+	//
+	//burnTransfer := []mirror_node.Transfer{
+	//	{
+	//		Account: mhh.bridgeAccount.String(),
+	//		Amount:  -amount,
+	//		Token:   transferMsg.SourceAsset,
+	//	},
+	//}
 	for {
 		response, err := mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.Timestamp)
 		if err != nil {
@@ -101,63 +99,54 @@ func (mhh Handler) Handle(payload interface{}) {
 
 		finished := false
 		for _, transaction := range response.Transactions {
-			found := false
-			for _, expectedTransfer := range burnTransfer {
-				contained := false
-				for _, t := range transaction.TokenTransfers {
-					if expectedTransfer == t {
-						contained = true
+			isFound := false
+			scheduledTx, err := mhh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
+			if err != nil {
+				mhh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
+				continue
+			}
+			for _, tx := range scheduledTx.Transactions {
+				if tx.Result == hedera.StatusSuccess.String() {
+					scheduleID, err := mhh.mirrorNode.GetSchedule(tx.EntityId)
+					if err != nil {
+						mhh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
 						break
 					}
-				}
-
-				if !contained {
-					found = false
-					break
-				} else {
-					found = true
-				}
-			}
-			if found {
-				isFound := false
-				scheduledTx, err := mhh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
-				if err != nil {
-					mhh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
-					continue
-				}
-				for _, tx := range scheduledTx.Transactions {
-					if tx.Result == hedera.StatusSuccess.String() {
-						scheduleID, err := mhh.mirrorNode.GetSchedule(tx.EntityId)
-						if err != nil {
-							mhh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
-							break
-						}
-						if scheduleID.Memo == transferMsg.TransactionId {
-							err := mhh.scheduleRepository.Create(&entity.Schedule{
-								TransactionID: transaction.TransactionID,
-								ScheduleID:    tx.EntityId,
-								Operation:     schedule.BURN,
-								Status:        fee.StatusCompleted, // TODO: not fee
-								TransferID: sql.NullString{
-									String: transferMsg.TransactionId,
-									Valid:  true,
-								},
-							})
-							if err != nil {
-								mhh.logger.Errorf("[%s] - Failed to save scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-								break
-							}
-
-							err = mhh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-							if err != nil {
-								mhh.logger.Errorf("[%s] - Failed to update completed. Error: [%s]", transferMsg.TransactionId, err)
-							}
-							isFound = true
-						}
+					if scheduleID.Memo == transferMsg.TransactionId {
+						isFound = true
 					}
 				}
 				if isFound {
 					finished = true
+					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
+					status := fee.StatusCompleted
+					if !isSuccessful {
+						status = fee.StatusFailed
+					}
+					err := mhh.scheduleRepository.Create(&entity.Schedule{
+						TransactionID: transaction.TransactionID,
+						ScheduleID:    tx.EntityId,
+						Operation:     schedule.BURN,
+						Status:        status,
+						TransferID: sql.NullString{
+							String: transferMsg.TransactionId,
+							Valid:  true,
+						},
+					})
+					if err != nil {
+						mhh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
+						break
+					}
+
+					if isSuccessful {
+						err = mhh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+					} else {
+						//err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId) // TODO: add
+					}
+					if err != nil {
+						mhh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
+						break
+					}
 					break
 				}
 			}
