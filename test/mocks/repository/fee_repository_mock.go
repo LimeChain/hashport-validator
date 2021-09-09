@@ -25,7 +25,7 @@ type MockFeeRepository struct {
 	mock.Mock
 }
 
-func (mfr *MockFeeRepository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
+func (mfr *MockFeeRepository) GetAllSubmittedIds() ([]*entity.Fee, error) {
 	panic("implement me")
 }
 
