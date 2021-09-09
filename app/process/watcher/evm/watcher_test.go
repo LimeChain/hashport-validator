@@ -114,6 +114,8 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 		Amount:        lockLog.Amount.String(),
 		RouterAddress: "",
 	}
+
+	mocks.MStatusRepository.On("UpdateLastFetchedTimestamp", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, Topic: constants.HederaMintHtsTransfer}).Return()
 
 	w.handleLockLog(lockLog, mocks.MQueue)
@@ -159,11 +161,14 @@ func setup() {
 				},
 			}},
 	}
+
+	mocks.MStatusRepository.On("GetLastFetchedTimestamp", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
-		contracts: mocks.MBridgeContractService,
-		evmClient: mocks.MEVMClient,
-		logger:    config.GetLoggerFor("Burn Event Service"),
-		mappings:  config.LoadAssets(networks),
-		validator: true,
+		repository: mocks.MStatusRepository,
+		contracts:  mocks.MBridgeContractService,
+		evmClient:  mocks.MEVMClient,
+		logger:     config.GetLoggerFor("Burn Event Service"),
+		mappings:   config.LoadAssets(networks),
+		validator:  true,
 	}
 }
