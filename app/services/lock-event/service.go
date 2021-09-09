@@ -24,7 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -140,8 +139,8 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *ch
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
-			Operation:     operation,           // TODO:
-			Status:        fee.StatusSubmitted, // TODO:
+			Operation:     operation,
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -160,7 +159,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *ch
 		*status <- sync.FAIL
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
-			Status:        fee.StatusFailed, // TODO:
+			Status:        schedule.StatusFailed,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,

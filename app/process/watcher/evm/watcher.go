@@ -61,7 +61,6 @@ func NewWatcher(
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
 
-	block := startBlock
 	if startBlock == 0 {
 		_, err := repository.GetLastFetchedTimestamp(contracts.Address().String())
 		if err != nil {
@@ -76,12 +75,12 @@ func NewWatcher(
 			}
 		}
 	} else {
-		err := repository.UpdateLastFetchedTimestamp(contracts.Address().String(), block)
+		err := repository.UpdateLastFetchedTimestamp(contracts.Address().String(), startBlock)
 		if err != nil {
 			log.Fatalf("[%s] - Failed to update Transfer Watcher Status timestamp. Error [%s]", contracts.Address(), err)
 		}
-		targetBlock = uint64(block)
-		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", contracts.Address(), timestamp.ToHumanReadable(block))
+		targetBlock = uint64(startBlock)
+		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", contracts.Address(), timestamp.ToHumanReadable(startBlock))
 	}
 	return &Watcher{
 		repository:  repository,
@@ -104,7 +103,7 @@ func (ew *Watcher) Watch(queue qi.Queue) {
 func (ew Watcher) processPastLogs(queue qi.Queue) {
 	fromBlock, err := ew.repository.GetLastFetchedTimestamp(ew.contracts.Address().String())
 	if err != nil {
-		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status timestamp. Error [%s]", err)
+		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status fromBlock. Error [%s]", err)
 		return
 	}
 

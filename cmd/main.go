@@ -34,6 +34,7 @@ import (
 	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
 	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
@@ -68,6 +69,8 @@ func main() {
 
 	apiRouter := initializeAPIRouter(services)
 
+	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
+
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
@@ -78,6 +81,12 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
 	return apiRouter
+}
+
+func executeRecovery(feeRepository repository.Fee, scheduleRepository repository.Schedule, client client.MirrorNode) {
+	r := recovery.New(feeRepository, scheduleRepository, client)
+
+	r.Execute()
 }
 
 func initializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {

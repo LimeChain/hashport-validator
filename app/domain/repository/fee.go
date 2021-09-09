@@ -24,4 +24,5 @@ type Fee interface {
 	Create(entity *entity.Fee) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
+	GetAllSubmittedIds() ([]*entity.Fee, error)
 }

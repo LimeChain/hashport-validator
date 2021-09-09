@@ -176,7 +176,7 @@ func (fmh Handler) Handle(payload interface{}) {
 								TransactionID: transaction.TransactionID,
 								ScheduleID:    tx.EntityId,
 								Operation:     schedule.TRANSFER,
-								Status:        fee.StatusCompleted, // TODO: not fee
+								Status:        schedule.StatusCompleted,
 								TransferID: sql.NullString{
 									String: transferMsg.TransactionId,
 									Valid:  true,
@@ -190,7 +190,7 @@ func (fmh Handler) Handle(payload interface{}) {
 								TransactionID: transaction.TransactionID,
 								ScheduleID:    tx.EntityId,
 								Amount:        strconv.FormatInt(validFee, 10),
-								Status:        fee.StatusCompleted, // TODO: not fee
+								Status:        fee.StatusCompleted,
 								TransferID: sql.NullString{
 									String: transferMsg.TransactionId,
 									Valid:  true,

@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -137,7 +136,7 @@ func (mhh Handler) Handle(payload interface{}) {
 								TransactionID: transaction.TransactionID,
 								ScheduleID:    tx.EntityId,
 								Operation:     schedule.BURN,
-								Status:        fee.StatusCompleted, // TODO: not fee
+								Status:        schedule.StatusCompleted,
 								TransferID: sql.NullString{
 									String: transferMsg.TransactionId,
 									Valid:  true,
