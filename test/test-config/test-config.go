@@ -50,10 +50,8 @@ var (
 						AccountId:  "0.0.478300",
 						PrivateKey: "302e020100300506032b657004220420479934e1729d3a2a25f3cdec95862d247944635113b4f4a07ec44c5ff8ec0885",
 					},
+					StartTimestamp: 5,
 				},
-			},
-			Recovery: config.Recovery{
-				StartTimestamp: 5,
 			},
 		},
 		Bridge: config.Bridge{
