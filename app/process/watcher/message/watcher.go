@@ -49,6 +49,30 @@ func NewWatcher(client client.MirrorNode, topicID string, repository repository.
 		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
 	}
 
+	targetTimestamp := time.Now().UnixNano()
+	timeStamp := startTimestamp
+	if startTimestamp == 0 {
+		_, err := repository.GetLastFetchedTimestamp(topicID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err := repository.CreateTimestamp(topicID, targetTimestamp)
+				if err != nil {
+					log.Fatalf("Failed to create Transfer Watcher timestamp. Error: [%s]", err)
+				}
+				log.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(targetTimestamp))
+			} else {
+				log.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
+			}
+		}
+	} else {
+		err := repository.UpdateLastFetchedTimestamp(topicID, timeStamp)
+		if err != nil {
+			log.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
+		}
+		targetTimestamp = timeStamp
+		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
+	}
+
 	return &Watcher{
 		client:           client,
 		topicID:          id,
@@ -63,22 +87,6 @@ func (cmw Watcher) Watch(q qi.Queue) {
 	if !cmw.client.TopicExists(cmw.topicID) {
 		cmw.logger.Errorf("Could not start monitoring topic [%s] - Topic not found.", cmw.topicID.String())
 		return
-	}
-
-	topic := cmw.topicID.String()
-	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
-			if err != nil {
-				cmw.logger.Fatalf("Failed to create Topic Watcher timestamp. Error [%s]", err)
-			}
-			cmw.logger.Tracef("Created new Topic Watcher timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
-		} else {
-			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
-		}
-	} else {
-		cmw.updateStatusTimestamp(cmw.startTimestamp)
 	}
 
 	cmw.beginWatching(q)

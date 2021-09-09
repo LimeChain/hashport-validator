@@ -17,37 +17,80 @@
 package evm
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"math/big"
 	"strconv"
 )
 
 type Watcher struct {
-	contracts service.Contracts
-	evmClient client.EVM
-	logger    *log.Entry
-	mappings  c.Assets
-	validator bool
+	repository  repository.Status
+	contracts   service.Contracts
+	evmClient   client.EVM
+	logger      *log.Entry
+	mappings    c.Assets
+	targetBlock uint64
+	validator   bool
 }
 
-func NewWatcher(contracts service.Contracts, evmClient client.EVM, mappings c.Assets, validator bool) *Watcher {
+func NewWatcher(
+	repository repository.Status,
+	contracts service.Contracts,
+	evmClient client.EVM,
+	mappings c.Assets,
+	startBlock int64,
+	validator bool) *Watcher {
+	targetBlock, err := evmClient.GetClient().BlockNumber(context.Background())
+	if err != nil {
+		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
+	}
+
+	block := startBlock
+	if startBlock == 0 {
+		_, err := repository.GetLastFetchedTimestamp(contracts.Address().String())
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err := repository.CreateTimestamp(contracts.Address().String(), int64(targetBlock))
+				if err != nil {
+					log.Fatalf("[%s] - Failed to create Transfer Watcher timestamp. Error: [%s]", contracts.Address(), err)
+				}
+				log.Tracef("[%s] - Created new Transfer Watcher timestamp [%s]", contracts.Address(), timestamp.ToHumanReadable(int64(targetBlock)))
+			} else {
+				log.Fatalf("[%s] - Failed to fetch last Transfer Watcher timestamp. Error: [%s]", contracts.Address(), err)
+			}
+		}
+	} else {
+		err := repository.UpdateLastFetchedTimestamp(contracts.Address().String(), block)
+		if err != nil {
+			log.Fatalf("[%s] - Failed to update Transfer Watcher Status timestamp. Error [%s]", contracts.Address(), err)
+		}
+		targetBlock = uint64(block)
+		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", contracts.Address(), timestamp.ToHumanReadable(block))
+	}
 	return &Watcher{
-		contracts: contracts,
-		evmClient: evmClient,
-		logger:    c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
-		mappings:  mappings,
-		validator: validator,
+		repository:  repository,
+		contracts:   contracts,
+		evmClient:   evmClient,
+		logger:      c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
+		mappings:    mappings,
+		targetBlock: targetBlock,
+		validator:   validator,
 	}
 }
 
@@ -57,15 +100,27 @@ func (ew *Watcher) Watch(queue qi.Queue) {
 }
 
 func (ew *Watcher) listenForEvents(q qi.Queue) {
+	block, err := ew.repository.GetLastFetchedTimestamp(ew.contracts.Address().String())
+	if err != nil {
+		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status timestamp. Error [%s]", err)
+	}
+	ew.logger.Infof("Watching for Events after Block [%d]", block)
+
+	uintBlock := uint64(block)
+	watchOps := &bind.WatchOpts{
+		Start: &uintBlock,
+	}
+
 	burnEvents := make(chan *router.RouterBurn)
-	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
+
+	burnSubscription, err := ew.contracts.WatchBurnEventLogs(watchOps, burnEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
 	}
 
 	lockEvents := make(chan *router.RouterLock)
-	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
+	lockSubscription, err := ew.contracts.WatchLockEventLogs(watchOps, lockEvents)
 	if err != nil {
 		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
@@ -152,7 +207,15 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount)
 
-	if ew.validator {
+	currentBlockNumber := eventLog.Raw.BlockNumber
+
+	err = ew.repository.UpdateLastFetchedTimestamp(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
+	}
+
+	if ew.validator && currentBlockNumber >= ew.targetBlock {
 		if burnEvent.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
 		} else {
@@ -233,8 +296,16 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
+	currentBlockNumber := eventLog.Raw.BlockNumber
+
+	err = ew.repository.UpdateLastFetchedTimestamp(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
+	}
+
 	// TODO: Extend for recoverability
-	if ew.validator {
+	if ew.validator && currentBlockNumber >= ew.targetBlock {
 		if tr.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
 		} else {

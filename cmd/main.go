@@ -34,7 +34,6 @@ import (
 	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
 	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
@@ -65,47 +64,12 @@ func main() {
 	// Prepare Services
 	services = PrepareServices(configuration, *clients, *repositories)
 
-	// Execute Recovery Process. Computing Watchers starting timestamp
-	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
-	if err != nil {
-		log.Fatal(err)
-	}
-	initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
+	initializeServerPairs(server, services, repositories, clients, configuration)
 
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
-}
-
-func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Node,
-		services.transfers,
-		services.messages,
-		services.contractServices,
-		repository.transferStatus,
-		repository.messageStatus,
-		repository.transfer,
-		client.MirrorNode,
-		client.HederaNode,
-		configuration.Bridge.Assets)
-	if err != nil {
-		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
-	}
-	transfersRecoveryFrom, _, recoveryTo, err := r.ComputeIntervals()
-	if err != nil {
-		log.Fatalf("Could not compute recovery interval. Error [%s]", err)
-	}
-	if transfersRecoveryFrom <= 0 {
-		log.Infof("Skipping Recovery process. Nothing to recover")
-	}
-	//else {
-	//err = r.Start(transfersRecoveryFrom, messagesRecoveryFrom, recoveryTo)
-	//if err != nil {
-	//	log.Fatalf("Recovery Process with interval [%d;%d] finished unsuccessfully. Error: [%s].", transfersRecoveryFrom, recoveryTo, err)
-	//}
-	//}
-	return err, recoveryTo
 }
 
 func initializeAPIRouter(services *Services) *apirouter.APIRouter {
@@ -116,13 +80,12 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func initializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config, watchersTimestamp int64) {
+func initializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
 	server.AddWatcher(addTransferWatcher(
 		&configuration,
 		services.transfers,
 		clients.MirrorNode,
 		&repositories.transferStatus,
-		watchersTimestamp,
 		services.contractServices))
 
 	server.AddHandler(constants.TopicMessageSubmission,
@@ -143,8 +106,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		addConsensusTopicWatcher(
 			&configuration,
 			clients.MirrorNode,
-			repositories.messageStatus,
-			watchersTimestamp))
+			repositories.messageStatus))
 	server.AddHandler(constants.TopicMessageValidation, mh.NewHandler(
 		configuration.Bridge.TopicId,
 		repositories.transfer,
@@ -155,7 +117,13 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	for _, evmClient := range clients.EVMClients {
 		chainId := evmClient.ChainID().Int64()
 		server.AddWatcher(
-			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.Bridge.Assets, configuration.Node.Validator))
+			evm.NewWatcher(
+				repositories.transferStatus,
+				services.contractServices[chainId],
+				evmClient,
+				configuration.Bridge.Assets,
+				configuration.Node.Clients.Evm[chainId].StartBlock,
+				configuration.Node.Validator))
 	}
 
 	// Register read-only handlers
@@ -196,7 +164,6 @@ func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
-	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
@@ -208,7 +175,7 @@ func addTransferWatcher(configuration *config.Config,
 		account,
 		configuration.Node.Clients.MirrorNode.PollingInterval,
 		*repository,
-		startTimestamp,
+		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
 		configuration.Bridge.Assets,
 		configuration.Node.Validator)
@@ -217,7 +184,6 @@ func addTransferWatcher(configuration *config.Config,
 func addConsensusTopicWatcher(configuration *config.Config,
 	client client.MirrorNode,
 	repository repository.Status,
-	startTimestamp int64,
 ) *cmw.Watcher {
 	topic := configuration.Bridge.TopicId
 	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
@@ -225,5 +191,5 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		topic,
 		repository,
 		configuration.Node.Clients.MirrorNode.PollingInterval,
-		startTimestamp)
+		configuration.Node.Clients.Hedera.StartTimestamp)
 }

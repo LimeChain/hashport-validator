@@ -41,7 +41,7 @@ type Watcher struct {
 	accountID        hedera.AccountID
 	pollingInterval  time.Duration
 	statusRepository repository.Status
-	startTimestamp   int64
+	targetTimestamp  int64
 	logger           *log.Entry
 	contractServices map[int64]service.Contracts
 	mappings         config.Assets
@@ -64,13 +64,37 @@ func NewWatcher(
 		log.Fatalf("Could not start Crypto Transfer Watcher for account [%s] - Error: [%s]", accountID, err)
 	}
 
+	targetTimestamp := time.Now().UnixNano()
+	timeStamp := startTimestamp
+	if startTimestamp == 0 {
+		_, err := repository.GetLastFetchedTimestamp(accountID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err := repository.CreateTimestamp(accountID, targetTimestamp)
+				if err != nil {
+					log.Fatalf("Failed to create Transfer Watcher timestamp. Error: [%s]", err)
+				}
+				log.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(targetTimestamp))
+			} else {
+				log.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
+			}
+		}
+	} else {
+		err := repository.UpdateLastFetchedTimestamp(accountID, timeStamp)
+		if err != nil {
+			log.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
+		}
+		targetTimestamp = timeStamp
+		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
+	}
+
 	return &Watcher{
 		transfers:        transfers,
 		client:           client,
 		accountID:        id,
 		pollingInterval:  pollingInterval,
 		statusRepository: repository,
-		startTimestamp:   startTimestamp,
+		targetTimestamp:  targetTimestamp,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractServices: contractServices,
 		mappings:         mappings,
@@ -84,24 +108,7 @@ func (ctw Watcher) Watch(q qi.Queue) {
 		return
 	}
 
-	account := ctw.accountID.String()
-	_, err := ctw.statusRepository.GetLastFetchedTimestamp(account)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := ctw.statusRepository.CreateTimestamp(account, ctw.startTimestamp)
-			if err != nil {
-				ctw.logger.Fatalf("Failed to create Transfer Watcher timestamp. Error [%s]", err)
-			}
-			ctw.logger.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
-		} else {
-			ctw.logger.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
-		}
-	} else {
-		ctw.updateStatusTimestamp(ctw.startTimestamp)
-	}
-
 	go ctw.beginWatching(q)
-	ctw.logger.Infof("Watching for Transfers after Timestamp [%s]", timestamp.ToHumanReadable(ctw.startTimestamp))
 }
 
 func (ctw Watcher) updateStatusTimestamp(ts int64) {
@@ -117,6 +124,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	if err != nil {
 		ctw.logger.Fatalf("Failed to retrieve Transfer Watcher Status timestamp. Error [%s]", err)
 	}
+	ctw.logger.Infof("Watching for Transfers after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
@@ -188,8 +196,14 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		amount,
 		ctw.contractServices[targetChainId].Address().String())
 
+	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to parse consensus timestamp [%s]. Error: [%s]", tx.TransactionID, tx.ConsensusTimestamp, err)
+		return
+	}
+
 	// TODO: Extend for recoverability
-	if ctw.validator {
+	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
 			transferMessage.HasFee = true
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
