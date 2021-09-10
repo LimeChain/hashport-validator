@@ -145,7 +145,8 @@ func (ew Watcher) processPastLogs(queue qi.Queue) {
 			} else if log.Topics[0] == burnHash {
 				burn, err := ew.contracts.ParseBurnLog(log)
 				if err != nil {
-					ew.logger.Errorf("Could not parse lock log [%s]. Error [%s].", burn.Raw.TxHash.String(), err)
+					ew.logger.Errorf("Could not parse burn log [%s]. Error [%s].", burn.Raw.TxHash.String(), err)
+					continue
 				}
 				go ew.handleBurnLog(burn, queue)
 			}
