@@ -17,6 +17,7 @@
 package contracts
 
 import (
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -37,6 +38,10 @@ type Service struct {
 	mutex    sync.Mutex
 	members  Members
 	logger   *log.Entry
+}
+
+func (bsc *Service) GetClient() *ethclient.Client {
+	return bsc.Client.GetClient()
 }
 
 func (bsc *Service) WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterLock) (event.Subscription, error) {

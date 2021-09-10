@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -30,6 +31,8 @@ import (
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"math"
+	"math/big"
 )
 
 type Watcher struct {
@@ -127,6 +130,12 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
+	properAmount, err := ew.removeDecimals(eventLog.Amount, eventLog.Token)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+		return
+	}
+
 	burnEvent := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: ew.evmClient.ChainID().Int64(),
@@ -136,7 +145,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		TargetAsset:   targetAsset,
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
-		Amount:        eventLog.Amount.String(),
+		Amount:        properAmount.String(),
 		// TODO: set router address
 	}
 
@@ -156,6 +165,24 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	} else {
 		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
 	}
+}
+
+func (ew *Watcher) removeDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, ew.evmClient.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	adaptation := int(decimals) - 8
+	if decimals > 0 {
+		return new(big.Int).Div(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
+	}
+	return amount, nil
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
@@ -191,6 +218,12 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
+	properAmount, err := ew.removeDecimals(eventLog.Amount, eventLog.Token)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+		return
+	}
+
 	tr := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: ew.evmClient.ChainID().Int64(),
@@ -200,7 +233,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		TargetAsset:   wrappedAsset,
 		NativeAsset:   eventLog.Token.String(),
 		Receiver:      recipientAccount,
-		Amount:        eventLog.Amount.String(),
+		Amount:        properAmount.String(),
 		// TODO: set router address
 	}
 

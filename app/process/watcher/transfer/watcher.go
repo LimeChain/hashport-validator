@@ -19,7 +19,9 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -32,6 +34,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math"
+	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -173,6 +178,18 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		}
 	}
 
+	intAmount, err := strconv.ParseInt(amount, 10, 64)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Could not parse amount [%s] to int. Error: [%s]", tx.TransactionID, amount, err)
+		return
+	}
+
+	properAmount, err := ctw.addDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset), targetChainId)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
+		return
+	}
+
 	transferMessage := transfer.New(
 		tx.TransactionID,
 		0,
@@ -182,7 +199,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		asset,
 		targetChainAsset,
 		nativeAsset.Asset,
-		amount,
+		properAmount.String(),
 		ctw.contractServices[targetChainId].Address().String())
 	if nativeAsset.ChainId == 0 {
 		transferMessage.HasFee = true
@@ -190,4 +207,22 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	} else {
 		q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
 	}
+}
+
+func (ctw *Watcher) addDecimals(amount *big.Int, asset common.Address, targetChainId int64) (*big.Int, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, ctw.contractServices[targetChainId].GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	adaptation := int(decimals) - 8
+	if decimals > 0 {
+		return new(big.Int).Mul(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
+	}
+	return amount, nil
 }
