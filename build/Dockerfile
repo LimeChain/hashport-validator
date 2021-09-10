@@ -9,5 +9,6 @@ RUN apt-get update && \
     apt-get install -y ca-certificates
 WORKDIR /src/hedera-eth-bridge-validator
 COPY --from=build /tmp/src/hedera-eth-bridge-validator .
-COPY ./config/application.yml ./config/application.yml
+COPY ./config/node.yml ./config/node.yml
+COPY ./config/bridge.yml ./config/bridge.yml
 CMD ["./main"]

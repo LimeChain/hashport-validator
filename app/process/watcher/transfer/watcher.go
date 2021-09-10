@@ -44,7 +44,7 @@ type Watcher struct {
 	startTimestamp   int64
 	logger           *log.Entry
 	contractServices map[int64]service.Contracts
-	mappings         config.AssetMappings
+	mappings         config.Assets
 }
 
 func NewWatcher(
@@ -55,7 +55,7 @@ func NewWatcher(
 	repository repository.Status,
 	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
-	mappings config.AssetMappings,
+	mappings config.Assets,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {

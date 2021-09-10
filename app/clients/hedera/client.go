@@ -33,7 +33,7 @@ type Node struct {
 // NewNodeClient creates new instance of hedera.Client based on the provided client configuration
 func NewNodeClient(config config.Hedera) *Node {
 	var client *hedera.Client
-	switch config.NetworkType {
+	switch config.Network {
 	case "mainnet":
 		client = hedera.ClientForMainnet()
 	case "testnet":
@@ -41,7 +41,7 @@ func NewNodeClient(config config.Hedera) *Node {
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
-		log.Fatalf("Invalid Client NetworkType provided: [%s]", config.NetworkType)
+		log.Fatalf("Invalid Client Network provided: [%s]", config.Network)
 	}
 
 	accID, err := hedera.AccountIDFromString(config.Operator.AccountId)

@@ -1055,7 +1055,7 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 	return expectedTransfers
 }
 
-func sendBurnEthTransaction(assetMappings config.AssetMappings, evm setup.EVMUtils, asset string, sourceChainId, targetChainId int64, receiver []byte, t *testing.T) (*types.Receipt, *router.RouterBurn) {
+func sendBurnEthTransaction(assetMappings config.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId int64, receiver []byte, t *testing.T) (*types.Receipt, *router.RouterBurn) {
 	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, asset)
 	if err != nil {
 		t.Fatal(err)
