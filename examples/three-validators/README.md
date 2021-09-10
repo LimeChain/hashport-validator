@@ -11,7 +11,8 @@ Example uses `Docker Compose`.
 1. Run hedera-setup.go with privateKey, accountId and network as flags to generate the configurations
 
     `go run hedera-setup.go --privateKey=/your private key/ --accountId=/your account id/ --network=/previewnet|testnet|mainnet/ --members=/int, the count of the wanted bridge custodians/`
+2. Set necessary [bridge](./bridge.yml) configuration for the nodes
 
-2. Set necessary configurations for [Alice](./alice/config), [Bob](./bob/config)
+3. Set necessary configurations for [Alice](./alice/config), [Bob](./bob/config)
    and [Carol](./carol/config)
-3. Run `docker-compose up`
+4. Run `docker-compose up`
