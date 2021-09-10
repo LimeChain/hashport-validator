@@ -78,19 +78,6 @@ func (mhh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	//amount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
-	//if err != nil {
-	//	mhh.logger.Errorf("[%s] - Failed to parse string amount. Error [%s]", transferMsg.TransactionId, err)
-	//	return
-	//}
-	//
-	//burnTransfer := []mirror_node.Transfer{
-	//	{
-	//		Account: mhh.bridgeAccount.String(),
-	//		Amount:  -amount,
-	//		Token:   transferMsg.SourceAsset,
-	//	},
-	//}
 	for {
 		response, err := mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.Timestamp)
 		if err != nil {

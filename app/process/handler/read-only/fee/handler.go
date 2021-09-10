@@ -91,8 +91,6 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	// TODO: Find Transfer TX with fee, messages will come by themselves (NH -> WEVM)
-
 	intAmount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
 	if err != nil {
 		fmh.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", transferMsg.TransactionId, err)
