@@ -53,7 +53,7 @@ services:
     environment:
       VALIDATOR_DATABASE_HOST: alice_db
     volumes:
-      - ./alice/config/bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
+      - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
       - ./alice/config/node.yml:/src/hedera-eth-bridge-validator/config/node.yml
     restart: unless-stopped
     tty: true
@@ -66,7 +66,7 @@ services:
     environment:
       VALIDATOR_DATABASE_HOST: bob_db
     volumes:
-      - ./bob/config/bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
+      - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
       - ./bob/config/node.yml:/src/hedera-eth-bridge-validator/config/node.yml
     restart: unless-stopped
     tty: true
@@ -79,7 +79,7 @@ services:
     environment:
       VALIDATOR_DATABASE_HOST: carol_db
     volumes:
-    - ./carol/config/bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
+    - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
     - ./carol/config/node.yml:/src/hedera-eth-bridge-validator/config/node.yml
     restart: unless-stopped
     tty: true
