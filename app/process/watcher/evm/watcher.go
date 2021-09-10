@@ -348,7 +348,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	// TODO: Extend for recoverability
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
 		if tr.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})

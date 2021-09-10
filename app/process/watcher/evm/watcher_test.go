@@ -167,7 +167,7 @@ func setup() {
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("Burn Event Service"),
+		logger:     config.GetLoggerFor("EVM Watcher"),
 		mappings:   config.LoadAssets(networks),
 		validator:  true,
 	}

@@ -202,7 +202,6 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	// TODO: Extend for recoverability
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
 			transferMessage.HasFee = true
