@@ -61,15 +61,3 @@ func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 	}
 	return args.Get(0).(error)
 }
-
-func (m *MockTransferRepository) UpdateStatusSignatureSubmitted(txId string) error {
-	panic("implement me")
-}
-
-func (m *MockTransferRepository) UpdateStatusSignatureMined(txId string) error {
-	panic("implement me")
-}
-
-func (m *MockTransferRepository) UpdateStatusSignatureFailed(txId string) error {
-	panic("implement me")
-}

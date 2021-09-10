@@ -55,16 +55,15 @@ func PrepareExpectedTransfer(
 	statuses database.ExpectedStatuses) *entity.Transfer {
 
 	return &entity.Transfer{
-		TransactionID:      transactionID,
-		SourceChainID:      sourceChainId,
-		TargetChainID:      targetChainId,
-		NativeChainID:      nativeChainId,
-		Receiver:           receiver,
-		SourceAsset:        sourceAsset,
-		TargetAsset:        targetAsset,
-		NativeAsset:        nativeAsset,
-		Amount:             amount,
-		Status:             statuses.Status,
-		SignatureMsgStatus: statuses.StatusSignature,
+		TransactionID: transactionID,
+		SourceChainID: sourceChainId,
+		TargetChainID: targetChainId,
+		NativeChainID: nativeChainId,
+		Receiver:      receiver,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
+		Amount:        amount,
+		Status:        statuses.Status,
 	}
 }

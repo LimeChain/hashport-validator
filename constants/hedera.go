@@ -27,3 +27,12 @@ const (
 	TopicMessageSubmission          = "TOPIC_MSG_SUBMISSION"
 	TopicMessageValidation          = "TOPIC_MSG_VALIDATION"
 )
+
+// Read-only handler topics
+const (
+	ReadOnlyHederaFeeTransfer     = "READ_ONLY_HEDERA_FEE_TRANSFER"
+	ReadOnlyHederaTransfer        = "READ_ONLY_HEDERA_NATIVE_TRANSFER"
+	ReadOnlyHederaBurn            = "READ_ONLY_HEDERA_BURN"
+	ReadOnlyHederaMintHtsTransfer = "READ_ONLY_HEDERA_MINT_HTS_TRANSFER"
+	ReadOnlyTransferSave          = "READ_ONLY_SAVE_TRANSFER"
+)

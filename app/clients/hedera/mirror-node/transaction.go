@@ -55,6 +55,16 @@ type (
 		Transactions []Transaction
 		Status       `json:"_status"`
 	}
+	// Schedule struct used by the Hedera Mirror node REST API to return information
+	// regarding a given Schedule entity
+	Schedule struct {
+		ConsensusTimestamp string `json:"consensus_timestamp"`
+		CreatorAccountId   string `json:"creator_account_id"`
+		ExecutedTimestamp  string `json:"executed_timestamp"`
+		Memo               string `json:"memo"`
+		PayerAccountId     string `json:"payer_account_id"`
+		ScheduleId         string `json:"schedule_id"`
+	}
 )
 
 // getIncomingAmountFor returns the amount that is credited to the specified

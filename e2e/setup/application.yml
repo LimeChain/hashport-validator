@@ -17,6 +17,11 @@ hedera:
       password:
       port:
       username:
+    - host:
+      name:
+      password:
+      port:
+      username:
   members:
   mirror_node:
     api_address:

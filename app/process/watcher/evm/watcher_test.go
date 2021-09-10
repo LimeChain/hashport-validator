@@ -164,5 +164,6 @@ func setup() {
 		evmClient: mocks.MEVMClient,
 		logger:    config.GetLoggerFor("Burn Event Service"),
 		mappings:  config.LoadAssets(networks),
+		validator: true,
 	}
 }

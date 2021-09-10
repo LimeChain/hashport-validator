@@ -28,13 +28,17 @@ jobs:
         shell: bash
         run: |
          echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/node.yml
+      - name: Export dave application configuration
+        shell: bash
+        run: |
+          echo "${{ secrets.E2E_DAVE_CONFIG }}" > ./examples/three-validators/dave/config/node.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
       - name: Perform health check on nodes
         shell: bash
         run: >
             start=`date +%s` ;
-            ports=("6200" "7200" "8200") ;
+            ports=("6200" "7200" "8200" "9200") ;
             for port in "${ports[@]}" ; do
             MAX_TIMEOUT=60;
             while [[ "$(curl -s 127.0.0.1:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
@@ -70,7 +74,8 @@ jobs:
           cd examples/three-validators/ && mkdir logs &&
           touch ./logs/alice.log && docker-compose logs alice > ./logs/alice.log &&
           touch ./logs/bob.log && docker-compose logs bob > ./logs/bob.log &&
-          touch ./logs/carol.log && docker-compose logs carol > ./logs/carol.log
+          touch ./logs/carol.log && docker-compose logs carol > ./logs/carol.log &&
+          touch ./logs/dave.log && docker-compose logs dave_read_only > ./logs/dave.log
       - name: Upload Logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
