@@ -26,6 +26,30 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
+func (m *MockHederaMirrorClient) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error) {
+	panic("implement me")
+}
+
+func (m *MockHederaMirrorClient) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error) {
+	panic("implement me")
+}
+
+func (m *MockHederaMirrorClient) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error) {
+	panic("implement me")
+}
+
+func (m *MockHederaMirrorClient) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error) {
+	panic("implement me")
+}
+
+func (m *MockHederaMirrorClient) GetScheduledTransaction(transactionID string) (*mirror_node.Response, error) {
+	panic("implement me")
+}
+
+func (m *MockHederaMirrorClient) GetSchedule(scheduleID string) (*mirror_node.Schedule, error) {
+	panic("implement me")
+}
+
 func (m *MockHederaMirrorClient) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error) {
 	args := m.Called(accountId, from)
 

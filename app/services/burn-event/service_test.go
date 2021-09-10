@@ -59,20 +59,19 @@ var (
 	burnEventReceiver, _ = hedera.AccountIDFromString(tr.Receiver)
 	burnEventAmount, _   = strconv.ParseInt(tr.Amount, 10, 64)
 	entityTransfer       = &entity.Transfer{
-		TransactionID:      tr.TransactionId,
-		SourceChainID:      tr.SourceChainId,
-		TargetChainID:      tr.TargetChainId,
-		NativeChainID:      tr.NativeChainId,
-		SourceAsset:        tr.SourceAsset,
-		TargetAsset:        tr.TargetAsset,
-		NativeAsset:        tr.NativeAsset,
-		Receiver:           tr.Receiver,
-		Amount:             tr.Amount,
-		SignatureMsgStatus: "",
-		Status:             burn_event.StatusInitial,
-		Messages:           nil,
-		Fee:                entity.Fee{},
-		Schedules:          nil,
+		TransactionID: tr.TransactionId,
+		SourceChainID: tr.SourceChainId,
+		TargetChainID: tr.TargetChainId,
+		NativeChainID: tr.NativeChainId,
+		SourceAsset:   tr.SourceAsset,
+		TargetAsset:   tr.TargetAsset,
+		NativeAsset:   tr.NativeAsset,
+		Receiver:      tr.Receiver,
+		Amount:        tr.Amount,
+		Status:        burn_event.StatusInitial,
+		Messages:      nil,
+		Fee:           entity.Fee{},
+		Schedules:     nil,
 	}
 )
 

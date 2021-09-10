@@ -71,11 +71,13 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
+		return
 	}
 
 	receiver, err := hedera.AccountIDFromString(event.Receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event account [%s]. Error [%s].", event.TransactionId, event.Receiver, err)
+		return
 	}
 
 	_, err = s.repository.Create(&event)

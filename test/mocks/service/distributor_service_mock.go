@@ -17,12 +17,21 @@
 package service
 
 import (
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
 
 type MockDistrubutorService struct {
 	mock.Mock
+}
+
+func (mds *MockDistrubutorService) PrepareTransfers(amount int64, token string) ([]mirror_node.Transfer, error) {
+	args := mds.Called(amount, token)
+	if args.Get(1) == nil {
+		return args.Get(0).([]mirror_node.Transfer), nil
+	}
+	return nil, args.Get(1).(error)
 }
 
 func (mds *MockDistrubutorService) CalculateMemberDistribution(validFee int64) ([]transfer.Hedera, error) {

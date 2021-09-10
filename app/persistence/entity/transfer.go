@@ -19,21 +19,20 @@ package entity
 import "database/sql"
 
 type Transfer struct {
-	TransactionID      string `gorm:"primaryKey"`
-	SourceChainID      int64
-	TargetChainID      int64
-	NativeChainID      int64
-	SourceAsset        string
-	TargetAsset        string
-	NativeAsset        string
-	Receiver           string
-	Amount             string
-	SignatureMsgStatus string
-	Status             string
-	HasFee             bool
-	Messages           []Message  `gorm:"foreignKey:TransferID"`
-	Fee                Fee        `gorm:"foreignKey:TransferID"`
-	Schedules          []Schedule `gorm:"foreignKey:TransferID"`
+	TransactionID string `gorm:"primaryKey"`
+	SourceChainID int64
+	TargetChainID int64
+	NativeChainID int64
+	SourceAsset   string
+	TargetAsset   string
+	NativeAsset   string
+	Receiver      string
+	Amount        string
+	Status        string
+	HasFee        bool
+	Messages      []Message  `gorm:"foreignKey:TransferID"`
+	Fee           Fee        `gorm:"foreignKey:TransferID"`
+	Schedules     []Schedule `gorm:"foreignKey:TransferID"`
 }
 
 // Message is a db model used to track the messages signed by validators for a given transfer

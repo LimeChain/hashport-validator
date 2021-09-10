@@ -114,8 +114,7 @@ func Test_HBAR(t *testing.T) {
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		receiver.String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: entity_transfer.StatusSignatureMined,
+			Status: entity_transfer.StatusCompleted,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
@@ -179,8 +178,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		strconv.FormatInt(tinyBarAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: entity_transfer.StatusSignatureMined,
+			Status: entity_transfer.StatusCompleted,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
@@ -238,8 +236,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: "",
+			Status: entity_transfer.StatusCompleted,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
@@ -304,8 +301,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: "",
+			Status: entity_transfer.StatusCompleted,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
@@ -366,8 +362,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: "",
+			Status: entity_transfer.StatusCompleted,
 		})
 	expectedScheduleMintRecord := &entity.Schedule{
 		TransactionID: bridgeMintTransactionID,
@@ -467,8 +462,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		strconv.FormatInt(unlockAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: entity_transfer.StatusSignatureMined,
+			Status: entity_transfer.StatusCompleted,
 		})
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Burn
@@ -546,8 +540,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: entity_transfer.StatusSignatureMined,
+			Status: entity_transfer.StatusCompleted,
 		})
 
 	// Step 10 - Verify Database Records
@@ -611,8 +604,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		nativeEvm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status:          entity_transfer.StatusCompleted,
-			StatusSignature: entity_transfer.StatusSignatureMined,
+			Status: entity_transfer.StatusCompleted,
 		})
 
 	// Step 9 - Verify Database Records
