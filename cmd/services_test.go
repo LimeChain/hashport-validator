@@ -25,7 +25,7 @@ import (
 )
 
 func TestPrepareServices(t *testing.T) {
-	client := PrepareClients(tc.TestConfig.Validator.Clients)
+	client := PrepareClients(tc.TestConfig.Node.Clients)
 
 	mocks.Setup()
 	mocks.MDatabase.On("GetConnection").Return(&gorm.DB{})
@@ -36,7 +36,7 @@ func TestPrepareServices(t *testing.T) {
 }
 
 func TestPrepareApiOnlyServices(t *testing.T) {
-	client := PrepareClients(tc.TestConfig.Validator.Clients)
+	client := PrepareClients(tc.TestConfig.Node.Clients)
 	res := PrepareApiOnlyServices(tc.TestConfig, *client)
 	assert.NotEmpty(t, res)
 }

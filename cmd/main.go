@@ -45,20 +45,20 @@ import (
 func main() {
 	// Config
 	configuration := config.LoadConfig()
-	config.InitLogger(configuration.Validator.LogLevel)
+	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
-	clients := PrepareClients(configuration.Validator.Clients)
+	clients := PrepareClients(configuration.Node.Clients)
 
 	// Prepare Node
 	server := server.NewServer()
 
 	var services *Services = nil
-	if configuration.Validator.RestApiOnly {
+	if !configuration.Node.Validator {
 		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
 		services = PrepareApiOnlyServices(configuration, *clients)
 	} else {
-		db := persistence.NewDatabase(configuration.Validator.Database)
+		db := persistence.NewDatabase(configuration.Node.Database)
 		// Prepare repositories
 		repositories := PrepareRepositories(db)
 		// Prepare Services
@@ -75,11 +75,11 @@ func main() {
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Validator,
+	r, err := recovery.NewProcess(configuration.Node,
 		services.transfers,
 		services.messages,
 		services.contractServices,
@@ -88,7 +88,7 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 		repository.transfer,
 		client.MirrorNode,
 		client.HederaNode,
-		configuration.AssetMappings)
+		configuration.Bridge.Assets)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
@@ -132,7 +132,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			services.signers,
 			services.transfers,
 			repositories.transfer,
-			configuration.Validator.Clients.Hedera.TopicId))
+			configuration.Bridge.TopicId))
 
 	server.AddHandler(constants.HederaMintHtsTransfer, mint_hts.NewHandler(services.lockEvents))
 	server.AddHandler(constants.HederaBurnMessageSubmission, burn_message.NewHandler(services.transfers))
@@ -146,7 +146,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.messageStatus,
 			watchersTimestamp))
 	server.AddHandler(constants.TopicMessageValidation, mh.NewHandler(
-		configuration.Validator.Clients.Hedera.TopicId,
+		configuration.Bridge.TopicId,
 		repositories.transfer,
 		repositories.message,
 		services.contractServices,
@@ -155,7 +155,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	for _, evmClient := range clients.EVMClients {
 		chainId := evmClient.ChainID().Int64()
 		server.AddWatcher(
-			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.AssetMappings))
+			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.Bridge.Assets))
 	}
 }
 
@@ -166,18 +166,18 @@ func addTransferWatcher(configuration *config.Config,
 	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
-	account := configuration.Validator.Clients.Hedera.BridgeAccount
+	account := configuration.Bridge.Hedera.BridgeAccount
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
 		bridgeService,
 		mirrorNode,
 		account,
-		configuration.Validator.Clients.MirrorNode.PollingInterval,
+		configuration.Node.Clients.MirrorNode.PollingInterval,
 		*repository,
 		startTimestamp,
 		contractServices,
-		configuration.AssetMappings)
+		configuration.Bridge.Assets)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
@@ -185,11 +185,11 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
-	topic := configuration.Validator.Clients.Hedera.TopicId
+	topic := configuration.Bridge.TopicId
 	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
 	return cmw.NewWatcher(client,
 		topic,
 		repository,
-		configuration.Validator.Clients.MirrorNode.PollingInterval,
+		configuration.Node.Clients.MirrorNode.PollingInterval,
 		startTimestamp)
 }

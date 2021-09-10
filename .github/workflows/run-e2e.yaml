@@ -12,18 +12,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Export bridge configuration
+        shell: bash
+        run: |
+          echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./examples/three-validators/bridge.yml
       - name: Export alice application config
         shell: bash
         run: |
-         echo "${{ secrets.E2E_ALICE_CONFIG }}" > ./examples/three-validators/alice/config/application.yml
+         echo "${{ secrets.E2E_ALICE_CONFIG }}" > ./examples/three-validators/alice/config/node.yml
       - name: Export bob application config
         shell: bash
         run: |
-         echo "${{ secrets.E2E_BOB_CONFIG }}" > ./examples/three-validators/bob/config/application.yml
+         echo "${{ secrets.E2E_BOB_CONFIG }}" > ./examples/three-validators/bob/config/node.yml
       - name: Export carol application config
         shell: bash
         run: |
-         echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/application.yml
+         echo "${{ secrets.E2E_CAROL_CONFIG }}" > ./examples/three-validators/carol/config/node.yml
       - name: Build the stack
         run: cd examples/three-validators; docker-compose up -d
       - name: Perform health check on nodes
@@ -57,6 +61,7 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/setup/application.yml
+          echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./e2e/setup/bridge.yml
       - name: Run E2E Tests
         run: go test ./e2e/ -timeout 1200s # 20 minutes
       - name: Prepare container logs
