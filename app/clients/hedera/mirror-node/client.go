@@ -46,7 +46,7 @@ func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Clie
 }
 
 func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -57,7 +57,7 @@ func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.A
 }
 
 func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&result=success&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -68,7 +68,7 @@ func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.A
 }
 
 func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=debit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=debit&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)

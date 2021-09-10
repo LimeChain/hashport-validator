@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -131,87 +130,68 @@ func (fmh Handler) Handle(payload interface{}) {
 
 		finished := false
 		for _, transaction := range response.Transactions {
-			found := false
-			for _, expectedTransfer := range expectedTransfers {
-				contained := false
-				if transferMsg.SourceAsset == constants.Hbar {
-					for _, t := range transaction.Transfers {
-						if expectedTransfer == t {
-							contained = true
-							break
-						}
-					}
-				} else {
-					for _, t := range transaction.TokenTransfers {
-						if expectedTransfer == t {
-							contained = true
-							break
-						}
-					}
-				}
-
-				if !contained {
-					found = false
-					break
-				} else {
-					found = true
-				}
+			isFound := false
+			scheduledTx, err := fmh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
+			if err != nil {
+				fmh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
+				continue
 			}
-			if found {
-				isFound := false
-				scheduledTx, err := fmh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
-				if err != nil {
-					fmh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
-					continue
-				}
-				for _, tx := range scheduledTx.Transactions {
-					if tx.Result == hedera.StatusSuccess.String() {
-						scheduleID, err := fmh.mirrorNode.GetSchedule(tx.EntityId)
-						if err != nil {
-							fmh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
-							break
-						}
-						if scheduleID.Memo == transferMsg.TransactionId {
-							err := fmh.scheduleRepository.Create(&entity.Schedule{
-								TransactionID: transaction.TransactionID,
-								ScheduleID:    tx.EntityId,
-								Operation:     schedule.TRANSFER,
-								Status:        schedule.StatusCompleted,
-								TransferID: sql.NullString{
-									String: transferMsg.TransactionId,
-									Valid:  true,
-								},
-							})
-							if err != nil {
-								fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-								break
-							}
-							err = fmh.feeRepository.Create(&entity.Fee{
-								TransactionID: transaction.TransactionID,
-								ScheduleID:    tx.EntityId,
-								Amount:        strconv.FormatInt(validFee, 10),
-								Status:        fee.StatusCompleted,
-								TransferID: sql.NullString{
-									String: transferMsg.TransactionId,
-									Valid:  true,
-								},
-							})
-							if err != nil {
-								fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-								break
-							}
-
-							err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-							if err != nil {
-								fmh.logger.Errorf("[%s] - Failed to update status completed [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-								break
-							}
-							isFound = true
-						}
+			for _, tx := range scheduledTx.Transactions {
+				if tx.Result == hedera.StatusSuccess.String() {
+					scheduleID, err := fmh.mirrorNode.GetSchedule(tx.EntityId)
+					if err != nil {
+						fmh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
+						break
+					}
+					if scheduleID.Memo == transferMsg.TransactionId {
+						isFound = true
 					}
 				}
 				if isFound {
 					finished = true
+					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
+					status := schedule.StatusCompleted
+					if !isSuccessful {
+						status = schedule.StatusFailed
+					}
+					err := fmh.scheduleRepository.Create(&entity.Schedule{
+						TransactionID: transaction.TransactionID,
+						ScheduleID:    tx.EntityId,
+						Operation:     schedule.TRANSFER,
+						Status:        status,
+						TransferID: sql.NullString{
+							String: transferMsg.TransactionId,
+							Valid:  true,
+						},
+					})
+					if err != nil {
+						fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
+						break
+					}
+					err = fmh.feeRepository.Create(&entity.Fee{
+						TransactionID: transaction.TransactionID,
+						ScheduleID:    tx.EntityId,
+						Amount:        strconv.FormatInt(validFee, 10),
+						Status:        status,
+						TransferID: sql.NullString{
+							String: transferMsg.TransactionId,
+							Valid:  true,
+						},
+					})
+					if err != nil {
+						fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
+						break
+					}
+
+					if isSuccessful {
+						err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+					} else {
+						//err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId) // TODO: add
+					}
+					if err != nil {
+						fmh.logger.Errorf("[%s] - Failed to update status [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
+						break
+					}
 					break
 				}
 			}
