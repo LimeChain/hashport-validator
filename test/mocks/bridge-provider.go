@@ -19,6 +19,7 @@ package mocks
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/stretchr/testify/mock"
@@ -26,6 +27,10 @@ import (
 
 type MockBridgeContract struct {
 	mock.Mock
+}
+
+func (m *MockBridgeContract) GetClient() *ethclient.Client {
+	panic("implement me")
 }
 
 func (m *MockBridgeContract) IsMember(address string) bool {
