@@ -11,7 +11,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v
+      - uses: actions/checkout@v2
       - name: Export bridge configuration
         shell: bash
         run: |
