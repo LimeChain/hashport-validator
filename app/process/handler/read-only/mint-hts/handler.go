@@ -78,21 +78,6 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	//amount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
-	//if err != nil {
-	//	fmh.logger.Errorf("[%s] - Failed to parse string amount. Error [%s]", transferMsg.TransactionId, err)
-	//	return
-	//}
-
-	//mintTransfer := []mirror_node.Transfer{
-	//	{
-	//		Account: fmh.bridgeAccount.String(),
-	//		Amount:  amount,
-	//		Token:   transferMsg.TargetAsset,
-	//	},
-	//}
-
-	// TODO: Find Mint TX and Transfer TX
 	for {
 		response, err := fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		if err != nil {
@@ -147,19 +132,6 @@ func (fmh Handler) Handle(payload interface{}) {
 			break
 		}
 	}
-
-	//expectedTransfers := []mirror_node.Transfer{
-	//	{
-	//		Account: fmh.bridgeAccount.String(),
-	//		Amount:  -amount,
-	//		Token:   transferMsg.TargetAsset,
-	//	},
-	//	{
-	//		Account: transferMsg.Receiver,
-	//		Amount:  amount,
-	//		Token:   transferMsg.TargetAsset,
-	//	},
-	//}
 
 	for {
 		response, err := fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
