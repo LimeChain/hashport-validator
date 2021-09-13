@@ -189,7 +189,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 
 	properAmount, err := ctw.addDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset), targetChainId)
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
+		ctw.logger.Errorf("[%s] - Failed to adjust [%v] amount [%d] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
 		return
 	}
 
