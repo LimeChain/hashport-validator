@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
@@ -37,6 +38,7 @@ import (
 	"gorm.io/gorm"
 	"math/big"
 	"strconv"
+	"strings"
 )
 
 type Watcher struct {
@@ -103,15 +105,19 @@ func (ew *Watcher) Watch(queue qi.Queue) {
 func (ew Watcher) processPastLogs(queue qi.Queue) {
 	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
 	if err != nil {
-		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status fromBlock. Error [%s]", err)
+		ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
 		return
 	}
 
 	ew.logger.Infof("Processing events from [%d]", fromBlock)
 
-	// TODO: Figure out a way to dynamically get the hash of the event (ABI)
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		ew.logger.Errorf("Failed to parse router ABI. Error: [%s]", err)
+		return
+	}
+	burnHash := abi.Events["Burn"].ID
+	lockHash := abi.Events["Lock"].ID
 
 	topics := [][]common.Hash{
 		{
