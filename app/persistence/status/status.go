@@ -17,7 +17,6 @@
 package status
 
 import (
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -30,15 +29,13 @@ const (
 )
 
 type Repository struct {
-	dbClient                 *gorm.DB
-	lastFetchedTimestampCode string //"LAST_FETCHED_TIMESTAMP"
+	dbClient *gorm.DB
 }
 
 func NewRepositoryForStatus(dbClient *gorm.DB, statusType string) *Repository {
 	typeCheck(statusType)
 	return &Repository{
-		dbClient:                 dbClient,
-		lastFetchedTimestampCode: fmt.Sprintf("LAST_%s_TIMESTAMP", statusType),
+		dbClient: dbClient,
 	}
 }
 
@@ -52,34 +49,30 @@ func typeCheck(statusType string) {
 	}
 }
 
-func (s Repository) GetLastFetchedTimestamp(entityID string) (int64, error) {
+func (s Repository) Get(entityID string) (int64, error) {
 	lastFetchedStatus := &entity.Status{}
 	err := s.dbClient.
-		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
+		Where("entity_id = ?", entityID).
 		First(&lastFetchedStatus).Error
 	if err != nil {
 		return 0, err
 	}
-	return lastFetchedStatus.Timestamp, nil
+	return lastFetchedStatus.Last, nil
 }
 
-func (s Repository) CreateTimestamp(entityID string, timestamp int64) error {
+func (s Repository) Create(entityID string, timestampOrBlockNumber int64) error {
 	return s.dbClient.Create(entity.Status{
-		Name:      "Last fetched timestamp",
-		EntityID:  entityID,
-		Code:      s.lastFetchedTimestampCode,
-		Timestamp: timestamp,
+		EntityID: entityID,
+		Last:     timestampOrBlockNumber,
 	}).Error
 }
 
-func (s Repository) UpdateLastFetchedTimestamp(entityID string, timestamp int64) error {
+func (s Repository) Update(entityID string, timestampOrBlockNumber int64) error {
 	return s.dbClient.
-		Where("code = ? and entity_id = ?", s.lastFetchedTimestampCode, entityID).
+		Where("entity_id = ?", entityID).
 		Save(entity.Status{
-			Name:      "Last fetched timestamp",
-			EntityID:  entityID,
-			Code:      s.lastFetchedTimestampCode,
-			Timestamp: timestamp,
+			EntityID: entityID,
+			Last:     timestampOrBlockNumber,
 		}).
 		Error
 }

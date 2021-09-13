@@ -56,10 +56,10 @@ func NewWatcher(
 	targetTimestamp := time.Now().UnixNano()
 	timeStamp := startTimestamp
 	if startTimestamp == 0 {
-		_, err := repository.GetLastFetchedTimestamp(topicID)
+		_, err := repository.Get(topicID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err := repository.CreateTimestamp(topicID, targetTimestamp)
+				err := repository.Create(topicID, targetTimestamp)
 				if err != nil {
 					log.Fatalf("Failed to create Transfer Watcher timestamp. Error: [%s]", err)
 				}
@@ -69,7 +69,7 @@ func NewWatcher(
 			}
 		}
 	} else {
-		err := repository.UpdateLastFetchedTimestamp(topicID, timeStamp)
+		err := repository.Update(topicID, timeStamp)
 		if err != nil {
 			log.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
 		}
@@ -96,7 +96,7 @@ func (cmw Watcher) Watch(q qi.Queue) {
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
-	err := cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), ts)
+	err := cmw.statusRepository.Update(cmw.topicID.String(), ts)
 	if err != nil {
 		cmw.logger.Fatalf("Failed to update Topic Watcher Status timestamp. Error [%s]", err)
 	}
@@ -104,7 +104,7 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (cmw Watcher) beginWatching(q qi.Queue) {
-	milestoneTimestamp, err := cmw.statusRepository.GetLastFetchedTimestamp(cmw.topicID.String())
+	milestoneTimestamp, err := cmw.statusRepository.Get(cmw.topicID.String())
 	if err != nil {
 		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
 	}

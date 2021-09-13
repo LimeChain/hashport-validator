@@ -62,10 +62,10 @@ func NewWatcher(
 	}
 
 	if startBlock == 0 {
-		_, err := repository.GetLastFetchedTimestamp(contracts.Address().String())
+		_, err := repository.Get(contracts.Address().String())
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err := repository.CreateTimestamp(contracts.Address().String(), int64(targetBlock))
+				err := repository.Create(contracts.Address().String(), int64(targetBlock))
 				if err != nil {
 					log.Fatalf("[%s] - Failed to create Transfer Watcher timestamp. Error: [%s]", contracts.Address(), err)
 				}
@@ -75,7 +75,7 @@ func NewWatcher(
 			}
 		}
 	} else {
-		err := repository.UpdateLastFetchedTimestamp(contracts.Address().String(), startBlock)
+		err := repository.Update(contracts.Address().String(), startBlock)
 		if err != nil {
 			log.Fatalf("[%s] - Failed to update Transfer Watcher Status timestamp. Error [%s]", contracts.Address(), err)
 		}
@@ -101,7 +101,7 @@ func (ew *Watcher) Watch(queue qi.Queue) {
 }
 
 func (ew Watcher) processPastLogs(queue qi.Queue) {
-	fromBlock, err := ew.repository.GetLastFetchedTimestamp(ew.contracts.Address().String())
+	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
 	if err != nil {
 		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status fromBlock. Error [%s]", err)
 		return
@@ -253,7 +253,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
-	err = ew.repository.UpdateLastFetchedTimestamp(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
+	err = ew.repository.Update(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
@@ -342,7 +342,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
-	err = ew.repository.UpdateLastFetchedTimestamp(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
+	err = ew.repository.Update(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
 		return

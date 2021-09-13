@@ -83,7 +83,7 @@ func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
 func initializeWatcher() *Watcher {
 	mocks.Setup()
 
-	mocks.MStatusRepository.On("GetLastFetchedTimestamp", mock.Anything).Return(int64(0), nil)
+	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	return NewWatcher(
 		mocks.MTransferService,
