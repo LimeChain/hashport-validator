@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -89,6 +90,7 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 
 func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
 	setup()
+	mocks.MEVMClient.On("GetClient").Return(&ethclient.Client{})
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
 

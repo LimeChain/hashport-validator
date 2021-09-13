@@ -83,15 +83,15 @@ func getConfig(config *Config, path string) error {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount         hederaSDK.AccountID
-	TopicID               hederaSDK.TopicID
-	TokenID               hederaSDK.TokenID
-	NativeEvmTokenAddress string
-	FeePercentages        map[string]int64
-	Members               []hederaSDK.AccountID
-	Clients               *clients
-	DbValidator           *db_validation.Service
-	AssetMappings         config.AssetMappings
+	BridgeAccount  hederaSDK.AccountID
+	TopicID        hederaSDK.TopicID
+	TokenID        hederaSDK.TokenID
+	NativeEvmToken EvmToken
+	FeePercentages map[string]int64
+	Members        []hederaSDK.AccountID
+	Clients        *clients
+	DbValidator    *db_validation.Service
+	AssetMappings  config.AssetMappings
 }
 
 // newSetup instantiates new Setup struct
@@ -137,15 +137,15 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:         bridgeAccount,
-		TopicID:               topicID,
-		TokenID:               tokenID,
-		NativeEvmTokenAddress: config.Tokens.EvmNativeToken,
-		FeePercentages:        config.Hedera.FeePercentages,
-		Members:               members,
-		Clients:               clients,
-		DbValidator:           dbValidator,
-		AssetMappings:         config.AssetMappings,
+		BridgeAccount:  bridgeAccount,
+		TopicID:        topicID,
+		TokenID:        tokenID,
+		NativeEvmToken: config.Tokens.EvmNativeToken,
+		FeePercentages: config.Hedera.FeePercentages,
+		Members:        members,
+		Clients:        clients,
+		DbValidator:    dbValidator,
+		AssetMappings:  config.AssetMappings,
 	}, nil
 }
 
@@ -280,9 +280,14 @@ type EVMUtils struct {
 }
 
 type Tokens struct {
-	WHbar          string `yaml:"whbar"`
-	WToken         string `yaml:"wtoken"`
-	EvmNativeToken string `yaml:"evm_native_token"`
+	WHbar          string   `yaml:"whbar"`
+	WToken         string   `yaml:"wtoken"`
+	EvmNativeToken EvmToken `yaml:"evm_native_token"`
+}
+
+type EvmToken struct {
+	Address  string `yaml:"address"`
+	Decimals int64  `yaml:"decimals"`
 }
 
 // hedera props from the application.yml

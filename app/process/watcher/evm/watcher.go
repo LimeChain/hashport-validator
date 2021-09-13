@@ -130,10 +130,13 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	properAmount, err := ew.removeDecimals(eventLog.Amount, eventLog.Token)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
-		return
+	properAmount := eventLog.Amount
+	if eventLog.TargetChain.Int64() == 0 {
+		properAmount, err = ew.removeDecimals(eventLog.Amount, eventLog.Token)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			return
+		}
 	}
 
 	burnEvent := &transfer.Transfer{
@@ -218,10 +221,13 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	properAmount, err := ew.removeDecimals(eventLog.Amount, eventLog.Token)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
-		return
+	properAmount := eventLog.Amount
+	if eventLog.TargetChain.Int64() == 0 {
+		properAmount, err = ew.removeDecimals(eventLog.Amount, eventLog.Token)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			return
+		}
 	}
 
 	tr := &transfer.Transfer{
