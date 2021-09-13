@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package entity
+package schedule
 
-// This table will contain information for latest status of the application
-type Status struct {
-	EntityID string
-	Last     int64 // Either timestamp or block number
-}
+const (
+	// StatusCompleted is a status set once the Schedule operation is successfully completed.
+	// This is a terminal status
+	StatusCompleted = "COMPLETED"
+	// StatusFailed is a status set once the Schedule operation has failed. Can be created with a failed Status
+	// This is a terminal status
+	StatusFailed = "FAILED"
+	// StatusSubmitted is set when a pending Schedule operation is created.
+	StatusSubmitted = "SUBMITTED"
+)

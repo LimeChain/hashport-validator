@@ -26,7 +26,6 @@ type Node struct {
 	Clients   Clients
 	LogLevel  string
 	Port      string
-	Recovery  Recovery
 	Validator bool
 }
 
@@ -48,11 +47,13 @@ type Evm struct {
 	BlockConfirmations uint64
 	NodeUrl            string
 	PrivateKey         string
+	StartBlock         int64
 }
 
 type Hedera struct {
-	Operator Operator
-	Network  string
+	Operator       Operator
+	Network        string
+	StartTimestamp int64
 }
 
 type Operator struct {
@@ -76,15 +77,15 @@ func New(node parser.Node) Node {
 		Database: Database(node.Database),
 		Clients: Clients{
 			Hedera: Hedera{
-				Operator: Operator(node.Clients.Hedera.Operator),
-				Network:  node.Clients.Hedera.Network,
+				Operator:       Operator(node.Clients.Hedera.Operator),
+				Network:        node.Clients.Hedera.Network,
+				StartTimestamp: node.Clients.Hedera.StartTimestamp,
 			},
 			MirrorNode: MirrorNode(node.Clients.MirrorNode),
 			Evm:        make(map[int64]Evm),
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,
-		Recovery:  Recovery(node.Recovery),
 		Validator: node.Validator,
 	}
 

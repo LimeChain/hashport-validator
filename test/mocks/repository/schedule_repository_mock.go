@@ -25,6 +25,10 @@ type MockScheduleRepository struct {
 	mock.Mock
 }
 
+func (m *MockScheduleRepository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
+	panic("implement me")
+}
+
 func (m *MockScheduleRepository) Get(txId string) (*entity.Schedule, error) {
 	panic("implement me")
 }

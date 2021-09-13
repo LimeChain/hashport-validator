@@ -25,6 +25,10 @@ type MockFeeRepository struct {
 	mock.Mock
 }
 
+func (mfr *MockFeeRepository) GetAllSubmittedIds() ([]*entity.Fee, error) {
+	panic("implement me")
+}
+
 func (mfr *MockFeeRepository) Create(entity *entity.Fee) error {
 	args := mfr.Called(entity)
 	if args.Get(0) == nil {
