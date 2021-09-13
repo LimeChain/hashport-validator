@@ -19,41 +19,64 @@ package setup
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
-	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
-	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
-	"github.com/caarlos0/env/v6"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	evm_signer "github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
-	"gopkg.in/yaml.v2"
+	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
 )
 
 const (
 	// The configuration file for the e2e tests. Placed at ./e2e/setup/application.yml
-	e2eConfigPath = "setup/application.yml"
+	e2eConfigPath       = "setup/application.yml"
+	e2eBridgeConfigPath = "setup/bridge.yml"
 )
 
 // Load loads the e2e application.yml from the ./e2e/setup folder and parses it to suitable working struct for the e2e tests
 func Load() *Setup {
-	var configuration Config
-	err := getConfig(&configuration, e2eConfigPath)
-	config.LoadWrappedToNativeAssets(&configuration.AssetMappings)
-	config.LoadNativeHederaFees(&configuration.AssetMappings, &configuration.Hedera.FeePercentages)
-	if err := env.Parse(&configuration); err != nil {
-		panic(err)
+	var e2eConfig e2eParser.Config
+	config.GetConfig(&e2eConfig, e2eConfigPath)
+	config.GetConfig(&e2eConfig, e2eBridgeConfigPath)
+
+	configuration := Config{
+		Hedera: Hedera{
+			NetworkType:       e2eConfig.Hedera.NetworkType,
+			BridgeAccount:     e2eConfig.Hedera.BridgeAccount,
+			Members:           e2eConfig.Hedera.Members,
+			TopicID:           e2eConfig.Hedera.TopicID,
+			Sender:            Sender(e2eConfig.Hedera.Sender),
+			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
+			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
+		},
+		EVM:            make(map[int64]config.Evm),
+		Tokens:         Tokens(e2eConfig.Tokens),
+		ValidatorUrl:   e2eConfig.ValidatorUrl,
+		Bridge:         e2eConfig.Bridge,
+		AssetMappings:  config.LoadAssets(e2eConfig.Bridge.Networks),
+		FeePercentages: map[string]int64{},
+	}
+
+	if e2eConfig.Bridge.Networks[0] != nil {
+		configuration.FeePercentages = config.LoadHederaFeePercentages(e2eConfig.Bridge.Networks[0].Tokens)
+	}
+
+	for i, props := range e2eConfig.Hedera.DbValidationProps {
+		configuration.Hedera.DbValidationProps[i] = config.Database(props)
+	}
+
+	for key, value := range e2eConfig.EVM {
+		configuration.EVM[key] = config.Evm(value)
 	}
 	setup, err := newSetup(configuration)
 	if err != nil {
@@ -62,36 +85,17 @@ func Load() *Setup {
 	return setup
 }
 
-// getConfig parses the application.yml file from the provided path and unmarshalls it to the provided config struct
-func getConfig(config *Config, path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return err
-	}
-
-	filename, err := filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-	yamlFile, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(yamlFile, config)
-	return err
-}
-
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount  hederaSDK.AccountID
-	TopicID        hederaSDK.TopicID
-	TokenID        hederaSDK.TokenID
-	NativeEvmToken EvmToken
-	FeePercentages map[string]int64
-	Members        []hederaSDK.AccountID
-	Clients        *clients
-	DbValidator    *db_validation.Service
-	AssetMappings  config.AssetMappings
+	BridgeAccount         hederaSDK.AccountID
+	TopicID               hederaSDK.TopicID
+	TokenID               hederaSDK.TokenID
+	NativeEvmToken        EvmToken
+	FeePercentages        map[string]int64
+	Members               []hederaSDK.AccountID
+	Clients               *clients
+	DbValidator           *db_validation.Service
+	AssetMappings         config.Assets
 }
 
 // newSetup instantiates new Setup struct
@@ -110,9 +114,9 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	for _, f := range config.Hedera.FeePercentages {
-		if f < fee.MinPercentage || f > fee.MaxPercentage {
-			return nil, errors.New(fmt.Sprintf("invalid fee percentage [%d]", config.Hedera.FeePercentages))
+	for token, fp := range config.FeePercentages {
+		if fp < fee.MinPercentage || fp > fee.MaxPercentage {
+			return nil, errors.New(fmt.Sprintf("[%s] - invalid fee percentage [%d]", token, fp))
 		}
 	}
 
@@ -137,15 +141,15 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:  bridgeAccount,
-		TopicID:        topicID,
-		TokenID:        tokenID,
+		BridgeAccount:         bridgeAccount,
+		TopicID:               topicID,
+		TokenID:               tokenID,
 		NativeEvmToken: config.Tokens.EvmNativeToken,
-		FeePercentages: config.Hedera.FeePercentages,
-		Members:        members,
-		Clients:        clients,
-		DbValidator:    dbValidator,
-		AssetMappings:  config.AssetMappings,
+		FeePercentages:        config.FeePercentages,
+		Members:               members,
+		Clients:               clients,
+		DbValidator:           dbValidator,
+		AssetMappings:         config.AssetMappings,
 	}, nil
 }
 
@@ -169,7 +173,7 @@ func newClients(config Config) (*clients, error) {
 	EVM := make(map[int64]EVMUtils)
 	for chainId, conf := range config.EVM {
 		evmClient := evm.NewClient(conf)
-		routerContractAddress := common.HexToAddress(conf.RouterContractAddress)
+		routerContractAddress := common.HexToAddress(config.Bridge.Networks[chainId].RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
@@ -198,12 +202,12 @@ func newClients(config Config) (*clients, error) {
 		EVM:             EVM,
 		ValidatorClient: validatorClient,
 		MirrorNode:      mirrorNode,
-		FeeCalculator:   fee.New(config.Hedera.FeePercentages),
+		FeeCalculator:   fee.New(config.FeePercentages),
 		Distributor:     distributor.New(config.Hedera.Members),
 	}, nil
 }
 
-func InitWrappedAssetContract(nativeAsset string, nativeAssets config.AssetMappings, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+func InitWrappedAssetContract(nativeAsset string, nativeAssets config.Assets, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
@@ -216,7 +220,7 @@ func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, err
 	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.Client)
 }
 
-func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targetChain int64, nativeAsset string) (string, error) {
+func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain int64, nativeAsset string) (string, error) {
 	wrappedAsset := assetMappings.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
@@ -226,7 +230,7 @@ func NativeToWrappedAsset(assetMappings config.AssetMappings, sourceChain, targe
 	return wrappedAsset, nil
 }
 
-func WrappedToNativeAsset(assetMappings config.AssetMappings, sourceChainId int64, asset string) (*config.NativeAsset, error) {
+func WrappedToNativeAsset(assetMappings config.Assets, sourceChainId int64, asset string) (*config.NativeAsset, error) {
 	targetAsset := assetMappings.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
 		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
@@ -260,13 +264,15 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 	return client, nil
 }
 
-// e2eConfig used to load and parse from application.yml
+// Config used to load and parse from application.yml
 type Config struct {
-	Hedera        Hedera               `yaml:"hedera"`
-	EVM           map[int64]config.EVM `yaml:"evm"`
-	Tokens        Tokens               `yaml:"tokens"`
-	ValidatorUrl  string               `yaml:"validator_url"`
-	AssetMappings config.AssetMappings `yaml:"asset-mappings"`
+	Hedera         Hedera
+	EVM            map[int64]config.Evm
+	Tokens         Tokens
+	ValidatorUrl   string
+	Bridge         parser.Bridge
+	AssetMappings  config.Assets
+	FeePercentages map[string]int64
 }
 
 type EVMUtils struct {
@@ -290,24 +296,23 @@ type EvmToken struct {
 	Decimals int64  `yaml:"decimals"`
 }
 
-// hedera props from the application.yml
+// Hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string `yaml:"network_type"`
-	BridgeAccount     string `yaml:"bridge_account"`
-	FeePercentages    map[string]int64
-	Members           []string          `yaml:"members"`
-	TopicID           string            `yaml:"topic_id"`
-	Sender            Sender            `yaml:"sender"`
-	DbValidationProps []config.Database `yaml:"dbs"`
-	MirrorNode        config.MirrorNode `yaml:"mirror_node"`
+	NetworkType       string
+	BridgeAccount     string
+	Members           []string
+	TopicID           string
+	Sender            Sender
+	DbValidationProps []config.Database
+	MirrorNode        config.MirrorNode
 }
 
-// sender props from the application.yml
+// Sender props from the application.yml
 type Sender struct {
-	Account    string `yaml:"account"`
-	PrivateKey string `yaml:"private_key"`
+	Account    string
+	PrivateKey string
 }
 
 type Receiver struct {
-	Account string `yaml:"account"`
+	Account string
 }

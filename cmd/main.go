@@ -29,6 +29,11 @@ import (
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	message_submission "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message-submission"
 	mint_hts "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/mint-hts"
+	rbh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/burn"
+	rfh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee"
+	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
+	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
+	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
@@ -45,41 +50,36 @@ import (
 func main() {
 	// Config
 	configuration := config.LoadConfig()
-	config.InitLogger(configuration.Validator.LogLevel)
+	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
-	clients := PrepareClients(configuration.Validator.Clients)
+	clients := PrepareClients(configuration.Node.Clients)
 
 	// Prepare Node
 	server := server.NewServer()
 
 	var services *Services = nil
-	if configuration.Validator.RestApiOnly {
-		log.Println("Starting Validator Node in REST-API Mode only. No Watchers or Handlers will start.")
-		services = PrepareApiOnlyServices(configuration, *clients)
-	} else {
-		db := persistence.NewDatabase(configuration.Validator.Database)
-		// Prepare repositories
-		repositories := PrepareRepositories(db)
-		// Prepare Services
-		services = PrepareServices(configuration, *clients, *repositories)
+	db := persistence.NewDatabase(configuration.Node.Database)
+	// Prepare repositories
+	repositories := PrepareRepositories(db)
+	// Prepare Services
+	services = PrepareServices(configuration, *clients, *repositories)
 
-		// Execute Recovery Process. Computing Watchers starting timestamp
-		err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
-		if err != nil {
-			log.Fatal(err)
-		}
-		initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
+	// Execute Recovery Process. Computing Watchers starting timestamp
+	err, watchersStartTimestamp := executeRecoveryProcess(configuration, *services, *repositories, *clients)
+	if err != nil {
+		log.Fatal(err)
 	}
+	initializeServerPairs(server, services, repositories, clients, configuration, watchersStartTimestamp)
 
 	apiRouter := initializeAPIRouter(services)
 
 	// Start
-	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Validator.Port))
+	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
 func executeRecoveryProcess(configuration config.Config, services Services, repository Repositories, client Clients) (error, int64) {
-	r, err := recovery.NewProcess(configuration.Validator,
+	r, err := recovery.NewProcess(configuration.Node,
 		services.transfers,
 		services.messages,
 		services.contractServices,
@@ -88,7 +88,7 @@ func executeRecoveryProcess(configuration config.Config, services Services, repo
 		repository.transfer,
 		client.MirrorNode,
 		client.HederaNode,
-		configuration.AssetMappings)
+		configuration.Bridge.Assets)
 	if err != nil {
 		log.Fatalf("Could not prepare Recovery process. Error [%s]", err)
 	}
@@ -132,7 +132,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			services.signers,
 			services.transfers,
 			repositories.transfer,
-			configuration.Validator.Clients.Hedera.TopicId))
+			configuration.Bridge.TopicId))
 
 	server.AddHandler(constants.HederaMintHtsTransfer, mint_hts.NewHandler(services.lockEvents))
 	server.AddHandler(constants.HederaBurnMessageSubmission, burn_message.NewHandler(services.transfers))
@@ -146,7 +146,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			repositories.messageStatus,
 			watchersTimestamp))
 	server.AddHandler(constants.TopicMessageValidation, mh.NewHandler(
-		configuration.Validator.Clients.Hedera.TopicId,
+		configuration.Bridge.TopicId,
 		repositories.transfer,
 		repositories.message,
 		services.contractServices,
@@ -155,8 +155,41 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	for _, evmClient := range clients.EVMClients {
 		chainId := evmClient.ChainID().Int64()
 		server.AddWatcher(
-			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.AssetMappings))
+			evm.NewWatcher(services.contractServices[chainId], evmClient, configuration.Bridge.Assets, configuration.Node.Validator))
 	}
+
+	// Register read-only handlers
+	server.AddHandler(constants.ReadOnlyHederaTransfer, rfth.NewHandler(
+		repositories.fee,
+		repositories.schedule,
+		clients.MirrorNode,
+		configuration.Bridge.Hedera.BridgeAccount,
+		services.distributor,
+		services.fees,
+		services.transfers,
+		repositories.transfer))
+	server.AddHandler(constants.ReadOnlyHederaFeeTransfer, rfh.NewHandler(
+		repositories.fee,
+		repositories.schedule,
+		clients.MirrorNode,
+		configuration.Bridge.Hedera.BridgeAccount,
+		services.distributor,
+		services.fees,
+		repositories.transfer,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyHederaBurn, rbh.NewHandler(
+		configuration.Bridge.Hedera.BridgeAccount,
+		clients.MirrorNode,
+		repositories.schedule,
+		repositories.transfer,
+		services.transfers))
+	server.AddHandler(constants.ReadOnlyHederaMintHtsTransfer, rmth.NewHandler(
+		repositories.schedule,
+		configuration.Bridge.Hedera.BridgeAccount,
+		clients.MirrorNode,
+		services.transfers,
+		repositories.transfer))
+	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -166,18 +199,19 @@ func addTransferWatcher(configuration *config.Config,
 	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
-	account := configuration.Validator.Clients.Hedera.BridgeAccount
+	account := configuration.Bridge.Hedera.BridgeAccount
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
 		bridgeService,
 		mirrorNode,
 		account,
-		configuration.Validator.Clients.MirrorNode.PollingInterval,
+		configuration.Node.Clients.MirrorNode.PollingInterval,
 		*repository,
 		startTimestamp,
 		contractServices,
-		configuration.AssetMappings)
+		configuration.Bridge.Assets,
+		configuration.Node.Validator)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
@@ -185,11 +219,11 @@ func addConsensusTopicWatcher(configuration *config.Config,
 	repository repository.Status,
 	startTimestamp int64,
 ) *cmw.Watcher {
-	topic := configuration.Validator.Clients.Hedera.TopicId
+	topic := configuration.Bridge.TopicId
 	log.Debugf("Added Topic Watcher for topic [%s]\n", topic)
 	return cmw.NewWatcher(client,
 		topic,
 		repository,
-		configuration.Validator.Clients.MirrorNode.PollingInterval,
+		configuration.Node.Clients.MirrorNode.PollingInterval,
 		startTimestamp)
 }

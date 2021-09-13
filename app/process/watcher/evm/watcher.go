@@ -27,7 +27,6 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -36,40 +35,40 @@ import (
 )
 
 type Watcher struct {
-	routerContractAddress string
-	contracts             service.Contracts
-	evmClient             client.EVM
-	logger                *log.Entry
-	mappings              config.AssetMappings
+	contracts service.Contracts
+	evmClient client.EVM
+	logger    *log.Entry
+	mappings  c.Assets
+	validator bool
 }
 
-func NewWatcher(contracts service.Contracts, evmClient client.EVM, mappings c.AssetMappings) *Watcher {
+func NewWatcher(contracts service.Contracts, evmClient client.EVM, mappings c.Assets, validator bool) *Watcher {
 	return &Watcher{
-		routerContractAddress: evmClient.GetRouterContractAddress(),
-		contracts:             contracts,
-		evmClient:             evmClient,
-		logger:                c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", evmClient.GetRouterContractAddress())),
-		mappings:              mappings,
+		contracts: contracts,
+		evmClient: evmClient,
+		logger:    c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
+		mappings:  mappings,
+		validator: validator,
 	}
 }
 
 func (ew *Watcher) Watch(queue qi.Queue) {
 	go ew.listenForEvents(queue)
-	ew.logger.Infof("Listening for events at contract [%s]", ew.routerContractAddress)
+	ew.logger.Infof("Listening for events at contract [%s]", ew.contracts.Address())
 }
 
 func (ew *Watcher) listenForEvents(q qi.Queue) {
 	burnEvents := make(chan *router.RouterBurn)
 	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.routerContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
 	}
 
 	lockEvents := make(chan *router.RouterLock)
 	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.routerContractAddress, err)
+		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 		return
 	}
 
@@ -154,7 +153,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
+		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
 	}
 
@@ -163,10 +162,25 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		eventLog.Amount.String(),
 		recipientAccount)
 
-	if burnEvent.TargetChainId == 0 {
-		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
+	if ew.validator {
+		if burnEvent.TargetChainId == 0 {
+			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
+		} else {
+			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
+		}
 	} else {
-		q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
+		blockTimestamp, err := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to retrieve block timestamp. Error: [%s]", eventLog.Raw.TxHash.String(), err)
+			return
+		}
+
+		burnEvent.Timestamp = strconv.FormatUint(blockTimestamp, 10)
+		if burnEvent.TargetChainId == 0 {
+			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyHederaTransfer})
+		} else {
+			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyTransferSave})
+		}
 	}
 }
 
@@ -256,9 +270,24 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.evmClient.ChainID().Int64(),
 		eventLog.TargetChain.Int64())
 
-	if tr.TargetChainId == 0 {
-		q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
+	// TODO: Extend for recoverability
+	if ew.validator {
+		if tr.TargetChainId == 0 {
+			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
+		} else {
+			q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
+		}
 	} else {
-		q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
+		blockTimestamp, err := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to retrieve block timestamp. Error [%s]", eventLog.Raw.TxHash.String(), err)
+			return
+		}
+		tr.Timestamp = strconv.FormatUint(blockTimestamp, 10)
+		if tr.TargetChainId == 0 {
+			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})
+		} else {
+			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyTransferSave})
+		}
 	}
 }

@@ -128,13 +128,6 @@ func (smh Handler) submitMessage(tm *model.Transfer) error {
 		return err
 	}
 
-	// Update Transfer Record
-	err = smh.transferRepository.UpdateStatusSignatureSubmitted(signatureMessage.TransferID)
-	if err != nil {
-		smh.logger.Errorf("[%s] - Failed to update. Error [%s].", signatureMessage.TransferID, err)
-		return err
-	}
-
 	// Attach update callbacks on Signature HCS Message
 	smh.logger.Infof("[%s] - Submitted signature on Topic [%s]", signatureMessage.TransferID, smh.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := smh.authMessageSubmissionCallbacks(signatureMessage.TransferID)
@@ -145,20 +138,10 @@ func (smh Handler) submitMessage(tm *model.Transfer) error {
 func (smh Handler) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		smh.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
-		err := smh.transferRepository.UpdateStatusSignatureMined(txId)
-		if err != nil {
-			smh.logger.Errorf("[%s] - Failed to update status signature mined. Error [%s].", txId, err)
-			return
-		}
 	}
 
 	onRevert = func() {
 		smh.logger.Debugf("Authorisation Signature TX failed for TX ID [%s]", txId)
-		err := smh.transferRepository.UpdateStatusSignatureFailed(txId)
-		if err != nil {
-			smh.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", txId, err)
-			return
-		}
 	}
 	return onSuccess, onRevert
 }

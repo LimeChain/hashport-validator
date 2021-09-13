@@ -47,7 +47,7 @@ type Service struct {
 	mirrorClient       client.MirrorNode
 	ethClients         map[int64]client.EVM
 	logger             *log.Entry
-	mappings           config.AssetMappings
+	mappings           config.Assets
 }
 
 func NewService(
@@ -59,7 +59,7 @@ func NewService(
 	mirrorClient client.MirrorNode,
 	ethClients map[int64]client.EVM,
 	topicID string,
-	mappings config.AssetMappings,
+	mappings config.Assets,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {

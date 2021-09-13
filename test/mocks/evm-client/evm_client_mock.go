@@ -38,6 +38,16 @@ func (m *MockEVMClient) GetClient() *ethclient.Client {
 	return args.Get(0).(*ethclient.Client)
 }
 
+func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {
+	args := m.Called(blockNumber)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(uint64), nil
+	}
+
+	return args.Get(0).(uint64), args.Get(1).(error)
+}
+
 func (m *MockEVMClient) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
 	args := m.Called(contractAddress)
 

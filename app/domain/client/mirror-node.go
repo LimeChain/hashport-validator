@@ -22,10 +22,19 @@ import (
 )
 
 type MirrorNode interface {
+	// GetAccountTokenMintTransactionsAfterTimestampString queries the hedera mirror node for transactions on a certain account with type TokenMint
+	GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error)
 	// GetAccountTokenMintTransactionsAfterTimestamp queries the hedera mirror node for transactions on a certain account with type TokenMint
 	GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
+	// GetAccountTokenBurnTransactionsAfterTimestampString queries the hedera mirror node for transactions on a certain account with type TokenBurn
+	GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error)
 	// GetAccountTokenBurnTransactionsAfterTimestamp queries the hedera mirror node for transactions on a certain account with type TokenBurn
 	GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
+	// GetAccountDebitTransactionsAfterTimestampString queries the hedera mirror node for transactions that are debit and after a given timestamp
+	GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error)
+	// GetAccountCreditTransactionsAfterTimestampString returns all transaction after a given timestamp
+	GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*mirror_node.Response, error)
+	// GetAccountCreditTransactionsAfterTimestamp returns all transaction after a given timestamp
 	GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*mirror_node.Response, error)
 	// GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
 	GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]mirror_node.Transaction, error)
@@ -33,8 +42,12 @@ type MirrorNode interface {
 	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]mirror_node.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]mirror_node.Message, error)
+	// GetScheduledTransaction gets the Scheduled transaction of an executed transaction
+	GetScheduledTransaction(transactionID string) (*mirror_node.Response, error)
 	// GetTransaction gets all data related to a specific transaction id or returns an error
 	GetTransaction(transactionID string) (*mirror_node.Response, error)
+	// GetSchedule retrieves a schedule entity by its id
+	GetSchedule(scheduleID string) (*mirror_node.Schedule, error)
 	// GetStateProof sends a query to get the state proof. If the query is successful, the function returns the state.
 	// If the query returns a status != 200, the function returns an error.
 	GetStateProof(transactionID string) ([]byte, error)

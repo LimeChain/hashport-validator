@@ -32,8 +32,4 @@ type Transfer interface {
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
 	SaveRecoveredTxn(ct *transfer.Transfer) error
 	UpdateStatusCompleted(txId string) error
-
-	UpdateStatusSignatureSubmitted(txId string) error
-	UpdateStatusSignatureMined(txId string) error
-	UpdateStatusSignatureFailed(txId string) error
 }

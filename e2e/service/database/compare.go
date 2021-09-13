@@ -30,7 +30,6 @@ func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 		comparable.NativeAsset == comparing.NativeAsset &&
 		comparable.Receiver == comparing.Receiver &&
 		comparable.Amount == comparing.Amount &&
-		comparable.SignatureMsgStatus == comparing.SignatureMsgStatus &&
 		comparable.Status == comparing.Status
 }
 

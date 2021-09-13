@@ -34,7 +34,7 @@ type Clients struct {
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Clients) *Clients {
 	EVMClients := make(map[int64]client.EVM)
-	for chainId, ec := range config.EVM {
+	for chainId, ec := range config.Evm {
 		EVMClients[chainId] = evm.NewClient(ec)
 	}
 

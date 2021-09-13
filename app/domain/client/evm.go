@@ -26,6 +26,7 @@ import (
 type EVM interface {
 	ChainID() *big.Int
 	GetClient() *ethclient.Client
+	GetBlockTimestamp(blockNumber *big.Int) (uint64, error)
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
 	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
 	// onSuccess is called once the TX is successfully mined
@@ -34,8 +35,6 @@ type EVM interface {
 	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
 	// WaitForConfirmations starts a loop which ends either when we reach the target block number or an error occurs with block number retrieval
 	WaitForConfirmations(raw types.Log) error
-	// GetRouterContractAddress retrieves the router contract address for the specific EVM Client
-	GetRouterContractAddress() string
-	// GetRouterContractAddress retrieves private key used for the specific EVM Client
+	// GetPrivateKey retrieves private key used for the specific EVM Client
 	GetPrivateKey() string
 }

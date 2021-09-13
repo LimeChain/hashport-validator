@@ -157,7 +157,7 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 
 	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]. %s", id, transactionResponse.TransactionID.String(), err)
+		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]. Error: [%s]", id, transactionResponse.TransactionID.String(), err)
 		onExecutionFail(scheduledTxID)
 		return err
 	}

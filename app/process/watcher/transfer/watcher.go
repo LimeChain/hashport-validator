@@ -49,7 +49,8 @@ type Watcher struct {
 	startTimestamp   int64
 	logger           *log.Entry
 	contractServices map[int64]service.Contracts
-	mappings         config.AssetMappings
+	mappings         config.Assets
+	validator        bool
 }
 
 func NewWatcher(
@@ -60,7 +61,8 @@ func NewWatcher(
 	repository repository.Status,
 	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
-	mappings config.AssetMappings,
+	mappings config.Assets,
+	validator bool,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -77,6 +79,7 @@ func NewWatcher(
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractServices: contractServices,
 		mappings:         mappings,
+		validator:        validator,
 	}
 }
 
@@ -201,11 +204,23 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		nativeAsset.Asset,
 		properAmount.String(),
 		ctw.contractServices[targetChainId].Address().String())
-	if nativeAsset.ChainId == 0 {
-		transferMessage.HasFee = true
-		q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
+
+	// TODO: Extend for recoverability
+	if ctw.validator {
+		if nativeAsset.ChainId == 0 {
+			transferMessage.HasFee = true
+			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
+		} else {
+			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
+		}
 	} else {
-		q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
+		transferMessage.Timestamp = tx.ConsensusTimestamp
+		if nativeAsset.ChainId == 0 {
+			transferMessage.HasFee = true
+			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
+		} else {
+			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
+		}
 	}
 }
 

@@ -112,15 +112,15 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM) *Service {
-	contractAddress, err := client.ValidateContractDeployedAt(client.GetRouterContractAddress())
+func NewService(client client.EVM, address string) *Service {
+	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	contractInstance, err := router.NewRouter(*contractAddress, client.GetClient())
 	if err != nil {
-		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", client.GetRouterContractAddress(), err)
+		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", address, err)
 	}
 
 	contractService := &Service{

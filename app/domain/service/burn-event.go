@@ -16,7 +16,9 @@
 
 package service
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+)
 
 // BurnEvent is the major service used for processing BurnEvent operations
 type BurnEvent interface {
