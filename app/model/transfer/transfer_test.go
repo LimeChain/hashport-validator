@@ -15,7 +15,6 @@ const (
 	sourceAsset   = "0.0.123"
 	nativeAsset   = "0.0.123"
 	targetAsset   = "0xwrapped00123"
-	routerAddress = "0xrouteraddress"
 )
 
 func Test_New(t *testing.T) {
@@ -28,7 +27,6 @@ func Test_New(t *testing.T) {
 		SourceAsset:   sourceAsset,
 		NativeAsset:   nativeAsset,
 		TargetAsset:   targetAsset,
-		RouterAddress: routerAddress,
 	}
 	actualTransfer := New(txId,
 		sourceChainId,
@@ -38,7 +36,6 @@ func Test_New(t *testing.T) {
 		nativeAsset,
 		targetAsset,
 		sourceAsset,
-		amount,
-		routerAddress)
+		amount)
 	assert.Equal(t, expectedTransfer, actualTransfer)
 }

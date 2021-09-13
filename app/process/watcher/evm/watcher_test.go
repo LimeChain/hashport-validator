@@ -112,7 +112,6 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 		NativeAsset:   lockLog.Token.String(),
 		Receiver:      hederaAcc.String(),
 		Amount:        lockLog.Amount.String(),
-		RouterAddress: "",
 	}
 
 	mocks.MStatusRepository.On("UpdateLastFetchedTimestamp", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)

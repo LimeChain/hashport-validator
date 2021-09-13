@@ -48,7 +48,6 @@ var (
 		NativeAsset:   "0.0.22222",
 		Receiver:      "0.0.1337",
 		Amount:        "100",
-		RouterAddress: "0xFFFA",
 	}
 	s                    = &Service{}
 	mockBurnEventId      = "some-burnevent-id"

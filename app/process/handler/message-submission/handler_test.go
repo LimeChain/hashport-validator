@@ -65,7 +65,6 @@ func Test_Invalid_Payload(t *testing.T) {
 		NativeAsset:   "",
 		Receiver:      "",
 		Amount:        "0",
-		RouterAddress: "",
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(tr, nil)
 	msHandler.Handle(tr)

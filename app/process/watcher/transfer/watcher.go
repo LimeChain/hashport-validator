@@ -193,8 +193,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		asset,
 		targetChainAsset,
 		nativeAsset.Asset,
-		amount,
-		ctw.contractServices[targetChainId].Address().String())
+		amount)
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
