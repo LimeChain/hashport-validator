@@ -150,7 +150,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
 			TransactionID: transactionID,
-			Status:        fee.StatusSubmitted, // TODO:
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -183,7 +183,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 	onExecutionFail = func(transactionID string) {
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
-			Status:        fee.StatusFailed, // TODO:
+			Status:        schedule.StatusFailed,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,

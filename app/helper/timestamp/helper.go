@@ -33,6 +33,10 @@ func FromString(timestamp string) (int64, error) {
 	var err error
 	stringTimestamp := strings.Split(timestamp, ".")
 
+	if len(stringTimestamp) < 2 {
+		return 0, errors.New("invalid timestamp provided")
+	}
+
 	seconds, err := strconv.ParseInt(stringTimestamp[0], 10, 64)
 	if err != nil {
 		return 0, errors.New("invalid timestamp seconds provided")

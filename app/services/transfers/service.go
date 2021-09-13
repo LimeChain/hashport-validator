@@ -321,7 +321,7 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.BURN,
-			Status:        fee.StatusSubmitted, // TODO: not fee
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -341,7 +341,7 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.BURN,
-			Status:        fee.StatusSubmitted, // TODO: not fee
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -397,7 +397,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
-			Status:        fee.StatusSubmitted, // TODO: not fee
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -431,7 +431,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.TRANSFER,
-			Status:        fee.StatusSubmitted, // TODO: not fee
+			Status:        schedule.StatusSubmitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,

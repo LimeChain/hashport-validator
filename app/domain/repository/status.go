@@ -17,7 +17,7 @@
 package repository
 
 type Status interface {
-	GetLastFetchedTimestamp(entityID string) (int64, error)
-	UpdateLastFetchedTimestamp(entityID string, timestamp int64) error
-	CreateTimestamp(entityID string, timestamp int64) error
+	Get(entityID string) (int64, error)
+	Update(entityID string, timestampOrBlockNumber int64) error
+	Create(entityID string, timestampOrBlockNumber int64) error
 }

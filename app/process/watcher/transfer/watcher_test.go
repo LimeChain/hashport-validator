@@ -35,6 +35,7 @@ var (
 				Token:   "0.0.111111",
 			},
 		},
+		ConsensusTimestamp: "1631092491.483966000",
 	}
 	networks = map[int64]*parser.Network{
 		0: {
@@ -81,6 +82,8 @@ func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
 
 func initializeWatcher() *Watcher {
 	mocks.Setup()
+
+	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	return NewWatcher(
 		mocks.MTransferService,

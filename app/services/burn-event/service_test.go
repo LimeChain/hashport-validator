@@ -221,7 +221,7 @@ func Test_ScheduledExecutionSuccessCallback(t *testing.T) {
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
 		Operation:     schedule.TRANSFER,
-		Status:        feeRepo.StatusSubmitted,
+		Status:        schedule.StatusSubmitted,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
@@ -252,7 +252,7 @@ func Test_ScheduledExecutionUpdateStatusFails(t *testing.T) {
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
 		Operation:     schedule.TRANSFER,
-		Status:        feeRepo.StatusSubmitted,
+		Status:        schedule.StatusSubmitted,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
@@ -283,7 +283,7 @@ func Test_ScheduledExecutionCreateFeeFails(t *testing.T) {
 		TransactionID: txId,
 		ScheduleID:    scheduleId,
 		Operation:     schedule.TRANSFER,
-		Status:        feeRepo.StatusSubmitted,
+		Status:        schedule.StatusSubmitted,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
@@ -311,7 +311,7 @@ func Test_ScheduledExecutionFailCallback(t *testing.T) {
 	}
 	mockEntitySchedule := &entity.Schedule{
 		TransactionID: txId,
-		Status:        feeRepo.StatusFailed,
+		Status:        schedule.StatusFailed,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
@@ -340,7 +340,7 @@ func Test_ScheduledExecutionFailedUpdateStatusFails(t *testing.T) {
 	}
 	mockEntitySchedule := &entity.Schedule{
 		TransactionID: txId,
-		Status:        feeRepo.StatusFailed,
+		Status:        schedule.StatusFailed,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
@@ -369,7 +369,7 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 
 	mockEntitySchedule := &entity.Schedule{
 		TransactionID: txId,
-		Status:        feeRepo.StatusFailed,
+		Status:        schedule.StatusFailed,
 		TransferID: sql.NullString{
 			String: id,
 			Valid:  true,
