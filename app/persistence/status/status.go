@@ -60,19 +60,19 @@ func (s Repository) Get(entityID string) (int64, error) {
 	return lastFetchedStatus.Last, nil
 }
 
-func (s Repository) Create(entityID string, timestamp int64) error {
+func (s Repository) Create(entityID string, timestampOrBlockNumber int64) error {
 	return s.dbClient.Create(entity.Status{
 		EntityID: entityID,
-		Last:     timestamp,
+		Last:     timestampOrBlockNumber,
 	}).Error
 }
 
-func (s Repository) Update(entityID string, last int64) error {
+func (s Repository) Update(entityID string, timestampOrBlockNumber int64) error {
 	return s.dbClient.
 		Where("entity_id = ?", entityID).
 		Save(entity.Status{
 			EntityID: entityID,
-			Last:     last,
+			Last:     timestampOrBlockNumber,
 		}).
 		Error
 }

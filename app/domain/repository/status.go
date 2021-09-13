@@ -18,6 +18,6 @@ package repository
 
 type Status interface {
 	Get(entityID string) (int64, error)
-	Update(entityID string, timestamp int64) error
-	Create(entityID string, timestamp int64) error
+	Update(entityID string, timestampOrBlockNumber int64) error
+	Create(entityID string, timestampOrBlockNumber int64) error
 }
