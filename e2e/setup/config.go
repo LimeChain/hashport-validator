@@ -90,7 +90,7 @@ type Setup struct {
 	BridgeAccount  hederaSDK.AccountID
 	TopicID        hederaSDK.TopicID
 	TokenID        hederaSDK.TokenID
-	NativeEvmToken EvmToken
+	NativeEvmToken e2eParser.EvmToken
 	FeePercentages map[string]int64
 	Members        []hederaSDK.AccountID
 	Clients        *clients
@@ -283,11 +283,6 @@ type EVMUtils struct {
 	Receiver              common.Address
 	RouterAddress         common.Address
 	WTokenContractAddress string
-}
-
-type EvmToken struct {
-	Address  string `yaml:"address"`
-	Decimals int64  `yaml:"decimals"`
 }
 
 // Hedera props from the application.yml

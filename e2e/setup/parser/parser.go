@@ -2,7 +2,6 @@ package parser
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
 // Config used to load and parse from application.yml
@@ -30,9 +29,14 @@ type Sender struct {
 }
 
 type Tokens struct {
-	WHbar          string         `yaml:"whbar"`
-	WToken         string         `yaml:"wtoken"`
-	EvmNativeToken setup.EvmToken `yaml:"evm_native_token"`
+	WHbar          string   `yaml:"whbar"`
+	WToken         string   `yaml:"wtoken"`
+	EvmNativeToken EvmToken `yaml:"evm_native_token"`
+}
+
+type EvmToken struct {
+	Address  string `yaml:"address"`
+	Decimals int64  `yaml:"decimals"`
 }
 
 type E2E struct {
