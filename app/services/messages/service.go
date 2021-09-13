@@ -91,7 +91,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 
 	signedAmount := t.Amount
-	if t.HasFee {
+	if t.NativeChainID == 0 {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
@@ -210,10 +210,10 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 		}
 
 		if t != nil {
-			if !t.HasFee {
+			if t.NativeChainID != 0 {
 				return t, nil
 			}
-			if t.HasFee && t.Fee.TransactionID != "" {
+			if t.NativeChainID == 0 && t.Fee.TransactionID != "" {
 				return t, nil
 			}
 		}

@@ -28,7 +28,6 @@ type Transfer struct {
 	Receiver      string
 	Amount        string
 	RouterAddress string
-	HasFee        bool
 	Timestamp     string
 }
 

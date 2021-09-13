@@ -20,19 +20,19 @@ const Hbar = "HBAR"
 
 // Handler topics
 const (
-	HederaFeeTransfer               = "HEDERA_FEE_TRANSFER"
-	HederaTransferMessageSubmission = "HEDERA_TRANSFER_MSG_SUBMISSION"
-	HederaBurnMessageSubmission     = "BURN_TOPIC_MSG_SUBMISSION"
-	HederaMintHtsTransfer           = "HEDERA_MINT_HTS_TRANSFER"
-	TopicMessageSubmission          = "TOPIC_MSG_SUBMISSION"
-	TopicMessageValidation          = "TOPIC_MSG_VALIDATION"
+	HederaFeeTransfer               = "HEDERA_FEE_TRANSFER"            // WEVM -> NH
+	HederaTransferMessageSubmission = "HEDERA_TRANSFER_MSG_SUBMISSION" // NH -> WEVM
+	HederaBurnMessageSubmission     = "BURN_TOPIC_MSG_SUBMISSION"      // WH -> NEVM
+	HederaMintHtsTransfer           = "HEDERA_MINT_HTS_TRANSFER"       // NEVM -> WH
+	TopicMessageSubmission          = "TOPIC_MSG_SUBMISSION"           // WEVM -> WEVM
+	TopicMessageValidation          = "TOPIC_MSG_VALIDATION"           // Messages coming from HCS Topic submission
 )
 
 // Read-only handler topics
 const (
-	ReadOnlyHederaFeeTransfer     = "READ_ONLY_HEDERA_FEE_TRANSFER"
-	ReadOnlyHederaTransfer        = "READ_ONLY_HEDERA_NATIVE_TRANSFER"
-	ReadOnlyHederaBurn            = "READ_ONLY_HEDERA_BURN"
-	ReadOnlyHederaMintHtsTransfer = "READ_ONLY_HEDERA_MINT_HTS_TRANSFER"
-	ReadOnlyTransferSave          = "READ_ONLY_SAVE_TRANSFER"
+	ReadOnlyHederaFeeTransfer     = "READ_ONLY_HEDERA_FEE_TRANSFER"      // NH -> WEVM
+	ReadOnlyHederaTransfer        = "READ_ONLY_HEDERA_NATIVE_TRANSFER"   // WEVM -> NH
+	ReadOnlyHederaBurn            = "READ_ONLY_HEDERA_BURN"              // WH -> NEVM
+	ReadOnlyHederaMintHtsTransfer = "READ_ONLY_HEDERA_MINT_HTS_TRANSFER" // NEVM -> WH
+	ReadOnlyTransferSave          = "READ_ONLY_SAVE_TRANSFER"            // WEVM -> WEVM
 )

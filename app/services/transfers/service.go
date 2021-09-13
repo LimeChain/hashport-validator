@@ -509,12 +509,12 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	}
 
 	// TODO: remove when fee check is not here
-	if t != nil && t.HasFee && t.Fee.Amount == "" {
+	if t != nil && t.NativeChainID == 0 && t.Fee.Amount == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
 	signedAmount := t.Amount
-	if t.HasFee {
+	if t.NativeChainID == 0 {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)

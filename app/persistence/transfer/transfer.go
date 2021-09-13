@@ -123,7 +123,6 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
 		Status:        status,
-		HasFee:        ct.HasFee, // TODO: remove
 	}
 	err := tr.dbClient.Create(tx).Error
 
