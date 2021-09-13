@@ -18,7 +18,6 @@ package transfers
 
 import (
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -30,7 +29,6 @@ import (
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -47,13 +45,13 @@ type Service struct {
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
 	contractServices   map[int64]service.Contracts
-	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
 	feeRepository      repository.Fee
 	distributor        service.Distributor
 	feeService         service.Fee
 	scheduledService   service.Scheduled
+	messageService     service.Messages
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
 }
@@ -62,7 +60,6 @@ func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
 	contractServices map[int64]service.Contracts,
-	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	feeRepository repository.Fee,
@@ -71,6 +68,7 @@ func NewService(
 	topicID string,
 	bridgeAccount string,
 	scheduledService service.Scheduled,
+	messageService service.Messages,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -86,7 +84,6 @@ func NewService(
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
 		contractServices:   contractServices,
-		ethSigners:         signers,
 		transferRepository: transferRepository,
 		scheduleRepository: scheduleRepository,
 		feeRepository:      feeRepository,
@@ -95,6 +92,7 @@ func NewService(
 		distributor:        distributor,
 		bridgeAccountID:    bridgeAccountID,
 		scheduledService:   scheduledService,
+		messageService:     messageService,
 	}
 }
 
@@ -176,27 +174,11 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, wrappedAmount)
+	tm.Amount = wrappedAmount
+	signatureMessage, err := ts.messageService.SignMessage(tm)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
-
-	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	signatureMessage := message.NewSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		wrappedAmount,
-		signature)
 
 	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
 }
@@ -224,27 +206,10 @@ statusBlocker:
 		}
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+	signatureMessage, err := ts.messageService.SignMessage(tm)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
-
-	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	signatureMessage := message.NewSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		tm.Amount,
-		signature)
 
 	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
 }

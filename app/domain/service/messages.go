@@ -18,6 +18,7 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
 type Messages interface {
@@ -26,4 +27,6 @@ type Messages interface {
 	SanityCheckSignature(tm message.Message) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(tm message.Message) error
+	// SignMessage signs a message based on Transfer
+	SignMessage(transfer model.Transfer) (*message.Message, error)
 }

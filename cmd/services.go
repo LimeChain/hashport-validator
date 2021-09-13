@@ -59,11 +59,20 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
+	messages := messages.NewService(
+		evmSigners,
+		contractServices,
+		repositories.transfer,
+		repositories.message,
+		clients.MirrorNode,
+		clients.EVMClients,
+		c.Bridge.TopicId,
+		c.Bridge.Assets)
+
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
 		contractServices,
-		evmSigners,
 		repositories.transfer,
 		repositories.schedule,
 		repositories.fee,
@@ -71,18 +80,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
-		scheduled)
-
-	messages := messages.NewService(
-		evmSigners,
-		contractServices,
-		repositories.transfer,
-		repositories.message,
-		clients.HederaNode,
-		clients.MirrorNode,
-		clients.EVMClients,
-		c.Bridge.TopicId,
-		c.Bridge.Assets)
+		scheduled,
+		messages)
 
 	burnEvent := burn_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,

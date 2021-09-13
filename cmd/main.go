@@ -101,9 +101,9 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		message_submission.NewHandler(
 			clients.HederaNode,
 			clients.MirrorNode,
-			services.signers,
 			services.transfers,
 			repositories.transfer,
+			services.messages,
 			configuration.Bridge.TopicId))
 
 	server.AddHandler(constants.HederaMintHtsTransfer, mint_hts.NewHandler(services.lockEvents))
