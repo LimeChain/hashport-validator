@@ -468,7 +468,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedUnlockAmount, err := addDecimals(receiveAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	expectedUnlockAmount, err := addDecimals(unlockAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -488,7 +488,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	burnTransactionID, burnScheduleID := validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, unlockAmount, setupEnv.NativeEvmToken, t)
+	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, expectedUnlockAmount, setupEnv.NativeEvmToken, t)
 
 	// Step 5 - Submit Unlock transaction
 	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
