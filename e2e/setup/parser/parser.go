@@ -29,14 +29,9 @@ type Sender struct {
 }
 
 type Tokens struct {
-	WHbar          string   `yaml:"whbar"`
-	WToken         string   `yaml:"wtoken"`
-	EvmNativeToken EvmToken `yaml:"evm_native_token"`
-}
-
-type EvmToken struct {
-	Address  string `yaml:"address"`
-	Decimals int64  `yaml:"decimals"`
+	WHbar          string `yaml:"whbar"`
+	WToken         string `yaml:"wtoken"`
+	EvmNativeToken string `yaml:"evm_native_token"`
 }
 
 type E2E struct {

@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
@@ -326,18 +327,21 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	now = time.Now()
 	bridgeAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, t)
 	receiverAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken.Address)
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken.Address, 0, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), t)
+	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, 0, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), t)
 
 	// Step 3: Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
 
-	expectedAmount := removeDecimals(receiveAmount, setupEnv.NativeEvmToken.Decimals)
+	expectedAmount, err := removeDecimals(receiveAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	mintTransfer := []mirror_node.Transfer{
 		{
@@ -359,9 +363,9 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		0,
 		chainId,
 		lockEventId,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
 		targetAsset,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
@@ -405,22 +409,41 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	validateAccountBalance(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), uint64(expectedAmount), receiverAccountBalanceBefore, targetAsset, t)
 }
 
-func removeDecimals(amount, decimals int64) int64 {
+func removeDecimals(amount int64, asset common.Address, evm setup.EVMUtils) (int64, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, evm.EVMClient)
+	if err != nil {
+		return 0, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return 0, err
+	}
+
 	adaptation := decimals - 8
 	if adaptation > 0 {
 		adapted := amount / int64(math.Pow10(int(adaptation)))
-		return adapted
+		return adapted, nil
 	}
-	return amount
+	return amount, nil
 }
 
-func addDecimals(amount, decimals int64) int64 {
+func addDecimals(amount int64, asset common.Address, evm setup.EVMUtils) (int64, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, evm.EVMClient)
+	if err != nil {
+		return 0, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return 0, err
+	}
 	adaptation := decimals - 8
 	if adaptation > 0 {
 		adapted := amount * int64(math.Pow10(int(adaptation)))
-		return adapted
+		return adapted, nil
 	}
-	return amount
+	return amount, nil
 }
 
 // Test_E2E_Hedera_EVM_Native_Token recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
@@ -435,7 +458,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	unlockAmount := int64(10)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken.Address)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -445,9 +468,12 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedUnlockAmount := addDecimals(receiveAmount, setupEnv.NativeEvmToken.Decimals)
+	expectedUnlockAmount, err := addDecimals(receiveAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	transactionResponse, nativeBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, setupEnv.NativeEvmToken.Address, tokenID, evm, memo, evm.Receiver, expectedUnlockAmount, t)
+	transactionResponse, nativeBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, setupEnv.NativeEvmToken, tokenID, evm, memo, evm.Receiver, expectedUnlockAmount, t)
 	burnTransfer := []mirror_node.Transfer{
 		{
 			Account: setupEnv.BridgeAccount.String(),
@@ -462,16 +488,16 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	burnTransactionID, burnScheduleID := validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken.Address, unlockAmount, setupEnv.NativeEvmToken.Address, t)
+	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, unlockAmount, setupEnv.NativeEvmToken, t)
 
 	// Step 5 - Submit Unlock transaction
-	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken.Address), t)
+	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
 
 	// Step 6 - Wait for transaction to be mined
 	waitForTransaction(evm, txHash, t)
 
 	//Step 7 - Validate Token balances
-	verifyWrappedAssetBalance(evm, setupEnv.NativeEvmToken.Address, big.NewInt(expectedUnlockAmount), nativeBalanceBefore, evm.Receiver, t)
+	verifyWrappedAssetBalance(evm, setupEnv.NativeEvmToken, big.NewInt(expectedUnlockAmount), nativeBalanceBefore, evm.Receiver, t)
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
@@ -480,8 +506,8 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		chainId,
 		hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
 		wrappedAsset,
-		setupEnv.NativeEvmToken.Address,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
+		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedUnlockAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
@@ -514,7 +540,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	chainId := int64(80001)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken.Address)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -531,7 +557,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	}
 
 	// Step 2 - Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken.Address, 5, evm.Receiver.Bytes(), t)
+	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, 5, evm.Receiver.Bytes(), t)
 
 	// Step 3 - Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -540,7 +566,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, lockEventId, t)
 
 	// Step 5 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmToken.Address, receiveAmount, wrappedAsset, t)
+	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmToken, receiveAmount, wrappedAsset, t)
 
 	// Step 6 - Submit Mint transaction
 	txHash := submitMintTransaction(wrappedEvm, lockEventId, transactionData, common.HexToAddress(wrappedAsset), t)
@@ -557,9 +583,9 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		5,
 		chainId,
 		lockEventId,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
 		wrappedAsset,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
 		strconv.FormatInt(receiveAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
@@ -578,13 +604,13 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	chainId := int64(80001)
 	wrappedEvm := setupEnv.Clients.EVM[5]
 	now = time.Now()
-	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken.Address)
+	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	nativeEvm := setupEnv.Clients.EVM[chainId]
-	nativeInstance, err := setup.InitAssetContract(setupEnv.NativeEvmToken.Address, nativeEvm.EVMClient)
+	nativeInstance, err := setup.InitAssetContract(setupEnv.NativeEvmToken, nativeEvm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -595,7 +621,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	}
 
 	// Step 2 - Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken.Address, 80001, 5, nativeEvm.Receiver.Bytes(), t)
+	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, 80001, 5, nativeEvm.Receiver.Bytes(), t)
 
 	// Step 3 - Validate Burn Event was emitted with correct data
 	burnEventId := validateBurnEvent(receipt, expectedLockEventLog, t)
@@ -604,16 +630,16 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, burnEventId, t)
 
 	// Step 5 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, nativeEvm, burnEventId, setupEnv.NativeEvmToken.Address, receiveAmount, setupEnv.NativeEvmToken.Address, t)
+	transactionData := verifyTransferFromValidatorAPI(setupEnv, nativeEvm, burnEventId, setupEnv.NativeEvmToken, receiveAmount, setupEnv.NativeEvmToken, t)
 
 	// Step 6 - Submit Mint transaction
-	txHash := submitUnlockTransaction(nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken.Address), t)
+	txHash := submitUnlockTransaction(nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
 
 	// Step 7 - Wait for transaction to be mined
 	waitForTransaction(nativeEvm, txHash, t)
 
 	// Step 8 - Validate Token balances
-	verifyWrappedAssetBalance(nativeEvm, setupEnv.NativeEvmToken.Address, big.NewInt(receiveAmount), nativeBalanceBefore, nativeEvm.Receiver, t)
+	verifyWrappedAssetBalance(nativeEvm, setupEnv.NativeEvmToken, big.NewInt(receiveAmount), nativeBalanceBefore, nativeEvm.Receiver, t)
 
 	// Step 9 - Prepare expected Transfer record
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
@@ -622,8 +648,8 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		chainId,
 		burnEventId,
 		sourceAsset,
-		setupEnv.NativeEvmToken.Address,
-		setupEnv.NativeEvmToken.Address,
+		setupEnv.NativeEvmToken,
+		setupEnv.NativeEvmToken,
 		strconv.FormatInt(receiveAmount, 10),
 		nativeEvm.Receiver.String(),
 		database.ExpectedStatuses{

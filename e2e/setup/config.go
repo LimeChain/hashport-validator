@@ -90,7 +90,7 @@ type Setup struct {
 	BridgeAccount  hederaSDK.AccountID
 	TopicID        hederaSDK.TopicID
 	TokenID        hederaSDK.TokenID
-	NativeEvmToken e2eParser.EvmToken
+	NativeEvmToken string
 	FeePercentages map[string]int64
 	Members        []hederaSDK.AccountID
 	Clients        *clients
