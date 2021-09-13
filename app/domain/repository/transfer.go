@@ -30,6 +30,5 @@ type Transfer interface {
 	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
-	SaveRecoveredTxn(ct *transfer.Transfer) error
 	UpdateStatusCompleted(txId string) error
 }

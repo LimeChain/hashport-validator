@@ -50,10 +50,6 @@ func (m *MockTransferRepository) Create(ct *transfer.Transfer) (*entity.Transfer
 	return nil, args.Get(1).(error)
 }
 
-func (m *MockTransferRepository) SaveRecoveredTxn(ct *transfer.Transfer) error {
-	panic("implement me")
-}
-
 func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {

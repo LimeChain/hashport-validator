@@ -102,11 +102,6 @@ func (tr Repository) Save(tx *entity.Transfer) error {
 	return tr.dbClient.Save(tx).Error
 }
 
-func (tr *Repository) SaveRecoveredTxn(ct *model.Transfer) error {
-	_, err := tr.create(ct, transfer.StatusRecovered)
-	return err
-}
-
 func (tr Repository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, transfer.StatusCompleted)
 }

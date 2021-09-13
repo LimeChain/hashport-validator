@@ -148,28 +148,6 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 	return tx, nil
 }
 
-//// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
-func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
-	//// TODO: Add ChainID to the parameters and remove mockChainID
-	//mockChainID := int64(80001)
-	//err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
-	//	TransactionId: txId,
-	//	RouterAddress: ts.contractServices[mockChainID].Address().String(),
-	//	Receiver:      memo,
-	//	Amount:        amount,
-	//	NativeAsset:   nativeAsset,
-	//	WrappedAsset:  wrappedAsset,
-	//})
-	//if err != nil {
-	//	ts.logger.Errorf("[%s] - Something went wrong while saving new Recovered Transaction. Error [%s]", txId, err)
-	//	return err
-	//}
-	//
-	//ts.logger.Infof("Added new Transaction Record with Txn ID [%s]", txId)
-	//return err
-	return nil
-}
-
 func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
