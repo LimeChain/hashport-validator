@@ -60,7 +60,7 @@ func Load() *Setup {
 			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
 		},
 		EVM:            make(map[int64]config.Evm),
-		Tokens:         Tokens(e2eConfig.Tokens),
+		Tokens:         e2eConfig.Tokens,
 		ValidatorUrl:   e2eConfig.ValidatorUrl,
 		Bridge:         e2eConfig.Bridge,
 		AssetMappings:  config.LoadAssets(e2eConfig.Bridge.Networks),
@@ -87,15 +87,15 @@ func Load() *Setup {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount         hederaSDK.AccountID
-	TopicID               hederaSDK.TopicID
-	TokenID               hederaSDK.TokenID
-	NativeEvmToken        EvmToken
-	FeePercentages        map[string]int64
-	Members               []hederaSDK.AccountID
-	Clients               *clients
-	DbValidator           *db_validation.Service
-	AssetMappings         config.Assets
+	BridgeAccount  hederaSDK.AccountID
+	TopicID        hederaSDK.TopicID
+	TokenID        hederaSDK.TokenID
+	NativeEvmToken EvmToken
+	FeePercentages map[string]int64
+	Members        []hederaSDK.AccountID
+	Clients        *clients
+	DbValidator    *db_validation.Service
+	AssetMappings  config.Assets
 }
 
 // newSetup instantiates new Setup struct
@@ -141,15 +141,15 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:         bridgeAccount,
-		TopicID:               topicID,
-		TokenID:               tokenID,
+		BridgeAccount:  bridgeAccount,
+		TopicID:        topicID,
+		TokenID:        tokenID,
 		NativeEvmToken: config.Tokens.EvmNativeToken,
-		FeePercentages:        config.FeePercentages,
-		Members:               members,
-		Clients:               clients,
-		DbValidator:           dbValidator,
-		AssetMappings:         config.AssetMappings,
+		FeePercentages: config.FeePercentages,
+		Members:        members,
+		Clients:        clients,
+		DbValidator:    dbValidator,
+		AssetMappings:  config.AssetMappings,
 	}, nil
 }
 
@@ -268,7 +268,7 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 type Config struct {
 	Hedera         Hedera
 	EVM            map[int64]config.Evm
-	Tokens         Tokens
+	Tokens         e2eParser.Tokens
 	ValidatorUrl   string
 	Bridge         parser.Bridge
 	AssetMappings  config.Assets
@@ -283,12 +283,6 @@ type EVMUtils struct {
 	Receiver              common.Address
 	RouterAddress         common.Address
 	WTokenContractAddress string
-}
-
-type Tokens struct {
-	WHbar          string   `yaml:"whbar"`
-	WToken         string   `yaml:"wtoken"`
-	EvmNativeToken EvmToken `yaml:"evm_native_token"`
 }
 
 type EvmToken struct {
