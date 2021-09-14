@@ -16,7 +16,7 @@ Example:
 In order to transfer **100 HBAR-s** to address _0x700d8a76b37f672a06ab89fe1ec95acfba799f1c_, the user needs to create a `CryptoTransfer` of **100 HBAR-s** to the bridge account and **add the receiving EVM address as MEMO to the transfer**.
 
 >Transfer amount: 100 HBAR
->Memo: 0x700d8a76b37f672a06ab89fe1ec95acfba799f1c
+>Memo: {targetChainId}-0x700d8a76b37f672a06ab89fe1ec95acfba799f1c
 
 The corresponding `TransactionID` is a unique identifier for the Bridge transfer operation and can be used to query the status of the Bridge transfer.
 
