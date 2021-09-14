@@ -27,7 +27,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -375,7 +374,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		TransactionID: bridgeMintTransactionID,
 		ScheduleID:    bridgeMintScheduleID,
 		Operation:     schedule.MINT,
-		Status:        fee.StatusCompleted, // TODO: not fee
+		Status:        schedule.StatusCompleted,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -396,7 +395,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		TransactionID: bridgeTransferTransactionID,
 		ScheduleID:    bridgeTransferScheduleID,
 		Operation:     schedule.TRANSFER,
-		Status:        fee.StatusCompleted, // TODO: not fee
+		Status:        schedule.StatusCompleted,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -519,7 +518,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		TransactionID: burnTransactionID,
 		ScheduleID:    burnScheduleID,
 		Operation:     schedule.BURN,
-		Status:        fee.StatusCompleted, // TODO: not fee
+		Status:        schedule.StatusCompleted,
 		TransferID: sql.NullString{
 			String: hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
 			Valid:  true,

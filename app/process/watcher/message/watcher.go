@@ -39,21 +39,48 @@ type Watcher struct {
 	topicID          hedera.TopicID
 	statusRepository repository.Status
 	pollingInterval  time.Duration
-	startTimestamp   int64
 	logger           *log.Entry
 }
 
-func NewWatcher(client client.MirrorNode, topicID string, repository repository.Status, pollingInterval time.Duration, startTimestamp int64) *Watcher {
+func NewWatcher(
+	client client.MirrorNode,
+	topicID string,
+	repository repository.Status,
+	pollingInterval time.Duration,
+	startTimestamp int64) *Watcher {
 	id, err := hedera.TopicIDFromString(topicID)
 	if err != nil {
 		log.Fatalf("Could not start Consensus Topic Watcher for topic [%s] - Error: [%s]", topicID, err)
+	}
+
+	targetTimestamp := time.Now().UnixNano()
+	timeStamp := startTimestamp
+	if startTimestamp == 0 {
+		_, err := repository.Get(topicID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err := repository.Create(topicID, targetTimestamp)
+				if err != nil {
+					log.Fatalf("Failed to create Transfer Watcher timestamp. Error: [%s]", err)
+				}
+				log.Tracef("Created new Transfer Watcher timestamp [%s]", timestamp.ToHumanReadable(targetTimestamp))
+			} else {
+				log.Fatalf("Failed to fetch last Transfer Watcher timestamp. Error: [%s]", err)
+			}
+		}
+	} else {
+		err := repository.Update(topicID, timeStamp)
+		if err != nil {
+			log.Fatalf("Failed to update Transfer Watcher Status timestamp. Error [%s]", err)
+		}
+		targetTimestamp = timeStamp
+		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
 	}
 
 	return &Watcher{
 		client:           client,
 		topicID:          id,
 		statusRepository: repository,
-		startTimestamp:   startTimestamp,
 		pollingInterval:  pollingInterval,
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Topic Watcher", topicID)),
 	}
@@ -65,28 +92,11 @@ func (cmw Watcher) Watch(q qi.Queue) {
 		return
 	}
 
-	topic := cmw.topicID.String()
-	_, err := cmw.statusRepository.GetLastFetchedTimestamp(topic)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := cmw.statusRepository.CreateTimestamp(topic, cmw.startTimestamp)
-			if err != nil {
-				cmw.logger.Fatalf("Failed to create Topic Watcher timestamp. Error [%s]", err)
-			}
-			cmw.logger.Tracef("Created new Topic Watcher timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
-		} else {
-			cmw.logger.Fatalf("Failed to fetch last Topic Watcher timestamp. Error [%s]", err)
-		}
-	} else {
-		cmw.updateStatusTimestamp(cmw.startTimestamp)
-	}
-
 	cmw.beginWatching(q)
-	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(cmw.startTimestamp))
 }
 
 func (cmw Watcher) updateStatusTimestamp(ts int64) {
-	err := cmw.statusRepository.UpdateLastFetchedTimestamp(cmw.topicID.String(), ts)
+	err := cmw.statusRepository.Update(cmw.topicID.String(), ts)
 	if err != nil {
 		cmw.logger.Fatalf("Failed to update Topic Watcher Status timestamp. Error [%s]", err)
 	}
@@ -94,10 +104,11 @@ func (cmw Watcher) updateStatusTimestamp(ts int64) {
 }
 
 func (cmw Watcher) beginWatching(q qi.Queue) {
-	milestoneTimestamp, err := cmw.statusRepository.GetLastFetchedTimestamp(cmw.topicID.String())
+	milestoneTimestamp, err := cmw.statusRepository.Get(cmw.topicID.String())
 	if err != nil {
 		cmw.logger.Fatalf("Failed to retrieve Topic Watcher Status timestamp. Error [%s]", err)
 	}
+	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)

@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -149,9 +148,9 @@ func (fmh Handler) Handle(payload interface{}) {
 				if isFound {
 					finished = true
 					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
-					status := fee.StatusCompleted
+					status := schedule.StatusCompleted
 					if !isSuccessful {
-						status = fee.StatusFailed
+						status = schedule.StatusFailed
 					}
 					err := fmh.scheduleRepository.Create(&entity.Schedule{
 						TransactionID: transaction.TransactionID,

@@ -26,7 +26,6 @@ type Node struct {
 	Clients   Clients  `yaml:"clients"`
 	LogLevel  string   `yaml:"log_level"`
 	Port      string   `yaml:"port"`
-	Recovery  Recovery `yaml:"recovery"`
 	Validator bool     `yaml:"validator"`
 }
 
@@ -48,11 +47,13 @@ type Evm struct {
 	BlockConfirmations uint64 `yaml:"block_confirmations"`
 	NodeUrl            string `yaml:"node_url"`
 	PrivateKey         string `yaml:"private_key"`
+	StartBlock         int64  `yaml:"start_block"`
 }
 
 type Hedera struct {
-	Operator Operator `yaml:"operator"`
-	Network  string   `yaml:"network"`
+	Operator       Operator `yaml:"operator"`
+	Network        string   `yaml:"network"`
+	StartTimestamp int64    `yaml:"start_timestamp"`
 }
 
 type Operator struct {
@@ -64,9 +65,4 @@ type MirrorNode struct {
 	ClientAddress   string        `yaml:"client_address"`
 	ApiAddress      string        `yaml:"api_address"`
 	PollingInterval time.Duration `yaml:"polling_interval"`
-}
-
-type Recovery struct {
-	StartTimestamp int64 `yaml:"start_timestamp"`
-	StartBlock     int64 `yaml:"start_block"`
 }

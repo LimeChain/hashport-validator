@@ -94,3 +94,13 @@ func (r Repository) GetTransferByTransactionID(id string) (*entity.Schedule, err
 	}
 	return record, nil
 }
+
+func (r Repository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
+	var schedules []*entity.Schedule
+
+	err := r.dbClient.
+		Select("transaction_id").
+		Where("status = ?", schedule.StatusSubmitted).
+		Find(&schedules).Error
+	return schedules, err
+}

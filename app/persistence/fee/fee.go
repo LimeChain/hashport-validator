@@ -78,3 +78,13 @@ func (r Repository) updateStatus(txId string, status string) error {
 	}
 	return err
 }
+
+func (r Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
+	var fees []*entity.Fee
+
+	err := r.dbClient.
+		Select("transaction_id").
+		Where("status = ?", fee.StatusSubmitted).
+		Find(&fees).Error
+	return fees, err
+}

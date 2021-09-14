@@ -19,6 +19,7 @@ package service
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
@@ -34,6 +35,10 @@ type Contracts interface {
 	GetClient() *ethclient.Client
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
+	// ParseBurnLog parses a general typed log to a RouterBurn event
+	ParseBurnLog(log types.Log) (*abi.RouterBurn, error)
+	// ParseLockLog parses a general typed log to a RouterLock event
+	ParseLockLog(log types.Log) (*abi.RouterLock, error)
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
