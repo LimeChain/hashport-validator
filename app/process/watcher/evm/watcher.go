@@ -17,6 +17,7 @@
 package evm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -198,7 +199,11 @@ func (ew *Watcher) removeDecimals(amount *big.Int, asset common.Address) (*big.I
 
 	adaptation := int(decimals) - 8
 	if decimals > 0 {
-		return new(big.Int).Div(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
+		proper := new(big.Int).Div(amount, big.NewInt(int64(math.Pow10(adaptation))))
+		if proper == big.NewInt(0) {
+			return nil, errors.New("amount-too-small")
+		}
+		return proper, nil
 	}
 	return amount, nil
 }
