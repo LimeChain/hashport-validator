@@ -17,13 +17,18 @@
 package cryptotransfer
 
 import (
+	"errors"
+	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	service2 "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 	"testing"
+	"time"
 )
 
 var (
@@ -78,6 +83,177 @@ func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
 	w.processTransaction(tx, mocks.MQueue)
 	mocks.MTransferService.AssertCalled(t, "SanityCheckTransfer", tx)
 	mocks.MQueue.AssertCalled(t, "Push", mock.Anything)
+}
+
+// TODO: uncomment when log.Fatalf is defered properly
+//func Test_NewWatcher_RecordNotFound_Fails(t *testing.T) {
+//	mocks.Setup()
+//	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
+//	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(errors.New("some-error"))
+//
+//	NewWatcher(
+//		mocks.MTransferService,
+//		mocks.MHederaMirrorClient,
+//		"0.0.444444",
+//		5,
+//		mocks.MStatusRepository,
+//		0,
+//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		assets,
+//		true)
+//
+//	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
+//}
+//
+//func Test_NewWatcher_GetError_Fails(t *testing.T) {
+//	mocks.Setup()
+//	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), errors.New("some-error"))
+//
+//	NewWatcher(
+//		mocks.MTransferService,
+//		mocks.MHederaMirrorClient,
+//		"0.0.444444",
+//		5,
+//		mocks.MStatusRepository,
+//		0,
+//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		assets,
+//		true)
+//}
+
+func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
+	mocks.Setup()
+	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
+	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(nil)
+
+	NewWatcher(
+		mocks.MTransferService,
+		mocks.MHederaMirrorClient,
+		"0.0.444444",
+		5,
+		mocks.MStatusRepository,
+		0,
+		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+		assets,
+		true)
+
+	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
+}
+
+func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
+	mocks.Setup()
+	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(nil)
+
+	NewWatcher(
+		mocks.MTransferService,
+		mocks.MHederaMirrorClient,
+		"0.0.444444",
+		5,
+		mocks.MStatusRepository,
+		1,
+		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+		assets,
+		true)
+
+	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
+}
+
+//TODO: same
+//func Test_NewWatcher_NotNilTS_Update_Fails(t *testing.T) {
+//	mocks.Setup()
+//	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(errors.New("some-error"))
+//
+//	NewWatcher(
+//		mocks.MTransferService,
+//		mocks.MHederaMirrorClient,
+//		"0.0.444444",
+//		5,
+//		mocks.MStatusRepository,
+//		1,
+//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		assets,
+//		true)
+//
+//	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
+//}
+
+func Test_Watch_AccountNotExist(t *testing.T) {
+	w := initializeWatcher()
+	hederaAcc := hedera.AccountID{
+		Shard:   0,
+		Realm:   0,
+		Account: 444444,
+	}
+	mocks.MHederaMirrorClient.On("AccountExists", hederaAcc).Return(false)
+	w.Watch(mocks.MQueue)
+}
+
+//TODO: SAME
+//func Test_BeginWatching(t *testing.T) {
+//	w := initializeWatcher()
+//	hederaAcc := hedera.AccountID{
+//		Shard:   0,
+//		Realm:   0,
+//		Account: 444444,
+//	}
+//	transactions := &mirror_node.Response{
+//		Transactions: []mirror_node.Transaction{},
+//		Status:       mirror_node.Status{},
+//	}
+//	mocks.MHederaMirrorClient.On("GetAccountCreditTransactionsAfterTimestamp", hederaAcc, mock.Anything).
+//		Return(transactions, nil)
+//	w.beginWatching(mocks.MQueue)
+//}
+
+func Test_ProcessTransaction(t *testing.T) {
+	w := initializeWatcher()
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(int64(3), "0xaiskdjakdjakl", nil)
+	mocks.MQueue.On("Push", mock.Anything).Return()
+	w.processTransaction(tx, mocks.MQueue)
+}
+
+func Test_ProcessTransaction_WithTS(t *testing.T) {
+	w := initializeWatcher()
+	anotherTx := tx
+	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
+	mocks.MQueue.On("Push", mock.Anything).Return()
+	w.processTransaction(anotherTx, mocks.MQueue)
+}
+
+func Test_UpdateStatusTimestamp_Works(t *testing.T) {
+	w := initializeWatcher()
+	mocks.MStatusRepository.On("Update", "0.0.444444", int64(100)).Return(nil)
+	w.updateStatusTimestamp(100)
+}
+
+func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
+	w := initializeWatcher()
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(int64(0), "", errors.New("some-error"))
+
+	w.processTransaction(tx, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
+	w := initializeWatcher()
+	anotherTx := tx
+	anotherTx.Transfers = []mirror_node.Transfer{}
+	anotherTx.TokenTransfers = []mirror_node.Transfer{}
+	w.processTransaction(anotherTx, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+	mocks.MTransferService.AssertNotCalled(t, "SanityCheckTransfer", mock.Anything)
+}
+
+func Test_ConsensusTimestamp_Fails(t *testing.T) {
+	w := initializeWatcher()
+	anotherTx := tx
+	anotherTx.ConsensusTimestamp = "asd"
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
+	mocks.MQueue.On("Push", mock.Anything).Return()
+	w.processTransaction(anotherTx, mocks.MQueue)
 }
 
 func initializeWatcher() *Watcher {

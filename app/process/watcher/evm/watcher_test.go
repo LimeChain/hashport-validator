@@ -28,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
 	"testing"
@@ -43,6 +44,44 @@ var (
 	}
 	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
 	hederaBytes  = hederaAcc.ToBytes()
+
+	networks = map[int64]*parser.Network{
+		2: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
+					},
+				},
+			},
+		},
+		3: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
+					},
+				},
+			},
+		},
+		32: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: "",
+					},
+				},
+			},
+		},
+		33: {
+			Tokens: map[string]parser.Token{
+				"0x0000000000000000000000000000000000000000": {
+					Networks: map[int64]string{
+						0: constants.Hbar,
+					},
+				},
+			}},
+	}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -121,53 +160,36 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 }
 
-func setup() {
+func TestNewWatcher(t *testing.T) {
 	mocks.Setup()
 
-	networks := map[int64]*parser.Network{
-		2: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		3: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		32: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		33: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: constants.Hbar,
-					},
-				},
-			}},
+	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MEVMClient.On("BlockNumber", mock.Anything).Return(uint64(0), nil)
+
+	assets := config.LoadAssets(networks)
+	w = &Watcher{
+		repository: mocks.MStatusRepository,
+		contracts:  mocks.MBridgeContractService,
+		evmClient:  mocks.MEVMClient,
+		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		mappings:   assets,
+		validator:  true,
 	}
+
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true))
+}
+
+// TODO: Test_NewWatcher_Fails
+
+func setup() {
+	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Watcher"),
+		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
 		mappings:   config.LoadAssets(networks),
 		validator:  true,
 	}

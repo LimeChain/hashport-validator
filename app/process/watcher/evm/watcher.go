@@ -56,7 +56,7 @@ func NewWatcher(
 	mappings c.Assets,
 	startBlock int64,
 	validator bool) *Watcher {
-	targetBlock, err := evmClient.GetClient().BlockNumber(context.Background())
+	targetBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
@@ -127,7 +127,7 @@ func (ew Watcher) processPastLogs(queue qi.Queue) {
 		Addresses: addresses,
 		Topics:    topics,
 	}
-	logs, err := ew.evmClient.GetClient().FilterLogs(context.Background(), *query)
+	logs, err := ew.evmClient.FilterLogs(context.Background(), *query)
 	if err != nil {
 		ew.logger.Errorf("Failed to to filter logs. Error: [%s]", err)
 		return

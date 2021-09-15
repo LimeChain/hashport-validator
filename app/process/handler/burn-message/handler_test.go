@@ -8,6 +8,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -41,4 +42,32 @@ func Test_Handle_ProcessWrappedTransfer_Fails(t *testing.T) {
 	mockedService.On("ProcessWrappedTransfer", mt).Return(errors.New("some-error"))
 
 	ctHandler.Handle(&mt)
+}
+
+func Test_Handle_NotInitial(t *testing.T) {
+	ctHandler, mockedService := InitializeHandler()
+
+	tx := &entity.Transfer{
+		TransactionID: mt.TransactionId,
+		Receiver:      mt.Receiver,
+		Amount:        mt.Amount,
+		Status:        transfer.StatusCompleted,
+	}
+
+	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
+	ctHandler.Handle(&mt)
+	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
+}
+
+func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
+	ctHandler, mockedService := InitializeHandler()
+	mockedService.On("InitiateNewTransfer", mt).Return(nil, errors.New("some-error"))
+	ctHandler.Handle(&mt)
+	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
+}
+
+func Test_Handle_Payload_Fails(t *testing.T) {
+	ctHandler, mockedService := InitializeHandler()
+	ctHandler.Handle("string")
+	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
 }

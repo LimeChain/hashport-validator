@@ -17,6 +17,8 @@
 package evm_client
 
 import (
+	"context"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -26,6 +28,26 @@ import (
 
 type MockEVMClient struct {
 	mock.Mock
+}
+
+func (m *MockEVMClient) BlockNumber(ctx context.Context) (uint64, error) {
+	args := m.Called(ctx)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(uint64), nil
+	}
+
+	return args.Get(0).(uint64), args.Get(1).(error)
+}
+
+func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	args := m.Called(ctx, q)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]types.Log), nil
+	}
+
+	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
 func (m *MockEVMClient) ChainID() *big.Int {
