@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -34,7 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math"
 	"math/big"
 	"strconv"
 	"time"
@@ -195,7 +193,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		return
 	}
 
-	properAmount, err := ctw.addDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset), targetChainId)
+	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset))
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to adjust [%v] amount [%d] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
 		return
@@ -235,22 +233,4 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
 		}
 	}
-}
-
-func (ctw *Watcher) addDecimals(amount *big.Int, asset common.Address, targetChainId int64) (*big.Int, error) {
-	evmAsset, err := wtoken.NewWtoken(asset, ctw.contractServices[targetChainId].GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	decimals, err := evmAsset.Decimals(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	adaptation := int(decimals) - 8
-	if decimals > 0 {
-		return new(big.Int).Mul(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
-	}
-	return amount, nil
 }
