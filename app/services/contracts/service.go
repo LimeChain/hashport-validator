@@ -151,7 +151,7 @@ func NewService(client client.EVM, address string) *Service {
 	return contractService
 }
 
-func (bsc *Service) addDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+func (bsc *Service) AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
 	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func (bsc *Service) addDecimals(amount *big.Int, asset common.Address) (*big.Int
 	return amount, nil
 }
 
-func (bsc *Service) removeDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+func (bsc *Service) RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
 	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
 	if err != nil {
 		return nil, err
