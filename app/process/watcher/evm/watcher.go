@@ -103,7 +103,7 @@ func (ew *Watcher) Watch(queue qi.Queue) {
 func (ew Watcher) processPastLogs(queue qi.Queue) {
 	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
 	if err != nil {
-		ew.logger.Fatalf("Failed to retrieve EVM Watcher Status fromBlock. Error [%s]", err)
+		ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error [%s]", err)
 		return
 	}
 

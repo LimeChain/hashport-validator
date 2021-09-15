@@ -17,9 +17,12 @@
 package evm
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -42,10 +45,25 @@ var (
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
 	}
+	burnLog = &router.RouterBurn{
+		TargetChain: big.NewInt(0),
+		Token:       common.HexToAddress("0x0000000000000000000000000000000000000001"),
+		Receiver:    hederaAcc.ToBytes(),
+		Amount:      big.NewInt(1),
+	}
 	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
 	hederaBytes  = hederaAcc.ToBytes()
 
 	networks = map[int64]*parser.Network{
+		0: {
+			Tokens: map[string]parser.Token{
+				"HBAR": {
+					Networks: map[int64]string{
+						33: "0x0000000000000000000000000000000000000001",
+					},
+				},
+			},
+		},
 		2: {
 			Tokens: map[string]parser.Token{
 				"0x0000000000000000000000000000000000000000": {
@@ -160,6 +178,29 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 }
 
+func Test_HandleBurnLog_HappyPath(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
+	parsedBurnLog := &transfer.Transfer{
+		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
+		SourceChainId: int64(33),
+		TargetChainId: burnLog.TargetChain.Int64(),
+		NativeChainId: int64(0),
+		SourceAsset:   burnLog.Token.String(),
+		TargetAsset:   constants.Hbar,
+		NativeAsset:   constants.Hbar,
+		Receiver:      hederaAcc.String(),
+		Amount:        burnLog.Amount.String(),
+		RouterAddress: "",
+	}
+
+	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
+	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.HederaFeeTransfer}).Return()
+
+	w.handleBurnLog(burnLog, mocks.MQueue)
+}
+
 func TestNewWatcher(t *testing.T) {
 	mocks.Setup()
 
@@ -180,6 +221,117 @@ func TestNewWatcher(t *testing.T) {
 }
 
 // TODO: Test_NewWatcher_Fails
+
+func Test_ProcessPastLogs_ParseBurnLogFails(t *testing.T) {
+	setup()
+
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+		},
+	}
+	query := &ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetInt64(0),
+		Addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		},
+		Topics: topics,
+	}
+
+	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+		Return([]types.Log{
+			{
+				Topics: []common.Hash{
+					burnHash,
+				},
+			},
+		}, nil)
+
+	mocks.MBridgeContractService.On("ParseBurnLog", types.Log{
+		Topics: []common.Hash{
+			burnHash,
+		},
+	}).Return(burnLog, errors.New("some-error"))
+	w.processPastLogs(mocks.MQueue)
+}
+
+func Test_ProcessPastLogs_ParseLockLogFails(t *testing.T) {
+	setup()
+
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+		},
+	}
+	query := &ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetInt64(0),
+		Addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		},
+		Topics: topics,
+	}
+
+	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+		Return([]types.Log{
+			{
+				Topics: []common.Hash{
+					lockHash,
+				},
+			},
+		}, nil)
+
+	mocks.MBridgeContractService.On("ParseLockLog", types.Log{
+		Topics: []common.Hash{
+			lockHash,
+		},
+	}).Return(lockLog, errors.New("some-error"))
+	w.processPastLogs(mocks.MQueue)
+}
+
+func Test_ProcessPastLogs_FilterLogsFails(t *testing.T) {
+	setup()
+
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+		},
+	}
+	query := &ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetInt64(0),
+		Addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		},
+		Topics: topics,
+	}
+
+	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+		Return([]types.Log{}, errors.New("some-error"))
+
+	w.processPastLogs(mocks.MQueue)
+}
+
+func Test_ProcessPastLogs_RepoGetFails(t *testing.T) {
+	mocks.Setup()
+	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), errors.New("some-error"))
+	w = &Watcher{
+		repository: mocks.MStatusRepository,
+		contracts:  mocks.MBridgeContractService,
+		evmClient:  mocks.MEVMClient,
+		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		mappings:   config.LoadAssets(networks),
+		validator:  true,
+	}
+	w.processPastLogs(mocks.MQueue)
+}
 
 func setup() {
 	mocks.Setup()
