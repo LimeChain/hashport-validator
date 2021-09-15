@@ -24,10 +24,29 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/stretchr/testify/mock"
+	"math/big"
 )
 
 type MockBridgeContract struct {
 	mock.Mock
+}
+
+func (m *MockBridgeContract) AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+	args := m.Called(amount, asset)
+
+	if args[1] == nil {
+		return args[0].(*big.Int), nil
+	}
+	return args[0].(*big.Int), args[1].(error)
+}
+
+func (m *MockBridgeContract) RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+	args := m.Called(amount, asset)
+
+	if args[1] == nil {
+		return args[0].(*big.Int), nil
+	}
+	return args[0].(*big.Int), args[1].(error)
 }
 
 func (m *MockBridgeContract) GetClient() *ethclient.Client {
