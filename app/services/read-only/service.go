@@ -89,7 +89,7 @@ func (s Service) FindTransfer(
 					if isSuccessful {
 						err = s.transferRepository.UpdateStatusCompleted(transferID)
 					} else {
-						//err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId) // TODO: add
+						err = s.transferRepository.UpdateStatusFailed(transferID)
 					}
 					if err != nil {
 						s.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferID, err)

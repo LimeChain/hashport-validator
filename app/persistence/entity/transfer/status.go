@@ -26,6 +26,9 @@ const (
 	// StatusCompleted is a status set once the Transfer operation is successfully finished.
 	// This is a terminal status
 	StatusCompleted = "COMPLETED"
+	// StatusFailed is a status set once the Transfer operation has failed.
+	// This is a terminal status
+	StatusFailed = "FAILED"
 	// StatusRecovered is a status set when a transfer has not been processed yet,
 	// but has been found by the recovery service
 	StatusRecovered = "RECOVERED"

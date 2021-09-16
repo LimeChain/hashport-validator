@@ -451,7 +451,6 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	// TODO: remove when fee check is not here
 	if t != nil && t.NativeChainID == 0 && t.Fee.Amount == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}

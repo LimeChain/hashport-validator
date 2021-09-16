@@ -27,8 +27,8 @@ type Transfer interface {
 	// Returns Transfer with preloaded Fee table. Returns nil if not found
 	GetWithFee(txId string) (*entity.Transfer, error)
 	GetWithPreloads(txId string) (*entity.Transfer, error)
-	GetUnprocessedTransfers() ([]*entity.Transfer, error)
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)
 	UpdateStatusCompleted(txId string) error
+	UpdateStatusFailed(txId string) error
 }

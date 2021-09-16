@@ -26,6 +26,10 @@ type MockTransferRepository struct {
 	mock.Mock
 }
 
+func (m *MockTransferRepository) UpdateStatusFailed(txId string) error {
+	panic("implement me")
+}
+
 func (m *MockTransferRepository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	panic("implement me")
 }
@@ -35,10 +39,6 @@ func (m *MockTransferRepository) GetWithFee(txId string) (*entity.Transfer, erro
 }
 
 func (m *MockTransferRepository) GetWithPreloads(txId string) (*entity.Transfer, error) {
-	panic("implement me")
-}
-
-func (m *MockTransferRepository) GetUnprocessedTransfers() ([]*entity.Transfer, error) {
 	panic("implement me")
 }
 

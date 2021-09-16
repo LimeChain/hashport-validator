@@ -106,6 +106,10 @@ func (tr Repository) UpdateStatusCompleted(txId string) error {
 	return tr.updateStatus(txId, transfer.StatusCompleted)
 }
 
+func (tr Repository) UpdateStatusFailed(txId string) error {
+	return tr.updateStatus(txId, transfer.StatusFailed)
+}
+
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
@@ -166,17 +170,4 @@ func isValidStatus(status string, possibleStatuses []string) bool {
 		}
 	}
 	return false
-}
-
-func (tr *Repository) GetUnprocessedTransfers() ([]*entity.Transfer, error) {
-	var transfers []*entity.Transfer
-
-	err := tr.dbClient.
-		Where("status IN ?", []string{transfer.StatusInitial, transfer.StatusRecovered}).
-		Find(&transfers).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return transfers, nil
 }

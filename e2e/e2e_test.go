@@ -69,8 +69,7 @@ func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	// TODO: id
-	chainId := int64(80001)
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
@@ -135,8 +134,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	// TODO: id
-	chainId := int64(80001)
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), tinyBarAmount)
@@ -196,8 +194,8 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 // Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
-	// TODO: id
-	chainId := int64(80001)
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -254,8 +252,8 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 // Test_EVM_Hedera_Token recreates a real life situation of a user who wants to return a Hedera native token from the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera one) gets burned, then the amount gets unlocked on the Hedera bridge account, forwarding it to the recipient account.
 func Test_EVM_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
-	// TODO: id
-	chainId := int64(80001)
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -320,8 +318,8 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
-	// TODO: id
-	chainId := int64(80001)
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	bridgeAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, t)
@@ -450,8 +448,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	// TODO: id
-	chainId := int64(80001)
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	unlockAmount := int64(10)
@@ -535,16 +532,17 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
-	// TODO: id
-	chainId := int64(80001)
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken)
+	targetChainID := int64(5) // represents Ethereum Goerli Testnet (e2e config must have configuration for that particular network)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	wrappedEvm := setupEnv.Clients.EVM[5]
+	wrappedEvm := setupEnv.Clients.EVM[targetChainID]
 	wrappedInstance, err := setup.InitAssetContract(wrappedAsset, wrappedEvm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
@@ -556,7 +554,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	}
 
 	// Step 2 - Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, 5, evm.Receiver.Bytes(), t)
+	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, targetChainID, evm.Receiver.Bytes(), t)
 
 	// Step 3 - Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -579,7 +577,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	// Step 9 - Prepare expected Transfer record
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
 		chainId,
-		5,
+		targetChainID,
 		chainId,
 		lockEventId,
 		setupEnv.NativeEvmToken,
@@ -599,11 +597,12 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
-	// TODO: id
-	chainId := int64(80001)
-	wrappedEvm := setupEnv.Clients.EVM[5]
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	sourceChain := int64(5) // represents Ethereum Goerli Testnet (e2e config must have configuration for that particular network)
+	wrappedEvm := setupEnv.Clients.EVM[sourceChain]
 	now = time.Now()
-	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 5, setupEnv.NativeEvmToken)
+	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, sourceChain, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -620,7 +619,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	}
 
 	// Step 2 - Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, 80001, 5, nativeEvm.Receiver.Bytes(), t)
+	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, nativeEvm.Receiver.Bytes(), t)
 
 	// Step 3 - Validate Burn Event was emitted with correct data
 	burnEventId := validateBurnEvent(receipt, expectedLockEventLog, t)
@@ -642,7 +641,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 
 	// Step 9 - Prepare expected Transfer record
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
-		5,
+		sourceChain,
 		chainId,
 		chainId,
 		burnEventId,

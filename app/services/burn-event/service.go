@@ -127,7 +127,6 @@ func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.A
 // TransactionID returns the corresponding Scheduled Transaction paying out the
 // fees to validators and the amount being bridged to the receiver address
 func (s *Service) TransactionID(id string) (string, error) {
-	// TODO: Get the schedule transaction ID for the transfer
 	event, err := s.scheduleRepository.GetTransferByTransactionID(id)
 	if err != nil {
 		s.logger.Errorf("[%s] - failed to get event.", id)
@@ -193,12 +192,12 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
 			return
 		}
-		// TODO:
-		//err = s.repository.UpdateStatusFailed(id)
-		//if err != nil {
-		//	s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
-		//	return
-		//}
+
+		err = s.repository.UpdateStatusFailed(id)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
+			return
+		}
 
 		err = s.feeRepository.Create(&entity.Fee{
 			TransactionID: transactionID,
@@ -246,12 +245,12 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
 			return
 		}
-		// TODO:
-		//err = s.repository.UpdateStatusFailed(transactionID)
-		//if err != nil {
-		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)
-		//	return
-		//}
+
+		err = s.repository.UpdateStatusFailed(transactionID)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", transactionID, err)
+			return
+		}
 
 		err = s.feeRepository.UpdateStatusFailed(transactionID)
 		if err != nil {

@@ -31,7 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
-// TODO extract new service only for EVM TX handling
 type Services struct {
 	signers          map[int64]service.Signer
 	contractServices map[int64]service.Contracts

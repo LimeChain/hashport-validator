@@ -252,7 +252,6 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
 		Amount:        properAmount.String(),
-		// TODO: set router address
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
@@ -322,7 +321,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	// TODO: Replace with external configuration service
 	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
@@ -348,7 +346,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		NativeAsset:   eventLog.Token.String(),
 		Receiver:      recipientAccount,
 		Amount:        properAmount.String(),
-		// TODO: set router address
 	}
 
 	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)

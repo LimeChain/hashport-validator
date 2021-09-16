@@ -63,8 +63,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
 	}
-	// TODO: Based on the sourceChain we should trigger different logic.
-	// In one case handler for hedera scheduled transactions in another case EVM handler to publish signatures in HCS
+
 	_, err = s.repository.Create(&event)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to create a lock event record. Error [%s].", event.TransactionId, err)
@@ -202,15 +201,15 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string) (onS
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
 		err := s.scheduleRepository.UpdateStatusFailed(id)
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
+			s.logger.Errorf("[%s] - Failed to update schedule status failed. Error [%s].", id, err)
 			return
 		}
-		// TODO:
-		//err = s.repository.UpdateStatusFailed(transactionID)
-		//if err != nil {
-		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)
-		//	return
-		//}
+
+		err = s.repository.UpdateStatusFailed(transactionID)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update transfer status failed. Error [%s].", transactionID, err)
+			return
+		}
 	}
 
 	return onSuccess, onFail
