@@ -19,7 +19,7 @@ package util
 import (
 	"database/sql"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"strconv"
 )
@@ -29,7 +29,7 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,
 		Amount:        strconv.FormatInt(amount, 10),
-		Status:        fee.StatusCompleted,
+		Status:        status.Completed,
 	}
 
 	if transferID != "" {

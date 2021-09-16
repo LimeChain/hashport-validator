@@ -28,6 +28,7 @@ import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
@@ -41,7 +42,6 @@ import (
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	entity_transfer "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 
@@ -114,7 +114,7 @@ func Test_HBAR(t *testing.T) {
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		receiver.String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
@@ -177,7 +177,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		strconv.FormatInt(tinyBarAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
@@ -235,7 +235,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
@@ -300,7 +300,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
@@ -366,13 +366,13 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		strconv.FormatInt(expectedAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 	expectedScheduleMintRecord := &entity.Schedule{
 		TransactionID: bridgeMintTransactionID,
 		ScheduleID:    bridgeMintScheduleID,
 		Operation:     schedule.MINT,
-		Status:        schedule.StatusCompleted,
+		Status:        status.Completed,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -393,7 +393,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		TransactionID: bridgeTransferTransactionID,
 		ScheduleID:    bridgeTransferScheduleID,
 		Operation:     schedule.TRANSFER,
-		Status:        schedule.StatusCompleted,
+		Status:        status.Completed,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -507,7 +507,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		strconv.FormatInt(expectedUnlockAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Burn
@@ -515,7 +515,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		TransactionID: burnTransactionID,
 		ScheduleID:    burnScheduleID,
 		Operation:     schedule.BURN,
-		Status:        schedule.StatusCompleted,
+		Status:        status.Completed,
 		TransferID: sql.NullString{
 			String: hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
 			Valid:  true,
@@ -586,7 +586,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		evm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 
 	// Step 10 - Verify Database Records
@@ -651,7 +651,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		strconv.FormatInt(receiveAmount, 10),
 		nativeEvm.Receiver.String(),
 		database.ExpectedStatuses{
-			Status: entity_transfer.StatusCompleted,
+			Status: status.Completed,
 		})
 
 	// Step 9 - Verify Database Records

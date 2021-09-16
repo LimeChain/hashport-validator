@@ -21,7 +21,7 @@ import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,12 +75,12 @@ func (s Service) FindTransfer(
 					s.logger.Infof("[%s] - Found a corresponding transaction [%s], ScheduleID [%s].", transferID, transaction.TransactionID, tx.EntityId)
 					finished = true
 					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
-					status := schedule.StatusCompleted
+					txStatus := status.Completed
 					if !isSuccessful {
-						status = schedule.StatusFailed
+						txStatus = status.Failed
 					}
 
-					err := save(transaction.TransactionID, tx.EntityId, status)
+					err := save(transaction.TransactionID, tx.EntityId, txStatus)
 					if err != nil {
 						s.logger.Errorf("[%s] - Failed to save entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
 						break

@@ -27,7 +27,11 @@ type MockTransferRepository struct {
 }
 
 func (m *MockTransferRepository) UpdateStatusFailed(txId string) error {
-	panic("implement me")
+	args := m.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
 }
 
 func (m *MockTransferRepository) GetByTransactionId(txId string) (*entity.Transfer, error) {

@@ -32,8 +32,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -255,7 +255,7 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
-func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		ts.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
 			transferID,
@@ -264,14 +264,14 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.BURN,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
 			},
 		})
 		if err != nil {
-			*status <- sync.FAIL
+			*blocker <- sync.FAIL
 			ts.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				transferID, transactionID, scheduleID, err)
@@ -280,11 +280,11 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*status <- sync.FAIL
+		*blocker <- sync.FAIL
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.BURN,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -340,7 +340,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -356,7 +356,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Amount:        feeAmount,
-			Status:        fee.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -374,7 +374,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.TRANSFER,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -388,7 +388,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 		}
 		err = ts.feeRepository.Create(&entity.Fee{
 			Amount: feeAmount,
-			Status: fee.StatusFailed,
+			Status: status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,

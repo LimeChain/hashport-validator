@@ -20,7 +20,7 @@ import (
 	"errors"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -94,7 +94,7 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 
 // Create creates new record of Transfer
 func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
-	return tr.create(ct, transfer.StatusInitial)
+	return tr.create(ct, status.Initial)
 }
 
 // Save updates the provided Transfer instance
@@ -103,11 +103,11 @@ func (tr Repository) Save(tx *entity.Transfer) error {
 }
 
 func (tr Repository) UpdateStatusCompleted(txId string) error {
-	return tr.updateStatus(txId, transfer.StatusCompleted)
+	return tr.updateStatus(txId, status.Completed)
 }
 
 func (tr Repository) UpdateStatusFailed(txId string) error {
-	return tr.updateStatus(txId, transfer.StatusFailed)
+	return tr.updateStatus(txId, status.Failed)
 }
 
 func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
@@ -128,21 +128,21 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 	return tx, err
 }
 
-func (tr Repository) updateStatus(txId string, status string) error {
+func (tr Repository) updateStatus(txId string, s string) error {
 	// Sanity check
-	if status != transfer.StatusInitial &&
-		status != transfer.StatusInProgress &&
-		status != transfer.StatusCompleted {
-		return errors.New("invalid signature status")
+	if s != status.Initial &&
+		s != status.Completed &&
+		s != status.Failed {
+		return errors.New("invalid status")
 	}
 
 	err := tr.dbClient.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		UpdateColumn("status", status).
+		UpdateColumn("status", s).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, status)
+		tr.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, s)
 	}
 	return err
 }

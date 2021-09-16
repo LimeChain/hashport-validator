@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package burn_event
+package status
 
+// Entity Statuses
 const (
-	// StatusCompleted is a status set once the BurnEvent operation is successfully completed.
+	// Initial is the first status upon Transfer Record creation
+	Initial = "INITIAL"
+	// Completed is a status set once an operation is successfully finished.
 	// This is a terminal status
-	StatusCompleted = "COMPLETED"
-	// StatusFailed is a status set once the BurnEvent operation has failed
+	Completed = "COMPLETED"
+	// Failed is a status set once an operation has failed.
 	// This is a terminal status
-	StatusFailed = "FAILED"
-	// StatusInitial is the initial status on BurnEvent Record creation
-	StatusInitial = "INITIAL"
-	// StatusSubmitted is set once the Hedera Scheduled Transaction (Create/Sign)
-	StatusSubmitted = "SUBMITTED"
+	Failed = "FAILED"
+	// Submitted is set when a pending Fee/Schedule operation is created.
+	Submitted = "SUBMITTED"
 )

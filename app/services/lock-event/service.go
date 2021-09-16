@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -130,7 +131,7 @@ statusBlocker:
 	)
 }
 
-func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		s.logger.Debugf("[%s] - Updating db status Submitted with TransactionID [%s].",
 			id,
@@ -139,14 +140,14 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *ch
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     operation,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
 			},
 		})
 		if err != nil {
-			*status <- sync.FAIL
+			*blocker <- sync.FAIL
 			s.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				id, transactionID, scheduleID, err)
@@ -155,10 +156,10 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, status *ch
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*status <- sync.FAIL
+		*blocker <- sync.FAIL
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
-			Status:        schedule.StatusFailed,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
