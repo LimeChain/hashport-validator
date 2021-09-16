@@ -227,6 +227,15 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
+	properAmount := eventLog.Amount
+	if eventLog.TargetChain.Int64() == 0 {
+		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			return
+		}
+	}
+
 	burnEvent := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: ew.evmClient.ChainID().Int64(),
@@ -236,7 +245,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		TargetAsset:   targetAsset,
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
-		Amount:        eventLog.Amount.String(),
+		Amount:        properAmount.String(),
 		// TODO: set router address
 	}
 
@@ -314,6 +323,15 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
+	properAmount := eventLog.Amount
+	if eventLog.TargetChain.Int64() == 0 {
+		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token)
+		if err != nil {
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			return
+		}
+	}
+
 	tr := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: ew.evmClient.ChainID().Int64(),
@@ -323,7 +341,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		TargetAsset:   wrappedAsset,
 		NativeAsset:   eventLog.Token.String(),
 		Receiver:      recipientAccount,
-		Amount:        eventLog.Amount.String(),
+		Amount:        properAmount.String(),
 		// TODO: set router address
 	}
 
