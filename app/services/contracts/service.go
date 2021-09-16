@@ -17,11 +17,15 @@
 package contracts
 
 import (
+	"errors"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -38,6 +42,10 @@ type Service struct {
 	mutex    sync.Mutex
 	members  Members
 	logger   *log.Entry
+}
+
+func (bsc *Service) GetClient() *ethclient.Client {
+	return bsc.Client.GetClient()
 }
 
 func (bsc *Service) WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterLock) (event.Subscription, error) {
@@ -141,4 +149,44 @@ func NewService(client client.EVM, address string) *Service {
 	go contractService.listenForMemberUpdatedEvent()
 
 	return contractService
+}
+
+func (bsc *Service) AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	adaptation := int(decimals) - 8
+	if decimals > 0 {
+		return new(big.Int).Mul(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
+	}
+	return amount, nil
+}
+
+func (bsc *Service) RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	decimals, err := evmAsset.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	adaptation := int(decimals) - 8
+	if decimals > 0 {
+		proper := new(big.Int).Div(amount, big.NewInt(int64(math.Pow10(adaptation))))
+		if proper == big.NewInt(0) {
+			return nil, errors.New("amount-too-small")
+		}
+		return proper, nil
+	}
+	return amount, nil
 }

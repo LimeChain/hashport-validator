@@ -19,6 +19,7 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -32,6 +33,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -184,6 +187,18 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		}
 	}
 
+	intAmount, err := strconv.ParseInt(amount, 10, 64)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Could not parse amount [%s] to int. Error: [%s]", tx.TransactionID, amount, err)
+		return
+	}
+
+	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset))
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to adjust [%v] amount [%d] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
+		return
+	}
+
 	transferMessage := transfer.New(
 		tx.TransactionID,
 		0,
@@ -193,7 +208,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		asset,
 		targetChainAsset,
 		nativeAsset.Asset,
-		amount)
+		properAmount.String())
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
