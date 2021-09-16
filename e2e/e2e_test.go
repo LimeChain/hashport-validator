@@ -113,9 +113,7 @@ func Test_HBAR(t *testing.T) {
 		constants.Hbar,
 		strconv.FormatInt(hBarSendAmount.AsTinybar(), 10),
 		receiver.String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -176,9 +174,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(tinyBarAmount, 10),
 		evm.Receiver.String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -234,9 +230,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		constants.Hbar,
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
@@ -299,9 +293,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(receiveAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
@@ -365,9 +357,8 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
+
 	expectedScheduleMintRecord := &entity.Schedule{
 		TransactionID: bridgeMintTransactionID,
 		ScheduleID:    bridgeMintScheduleID,
@@ -506,9 +497,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedUnlockAmount, 10),
 		evm.Receiver.String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Burn
 	expectedScheduleBurnRecord := &entity.Schedule{
@@ -585,9 +574,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(receiveAmount, 10),
 		evm.Receiver.String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 
 	// Step 10 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, strconv.FormatInt(receiveAmount, 10), receivedSignatures, t)
@@ -650,9 +637,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(receiveAmount, 10),
 		nativeEvm.Receiver.String(),
-		database.ExpectedStatuses{
-			Status: status.Completed,
-		})
+		status.Completed)
 
 	// Step 9 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, strconv.FormatInt(receiveAmount, 10), receivedSignatures, t)

@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	"strconv"
 )
 
@@ -52,7 +51,7 @@ func PrepareExpectedTransfer(
 	nativeAsset,
 	amount,
 	receiver string,
-	statuses database.ExpectedStatuses) *entity.Transfer {
+	status string) *entity.Transfer {
 
 	return &entity.Transfer{
 		TransactionID: transactionID,
@@ -64,6 +63,6 @@ func PrepareExpectedTransfer(
 		TargetAsset:   targetAsset,
 		NativeAsset:   nativeAsset,
 		Amount:        amount,
-		Status:        statuses.Status,
+		Status:        status,
 	}
 }
