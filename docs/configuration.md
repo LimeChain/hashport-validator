@@ -1,44 +1,54 @@
 # Configuration
-The application supports loading configuration from an `application.yml` file or via the environment.
+The application supports loading configuration from the following files:
+1. `node.yml` file, which stores the configuration for the node (private keys, database configuration, etc.)
+2. `bridge.yml` file, which stores the configuration for the bridge (HCS topic, Hedera bridge configuration, EVM networks and their router contracts).
 
 Some configuration settings have appropriate defaults (e.g. database configuration) that can be left unchanged. 
 On the other hand, important configuration settings like blockchain node endpoints, private keys,
 account and topic ids, contract addresses and others have to be set, as they control the behaviour of the application.
 Additionally, password properties have a default, but it is **strongly recommended passwords to be changed from the default**.
 
-By default, the application loads a file named `application.yml` in each of the search paths (see below). The configuration loads
-in the following order with the latter configuration overwriting the current configuration:
-
-1. `./config/application.yml`
-2. `./application.yml` (custom)
-3. Environment variables, starting with `VALIDATOR_` (e.g. `VALIDATOR_CLIENTS_HEDERA_NETWORK_TYPE=testnet`)
+By default, the application loads files named `config/node.yml` and `config/bridge.yml`.
 
 The following table lists the currently available properties, along with their default values.
-Unless you need to set a non-default value, it is recommended to only populate overwritten properties in the custom `application.yml`.
+Unless you need to set a non-default value, it is recommended to only populate overwritten properties.
 
-Name                                                                | Default                                             | Description
-------------------------------------------------------------------- | --------------------------------------------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-`validator.database.host`                                           | 127.0.0.1                                           | The IP or hostname used to connect to the database.
-`validator.database.name`                                           | hedera_validator                                    | The name of the database.
-`validator.database.password`                                       | validator_pass                                      | The database password the processor uses to connect.
-`validator.database.port`                                           | 5432                                                | The port used to connect to the database.
-`validator.database.username`                                       | validator                                           | The username the processor uses to connect to the database.
-`validator.clients.ethereum.block_confirmations`                    | 5                                                   | The number of block confirmations to wait for before processing an ethereum event
-`validator.clients.ethereum.node_url`                               | ""                                                  | The endpoint of the Ethereum node.
-`validator.clients.ethereum.private_key`                            | ""                                                  | The operator's Ethereum private key.
-`validator.clients.ethereum.router_contract_address`                | ""                                                  | The address of the Router contract.
-`validator.clients.hedera.operator.account_id`                      | ""                                                  | The operator's Hedera account id.
-`validator.clients.hedera.operator.private_key`                     | ""                                                  | The operator's Hedera private key.
-`validator.clients.hedera.bridge_account`                           | ""                                                  | The account id validators use to monitor for incoming transfers. Also, serves as a distributor for Hedera transfers (validator fees and bridged amounts).
-`validator.clients.hedera.fee_percentage`                           | 10000                                               | The percentage which validators take for every bridge transfer. Range is from 0 to 100.000 (multiplied by 1 000). Examples: 1% is 1 000, 1.234% = 1234, 0.15% = 150. Default 10% = 10 000
-`validator.clients.hedera.members[]`                                | []                                                  | The Hedera account ids of the validators, to which their bridge fees will be sent (if Bridge accepts Hedera Tokens, associations with these tokens will be required)
-`validator.clients.hedera.network_type`                             | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
-`validator.clients.hedera.payer_account`                            | ""                                                  | The account id paying for Hedera transfers fees.
-`validator.clients.hedera.topic_id`                                 | ""                                                  | The topic id that the validators use to monitor for incoming hedera consensus messages.
-`validator.clients.mirror_node.api_address`                         | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
-`validator.clients.mirror_node.client_address`                      | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
-`validator.clients.mirror_node.polling_interval`                    | 5                                                   | How often (in seconds) the application will poll the mirror node for new transactions.
-`validator.log_level`                                               | info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive.
-`validator.port`                                                    | 5200                                                | The port on which the application runs.
-`validator.recovery.start_timestamp`                                | ""                                                  | The timestamp from which the crypto transfer watcher will begin its recovery. Leave empty on the first run if you want to begin from `now`.
-`validator.rest_api_only`                                           | false                                               | The application will only expose REST API endpoints if this flag is true.
+Configuration for `node.yml`:
+
+Name                                                           | Default                                             | Description
+-------------------------------------------------------------- | --------------------------------------------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+`node.database.host`                                           | 127.0.0.1                                           | The IP or hostname used to connect to the database.
+`node.database.name`                                           | hedera_validator                                    | The name of the database.
+`node.database.password`                                       | validator_pass                                      | The database password the processor uses to connect.
+`node.database.port`                                           | 5432                                                | The port used to connect to the database.
+`node.database.username`                                       | validator                                           | The username the processor uses to connect to the database.
+`node.clients.evm[i]`                                          | ""                                                  | The chain id of the EVM network. Used as a key for the following `node.clients.evm[i].*` configuration fields below.
+`node.clients.evm[i].block_confirmations`                      | ""                                                   | The number of block confirmations to wait for before processing an event for the given EVM network. 
+`node.clients.evm[i].node_url`                                 | ""                                                  | The endpoint of the node for the given EVM network.
+`node.clients.evm[i].private_key`                              | ""                                                  | The private key for the given EVM network.
+`node.clients.evm[i].start_block`                              | 0                                                   | The block from which the application will monitor for events for the given network. If specified, it will start in its primary mode (check `node.validator`) from the given block. If not specified, it will start in read-only mode from the latest saved block in the database to the current block at runtime (`now`) and then continue in its primary mode.
+`node.clients.hedera.operator.account_id`                      | ""                                                  | The operator's Hedera account id.
+`node.clients.hedera.operator.private_key`                     | ""                                                  | The operator's Hedera private key.
+`node.clients.hedera.network`                                  | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
+`node.clients.hedera.start_timestamp`                          | 0                                                   | The timestamp from which the Hedera Transfer and Hedera Message watchers will begin. If specified, the Hedera Transfers and Messages will begin listening in its primary mode (check `node.validator`) from the given timestamp. If not specified, the HT and Messages will run in read-only mode from the latest saved timestamp in the database to the moment the application has been run (`now`) and then continue in its primary mode.
+`node.clients.mirror_node.api_address`                         | https://testnet.mirrornode.hedera.com/api/v1/       | The Hedera Rest API root endpoint. Depending on the Hedera network type, this will need to be changed.
+`node.clients.mirror_node.client_address`                      | hcs.testnet.mirrornode.hedera.com:5600              | The HCS Mirror node endpoint. Depending on the Hedera network type, this will need to be changed.
+`node.clients.mirror_node.polling_interval`                    | 5                                                   | How often (in seconds) the application will poll the mirror node for new transactions.
+`node.log_level`                                               | info                                                | The log level of the validator. Possible values: `info`, `debug`, `trace` case insensitive.
+`node.port`                                                    | 5200                                                | The port on which the application runs.
+`node.validator`                                               | true                                                | The primary mode in which the application will run. If set to `true`, the application will make write operations (HCS submission, Scheduled Transactions). If set to `false`, the application will be in a read-only mode, searching for transactions/messages from the other validators in the networks.
+
+
+Configuration for `bridge.yml`:
+
+Name                                                           | Default                                             | Description
+-------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+`bridge.topic_id`                                              | ""                                                  | The topic id, which the validators will use to monitor and submit consensus messages to.
+`bridge.networks[i]`                                           | ""                                                  | The id of the network. `0` stands for Hedera. Every other id must be the `chainId` of the EVM network. Used as a key for the following `bridge.networks[i].*` configuration fields below.
+`bridge.networks[i].bridge_account`                            | ""                                                  | The account id validators use to monitor for incoming transfers. Applies only for network with id `0`. Also, serves as a distributor for Hedera transfers (validator fees and bridged amounts).
+`bridge.networks[i].payer_account`                             | ""                                                  | The account id paying for Hedera transfers fees. Applies **only** for network with id `0`.
+`bridge.networks[i].members`                                   | []                                                  | The Hedera account ids of the validators, to which their bridge fees will be sent. Applies **only** for network with id `0`. If the bridge accepts Hedera Native Tokens, each member will need to have an association with the given token.
+`bridge.networks[i].router_contract_address`                   | ""                                                  | The address of the Router contract on the EVM network. Ignored for network with id `0`.
+`bridge.networks[i].tokens[j]`                                 | ""                                                  | The Address/HBAR/Token ID of the native asset for the given network. Used as a key to for the following `bridge.networks[i].tokens[j].*` configuration fields below.
+`bridge.networks[i].tokens[j].fee_percentage`                  | ""                                                  | The percentage which validators take for every bridge transfer. Applies only for assets from network with id `0`. Range is from 0 to 100.000 (multiplied by 1 000). Examples: 1% is 1 000, 1.234% = 1234, 0.15% = 150. Default 10% = 10 000
+`bridge.networks[i].tokens[j].networks[k]`                     | ""                                                  | A key-value pair representing the id and wrapped asset to which the token `j` has a wrapped representation. Example: TokenID `0.0.2473688` (`j`) on Network `0` (`i`) has a wrapped version on `80001` (`k`), which is `0x95341E9cf3Bc3f69fEBfFC0E33E2B2EC14a6F969`.
