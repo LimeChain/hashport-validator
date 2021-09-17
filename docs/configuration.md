@@ -13,7 +13,7 @@ By default, the application loads files named `config/node.yml` and `config/brid
 The following table lists the currently available properties, along with their default values.
 Unless you need to set a non-default value, it is recommended to only populate overwritten properties.
 
-Configuration for `node.yml`:
+Configuration for `config/node.yml`:
 
 Name                                                           | Default                                             | Description
 -------------------------------------------------------------- | --------------------------------------------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -22,11 +22,11 @@ Name                                                           | Default        
 `node.database.password`                                       | validator_pass                                      | The database password the processor uses to connect.
 `node.database.port`                                           | 5432                                                | The port used to connect to the database.
 `node.database.username`                                       | validator                                           | The username the processor uses to connect to the database.
-`node.clients.evm[i]`                                          | ""                                                  | The chain id of the EVM network. Used as a key for the following `node.clients.evm[i].*` configuration fields below.
-`node.clients.evm[i].block_confirmations`                      | ""                                                   | The number of block confirmations to wait for before processing an event for the given EVM network. 
-`node.clients.evm[i].node_url`                                 | ""                                                  | The endpoint of the node for the given EVM network.
-`node.clients.evm[i].private_key`                              | ""                                                  | The private key for the given EVM network.
-`node.clients.evm[i].start_block`                              | 0                                                   | The block from which the application will monitor for events for the given network. If specified, it will start in its primary mode (check `node.validator`) from the given block. If not specified, it will start in read-only mode from the latest saved block in the database to the current block at runtime (`now`) and then continue in its primary mode.
+`node.clients.evm[]`                                           | ""                                                  | The chain id of the EVM network. Used as a key for the following `node.clients.evm[i].*` configuration fields below.
+`node.clients.evm[].block_confirmations`                       | ""                                                   | The number of block confirmations to wait for before processing an event for the given EVM network. 
+`node.clients.evm[].node_url`                                  | ""                                                  | The endpoint of the node for the given EVM network.
+`node.clients.evm[].private_key`                               | ""                                                  | The private key for the given EVM network.
+`node.clients.evm[].start_block`                               | 0                                                   | The block from which the application will monitor for events for the given network. If specified, it will start in its primary mode (check `node.validator`) from the given block. If not specified, it will start in read-only mode from the latest saved block in the database to the current block at runtime (`now`) and then continue in its primary mode.
 `node.clients.hedera.operator.account_id`                      | ""                                                  | The operator's Hedera account id.
 `node.clients.hedera.operator.private_key`                     | ""                                                  | The operator's Hedera private key.
 `node.clients.hedera.network`                                  | testnet                                             | Which Hedera network to use. Can be either `mainnet`, `previewnet`, `testnet`.
@@ -39,16 +39,16 @@ Name                                                           | Default        
 `node.validator`                                               | true                                                | The primary mode in which the application will run. If set to `true`, the application will make write operations (HCS submission, Scheduled Transactions). If set to `false`, the application will be in a read-only mode, searching for transactions/messages from the other validators in the networks.
 
 
-Configuration for `bridge.yml`:
+Configuration for `config/bridge.yml`:
 
 Name                                                           | Default                                             | Description
 -------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 `bridge.topic_id`                                              | ""                                                  | The topic id, which the validators will use to monitor and submit consensus messages to.
-`bridge.networks[i]`                                           | ""                                                  | The id of the network. `0` stands for Hedera. Every other id must be the `chainId` of the EVM network. Used as a key for the following `bridge.networks[i].*` configuration fields below.
+`bridge.networks[i]`                                           | ""                                                  | The id of the network. **`0` stands for Hedera**. Every other id must be the `chainId` of the EVM network. Used as a key for the following `bridge.networks[i].*` configuration fields below.
 `bridge.networks[i].bridge_account`                            | ""                                                  | The account id validators use to monitor for incoming transfers. Applies only for network with id `0`. Also, serves as a distributor for Hedera transfers (validator fees and bridged amounts).
 `bridge.networks[i].payer_account`                             | ""                                                  | The account id paying for Hedera transfers fees. Applies **only** for network with id `0`.
 `bridge.networks[i].members`                                   | []                                                  | The Hedera account ids of the validators, to which their bridge fees will be sent. Applies **only** for network with id `0`. If the bridge accepts Hedera Native Tokens, each member will need to have an association with the given token.
 `bridge.networks[i].router_contract_address`                   | ""                                                  | The address of the Router contract on the EVM network. Ignored for network with id `0`.
 `bridge.networks[i].tokens[j]`                                 | ""                                                  | The Address/HBAR/Token ID of the native asset for the given network. Used as a key to for the following `bridge.networks[i].tokens[j].*` configuration fields below.
-`bridge.networks[i].tokens[j].fee_percentage`                  | ""                                                  | The percentage which validators take for every bridge transfer. Applies only for assets from network with id `0`. Range is from 0 to 100.000 (multiplied by 1 000). Examples: 1% is 1 000, 1.234% = 1234, 0.15% = 150. Default 10% = 10 000
+`bridge.networks[i].tokens[j].fee_percentage`                  | ""                                                  | The percentage which validators take for every bridge transfer. Applies **only** for assets from network with id `0`. Range is from 0 to 100.000 (multiplied by 1 000). Examples: 1% is 1 000, 1.234% = 1234, 0.15% = 150. Default 10% = 10 000
 `bridge.networks[i].tokens[j].networks[k]`                     | ""                                                  | A key-value pair representing the id and wrapped asset to which the token `j` has a wrapped representation. Example: TokenID `0.0.2473688` (`j`) on Network `0` (`i`) has a wrapped version on `80001` (`k`), which is `0x95341E9cf3Bc3f69fEBfFC0E33E2B2EC14a6F969`.
