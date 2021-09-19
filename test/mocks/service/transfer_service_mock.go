@@ -62,6 +62,9 @@ func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeAsset, wrap
 
 func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {
 	args := mts.Called(tm)
+	if args.Get(0) == nil && args.Get(1) == nil {
+		return nil, nil
+	}
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}
