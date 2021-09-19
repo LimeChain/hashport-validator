@@ -111,26 +111,33 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
-		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+		err := cmw.getAndProcessMessages(q, milestoneTimestamp)
 		if err != nil {
-			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
 			go cmw.beginWatching(q)
-			return
-		}
-
-		cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
-
-		for _, msg := range messages {
-			milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
-			if err != nil {
-				cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
-				continue
-			}
-			cmw.processMessage(msg, q)
-			cmw.updateStatusTimestamp(milestoneTimestamp)
 		}
 		time.Sleep(cmw.pollingInterval * time.Second)
 	}
+}
+
+func (cmw Watcher) getAndProcessMessages(q qi.Queue, milestoneTimestamp int64) error {
+	messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+	if err != nil {
+		cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
+		return err
+	}
+
+	cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
+
+	for _, msg := range messages {
+		milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
+		if err != nil {
+			cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
+			continue
+		}
+		cmw.processMessage(msg, q)
+		cmw.updateStatusTimestamp(milestoneTimestamp)
+	}
+	return nil
 }
 
 func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
