@@ -49,7 +49,6 @@ func Test_Handle_Burn(t *testing.T) {
 		NativeAsset:   "",
 		Receiver:      "",
 		Amount:        "0",
-		RouterAddress: "",
 	}
 	mocks.MBurnService.On("ProcessEvent", *someEvent).Return()
 	feeTransferHandler.Handle(someEvent)

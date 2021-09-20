@@ -27,15 +27,13 @@ type Transfer struct {
 	NativeAsset   string
 	Receiver      string
 	Amount        string
-	RouterAddress string
-	HasFee        bool
 	Timestamp     string
 }
 
 // New instantiates Transfer struct ready for submission to the handler
 func New(txId string,
 	sourceChainId, targetChainId, nativeChainId int64,
-	receiver, sourceAsset, targetAsset, nativeAsset, amount, routerAddress string) *Transfer {
+	receiver, sourceAsset, targetAsset, nativeAsset, amount string) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
 		SourceChainId: sourceChainId,
@@ -46,6 +44,5 @@ func New(txId string,
 		NativeAsset:   nativeAsset,
 		Receiver:      receiver,
 		Amount:        amount,
-		RouterAddress: routerAddress,
 	}
 }

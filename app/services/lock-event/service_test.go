@@ -42,7 +42,6 @@ var (
 		NativeAsset:   "0.1283",
 		Receiver:      "0.0.1234",
 		Amount:        "111",
-		RouterAddress: "",
 	}
 	s               = &Service{}
 	mockLockEventId = "some-lock-event-id"
