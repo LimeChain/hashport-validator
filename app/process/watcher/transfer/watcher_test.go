@@ -19,6 +19,7 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	service2 "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -27,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
+	"math/big"
 	"testing"
 	"time"
 )
@@ -47,7 +49,7 @@ var (
 			Tokens: map[string]parser.Token{
 				"0.0.111111": {
 					Networks: map[int64]string{
-						3: "0xevmaddress",
+						3: "0x0000000000000000000000000000000000000001",
 					},
 				},
 			},
@@ -210,6 +212,7 @@ func Test_ProcessTransaction(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(int64(3), "0xaiskdjakdjakl", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), common.HexToAddress("0x000001")).Return(big.NewInt(10), nil)
 	w.processTransaction(tx, mocks.MQueue)
 }
 
@@ -218,6 +221,7 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), common.HexToAddress("0x000001")).Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	w.processTransaction(anotherTx, mocks.MQueue)
 }
@@ -253,6 +257,7 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = "asd"
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), common.HexToAddress("0x000001")).Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	w.processTransaction(anotherTx, mocks.MQueue)
 }

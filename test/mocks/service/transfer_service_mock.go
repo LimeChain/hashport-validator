@@ -28,6 +28,30 @@ type MockTransferService struct {
 	mock.Mock
 }
 
+func (mts *MockTransferService) GetByTransactionId(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithFee(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithPreloads(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) Create(ct *transfer.Transfer) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusCompleted(txId string) error {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusFailed(txId string) error {
+	panic("implement me")
+}
+
 func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {

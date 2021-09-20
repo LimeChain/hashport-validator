@@ -51,7 +51,7 @@ func Test_Handle_NotInitial(t *testing.T) {
 		TransactionID: mt.TransactionId,
 		Receiver:      mt.Receiver,
 		Amount:        mt.Amount,
-		Status:        transfer.StatusCompleted,
+		Status:        status.Completed,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)

@@ -4,7 +4,7 @@ import (
 	"errors"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -24,8 +24,6 @@ var (
 		NativeAsset:   constants.Hbar,
 		Receiver:      "0xsomeotherethaddress",
 		Amount:        "100",
-		RouterAddress: "0xrouteraddress",
-		HasFee:        true,
 		Timestamp:     "1",
 	}
 )
@@ -37,7 +35,7 @@ func Test_NewHandler(t *testing.T) {
 
 func Test_Handle(t *testing.T) {
 	setup()
-	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: transfer.StatusInitial}, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: status.Initial}, nil)
 	h.Handle(tr)
 }
 
