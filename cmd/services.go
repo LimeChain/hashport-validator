@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
@@ -48,7 +49,11 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	evmSigners := make(map[int64]service.Signer)
 	contractServices := make(map[int64]service.Contracts)
 	for _, client := range clients.EVMClients {
-		chainId := client.ChainID().Int64()
+		chain, err := client.ChainID(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		chainId := chain.Int64()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
 		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress)
 	}
@@ -114,8 +119,12 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
 	contractServices := make(map[int64]service.Contracts)
 	for _, client := range clients.EVMClients {
-		contractService := contracts.NewService(client, c.Bridge.EVMs[client.ChainID().Int64()].RouterContractAddress)
-		contractServices[client.ChainID().Int64()] = contractService
+		chain, err := client.ChainID(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		contractService := contracts.NewService(client, c.Bridge.EVMs[chain.Int64()].RouterContractAddress)
+		contractServices[chain.Int64()] = contractService
 	}
 
 	return &Services{

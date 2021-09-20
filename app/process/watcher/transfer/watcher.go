@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -40,7 +40,7 @@ import (
 
 type Watcher struct {
 	transfers        service.Transfers
-	client           client.MirrorNode
+	client           ihedera.MirrorNode
 	accountID        hedera.AccountID
 	pollingInterval  time.Duration
 	statusRepository repository.Status
@@ -53,7 +53,7 @@ type Watcher struct {
 
 func NewWatcher(
 	transfers service.Transfers,
-	client client.MirrorNode,
+	client ihedera.MirrorNode,
 	accountID string,
 	pollingInterval time.Duration,
 	repository repository.Status,
@@ -155,7 +155,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
+func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {

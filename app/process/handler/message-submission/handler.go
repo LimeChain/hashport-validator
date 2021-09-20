@@ -19,7 +19,7 @@ package message_submission
 import (
 	"encoding/hex"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -33,8 +33,8 @@ import (
 
 // Handler is transfers event handler
 type Handler struct {
-	hederaNode         client.HederaNode
-	mirrorNode         client.MirrorNode
+	hederaNode         ihedera.HederaNode
+	mirrorNode         ihedera.MirrorNode
 	ethSigners         map[int64]service.Signer
 	transfersService   service.Transfers
 	transferRepository repository.Transfer
@@ -43,8 +43,8 @@ type Handler struct {
 }
 
 func NewHandler(
-	hederaNode client.HederaNode,
-	mirrorNode client.MirrorNode,
+	hederaNode ihedera.HederaNode,
+	mirrorNode ihedera.MirrorNode,
 	ethSigners map[int64]service.Signer,
 	transfersService service.Transfers,
 	transferRepository repository.Transfer,

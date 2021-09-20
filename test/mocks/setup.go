@@ -21,6 +21,7 @@ import (
 	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
+	http_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/http-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
@@ -43,8 +44,10 @@ var MScheduleRepository *repository.MockScheduleRepository
 var MStatusRepository *repository.MockStatusRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
-var MSignerService *service.MockSignerService
+var MEVMCoreClient *evm_client.MockEVMCoreClient
+var MHTTPClient *http_client.MockHttpClient
 var MEVMClient *evm_client.MockEVMClient
+var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
 
@@ -68,5 +71,7 @@ func Setup() {
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
 	MEVMClient = &evm_client.MockEVMClient{}
+	MEVMCoreClient = &evm_client.MockEVMCoreClient{}
+	MHTTPClient = &http_client.MockHttpClient{}
 	MQueue = &queue.MockQueue{}
 }

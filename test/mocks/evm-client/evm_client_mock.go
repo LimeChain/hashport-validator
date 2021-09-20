@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
 	"github.com/stretchr/testify/mock"
 	"math/big"
 )
@@ -50,14 +50,14 @@ func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) 
 	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) ChainID() *big.Int {
+func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
 	args := m.Called()
-	return args.Get(0).(*big.Int)
+	return args.Get(0).(*big.Int), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) GetClient() *ethclient.Client {
+func (m *MockEVMClient) GetClient() evm.Core {
 	args := m.Called()
-	return args.Get(0).(*ethclient.Client)
+	return args.Get(0).(evm.Core)
 }
 
 func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {
@@ -90,11 +90,6 @@ func (m *MockEVMClient) WaitForConfirmations(raw types.Log) error {
 		return nil
 	}
 	return args.Get(0).(error)
-}
-
-func (m *MockEVMClient) GetRouterContractAddress() string {
-	args := m.Called()
-	return args.Get(0).(string)
 }
 
 func (m *MockEVMClient) GetPrivateKey() string {

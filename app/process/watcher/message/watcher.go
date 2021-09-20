@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -35,7 +35,7 @@ import (
 )
 
 type Watcher struct {
-	client           client.MirrorNode
+	client           ihedera.MirrorNode
 	topicID          hedera.TopicID
 	statusRepository repository.Status
 	pollingInterval  time.Duration
@@ -43,7 +43,7 @@ type Watcher struct {
 }
 
 func NewWatcher(
-	client client.MirrorNode,
+	client ihedera.MirrorNode,
 	topicID string,
 	repository repository.Status,
 	pollingInterval time.Duration,
@@ -140,7 +140,7 @@ func (cmw Watcher) getAndProcessMessages(q qi.Queue, milestoneTimestamp int64) e
 	return nil
 }
 
-func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
+func (cmw Watcher) processMessage(topicMsg model.Message, q qi.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)

@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	service2 "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -32,8 +32,8 @@ import (
 )
 
 var (
-	tx = mirror_node.Transaction{
-		TokenTransfers: []mirror_node.Transfer{
+	tx = model.Transaction{
+		TokenTransfers: []model.Transfer{
 			{
 				Account: "0.0.444444",
 				Amount:  10,
@@ -99,7 +99,7 @@ func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 //		5,
 //		mocks.MStatusRepository,
 //		0,
-//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 //		assets,
 //		true)
 //
@@ -117,7 +117,7 @@ func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 //		5,
 //		mocks.MStatusRepository,
 //		0,
-//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 //		assets,
 //		true)
 //}
@@ -134,7 +134,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		5,
 		mocks.MStatusRepository,
 		0,
-		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true)
 
@@ -152,7 +152,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		5,
 		mocks.MStatusRepository,
 		1,
-		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true)
 
@@ -171,7 +171,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 //		5,
 //		mocks.MStatusRepository,
 //		1,
-//		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 //		assets,
 //		true)
 //
@@ -240,8 +240,8 @@ func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
-	anotherTx.Transfers = []mirror_node.Transfer{}
-	anotherTx.TokenTransfers = []mirror_node.Transfer{}
+	anotherTx.Transfers = []model.Transfer{}
+	anotherTx.TokenTransfers = []model.Transfer{}
 	w.processTransaction(anotherTx, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
@@ -269,7 +269,7 @@ func initializeWatcher() *Watcher {
 		5,
 		mocks.MStatusRepository,
 		0,
-		map[int64]service2.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
+		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true)
 }

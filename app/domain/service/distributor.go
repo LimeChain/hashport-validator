@@ -17,7 +17,7 @@
 package service
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
@@ -25,7 +25,7 @@ import (
 // Handles distribution of proportional amounts to members
 type Distributor interface {
 	// PrepareTransfers Returns an equally divided array of transfers to each member
-	PrepareTransfers(fee int64, token string) ([]mirror_node.Transfer, error)
+	PrepareTransfers(fee int64, token string) ([]model.Transfer, error)
 	// CalculateMemberDistribution Returns an equally divided to each member
 	CalculateMemberDistribution(validFee int64) ([]transfer.Hedera, error)
 	// ValidAmount Returns the closest amount, which can be equally divided to members

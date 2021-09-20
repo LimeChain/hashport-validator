@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -44,8 +44,8 @@ import (
 
 type Service struct {
 	logger             *log.Entry
-	hederaNode         client.HederaNode
-	mirrorNode         client.MirrorNode
+	hederaNode         ihedera.HederaNode
+	mirrorNode         ihedera.MirrorNode
 	contractServices   map[int64]service.Contracts
 	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
@@ -59,8 +59,8 @@ type Service struct {
 }
 
 func NewService(
-	hederaNode client.HederaNode,
-	mirrorNode client.MirrorNode,
+	hederaNode ihedera.HederaNode,
+	mirrorNode ihedera.MirrorNode,
 	contractServices map[int64]service.Contracts,
 	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
@@ -99,7 +99,7 @@ func NewService(
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx mirror_node.Transaction) (int64, string, error) {
+func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))

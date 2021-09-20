@@ -19,7 +19,7 @@ package distributor
 import (
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -71,7 +71,7 @@ func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, e
 	return transfers, nil
 }
 
-func (s Service) PrepareTransfers(amount int64, token string) ([]mirror_node.Transfer, error) {
+func (s Service) PrepareTransfers(amount int64, token string) ([]model.Transfer, error) {
 	feePerAccount := amount / int64(len(s.accountIDs))
 
 	totalAmount := feePerAccount * int64(len(s.accountIDs))
@@ -80,15 +80,15 @@ func (s Service) PrepareTransfers(amount int64, token string) ([]mirror_node.Tra
 		return nil, errors.New("amount not divisible")
 	}
 
-	var transfers []mirror_node.Transfer
+	var transfers []model.Transfer
 	for _, a := range s.accountIDs {
 		if token == constants.Hbar {
-			transfers = append(transfers, mirror_node.Transfer{
+			transfers = append(transfers, model.Transfer{
 				Account: a.String(),
 				Amount:  feePerAccount,
 			})
 		} else {
-			transfers = append(transfers, mirror_node.Transfer{
+			transfers = append(transfers, model.Transfer{
 				Account: a.String(),
 				Amount:  feePerAccount,
 				Token:   token,

@@ -20,13 +20,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
@@ -43,9 +44,9 @@ type Service struct {
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
-	hederaClient       client.HederaNode
-	mirrorClient       client.MirrorNode
-	ethClients         map[int64]client.EVM
+	hederaClient       ihedera.HederaNode
+	mirrorClient       ihedera.MirrorNode
+	ethClients         map[int64]evm.EVM
 	logger             *log.Entry
 	mappings           config.Assets
 }
@@ -55,9 +56,9 @@ func NewService(
 	contractServices map[int64]service.Contracts,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
-	hederaClient client.HederaNode,
-	mirrorClient client.MirrorNode,
-	ethClients map[int64]client.EVM,
+	hederaClient ihedera.HederaNode,
+	mirrorClient ihedera.MirrorNode,
+	ethClients map[int64]evm.EVM,
 	topicID string,
 	mappings config.Assets,
 ) *Service {

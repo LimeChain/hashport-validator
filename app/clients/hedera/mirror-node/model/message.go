@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mirror_node
+package model
 
 type (
 	// Message struct used by the Hedera Mirror node REST API to represent Topic Message

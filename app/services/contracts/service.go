@@ -19,11 +19,10 @@ package contracts
 import (
 	"errors"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"math"
 	"math/big"
@@ -38,13 +37,13 @@ import (
 type Service struct {
 	address  common.Address
 	contract *router.Router
-	Client   client.EVM
+	Client   evm.EVM
 	mutex    sync.Mutex
 	members  Members
 	logger   *log.Entry
 }
 
-func (bsc *Service) GetClient() *ethclient.Client {
+func (bsc *Service) GetClient() evm.Core {
 	return bsc.Client.GetClient()
 }
 
@@ -126,7 +125,7 @@ func (bsc *Service) listenForMemberUpdatedEvent() {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM, address string) *Service {
+func NewService(client evm.EVM, address string) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -15,15 +15,15 @@ import (
 
 type Service struct {
 	payerAccount     hedera.AccountID
-	hederaNodeClient client.HederaNode
-	mirrorNodeClient client.MirrorNode
+	hederaNodeClient ihedera.HederaNode
+	mirrorNodeClient ihedera.MirrorNode
 	logger           *log.Entry
 }
 
 func New(
 	payerAccount string,
-	hederaNodeClient client.HederaNode,
-	mirrorNodeClient client.MirrorNode) *Service {
+	hederaNodeClient ihedera.HederaNode,
+	mirrorNodeClient ihedera.MirrorNode) *Service {
 	payer, err := hedera.AccountIDFromString(payerAccount)
 	if err != nil {
 		log.Fatalf("Invalid payer account: [%s].", payerAccount)

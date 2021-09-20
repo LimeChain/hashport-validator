@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	httpI "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/http"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -31,68 +33,69 @@ import (
 
 type Client struct {
 	mirrorAPIAddress string
-	httpClient       *http.Client
+	httpClient       httpI.HttpClient
 	pollingInterval  time.Duration
 	logger           *log.Entry
 }
 
 func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Client {
+	httpC := &http.Client{}
 	return &Client{
 		mirrorAPIAddress: mirrorNodeAPIAddress,
 		pollingInterval:  pollingInterval,
-		httpClient:       &http.Client{},
+		httpClient:       httpC,
 		logger:           config.GetLoggerFor("Mirror Node Client"),
 	}
 }
 
-func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
 	return c.GetAccountTokenMintTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
-func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
 	return c.GetAccountTokenBurnTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
-func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=debit&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*Response, error) {
+func (c Client) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*Response, error) {
+func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
 	return c.GetAccountCreditTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
 // GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
-func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]Transaction, error) {
+func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]model.Transaction, error) {
 	transactions, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, from)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []Transaction
+	var res []model.Transaction
 	for _, t := range transactions.Transactions {
 		ts, err := timestampHelper.FromString(t.ConsensusTimestamp)
 		if err != nil {
@@ -106,7 +109,7 @@ func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, 
 }
 
 // GetMessagesAfterTimestamp returns all Topic messages after the given timestamp
-func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]Message, error) {
+func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]model.Message, error) {
 	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.String(from))
@@ -115,7 +118,7 @@ func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
-func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]Message, error) {
+func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]model.Message, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.String(from))
@@ -125,7 +128,7 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	}
 
 	// TODO refactor into 1 function (reuse code above)
-	var res []Message
+	var res []model.Message
 	for _, m := range msgs {
 		ts, err := timestampHelper.FromString(m.ConsensusTimestamp)
 		if err != nil {
@@ -138,19 +141,19 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	return res, nil
 }
 
-func (c Client) GetTransaction(transactionID string) (*Response, error) {
+func (c Client) GetTransaction(transactionID string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
 // GetScheduledTransaction gets the Scheduled transaction of an executed transaction
-func (c Client) GetScheduledTransaction(transactionID string) (*Response, error) {
+func (c Client) GetScheduledTransaction(transactionID string) (*model.Response, error) {
 	return c.GetTransaction(fmt.Sprintf("%s?scheduled=false", transactionID))
 }
 
 // GetSchedule retrieves a schedule entity by its id
-func (c Client) GetSchedule(scheduleID string) (*Schedule, error) {
+func (c Client) GetSchedule(scheduleID string) (*model.Schedule, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "schedules/", scheduleID)
 
 	httpResponse, e := c.get(query)
@@ -166,7 +169,7 @@ func (c Client) GetSchedule(scheduleID string) (*Schedule, error) {
 		return nil, e
 	}
 
-	var response *Schedule
+	var response *model.Schedule
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -231,7 +234,7 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	go func() {
 		for {
 			response, err := c.GetTransaction(txId)
-			if response != nil && response.isNotFound() {
+			if response != nil && response.IsNotFound() {
 				continue
 			}
 			if err != nil {
@@ -270,7 +273,7 @@ func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure fu
 	c.logger.Debugf("Added new Scheduled TX [%s] for monitoring", txId)
 	for {
 		response, err := c.GetTransaction(txId)
-		if response != nil && response.isNotFound() {
+		if response != nil && response.IsNotFound() {
 			continue
 		}
 		if err != nil {
@@ -305,13 +308,13 @@ func (c Client) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c Client) getTransactionsByQuery(query string) (*Response, error) {
+func (c Client) getTransactionsByQuery(query string) (*model.Response, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 
 	return c.getAndParse(transactionsQuery)
 }
 
-func (c Client) getAndParse(query string) (*Response, error) {
+func (c Client) getAndParse(query string) (*model.Response, error) {
 	httpResponse, e := c.get(query)
 	if e != nil {
 		return nil, e
@@ -322,7 +325,7 @@ func (c Client) getAndParse(query string) (*Response, error) {
 		return nil, e
 	}
 
-	var response *Response
+	var response *model.Response
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -334,7 +337,7 @@ func (c Client) getAndParse(query string) (*Response, error) {
 	return response, nil
 }
 
-func (c Client) getTopicMessagesByQuery(query string) ([]Message, error) {
+func (c Client) getTopicMessagesByQuery(query string) ([]model.Message, error) {
 	messagesQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics", query)
 	response, e := c.get(messagesQuery)
 	if e != nil {
@@ -346,7 +349,7 @@ func (c Client) getTopicMessagesByQuery(query string) ([]Message, error) {
 		return nil, e
 	}
 
-	var messages *Messages
+	var messages *model.Messages
 	e = json.Unmarshal(bodyBytes, &messages)
 	if e != nil {
 		return nil, e

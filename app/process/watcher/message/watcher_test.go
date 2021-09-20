@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	p "github.com/limechain/hedera-eth-bridge-validator/proto"
@@ -35,14 +35,14 @@ func Test_UpdateStatusTimestamp(t *testing.T) {
 func Test_GetAndProcessMessages_Fails(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(1), nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]mirror_node.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]model.Message{}, errors.New("some-error"))
 	err := w.getAndProcessMessages(mocks.MQueue, 1)
 	assert.Equal(t, errors.New("some-error"), err)
 }
 
 func Test_ProcessMessage_FromString_Fails(t *testing.T) {
 	setup()
-	w.processMessage(mirror_node.Message{Contents: "invalid-data"}, mocks.MQueue)
+	w.processMessage(model.Message{Contents: "invalid-data"}, mocks.MQueue)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -62,14 +62,14 @@ func Test_GetAndProcessMessages_HappyPath(t *testing.T) {
 		t.Fatal(e)
 	}
 	contents := base64.StdEncoding.EncodeToString(bytes)
-	m := mirror_node.Message{
+	m := model.Message{
 		ConsensusTimestamp: "10000.0",
 		TopicId:            topicID.String(),
 		Contents:           contents,
 	}
 	mocks.MStatusRepository.On("Update", topicID.String(), int64(10000000000000)).Return(nil)
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(1), nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]mirror_node.Message{m}, nil)
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]model.Message{m}, nil)
 	mocks.MQueue.On("Push", mock.Anything)
 	err := w.getAndProcessMessages(mocks.MQueue, 1)
 	assert.Nil(t, err)
@@ -78,13 +78,13 @@ func Test_GetAndProcessMessages_HappyPath(t *testing.T) {
 
 func Test_GetAndProcessMessages_InvalidConsensusTimestamp(t *testing.T) {
 	setup()
-	m := mirror_node.Message{
+	m := model.Message{
 		ConsensusTimestamp: "aaaa",
 		TopicId:            topicID.String(),
 		Contents:           "some-content-here",
 	}
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(1), nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]mirror_node.Message{m}, nil)
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(1)).Return([]model.Message{m}, nil)
 	err := w.getAndProcessMessages(mocks.MQueue, 1)
 	assert.Nil(t, err)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything, mock.Anything)

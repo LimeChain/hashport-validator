@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package client
+package evm
 
 import (
 	"context"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 )
 
 type EVM interface {
-	ChainID() *big.Int
-	GetClient() *ethclient.Client
+	ChainID(ctx context.Context) (*big.Int, error)
+	GetClient() Core
 	BlockNumber(ctx context.Context) (uint64, error)
 	FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
 	GetBlockTimestamp(blockNumber *big.Int) (uint64, error)

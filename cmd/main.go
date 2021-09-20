@@ -17,9 +17,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
@@ -83,7 +84,7 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func executeRecovery(feeRepository repository.Fee, scheduleRepository repository.Schedule, client client.MirrorNode) {
+func executeRecovery(feeRepository repository.Fee, scheduleRepository repository.Schedule, client hedera.MirrorNode) {
 	r := recovery.New(feeRepository, scheduleRepository, client)
 
 	r.Execute()
@@ -124,14 +125,17 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.messages))
 
 	for _, evmClient := range clients.EVMClients {
-		chainId := evmClient.ChainID().Int64()
+		chain, err := evmClient.ChainID(context.Background())
+		if err != nil {
+			panic(err)
+		}
 		server.AddWatcher(
 			evm.NewWatcher(
 				repositories.transferStatus,
-				services.contractServices[chainId],
+				services.contractServices[chain.Int64()],
 				evmClient,
 				configuration.Bridge.Assets,
-				configuration.Node.Clients.Evm[chainId].StartBlock,
+				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
 				configuration.Node.Validator))
 	}
 
@@ -171,7 +175,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
-	mirrorNode client.MirrorNode,
+	mirrorNode hedera.MirrorNode,
 	repository *repository.Status,
 	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
@@ -191,7 +195,7 @@ func addTransferWatcher(configuration *config.Config,
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
-	client client.MirrorNode,
+	client hedera.MirrorNode,
 	repository repository.Status,
 ) *cmw.Watcher {
 	topic := configuration.Bridge.TopicId

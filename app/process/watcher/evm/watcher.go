@@ -25,7 +25,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -42,7 +42,7 @@ import (
 type Watcher struct {
 	repository  repository.Status
 	contracts   service.Contracts
-	evmClient   client.EVM
+	evmClient   evm.EVM
 	logger      *log.Entry
 	mappings    c.Assets
 	targetBlock uint64
@@ -52,7 +52,7 @@ type Watcher struct {
 func NewWatcher(
 	repository repository.Status,
 	contracts service.Contracts,
-	evmClient client.EVM,
+	evmClient evm.EVM,
 	mappings c.Assets,
 	startBlock int64,
 	validator bool) *Watcher {
@@ -201,7 +201,13 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), ew.evmClient.ChainID().Int64())
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -238,7 +244,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	burnEvent := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: ew.evmClient.ChainID().Int64(),
+		SourceChainId: chain.Int64(),
 		TargetChainId: eventLog.TargetChain.Int64(),
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   eventLog.Token.String(),
@@ -302,6 +308,12 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
 
 	recipientAccount := ""
 	var err error
@@ -317,7 +329,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	// TODO: Replace with external configuration service
-	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
+	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), chain.Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -334,9 +346,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	tr := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: ew.evmClient.ChainID().Int64(),
+		SourceChainId: chain.Int64(),
 		TargetChainId: eventLog.TargetChain.Int64(),
-		NativeChainId: ew.evmClient.ChainID().Int64(),
+		NativeChainId: chain.Int64(),
 		SourceAsset:   eventLog.Token.String(),
 		TargetAsset:   wrappedAsset,
 		NativeAsset:   eventLog.Token.String(),
@@ -355,7 +367,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
 		recipientAccount,
-		ew.evmClient.ChainID().Int64(),
+		chain.Int64(),
 		eventLog.TargetChain.Int64())
 
 	currentBlockNumber := eventLog.Raw.BlockNumber

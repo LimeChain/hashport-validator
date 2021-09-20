@@ -19,8 +19,8 @@ package fee_transfer
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -37,7 +37,7 @@ import (
 type Handler struct {
 	feeRepository      repository.Fee
 	scheduleRepository repository.Schedule
-	mirrorNode         client.MirrorNode
+	mirrorNode         ihedera.MirrorNode
 	bridgeAccount      hedera.AccountID
 	feeService         service.Fee
 	distributorService service.Distributor
@@ -49,7 +49,7 @@ type Handler struct {
 func NewHandler(
 	feeRepository repository.Fee,
 	scheduleRepository repository.Schedule,
-	mirrorNode client.MirrorNode,
+	mirrorNode ihedera.MirrorNode,
 	bridgeAccount string,
 	distributorService service.Distributor,
 	feeService service.Fee,
@@ -110,11 +110,11 @@ func (fmh Handler) Handle(payload interface{}) {
 
 	if transferMsg.TargetAsset == constants.Hbar {
 		expectedTransfers = append(expectedTransfers,
-			mirror_node.Transfer{
+			hedera_mirror_node.Transfer{
 				Account: transferMsg.Receiver,
 				Amount:  remainder,
 			},
-			mirror_node.Transfer{
+			hedera_mirror_node.Transfer{
 				Account: fmh.bridgeAccount.String(),
 				Amount:  -intAmount,
 			})

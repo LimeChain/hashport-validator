@@ -19,7 +19,7 @@ package burn
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -35,13 +35,13 @@ type Handler struct {
 	transfersService   service.Transfers
 	scheduleRepository repository.Schedule
 	transferRepository repository.Transfer
-	mirrorNode         client.MirrorNode
+	mirrorNode         ihedera.MirrorNode
 	logger             *log.Entry
 }
 
 func NewHandler(
 	bridgeAccount string,
-	mirrorNode client.MirrorNode,
+	mirrorNode ihedera.MirrorNode,
 	scheduleRepository repository.Schedule,
 	transferRepository repository.Transfer,
 	transferService service.Transfers) *Handler {

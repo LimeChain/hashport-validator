@@ -19,7 +19,7 @@ package mint_hts
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -33,7 +33,7 @@ import (
 // Handler is transfers event handler
 type Handler struct {
 	scheduleRepository repository.Schedule
-	mirrorNode         client.MirrorNode
+	mirrorNode         ihedera.MirrorNode
 	bridgeAccount      hedera.AccountID
 	transfersService   service.Transfers
 	transferRepository repository.Transfer
@@ -43,7 +43,7 @@ type Handler struct {
 func NewHandler(
 	scheduleRepository repository.Schedule,
 	bridgeAccount string,
-	mirrorNode client.MirrorNode,
+	mirrorNode ihedera.MirrorNode,
 	transfersService service.Transfers,
 	transferRepository repository.Transfer) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
