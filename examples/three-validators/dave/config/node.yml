@@ -1,3 +1,4 @@
-
+# This file contains application defaults
+# Check docs/configuration.md for more information
 node:
   validator: false
