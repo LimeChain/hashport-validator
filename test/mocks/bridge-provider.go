@@ -54,11 +54,25 @@ func (m *MockBridgeContract) GetClient() *ethclient.Client {
 }
 
 func (m *MockBridgeContract) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
-	panic("implement me")
+	args := m.Called(log)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(*router.RouterBurn), nil
+	}
+	return args.Get(0).(*router.RouterBurn), args.Get(1).(error)
 }
 
 func (m *MockBridgeContract) ParseLockLog(log types.Log) (*router.RouterLock, error) {
-	panic("implement me")
+	args := m.Called(log)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(*router.RouterLock), nil
+	}
+	return args.Get(0).(*router.RouterLock), args.Get(1).(error)
 }
 
 func (m *MockBridgeContract) IsMember(address string) bool {
@@ -66,11 +80,28 @@ func (m *MockBridgeContract) IsMember(address string) bool {
 }
 
 func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
-	panic("implement me")
+	args := m.Called(opts, sink)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(event.Subscription), nil
+	}
+	return args.Get(0).(event.Subscription), args.Get(1).(error)
 }
 
 func (m *MockBridgeContract) WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterLock) (event.Subscription, error) {
-	panic("implement me")
+	args := m.Called(opts, sink)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(event.Subscription), nil
+	}
+	return args.Get(0).(event.Subscription), args.Get(1).(error)
 }
 
 func (m *MockBridgeContract) Address() common.Address {

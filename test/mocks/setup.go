@@ -30,17 +30,20 @@ import (
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
 var MTransferService *service.MockTransferService
 var MDistributorService *service.MockDistrubutorService
+var MMessageService *service.MockMessageService
 var MScheduledService *service.MockScheduledService
 var MFeeService *service.MockFeeService
 var MBurnService *service.MockBurnService
 var MLockService *service.MockLockService
 var MBridgeContractService *MockBridgeContract
 var MTransferRepository *repository.MockTransferRepository
+var MMessageRepository *repository.MockMessageRepository
 var MFeeRepository *repository.MockFeeRepository
 var MScheduleRepository *repository.MockScheduleRepository
 var MStatusRepository *repository.MockStatusRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
+var MSignerService *service.MockSignerService
 var MEVMClient *evm_client.MockEVMClient
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
@@ -52,13 +55,16 @@ func Setup() {
 	MTransferService = &service.MockTransferService{}
 	MScheduledService = &service.MockScheduledService{}
 	MFeeService = &service.MockFeeService{}
+	MSignerService = &service.MockSignerService{}
 	MLockService = &service.MockLockService{}
 	MBurnService = &service.MockBurnService{}
 	MTransferRepository = &repository.MockTransferRepository{}
 	MFeeRepository = &repository.MockFeeRepository{}
+	MMessageRepository = &repository.MockMessageRepository{}
 	MScheduleRepository = &repository.MockScheduleRepository{}
 	MStatusRepository = &repository.MockStatusRepository{}
 	MDistributorService = &service.MockDistrubutorService{}
+	MMessageService = &service.MockMessageService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
 	MEVMClient = &evm_client.MockEVMClient{}

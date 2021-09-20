@@ -26,7 +26,17 @@ type MockScheduleRepository struct {
 }
 
 func (m *MockScheduleRepository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
-	panic("implement me")
+	args := m.Called()
+	if args.Get(0) == nil && args.Get(1) == nil {
+		return nil, nil
+	}
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args.Get(1) == nil {
+		return args.Get(0).([]*entity.Schedule), nil
+	}
+	return args.Get(0).([]*entity.Schedule), args.Get(1).(error)
 }
 
 func (m *MockScheduleRepository) Get(txId string) (*entity.Schedule, error) {
