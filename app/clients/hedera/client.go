@@ -67,13 +67,36 @@ func (hc Node) GetClient() *hedera.Client {
 // SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
 func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	tokenMintTx := hedera.NewTokenMintTransaction().SetTokenID(tokenID).SetAmount(uint64(amount))
-	return hc.submitScheduledMintTransaction(payerAccountID, memo, tokenMintTx)
+
+	tx, err := tokenMintTx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTransaction, err := tx.
+		SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
 }
 
 // SubmitScheduledTokenBurnTransaction creates a token burn transaction and submits it as a scheduled burn transaction
 func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	tokenBurnTx := hedera.NewTokenBurnTransaction().SetTokenID(tokenID).SetAmount(uint64(amount))
-	return hc.submitScheduledBurnTransaction(payerAccountID, memo, tokenBurnTx)
+	tx, err := tokenBurnTx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTransaction, err := tx.
+		SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
 }
 
 // SubmitTopicConsensusMessage submits the provided message bytes to the
@@ -133,40 +156,6 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
 func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
-	tx, err := tx.FreezeWith(hc.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	signedTransaction, err := tx.
-		SignWithOperator(hc.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
-}
-
-// submitScheduledMintTransaction freezes the input transaction, signs with operator and submits to HCS
-func (hc Node) submitScheduledMintTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TokenMintTransaction) (*hedera.TransactionResponse, error) {
-	// TODO: extract 147 to 154 to a different method
-	tx, err := tx.FreezeWith(hc.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	signedTransaction, err := tx.
-		SignWithOperator(hc.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
-}
-
-// submitScheduledBurnTransaction freezes the input transaction, signs with operator and submits to HCS
-func (hc Node) submitScheduledBurnTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TokenBurnTransaction) (*hedera.TransactionResponse, error) {
-	// TODO: extract 147 to 154 to a different method
 	tx, err := tx.FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, err

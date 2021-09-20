@@ -16,7 +16,7 @@
 
 package entity
 
-// This table will contain information for latest status of the application
+// Status is a table containing information for latest blocks/timestamps for the watched Hedera accounts, topic and evm contracts
 type Status struct {
 	EntityID string
 	Last     int64 // Either timestamp or block number

@@ -31,7 +31,7 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	mocks.Setup()
-	h := NewHandler(nil, nil, nil, mocks.MTransferService, nil, "0.0.1111")
+	h := NewHandler(nil, nil, mocks.MTransferService, nil, nil, "0.0.1111")
 	assert.Equal(t, &Handler{
 		logger:           config.GetLoggerFor("Topic Message Submission Handler"),
 		transfersService: mocks.MTransferService,
@@ -65,7 +65,6 @@ func Test_Invalid_Payload(t *testing.T) {
 		NativeAsset:   "",
 		Receiver:      "",
 		Amount:        "0",
-		RouterAddress: "",
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(tr, nil)
 	msHandler.Handle(tr)

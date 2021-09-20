@@ -20,7 +20,7 @@ import (
 	"errors"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
@@ -52,7 +52,7 @@ func Test_Handle(t *testing.T) {
 		Amount:        mt.Amount,
 		NativeAsset:   mt.NativeAsset,
 		TargetAsset:   mt.TargetAsset,
-		Status:        transfer.StatusInitial,
+		Status:        status.Initial,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
@@ -92,7 +92,7 @@ func Test_Handle_StatusNotInitial_Fails(t *testing.T) {
 		TransactionID: mt.TransactionId,
 		Receiver:      mt.Receiver,
 		Amount:        mt.Amount,
-		Status:        transfer.StatusCompleted,
+		Status:        status.Completed,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
@@ -109,7 +109,7 @@ func Test_Handle_ProcessNativeTransfer_Fails(t *testing.T) {
 		TransactionID: mt.TransactionId,
 		Receiver:      mt.Receiver,
 		Amount:        mt.Amount,
-		Status:        transfer.StatusInitial,
+		Status:        status.Completed,
 	}
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)

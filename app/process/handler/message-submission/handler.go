@@ -17,16 +17,13 @@
 package message_submission
 
 import (
-	"encoding/hex"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,19 +32,19 @@ import (
 type Handler struct {
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
-	ethSigners         map[int64]service.Signer
 	transfersService   service.Transfers
 	transferRepository repository.Transfer
 	topicID            hedera.TopicID
+	messageService     service.Messages
 	logger             *log.Entry
 }
 
 func NewHandler(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
-	ethSigners map[int64]service.Signer,
 	transfersService service.Transfers,
 	transferRepository repository.Transfer,
+	messageService service.Messages,
 	topicId string,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
@@ -58,10 +55,10 @@ func NewHandler(
 	return &Handler{
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
-		ethSigners:         ethSigners,
 		logger:             config.GetLoggerFor("Topic Message Submission Handler"),
 		transfersService:   transfersService,
 		transferRepository: transferRepository,
+		messageService:     messageService,
 		topicID:            topicID,
 	}
 }
@@ -79,7 +76,7 @@ func (smh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != transfer.StatusInitial {
+	if transactionRecord.Status != status.Initial {
 		smh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
@@ -92,27 +89,10 @@ func (smh Handler) Handle(payload interface{}) {
 }
 
 func (smh Handler) submitMessage(tm *model.Transfer) error {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+	signatureMessage, err := smh.messageService.SignMessage(*tm)
 	if err != nil {
-		smh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
-
-	signatureBytes, err := smh.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		smh.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	signatureMessage := message.NewSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		tm.Amount,
-		signature)
 
 	sigMsgBytes, err := signatureMessage.ToBytes()
 	if err != nil {

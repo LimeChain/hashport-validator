@@ -208,8 +208,7 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 		asset,
 		targetChainAsset,
 		nativeAsset.Asset,
-		properAmount.String(),
-		ctw.contractServices[targetChainId].Address().String())
+		properAmount.String())
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
@@ -219,7 +218,6 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
-			transferMessage.HasFee = true
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
@@ -227,7 +225,6 @@ func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == 0 {
-			transferMessage.HasFee = true
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
