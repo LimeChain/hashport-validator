@@ -49,7 +49,6 @@ func Test_Handle_Lock(t *testing.T) {
 		NativeAsset:   "",
 		Receiver:      "",
 		Amount:        "0",
-		RouterAddress: "",
 	}
 	mocks.MLockService.On("ProcessEvent", *tr).Return()
 	mintHtsHandler.Handle(tr)

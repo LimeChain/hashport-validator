@@ -19,13 +19,14 @@ package mint_hts
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +37,7 @@ type Handler struct {
 	mirrorNode         client.MirrorNode
 	bridgeAccount      hedera.AccountID
 	transfersService   service.Transfers
-	transferRepository repository.Transfer
+	readOnlyService    service.ReadOnly
 	logger             *log.Entry
 }
 
@@ -45,7 +46,7 @@ func NewHandler(
 	bridgeAccount string,
 	mirrorNode client.MirrorNode,
 	transfersService service.Transfers,
-	transferRepository repository.Transfer) *Handler {
+	readOnlyService service.ReadOnly) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -56,7 +57,7 @@ func NewHandler(
 		mirrorNode:         mirrorNode,
 		logger:             config.GetLoggerFor("Hedera Mint and Transfer Handler"),
 		transfersService:   transfersService,
-		transferRepository: transferRepository,
+		readOnlyService:    readOnlyService,
 	}
 }
 
@@ -73,127 +74,43 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != transfer.StatusInitial {
+	if transactionRecord.Status != status.Initial {
 		fmh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 
-	for {
-		response, err := fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
-		if err != nil {
-			fmh.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transactionRecord.TransactionID, err)
-		}
+	fmh.readOnlyService.FindTransfer(transferMsg.TransactionId,
+		func() (*mirror_node.Response, error) {
+			return fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+		},
+		func(transactionID, scheduleID, status string) error {
+			return fmh.scheduleRepository.Create(&entity.Schedule{
+				TransactionID: transactionID,
+				ScheduleID:    scheduleID,
+				Operation:     schedule.MINT,
+				Status:        status,
+				TransferID: sql.NullString{
+					String: transferMsg.TransactionId,
+					Valid:  true,
+				},
+			})
+		})
 
-		finished := false
-		for _, transaction := range response.Transactions {
-			isFound := false
-			scheduledTx, err := fmh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
-			if err != nil {
-				fmh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
-				continue
-			}
-			for _, tx := range scheduledTx.Transactions {
-				if tx.Result == hedera.StatusSuccess.String() {
-					scheduleID, err := fmh.mirrorNode.GetSchedule(tx.EntityId)
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
-						break
-					}
-					if scheduleID.Memo == transferMsg.TransactionId {
-						isFound = true
-					}
-				}
-				if isFound {
-					finished = true
-					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
-					status := schedule.StatusCompleted
-					if !isSuccessful {
-						status = schedule.StatusFailed
-					}
-					err := fmh.scheduleRepository.Create(&entity.Schedule{
-						TransactionID: transaction.TransactionID,
-						ScheduleID:    tx.EntityId,
-						Operation:     schedule.MINT,
-						Status:        status,
-						TransferID: sql.NullString{
-							String: transferMsg.TransactionId,
-							Valid:  true,
-						},
-					})
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to save scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-						break
-					}
-					break
-				}
-			}
-		}
-		if finished {
-			break
-		}
-	}
-
-	for {
-		response, err := fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
-		if err != nil {
-			fmh.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transactionRecord.TransactionID, err)
-		}
-
-		finished := false
-		for _, transaction := range response.Transactions {
-			isFound := false
-			scheduledTx, err := fmh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
-			if err != nil {
-				fmh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
-				continue
-			}
-			for _, tx := range scheduledTx.Transactions {
-				if tx.Result == hedera.StatusSuccess.String() {
-					scheduleID, err := fmh.mirrorNode.GetSchedule(tx.EntityId)
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
-						break
-					}
-					if scheduleID.Memo == transferMsg.TransactionId {
-						isFound = true
-					}
-				}
-				if isFound {
-					finished = true
-					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
-					status := schedule.StatusCompleted
-					if !isSuccessful {
-						status = schedule.StatusFailed
-					}
-					err := fmh.scheduleRepository.Create(&entity.Schedule{
-						TransactionID: transaction.TransactionID,
-						ScheduleID:    tx.EntityId,
-						Operation:     schedule.TRANSFER,
-						Status:        status,
-						TransferID: sql.NullString{
-							String: transferMsg.TransactionId,
-							Valid:  true,
-						},
-					})
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-						break
-					}
-
-					if isSuccessful {
-						err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-					} else {
-						//err = fmh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId) // TODO: add
-					}
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-					}
-					break
-				}
-			}
-		}
-		if finished {
-			break
-		}
-	}
+	fmh.readOnlyService.FindTransfer(
+		transferMsg.TransactionId,
+		func() (*mirror_node.Response, error) {
+			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+		},
+		func(transactionID, scheduleID, status string) error {
+			return fmh.scheduleRepository.Create(&entity.Schedule{
+				TransactionID: transactionID,
+				ScheduleID:    scheduleID,
+				Operation:     schedule.TRANSFER,
+				Status:        status,
+				TransferID: sql.NullString{
+					String: transferMsg.TransactionId,
+					Valid:  true,
+				},
+			})
+		})
 }

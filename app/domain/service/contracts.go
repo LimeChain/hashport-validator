@@ -20,8 +20,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"math/big"
 )
 
 // Contracts interface is implemented by the Contracts Service providing business logic access to the EVM SmartContracts and other related utility functions
@@ -30,6 +32,8 @@ type Contracts interface {
 	Address() common.Address
 	// GetMembers returns the array of bridge members currently set in the Bridge contract
 	GetMembers() []string
+	// GetClient returns the Contracts Service corresponding EVM Client
+	GetClient() *ethclient.Client
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
 	// ParseBurnLog parses a general typed log to a RouterBurn event
@@ -40,4 +44,8 @@ type Contracts interface {
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
 	WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterLock) (event.Subscription, error)
+	// AddDecimals adjusts the decimals in the native and wrapped tokens when their decimals do not match and one of them is over 8
+	AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error)
+	// RemoveDecimals adjusts the decimals in the native and wrapped tokens when their decimals do not match and one of them is over 8
+	RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error)
 }

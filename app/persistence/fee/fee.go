@@ -19,7 +19,7 @@ package fee
 import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -60,11 +60,11 @@ func (r Repository) Create(entity *entity.Fee) error {
 }
 
 func (r Repository) UpdateStatusCompleted(txId string) error {
-	return r.updateStatus(txId, fee.StatusCompleted)
+	return r.updateStatus(txId, status.Completed)
 }
 
 func (r Repository) UpdateStatusFailed(txId string) error {
-	return r.updateStatus(txId, fee.StatusFailed)
+	return r.updateStatus(txId, status.Failed)
 }
 
 func (r Repository) updateStatus(txId string, status string) error {
@@ -84,7 +84,7 @@ func (r Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
 
 	err := r.dbClient.
 		Select("transaction_id").
-		Where("status = ?", fee.StatusSubmitted).
+		Where("status = ?", status.Submitted).
 		Find(&fees).Error
 	return fees, err
 }

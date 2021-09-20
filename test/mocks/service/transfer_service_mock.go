@@ -52,14 +52,6 @@ func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) 
 	return args.Get(0).(int64), args.Get(1).(string), args.Get(2).(error)
 }
 
-func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset, evmAddress string) error {
-	args := mts.Called(txId, amount, nativeAsset, wrappedAsset, evmAddress)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
 func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {
 	args := mts.Called(tm)
 	if args.Get(0) == nil && args.Get(1) == nil {
