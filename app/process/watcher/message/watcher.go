@@ -22,7 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -35,7 +35,7 @@ import (
 )
 
 type Watcher struct {
-	client           ihedera.MirrorNode
+	client           client.MirrorNode
 	topicID          hedera.TopicID
 	statusRepository repository.Status
 	pollingInterval  time.Duration
@@ -43,7 +43,7 @@ type Watcher struct {
 }
 
 func NewWatcher(
-	client ihedera.MirrorNode,
+	client client.MirrorNode,
 	topicID string,
 	repository repository.Status,
 	pollingInterval time.Duration,

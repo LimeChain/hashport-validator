@@ -16,7 +16,9 @@
 
 package service
 
-import "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+import (
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+)
 
 type ReadOnly interface {
 	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)

@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/stretchr/testify/mock"
 	"math/big"
 )
@@ -51,13 +51,22 @@ func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) 
 }
 
 func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
-	args := m.Called()
+	args := m.Called(ctx)
+	if args.Get(0) == nil && args.Get(1) == nil {
+		return nil, nil
+	}
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args.Get(1) == nil {
+		return args.Get(0).(*big.Int), nil
+	}
 	return args.Get(0).(*big.Int), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) GetClient() evm.Core {
+func (m *MockEVMClient) GetClient() client.Core {
 	args := m.Called()
-	return args.Get(0).(evm.Core)
+	return args.Get(0).(client.Core)
 }
 
 func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {

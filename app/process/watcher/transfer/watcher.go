@@ -23,7 +23,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -40,7 +40,7 @@ import (
 
 type Watcher struct {
 	transfers        service.Transfers
-	client           ihedera.MirrorNode
+	client           client.MirrorNode
 	accountID        hedera.AccountID
 	pollingInterval  time.Duration
 	statusRepository repository.Status
@@ -53,7 +53,7 @@ type Watcher struct {
 
 func NewWatcher(
 	transfers service.Transfers,
-	client ihedera.MirrorNode,
+	client client.MirrorNode,
 	accountID string,
 	pollingInterval time.Duration,
 	repository repository.Status,

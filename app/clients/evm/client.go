@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -35,7 +35,7 @@ import (
 type Client struct {
 	chainId *big.Int
 	config  config.Evm
-	evm.Core
+	client.Core
 	logger *log.Entry
 }
 
@@ -46,7 +46,7 @@ func NewClient(c config.Evm) *Client {
 		logger.Fatalf("BlockConfirmations should be a positive number")
 	}
 
-	var client evm.Core
+	var client client.Core
 	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
 		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
@@ -70,7 +70,7 @@ func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 }
 
 // GetClient returns the instance of an ethclient already established connection to a JSON RPC EVM Node
-func (ec *Client) GetClient() evm.Core {
+func (ec *Client) GetClient() client.Core {
 	return ec.Core
 }
 

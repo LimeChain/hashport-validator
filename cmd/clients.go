@@ -20,21 +20,20 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	ievm "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
 // Clients struct used to initialise and store all available external clients for a validator node
 type Clients struct {
-	HederaNode ihedera.HederaNode
-	MirrorNode ihedera.MirrorNode
-	EVMClients map[int64]ievm.EVM
+	HederaNode client.HederaNode
+	MirrorNode client.MirrorNode
+	EVMClients map[int64]client.EVM
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Clients) *Clients {
-	EVMClients := make(map[int64]ievm.EVM)
+	EVMClients := make(map[int64]client.EVM)
 	for chainId, ec := range config.Evm {
 		EVMClients[chainId] = evm.NewClient(ec)
 	}

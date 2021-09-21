@@ -137,6 +137,7 @@ func Test_HandleLockLog_EmptyReceiver_Fails(t *testing.T) {
 
 func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 	setup()
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(1), nil)
 
 	lockLog.Receiver = []byte{1}
 	w.handleLockLog(lockLog, mocks.MQueue)
@@ -148,7 +149,7 @@ func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 
 func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(2))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(2), nil)
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
@@ -159,7 +160,7 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
@@ -169,7 +170,7 @@ func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
 
 func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
@@ -205,7 +206,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
@@ -241,7 +242,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
@@ -266,7 +267,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 func Test_HandleLockLog_UpdateFails(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
 
@@ -277,7 +278,7 @@ func Test_HandleLockLog_UpdateFails(t *testing.T) {
 
 func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 
 	lockLog.TargetChain = big.NewInt(1)
@@ -303,7 +304,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
@@ -326,7 +327,7 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 func Test_HandleBurnLog_UpdateFails(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
 
@@ -338,7 +339,7 @@ func Test_HandleBurnLog_UpdateFails(t *testing.T) {
 func Test_HandleBurnLog_WaitForConfirmationFails(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(errors.New("some-error"))
 	w.handleBurnLog(burnLog, mocks.MQueue)
 }
@@ -347,14 +348,14 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 	setup()
 	defaultReceiver := burnLog.Receiver
 	burnLog.Receiver = []byte{1, 2, 3, 4}
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	w.handleBurnLog(burnLog, mocks.MQueue)
 	burnLog.Receiver = defaultReceiver
 }
 
 func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 
 	burnLog.TargetChain = big.NewInt(1)
@@ -396,7 +397,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 
 	burnLog.TargetChain = big.NewInt(1)
@@ -438,7 +439,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
@@ -473,7 +474,7 @@ func Test_HandleBurnLog_GetBlockTimestamp_Fails(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 
@@ -496,7 +497,7 @@ func Test_HandleLockLog_GetBlockTimestamp_Fails(t *testing.T) {
 		validator:  false,
 	}
 
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 
@@ -522,7 +523,7 @@ func Test_ListenForEvents_LockSubscription_Fails(t *testing.T) {
 
 func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 
 	defaultToken := burnLog.Token
 	burnLog.Token = common.HexToAddress("0x0123123")
@@ -534,7 +535,7 @@ func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
 
 func Test_HandleBurnLog_WrappedToWrapped_Not_Supported(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 
 	defaultTargetChain := burnLog.TargetChain
 	burnLog.TargetChain = big.NewInt(1)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package evm
+package client
 
 import (
 	"context"

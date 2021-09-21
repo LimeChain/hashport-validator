@@ -26,7 +26,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -44,7 +44,7 @@ import (
 type Watcher struct {
 	repository  repository.Status
 	contracts   service.Contracts
-	evmClient   evm.EVM
+	evmClient   client.EVM
 	logger      *log.Entry
 	mappings    c.Assets
 	targetBlock uint64
@@ -54,7 +54,7 @@ type Watcher struct {
 func NewWatcher(
 	repository repository.Status,
 	contracts service.Contracts,
-	evmClient evm.EVM,
+	evmClient client.EVM,
 	mappings c.Assets,
 	startBlock int64,
 	validator bool) *Watcher {
@@ -333,7 +333,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
+	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), chain.Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return

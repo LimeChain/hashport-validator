@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"math/big"
 )
 
@@ -33,7 +33,7 @@ type Contracts interface {
 	// GetMembers returns the array of bridge members currently set in the Bridge contract
 	GetMembers() []string
 	// GetClient returns the Contracts Service corresponding EVM Client
-	GetClient() evm.Core
+	GetClient() client.Core
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
 	// ParseBurnLog parses a general typed log to a RouterBurn event

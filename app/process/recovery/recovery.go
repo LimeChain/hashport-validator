@@ -17,7 +17,7 @@
 package recovery
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -26,14 +26,14 @@ import (
 type Recovery struct {
 	feeRepository      repository.Fee
 	scheduleRepository repository.Schedule
-	mirrorClient       hedera.MirrorNode
+	mirrorClient       client.MirrorNode
 	logger             *log.Entry
 }
 
 func New(
 	feeRepository repository.Fee,
 	scheduleRepository repository.Schedule,
-	mirrorClient hedera.MirrorNode) *Recovery {
+	mirrorClient client.MirrorNode) *Recovery {
 	return &Recovery{
 		feeRepository:      feeRepository,
 		scheduleRepository: scheduleRepository,

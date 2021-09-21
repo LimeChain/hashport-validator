@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
@@ -84,7 +84,7 @@ func initializeAPIRouter(services *Services) *apirouter.APIRouter {
 	return apiRouter
 }
 
-func executeRecovery(feeRepository repository.Fee, scheduleRepository repository.Schedule, client hedera.MirrorNode) {
+func executeRecovery(feeRepository repository.Fee, scheduleRepository repository.Schedule, client client.MirrorNode) {
 	r := recovery.New(feeRepository, scheduleRepository, client)
 
 	r.Execute()
@@ -175,7 +175,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
-	mirrorNode hedera.MirrorNode,
+	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	contractServices map[int64]service.Contracts,
 ) *tw.Watcher {
@@ -195,7 +195,7 @@ func addTransferWatcher(configuration *config.Config,
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
-	client hedera.MirrorNode,
+	client client.MirrorNode,
 	repository repository.Status,
 ) *cmw.Watcher {
 	topic := configuration.Bridge.TopicId

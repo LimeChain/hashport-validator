@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/stretchr/testify/mock"
 	"math/big"
 )
@@ -49,7 +49,7 @@ func (m *MockBridgeContract) RemoveDecimals(amount *big.Int, asset common.Addres
 	return args[0].(*big.Int), args[1].(error)
 }
 
-func (m *MockBridgeContract) GetClient() evm.Core {
+func (m *MockBridgeContract) GetClient() client.Core {
 	panic("implement me")
 }
 

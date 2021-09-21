@@ -23,7 +23,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -42,8 +42,8 @@ import (
 
 type Service struct {
 	logger             *log.Entry
-	hederaNode         ihedera.HederaNode
-	mirrorNode         ihedera.MirrorNode
+	hederaNode         client.HederaNode
+	mirrorNode         client.MirrorNode
 	contractServices   map[int64]service.Contracts
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
@@ -57,8 +57,8 @@ type Service struct {
 }
 
 func NewService(
-	hederaNode ihedera.HederaNode,
-	mirrorNode ihedera.MirrorNode,
+	hederaNode client.HederaNode,
+	mirrorNode client.MirrorNode,
 	contractServices map[int64]service.Contracts,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,

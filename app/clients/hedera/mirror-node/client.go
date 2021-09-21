@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
-	httpI "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/http"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +33,7 @@ import (
 
 type Client struct {
 	mirrorAPIAddress string
-	httpClient       httpI.HttpClient
+	httpClient       client.HttpClient
 	pollingInterval  time.Duration
 	logger           *log.Entry
 }
