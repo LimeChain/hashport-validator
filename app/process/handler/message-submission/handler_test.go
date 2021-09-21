@@ -20,10 +20,12 @@ import (
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -65,6 +67,19 @@ var (
 		Shard: 0,
 		Realm: 0,
 		Topic: 10,
+	}
+
+	m = &message.Message{
+		TopicEthSignatureMessage: &proto.TopicEthSignatureMessage{
+			SourceChainId:        uint64(transferRecord.SourceChainID),
+			TargetChainId:        uint64(transferRecord.TargetChainID),
+			TransferID:           transferRecord.TransactionID,
+			Asset:                transferRecord.NativeAsset,
+			Recipient:            transferRecord.Receiver,
+			Amount:               transferRecord.Amount,
+			Signature:            "signature",
+			TransactionTimestamp: 0,
+		},
 	}
 )
 
@@ -126,7 +141,7 @@ func Test_Handle(t *testing.T) {
 		ValidStart: &date,
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{1, 2, 3}, nil)
+	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, nil)
 	mocks.MHederaMirrorClient.On("WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)
 	msHandler.Handle(&tr)
@@ -149,7 +164,7 @@ func Test_Handle_SubmitTopicConsensusMessageFails(t *testing.T) {
 		ValidStart: &date,
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{1, 2, 3}, nil)
+	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, errors.New("some-error"))
 	msHandler.Handle(&tr)
 	mocks.MHederaMirrorClient.AssertNotCalled(t, "WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)
@@ -204,7 +219,7 @@ func Test_Handle_InitiateNewTransfer_NotInitial(t *testing.T) {
 	transferRecord.Status = status.Initial
 }
 
-func Test_Handle_Sign_Fails(t *testing.T) {
+func Test_Handle_SignMessage_Fails(t *testing.T) {
 	setup()
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
@@ -221,7 +236,7 @@ func Test_Handle_Sign_Fails(t *testing.T) {
 		ValidStart: &date,
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{1, 2, 3}, errors.New("some-error"))
+	mocks.MMessageService.On("SignMessage", mock.Anything).Return(&message.Message{}, errors.New("some-error"))
 	msHandler.Handle(&tr)
 	mocks.MHederaNodeClient.AssertNotCalled(t, "SubmitTopicConsensusMessage", topicId, mock.Anything)
 	mocks.MHederaMirrorClient.AssertNotCalled(t, "WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)
