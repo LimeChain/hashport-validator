@@ -46,6 +46,7 @@ var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
 var MEVMCoreClient *evm_client.MockEVMCoreClient
 var MHTTPClient *http_client.MockHttpClient
+var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *evm_client.MockEVMClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
@@ -67,6 +68,7 @@ func Setup() {
 	MScheduleRepository = &repository.MockScheduleRepository{}
 	MStatusRepository = &repository.MockStatusRepository{}
 	MDistributorService = &service.MockDistrubutorService{}
+	MReadOnlyService = &service.MockReadOnlyService{}
 	MMessageService = &service.MockMessageService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}

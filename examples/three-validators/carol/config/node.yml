@@ -1,6 +1,6 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
-#validator:
+#node:
 #  db:
 #    host:
 #    name:

@@ -19,7 +19,7 @@ package transfer
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,7 +50,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != transfer.StatusInitial {
+	if transactionRecord.Status != status.Initial {
 		fmh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}

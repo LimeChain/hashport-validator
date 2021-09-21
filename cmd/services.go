@@ -25,13 +25,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
+	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
 
-// TODO extract new service only for EVM TX handling
 type Services struct {
 	signers          map[int64]service.Signer
 	contractServices map[int64]service.Contracts
@@ -42,6 +42,7 @@ type Services struct {
 	fees             service.Fee
 	distributor      service.Distributor
 	scheduled        service.Scheduled
+	readOnly         service.ReadOnly
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -62,11 +63,20 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
+	messages := messages.NewService(
+		evmSigners,
+		contractServices,
+		repositories.transfer,
+		repositories.message,
+		clients.MirrorNode,
+		clients.EVMClients,
+		c.Bridge.TopicId,
+		c.Bridge.Assets)
+
 	transfers := transfers.NewService(
 		clients.HederaNode,
 		clients.MirrorNode,
 		contractServices,
-		evmSigners,
 		repositories.transfer,
 		repositories.schedule,
 		repositories.fee,
@@ -74,18 +84,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
-		scheduled)
-
-	messages := messages.NewService(
-		evmSigners,
-		contractServices,
-		repositories.transfer,
-		repositories.message,
-		clients.HederaNode,
-		clients.MirrorNode,
-		clients.EVMClients,
-		c.Bridge.TopicId,
-		c.Bridge.Assets)
+		scheduled,
+		messages)
 
 	burnEvent := burn_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,
@@ -102,6 +102,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		repositories.schedule,
 		scheduled)
 
+	readOnly := read_only.New(clients.MirrorNode, repositories.transfer)
+
 	return &Services{
 		signers:          evmSigners,
 		contractServices: contractServices,
@@ -111,6 +113,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		lockEvents:       lockEvent,
 		fees:             fees,
 		distributor:      distributor,
+		readOnly:         readOnly,
 	}
 }
 

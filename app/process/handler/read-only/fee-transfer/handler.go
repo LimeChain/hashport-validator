@@ -19,16 +19,15 @@ package fee_transfer
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -37,24 +36,24 @@ import (
 type Handler struct {
 	feeRepository      repository.Fee
 	scheduleRepository repository.Schedule
-	mirrorNode         ihedera.MirrorNode
+	mirrorNode         client.MirrorNode
 	bridgeAccount      hedera.AccountID
 	feeService         service.Fee
 	distributorService service.Distributor
 	transfersService   service.Transfers
-	transferRepository repository.Transfer
+	readOnlyService    service.ReadOnly
 	logger             *log.Entry
 }
 
 func NewHandler(
 	feeRepository repository.Fee,
 	scheduleRepository repository.Schedule,
-	mirrorNode ihedera.MirrorNode,
+	mirrorNode client.MirrorNode,
 	bridgeAccount string,
 	distributorService service.Distributor,
 	feeService service.Fee,
 	transfersService service.Transfers,
-	transferRepository repository.Transfer) *Handler {
+	readOnlyService service.ReadOnly) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -68,7 +67,7 @@ func NewHandler(
 		feeService:         feeService,
 		logger:             config.GetLoggerFor("Hedera Fee and Schedule Transfer Read-only Handler"),
 		transfersService:   transfersService,
-		transferRepository: transferRepository,
+		readOnlyService:    readOnlyService,
 	}
 }
 
@@ -85,7 +84,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != transfer.StatusInitial {
+	if transactionRecord.Status != status.Initial {
 		fmh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
@@ -103,99 +102,36 @@ func (fmh Handler) Handle(payload interface{}) {
 		remainder += calculatedFee - validFee
 	}
 
-	expectedTransfers, err := fmh.distributorService.PrepareTransfers(validFee, transferMsg.TargetAsset)
-	if err != nil {
-		fmh.logger.Errorf("[%s] - Failed to calculate distribution. Error: [%s]", transferMsg.TransactionId, err)
-	}
-
-	if transferMsg.TargetAsset == constants.Hbar {
-		expectedTransfers = append(expectedTransfers,
-			hedera_mirror_node.Transfer{
-				Account: transferMsg.Receiver,
-				Amount:  remainder,
+	fmh.readOnlyService.FindTransfer(transferMsg.TransactionId, func() (*mirror_node.Response, error) {
+		return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+	}, func(transactionID, scheduleID, status string) error {
+		err := fmh.scheduleRepository.Create(&entity.Schedule{
+			TransactionID: transactionID,
+			ScheduleID:    scheduleID,
+			Operation:     schedule.TRANSFER,
+			Status:        status,
+			TransferID: sql.NullString{
+				String: transferMsg.TransactionId,
+				Valid:  true,
 			},
-			hedera_mirror_node.Transfer{
-				Account: fmh.bridgeAccount.String(),
-				Amount:  -intAmount,
-			})
-	}
-
-	for {
-		response, err := fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+		})
 		if err != nil {
-			fmh.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transactionRecord.TransactionID, err)
+			fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
+			return err
 		}
-
-		finished := false
-		for _, transaction := range response.Transactions {
-			isFound := false
-			scheduledTx, err := fmh.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
-			if err != nil {
-				fmh.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferMsg.TransactionId, transaction.TransactionID, err)
-				continue
-			}
-			for _, tx := range scheduledTx.Transactions {
-				if tx.Result == hedera.StatusSuccess.String() {
-					scheduleID, err := fmh.mirrorNode.GetSchedule(tx.EntityId)
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
-						break
-					}
-					if scheduleID.Memo == transferMsg.TransactionId {
-						isFound = true
-					}
-				}
-				if isFound {
-					finished = true
-					isSuccessful := transaction.Result == hedera.StatusSuccess.String()
-					status := schedule.StatusCompleted
-					if !isSuccessful {
-						status = schedule.StatusFailed
-					}
-					err := fmh.scheduleRepository.Create(&entity.Schedule{
-						TransactionID: transaction.TransactionID,
-						ScheduleID:    tx.EntityId,
-						Operation:     schedule.TRANSFER,
-						Status:        status,
-						TransferID: sql.NullString{
-							String: transferMsg.TransactionId,
-							Valid:  true,
-						},
-					})
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-						break
-					}
-					err = fmh.feeRepository.Create(&entity.Fee{
-						TransactionID: transaction.TransactionID,
-						ScheduleID:    tx.EntityId,
-						Amount:        strconv.FormatInt(validFee, 10),
-						Status:        status,
-						TransferID: sql.NullString{
-							String: transferMsg.TransactionId,
-							Valid:  true,
-						},
-					})
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, tx.EntityId, err)
-						break
-					}
-
-					if isSuccessful {
-						err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-					} else {
-						//err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId) // TODO: add
-					}
-					if err != nil {
-						fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-						break
-					}
-					break
-				}
-			}
+		err = fmh.feeRepository.Create(&entity.Fee{
+			TransactionID: transactionID,
+			ScheduleID:    scheduleID,
+			Amount:        strconv.FormatInt(validFee, 10),
+			Status:        status,
+			TransferID: sql.NullString{
+				String: transferMsg.TransactionId,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
 		}
-		if finished {
-			break
-		}
-	}
+		return err
+	})
 }

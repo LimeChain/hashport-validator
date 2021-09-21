@@ -28,6 +28,30 @@ type MockTransferService struct {
 	mock.Mock
 }
 
+func (mts *MockTransferService) GetByTransactionId(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithFee(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithPreloads(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) Create(ct *transfer.Transfer) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusCompleted(txId string) error {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusFailed(txId string) error {
+	panic("implement me")
+}
+
 func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
@@ -50,14 +74,6 @@ func (mts *MockTransferService) SanityCheckTransfer(tx model.Transaction) (int64
 		return args.Get(0).(int64), args.Get(1).(string), nil
 	}
 	return args.Get(0).(int64), args.Get(1).(string), args.Get(2).(error)
-}
-
-func (mts *MockTransferService) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset, evmAddress string) error {
-	args := mts.Called(txId, amount, nativeAsset, wrappedAsset, evmAddress)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
 }
 
 func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {

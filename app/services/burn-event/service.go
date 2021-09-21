@@ -23,8 +23,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -127,7 +127,6 @@ func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.A
 // TransactionID returns the corresponding Scheduled Transaction paying out the
 // fees to validators and the amount being bridged to the receiver address
 func (s *Service) TransactionID(id string) (string, error) {
-	// TODO: Get the schedule transaction ID for the transfer
 	event, err := s.scheduleRepository.GetTransferByTransactionID(id)
 	if err != nil {
 		s.logger.Errorf("[%s] - failed to get event.", id)
@@ -150,7 +149,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
 			TransactionID: transactionID,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -166,7 +165,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Amount:        feeAmount,
-			Status:        fee.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -183,7 +182,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 	onExecutionFail = func(transactionID string) {
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
-			Status:        schedule.StatusFailed,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -193,17 +192,17 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
 			return
 		}
-		// TODO:
-		//err = s.repository.UpdateStatusFailed(id)
-		//if err != nil {
-		//	s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
-		//	return
-		//}
+
+		err = s.repository.UpdateStatusFailed(id)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", id, err)
+			return
+		}
 
 		err = s.feeRepository.Create(&entity.Fee{
 			TransactionID: transactionID,
 			Amount:        feeAmount,
-			Status:        fee.StatusFailed,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,
@@ -241,17 +240,17 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 
 	onFail = func(transactionID string) {
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
-		err := s.scheduleRepository.UpdateStatusFailed(id)
+		err := s.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
 			return
 		}
-		// TODO:
-		//err = s.repository.UpdateStatusFailed(transactionID)
-		//if err != nil {
-		//	s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", transactionID, err)
-		//	return
-		//}
+
+		err = s.repository.UpdateStatusFailed(id)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to update status failed. Error [%s].", transactionID, err)
+			return
+		}
 
 		err = s.feeRepository.UpdateStatusFailed(transactionID)
 		if err != nil {

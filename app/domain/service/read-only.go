@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package schedule
+package service
 
-const (
-	// StatusCompleted is a status set once the Schedule operation is successfully completed.
-	// This is a terminal status
-	StatusCompleted = "COMPLETED"
-	// StatusFailed is a status set once the Schedule operation has failed. Can be created with a failed Status
-	// This is a terminal status
-	StatusFailed = "FAILED"
-	// StatusSubmitted is set when a pending Schedule operation is created.
-	StatusSubmitted = "SUBMITTED"
-)
+import "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+
+type ReadOnly interface {
+	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
+}

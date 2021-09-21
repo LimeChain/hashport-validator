@@ -156,44 +156,43 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-// TODO: Uncomment after unit test infrastructure refactoring
+func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
+	setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
 
-//func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
-//	setup()
-//	mocks.MEVMClient.On("GetClient").Return(&ethclient.Client{})
-//	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
-//	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
-//
-//	w.handleLockLog(lockLog, mocks.MQueue)
-//
-//	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-//}
+	w.handleLockLog(lockLog, mocks.MQueue)
 
-//func Test_HandleLockLog_HappyPath(t *testing.T) {
-//	setup()
-//	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
-//	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
-//	parsedLockLog := &transfer.Transfer{
-//		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-//		SourceChainId: int64(33),
-//		TargetChainId: lockLog.TargetChain.Int64(),
-//		NativeChainId: int64(33),
-//		SourceAsset:   lockLog.Token.String(),
-//		TargetAsset:   constants.Hbar,
-//		NativeAsset:   lockLog.Token.String(),
-//		Receiver:      hederaAcc.String(),
-//		Amount:        lockLog.Amount.String(),
-//		RouterAddress: "",
-//	}
-//
-//	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
-//	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, Topic: constants.HederaMintHtsTransfer}).Return()
-//
-//	w.handleLockLog(lockLog, mocks.MQueue)
-//}
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_HandleLockLog_HappyPath(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
+	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
+	parsedLockLog := &transfer.Transfer{
+		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
+		SourceChainId: int64(33),
+		TargetChainId: lockLog.TargetChain.Int64(),
+		NativeChainId: int64(33),
+		SourceAsset:   lockLog.Token.String(),
+		TargetAsset:   constants.Hbar,
+		NativeAsset:   lockLog.Token.String(),
+		Receiver:      hederaAcc.String(),
+		Amount:        lockLog.Amount.String(),
+	}
+
+	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
+	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, Topic: constants.HederaMintHtsTransfer}).Return()
+
+	w.handleLockLog(lockLog, mocks.MQueue)
+}
 
 func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.Setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
@@ -218,7 +217,6 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 		NativeAsset:   lockLog.Token.String(),
 		Receiver:      hederaAcc.String(),
 		Amount:        lockLog.Amount.String(),
-		RouterAddress: "",
 		Timestamp:     "1",
 	}
 
@@ -255,7 +253,6 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 		NativeAsset:   lockLog.Token.String(),
 		Receiver:      common.BytesToAddress(hederaAcc.ToBytes()).String(),
 		Amount:        lockLog.Amount.String(),
-		RouterAddress: "",
 		Timestamp:     "1",
 	}
 
@@ -268,6 +265,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 
 func Test_HandleLockLog_UpdateFails(t *testing.T) {
 	setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
@@ -293,7 +291,6 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 		NativeAsset:   lockLog.Token.String(),
 		Receiver:      common.BytesToAddress(hederaAcc.ToBytes()).String(),
 		Amount:        lockLog.Amount.String(),
-		RouterAddress: "",
 	}
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
@@ -305,6 +302,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 
 func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	parsedBurnLog := &transfer.Transfer{
@@ -317,7 +315,6 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 		NativeAsset:   constants.Hbar,
 		Receiver:      hederaAcc.String(),
 		Amount:        burnLog.Amount.String(),
-		RouterAddress: "",
 	}
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
@@ -328,6 +325,7 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 
 func Test_HandleBurnLog_UpdateFails(t *testing.T) {
 	setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
@@ -339,6 +337,7 @@ func Test_HandleBurnLog_UpdateFails(t *testing.T) {
 
 func Test_HandleBurnLog_WaitForConfirmationFails(t *testing.T) {
 	setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID").Return(big.NewInt(33))
 	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(errors.New("some-error"))
 	w.handleBurnLog(burnLog, mocks.MQueue)
@@ -372,7 +371,6 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 		NativeAsset:   "0xsomeethaddress",
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
-		RouterAddress: "",
 	}
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
@@ -415,7 +413,6 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		NativeAsset:   "0xsomeethaddress",
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
-		RouterAddress: "",
 		Timestamp:     "1",
 	}
 
@@ -429,6 +426,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 
 func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.Setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
@@ -452,7 +450,6 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		NativeAsset:   constants.Hbar,
 		Receiver:      hederaAcc.String(),
 		Amount:        burnLog.Amount.String(),
-		RouterAddress: "",
 		Timestamp:     "1",
 	}
 
@@ -465,6 +462,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 func Test_HandleBurnLog_GetBlockTimestamp_Fails(t *testing.T) {
 	mocks.Setup()
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(0), errors.New("some-error"))
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
 		repository: mocks.MStatusRepository,
@@ -486,6 +484,7 @@ func Test_HandleBurnLog_GetBlockTimestamp_Fails(t *testing.T) {
 
 func Test_HandleLockLog_GetBlockTimestamp_Fails(t *testing.T) {
 	mocks.Setup()
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(0), errors.New("some-error"))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{

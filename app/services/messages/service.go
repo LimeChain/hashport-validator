@@ -20,14 +20,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client/evm"
-	ihedera "github.com/limechain/hedera-eth-bridge-validator/app/domain/client/hedera"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	ethhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
@@ -44,9 +44,8 @@ type Service struct {
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
-	hederaClient       ihedera.HederaNode
-	mirrorClient       ihedera.MirrorNode
-	ethClients         map[int64]evm.EVM
+	mirrorClient       client.MirrorNode
+	ethClients         map[int64]client.EVM
 	logger             *log.Entry
 	mappings           config.Assets
 }
@@ -56,9 +55,8 @@ func NewService(
 	contractServices map[int64]service.Contracts,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
-	hederaClient ihedera.HederaNode,
-	mirrorClient ihedera.MirrorNode,
-	ethClients map[int64]evm.EVM,
+	mirrorClient client.MirrorNode,
+	ethClients map[int64]client.EVM,
 	topicID string,
 	mappings config.Assets,
 ) *Service {
@@ -74,7 +72,6 @@ func NewService(
 		transferRepository: transferRepository,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Messages Service")),
 		topicID:            tID,
-		hederaClient:       hederaClient,
 		mirrorClient:       mirrorClient,
 		ethClients:         ethClients,
 		mappings:           mappings,
@@ -92,7 +89,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 
 	signedAmount := t.Amount
-	if t.HasFee {
+	if t.NativeChainID == 0 {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
@@ -107,17 +104,6 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
 
-	//targetAsset := ss.mappings.NativeToWrapped(t.SourceAsset, int64(topicMessage.SourceChainId), int64(topicMessage.TargetChainId))
-	//if targetAsset == "" {
-	//	ss.logger.Errorf("[%s] - Could not parse native asset [%s]", t.TransactionID, t.NativeAsset)
-	//	nativeAsset := ss.mappings.WrappedToNative(t.NativeAsset, int64(topicMessage.SourceChainId))
-	//	if nativeAsset == nil {
-	//		ss.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
-	//		return
-	//	}
-	//	return false, err
-	//}
-
 	match :=
 		topicMessage.Recipient == t.Receiver &&
 			topicMessage.Amount == signedAmount &&
@@ -126,6 +112,30 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 			int64(topicMessage.SourceChainId) == t.SourceChainID &&
 			topicMessage.TransferID == t.TransactionID
 	return match, nil
+}
+
+func (ss Service) SignMessage(tm model.Transfer) (*message.Message, error) {
+	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+
+	signatureBytes, err := ss.ethSigners[tm.TargetChainId].Sign(authMsgHash)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+	signature := hex.EncodeToString(signatureBytes)
+
+	return message.NewSignature(
+		uint64(tm.SourceChainId),
+		uint64(tm.TargetChainId),
+		tm.TransactionId,
+		tm.TargetAsset,
+		tm.Receiver,
+		tm.Amount,
+		signature), nil
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
@@ -211,10 +221,10 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 		}
 
 		if t != nil {
-			if !t.HasFee {
+			if t.NativeChainID != 0 {
 				return t, nil
 			}
-			if t.HasFee && t.Fee.TransactionID != "" {
+			if t.NativeChainID == 0 && t.Fee.TransactionID != "" {
 				return t, nil
 			}
 		}

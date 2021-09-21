@@ -27,8 +27,6 @@ type Transfers interface {
 	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
 	SanityCheckTransfer(tx model.Transaction) (int64, string, error)
-	// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TXn
-	SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, m string) error
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)

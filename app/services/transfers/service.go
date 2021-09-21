@@ -18,7 +18,6 @@ package transfers
 
 import (
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -30,12 +29,11 @@ import (
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -47,13 +45,13 @@ type Service struct {
 	hederaNode         ihedera.HederaNode
 	mirrorNode         ihedera.MirrorNode
 	contractServices   map[int64]service.Contracts
-	ethSigners         map[int64]service.Signer
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
 	feeRepository      repository.Fee
 	distributor        service.Distributor
 	feeService         service.Fee
 	scheduledService   service.Scheduled
+	messageService     service.Messages
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
 }
@@ -62,7 +60,6 @@ func NewService(
 	hederaNode ihedera.HederaNode,
 	mirrorNode ihedera.MirrorNode,
 	contractServices map[int64]service.Contracts,
-	signers map[int64]service.Signer,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	feeRepository repository.Fee,
@@ -71,6 +68,7 @@ func NewService(
 	topicID string,
 	bridgeAccount string,
 	scheduledService service.Scheduled,
+	messageService service.Messages,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -86,7 +84,6 @@ func NewService(
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
 		contractServices:   contractServices,
-		ethSigners:         signers,
 		transferRepository: transferRepository,
 		scheduleRepository: scheduleRepository,
 		feeRepository:      feeRepository,
@@ -95,6 +92,7 @@ func NewService(
 		distributor:        distributor,
 		bridgeAccountID:    bridgeAccountID,
 		scheduledService:   scheduledService,
+		messageService:     messageService,
 	}
 }
 
@@ -148,28 +146,6 @@ func (ts *Service) InitiateNewTransfer(tm model.Transfer) (*entity.Transfer, err
 	return tx, nil
 }
 
-//// SaveRecoveredTxn creates new Transaction record persisting the recovered Transfer TX
-func (ts *Service) SaveRecoveredTxn(txId, amount, nativeAsset, wrappedAsset string, memo string) error {
-	//// TODO: Add ChainID to the parameters and remove mockChainID
-	//mockChainID := int64(80001)
-	//err := ts.transferRepository.SaveRecoveredTxn(&model.Transfer{
-	//	TransactionId: txId,
-	//	RouterAddress: ts.contractServices[mockChainID].Address().String(),
-	//	Receiver:      memo,
-	//	Amount:        amount,
-	//	NativeAsset:   nativeAsset,
-	//	WrappedAsset:  wrappedAsset,
-	//})
-	//if err != nil {
-	//	ts.logger.Errorf("[%s] - Something went wrong while saving new Recovered Transaction. Error [%s]", txId, err)
-	//	return err
-	//}
-	//
-	//ts.logger.Infof("Added new Transaction Record with Txn ID [%s]", txId)
-	//return err
-	return nil
-}
-
 func (ts *Service) authMessageSubmissionCallbacks(txId string) (onSuccess, onRevert func()) {
 	onSuccess = func() {
 		ts.logger.Debugf("Authorisation Signature TX successfully executed for TX [%s]", txId)
@@ -198,27 +174,11 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, wrappedAmount)
+	tm.Amount = wrappedAmount
+	signatureMessage, err := ts.messageService.SignMessage(tm)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
-
-	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	signatureMessage := message.NewSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		wrappedAmount,
-		signature)
 
 	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
 }
@@ -246,27 +206,10 @@ statusBlocker:
 		}
 	}
 
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+	signatureMessage, err := ts.messageService.SignMessage(tm)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
-
-	signatureBytes, err := ts.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	signatureMessage := message.NewSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		tm.Amount,
-		signature)
 
 	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
 }
@@ -312,7 +255,7 @@ func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, native
 	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
-func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		ts.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
 			transferID,
@@ -321,14 +264,14 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.BURN,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
 			},
 		})
 		if err != nil {
-			*status <- sync.FAIL
+			*blocker <- sync.FAIL
 			ts.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				transferID, transactionID, scheduleID, err)
@@ -337,11 +280,11 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, status *
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*status <- sync.FAIL
+		*blocker <- sync.FAIL
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.BURN,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -397,7 +340,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -413,7 +356,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Amount:        feeAmount,
-			Status:        fee.StatusSubmitted,
+			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -431,7 +374,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.TRANSFER,
-			Status:        schedule.StatusSubmitted,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -445,7 +388,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 		}
 		err = ts.feeRepository.Create(&entity.Fee{
 			Amount: feeAmount,
-			Status: fee.StatusFailed,
+			Status: status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
@@ -508,13 +451,12 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	// TODO: remove when fee check is not here
-	if t != nil && t.HasFee && t.Fee.Amount == "" {
+	if t != nil && t.NativeChainID == 0 && t.Fee.Amount == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
 	signedAmount := t.Amount
-	if t.HasFee {
+	if t.NativeChainID == 0 {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
