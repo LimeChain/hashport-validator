@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -155,7 +155,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx mirror_node.Transaction, q qi.Queue) {
+func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {

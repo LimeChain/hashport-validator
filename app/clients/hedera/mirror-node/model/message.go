@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package service
+package model
 
-import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+type (
+	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
+	Message struct {
+		ConsensusTimestamp string `json:"consensus_timestamp"`
+		TopicId            string `json:"topic_id"`
+		Contents           string `json:"message"`
+		RunningHash        string `json:"running_hash"`
+		SequenceNumber     int    `json:"sequence_number"`
+	}
+	// Messages struct used by the Hedera Mirror node REST API and returned once
+	// Topic Messages are queried
+	Messages struct {
+		Messages []Message
+	}
 )
-
-type ReadOnly interface {
-	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
-}

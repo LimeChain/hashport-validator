@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package service
+package client
 
-import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
-)
+import "net/http"
 
-type ReadOnly interface {
-	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
+type HttpClient interface {
+	Get(url string) (resp *http.Response, err error)
 }

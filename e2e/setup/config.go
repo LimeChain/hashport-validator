@@ -17,6 +17,7 @@
 package setup
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -176,8 +177,9 @@ func newClients(config Config) (*clients, error) {
 		routerContractAddress := common.HexToAddress(config.Bridge.Networks[chainId].RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
+		chain, err := evmClient.ChainID(context.Background())
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
-		keyTransactor, err := signer.NewKeyTransactor(evmClient.ChainID())
+		keyTransactor, err := signer.NewKeyTransactor(chain)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +219,7 @@ func InitWrappedAssetContract(nativeAsset string, nativeAssets config.Assets, so
 }
 
 func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.Client)
+	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.GetClient())
 }
 
 func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain int64, nativeAsset string) (string, error) {

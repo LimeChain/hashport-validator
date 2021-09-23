@@ -21,6 +21,7 @@ import (
 	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
+	http_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/http-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
@@ -30,18 +31,24 @@ import (
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
 var MTransferService *service.MockTransferService
 var MDistributorService *service.MockDistrubutorService
+var MMessageService *service.MockMessageService
 var MScheduledService *service.MockScheduledService
 var MFeeService *service.MockFeeService
 var MBurnService *service.MockBurnService
 var MLockService *service.MockLockService
 var MBridgeContractService *MockBridgeContract
 var MTransferRepository *repository.MockTransferRepository
+var MMessageRepository *repository.MockMessageRepository
 var MFeeRepository *repository.MockFeeRepository
 var MScheduleRepository *repository.MockScheduleRepository
 var MStatusRepository *repository.MockStatusRepository
 var MHederaMirrorClient *hedera_mirror_client.MockHederaMirrorClient
 var MHederaNodeClient *hedera_node_client.MockHederaNodeClient
+var MEVMCoreClient *evm_client.MockEVMCoreClient
+var MHTTPClient *http_client.MockHttpClient
+var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *evm_client.MockEVMClient
+var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
 
@@ -52,15 +59,21 @@ func Setup() {
 	MTransferService = &service.MockTransferService{}
 	MScheduledService = &service.MockScheduledService{}
 	MFeeService = &service.MockFeeService{}
+	MSignerService = &service.MockSignerService{}
 	MLockService = &service.MockLockService{}
 	MBurnService = &service.MockBurnService{}
 	MTransferRepository = &repository.MockTransferRepository{}
 	MFeeRepository = &repository.MockFeeRepository{}
+	MMessageRepository = &repository.MockMessageRepository{}
 	MScheduleRepository = &repository.MockScheduleRepository{}
 	MStatusRepository = &repository.MockStatusRepository{}
 	MDistributorService = &service.MockDistrubutorService{}
+	MReadOnlyService = &service.MockReadOnlyService{}
+	MMessageService = &service.MockMessageService{}
 	MHederaMirrorClient = &hedera_mirror_client.MockHederaMirrorClient{}
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
 	MEVMClient = &evm_client.MockEVMClient{}
+	MEVMCoreClient = &evm_client.MockEVMCoreClient{}
+	MHTTPClient = &http_client.MockHttpClient{}
 	MQueue = &queue.MockQueue{}
 }

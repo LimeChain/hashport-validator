@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -332,7 +333,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mintTransfer := []mirror_node.Transfer{
+	mintTransfer := []model.Transfer{
 		{
 			Account: setupEnv.BridgeAccount.String(),
 			Amount:  expectedAmount,
@@ -461,7 +462,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	}
 
 	transactionResponse, nativeBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, setupEnv.NativeEvmToken, tokenID, evm, memo, evm.Receiver, expectedUnlockAmount, t)
-	burnTransfer := []mirror_node.Transfer{
+	burnTransfer := []model.Transfer{
 		{
 			Account: setupEnv.BridgeAccount.String(),
 			Amount:  -expectedUnlockAmount, // TODO: examine what amount exactly will be sent
@@ -766,7 +767,7 @@ func validateLockEvent(txReceipt *types.Receipt, expectedRouterLock *router.Rout
 	return ""
 }
 
-func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	receiverTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), asset, expectedTransfers, t)
 
 	membersTransactionID, membersScheduleID := validateMembersScheduledTxs(setupEnv, asset, expectedTransfers, t)
@@ -782,7 +783,7 @@ func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedT
 	return receiverTransactionID, receiverScheduleID
 }
 
-func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	timeLeft := 180
 	for {
 		response, err := setupEnv.Clients.MirrorNode.GetAccountTokenMintTransactionsAfterTimestamp(account, now.UnixNano())
@@ -812,7 +813,7 @@ func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, as
 	return "", ""
 }
 
-func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	timeLeft := 180
 	for {
 		response, err := setupEnv.Clients.MirrorNode.GetAccountTokenBurnTransactionsAfterTimestamp(account, now.UnixNano())
@@ -842,7 +843,7 @@ func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, as
 	return "", ""
 }
 
-func listenForTx(response *mirror_node.Response, mirrorNode *mirror_node.Client, expectedTransfers []mirror_node.Transfer, asset string, t *testing.T) (string, string) {
+func listenForTx(response *model.Response, mirrorNode *mirror_node.Client, expectedTransfers []model.Transfer, asset string, t *testing.T) (string, string) {
 	for _, transaction := range response.Transactions {
 		if transaction.Scheduled == true {
 			scheduleCreateTx, err := mirrorNode.GetTransaction(transaction.TransactionID)
@@ -883,7 +884,7 @@ func listenForTx(response *mirror_node.Response, mirrorNode *mirror_node.Client,
 	return "", ""
 }
 
-func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	timeLeft := 180
 	for {
 		response, err := setupEnv.Clients.MirrorNode.GetAccountCreditTransactionsAfterTimestamp(account, now.UnixNano())
@@ -913,7 +914,7 @@ func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset 
 	return "", ""
 }
 
-func validateMembersScheduledTxs(setupEnv *setup.Setup, asset string, expectedTransfers []mirror_node.Transfer, t *testing.T) (transactionID, scheduleID string) {
+func validateMembersScheduledTxs(setupEnv *setup.Setup, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	if len(setupEnv.Members) == 0 {
 		return "", ""
 	}
@@ -1007,22 +1008,22 @@ func submitUnlockTransaction(evm setup.EVMUtils, txId string, transactionData *s
 	return res.Hash()
 }
 
-func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asset string, amount, fee int64) []mirror_node.Transfer {
+func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asset string, amount, fee int64) []model.Transfer {
 	total := amount + fee
 	feePerMember := fee / int64(len(setupEnv.Members))
 
-	var expectedTransfers []mirror_node.Transfer
-	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+	var expectedTransfers []model.Transfer
+	expectedTransfers = append(expectedTransfers, model.Transfer{
 		Account: setupEnv.BridgeAccount.String(),
 		Amount:  -total,
 	},
-		mirror_node.Transfer{
+		model.Transfer{
 			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 			Amount:  amount,
 		})
 
 	for _, member := range setupEnv.Members {
-		expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+		expectedTransfers = append(expectedTransfers, model.Transfer{
 			Account: member.String(),
 			Amount:  feePerMember,
 		})
@@ -1037,8 +1038,8 @@ func generateMirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asse
 	return expectedTransfers
 }
 
-func generateMirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string, amount int64) []mirror_node.Transfer {
-	expectedTransfers := []mirror_node.Transfer{
+func generateMirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string, amount int64) []model.Transfer {
+	expectedTransfers := []model.Transfer{
 		{
 			Account: setupEnv.BridgeAccount.String(),
 			Amount:  -amount,
@@ -1054,17 +1055,17 @@ func generateMirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asse
 	return expectedTransfers
 }
 
-func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup, asset string, fee int64) []mirror_node.Transfer {
+func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup, asset string, fee int64) []model.Transfer {
 	feePerMember := fee / int64(len(setupEnv.Members))
 
-	var expectedTransfers []mirror_node.Transfer
-	expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+	var expectedTransfers []model.Transfer
+	expectedTransfers = append(expectedTransfers, model.Transfer{
 		Account: setupEnv.BridgeAccount.String(),
 		Amount:  -fee,
 	})
 
 	for _, member := range setupEnv.Members {
-		expectedTransfers = append(expectedTransfers, mirror_node.Transfer{
+		expectedTransfers = append(expectedTransfers, model.Transfer{
 			Account: member.String(),
 			Amount:  feePerMember,
 		})

@@ -17,7 +17,7 @@
 package service
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -26,6 +26,30 @@ import (
 
 type MockTransferService struct {
 	mock.Mock
+}
+
+func (mts *MockTransferService) GetByTransactionId(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithFee(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) GetWithPreloads(txId string) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) Create(ct *transfer.Transfer) (*entity.Transfer, error) {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusCompleted(txId string) error {
+	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateStatusFailed(txId string) error {
+	panic("implement me")
 }
 
 func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) error {
@@ -44,7 +68,7 @@ func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) err
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) (int64, string, error) {
+func (mts *MockTransferService) SanityCheckTransfer(tx model.Transaction) (int64, string, error) {
 	args := mts.Called(tx)
 	if args.Get(2) == nil {
 		return args.Get(0).(int64), args.Get(1).(string), nil
@@ -54,6 +78,9 @@ func (mts *MockTransferService) SanityCheckTransfer(tx mirror_node.Transaction) 
 
 func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {
 	args := mts.Called(tm)
+	if args.Get(0) == nil && args.Get(1) == nil {
+		return nil, nil
+	}
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(error)
 	}

@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-package service
+package client
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"golang.org/x/net/context"
+	"math/big"
 )
 
-type ReadOnly interface {
-	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
+type Core interface {
+	bind.ContractBackend
+	ChainID(ctx context.Context) (*big.Int, error)
+	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
+	BlockNumber(ctx context.Context) (uint64, error)
+	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }

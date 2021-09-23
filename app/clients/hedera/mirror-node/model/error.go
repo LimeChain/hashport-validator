@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mirror_node
+package model
 
 import (
 	"fmt"

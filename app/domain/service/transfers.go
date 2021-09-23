@@ -17,7 +17,7 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
@@ -26,7 +26,7 @@ import (
 type Transfers interface {
 	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
-	SanityCheckTransfer(tx mirror_node.Transaction) (int64, string, error)
+	SanityCheckTransfer(tx model.Transaction) (int64, string, error)
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)

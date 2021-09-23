@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -111,29 +111,36 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
-		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+		err := cmw.getAndProcessMessages(q, milestoneTimestamp)
 		if err != nil {
-			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
 			go cmw.beginWatching(q)
-			return
-		}
-
-		cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
-
-		for _, msg := range messages {
-			milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
-			if err != nil {
-				cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
-				continue
-			}
-			cmw.processMessage(msg, q)
-			cmw.updateStatusTimestamp(milestoneTimestamp)
 		}
 		time.Sleep(cmw.pollingInterval * time.Second)
 	}
 }
 
-func (cmw Watcher) processMessage(topicMsg mirror_node.Message, q qi.Queue) {
+func (cmw Watcher) getAndProcessMessages(q qi.Queue, milestoneTimestamp int64) error {
+	messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+	if err != nil {
+		cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
+		return err
+	}
+
+	cmw.logger.Tracef("Polling found [%d] Messages", len(messages))
+
+	for _, msg := range messages {
+		milestoneTimestamp, err = timestamp.FromString(msg.ConsensusTimestamp)
+		if err != nil {
+			cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
+			continue
+		}
+		cmw.processMessage(msg, q)
+		cmw.updateStatusTimestamp(milestoneTimestamp)
+	}
+	return nil
+}
+
+func (cmw Watcher) processMessage(topicMsg model.Message, q qi.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)
