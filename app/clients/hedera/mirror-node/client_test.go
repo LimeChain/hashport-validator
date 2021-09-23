@@ -73,10 +73,12 @@ func Test_NewClient(t *testing.T) {
 	assert.Equal(t, c.logger, newClient.logger)
 }
 
-func Test_GetAccountTokenMintTransactionsAfterTimestamp(t *testing.T) {
+func Test_GetAccountTokenMintTransactionsAfterTimestamp_ThrowsError(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetAccountTokenMintTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	response, err := c.GetAccountTokenMintTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetSchedule_Status400(t *testing.T) {
@@ -121,25 +123,33 @@ func Test_TopicExists_Status400(t *testing.T) {
 func Test_GetAccountTokenBurnTransactionsAfterTimestamp(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetAccountTokenBurnTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	response, err := c.GetAccountTokenBurnTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetMessagesAfterTimestamp(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetMessagesAfterTimestamp(topicId, time.Now().UnixNano())
+	response, err := c.GetMessagesAfterTimestamp(topicId, time.Now().UnixNano())
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetTransaction(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetTransaction("txid")
+	response, err := c.GetTransaction("txid")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetScheduledTransaction(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetScheduledTransaction("txid")
+	response, err := c.GetScheduledTransaction("txid")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetStateProof_Status400(t *testing.T) {
@@ -147,25 +157,33 @@ func Test_GetStateProof_Status400(t *testing.T) {
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{
 		StatusCode: 400,
 	}, nil)
-	c.GetStateProof("txid")
+	response, err := c.GetStateProof("txid")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetStateProof_Fails(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetStateProof("txid")
+	response, err := c.GetStateProof("txid")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetAccountCreditTransactionsAfterTimestamp(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetAccountCreditTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	response, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, time.Now().UnixNano())
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetAccountDebitTransactionsAfterTimestampString(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetAccountDebitTransactionsAfterTimestampString(accountId, fmt.Sprintf("%v", time.Now().UnixNano()))
+	response, err := c.GetAccountDebitTransactionsAfterTimestampString(accountId, fmt.Sprintf("%v", time.Now().UnixNano()))
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
 
 func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
@@ -173,5 +191,7 @@ func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
 	now := time.Now()
 	then := now.Add(time.Hour * 2)
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
+	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
 }
