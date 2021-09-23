@@ -33,8 +33,7 @@ import (
 
 // Client EVM JSON RPC Client
 type Client struct {
-	chainId *big.Int
-	config  config.Evm
+	config config.Evm
 	client.Core
 	logger *log.Entry
 }
@@ -52,13 +51,7 @@ func NewClient(c config.Evm) *Client {
 		logger.Fatalf("Failed to initialize Client. Error [%s]", err)
 	}
 
-	chainId, err := client.ChainID(context.Background())
-	if err != nil {
-		log.Fatalf("Failed to get ChainID. Error [%s]", err)
-	}
-
 	return &Client{
-		chainId,
 		c,
 		client,
 		logger,
