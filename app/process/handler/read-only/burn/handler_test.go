@@ -80,6 +80,7 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(nil, errors.New("some-error"))
 	h.Handle(tr)
+	mocks.MReadOnlyService.AssertNotCalled(t, "FindTransfer", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func setup() {

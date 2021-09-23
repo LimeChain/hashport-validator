@@ -62,6 +62,9 @@ func Test_NewHandler(t *testing.T) {
 func Test_Handle_Fails(t *testing.T) {
 	setup()
 	h.Handle("invalid-payload")
+	mocks.MMessageService.AssertNotCalled(t, "ProcessSignature", mock.Anything)
+	mocks.MMessageRepository.AssertNotCalled(t, "Get", mock.Anything)
+	mocks.MBridgeContractService.AssertNotCalled(t, "GetMembers")
 }
 
 func Test_HandleSignatureMessage_SanityCheckFails(t *testing.T) {

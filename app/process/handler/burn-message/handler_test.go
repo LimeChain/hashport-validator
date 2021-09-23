@@ -72,7 +72,6 @@ func Test_Handle_NotInitial(t *testing.T) {
 
 	mockedService.On("InitiateNewTransfer", mt).Return(tx, nil)
 	ctHandler.Handle(&mt)
-	mockedService.AssertNotCalled(t, "InitiateNewTransfer", mock.Anything)
 	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
 }
 
@@ -86,5 +85,6 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 func Test_Handle_Payload_Fails(t *testing.T) {
 	ctHandler, mockedService := InitializeHandler()
 	ctHandler.Handle("string")
+	mockedService.AssertNotCalled(t, "InitiateNewTransfer", mock.Anything)
 	mockedService.AssertNotCalled(t, "ProcessWrappedTransfer", mock.Anything)
 }

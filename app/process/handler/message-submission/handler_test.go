@@ -122,8 +122,8 @@ func Test_Handle_Encoding_Fails(t *testing.T) {
 
 func Test_Invalid_Payload(t *testing.T) {
 	setup()
-	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(tr, nil)
 	msHandler.Handle(tr)
+	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", mock.Anything)
 }
 
 func Test_AuthMessageSubmissionCallbacks(t *testing.T) {
