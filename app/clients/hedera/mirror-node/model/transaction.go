@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package mirror_node
+package model
 
 import (
 	"errors"
@@ -120,8 +120,8 @@ func (r Response) GetLatestTxnConsensusTime() (int64, error) {
 	return max, nil
 }
 
-// isNotFound traverses all Error messages and searches for Not Found message
-func (r Response) isNotFound() bool {
+// IsNotFound traverses all Error messages and searches for Not Found message
+func (r Response) IsNotFound() bool {
 	for _, m := range r.Messages {
 		if m.IsNotFound() {
 			return true

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -124,14 +125,17 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.messages))
 
 	for _, evmClient := range clients.EVMClients {
-		chainId := evmClient.ChainID().Int64()
+		chain, err := evmClient.ChainID(context.Background())
+		if err != nil {
+			panic(err)
+		}
 		server.AddWatcher(
 			evm.NewWatcher(
 				repositories.transferStatus,
-				services.contractServices[chainId],
+				services.contractServices[chain.Int64()],
 				evmClient,
 				configuration.Bridge.Assets,
-				configuration.Node.Clients.Evm[chainId].StartBlock,
+				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
 				configuration.Node.Validator))
 	}
 

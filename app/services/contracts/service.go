@@ -19,7 +19,6 @@ package contracts
 import (
 	"errors"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
@@ -44,7 +43,7 @@ type Service struct {
 	logger   *log.Entry
 }
 
-func (bsc *Service) GetClient() *ethclient.Client {
+func (bsc *Service) GetClient() client.Core {
 	return bsc.Client.GetClient()
 }
 

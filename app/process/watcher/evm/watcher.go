@@ -58,7 +58,7 @@ func NewWatcher(
 	mappings c.Assets,
 	startBlock int64,
 	validator bool) *Watcher {
-	targetBlock, err := evmClient.GetClient().BlockNumber(context.Background())
+	targetBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
@@ -133,7 +133,7 @@ func (ew Watcher) processPastLogs(queue qi.Queue) {
 		Addresses: addresses,
 		Topics:    topics,
 	}
-	logs, err := ew.evmClient.GetClient().FilterLogs(context.Background(), *query)
+	logs, err := ew.evmClient.FilterLogs(context.Background(), *query)
 	if err != nil {
 		ew.logger.Errorf("Failed to to filter logs. Error: [%s]", err)
 		return
@@ -207,7 +207,13 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), ew.evmClient.ChainID().Int64())
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -244,7 +250,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	burnEvent := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: ew.evmClient.ChainID().Int64(),
+		SourceChainId: chain.Int64(),
 		TargetChainId: eventLog.TargetChain.Int64(),
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   eventLog.Token.String(),
@@ -307,6 +313,12 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
 
 	recipientAccount := ""
 	var err error
@@ -321,7 +333,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), ew.evmClient.ChainID().Int64(), eventLog.TargetChain.Int64())
+	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), chain.Int64(), eventLog.TargetChain.Int64())
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -338,9 +350,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	tr := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: ew.evmClient.ChainID().Int64(),
+		SourceChainId: chain.Int64(),
 		TargetChainId: eventLog.TargetChain.Int64(),
-		NativeChainId: ew.evmClient.ChainID().Int64(),
+		NativeChainId: chain.Int64(),
 		SourceAsset:   eventLog.Token.String(),
 		TargetAsset:   wrappedAsset,
 		NativeAsset:   eventLog.Token.String(),
@@ -358,7 +370,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
 		recipientAccount,
-		ew.evmClient.ChainID().Int64(),
+		chain.Int64(),
 		eventLog.TargetChain.Int64())
 
 	currentBlockNumber := eventLog.Raw.BlockNumber

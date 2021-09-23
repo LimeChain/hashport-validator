@@ -75,3 +75,19 @@ func (m *MockHederaNodeClient) SubmitScheduleSign(scheduleID hedera.ScheduleID) 
 	}
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
+
+func (m *MockHederaNodeClient) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+	args := m.Called(tokenID, amount, payerAccountID, memo)
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
+}
+
+func (m *MockHederaNodeClient) SubmitScheduledTokenBurnTransaction(id hedera.TokenID, amount int64, account hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+	args := m.Called(id, amount, account, memo)
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
+}
