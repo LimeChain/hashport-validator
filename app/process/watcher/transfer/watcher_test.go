@@ -67,63 +67,6 @@ func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-// TODO: Uncomment after unit test infrastructure refactor
-//func Test_NewMemo_CorrectCorrelation(t *testing.T) {
-//	w := initializeWatcher()
-//	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(3), "0xevmaddress", nil)
-//	mocks.MQueue.On("Push", mock.Anything).Return()
-//
-//	w.processTransaction(tx, mocks.MQueue)
-//	mocks.MTransferService.AssertCalled(t, "SanityCheckTransfer", tx)
-//	mocks.MQueue.AssertCalled(t, "Push", mock.Anything)
-//}
-
-//func Test_NewMemo_CorrectCorrelation_OnlyWrappedAssets(t *testing.T) {
-//	w := initializeWatcher()
-//	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(3), "0xevmaddress", nil)
-//	mocks.MQueue.On("Push", mock.Anything).Return()
-//
-//	w.processTransaction(tx, mocks.MQueue)
-//	mocks.MTransferService.AssertCalled(t, "SanityCheckTransfer", tx)
-//	mocks.MQueue.AssertCalled(t, "Push", mock.Anything)
-//}
-
-// TODO: uncomment when log.Fatalf is defered properly
-//func Test_NewWatcher_RecordNotFound_Fails(t *testing.T) {
-//	mocks.Setup()
-//	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
-//	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(errors.New("some-error"))
-//
-//	NewWatcher(
-//		mocks.MTransferService,
-//		mocks.MHederaMirrorClient,
-//		"0.0.444444",
-//		5,
-//		mocks.MStatusRepository,
-//		0,
-//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-//		assets,
-//		true)
-//
-//	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
-//}
-//
-//func Test_NewWatcher_GetError_Fails(t *testing.T) {
-//	mocks.Setup()
-//	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), errors.New("some-error"))
-//
-//	NewWatcher(
-//		mocks.MTransferService,
-//		mocks.MHederaMirrorClient,
-//		"0.0.444444",
-//		5,
-//		mocks.MStatusRepository,
-//		0,
-//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-//		assets,
-//		true)
-//}
-
 func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 	mocks.Setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
@@ -161,25 +104,6 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
 }
 
-//TODO: same
-//func Test_NewWatcher_NotNilTS_Update_Fails(t *testing.T) {
-//	mocks.Setup()
-//	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(errors.New("some-error"))
-//
-//	NewWatcher(
-//		mocks.MTransferService,
-//		mocks.MHederaMirrorClient,
-//		"0.0.444444",
-//		5,
-//		mocks.MStatusRepository,
-//		1,
-//		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-//		assets,
-//		true)
-//
-//	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
-//}
-
 func Test_Watch_AccountNotExist(t *testing.T) {
 	w := initializeWatcher()
 	hederaAcc := hedera.AccountID{
@@ -190,23 +114,6 @@ func Test_Watch_AccountNotExist(t *testing.T) {
 	mocks.MHederaMirrorClient.On("AccountExists", hederaAcc).Return(false)
 	w.Watch(mocks.MQueue)
 }
-
-//TODO: SAME
-//func Test_BeginWatching(t *testing.T) {
-//	w := initializeWatcher()
-//	hederaAcc := hedera.AccountID{
-//		Shard:   0,
-//		Realm:   0,
-//		Account: 444444,
-//	}
-//	transactions := &mirror_node.Response{
-//		Transactions: []mirror_node.Transaction{},
-//		Status:       mirror_node.Status{},
-//	}
-//	mocks.MHederaMirrorClient.On("GetAccountCreditTransactionsAfterTimestamp", hederaAcc, mock.Anything).
-//		Return(transactions, nil)
-//	w.beginWatching(mocks.MQueue)
-//}
 
 func Test_ProcessTransaction(t *testing.T) {
 	w := initializeWatcher()
