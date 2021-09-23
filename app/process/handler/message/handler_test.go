@@ -27,6 +27,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -82,6 +83,9 @@ func Test_HandleSignatureMessage_ProcessSignatureFails(t *testing.T) {
 	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
 	mocks.MMessageService.On("ProcessSignature", tsm).Return(errors.New("some-error"))
 	h.handleSignatureMessage(tsm)
+	mocks.MTransferRepository.AssertNotCalled(t, "Update", mock.Anything)
+	mocks.MMessageRepository.AssertNotCalled(t, "Get", mock.Anything)
+	mocks.MBridgeContractService.AssertNotCalled(t, "GetMembers")
 }
 
 func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {

@@ -63,17 +63,11 @@ func Test_Handle(t *testing.T) {
 	h.Handle(tr)
 }
 
-func Test_Handle_FindTransfer(t *testing.T) {
-	setup()
-	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: status.Initial}, nil)
-	mocks.MReadOnlyService.On("FindTransfer", mock.Anything, mock.Anything, mock.Anything)
-	h.Handle(tr)
-}
-
 func Test_Handle_NotInitialFails(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: "not-initial"}, nil)
 	h.Handle(tr)
+	mocks.MReadOnlyService.AssertNotCalled(t, "FindTransfer", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func Test_Handle_InvalidPayload(t *testing.T) {

@@ -81,6 +81,15 @@ var (
 			TransactionTimestamp: 0,
 		},
 	}
+	date = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
+	txId = &hedera.TransactionID{
+		AccountID: &hedera.AccountID{
+			Shard:   0,
+			Realm:   0,
+			Account: 2,
+		},
+		ValidStart: &date,
+	}
 )
 
 func Test_NewHandler(t *testing.T) {
@@ -126,20 +135,6 @@ func Test_AuthMessageSubmissionCallbacks(t *testing.T) {
 
 func Test_Handle(t *testing.T) {
 	setup()
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		t.Fatal(err)
-	}
-	date := time.Date(2001, time.June, 1, 1, 1, 1, 1, loc)
-
-	txId := &hedera.TransactionID{
-		AccountID: &hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 2,
-		},
-		ValidStart: &date,
-	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
 	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, nil)
@@ -149,20 +144,6 @@ func Test_Handle(t *testing.T) {
 
 func Test_Handle_SubmitTopicConsensusMessageFails(t *testing.T) {
 	setup()
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		t.Fatal(err)
-	}
-	date := time.Date(2001, time.June, 1, 1, 1, 1, 1, loc)
-
-	txId := &hedera.TransactionID{
-		AccountID: &hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 2,
-		},
-		ValidStart: &date,
-	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
 	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, errors.New("some-error"))
@@ -172,20 +153,6 @@ func Test_Handle_SubmitTopicConsensusMessageFails(t *testing.T) {
 
 func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 	setup()
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		t.Fatal(err)
-	}
-	date := time.Date(2001, time.June, 1, 1, 1, 1, 1, loc)
-
-	txId := &hedera.TransactionID{
-		AccountID: &hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 2,
-		},
-		ValidStart: &date,
-	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, errors.New("some-error"))
 	msHandler.Handle(&tr)
 	mocks.MSignerService.AssertNotCalled(t, "Sign", mock.Anything)
@@ -195,21 +162,8 @@ func Test_Handle_InitiateNewTransfer_Fails(t *testing.T) {
 
 func Test_Handle_InitiateNewTransfer_NotInitial(t *testing.T) {
 	setup()
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		t.Fatal(err)
-	}
 	transferRecord.Status = "not-initial"
-	date := time.Date(2001, time.June, 1, 1, 1, 1, 1, loc)
 
-	txId := &hedera.TransactionID{
-		AccountID: &hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 2,
-		},
-		ValidStart: &date,
-	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
 	msHandler.Handle(&tr)
 	mocks.MSignerService.AssertNotCalled(t, "Sign", mock.Anything)
@@ -221,20 +175,6 @@ func Test_Handle_InitiateNewTransfer_NotInitial(t *testing.T) {
 
 func Test_Handle_SignMessage_Fails(t *testing.T) {
 	setup()
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		t.Fatal(err)
-	}
-	date := time.Date(2001, time.June, 1, 1, 1, 1, 1, loc)
-
-	txId := &hedera.TransactionID{
-		AccountID: &hedera.AccountID{
-			Shard:   0,
-			Realm:   0,
-			Account: 2,
-		},
-		ValidStart: &date,
-	}
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
 	mocks.MMessageService.On("SignMessage", mock.Anything).Return(&message.Message{}, errors.New("some-error"))
 	msHandler.Handle(&tr)
