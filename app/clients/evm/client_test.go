@@ -40,9 +40,8 @@ var (
 func setup() {
 	mocks.Setup()
 	c = &Client{
-		chainId: big.NewInt(1),
-		Core:    mocks.MEVMCoreClient,
-		logger:  config.GetLoggerFor("EVM Client"),
+		Core:   mocks.MEVMCoreClient,
+		logger: config.GetLoggerFor("EVM Client"),
 	}
 }
 
