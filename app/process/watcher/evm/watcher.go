@@ -247,6 +247,10 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			return
 		}
 	}
+	if properAmount.Cmp(big.NewInt(0)) == 0 {
+		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+		return
+	}
 
 	burnEvent := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
@@ -339,13 +343,17 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	properAmount := eventLog.Amount
+	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
 	if eventLog.TargetChain.Int64() == 0 {
 		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
 			return
 		}
+	}
+	if properAmount.Cmp(big.NewInt(0)) == 0 {
+		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+		return
 	}
 
 	tr := &transfer.Transfer{
