@@ -20,12 +20,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
@@ -36,6 +38,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 	"strconv"
 	"strings"
 )
@@ -184,15 +187,19 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
-	intAmount, err := strconv.ParseInt(tm.Amount, 10, 64)
+	amount, err := big_numbers.ToBigInt(tm.Amount)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", tm.TransactionId, err)
 		return err
+	}
+
+	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, common.HexToAddress(tm.TargetAsset))
+	if properAmount.Cmp(big.NewInt(0)) == 0 {
+		return errors.New(fmt.Sprintf("removed decimals resolves to 0, initial value [%s]", amount))
 	}
 	status := make(chan string)
 	onExecutionBurnSuccess, onExecutionBurnFail := ts.scheduledBurnTxExecutionCallbacks(tm.TransactionId, &status)
 	onTokenBurnSuccess, onTokenBurnFail := ts.scheduledBurnTxMinedCallbacks(&status)
-	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.SourceAsset, intAmount, &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
+	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.SourceAsset, properAmount.Int64(), &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
 
 statusBlocker:
 	for {
