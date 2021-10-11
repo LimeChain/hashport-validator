@@ -1,0 +1,24 @@
+#node:
+#  database:
+#    host: 127.0.0.1
+#    name: hedera_validator
+#    password: validator_pass
+#    port: 5432
+#    username: validator
+#  clients:
+#    evm:
+#    hedera:
+#      operator:
+#        account_id:
+#        private_key:
+#      network: testnet
+#    mirror_node:
+#      api_address: https://testnet.mirrornode.hedera.com/api/v1/
+#      client_address: hcs.testnet.mirrornode.hedera.com:5600
+#      polling_interval: 5
+#  log_level: info
+#  port: 5200
+#  recovery:
+#    start_timestamp:
+#    start_block:
+#  validator: true
