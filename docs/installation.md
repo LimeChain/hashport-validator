@@ -31,14 +31,14 @@ You can run the database separately, but you will have to edit the validator def
 ### Build application
 
 ```shell
-go build cmd/*
+go build -o node cmd/*
 ```
 
 ### Run application
 
 After you have run the database and compiled the node, you need to have the necessary [configuration](configuration.md) populated and run:
 ```shell
-go run cmd/*
+./node
 ```
 
 ### Unit Tests
