@@ -50,6 +50,7 @@ func (s Service) FindTransfer(
 		response, err := fetch()
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transferID, err)
+			continue
 		}
 
 		finished := false

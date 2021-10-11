@@ -45,6 +45,7 @@ var (
 		Token:       common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
+		ServiceFee:  big.NewInt(0),
 	}
 	burnLog = &router.RouterBurn{
 		TargetChain: big.NewInt(0),
