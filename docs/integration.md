@@ -35,20 +35,27 @@ The response is in JSON format and contains the following data:
   "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
   "routerAddress": "0x",
   "amount": "100",
+  "sourceChainId": "",
+  "targetChainId": "",
+  "sourceAsset": "",
   "nativeAsset": "",
-  "wrappedAsset": "",
+  "targetAsset": "",
   "signatures": [
   ],
   "majority": false
 }
 ```
+
 Property | Description
 ---------- | ----------
 **Recipient** | EVM address of the receiver
 **RouterAddress** | Address of the router contract
 **Amount** | The transfer original transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars.
-**NativeAsset** | Alias for the transferred asset
-**WrappedAsset** | Alias for the wrapped asset
+**SourceChainId** | The chain ID from which the transfer has been initiated
+**TargetChainId** | The chain ID to which the transfer data and has to be submitted
+**SourceAsset** | The asset from the source chain
+**NativeAsset** | The native asset of the transferred asset
+**TargetAsset** | The target asset for the transfer
 **Signatures** | Array of all provided signatures by the validators up until this moment
 **Majority** | True if supermajority is reached and the wrapped token may be claimed
 
@@ -58,15 +65,11 @@ Once supermajority is reached the users can claim _wrapped version_ of the asset
 
 The mint operation can be constructed using the following arguments:
 
-	mint(transactionId: bytes , wrappedAsset: address, receiver: address, amount: UInt256, signatures: bytes[] )
+	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] _signatures)
 
 Argument | Description
 ---------- | ----------
 **transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)`
-**wrappedAsset** | The corresponding `wrappedAsset` to claim. Must be the same as `wrappedAsset` returned from the Validator API query.
-**receiver** | The address receiving the tokens. Must be the same as the one specified in the `memo`
-**amount** | The amount to be minted. Keep in mind that this amount is `amount=original-serviceFee`. The amount returned from the Validator API can be used directly as that amount reflects the charged service fee.
-**signatures** | The array of signatures provided by the Validator API
 
 ### Service Fee
 
@@ -76,19 +79,6 @@ Fees are paid out from the Bridge account.
 
 ## From EVM chain to Hedera
 This functionality allows the user to transfer Wrapped HBAR or any supported by the bridge Wrapped Tokens from EVM-based chain to Hedera.
-
-### Query supported tokens
-
-In order to get all the supported wrapped tokens by the bridge the user must do two things:
-
-1. Get the wrapped tokens count from the Router contract by calling the function `wrappedAssetsCount()`.
-2. Call the Router contract function `wrappedAssetAt(uint256  index)` for every value between _0 ... wrappedAssetsCount-1_. Each time the function will return the **address** of the ERC20 wrapped token contract.
-
-In order to map the wrapped assets to their native representation in Hedera, one can query the following mapping:
-
-`mapping(address => bytes) public wrappedToNative;`
-
-where  `address`  represents the ERC20 address of the wrapped asset and  `bytes`  represent the HTS Entity ID or simply  `HBAR`  (in the case for HBAR-s).
 
 ### Step 1. Burn the Wrapped asset
 
@@ -102,13 +92,14 @@ The straightforward way for burning the wrapped assets would be by executing 2 t
 2. Router Burn 
 
 The burn transaction has the following format:
-- `burn(amount: uint256, receiver: bytes, wrappedAsset: address)`
+- `burn(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver)`
 
 Argument | Description
 ---------- | ----------
+**targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`
+**wrappedAsset** | The corresponding wrapped asset to burn
 **amount** | The amount of wrapped tokens to be burned and transferred in their native version on Hedera
 **receiver** | The Hedera Account to receive the native representation of the wrapped asset
-**wrappedAsset** | The corresponding wrapped asset to burn
 
 >Note: The receiver [AccountId](https://hashgraph.github.io/hedera-sdk-java/index.html?com/hedera/hashgraph/sdk/account/AccountId.html) must be serialized by Hedera SDK as such:
 >`accountId._toProto().serializeBinary()`, before passing it as a argument to the _burn_ function.
@@ -117,8 +108,7 @@ Argument | Description
 
 Using the Permit design, we are able to initiate the transfer of the assets in one transaction. Instead of the user executing a separate ERC20 `approve` TX, he must sign a `permit` message that is verified by the ERC20 contract in order to authorise the Router contract to spend the user's funds on his behalf.
 
-
-Here is a example on how to create the necessary signature for permit operation:
+Here is an example on how to create the necessary signature for permit operation:
 
 ```typescript
 async function createPermit(  
@@ -161,13 +151,14 @@ async function createPermit(
 > More information about the _permit_ operation can be found here: [EIP 2612](https://eips.ethereum.org/EIPS/eip-2612)
 
 Once the user signs the `permit`, the `burnWithPermit` transaction can be executed. The signature (`v`, `r` and `s`) along with the `deadline` are send as part of the burn transaction: 
-- `burnWithPermit(wrappedAsset: address, receiver: bytes, amount: uint256, deadline: uint256, v, r ,s)`
+- `burnWithPermit(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver, uint256 deadline, uint8 v, uint8 r ,uint8 s)`
 
 Argument | Description
 ---------- | ----------
+**targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`
 **wrappedAsset** | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function
-**receiver** | The Hedera account to receive the wrapped tokens
 **amount** | The amount of wrapped tokens to be burned and transferred
+**receiver** | The Hedera account to receive the wrapped tokens
 **deadline**: | Timestamp of the deadline
 **v, r, s** | Information about the signature, computed when the user signs the permit.
 
