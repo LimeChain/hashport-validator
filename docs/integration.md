@@ -128,7 +128,7 @@ async function createPermit(
         const domain = {  
             name: await tokenContract.name(),  
             version: "1",  
-            chainId: "31337",  
+            chainId: "", // chain id of the EVM network
             verifyingContract: tokenContract.address,  
         };        
         const message = {  
@@ -176,7 +176,7 @@ const message: Permit = {
 const domain: Domain = {
        name: contractData.name,
        version: "1",
-       chainId: id!,
+       chainId: "1", // Ethereum Mainnet ChainID
        verifyingContract: contractAddress
 };
 
