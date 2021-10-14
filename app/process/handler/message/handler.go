@@ -86,7 +86,7 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 
 	majorityReached, err := cmh.checkMajority(tsm.TransferID, int64(tsm.TargetChainId))
 	if err != nil {
-		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached", tsm.TransferID)
+		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached. Error: [%s]", tsm.TransferID, err)
 		return
 	}
 
