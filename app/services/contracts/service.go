@@ -71,6 +71,11 @@ func (bsc *Service) IsMember(address string) bool {
 	return false
 }
 
+// HasValidSignaturesLength returns whether the signatures are enough for submission
+func (bsc *Service) HasValidSignaturesLength(signaturesLength *big.Int) (bool, error) {
+	return bsc.contract.HasValidSignaturesLength(nil, signaturesLength)
+}
+
 // ParseBurnLog parses a general typed log to a RouterBurn event
 func (bsc *Service) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
 	return bsc.contract.ParseBurn(log)

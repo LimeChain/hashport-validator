@@ -28,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"math/big"
 	"testing"
 )
 
@@ -97,8 +98,11 @@ func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {
 	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
+	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(nil)
 	h.handleSignatureMessage(tsm)
+	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
+	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.TransferID)
 }
 
 func Test_Handle(t *testing.T) {
@@ -107,8 +111,11 @@ func Test_Handle(t *testing.T) {
 	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
+	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(nil)
 	h.Handle(&tsm)
+	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
+	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.TransferID)
 }
 
 func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
@@ -117,8 +124,11 @@ func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
 	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
+	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(errors.New("some-error"))
 	h.handleSignatureMessage(tsm)
+	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
+	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusCompleted")
 }
 
 func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {

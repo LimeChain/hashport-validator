@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 )
 
 type Handler struct {
@@ -105,9 +106,9 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 	}
 
 	membersCount := len(cmh.contracts[targetChainId].GetMembers())
-	requiredSigCount := membersCount/2 + 1
+	bnSignaturesLength := big.NewInt(int64(len(signatureMessages)))
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
-	return len(signatureMessages) >= requiredSigCount,
-		nil
+	return cmh.contracts[targetChainId].
+		HasValidSignaturesLength(bnSignaturesLength)
 }
