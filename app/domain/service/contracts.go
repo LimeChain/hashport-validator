@@ -36,6 +36,8 @@ type Contracts interface {
 	GetClient() client.Core
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not
 	IsMember(address string) bool
+	// HasValidSignaturesLength returns whether the signatures are enough for submission
+	HasValidSignaturesLength(*big.Int) (bool, error)
 	// ParseBurnLog parses a general typed log to a RouterBurn event
 	ParseBurnLog(log types.Log) (*abi.RouterBurn, error)
 	// ParseLockLog parses a general typed log to a RouterLock event

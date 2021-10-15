@@ -79,6 +79,14 @@ func (m *MockBridgeContract) IsMember(address string) bool {
 	panic("implement me")
 }
 
+func (m *MockBridgeContract) HasValidSignaturesLength(signaturesLength *big.Int) (bool, error) {
+	args := m.Called(signaturesLength)
+	if args[0] == nil {
+		return false, args.Get(1).(error)
+	}
+	return args.Get(0).(bool), nil
+}
+
 func (m *MockBridgeContract) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
 	args := m.Called(opts, sink)
 	if args[0] == nil && args[1] == nil {
