@@ -483,8 +483,14 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		signatures = append(signatures, m.Signature)
 	}
 
-	requiredSigCount := len(ts.contractServices[t.TargetChainID].GetMembers())/2 + 1
-	reachedMajority := len(t.Messages) >= requiredSigCount
+	bnSignaturesLength := big.NewInt(int64(len(t.Messages)))
+	reachedMajority, err := ts.contractServices[t.TargetChainID].
+		HasValidSignaturesLength(bnSignaturesLength)
+
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to check has valid signatures length. Error [%s]", t.TransactionID, err)
+		return service.TransferData{}, err
+	}
 
 	return service.TransferData{
 		Recipient:     t.Receiver,
