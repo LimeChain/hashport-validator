@@ -66,7 +66,7 @@ Containers use the following persisted volumes:
    
 ### How to run?
 
-Before you run, [configure](configuration.md) the application updating the [node.yml](../config/node.yml) and [bridge.yml](../config/bridge.yml) file configuration. 
+Before you run, [configure](configuration.md) the application updating the [node.yml](../node.yml) and [bridge.yml](../bridge.yml) file configuration. 
 This file persists as a volume to the `Application` container.
 
 Finally, run:
