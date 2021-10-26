@@ -162,7 +162,7 @@ func (ss *Service) ProcessSignature(tsm message.Message) error {
 		return err
 	}
 	if exists {
-		ss.logger.Errorf("[%s] - Signature already received", tsm.TransferID)
+		ss.logger.Errorf("[%s] - Signature already received. Signature [%s], Auth Message [%s].", tsm.TransferID, signatureHex, authMessageStr)
 		return err
 	}
 

@@ -47,7 +47,7 @@ type Message struct {
 // Fee is a db model used only to mark native Hedera transfer fees to validators
 type Fee struct {
 	TransactionID string `gorm:"primaryKey"`
-	ScheduleID    string `gorm:"unique"`
+	ScheduleID    string // ScheduleID of the transaction. Can be empty if execution failed
 	Amount        string
 	Status        string
 	TransferID    sql.NullString
@@ -56,7 +56,7 @@ type Fee struct {
 // Schedule is a db model used to track scheduled transactions for a given transfer
 type Schedule struct {
 	TransactionID string `gorm:"primaryKey"` // TransactionID  of the original scheduled transaction
-	ScheduleID    string `gorm:"unique"`     // schedule ID
+	ScheduleID    string // ScheduleID of the transaction. Can be empty if execution failed
 	Operation     string // type of scheduled transaction (TokenMint, TokenBurn, CryptoTransfer)
 	Status        string
 	TransferID    sql.NullString // foreign key to the transfer ID
