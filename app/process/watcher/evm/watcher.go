@@ -165,15 +165,13 @@ func (ew *Watcher) listenForEvents(q qi.Queue) {
 
 	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
-		return
+		ew.logger.Fatalf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 	}
 
 	lockEvents := make(chan *router.RouterLock)
 	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
 	if err != nil {
-		ew.logger.Errorf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
-		return
+		ew.logger.Fatalf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
 	}
 
 	for {
