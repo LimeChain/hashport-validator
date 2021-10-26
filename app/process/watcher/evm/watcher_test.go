@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -505,21 +504,6 @@ func Test_HandleLockLog_GetBlockTimestamp_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
-func Test_ListenForEvents_BurnSubscription_Fails(t *testing.T) {
-	setup()
-	var opts *bind.WatchOpts = nil
-	mocks.MBridgeContractService.On("WatchBurnEventLogs", opts, mock.Anything).Return(nil, errors.New("some-error"))
-	w.listenForEvents(mocks.MQueue)
-}
-
-func Test_ListenForEvents_LockSubscription_Fails(t *testing.T) {
-	setup()
-	var opts *bind.WatchOpts = nil
-	mocks.MBridgeContractService.On("WatchBurnEventLogs", opts, mock.Anything).Return(nil, nil)
-	mocks.MBridgeContractService.On("WatchLockEventLogs", opts, mock.Anything).Return(nil, errors.New("some-error"))
-	w.listenForEvents(mocks.MQueue)
 }
 
 func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {

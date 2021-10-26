@@ -2,7 +2,7 @@ version: "3.3"
 services:
   db:
     image: postgres:9.6-alpine
-    restart: unless-stopped
+    restart: always
     stop_grace_period: 2m
     stop_signal: SIGTERM
     tty: true
@@ -19,7 +19,7 @@ services:
     image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:latest
     environment:
       VALIDATOR_DATABASE_HOST: db
-    restart: unless-stopped
+    restart: always
     tty: true
     volumes:
       - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
