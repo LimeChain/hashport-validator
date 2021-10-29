@@ -141,6 +141,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 
 	// Register read-only handlers
 	server.AddHandler(constants.ReadOnlyHederaTransfer, rfth.NewHandler(
+		repositories.transfer,
 		repositories.fee,
 		repositories.schedule,
 		clients.MirrorNode,
@@ -150,6 +151,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		services.readOnly))
 	server.AddHandler(constants.ReadOnlyHederaFeeTransfer, rfh.NewHandler(
+		repositories.transfer,
 		repositories.fee,
 		repositories.schedule,
 		clients.MirrorNode,

@@ -54,6 +54,15 @@ func (m *MockTransferRepository) Create(ct *transfer.Transfer) (*entity.Transfer
 	return nil, args.Get(1).(error)
 }
 
+func (m *MockTransferRepository) UpdateFee(txId, fee string) error {
+	args := m.Called(txId, fee)
+	if args.Get(0) == nil {
+		return nil
+	}
+
+	return args.Get(0).(error)
+}
+
 func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 	args := m.Called(txId)
 	if args.Get(0) == nil {

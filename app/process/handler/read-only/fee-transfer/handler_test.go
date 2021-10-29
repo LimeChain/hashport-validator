@@ -53,7 +53,16 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(mocks.MFeeRepository, mocks.MScheduleRepository, mocks.MHederaMirrorClient, accountId.String(), mocks.MDistributorService, mocks.MFeeService, mocks.MTransferService, mocks.MReadOnlyService))
+	assert.Equal(t, h, NewHandler(
+		mocks.MTransferRepository,
+		mocks.MFeeRepository,
+		mocks.MScheduleRepository,
+		mocks.MHederaMirrorClient,
+		accountId.String(),
+		mocks.MDistributorService,
+		mocks.MFeeService,
+		mocks.MTransferService,
+		mocks.MReadOnlyService))
 }
 
 func Test_Handle(t *testing.T) {
@@ -70,13 +79,13 @@ func Test_Handle(t *testing.T) {
 		Amount:        "100",
 		Status:        status.Initial,
 		Messages:      nil,
-		Fee:           entity.Fee{},
+		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(tr, nil)
 	mocks.MFeeService.On("CalculateFee", tr.TargetAsset, int64(100)).Return(int64(10), int64(0))
 	mocks.MDistributorService.On("ValidAmount", 10).Return(int64(3))
-	mocks.MReadOnlyService.On("FindTransfer", mock.Anything, mock.Anything, mock.Anything)
+	mocks.MReadOnlyService.On("FindAssetTransfer", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	h.Handle(tr)
 }
 
@@ -85,7 +94,9 @@ func Test_Handle_FindTransfer(t *testing.T) {
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: status.Initial}, nil)
 	mocks.MFeeService.On("CalculateFee", tr.TargetAsset, int64(100)).Return(int64(10), int64(0))
 	mocks.MDistributorService.On("ValidAmount", int64(10)).Return(int64(3))
-	mocks.MReadOnlyService.On("FindTransfer", mock.Anything, mock.Anything, mock.Anything)
+	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, "3").Return(nil)
+	mocks.MDistributorService.On("CalculateMemberDistribution", int64(3)).Return([]model.Hedera{})
+	mocks.MReadOnlyService.On("FindAssetTransfer", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	h.Handle(tr)
 }
 
@@ -119,6 +130,7 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 func setup() {
 	mocks.Setup()
 	h = &Handler{
+		transferRepository: mocks.MTransferRepository,
 		feeRepository:      mocks.MFeeRepository,
 		scheduleRepository: mocks.MScheduleRepository,
 		mirrorNode:         mocks.MHederaMirrorClient,

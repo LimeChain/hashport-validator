@@ -58,7 +58,7 @@ func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.
-		Preload("Fee").
+		Preload("Fees").
 		Preload("Messages").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
@@ -78,7 +78,7 @@ func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := tr.dbClient.
-		Preload("Fee").
+		Preload("Fees").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		First(tx)
@@ -100,6 +100,18 @@ func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
 // Save updates the provided Transfer instance
 func (tr Repository) Save(tx *entity.Transfer) error {
 	return tr.dbClient.Save(tx).Error
+}
+
+func (tr Repository) UpdateFee(txId string, fee string) error {
+	err := tr.dbClient.
+		Model(entity.Transfer{}).
+		Where("transaction_id = ?", txId).
+		UpdateColumn("fee", fee).
+		Error
+	if err == nil {
+		tr.logger.Debugf("Updated Fee of TX [%s] to [%s]", txId, fee)
+	}
+	return err
 }
 
 func (tr Repository) UpdateStatusCompleted(txId string) error {
