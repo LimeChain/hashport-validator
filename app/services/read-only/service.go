@@ -179,14 +179,17 @@ func transfersAreFound(expectedTransfers []model.Hedera, asset string, transacti
 		found := false
 		if asset == constants.Hbar {
 			for _, transfer := range transaction.Transfers {
-				if expectedTransfer.AccountID.String() == transfer.Account && expectedTransfer.Amount == transfer.Amount {
+				if expectedTransfer.AccountID.String() == transfer.Account &&
+					expectedTransfer.Amount == transfer.Amount {
 					found = true
 					break
 				}
 			}
 		} else {
 			for _, transfer := range transaction.TokenTransfers {
-				if expectedTransfer.AccountID.String() == transfer.Account && expectedTransfer.Amount == transfer.Amount && asset == transfer.Token {
+				if expectedTransfer.AccountID.String() == transfer.Account &&
+					expectedTransfer.Amount == transfer.Amount &&
+					asset == transfer.Token {
 					found = true
 					break
 				}
