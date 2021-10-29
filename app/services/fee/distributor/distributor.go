@@ -73,7 +73,7 @@ func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, e
 	return transfers, nil
 }
 
-// SplitAccountAmounts splits the positive account amounts to a chunks of TotalPositiveTransfersPerTransaction + 1
+// SplitAccountAmounts splits account amounts to a chunks of TotalPositiveTransfersPerTransaction + 1
 // (1 comes from the negative account amount, opposite to the sum of the positive account amounts)
 // It is necessary, because at this given moment, Hedera does not support a transfer transaction with
 // a transfer list exceeding (TotalPositiveTransfersPerTransaction + 1)
