@@ -95,7 +95,7 @@ func Test_Handle_FindTransfer(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", tr.SourceAsset, int64(100)).Return(int64(10), int64(0))
 	mocks.MDistributorService.On("ValidAmount", int64(10)).Return(int64(3))
 	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, "3").Return(nil)
-	mocks.MDistributorService.On("CalculateMemberDistribution", int64(3)).Return([]model.Hedera{})
+	mocks.MDistributorService.On("CalculateMemberDistribution", int64(3)).Return([]model.Hedera{}, nil)
 	mocks.MReadOnlyService.On("FindAssetTransfer", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	h.Handle(tr)
 }
