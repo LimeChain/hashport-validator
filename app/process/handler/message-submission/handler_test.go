@@ -59,7 +59,7 @@ var (
 		Amount:        tr.Amount,
 		Status:        status.Initial,
 		Messages:      nil,
-		Fee:           entity.Fee{},
+		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
 
