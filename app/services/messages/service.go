@@ -96,7 +96,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 			return false, err
 		}
 
-		feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
+		feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", topicMessage.TransferID, err)
 			return false, err
@@ -214,7 +214,7 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 // awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	for {
-		t, err := ss.transferRepository.GetWithFee(transferID)
+		t, err := ss.transferRepository.GetByTransactionId(transferID)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
 			return nil, err
@@ -224,7 +224,7 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 			if t.NativeChainID != 0 {
 				return t, nil
 			}
-			if t.NativeChainID == 0 && t.Fee.TransactionID != "" {
+			if t.NativeChainID == 0 && t.Fee != "" {
 				return t, nil
 			}
 		}

@@ -36,6 +36,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -243,23 +244,31 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *mes
 	return nil
 }
 
-func (ts *Service) processFeeTransfer(transferID string, feeAmount int64, nativeAsset string) {
-	transfers, err := ts.distributor.CalculateMemberDistribution(feeAmount)
+func (ts *Service) processFeeTransfer(transferID string, totalFee int64, nativeAsset string) {
+	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
 	if err != nil {
 		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)
 		return
 	}
 
-	transfers = append(transfers,
-		model.Hedera{
-			AccountID: ts.bridgeAccountID,
-			Amount:    -feeAmount,
-		})
+	splitTransfers := distributor.SplitAccountAmounts(transfers, model.Hedera{
+		AccountID: ts.bridgeAccountID,
+		Amount:    -totalFee,
+	})
 
-	onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(feeAmount, 10))
-	onSuccess, onFail := ts.scheduledTxMinedCallbacks()
+	err = ts.transferRepository.UpdateFee(transferID, strconv.FormatInt(totalFee, 10))
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to update fee [%d]. Error [%s].", transferID, totalFee, err)
+		return
+	}
 
-	ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	for _, splitTransfer := range splitTransfers {
+		fee := -splitTransfer[len(splitTransfer)-1].Amount
+		onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(fee, 10))
+		onSuccess, onFail := ts.scheduledTxMinedCallbacks()
+
+		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	}
 }
 
 func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -458,7 +467,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	if t != nil && t.NativeChainID == 0 && t.Fee.Amount == "" {
+	if t != nil && t.NativeChainID == 0 && t.Fee == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
@@ -470,7 +479,7 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 			return service.TransferData{}, err
 		}
 
-		feeAmount, err := strconv.ParseInt(t.Fee.Amount, 10, 64)
+		feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
 		if err != nil {
 			ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
 			return service.TransferData{}, err

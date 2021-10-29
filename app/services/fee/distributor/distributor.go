@@ -31,6 +31,8 @@ type Service struct {
 	logger     *log.Entry
 }
 
+const TotalPositiveTransfersPerTransaction = 9
+
 func New(members []string) *Service {
 	if len(members) == 0 {
 		log.Fatal("No members accounts provided")
@@ -71,6 +73,38 @@ func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, e
 	return transfers, nil
 }
 
+// SplitAccountAmounts splits the positive account amounts to a chunks of TotalPositiveTransfersPerTransaction + 1
+// (1 comes from the negative account amount, opposite to the sum of the positive account amounts)
+// It is necessary, because at this given moment, Hedera does not support a transfer transaction with
+// a transfer list exceeding (TotalPositiveTransfersPerTransaction + 1)
+func SplitAccountAmounts(positiveAccountAmounts []transfer.Hedera, negativeAccountAmount transfer.Hedera) [][]transfer.Hedera {
+	totalLength := len(positiveAccountAmounts)
+
+	if totalLength <= TotalPositiveTransfersPerTransaction {
+		transfers := append(positiveAccountAmounts, negativeAccountAmount)
+
+		return [][]transfer.Hedera{transfers}
+	} else {
+		splits := (totalLength + TotalPositiveTransfersPerTransaction - 1) / TotalPositiveTransfersPerTransaction
+		result := make([][]transfer.Hedera, splits)
+
+		previous := 0
+		for i := 0; previous < totalLength; i++ {
+			next := previous + TotalPositiveTransfersPerTransaction
+			if next > totalLength {
+				next = totalLength
+			}
+			transfers := make([]transfer.Hedera, next-previous)
+			copy(transfers, positiveAccountAmounts[previous:next])
+			transfers = append(transfers, transfer.Hedera{AccountID: negativeAccountAmount.AccountID, Amount: calculateOppositeNegative(transfers)})
+			result[i] = transfers
+			previous = next
+		}
+
+		return result
+	}
+}
+
 func (s Service) PrepareTransfers(amount int64, token string) ([]model.Transfer, error) {
 	feePerAccount := amount / int64(len(s.accountIDs))
 
@@ -109,4 +143,14 @@ func (s Service) ValidAmount(amount int64) int64 {
 	}
 
 	return amount
+}
+
+// Sums the amounts and returns the opposite
+func calculateOppositeNegative(transfers []transfer.Hedera) int64 {
+	negatedValue := int64(0)
+	for _, transfer := range transfers {
+		negatedValue += transfer.Amount
+	}
+
+	return -negatedValue
 }

@@ -21,10 +21,12 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	util "github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -86,19 +88,28 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
-	_, feeAmount, transfers, err := s.prepareTransfers(event.NativeAsset, amount, receiver)
+	fee, splitTransfers, err := s.prepareTransfers(event.NativeAsset, amount, receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to prepare transfers. Error [%s].", event.TransactionId, err)
 		return
 	}
 
-	onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, strconv.FormatInt(feeAmount, 10))
-	onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId)
+	err = s.repository.UpdateFee(event.TransactionId, strconv.FormatInt(fee, 10))
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to update fee [%d]. Error [%s].", event.TransactionId, fee, err)
+		return
+	}
 
-	s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, transfers, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	for _, splitTransfer := range splitTransfers {
+		feeAmount := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
+		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount)
+		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId)
+
+		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	}
 }
 
-func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (recipientAmount int64, feeAmount int64, transfers []transfer.Hedera, err error) {
+func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (fee int64, splitTransfers [][]transfer.Hedera, err error) {
 	fee, remainder := s.feeService.CalculateFee(token, amount)
 
 	validFee := s.distributorService.ValidAmount(fee)
@@ -106,22 +117,24 @@ func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.A
 		remainder += fee - validFee
 	}
 
-	transfers, err = s.distributorService.CalculateMemberDistribution(validFee)
+	transfers, err := s.distributorService.CalculateMemberDistribution(validFee)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, nil, err
 	}
 
 	transfers = append(transfers,
 		transfer.Hedera{
 			AccountID: receiver,
 			Amount:    remainder,
-		},
+		})
+
+	splitTransfers = distributor.SplitAccountAmounts(transfers,
 		transfer.Hedera{
 			AccountID: s.bridgeAccount,
 			Amount:    -amount,
 		})
 
-	return remainder, validFee, transfers, nil
+	return validFee, splitTransfers, nil
 }
 
 // TransactionID returns the corresponding Scheduled Transaction paying out the
