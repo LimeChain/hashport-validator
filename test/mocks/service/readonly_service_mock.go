@@ -18,6 +18,7 @@ package service
 
 import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -27,4 +28,8 @@ type MockReadOnlyService struct {
 
 func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error) {
 	m.Called(transferID, fetch, save)
+}
+
+func (m *MockReadOnlyService) FindAssetTransfer(transferID string, asset string, transfers []transfer.Hedera, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error) {
+	m.Called(transferID, asset, transfers, fetch, save)
 }

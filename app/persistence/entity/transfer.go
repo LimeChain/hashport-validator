@@ -28,9 +28,10 @@ type Transfer struct {
 	NativeAsset   string
 	Receiver      string
 	Amount        string
+	Fee           string
 	Status        string
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
-	Fee           Fee        `gorm:"foreignKey:TransferID"`
+	Fees          []Fee      `gorm:"foreignKey:TransferID"`
 	Schedules     []Schedule `gorm:"foreignKey:TransferID"`
 }
 

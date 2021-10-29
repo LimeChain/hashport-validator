@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-package service
+package fee
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"strconv"
 )
 
-type ReadOnly interface {
-	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
-	FindAssetTransfer(transferID string, asset string, transfers []model.Hedera, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
+func GetTotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) string {
+	result := int64(0)
+	for _, transfer := range transfers {
+		if transfer.Amount < 0 {
+			continue
+		}
+		if transfer.AccountID == receiver {
+			continue
+		}
+		result += transfer.Amount
+	}
+
+	return strconv.FormatInt(result, 10)
 }

@@ -68,7 +68,7 @@ var (
 		Amount:        tr.Amount,
 		Status:        status.Initial,
 		Messages:      nil,
-		Fee:           entity.Fee{},
+		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
 )
@@ -94,6 +94,7 @@ func Test_ProcessEvent(t *testing.T) {
 	mocks.MFeeService.On("CalculateFee", tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
+	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, strconv.FormatInt(mockValidFee, 10)).Return(nil)
 	mocks.MScheduledService.On("ExecuteScheduledTransferTransaction", tr.TransactionId, tr.NativeAsset, mockTransfersAfterPreparation).Return()
 
 	s.ProcessEvent(tr)
