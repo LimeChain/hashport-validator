@@ -55,5 +55,6 @@ func scheduleFieldsMatch(comparing, comparable entity.Schedule) bool {
 		comparing.Operation == comparable.Operation &&
 		comparing.TransferID.String == comparable.TransferID.String &&
 		comparing.TransferID.Valid == comparable.TransferID.Valid &&
+		comparing.HasReceiver == comparable.HasReceiver &&
 		comparing.Status == comparable.Status
 }

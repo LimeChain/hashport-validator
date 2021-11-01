@@ -133,7 +133,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		})
 
 	for _, splitTransfer := range splitTransfers {
-		feeAmount := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
+		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.TargetAsset, splitTransfer, func() (*mirror_node.Response, error) {
 			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
@@ -142,6 +142,7 @@ func (fmh Handler) Handle(payload interface{}) {
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,
 				Operation:     schedule.TRANSFER,
+				HasReceiver:   hasReceiver,
 				Status:        status,
 				TransferID: sql.NullString{
 					String: transferMsg.TransactionId,
