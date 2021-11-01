@@ -84,14 +84,16 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 }
 
 // GetBlockTimestamp retrieves the timestamp of the given block
-func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {
+func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	block, err := ec.BlockByNumber(context.Background(), blockNumber)
 
 	if err != nil {
-		return 0, err
+		ec.logger.Errorf("Failed to get block [%s]. Error: [%s]. Retrying...", blockNumber, err)
+		time.Sleep(5 * time.Second)
+		return ec.GetBlockTimestamp(blockNumber)
 	}
 
-	return block.Time(), nil
+	return block.Time()
 }
 
 // WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
@@ -146,6 +148,10 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 
 func (ec *Client) GetPrivateKey() string {
 	return ec.config.PrivateKey
+}
+
+func (ec Client) BlockConfirmations() uint64 {
+	return ec.config.BlockConfirmations
 }
 
 func (ec *Client) WaitForConfirmations(raw types.Log) error {

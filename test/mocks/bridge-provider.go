@@ -120,3 +120,7 @@ func (m *MockBridgeContract) GetMembers() []string {
 	args := m.Called()
 	return args.Get(0).([]string)
 }
+
+func (m *MockBridgeContract) UpdateMembers() {
+	m.Called()
+}

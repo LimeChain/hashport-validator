@@ -69,14 +69,10 @@ func (m *MockEVMClient) GetClient() client.Core {
 	return args.Get(0).(client.Core)
 }
 
-func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) (uint64, error) {
+func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	args := m.Called(blockNumber)
 
-	if args.Get(1) == nil {
-		return args.Get(0).(uint64), nil
-	}
-
-	return args.Get(0).(uint64), args.Get(1).(error)
+	return args.Get(0).(uint64)
 }
 
 func (m *MockEVMClient) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
@@ -104,4 +100,10 @@ func (m *MockEVMClient) WaitForConfirmations(raw types.Log) error {
 func (m *MockEVMClient) GetPrivateKey() string {
 	args := m.Called()
 	return args.Get(0).(string)
+}
+
+func (m *MockEVMClient) BlockConfirmations() uint64 {
+	args := m.Called()
+
+	return args.Get(0).(uint64)
 }
