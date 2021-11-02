@@ -121,6 +121,6 @@ func (m *MockBridgeContract) GetMembers() []string {
 	return args.Get(0).([]string)
 }
 
-func (m *MockBridgeContract) UpdateMembers() {
+func (m *MockBridgeContract) ReloadMembers() {
 	m.Called()
 }

@@ -52,9 +52,19 @@ type Watcher struct {
 	targetBlock   uint64
 	sleepDuration time.Duration
 	validator     bool
+	filterConfig  FilterConfig
 }
 
-var sleepDuration = 15 * time.Second
+var defaultSleepDuration = 15 * time.Second
+
+type FilterConfig struct {
+	abi               abi.ABI
+	topics            [][]common.Hash
+	addresses         []common.Address
+	burnHash          common.Hash
+	lockHash          common.Hash
+	memberUpdatedHash common.Hash
+}
 
 func NewWatcher(
 	repository repository.Status,
@@ -62,12 +72,49 @@ func NewWatcher(
 	evmClient client.EVM,
 	mappings c.Assets,
 	startBlock int64,
-	validator bool) *Watcher {
+	validator bool,
+	pollingInterval time.Duration) *Watcher {
 	currentBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
 	targetBlock := helper.Max(0, currentBlock-evmClient.BlockConfirmations())
+
+	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		log.Fatalf("Failed to parse router ABI. Error: [%s]", err)
+	}
+
+	burnHash := abi.Events["Burn"].ID
+	lockHash := abi.Events["Lock"].ID
+	memberUpdatedHash := abi.Events["MemberUpdated"].ID
+
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+			memberUpdatedHash,
+		},
+	}
+
+	addresses := []common.Address{
+		contracts.Address(),
+	}
+
+	filterConfig := FilterConfig{
+		abi:               abi,
+		topics:            topics,
+		addresses:         addresses,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		memberUpdatedHash: memberUpdatedHash,
+	}
+
+	if pollingInterval == 0 {
+		pollingInterval = defaultSleepDuration
+	} else {
+		pollingInterval = pollingInterval * time.Second
+	}
 
 	if startBlock == 0 {
 		_, err := repository.Get(contracts.Address().String())
@@ -98,7 +145,8 @@ func NewWatcher(
 		mappings:      mappings,
 		targetBlock:   targetBlock,
 		validator:     validator,
-		sleepDuration: sleepDuration,
+		sleepDuration: pollingInterval,
+		filterConfig:  filterConfig,
 	}
 }
 
@@ -148,32 +196,12 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 }
 
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
-	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
-	if err != nil {
-		ew.logger.Errorf("Failed to parse router ABI. Error: [%s]", err)
-		return err
-	}
-
-	burnHash := abi.Events["Burn"].ID
-	lockHash := abi.Events["Lock"].ID
-	memberUpdatedHash := abi.Events["MemberUpdated"].ID
-
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			memberUpdatedHash,
-		},
-	}
-	addresses := []common.Address{
-		ew.contracts.Address(),
-	}
 
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
 		ToBlock:   new(big.Int).SetInt64(endBlock),
-		Addresses: addresses,
-		Topics:    topics,
+		Addresses: ew.filterConfig.addresses,
+		Topics:    ew.filterConfig.topics,
 	}
 
 	logs, err := ew.evmClient.FilterLogs(context.Background(), *query)
@@ -184,22 +212,22 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 
 	for _, log := range logs {
 		if len(log.Topics) > 0 {
-			if log.Topics[0] == lockHash {
+			if log.Topics[0] == ew.filterConfig.lockHash {
 				lock, err := ew.contracts.ParseLockLog(log)
 				if err != nil {
 					ew.logger.Errorf("Could not parse lock log [%s]. Error [%s].", lock.Raw.TxHash.String(), err)
 					continue
 				}
 				ew.handleLockLog(lock, queue)
-			} else if log.Topics[0] == burnHash {
+			} else if log.Topics[0] == ew.filterConfig.burnHash {
 				burn, err := ew.contracts.ParseBurnLog(log)
 				if err != nil {
 					ew.logger.Errorf("Could not parse burn log [%s]. Error [%s].", burn.Raw.TxHash.String(), err)
 					continue
 				}
 				ew.handleBurnLog(burn, queue)
-			} else if log.Topics[0] == memberUpdatedHash {
-				go ew.contracts.UpdateMembers()
+			} else if log.Topics[0] == ew.filterConfig.memberUpdatedHash {
+				go ew.contracts.ReloadMembers()
 			}
 		}
 	}

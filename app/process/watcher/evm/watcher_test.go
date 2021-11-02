@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -34,6 +35,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
+	"strings"
 	"testing"
 )
 
@@ -459,6 +461,36 @@ func TestNewWatcher(t *testing.T) {
 	mocks.MEVMClient.On("BlockNumber", mock.Anything).Return(uint64(10), nil)
 	mocks.MEVMClient.On("BlockConfirmations", mock.Anything).Return(uint64(5))
 
+	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		t.Fatalf("Failed to parse router ABI. Error: [%s]", err)
+	}
+
+	burnHash := abi.Events["Burn"].ID
+	lockHash := abi.Events["Lock"].ID
+	memberUpdatedHash := abi.Events["MemberUpdated"].ID
+
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+			memberUpdatedHash,
+		},
+	}
+
+	addresses := []common.Address{
+		{},
+	}
+
+	filterConfig := FilterConfig{
+		abi:               abi,
+		topics:            topics,
+		addresses:         addresses,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		memberUpdatedHash: memberUpdatedHash,
+	}
+
 	assets := config.LoadAssets(networks)
 	w = &Watcher{
 		repository:    mocks.MStatusRepository,
@@ -468,10 +500,11 @@ func TestNewWatcher(t *testing.T) {
 		mappings:      assets,
 		validator:     true,
 		targetBlock:   5,
-		sleepDuration: sleepDuration,
+		sleepDuration: defaultSleepDuration,
+		filterConfig:  filterConfig,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true))
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15))
 }
 
 // TODO: Test_NewWatcher_Fails
@@ -588,6 +621,7 @@ func Test_ProcessLogs_FilterLogsFails(t *testing.T) {
 
 func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 	mocks.Setup()
+	setup()
 
 	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
 	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
@@ -611,14 +645,6 @@ func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 
 	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
 		Return([]types.Log{}, nil)
-	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  true,
-	}
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(expectedErr)
 	res := w.processLogs(0, 0, mocks.MQueue)
 	assert.Equal(t, expectedErr, res)
@@ -628,12 +654,32 @@ func setup() {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  true,
+		repository:    mocks.MStatusRepository,
+		contracts:     mocks.MBridgeContractService,
+		evmClient:     mocks.MEVMClient,
+		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		mappings:      config.LoadAssets(networks),
+		validator:     true,
+		sleepDuration: defaultSleepDuration,
+		filterConfig: FilterConfig{
+			abi: abi.ABI{},
+			topics: [][]common.Hash{
+				{
+					burnHash,
+					lockHash,
+					membersHash,
+				},
+			},
+			addresses: []common.Address{
+				common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			},
+			burnHash:          burnHash,
+			lockHash:          lockHash,
+			memberUpdatedHash: membersHash,
+		},
 	}
 }

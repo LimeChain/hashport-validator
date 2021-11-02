@@ -92,11 +92,11 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router
 	return bsc.contract.WatchBurn(opts, sink)
 }
 
-func (bsc *Service) UpdateMembers() {
+func (bsc *Service) ReloadMembers() {
 	members, err := bsc.getMembers()
 	if err != nil {
 		time.Sleep(10 * time.Second)
-		go bsc.UpdateMembers()
+		go bsc.ReloadMembers()
 		return
 	}
 
@@ -143,7 +143,7 @@ func NewService(client client.EVM, address string) *Service {
 		logger:   config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
 	}
 
-	contractService.UpdateMembers()
+	contractService.ReloadMembers()
 
 	return contractService
 }
