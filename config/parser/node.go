@@ -44,10 +44,11 @@ type Clients struct {
 }
 
 type Evm struct {
-	BlockConfirmations uint64 `yaml:"block_confirmations"`
-	NodeUrl            string `yaml:"node_url"`
-	PrivateKey         string `yaml:"private_key"`
-	StartBlock         int64  `yaml:"start_block"`
+	BlockConfirmations uint64        `yaml:"block_confirmations"`
+	NodeUrl            string        `yaml:"node_url"`
+	PrivateKey         string        `yaml:"private_key"`
+	StartBlock         int64         `yaml:"start_block"`
+	PollingInterval    time.Duration `yaml:"polling_interval"`
 }
 
 type Hedera struct {

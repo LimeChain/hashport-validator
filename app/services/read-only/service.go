@@ -69,7 +69,7 @@ func (s Service) FindAssetTransfer(
 				if tx.Result == hedera.StatusSuccess.String() {
 					scheduleID, err := s.mirrorNode.GetSchedule(tx.EntityId)
 					if err != nil {
-						s.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferID, scheduleID, err)
+						s.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
 						break
 					}
 					if scheduleID.Memo == transferID {

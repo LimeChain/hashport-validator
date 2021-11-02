@@ -18,20 +18,21 @@ package contracts
 
 import (
 	"errors"
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"math/big"
 	"strings"
 	"sync"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Service struct {
@@ -91,42 +92,36 @@ func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router
 	return bsc.contract.WatchBurn(opts, sink)
 }
 
-func (bsc *Service) updateMembers() {
+func (bsc *Service) ReloadMembers() {
+	members, err := bsc.getMembers()
+	if err != nil {
+		time.Sleep(10 * time.Second)
+		go bsc.ReloadMembers()
+		return
+	}
+
+	bsc.members.Set(members)
+	bsc.logger.Infof("Set members list to [%s].", members)
+}
+
+func (bsc *Service) getMembers() ([]string, error) {
 	membersCount, err := bsc.contract.MembersCount(nil)
 	if err != nil {
-		bsc.logger.Fatal("Failed to get members count", err)
+		bsc.logger.Errorf("Failed to get members count. Error: [%s].", err)
+		return nil, err
 	}
 
 	var membersArray []string
 	for i := 0; i < int(membersCount.Int64()); i++ {
 		addr, err := bsc.contract.MemberAt(nil, big.NewInt(int64(i)))
 		if err != nil {
-			bsc.logger.Fatal("Failed to get member address", err)
+			bsc.logger.Errorf("Failed to get member address [%d]. Error: [%s].", i, err)
+			return nil, err
 		}
 		membersArray = append(membersArray, addr.String())
 	}
-	bsc.members.Set(membersArray)
-	bsc.logger.Infof("Set members list to %s", membersArray)
 
-}
-
-func (bsc *Service) listenForMemberUpdatedEvent() {
-	events := make(chan *router.RouterMemberUpdated)
-	sub, err := bsc.contract.WatchMemberUpdated(nil, events)
-	if err != nil {
-		bsc.logger.Fatal("Failed to subscribe for WatchMemberUpdated Event Logs for contract. Error ", err)
-	}
-
-	for {
-		select {
-		case err := <-sub.Err():
-			bsc.logger.Errorf("MemberUpdated Event Logs subscription failed. Error [%s].", err)
-			go bsc.listenForMemberUpdatedEvent()
-			return
-		case <-events:
-			bsc.updateMembers()
-		}
-	}
+	return membersArray, nil
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
@@ -145,12 +140,10 @@ func NewService(client client.EVM, address string) *Service {
 		address:  *contractAddress,
 		Client:   client,
 		contract: contractInstance,
-		logger:   config.GetLoggerFor("Contract Service"),
+		logger:   config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
 	}
 
-	contractService.updateMembers()
-
-	go contractService.listenForMemberUpdatedEvent()
+	contractService.ReloadMembers()
 
 	return contractService
 }

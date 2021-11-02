@@ -35,6 +35,7 @@ type Service struct {
 	bridgeAccount      hedera.AccountID
 	repository         repository.Transfer
 	scheduleRepository repository.Schedule
+	transferService    service.Transfers
 	scheduledService   service.Scheduled
 	logger             *log.Entry
 }
@@ -43,7 +44,8 @@ func NewService(
 	bridgeAccount string,
 	repository repository.Transfer,
 	scheduleRepository repository.Schedule,
-	scheduled service.Scheduled) *Service {
+	scheduled service.Scheduled,
+	transferService service.Transfers) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -55,6 +57,7 @@ func NewService(
 		repository:         repository,
 		scheduleRepository: scheduleRepository,
 		scheduledService:   scheduled,
+		transferService:    transferService,
 		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }
@@ -65,9 +68,14 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
 	}
 
-	_, err = s.repository.Create(&event)
+	transactionRecord, err := s.transferService.InitiateNewTransfer(event)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create a lock event record. Error [%s].", event.TransactionId, err)
+		s.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", event.TransactionId, err)
+		return
+	}
+
+	if transactionRecord.Status != status.Initial {
+		s.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 

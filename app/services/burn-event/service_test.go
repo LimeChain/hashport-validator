@@ -90,7 +90,7 @@ func Test_ProcessEvent(t *testing.T) {
 		},
 	}
 
-	mocks.MTransferRepository.On("Create", &tr).Return(entityTransfer, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(entityTransfer, nil)
 	mocks.MFeeService.On("CalculateFee", tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
@@ -117,7 +117,7 @@ func Test_ProcessEventCreateFail(t *testing.T) {
 		},
 	}
 
-	mocks.MTransferRepository.On("Create", &tr).Return(nil, errors.New("invalid-result"))
+	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(nil, errors.New("invalid-result"))
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", tr.NativeAsset, burnEventAmount)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mockFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", mockValidFee)
@@ -143,7 +143,7 @@ func Test_ProcessEventCalculateMemberDistributionFails(t *testing.T) {
 		},
 	}
 
-	mocks.MTransferRepository.On("Create", &tr).Return(entityTransfer, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(entityTransfer, nil)
 	mocks.MFeeService.On("CalculateFee", tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return(nil, errors.New("invalid-result"))
@@ -160,7 +160,8 @@ func Test_New(t *testing.T) {
 		mocks.MFeeRepository,
 		mocks.MDistributorService,
 		mocks.MScheduledService,
-		mocks.MFeeService)
+		mocks.MFeeService,
+		mocks.MTransferService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -466,6 +467,7 @@ func setup() {
 		distributorService: mocks.MDistributorService,
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,
+		transferService:    mocks.MTransferService,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
