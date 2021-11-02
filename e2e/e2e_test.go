@@ -367,6 +367,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		ScheduleID:    bridgeMintScheduleID,
 		Operation:     schedule.MINT,
 		Status:        status.Completed,
+		HasReceiver:   true,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -1296,7 +1297,7 @@ func verifyFeeRecord(dbValidation *database.Service, expectedRecord *entity.Fee,
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
 	if !ok {
-		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
+		t.Fatalf("[%s] - Database does not contain expected fee records", expectedRecord.TransactionID)
 	}
 }
 
@@ -1306,7 +1307,7 @@ func verifyTransferRecord(dbValidation *database.Service, expectedRecord *entity
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
 	if !exist {
-		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
+		t.Fatalf("[%s] - Database does not contain expected transfer records", expectedRecord.TransactionID)
 	}
 }
 
@@ -1316,7 +1317,7 @@ func verifyScheduleRecord(dbValidation *database.Service, expectedRecord *entity
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
 	if !exist {
-		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
+		t.Fatalf("[%s] - Database does not contain expected schedule records", expectedRecord.TransactionID)
 	}
 }
 
