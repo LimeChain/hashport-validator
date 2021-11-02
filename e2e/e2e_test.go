@@ -367,7 +367,6 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		ScheduleID:    bridgeMintScheduleID,
 		Operation:     schedule.MINT,
 		Status:        status.Completed,
-		HasReceiver:   true,
 		TransferID: sql.NullString{
 			String: lockEventId,
 			Valid:  true,
@@ -517,7 +516,6 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		ScheduleID:    burnScheduleID,
 		Operation:     schedule.BURN,
 		Status:        status.Completed,
-		HasReceiver:   true,
 		TransferID: sql.NullString{
 			String: hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
 			Valid:  true,
