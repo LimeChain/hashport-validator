@@ -57,7 +57,8 @@ func Test_New(t *testing.T) {
 		hederaAccount.String(),
 		mocks.MTransferRepository,
 		mocks.MScheduleRepository,
-		mocks.MScheduledService)
+		mocks.MScheduledService,
+		mocks.MTransferService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -67,9 +68,10 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 		hederaAccount.String(),
 		mocks.MTransferRepository,
 		mocks.MScheduleRepository,
-		mocks.MScheduledService)
+		mocks.MScheduledService,
+		mocks.MTransferService)
 
-	mocks.MTransferRepository.On("Create", &lockEvent).Return(nil, errors.New("e"))
+	mocks.MTransferService.On("InitiateNewTransfer", lockEvent).Return(nil, errors.New("new-error"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledMintTransaction")
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction")
 
@@ -213,6 +215,7 @@ func setup() {
 		repository:         mocks.MTransferRepository,
 		scheduleRepository: mocks.MScheduleRepository,
 		scheduledService:   mocks.MScheduledService,
+		transferService:    mocks.MTransferService,
 		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }
