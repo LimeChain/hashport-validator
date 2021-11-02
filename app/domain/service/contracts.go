@@ -32,6 +32,8 @@ type Contracts interface {
 	Address() common.Address
 	// GetMembers returns the array of bridge members currently set in the Bridge contract
 	GetMembers() []string
+	// ReloadMembers triggers to fetch all the members from the Router Contract
+	ReloadMembers()
 	// GetClient returns the Contracts Service corresponding EVM Client
 	GetClient() client.Core
 	// IsMember returns true/false depending on whether the provided address is a Bridge member or not

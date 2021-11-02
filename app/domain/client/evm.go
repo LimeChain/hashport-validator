@@ -29,7 +29,7 @@ type EVM interface {
 	GetClient() Core
 	BlockNumber(ctx context.Context) (uint64, error)
 	FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
-	GetBlockTimestamp(blockNumber *big.Int) (uint64, error)
+	GetBlockTimestamp(blockNumber *big.Int) uint64
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
 	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
 	// onSuccess is called once the TX is successfully mined
@@ -40,4 +40,5 @@ type EVM interface {
 	WaitForConfirmations(raw types.Log) error
 	// GetPrivateKey retrieves private key used for the specific EVM Client
 	GetPrivateKey() string
+	BlockConfirmations() uint64
 }

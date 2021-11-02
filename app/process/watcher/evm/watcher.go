@@ -30,6 +30,7 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	helper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
@@ -39,16 +40,30 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Watcher struct {
-	repository  repository.Status
-	contracts   service.Contracts
-	evmClient   client.EVM
-	logger      *log.Entry
-	mappings    c.Assets
-	targetBlock uint64
-	validator   bool
+	repository    repository.Status
+	contracts     service.Contracts
+	evmClient     client.EVM
+	logger        *log.Entry
+	mappings      c.Assets
+	targetBlock   uint64
+	sleepDuration time.Duration
+	validator     bool
+	filterConfig  FilterConfig
+}
+
+var defaultSleepDuration = 15 * time.Second
+
+type FilterConfig struct {
+	abi               abi.ABI
+	topics            [][]common.Hash
+	addresses         []common.Address
+	burnHash          common.Hash
+	lockHash          common.Hash
+	memberUpdatedHash common.Hash
 }
 
 func NewWatcher(
@@ -57,10 +72,48 @@ func NewWatcher(
 	evmClient client.EVM,
 	mappings c.Assets,
 	startBlock int64,
-	validator bool) *Watcher {
-	targetBlock, err := evmClient.BlockNumber(context.Background())
+	validator bool,
+	pollingInterval time.Duration) *Watcher {
+	currentBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
+	}
+	targetBlock := helper.Max(0, currentBlock-evmClient.BlockConfirmations())
+
+	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		log.Fatalf("Failed to parse router ABI. Error: [%s]", err)
+	}
+
+	burnHash := abi.Events["Burn"].ID
+	lockHash := abi.Events["Lock"].ID
+	memberUpdatedHash := abi.Events["MemberUpdated"].ID
+
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+			memberUpdatedHash,
+		},
+	}
+
+	addresses := []common.Address{
+		contracts.Address(),
+	}
+
+	filterConfig := FilterConfig{
+		abi:               abi,
+		topics:            topics,
+		addresses:         addresses,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		memberUpdatedHash: memberUpdatedHash,
+	}
+
+	if pollingInterval == 0 {
+		pollingInterval = defaultSleepDuration
+	} else {
+		pollingInterval = pollingInterval * time.Second
 	}
 
 	if startBlock == 0 {
@@ -85,115 +138,119 @@ func NewWatcher(
 		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", contracts.Address(), timestamp.ToHumanReadable(startBlock))
 	}
 	return &Watcher{
-		repository:  repository,
-		contracts:   contracts,
-		evmClient:   evmClient,
-		logger:      c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
-		mappings:    mappings,
-		targetBlock: targetBlock,
-		validator:   validator,
+		repository:    repository,
+		contracts:     contracts,
+		evmClient:     evmClient,
+		logger:        c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
+		mappings:      mappings,
+		targetBlock:   targetBlock,
+		validator:     validator,
+		sleepDuration: pollingInterval,
+		filterConfig:  filterConfig,
 	}
 }
 
 func (ew *Watcher) Watch(queue qi.Queue) {
-	go ew.listenForEvents(queue)
+	go ew.beginWatching(queue)
 
-	ew.processPastLogs(queue)
 	ew.logger.Infof("Listening for events at contract [%s]", ew.contracts.Address())
 }
 
-func (ew Watcher) processPastLogs(queue qi.Queue) {
+func (ew Watcher) beginWatching(queue qi.Queue) {
 	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
 	if err != nil {
 		ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
+		time.Sleep(ew.sleepDuration)
+		ew.beginWatching(queue)
 		return
 	}
 
 	ew.logger.Infof("Processing events from [%d]", fromBlock)
 
-	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
-	if err != nil {
-		ew.logger.Errorf("Failed to parse router ABI. Error: [%s]", err)
-		return
-	}
-	burnHash := abi.Events["Burn"].ID
-	lockHash := abi.Events["Lock"].ID
+	for {
+		fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
+		if err != nil {
+			ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
+			continue
+		}
 
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-		},
+		currentBlock, err := ew.evmClient.BlockNumber(context.Background())
+		if err != nil {
+			ew.logger.Errorf("Failed to retrieve latest block number. Error [%s]", err)
+			time.Sleep(ew.sleepDuration)
+			continue
+		}
+
+		toBlock := int64(currentBlock - ew.evmClient.BlockConfirmations())
+		if fromBlock > toBlock {
+			time.Sleep(ew.sleepDuration)
+			continue
+		}
+
+		err = ew.processLogs(fromBlock, toBlock, queue)
+		if err != nil {
+			ew.logger.Errorf("Failed to process logs. Error: [%s].", err)
+			time.Sleep(ew.sleepDuration)
+			continue
+		}
+
+		time.Sleep(ew.sleepDuration)
 	}
-	addresses := []common.Address{
-		ew.contracts.Address(),
-	}
+}
+
+func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
+
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
-		Addresses: addresses,
-		Topics:    topics,
+		ToBlock:   new(big.Int).SetInt64(endBlock),
+		Addresses: ew.filterConfig.addresses,
+		Topics:    ew.filterConfig.topics,
 	}
+
 	logs, err := ew.evmClient.FilterLogs(context.Background(), *query)
 	if err != nil {
 		ew.logger.Errorf("Failed to to filter logs. Error: [%s]", err)
-		return
+		return err
 	}
 
 	for _, log := range logs {
 		if len(log.Topics) > 0 {
-			if log.Topics[0] == lockHash {
+			if log.Topics[0] == ew.filterConfig.lockHash {
 				lock, err := ew.contracts.ParseLockLog(log)
 				if err != nil {
 					ew.logger.Errorf("Could not parse lock log [%s]. Error [%s].", lock.Raw.TxHash.String(), err)
 					continue
 				}
-				go ew.handleLockLog(lock, queue)
-			} else if log.Topics[0] == burnHash {
+				ew.handleLockLog(lock, queue)
+			} else if log.Topics[0] == ew.filterConfig.burnHash {
 				burn, err := ew.contracts.ParseBurnLog(log)
 				if err != nil {
 					ew.logger.Errorf("Could not parse burn log [%s]. Error [%s].", burn.Raw.TxHash.String(), err)
 					continue
 				}
-				go ew.handleBurnLog(burn, queue)
+				ew.handleBurnLog(burn, queue)
+			} else if log.Topics[0] == ew.filterConfig.memberUpdatedHash {
+				go ew.contracts.ReloadMembers()
 			}
 		}
 	}
-}
 
-func (ew *Watcher) listenForEvents(q qi.Queue) {
-	burnEvents := make(chan *router.RouterBurn)
+	// Given that the log filtering boundaries are inclusive,
+	// the next time log filtering is done will start from the next block,
+	// so that processing of duplicate events does not occur
+	blockToBeUpdated := endBlock + 1
 
-	burnSubscription, err := ew.contracts.WatchBurnEventLogs(nil, burnEvents)
+	err = ew.repository.Update(ew.contracts.Address().String(), blockToBeUpdated)
 	if err != nil {
-		ew.logger.Fatalf("Failed to subscribe for Burn Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
+		ew.logger.Errorf("Failed to update latest processed block [%d]. Error: [%s]", blockToBeUpdated, err)
+		return err
 	}
 
-	lockEvents := make(chan *router.RouterLock)
-	lockSubscription, err := ew.contracts.WatchLockEventLogs(nil, lockEvents)
-	if err != nil {
-		ew.logger.Fatalf("Failed to subscribe for Lock Event Logs for contract address [%s]. Error [%s].", ew.contracts.Address(), err)
-	}
-
-	for {
-		select {
-		case err := <-burnSubscription.Err():
-			ew.logger.Errorf("Burn Event Logs subscription failed. Error: [%s].", err)
-			go ew.listenForEvents(q)
-			return
-		case err := <-lockSubscription.Err():
-			ew.logger.Errorf("Lock Event Logs subscription failed. Error: [%s].", err)
-			go ew.listenForEvents(q)
-			return
-		case eventLog := <-burnEvents:
-			go ew.handleBurnLog(eventLog, q)
-		case eventLog := <-lockEvents:
-			go ew.handleLockLog(eventLog, q)
-		}
-	}
+	return nil
 }
 
 func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
-	ew.logger.Debugf("[%s] - New Burn Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
+	ew.logger.Debugf("[%s] - New Burn Event Log received.", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -262,24 +319,12 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		Amount:        properAmount.String(),
 	}
 
-	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-
 	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
 		recipientAccount)
 
 	currentBlockNumber := eventLog.Raw.BlockNumber
-
-	err = ew.repository.Update(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
 		if burnEvent.TargetChainId == 0 {
@@ -288,11 +333,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
 		}
 	} else {
-		blockTimestamp, err := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to retrieve block timestamp. Error: [%s]", eventLog.Raw.TxHash.String(), err)
-			return
-		}
+		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		burnEvent.Timestamp = strconv.FormatUint(blockTimestamp, 10)
 		if burnEvent.TargetChainId == 0 {
@@ -304,7 +345,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
-	ew.logger.Debugf("[%s] - New Lock Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
+	ew.logger.Debugf("[%s] - New Lock Event Log received.", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -366,12 +407,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		Amount:        properAmount.String(),
 	}
 
-	err = ew.evmClient.WaitForConfirmations(eventLog.Raw)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed waiting for confirmation before processing. Error: %s", eventLog.Raw.TxHash, err)
-		return
-	}
-
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
 		eventLog.Amount.String(),
@@ -381,12 +416,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
-	err = ew.repository.Update(ew.contracts.Address().String(), int64(eventLog.Raw.BlockNumber))
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to update latest processed block. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
 		if tr.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
@@ -394,11 +423,8 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
 		}
 	} else {
-		blockTimestamp, err := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to retrieve block timestamp. Error [%s]", eventLog.Raw.TxHash.String(), err)
-			return
-		}
+		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+
 		tr.Timestamp = strconv.FormatUint(blockTimestamp, 10)
 		if tr.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})

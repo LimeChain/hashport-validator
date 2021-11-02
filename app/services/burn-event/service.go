@@ -40,6 +40,7 @@ type Service struct {
 	distributorService service.Distributor
 	feeService         service.Fee
 	scheduledService   service.Scheduled
+	transferService    service.Transfers
 	logger             *log.Entry
 }
 
@@ -50,7 +51,8 @@ func NewService(
 	feeRepository repository.Fee,
 	distributor service.Distributor,
 	scheduled service.Scheduled,
-	feeService service.Fee) *Service {
+	feeService service.Fee,
+	transferService service.Transfers) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -65,6 +67,7 @@ func NewService(
 		distributorService: distributor,
 		feeService:         feeService,
 		scheduledService:   scheduled,
+		transferService:    transferService,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
@@ -82,9 +85,14 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
-	_, err = s.repository.Create(&event)
+	transactionRecord, err := s.transferService.InitiateNewTransfer(event)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create a burn event record. Error [%s].", event.TransactionId, err)
+		s.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", event.TransactionId, err)
+		return
+	}
+
+	if transactionRecord.Status != status.Initial {
+		s.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 

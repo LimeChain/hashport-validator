@@ -94,13 +94,15 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		repositories.fee,
 		distributor,
 		scheduled,
-		fees)
+		fees,
+		transfers)
 
 	lockEvent := lock_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,
 		repositories.transfer,
 		repositories.schedule,
-		scheduled)
+		scheduled,
+		transfers)
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer)
 

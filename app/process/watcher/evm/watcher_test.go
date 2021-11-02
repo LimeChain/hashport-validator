@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -34,6 +35,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
+	"strings"
 	"testing"
 )
 
@@ -120,7 +122,6 @@ func Test_HandleLockLog_Removed_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Raw.Removed = false
 
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -131,7 +132,6 @@ func Test_HandleLockLog_EmptyReceiver_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Receiver = hederaBytes
 
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -143,25 +143,12 @@ func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 	w.handleLockLog(lockLog, mocks.MQueue)
 	lockLog.Receiver = hederaBytes
 
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(2), nil)
-
-	w.handleLockLog(lockLog, mocks.MQueue)
-
-	mocks.MEVMClient.AssertNotCalled(t, "WaitForConfirmations", lockLog.Raw)
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
-func Test_HandleLockLog_WaitingForConfirmations_Fails(t *testing.T) {
-	setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(errors.New("some-error"))
 
 	w.handleLockLog(lockLog, mocks.MQueue)
 
@@ -172,7 +159,6 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -194,7 +180,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.Setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
+	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	w = &Watcher{
@@ -207,7 +193,6 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -229,7 +214,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 
 func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
+	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	lockLog.TargetChain = big.NewInt(1)
@@ -243,7 +228,6 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -264,22 +248,9 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	lockLog.TargetChain = big.NewInt(0)
 }
 
-func Test_HandleLockLog_UpdateFails(t *testing.T) {
-	setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
-
-	w.handleLockLog(lockLog, mocks.MQueue)
-
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
 func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
 
 	lockLog.TargetChain = big.NewInt(1)
 	parsedLockLog := &transfer.Transfer{
@@ -305,7 +276,6 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -324,26 +294,6 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	w.handleBurnLog(burnLog, mocks.MQueue)
 }
 
-func Test_HandleBurnLog_UpdateFails(t *testing.T) {
-	setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(errors.New("some-error"))
-
-	w.handleBurnLog(burnLog, mocks.MQueue)
-
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
-func Test_HandleBurnLog_WaitForConfirmationFails(t *testing.T) {
-	setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(errors.New("some-error"))
-	w.handleBurnLog(burnLog, mocks.MQueue)
-}
-
 func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 	setup()
 	defaultReceiver := burnLog.Receiver
@@ -356,7 +306,6 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 
 	burnLog.TargetChain = big.NewInt(1)
 	defaultToken := burnLog.Token
@@ -384,7 +333,7 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 
 func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
+	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	burnLog.TargetChain = big.NewInt(1)
@@ -398,7 +347,6 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 
 	burnLog.TargetChain = big.NewInt(1)
 	defaultToken := burnLog.Token
@@ -428,7 +376,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.Setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1), nil)
+	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
 		repository: mocks.MStatusRepository,
@@ -440,7 +388,6 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -458,52 +405,6 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.ReadOnlyHederaTransfer}).Return()
 
 	w.handleBurnLog(burnLog, mocks.MQueue)
-}
-
-func Test_HandleBurnLog_GetBlockTimestamp_Fails(t *testing.T) {
-	mocks.Setup()
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(0), errors.New("some-error"))
-	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
-	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
-	}
-
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", burnLog.Raw).Return(nil)
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
-
-	w.handleBurnLog(burnLog, mocks.MQueue)
-
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
-}
-
-func Test_HandleLockLog_GetBlockTimestamp_Fails(t *testing.T) {
-	mocks.Setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(0), errors.New("some-error"))
-	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
-	}
-
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MEVMClient.On("WaitForConfirmations", lockLog.Raw).Return(nil)
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
-
-	w.handleLockLog(lockLog, mocks.MQueue)
-
-	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
 func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
@@ -557,32 +458,68 @@ func TestNewWatcher(t *testing.T) {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	mocks.MEVMClient.On("BlockNumber", mock.Anything).Return(uint64(0), nil)
+	mocks.MEVMClient.On("BlockNumber", mock.Anything).Return(uint64(10), nil)
+	mocks.MEVMClient.On("BlockConfirmations", mock.Anything).Return(uint64(5))
 
-	assets := config.LoadAssets(networks)
-	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   assets,
-		validator:  true,
+	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		t.Fatalf("Failed to parse router ABI. Error: [%s]", err)
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true))
-}
+	burnHash := abi.Events["Burn"].ID
+	lockHash := abi.Events["Lock"].ID
+	memberUpdatedHash := abi.Events["MemberUpdated"].ID
 
-// TODO: Test_NewWatcher_Fails
-
-func Test_ProcessPastLogs_ParseBurnLogFails(t *testing.T) {
-	setup()
-
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
 	topics := [][]common.Hash{
 		{
 			burnHash,
 			lockHash,
+			memberUpdatedHash,
+		},
+	}
+
+	addresses := []common.Address{
+		{},
+	}
+
+	filterConfig := FilterConfig{
+		abi:               abi,
+		topics:            topics,
+		addresses:         addresses,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		memberUpdatedHash: memberUpdatedHash,
+	}
+
+	assets := config.LoadAssets(networks)
+	w = &Watcher{
+		repository:    mocks.MStatusRepository,
+		contracts:     mocks.MBridgeContractService,
+		evmClient:     mocks.MEVMClient,
+		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		mappings:      assets,
+		validator:     true,
+		targetBlock:   5,
+		sleepDuration: defaultSleepDuration,
+		filterConfig:  filterConfig,
+	}
+
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15))
+}
+
+// TODO: Test_NewWatcher_Fails
+
+func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
+	setup()
+
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+			membersHash,
 		},
 	}
 	query := &ethereum.FilterQuery{
@@ -590,7 +527,8 @@ func Test_ProcessPastLogs_ParseBurnLogFails(t *testing.T) {
 		Addresses: []common.Address{
 			common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		},
-		Topics: topics,
+		ToBlock: new(big.Int).SetInt64(0),
+		Topics:  topics,
 	}
 
 	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
@@ -607,18 +545,22 @@ func Test_ProcessPastLogs_ParseBurnLogFails(t *testing.T) {
 			burnHash,
 		},
 	}).Return(burnLog, errors.New("some-error"))
-	w.processPastLogs(mocks.MQueue)
+	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(nil)
+	w.processLogs(0, 0, mocks.MQueue)
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-func Test_ProcessPastLogs_ParseLockLogFails(t *testing.T) {
+func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 	setup()
 
 	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
 	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
 	topics := [][]common.Hash{
 		{
 			burnHash,
 			lockHash,
+			membersHash,
 		},
 	}
 	query := &ethereum.FilterQuery{
@@ -626,7 +568,8 @@ func Test_ProcessPastLogs_ParseLockLogFails(t *testing.T) {
 		Addresses: []common.Address{
 			common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		},
-		Topics: topics,
+		ToBlock: new(big.Int).SetInt64(0),
+		Topics:  topics,
 	}
 
 	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
@@ -643,18 +586,22 @@ func Test_ProcessPastLogs_ParseLockLogFails(t *testing.T) {
 			lockHash,
 		},
 	}).Return(lockLog, errors.New("some-error"))
-	w.processPastLogs(mocks.MQueue)
+	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(nil)
+	w.processLogs(0, 0, mocks.MQueue)
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-func Test_ProcessPastLogs_FilterLogsFails(t *testing.T) {
+func Test_ProcessLogs_FilterLogsFails(t *testing.T) {
 	setup()
 
 	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
 	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
 	topics := [][]common.Hash{
 		{
 			burnHash,
 			lockHash,
+			membersHash,
 		},
 	}
 	query := &ethereum.FilterQuery{
@@ -662,39 +609,77 @@ func Test_ProcessPastLogs_FilterLogsFails(t *testing.T) {
 		Addresses: []common.Address{
 			common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		},
-		Topics: topics,
+		ToBlock: new(big.Int).SetInt64(5),
+		Topics:  topics,
 	}
 
 	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
 		Return([]types.Log{}, errors.New("some-error"))
 
-	w.processPastLogs(mocks.MQueue)
+	w.processLogs(0, 5, mocks.MQueue)
 }
 
-func Test_ProcessPastLogs_RepoGetFails(t *testing.T) {
+func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 	mocks.Setup()
-	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), errors.New("some-error"))
-	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  true,
+	setup()
+
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+	topics := [][]common.Hash{
+		{
+			burnHash,
+			lockHash,
+			membersHash,
+		},
 	}
-	w.processPastLogs(mocks.MQueue)
+	query := &ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetInt64(0),
+		Addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		},
+		ToBlock: new(big.Int).SetInt64(0),
+		Topics:  topics,
+	}
+	expectedErr := errors.New("some-error")
+
+	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+		Return([]types.Log{}, nil)
+	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(expectedErr)
+	res := w.processLogs(0, 0, mocks.MQueue)
+	assert.Equal(t, expectedErr, res)
 }
 
 func setup() {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  true,
+		repository:    mocks.MStatusRepository,
+		contracts:     mocks.MBridgeContractService,
+		evmClient:     mocks.MEVMClient,
+		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		mappings:      config.LoadAssets(networks),
+		validator:     true,
+		sleepDuration: defaultSleepDuration,
+		filterConfig: FilterConfig{
+			abi: abi.ABI{},
+			topics: [][]common.Hash{
+				{
+					burnHash,
+					lockHash,
+					membersHash,
+				},
+			},
+			addresses: []common.Address{
+				common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			},
+			burnHash:          burnHash,
+			lockHash:          lockHash,
+			memberUpdatedHash: membersHash,
+		},
 	}
 }

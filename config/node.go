@@ -48,6 +48,7 @@ type Evm struct {
 	NodeUrl            string
 	PrivateKey         string
 	StartBlock         int64
+	PollingInterval    time.Duration
 }
 
 type Hedera struct {
