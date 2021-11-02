@@ -160,6 +160,9 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
 	if err != nil {
 		ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
+		time.Sleep(ew.sleepDuration)
+		ew.beginWatching(queue)
+		return
 	}
 
 	ew.logger.Infof("Processing events from [%d]", fromBlock)
