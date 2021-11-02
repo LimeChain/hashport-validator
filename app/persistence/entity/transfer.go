@@ -58,6 +58,7 @@ type Fee struct {
 type Schedule struct {
 	TransactionID string `gorm:"primaryKey"` // TransactionID  of the original scheduled transaction
 	ScheduleID    string // ScheduleID of the transaction. Can be empty if execution failed
+	HasReceiver   bool   // True if the scheduled transaction includes the receiver of the TransferID in itself
 	Operation     string // type of scheduled transaction (TokenMint, TokenBurn, CryptoTransfer)
 	Status        string
 	TransferID    sql.NullString // foreign key to the transfer ID

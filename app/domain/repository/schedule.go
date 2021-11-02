@@ -24,6 +24,6 @@ type Schedule interface {
 	Create(entity *entity.Schedule) error
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
-	GetTransferByTransactionID(id string) (*entity.Schedule, error)
+	GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error)
 	GetAllSubmittedIds() ([]*entity.Schedule, error)
 }

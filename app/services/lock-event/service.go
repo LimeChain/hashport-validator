@@ -73,7 +73,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 
 	status := make(chan string)
 
-	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.MINT, &status)
+	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.MINT, &status, false)
 	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status)
 
 	s.scheduledService.ExecuteScheduledMintTransaction(
@@ -117,7 +117,7 @@ statusBlocker:
 		},
 	}
 
-	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.TRANSFER, &status)
+	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.TRANSFER, &status, true)
 	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status)
 
 	s.scheduledService.ExecuteScheduledTransferTransaction(
@@ -131,7 +131,7 @@ statusBlocker:
 	)
 }
 
-func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
+func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *chan string, hasReceiver bool) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		s.logger.Debugf("[%s] - Updating db status Submitted with TransactionID [%s].",
 			id,
@@ -140,6 +140,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 			TransactionID: transactionID,
 			ScheduleID:    scheduleID,
 			Operation:     operation,
+			HasReceiver:   hasReceiver,
 			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: id,
