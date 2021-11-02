@@ -22,17 +22,20 @@ import (
 	"strconv"
 )
 
-func GetTotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) string {
+// GetTotalFeeFromTransfers sums the positive amounts of transfers, excluding the receiver transfer
+// Returns the sum and whether the receiver transfer has been found
+func GetTotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) (totalFee string, hasReceiver bool) {
 	result := int64(0)
 	for _, transfer := range transfers {
 		if transfer.Amount < 0 {
 			continue
 		}
 		if transfer.AccountID == receiver {
+			hasReceiver = true
 			continue
 		}
 		result += transfer.Amount
 	}
 
-	return strconv.FormatInt(result, 10)
+	return strconv.FormatInt(result, 10), hasReceiver
 }

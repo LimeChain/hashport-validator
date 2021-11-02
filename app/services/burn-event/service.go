@@ -101,8 +101,8 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	}
 
 	for _, splitTransfer := range splitTransfers {
-		feeAmount := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
-		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount)
+		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
+		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
 		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId)
 
 		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
@@ -140,7 +140,7 @@ func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.A
 // TransactionID returns the corresponding Scheduled Transaction paying out the
 // fees to validators and the amount being bridged to the receiver address
 func (s *Service) TransactionID(id string) (string, error) {
-	event, err := s.scheduleRepository.GetTransferByTransactionID(id)
+	event, err := s.scheduleRepository.GetReceiverTransferByTransactionID(id)
 	if err != nil {
 		s.logger.Errorf("[%s] - failed to get event.", id)
 		return "", err
@@ -153,7 +153,7 @@ func (s *Service) TransactionID(id string) (string, error) {
 	return event.TransactionID, nil
 }
 
-func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
+func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string, hasReceiver bool) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		s.logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
 			id,
@@ -162,6 +162,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 			ScheduleID:    scheduleID,
 			Operation:     schedule.TRANSFER,
 			TransactionID: transactionID,
+			HasReceiver:   hasReceiver,
 			Status:        status.Submitted,
 			TransferID: sql.NullString{
 				String: id,
@@ -196,6 +197,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string) (on
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Status:        status.Failed,
+			HasReceiver:   hasReceiver,
 			TransferID: sql.NullString{
 				String: id,
 				Valid:  true,

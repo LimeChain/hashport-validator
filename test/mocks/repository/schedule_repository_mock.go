@@ -67,7 +67,7 @@ func (m *MockScheduleRepository) UpdateStatusFailed(txId string) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockScheduleRepository) GetTransferByTransactionID(id string) (*entity.Schedule, error) {
+func (m *MockScheduleRepository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
 	args := m.Called(id)
 	if args.Get(1) == nil {
 		return args.Get(0).(*entity.Schedule), nil

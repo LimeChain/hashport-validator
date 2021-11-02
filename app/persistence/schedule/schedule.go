@@ -80,11 +80,11 @@ func (r Repository) Get(id string) (*entity.Schedule, error) {
 	return record, nil
 }
 
-func (r Repository) GetTransferByTransactionID(id string) (*entity.Schedule, error) {
+func (r Repository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
 	result := r.dbClient.
 		Model(entity.Schedule{}).
-		Where("transfer_id = ? AND operation = ?", id, schedule.TRANSFER).
+		Where("transfer_id = ? AND operation = ? AND has_receiver = true", id, schedule.TRANSFER).
 		First(record)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

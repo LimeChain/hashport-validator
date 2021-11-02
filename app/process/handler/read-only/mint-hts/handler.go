@@ -106,6 +106,7 @@ func (fmh Handler) Handle(payload interface{}) {
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,
 				Operation:     schedule.TRANSFER,
+				HasReceiver:   true,
 				Status:        status,
 				TransferID: sql.NullString{
 					String: transferMsg.TransactionId,
