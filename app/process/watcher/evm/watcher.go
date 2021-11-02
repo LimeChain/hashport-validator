@@ -345,7 +345,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 }
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
-	ew.logger.Debugf("[%s] - New Lock Event Log received. Waiting block confirmations", eventLog.Raw.TxHash)
+	ew.logger.Debugf("[%s] - New Lock Event Log received.", eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
