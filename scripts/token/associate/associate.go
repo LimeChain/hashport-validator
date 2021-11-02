@@ -50,6 +50,7 @@ func main() {
 	receipt := associateTokenToAccount(client, tokenIDFromString)
 	fmt.Println("Associate transaction status:", receipt.Status)
 }
+
 func associateTokenToAccount(client *hedera.Client, token hedera.TokenID) hedera.TransactionReceipt {
 	associateTX, err := hedera.
 		NewTokenAssociateTransaction().
@@ -57,12 +58,12 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID) hedera
 		SetTokenIDs(token).
 		Execute(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	receipt, err := associateTX.GetReceipt(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	return receipt
 }

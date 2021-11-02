@@ -31,12 +31,16 @@ func main() {
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
 	members := flag.Int("members", 1, "The count of the members")
+	adminKey := flag.String("adminKey", "", "The admin key")
 	flag.Parse()
 	if *privateKey == "0x0" {
 		panic("Private key was not provided")
 	}
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
+	}
+	if *adminKey == "" {
+		panic("admin key not provided")
 	}
 
 	fmt.Println("-----------Start-----------")
@@ -57,8 +61,13 @@ func main() {
 	for i := 0; i < *members; i++ {
 		topicKey.Add(memberKeys[i].PublicKey())
 	}
+	adminPublicKey, err := hedera.PublicKeyFromString(*adminKey)
+	if err != nil {
+		panic(err)
+	}
 
 	txID, err := hedera.NewTopicCreateTransaction().
+		SetAdminKey(adminPublicKey).
 		SetSubmitKey(topicKey).
 		Execute(client)
 	if err != nil {
@@ -111,6 +120,7 @@ func main() {
 	fmt.Printf("Balance: %v\n HBars", balance)
 	fmt.Println("---Executed Successfully---")
 }
+
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.GeneratePrivateKey()
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
