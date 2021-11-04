@@ -45,7 +45,7 @@ func main() {
 	fmt.Println("-----------Start-----------")
 	client := client.Init(*privateKey, *accountID, *network)
 
-	membersSlice := strings.Split(*memberPrKeys, " ")
+	membersSlice := strings.Split(*memberPrKeys, ",")
 
 	var custodianKey []hedera.PrivateKey
 	for i := 0; i < len(membersSlice); i++ {
@@ -67,6 +67,7 @@ func main() {
 	fmt.Println("Token ID:", tokenId)
 	fmt.Println("Associate transaction status:", receipt.Status)
 }
+
 func createToken(client *hedera.Client) *hedera.TokenID {
 	createTokenTX, err := hedera.NewTokenCreateTransaction().
 		SetTreasuryAccountID(client.GetOperatorAccountID()).
@@ -85,6 +86,7 @@ func createToken(client *hedera.Client) *hedera.TokenID {
 	}
 	return receipt.TokenID
 }
+
 func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID, custodianKey []hedera.PrivateKey) hedera.TransactionReceipt {
 	freezedAssociateTX, err := hedera.
 		NewTokenAssociateTransaction().
@@ -92,7 +94,7 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridge
 		SetTokenIDs(token).
 		FreezeWith(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	for i := 0; i < len(custodianKey); i++ {
@@ -100,11 +102,11 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridge
 	}
 	associateTX, err := freezedAssociateTX.Execute(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	receipt, err := associateTX.GetReceipt(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	return receipt
 }
