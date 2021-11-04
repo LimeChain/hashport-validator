@@ -9,7 +9,7 @@ Example uses `Docker Compose`.
 
 ## How to run?
 
-1. Create a bridge configuration for Hedera using the [scripts](../../scripts/README.md).
+1. Create a bridge configuration for Hedera using the [scripts](../../scripts/testnet/README.md).
 2. Deploy EVM contracts from the Contracts [repository](https://github.com/LimeChain/hedera-eth-bridge-contracts/blob/main/README.md#scripts).
 3. Set necessary [bridge](./bridge.yml) configuration for the nodes.
 4. Set necessary configurations for [Alice](./alice/config), [Bob](./bob/config), [Carol](./carol/config) and [Dave](./dave/config).
