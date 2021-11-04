@@ -29,7 +29,15 @@ func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "", "Hedera Network Type")
+	// The bridge account, which will be added as treasury to the new account
 	bridgeID := flag.String("bridgeID", "0.0", "Bridge account ID")
+	// The admin key
+	adminKey := flag.String("adminKey", "", "Admin Key")
+	// The desired threshold of n/m keys required for supply key
+	threshold := flag.Uint("threshold", 1, "Threshold Key")
+	// A list of keys that will be added as supply key to the newly created token, with a threshold of the provided
+	supplyKeys := flag.String("supplyKeys", "", "Supply keys")
+	// Keys that are key to the bridge ID, which need to sign the transaction
 	memberPrKeys := flag.String("memberPrKeys", "", "The count of the members")
 	flag.Parse()
 	if *privateKey == "0x0" {
@@ -41,11 +49,19 @@ func main() {
 	if *bridgeID == "0.0" {
 		panic("Bridge id was not provided")
 	}
+	if *adminKey == "" {
+		panic("admin key not provided")
+	}
 
 	fmt.Println("-----------Start-----------")
 	client := client.Init(*privateKey, *accountID, *network)
 
-	membersSlice := strings.Split(*memberPrKeys, " ")
+	membersSlice := strings.Split(*memberPrKeys, ",")
+
+	adminPublicKey, err := hedera.PublicKeyFromString(*adminKey)
+	if err != nil {
+		panic(err)
+	}
 
 	var custodianKey []hedera.PrivateKey
 	for i := 0; i < len(membersSlice); i++ {
@@ -56,10 +72,15 @@ func main() {
 		custodianKey = append(custodianKey, privateKeyFromStr)
 	}
 
-	custodialKey := hedera.KeyListWithThreshold(uint(len(membersSlice)))
-	for _, m := range membersSlice {
-		key, _ := hedera.PrivateKeyFromString(m)
-		custodialKey.Add(key.PublicKey())
+	supplyKeysSlice := strings.Split(*supplyKeys, ",")
+
+	supplyKey := hedera.KeyListWithThreshold(*threshold)
+	for _, sk := range supplyKeysSlice {
+		key, err := hedera.PublicKeyFromString(sk)
+		if err != nil {
+			panic(fmt.Sprintf("failed to parse supply key [%s]. error [%s]", sk, err))
+		}
+		supplyKey.Add(key)
 	}
 
 	bridgeIDFromString, err := hedera.AccountIDFromString(*bridgeID)
@@ -67,23 +88,24 @@ func main() {
 		panic(err)
 	}
 
-	tokenId := createBridgeAccountToken(client, bridgeIDFromString, custodialKey, custodianKey)
+	tokenId := createBridgeAccountToken(client, bridgeIDFromString, adminPublicKey, supplyKey, custodianKey)
 
 	fmt.Println("Token ID:", tokenId)
 }
-func createBridgeAccountToken(client *hedera.Client, bridgeAccount hedera.AccountID, supplyKey *hedera.KeyList, custodianKey []hedera.PrivateKey) *hedera.TokenID {
+
+func createBridgeAccountToken(client *hedera.Client, bridgeAccount hedera.AccountID, adminKey hedera.PublicKey, supplyKey *hedera.KeyList, custodianKey []hedera.PrivateKey) *hedera.TokenID {
 	freezeTokenTX, err := hedera.NewTokenCreateTransaction().
 		SetTreasuryAccountID(bridgeAccount).
+		SetAdminKey(adminKey).
 		SetSupplyKey(supplyKey).
 		SetTokenName("e2e-test-token").
 		SetTokenSymbol("ett").
 		SetInitialSupply(100000000000000).
 		SetDecimals(8).
-		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
 		FreezeWith(client)
 
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	// add all keys
@@ -92,11 +114,11 @@ func createBridgeAccountToken(client *hedera.Client, bridgeAccount hedera.Accoun
 	}
 	createTx, err := freezeTokenTX.Execute(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	receipt, err := createTx.GetReceipt(client)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	return receipt.TokenID
