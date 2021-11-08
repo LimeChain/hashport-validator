@@ -403,8 +403,9 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			return
 		}
 		err = ts.feeRepository.Create(&entity.Fee{
-			Amount: feeAmount,
-			Status: status.Failed,
+			TransactionID: transactionID,
+			Amount:        feeAmount,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,
