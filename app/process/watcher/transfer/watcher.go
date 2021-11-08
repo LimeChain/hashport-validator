@@ -132,7 +132,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Suddenly stopped monitoring account. Error: [%s]", e)
 			go ctw.beginWatching(q)
 			return
 		}
