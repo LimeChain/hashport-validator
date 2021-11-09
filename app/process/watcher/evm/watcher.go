@@ -296,9 +296,9 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	properAmount := eventLog.Amount
 	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token.String())
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
 		}
 	}
@@ -384,9 +384,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
 	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token.String())
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
 		}
 	}
@@ -409,7 +409,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
-		eventLog.Amount.String(),
+		properAmount,
 		recipientAccount,
 		chain.Int64(),
 		eventLog.TargetChain.Int64())
