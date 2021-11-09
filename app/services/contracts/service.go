@@ -36,12 +36,13 @@ import (
 )
 
 type Service struct {
-	address  common.Address
-	contract *router.Router
-	Client   client.EVM
-	mutex    sync.Mutex
-	members  Members
-	logger   *log.Entry
+	address        common.Address
+	contract       *router.Router
+	Client         client.EVM
+	mutex          sync.Mutex
+	members        Members
+	logger         *log.Entry
+	assetsDecimals map[string]uint8
 }
 
 func (bsc *Service) GetClient() client.Core {
@@ -125,7 +126,7 @@ func (bsc *Service) getMembers() ([]string, error) {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM, address string) *Service {
+func NewService(client client.EVM, address string, assets []string) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)
@@ -136,11 +137,27 @@ func NewService(client client.EVM, address string) *Service {
 		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", address, err)
 	}
 
+	assetsDecimals := make(map[string]uint8)
+	for _, asset := range assets {
+		evmAsset, err := wtoken.NewWtoken(common.HexToAddress(asset), client.GetClient())
+		if err != nil {
+			log.Fatalf("Could not instantiate wtoken for [%s]. Error [%s].", asset, err)
+		}
+
+		decimals, err := evmAsset.Decimals(nil)
+		if err != nil {
+			log.Fatalf("Could not get asset decimals for [%s]. Error [%s].", asset, err)
+		}
+
+		assetsDecimals[asset] = decimals
+	}
+
 	contractService := &Service{
-		address:  *contractAddress,
-		Client:   client,
-		contract: contractInstance,
-		logger:   config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
+		address:        *contractAddress,
+		assetsDecimals: assetsDecimals,
+		Client:         client,
+		contract:       contractInstance,
+		logger:         config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
 	}
 
 	contractService.ReloadMembers()
@@ -148,16 +165,8 @@ func NewService(client client.EVM, address string) *Service {
 	return contractService
 }
 
-func (bsc *Service) AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
-	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	decimals, err := evmAsset.Decimals(nil)
-	if err != nil {
-		return nil, err
-	}
+func (bsc *Service) AddDecimals(amount *big.Int, asset string) (*big.Int, error) {
+	decimals := bsc.assetsDecimals[asset]
 
 	adaptation := int(decimals) - 8
 	if decimals > 0 {
@@ -166,16 +175,8 @@ func (bsc *Service) AddDecimals(amount *big.Int, asset common.Address) (*big.Int
 	return amount, nil
 }
 
-func (bsc *Service) RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
-	evmAsset, err := wtoken.NewWtoken(asset, bsc.Client.GetClient())
-	if err != nil {
-		return nil, err
-	}
-
-	decimals, err := evmAsset.Decimals(nil)
-	if err != nil {
-		return nil, err
-	}
+func (bsc *Service) RemoveDecimals(amount *big.Int, asset string) (*big.Int, error) {
+	decimals := bsc.assetsDecimals[asset]
 
 	adaptation := int(decimals) - 8
 	if decimals > 0 {
