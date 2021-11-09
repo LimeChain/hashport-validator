@@ -31,7 +31,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) AddDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+func (m *MockBridgeContract) AddDecimals(amount *big.Int, asset string) (*big.Int, error) {
 	args := m.Called(amount, asset)
 
 	if args[1] == nil {
@@ -40,7 +40,7 @@ func (m *MockBridgeContract) AddDecimals(amount *big.Int, asset common.Address) 
 	return args[0].(*big.Int), args[1].(error)
 }
 
-func (m *MockBridgeContract) RemoveDecimals(amount *big.Int, asset common.Address) (*big.Int, error) {
+func (m *MockBridgeContract) RemoveDecimals(amount *big.Int, asset string) (*big.Int, error) {
 	args := m.Called(amount, asset)
 
 	if args[1] == nil {
