@@ -296,7 +296,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	properAmount := eventLog.Amount
 	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token.String())
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
