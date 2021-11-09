@@ -19,7 +19,6 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -193,9 +192,14 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
-	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset))
+	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), targetChainAsset)
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to adjust [%v] amount [%d] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
+		ctw.logger.Errorf(
+			"[%s] - Failed to adjust [%v] amount [%d] decimals between chains. Error: [%s]",
+			tx.TransactionID,
+			nativeAsset,
+			intAmount,
+			err)
 		return
 	}
 

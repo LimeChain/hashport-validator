@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
@@ -193,7 +192,7 @@ func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, common.HexToAddress(tm.TargetAsset))
+	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, tm.TargetAsset)
 	if properAmount.Cmp(big.NewInt(0)) == 0 {
 		return errors.New(fmt.Sprintf("removed decimals resolves to 0, initial value [%s]", amount))
 	}
