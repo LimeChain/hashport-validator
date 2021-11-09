@@ -55,7 +55,12 @@ type Watcher struct {
 	filterConfig  FilterConfig
 }
 
-var defaultSleepDuration = 15 * time.Second
+// Certain node providers (Alchemy, Infura) have a limitation on how many blocks
+// eth_getLogs can process at once.
+const defaultMaxLogsBlocks = int64(500)
+
+// The default polling interval (in seconds) when querying for upcoming events/logs
+const defaultSleepDuration = 15 * time.Second
 
 type FilterConfig struct {
 	abi               abi.ABI
@@ -64,6 +69,7 @@ type FilterConfig struct {
 	burnHash          common.Hash
 	lockHash          common.Hash
 	memberUpdatedHash common.Hash
+	maxLogsBlocks     int64
 }
 
 func NewWatcher(
@@ -73,7 +79,8 @@ func NewWatcher(
 	mappings c.Assets,
 	startBlock int64,
 	validator bool,
-	pollingInterval time.Duration) *Watcher {
+	pollingInterval time.Duration,
+	maxLogsBlocks int64) *Watcher {
 	currentBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
@@ -101,6 +108,10 @@ func NewWatcher(
 		contracts.Address(),
 	}
 
+	if maxLogsBlocks == 0 {
+		maxLogsBlocks = defaultMaxLogsBlocks
+	}
+
 	filterConfig := FilterConfig{
 		abi:               abi,
 		topics:            topics,
@@ -108,6 +119,7 @@ func NewWatcher(
 		burnHash:          burnHash,
 		lockHash:          lockHash,
 		memberUpdatedHash: memberUpdatedHash,
+		maxLogsBlocks:     maxLogsBlocks,
 	}
 
 	if pollingInterval == 0 {
@@ -187,6 +199,10 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 			continue
 		}
 
+		if toBlock-fromBlock > ew.filterConfig.maxLogsBlocks {
+			toBlock = fromBlock + ew.filterConfig.maxLogsBlocks
+		}
+
 		err = ew.processLogs(fromBlock, toBlock, queue)
 		if err != nil {
 			ew.logger.Errorf("Failed to process logs. Error: [%s].", err)
@@ -199,7 +215,6 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 }
 
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
-
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
 		ToBlock:   new(big.Int).SetInt64(endBlock),
