@@ -310,7 +310,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 
 // Test_EVM_Hedera_Native_Token recreates a real life situation of a user who wants to bridge an EVM native token to the Hedera infrastructure. A new wrapped token (corresponding to the native EVM one) gets minted to the bridge account, then gets transferred to the recipient account.
 func Test_EVM_Hedera_Native_Token(t *testing.T) {
-	amount := int64(10000000000)
+	amount := int64(100000000000)
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
@@ -330,7 +330,8 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 3: Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
 
-	expectedAmount, err := removeDecimals(amount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	bridgedAmount := new(big.Int).Sub(expectedLockEventLog.Amount, expectedLockEventLog.ServiceFee)
+	expectedAmount, err := removeDecimals(bridgedAmount.Int64(), common.HexToAddress(setupEnv.NativeEvmToken), evm)
 	if err != nil {
 		t.Fatal(err)
 	}
