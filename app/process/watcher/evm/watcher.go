@@ -58,7 +58,7 @@ type Watcher struct {
 // Certain node providers (Alchemy, Infura) have a limitation on how many blocks
 // eth_getLogs can process at once. For this to be mitigated, a maximum amount of blocks
 // is introduces, splitting the request into chunks with a range of N.
-// For example, a query for events with a range of 5 000 blocks,  will be split into 10 queries, each having
+// For example, a query for events with a range of 5 000 blocks, will be split into 10 queries, each having
 // a range of 500 blocks
 const defaultMaxLogsBlocks = int64(500)
 
