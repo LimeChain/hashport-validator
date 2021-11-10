@@ -105,20 +105,6 @@ func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
-	//stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
-	//if e != nil {
-	//	return 0, "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	//}
-	//
-	//verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-	//if e != nil {
-	//	return 0, "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
-	//}
-	//
-	//if !verified {
-	//	return 0, "", errors.New("invalid state proof")
-	//}
-
 	memoArgs := strings.Split(m, "-")
 	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
 	evmAddress := memoArgs[1]
