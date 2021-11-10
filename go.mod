@@ -9,7 +9,6 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/golang/protobuf v1.5.2
 	github.com/hashgraph/hedera-sdk-go/v2 v2.1.5-beta.3
-	github.com/hashgraph/hedera-state-proof-verifier-go v0.0.0-20210331132016-d77f113cf098
 	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2

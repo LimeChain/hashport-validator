@@ -53,7 +53,7 @@ func (s Service) FindAssetTransfer(
 	for {
 		response, err := fetch()
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transferID, err)
+			s.logger.Errorf("[%s] - Failed to get transactions after timestamp. Error: [%s]", transferID, err)
 			continue
 		}
 
@@ -117,7 +117,7 @@ func (s Service) FindTransfer(
 	for {
 		response, err := fetch()
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to get token burn transactions after timestamp. Error: [%s]", transferID, err)
+			s.logger.Errorf("[%s] - Failed to get transactions after timestamp. Error: [%s]", transferID, err)
 			continue
 		}
 
