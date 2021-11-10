@@ -489,6 +489,7 @@ func TestNewWatcher(t *testing.T) {
 		burnHash:          burnHash,
 		lockHash:          lockHash,
 		memberUpdatedHash: memberUpdatedHash,
+		maxLogsBlocks:     220,
 	}
 
 	assets := config.LoadAssets(networks)
@@ -504,7 +505,7 @@ func TestNewWatcher(t *testing.T) {
 		filterConfig:  filterConfig,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15))
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15, 220))
 }
 
 // TODO: Test_NewWatcher_Fails
