@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -106,19 +105,19 @@ func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
-	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
-	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	}
-
-	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
-	}
-
-	if !verified {
-		return 0, "", errors.New("invalid state proof")
-	}
+	//stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
+	//if e != nil {
+	//	return 0, "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
+	//}
+	//
+	//verified, e := stateproof.Verify(tx.TransactionID, stateProof)
+	//if e != nil {
+	//	return 0, "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
+	//}
+	//
+	//if !verified {
+	//	return 0, "", errors.New("invalid state proof")
+	//}
 
 	memoArgs := strings.Split(m, "-")
 	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
