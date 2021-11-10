@@ -28,13 +28,21 @@ func Test_SplitTransfersBelowTotal(t *testing.T) {
 	positiveAccountAmounts := make([]transfer.Hedera, length)
 	for i := 0; i < length; i++ {
 		positiveAccountAmounts[i] = transfer.Hedera{
-			AccountID: hedera.AccountID{0, 0, uint64(i)},
-			Amount:    1,
+			AccountID: hedera.AccountID{
+				Shard:   0,
+				Realm:   0,
+				Account: uint64(i),
+			},
+			Amount: 1,
 		}
 	}
 	negativeAccountAmount := transfer.Hedera{
-		AccountID: hedera.AccountID{0, 0, 7},
-		Amount:    int64(-length),
+		AccountID: hedera.AccountID{
+			Shard:   0,
+			Realm:   0,
+			Account: 7,
+		},
+		Amount: int64(-length),
 	}
 	expected := [][]transfer.Hedera{
 		append(positiveAccountAmounts, negativeAccountAmount),
@@ -54,12 +62,16 @@ func Test_SplitTransfersExactLength(t *testing.T) {
 	positiveAccountAmounts := make([]transfer.Hedera, length)
 	for i := 0; i < length; i++ {
 		positiveAccountAmounts[i] = transfer.Hedera{
-			AccountID: hedera.AccountID{0, 0, uint64(i)},
-			Amount:    1,
+			AccountID: hedera.AccountID{
+				Shard:   0,
+				Realm:   0,
+				Account: uint64(i),
+			},
+			Amount: 1,
 		}
 	}
 	negativeAccountAmount := transfer.Hedera{
-		AccountID: hedera.AccountID{0, 0, 7},
+		AccountID: hedera.AccountID{Shard: 0, Realm: 0, Account: 7},
 		Amount:    int64(-length),
 	}
 	expected := [][]transfer.Hedera{
@@ -80,12 +92,12 @@ func Test_SplitTransfersAboveTotalTransfersPerTransaction(t *testing.T) {
 	positiveAccountAmounts := make([]transfer.Hedera, length)
 	for i := 0; i < length; i++ {
 		positiveAccountAmounts[i] = transfer.Hedera{
-			AccountID: hedera.AccountID{0, 0, uint64(i)},
+			AccountID: hedera.AccountID{Shard: 0, Realm: 0, Account: uint64(i)},
 			Amount:    1,
 		}
 	}
 	negativeAccountAmount := transfer.Hedera{
-		AccountID: hedera.AccountID{0, 0, 7},
+		AccountID: hedera.AccountID{Shard: 0, Realm: 0, Account: 7},
 		Amount:    int64(-length),
 	}
 	expectedSplit := (length + TotalPositiveTransfersPerTransaction - 1) / TotalPositiveTransfersPerTransaction
@@ -124,12 +136,12 @@ func Test_SplitTransfersAboveTotalTransfersEquallyDivided(t *testing.T) {
 	positiveAccountAmounts := make([]transfer.Hedera, length)
 	for i := 0; i < length; i++ {
 		positiveAccountAmounts[i] = transfer.Hedera{
-			AccountID: hedera.AccountID{0, 0, uint64(i)},
+			AccountID: hedera.AccountID{Shard: 0, Realm: 0, Account: uint64(i)},
 			Amount:    1,
 		}
 	}
 	negativeAccountAmount := transfer.Hedera{
-		AccountID: hedera.AccountID{0, 0, 7},
+		AccountID: hedera.AccountID{Shard: 0, Realm: 0, Account: 7},
 		Amount:    int64(-length),
 	}
 	expectedSplit := (length + TotalPositiveTransfersPerTransaction - 1) / TotalPositiveTransfersPerTransaction
