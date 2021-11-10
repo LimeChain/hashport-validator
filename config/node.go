@@ -49,6 +49,7 @@ type Evm struct {
 	PrivateKey         string
 	StartBlock         int64
 	PollingInterval    time.Duration
+	MaxLogsBlocks      int64
 }
 
 type Hedera struct {
