@@ -44,12 +44,12 @@ var mainnetNodes = map[string]hedera.AccountID{
 	"139.162.156.222:50211": {Account: 18},
 	"51.140.43.81:50211":    {Account: 19},
 	"13.77.151.212:50211":   {Account: 20},
-	"13.36.123.209":         {Account: 21},
-	"52.78.202.34":          {Account: 22},
-	"3.18.91.176":           {Account: 23},
-	"18.135.7.211":          {Account: 24},
-	"13.232.240.207":        {Account: 25},
-	"13.228.103.14":         {Account: 26},
+	"13.36.123.209:50211":   {Account: 21},
+	"52.78.202.34:50211":    {Account: 22},
+	"3.18.91.176:50211":     {Account: 23},
+	"18.135.7.211:50211":    {Account: 24},
+	"13.232.240.207:50211":  {Account: 25},
+	"13.228.103.14:50211":   {Account: 26},
 }
 
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
