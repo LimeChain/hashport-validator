@@ -25,27 +25,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var mainnetNodes = map[string]hedera.AccountID{
-	"35.237.200.180:50211": {Account: 3},
-	//"35.186.191.247:50211": {Account: 4},
-	"35.192.2.25:50211":    {Account: 5},
-	"35.199.161.108:50211": {Account: 6},
-	"35.203.82.240:50211":  {Account: 7},
-	"35.236.5.219:50211":   {Account: 8},
-	"35.197.192.225:50211": {Account: 9},
-	//"35.242.233.154:50211": {Account: 10},
-	"35.240.118.96:50211":  {Account: 11},
-	"35.204.86.32:50211":   {Account: 12},
-	"35.234.132.107:50211": {Account: 13},
-	"35.236.2.27:50211":    {Account: 14},
-	"35.228.11.53:50211":   {Account: 15},
-	"34.91.181.183:50211":  {Account: 16},
-	"34.86.212.247:50211":  {Account: 17},
-	"172.105.247.67:50211": {Account: 18},
-	"34.89.87.138:50211":   {Account: 19},
-	"34.82.78.255:50211":   {Account: 20},
-}
-
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
 type Node struct {
 	client *hedera.Client
@@ -57,10 +36,6 @@ func NewNodeClient(config config.Hedera) *Node {
 	switch config.Network {
 	case "mainnet":
 		client = hedera.ClientForMainnet()
-		err := client.SetNetwork(mainnetNodes)
-		if err != nil {
-			log.Fatalf("Could not set mainnet nodes. Error [%s]", err)
-		}
 	case "testnet":
 		client = hedera.ClientForTestnet()
 	case "previewnet":
