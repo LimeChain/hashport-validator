@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+message TopicEthNftSignatureMessage {
+  uint64 sourceChainId = 1; // ID of the chain from which the user has initiated the bridge transfer
+  uint64 targetChainId = 2; // ID of the chain to which the user wants to bridge
+  string transferID = 3; // (EVM - transaction hash + index of the event in the block) / (Hedera - transaction ID)
+  string asset = 4; // The asset which will be bridged
+  uint64 tokenId = 5; // TokenID or Hedera NFT serial number
+  string metadata = 6; // TokenID metadata
+  string recipient = 7; // ID / Address of the receiver
+  string signature = 8; // The signature of the validator
+  int64  transactionTimestamp = 9; // The timestamp of the Transfer
+}

@@ -84,6 +84,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
+		c.Bridge.Hedera.NftFees,
 		scheduled,
 		messages)
 

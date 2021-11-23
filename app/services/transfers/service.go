@@ -29,13 +29,13 @@ import (
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strconv"
@@ -56,6 +56,7 @@ type Service struct {
 	messageService     service.Messages
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
+	hederaNftFees      map[string]int64
 }
 
 func NewService(
@@ -69,6 +70,7 @@ func NewService(
 	distributor service.Distributor,
 	topicID string,
 	bridgeAccount string,
+	hederaNftFees map[string]int64,
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 ) *Service {
@@ -95,6 +97,7 @@ func NewService(
 		bridgeAccountID:    bridgeAccountID,
 		scheduledService:   scheduledService,
 		messageService:     messageService,
+		hederaNftFees:      hederaNftFees,
 	}
 }
 
@@ -168,7 +171,21 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
+}
+
+func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
+	fee := ts.hederaNftFees[tm.SourceAsset]
+	validFee := ts.distributor.ValidAmount(fee)
+
+	go ts.processFeeTransfer(tm.TransactionId, validFee, constants.Hbar)
+
+	signatureMessage, err := ts.messageService.SignNftMessage(tm)
+	if err != nil {
+		return err
+	}
+
+	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
 }
 
 func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
@@ -203,27 +220,21 @@ statusBlocker:
 		return err
 	}
 
-	return ts.submitTopicMessageAndWaitForTransaction(signatureMessage)
+	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
 }
 
-func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *message.Message) error {
-	sigMsgBytes, err := signatureMessage.ToBytes()
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", signatureMessage.TransferID, err)
-		return err
-	}
-
+func (ts *Service) submitTopicMessageAndWaitForTransaction(transferID string, signatureMessageBytes []byte) error {
 	messageTxId, err := ts.hederaNode.SubmitTopicConsensusMessage(
 		ts.topicID,
-		sigMsgBytes)
+		signatureMessageBytes)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", signatureMessage.TransferID, err)
+		ts.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", transferID, err)
 		return err
 	}
 
 	// Attach update callbacks on Signature HCS Message
-	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", signatureMessage.TransferID, ts.topicID)
-	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(signatureMessage.TransferID)
+	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", transferID, ts.topicID)
+	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(transferID)
 	ts.mirrorNode.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }
@@ -441,35 +452,29 @@ func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transacti
 
 // TransferData returns from the database the given transfer, its signatures and
 // calculates if its messages have reached super majority
-func (ts *Service) TransferData(txId string) (service.TransferData, error) {
+func (ts *Service) TransferData(txId string) (interface{}, error) {
 	t, err := ts.transferRepository.GetWithPreloads(txId)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
-		return service.TransferData{}, err
+		return nil, err
 	}
 
 	if t == nil {
-		return service.TransferData{}, service.ErrNotFound
+		return nil, service.ErrNotFound
 	}
 
 	if t != nil && t.NativeChainID == 0 && t.Fee == "" {
-		return service.TransferData{}, service.ErrNotFound
+		return nil, service.ErrNotFound
 	}
 
-	signedAmount := t.Amount
-	if t.NativeChainID == 0 {
-		amount, err := strconv.ParseInt(t.Amount, 10, 64)
-		if err != nil {
-			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
-			return service.TransferData{}, err
-		}
-
-		feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
-		if err != nil {
-			ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
-			return service.TransferData{}, err
-		}
-		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
+	transferData := service.TransferData{
+		Recipient:     t.Receiver,
+		RouterAddress: ts.contractServices[t.TargetChainID].Address().String(),
+		SourceChainId: t.SourceChainID,
+		TargetChainId: t.TargetChainID,
+		SourceAsset:   t.SourceAsset,
+		NativeAsset:   t.NativeAsset,
+		TargetAsset:   t.TargetAsset,
 	}
 
 	var signatures []string
@@ -480,22 +485,39 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 	bnSignaturesLength := big.NewInt(int64(len(t.Messages)))
 	reachedMajority, err := ts.contractServices[t.TargetChainID].
 		HasValidSignaturesLength(bnSignaturesLength)
-
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to check has valid signatures length. Error [%s]", t.TransactionID, err)
-		return service.TransferData{}, err
+		return nil, err
 	}
 
-	return service.TransferData{
-		Recipient:     t.Receiver,
-		RouterAddress: ts.contractServices[t.TargetChainID].Address().String(),
-		Amount:        signedAmount,
-		SourceChainId: t.SourceChainID,
-		TargetChainId: t.TargetChainID,
-		SourceAsset:   t.SourceAsset,
-		NativeAsset:   t.NativeAsset,
-		TargetAsset:   t.TargetAsset,
-		Signatures:    signatures,
-		Majority:      reachedMajority,
+	transferData.Signatures = signatures
+	transferData.Majority = reachedMajority
+
+	if !t.IsNft {
+		signedAmount := t.Amount
+		if t.NativeChainID == 0 {
+			amount, err := strconv.ParseInt(t.Amount, 10, 64)
+			if err != nil {
+				ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
+				return nil, err
+			}
+
+			feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
+			if err != nil {
+				ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
+				return nil, err
+			}
+			signedAmount = strconv.FormatInt(amount-feeAmount, 10)
+		}
+		return service.FungibleTransferData{
+			TransferData: transferData,
+			Amount:       signedAmount,
+		}, nil
+	}
+
+	return service.NonFungibleTransferData{
+		TransferData: transferData,
+		TokenId:      t.SerialNumber,
+		Metadata:     t.Metadata,
 	}, nil
 }

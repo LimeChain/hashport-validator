@@ -17,16 +17,21 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
 type Messages interface {
-	// SanityCheckSignature performs any validation required prior handling the topic message
+	// SanityCheckFungibleSignature performs any validation required prior handling the topic message
 	// (verifies metadata against the corresponding Transaction record)
-	SanityCheckSignature(tm message.Message) (bool, error)
+	SanityCheckFungibleSignature(tm *proto.TopicEthSignatureMessage) (bool, error)
+	// SanityCheckNftSignature performs any validation required prior handling the topic message
+	//	// (verifies metadata against the corresponding Transaction record)
+	SanityCheckNftSignature(tm *proto.TopicEthNftSignatureMessage) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-	ProcessSignature(tm message.Message) error
+	ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error
 	// SignMessage signs a message based on Transfer
-	SignMessage(transfer model.Transfer) (*message.Message, error)
+	SignMessage(transfer model.Transfer) ([]byte, error)
+	// SignNftMessage signs an NFT messaged based on Transfer
+	SignNftMessage(transfer model.Transfer) ([]byte, error)
 }

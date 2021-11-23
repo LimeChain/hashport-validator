@@ -19,9 +19,12 @@ package config
 import "github.com/limechain/hedera-eth-bridge-validator/config/parser"
 
 type Assets struct {
+	// A mapping, storing all networks' native tokens and their corresponding wrapped tokens
 	nativeToWrapped map[int64]map[string]map[int64]string
+	// A mapping, storing all networks' wrapped tokens and their corresponding native asset
 	wrappedToNative map[int64]map[string]*NativeAsset
-	networkAssets   map[int64][]string
+	// A mapping, storing all native tokens per network
+	networkAssets map[int64][]string
 }
 
 type NativeAsset struct {

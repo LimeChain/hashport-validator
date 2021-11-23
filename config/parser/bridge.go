@@ -33,6 +33,7 @@ type Network struct {
 }
 
 type Token struct {
+	NftFee        int64            `yaml:"nft_fee"`
 	FeePercentage int64            `yaml:"fee_percentage"`
 	Networks      map[int64]string `yaml:"networks"`
 }

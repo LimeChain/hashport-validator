@@ -66,10 +66,13 @@ func Load() *Setup {
 		Bridge:         e2eConfig.Bridge,
 		AssetMappings:  config.LoadAssets(e2eConfig.Bridge.Networks),
 		FeePercentages: map[string]int64{},
+		NftFees:        map[string]int64{},
 	}
 
 	if e2eConfig.Bridge.Networks[0] != nil {
-		configuration.FeePercentages = config.LoadHederaFeePercentages(e2eConfig.Bridge.Networks[0].Tokens)
+		feePercentages, nftFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[0].Tokens)
+		configuration.FeePercentages = feePercentages
+		configuration.NftFees = nftFees
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
@@ -275,6 +278,7 @@ type Config struct {
 	Bridge         parser.Bridge
 	AssetMappings  config.Assets
 	FeePercentages map[string]int64
+	NftFees        map[string]int64
 }
 
 type EVMUtils struct {

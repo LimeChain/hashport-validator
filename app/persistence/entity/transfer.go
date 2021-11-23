@@ -30,6 +30,9 @@ type Transfer struct {
 	Amount        string
 	Fee           string
 	Status        string
+	SerialNumber  int64
+	Metadata      string
+	IsNft         bool       `gorm:"default:false"`
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
 	Fees          []Fee      `gorm:"foreignKey:TransferID"`
 	Schedules     []Schedule `gorm:"foreignKey:TransferID"`

@@ -89,28 +89,22 @@ func (smh Handler) Handle(payload interface{}) {
 }
 
 func (smh Handler) submitMessage(tm *model.Transfer) error {
-	signatureMessage, err := smh.messageService.SignMessage(*tm)
+	signatureMessageBytes, err := smh.messageService.SignMessage(*tm)
 	if err != nil {
-		return err
-	}
-
-	sigMsgBytes, err := signatureMessage.ToBytes()
-	if err != nil {
-		smh.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", signatureMessage.TransferID, err)
 		return err
 	}
 
 	messageTxId, err := smh.hederaNode.SubmitTopicConsensusMessage(
 		smh.topicID,
-		sigMsgBytes)
+		signatureMessageBytes)
 	if err != nil {
-		smh.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", signatureMessage.TransferID, err)
+		smh.logger.Errorf("[%s] - Failed to submit Signature Message to Topic. Error: [%s]", tm.TransactionId, err)
 		return err
 	}
 
 	// Attach update callbacks on Signature HCS Message
-	smh.logger.Infof("[%s] - Submitted signature on Topic [%s]", signatureMessage.TransferID, smh.topicID)
-	onSuccessfulAuthMessage, onFailedAuthMessage := smh.authMessageSubmissionCallbacks(signatureMessage.TransferID)
+	smh.logger.Infof("[%s] - Submitted signature on Topic [%s]", tm.TransactionId, smh.topicID)
+	onSuccessfulAuthMessage, onFailedAuthMessage := smh.authMessageSubmissionCallbacks(tm.TransactionId)
 	smh.mirrorNode.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }

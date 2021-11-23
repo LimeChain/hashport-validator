@@ -33,9 +33,11 @@ type BridgeHedera struct {
 	Members        []string
 	Tokens         map[string]HederaToken
 	FeePercentages map[string]int64
+	NftFees        map[string]int64
 }
 
 type HederaToken struct {
+	NftFee        int64
 	FeePercentage int64
 	Networks      map[int64]string
 }
@@ -68,7 +70,9 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			for name, value := range value.Tokens {
 				config.Hedera.Tokens[name] = HederaToken(value)
 			}
-			config.Hedera.FeePercentages = LoadHederaFeePercentages(value.Tokens)
+			hederaFeePercentages, hederaNftFees := LoadHederaFees(value.Tokens)
+			config.Hedera.FeePercentages = hederaFeePercentages
+			config.Hedera.NftFees = hederaNftFees
 			continue
 		}
 		config.EVMs[key] = BridgeEvm{
@@ -83,11 +87,13 @@ func NewBridge(bridge parser.Bridge) Bridge {
 	return config
 }
 
-func LoadHederaFeePercentages(tokens map[string]parser.Token) map[string]int64 {
+func LoadHederaFees(tokens map[string]parser.Token) (percentages map[string]int64, nfts map[string]int64) {
 	feePercentages := map[string]int64{}
+	nftFees := map[string]int64{}
 	for token, value := range tokens {
 		feePercentages[token] = value.FeePercentage
+		nftFees[token] = value.NftFee
 	}
 
-	return feePercentages
+	return feePercentages, nftFees
 }
