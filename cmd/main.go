@@ -31,11 +31,13 @@ import (
 	message_submission "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message-submission"
 	mint_hts "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/mint-hts"
 	nfmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/nft/fee-message"
+	nth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/nft/transfer"
 	rbh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/burn"
 	rfh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee"
 	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
 	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
 	rnfmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/fee"
+	rnth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/transfer"
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
@@ -190,6 +192,20 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		configuration.Bridge.Hedera.NftFees,
 		services.readOnly))
+
+	// Hedera Native unlock Nft Handlers
+	server.AddHandler(constants.HederaNftTransfer, nth.NewHandler(
+		configuration.Bridge.Hedera.BridgeAccount,
+		repositories.transfer,
+		repositories.schedule,
+		services.transfers,
+		services.scheduled))
+	server.AddHandler(constants.ReadOnlyHederaUnlockNftTransfer, rnth.NewHandler(
+		configuration.Bridge.Hedera.BridgeAccount,
+		repositories.transfer,
+		repositories.schedule,
+		services.readOnly,
+		services.transfers))
 }
 
 func addTransferWatcher(configuration *config.Config,

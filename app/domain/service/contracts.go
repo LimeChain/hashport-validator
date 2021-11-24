@@ -44,6 +44,8 @@ type Contracts interface {
 	ParseBurnLog(log types.Log) (*abi.RouterBurn, error)
 	// ParseLockLog parses a general typed log to a RouterLock event
 	ParseLockLog(log types.Log) (*abi.RouterLock, error)
+	// ParseBurnERC721Log parses a general typed log to a BurnERC721event
+	ParseBurnERC721Log(log types.Log) (*abi.RouterBurnERC721, error)
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract

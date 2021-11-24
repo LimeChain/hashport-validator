@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/golang/protobuf v1.5.2
-	github.com/hashgraph/hedera-sdk-go/v2 v2.5.1-beta.1.0.20211123045520-b871e865db89
+	github.com/hashgraph/hedera-sdk-go/v2 v2.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2

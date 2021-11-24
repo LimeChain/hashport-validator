@@ -988,7 +988,7 @@ func calculateExpectedUnlockAmount(evm setup.EVMUtils, token string, amount int6
 	return new(big.Int).Sub(amountBn, serviceFee)
 }
 
-func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *service.TransferData, tokenAddress common.Address, t *testing.T) common.Hash {
+func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -1018,7 +1018,7 @@ func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *ser
 	return res.Hash()
 }
 
-func submitUnlockTransaction(evm setup.EVMUtils, txId string, transactionData *service.TransferData, tokenAddress common.Address, t *testing.T) common.Hash {
+func submitUnlockTransaction(evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -1269,7 +1269,7 @@ func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, 
 	}
 }
 
-func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.TransferData {
+func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.FungibleTransferData {
 	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
@@ -1431,19 +1431,33 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 		Subscribe(
 			setup.Clients.Hedera,
 			func(response hedera.TopicMessage) {
-				msg := &validatorproto.TopicEthSignatureMessage{}
+				msg := &validatorproto.TopicMessage{}
 				err := proto.Unmarshal(response.Contents, msg)
 				if err != nil {
 					t.Fatal(err)
 				}
 
+				var transferID string
+				var signature string
+				switch msg.Message.(type) {
+				case *validatorproto.TopicMessage_FungibleSignatureMessage:
+					message := msg.GetFungibleSignatureMessage()
+					transferID = message.TransferID
+					signature = message.Signature
+					break
+				case *validatorproto.TopicMessage_NftSignatureMessage:
+					message := msg.GetNftSignatureMessage()
+					transferID = message.TransferID
+					signature = message.Signature
+				}
+
 				//Verify that all the submitted messages have signed the same transaction
-				if msg.TransferID != txId {
+				if transferID != txId {
 					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, txId))
 				} else {
-					receivedSignatures = append(receivedSignatures, msg.Signature)
+					receivedSignatures = append(receivedSignatures, signature)
 					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.Signature))
+					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signature))
 				}
 			},
 		)

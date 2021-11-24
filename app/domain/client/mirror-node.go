@@ -42,6 +42,8 @@ type MirrorNode interface {
 	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]model.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]model.Message, error)
+	// GetNftTransactions returns the nft transactions for tokenID and serialNum
+	GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error)
 	// GetScheduledTransaction gets the Scheduled transaction of an executed transaction
 	GetScheduledTransaction(transactionID string) (*model.Response, error)
 	// GetTransaction gets all data related to a specific transaction id or returns an error

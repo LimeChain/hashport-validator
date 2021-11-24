@@ -36,7 +36,7 @@ func NewValidatorClient(url string) *Validator {
 	return &Validator{baseUrl: url}
 }
 
-func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferData, error) {
+func (v *Validator) GetTransferData(transactionID string) (*transfers.FungibleTransferData, error) {
 	url := v.baseUrl + "/api/v1/transfers/" + transactionID
 
 	bodyBytes, err := v.get(url)
@@ -44,7 +44,7 @@ func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferDa
 		return nil, err
 	}
 
-	var transferDataResponse *transfers.TransferData
+	var transferDataResponse *transfers.FungibleTransferData
 	err = json.Unmarshal(bodyBytes, &transferDataResponse)
 	if err != nil {
 		return nil, err

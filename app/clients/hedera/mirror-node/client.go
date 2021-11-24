@@ -141,6 +141,33 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	return res, nil
 }
 
+// GetNftTransactions returns the nft transactions for tokenID and serialNum
+func (c Client) GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error) {
+	query := fmt.Sprintf("%stokens/%s/nfts/%d/transactions", c.mirrorAPIAddress, tokenID, serialNum)
+
+	httpResponse, err := c.get(query)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	bodyBytes, err := readResponseBody(httpResponse)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	if httpResponse.StatusCode != http.StatusOK {
+		return model.NftTransactionsResponse{}, errors.New(fmt.Sprintf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes))
+	}
+
+	var response *model.NftTransactionsResponse
+	err = json.Unmarshal(bodyBytes, &response)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	return *response, nil
+}
+
 func (c Client) GetTransaction(transactionID string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)

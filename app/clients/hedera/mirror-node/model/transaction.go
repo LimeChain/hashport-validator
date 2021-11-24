@@ -89,6 +89,19 @@ type (
 		SerialNumber      int64  `json:"serial_number"`      // The serial number of the NFT
 		TokenID           string `json:"token_id"`           //The token ID of the NFT
 	}
+	NftTransactionsResponse struct {
+		Transactions []NftTransaction `json:"transactions"`
+		Links        Pagination       `json:"links"`
+	}
+	NftTransaction struct {
+		TransactionID     string `json:"transaction_id"`      // The transaction ID of the transaction
+		Type              string `json:"type"`                // The type of transaction TOKENBURN, TOKEMINT, CRYPTOTRANSFER
+		SenderAccountID   string `json:"sender_account_id"`   // The account that sent the NFT
+		ReceiverAccountID string `json:"receiver_account_id"` // The account that received the NFT
+	}
+	Pagination struct {
+		Next string `json:"next"` // Hyperlink to the next page of results
+	}
 )
 
 // getIncomingAmountFor returns the amount that is credited to the specified
