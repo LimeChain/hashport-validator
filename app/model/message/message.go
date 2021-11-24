@@ -34,17 +34,27 @@ func FromBytes(data []byte) (*Message, error) {
 	msg := &model.TopicMessage{}
 	err := proto.Unmarshal(data, msg)
 	if err != nil {
-		// deprecated type
-		fungibleMessage := &model.TopicEthSignatureMessage{}
-		err := proto.Unmarshal(data, fungibleMessage)
+		return nil, err
+	}
+	switch msg.Message.(type) {
+	case *model.TopicMessage_NftSignatureMessage:
+		return &Message{TopicMessage: msg}, nil
+	case *model.TopicMessage_FungibleSignatureMessage:
+		return &Message{TopicMessage: msg}, nil
+	default: // try to parse it to backward compatible type
+		oldFungibleMessage := &model.TopicEthSignatureMessage{}
+		err = proto.Unmarshal(data, oldFungibleMessage)
 		if err != nil {
 			return nil, err
 		}
 
-		msg := &model.TopicMessage{Message: &model.TopicMessage_FungibleSignatureMessage{FungibleSignatureMessage: fungibleMessage}}
-		return &Message{TopicMessage: msg}, nil
+		result := &model.TopicMessage{
+			Message: &model.TopicMessage_FungibleSignatureMessage{
+				FungibleSignatureMessage: oldFungibleMessage,
+			},
+		}
+		return &Message{TopicMessage: result}, nil
 	}
-	return &Message{TopicMessage: msg}, nil
 }
 
 // FromBytesWithTS instantiates new TopicMessage protobuf used internally by the Watchers/Handlers

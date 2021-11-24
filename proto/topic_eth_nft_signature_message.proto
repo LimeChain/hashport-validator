@@ -13,5 +13,4 @@ message TopicEthNftSignatureMessage {
   string metadata = 6; // TokenID metadata
   string recipient = 7; // ID / Address of the receiver
   string signature = 8; // The signature of the validator
-  int64  transactionTimestamp = 9; // The timestamp of the Transfer
 }

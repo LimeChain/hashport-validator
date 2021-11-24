@@ -67,16 +67,19 @@ func (cmh Handler) Handle(payload interface{}) {
 
 	switch msg := m.Message.(type) {
 	case *proto.TopicMessage_FungibleSignatureMessage:
-		cmh.handleFungibleSignatureMessage(msg.FungibleSignatureMessage)
+		cmh.handleFungibleSignatureMessage(msg.FungibleSignatureMessage, m.TransactionTimestamp)
 		break
 	case *proto.TopicMessage_NftSignatureMessage:
-		cmh.handleNftSignatureMessage(msg.NftSignatureMessage)
+		cmh.handleNftSignatureMessage(msg.NftSignatureMessage, m.TransactionTimestamp)
+		break
+	default:
+		cmh.logger.Errorf("Invalid topic message provided: [%v]", msg)
+		break
 	}
-
 }
 
 // handleFungibleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMessage) {
+func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMessage, timestamp int64) {
 	valid, err := cmh.messages.SanityCheckFungibleSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
@@ -94,7 +97,7 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), tsm.TransactionTimestamp, authMsgBytes)
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
@@ -104,7 +107,7 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 }
 
 // handleNftSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMessage) {
+func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMessage, timestamp int64) {
 	valid, err := cmh.messages.SanityCheckNftSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on nft incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
@@ -122,7 +125,7 @@ func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMess
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), tsm.TransactionTimestamp, authMsgBytes)
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process nft signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
