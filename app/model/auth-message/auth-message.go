@@ -43,7 +43,10 @@ func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEt
 		common.HexToAddress(asset),
 		common.HexToAddress(receiverEthAddress),
 		amountBn)
-	return keccak(bytesToHash), err
+	if err != nil {
+		return nil, err
+	}
+	return keccak(bytesToHash), nil
 }
 
 // EncodeNftBytesFrom returns the array of bytes representing an
@@ -62,7 +65,10 @@ func EncodeNftBytesFrom(sourceChainId, targetChainId int64, txId, asset string, 
 		big.NewInt(serialNum),
 		metadata,
 		common.HexToAddress(receiverEthAddress))
-	return keccak(bytesToHash), err
+	if err != nil {
+		return nil, err
+	}
+	return keccak(bytesToHash), nil
 }
 
 func generateNftArguments() (abi.Arguments, error) {
