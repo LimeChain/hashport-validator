@@ -21,14 +21,13 @@ var (
 
 func expectedSignature() *model.TopicEthSignatureMessage {
 	return &model.TopicEthSignatureMessage{
-		SourceChainId:        0,
-		TargetChainId:        1,
-		TransferID:           "0.0.123321-123321-420",
-		Asset:                "0xasset",
-		Recipient:            "0xsomereceiver",
-		Amount:               "100",
-		Signature:            "somesigneddatahere",
-		TransactionTimestamp: 0,
+		SourceChainId: 0,
+		TargetChainId: 1,
+		TransferID:    "0.0.123321-123321-420",
+		Asset:         "0xasset",
+		Recipient:     "0xsomereceiver",
+		Amount:        "100",
+		Signature:     "somesigneddatahere",
 	}
 }
 
@@ -50,7 +49,6 @@ func Test_FromBytesWithInvalidBytes(t *testing.T) {
 
 func Test_FromBytesWithTSWorks(t *testing.T) {
 	expectedSignature := expectedSignature()
-	expectedSignature.TransactionTimestamp = now.UnixNano()
 	expectedBytes, err := proto.Marshal(expectedSignature)
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +90,6 @@ func Test_FromStringWithInvalidData(t *testing.T) {
 
 func Test_FromStringWorks(t *testing.T) {
 	expected := expectedSignature()
-	expected.TransactionTimestamp = now.UnixNano()
 
 	bytes, err := proto.Marshal(expectedSignature())
 	if err != nil {
@@ -126,7 +123,6 @@ func signatureEqualFields(t *testing.T, expected, actual *model.TopicEthSignatur
 			expected.Asset == actual.Asset &&
 			expected.Amount == actual.Amount &&
 			expected.Recipient == actual.Recipient &&
-			expected.Signature == actual.Signature &&
-			expected.TransactionTimestamp == actual.TransactionTimestamp
+			expected.Signature == actual.Signature
 	assert.True(t, identical, "Signature fields were not equal.")
 }

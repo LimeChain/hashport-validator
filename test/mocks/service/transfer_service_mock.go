@@ -60,6 +60,14 @@ func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) erro
 	return args.Get(0).(error)
 }
 
+func (mts *MockTransferService) ProcessNativeNftTransfer(tm transfer.Transfer) error {
+	args := mts.Called(tm)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(error)
+}
+
 func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
@@ -90,7 +98,7 @@ func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*enti
 	return args.Get(0).(*entity.Transfer), args.Get(1).(error)
 }
 
-func (mts *MockTransferService) TransferData(txId string) (service.TransferData, error) {
+func (mts *MockTransferService) TransferData(txId string) (interface{}, error) {
 	args := mts.Called(txId)
 	if args.Get(0) == nil {
 		return service.TransferData{}, args.Get(1).(error)
