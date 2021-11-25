@@ -138,18 +138,21 @@ func (t Transaction) getIncomingNftTransferFor(account string) (serialNum int64,
 	return 0, "", errors.New("no incoming nft transfer found")
 }
 
-func (t Transaction) ValidateHBARNftFee(account string, fee int64) bool {
+// GetHBARTransfer gets the HBAR transfer for an Account
+func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool) {
 	for _, tr := range t.Transfers {
-		if tr.Account == account && tr.Amount == fee {
-			return true
+		if tr.Account == account {
+			return tr.Amount, true
 		}
 	}
 
-	return false
+	return 0, false
 }
 
-// GetIncomingTransfer returns the token amount OR the hbar amount that is credited to the specified
-// account for the given transaction. It depends on getIncomingAmountFor() and getIncomingTokenAmountFor()
+// GetIncomingTransfer returns the transfer to an account in the following order:
+// 1. Checks if there is an NFT transfer
+// 2. Checks if there is a Fungible Token transfer
+// 3. Checks if there is an HBAR transfer
 func (t Transaction) GetIncomingTransfer(account string) (isNft bool, amountOrSerialNum int64, asset string, err error) {
 	serialNum, asset, err := t.getIncomingNftTransferFor(account)
 	if err == nil {

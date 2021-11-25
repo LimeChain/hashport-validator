@@ -89,7 +89,7 @@ func (smh Handler) Handle(payload interface{}) {
 }
 
 func (smh Handler) submitMessage(tm *model.Transfer) error {
-	signatureMessageBytes, err := smh.messageService.SignMessage(*tm)
+	signatureMessageBytes, err := smh.messageService.SignFungibleMessage(*tm)
 	if err != nil {
 		return err
 	}

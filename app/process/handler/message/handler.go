@@ -91,7 +91,7 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 	}
 
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
+	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return

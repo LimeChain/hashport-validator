@@ -136,8 +136,8 @@ func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNf
 	return match, nil
 }
 
-func (ss Service) SignMessage(tm model.Transfer) ([]byte, error) {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
+	authMsgHash, err := auth_message.EncodeFungibleBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return nil, err

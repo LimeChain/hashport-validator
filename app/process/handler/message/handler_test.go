@@ -58,7 +58,7 @@ var (
 		},
 	}
 	transactionTimestamp = int64(0)
-	authMsgBytes, _      = auth_message.EncodeBytesFrom(int64(tesm.SourceChainId), int64(tesm.TargetChainId), tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
+	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(int64(tesm.SourceChainId), int64(tesm.TargetChainId), tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
 )
 
 func Test_NewHandler(t *testing.T) {

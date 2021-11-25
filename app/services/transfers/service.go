@@ -166,7 +166,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
 	tm.Amount = wrappedAmount
-	signatureMessage, err := ts.messageService.SignMessage(tm)
+	signatureMessage, err := ts.messageService.SignFungibleMessage(tm)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ statusBlocker:
 		}
 	}
 
-	signatureMessage, err := ts.messageService.SignMessage(tm)
+	signatureMessage, err := ts.messageService.SignFungibleMessage(tm)
 	if err != nil {
 		return err
 	}

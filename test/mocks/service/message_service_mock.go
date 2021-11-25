@@ -26,7 +26,7 @@ type MockMessageService struct {
 	mock.Mock
 }
 
-func (m *MockMessageService) SignMessage(transfer transfer.Transfer) ([]byte, error) {
+func (m *MockMessageService) SignFungibleMessage(transfer transfer.Transfer) ([]byte, error) {
 	args := m.Called(transfer)
 	if args[1] == nil {
 		return args[0].([]byte), nil

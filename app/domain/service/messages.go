@@ -23,15 +23,15 @@ import (
 
 type Messages interface {
 	// SanityCheckFungibleSignature performs any validation required prior handling the topic message
-	// (verifies metadata against the corresponding Transaction record)
+	// (verifies input data against the corresponding Transaction record)
 	SanityCheckFungibleSignature(tm *proto.TopicEthSignatureMessage) (bool, error)
 	// SanityCheckNftSignature performs any validation required prior handling the topic message
-	//	// (verifies metadata against the corresponding Transaction record)
+	// (verifies input data against the corresponding Transaction record)
 	SanityCheckNftSignature(tm *proto.TopicEthNftSignatureMessage) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error
-	// SignMessage signs a message based on Transfer
-	SignMessage(transfer model.Transfer) ([]byte, error)
+	// SignFungibleMessage signs a Fungible message based on Transfer
+	SignFungibleMessage(transfer model.Transfer) ([]byte, error)
 	// SignNftMessage signs an NFT messaged based on Transfer
 	SignNftMessage(transfer model.Transfer) ([]byte, error)
 }

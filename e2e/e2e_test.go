@@ -125,7 +125,7 @@ func Test_HBAR(t *testing.T) {
 		hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 
 	authMsgBytes, err := auth_message.
-		EncodeBytesFrom(
+		EncodeFungibleBytesFrom(
 			expectedTxRecord.SourceChainID,
 			expectedTxRecord.TargetChainID,
 			expectedTxRecord.TransactionID,
@@ -198,7 +198,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 
 	authMsgBytes, err := auth_message.
-		EncodeBytesFrom(
+		EncodeFungibleBytesFrom(
 			expectedTxRecord.SourceChainID,
 			expectedTxRecord.TargetChainID,
 			expectedTxRecord.TransactionID,
@@ -553,7 +553,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	}
 
 	authMsgBytes, err := auth_message.
-		EncodeBytesFrom(
+		EncodeFungibleBytesFrom(
 			expectedTxRecord.SourceChainID,
 			expectedTxRecord.TargetChainID,
 			expectedTxRecord.TransactionID,
@@ -633,7 +633,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		status.Completed)
 
 	authMsgBytes, err := auth_message.
-		EncodeBytesFrom(
+		EncodeFungibleBytesFrom(
 			expectedLockEventRecord.SourceChainID,
 			expectedLockEventRecord.TargetChainID,
 			expectedLockEventRecord.TransactionID,
@@ -711,7 +711,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		status.Completed)
 
 	authMsgBytes, err := auth_message.
-		EncodeBytesFrom(
+		EncodeFungibleBytesFrom(
 			expectedLockEventRecord.SourceChainID,
 			expectedLockEventRecord.TargetChainID,
 			expectedLockEventRecord.TransactionID,

@@ -197,8 +197,12 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	var transferMessage *transfer.Transfer
 	if isNft {
 		// Validate that the HBAR fee is sent
-		validNftFee := tx.ValidateHBARNftFee(ctw.accountID.String(), ctw.hederaNftFees[asset])
-		if !validNftFee {
+		amount, found := tx.GetHBARTransfer(ctw.accountID.String())
+		if !found {
+			ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
+			return
+		}
+		if amount != ctw.hederaNftFees[asset] {
 			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, asset, ctw.hederaNftFees[asset])
 			return
 		}

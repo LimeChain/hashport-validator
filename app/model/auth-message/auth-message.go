@@ -24,9 +24,9 @@ import (
 	"math/big"
 )
 
-// EncodeBytesFrom returns the array of bytes representing an
-// authorisation signature ready to be signed by EVM Private Key
-func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
+// EncodeFungibleBytesFrom returns the array of bytes representing an
+// authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
+func EncodeFungibleBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
 	args, err := generateFungibleArguments()
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEt
 }
 
 // EncodeNftBytesFrom returns the array of bytes representing an
-// authorisation NFT signature for Mint ready to be signed by EVM Private Key
+// authorisation ERC-721 NFT signature for Mint ready to be signed by EVM Private Key
 func EncodeNftBytesFrom(sourceChainId, targetChainId int64, txId, asset string, serialNum int64, metadata, receiverEthAddress string) ([]byte, error) {
 	args, err := generateNftArguments()
 	if err != nil {
