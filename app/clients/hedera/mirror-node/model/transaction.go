@@ -87,8 +87,10 @@ type (
 		Metadata          string `json:"metadata"`           // The metadata of the NFT, in base64
 		ModifiedTimestamp string `json:"modified_timestamp"` // The last time the token properties were modified
 		SerialNumber      int64  `json:"serial_number"`      // The serial number of the NFT
-		TokenID           string `json:"token_id"`           //The token ID of the NFT
+		TokenID           string `json:"token_id"`           // The token ID of the NFT
 	}
+	// NftTransactionsResponse struct used by Hedera Mirror node REST API to return information
+	// about an NFT's transaction
 	NftTransactionsResponse struct {
 		Transactions []NftTransaction `json:"transactions"`
 		Links        Pagination       `json:"links"`
