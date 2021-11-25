@@ -95,6 +95,8 @@ type Setup struct {
 	TopicID        hederaSDK.TopicID
 	TokenID        hederaSDK.TokenID
 	NativeEvmToken string
+	NftTokenID     hederaSDK.TokenID
+	NftFees        map[string]int64
 	FeePercentages map[string]int64
 	Members        []hederaSDK.AccountID
 	Clients        *clients
@@ -114,6 +116,11 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.WToken)
+	if err != nil {
+		return nil, err
+	}
+
+	nftTokenID, err := hederaSDK.TokenIDFromString(config.Tokens.NftToken)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +155,9 @@ func newSetup(config Config) (*Setup, error) {
 		BridgeAccount:  bridgeAccount,
 		TopicID:        topicID,
 		TokenID:        tokenID,
+		NftTokenID:     nftTokenID,
 		NativeEvmToken: config.Tokens.EvmNativeToken,
+		NftFees:        config.NftFees,
 		FeePercentages: config.FeePercentages,
 		Members:        members,
 		Clients:        clients,

@@ -100,6 +100,7 @@ func (rnth Handler) Handle(payload interface{}) {
 				ScheduleID:    scheduleID,
 				Operation:     schedule.TRANSFER,
 				Status:        status,
+				HasReceiver:   true,
 				TransferID: sql.NullString{
 					String: transfer.TransactionId,
 					Valid:  true,
@@ -110,6 +111,6 @@ func (rnth Handler) Handle(payload interface{}) {
 				return err
 			}
 
-			return rnth.transferRepository.UpdateStatusCompleted(status)
+			return rnth.transferRepository.UpdateStatusCompleted(transfer.TransactionId)
 		})
 }

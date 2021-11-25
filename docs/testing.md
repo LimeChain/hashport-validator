@@ -34,6 +34,7 @@ Name                                      | Description                         
 `tokens.whbar`                            | The native asset, which represents HBAR. Used as a bridged asset between the two networks.
 `tokens.wtoken`                           | The native asset, which represents a Token on Hedera. Used as a bridged asset between the two networks.
 `tokens.evm_native_token`                 | The address of the EVM native token, which will be used as a bridged asset to Hedera and other EVMs.
+`tokens.nft_token`                        | The Hedera TokenID of the token, used in NFT E2E tests.
 `validator_url`                           | The URL of the Validator node. Used for querying Metadata.
 
 

@@ -116,6 +116,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		lockEvents:       lockEvent,
 		fees:             fees,
 		distributor:      distributor,
+		scheduled:        scheduled,
 		readOnly:         readOnly,
 	}
 }

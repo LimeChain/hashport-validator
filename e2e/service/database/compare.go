@@ -30,7 +30,10 @@ func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 		comparable.NativeAsset == comparing.NativeAsset &&
 		comparable.Receiver == comparing.Receiver &&
 		comparable.Amount == comparing.Amount &&
-		comparable.Status == comparing.Status
+		comparable.Status == comparing.Status &&
+		comparable.Metadata == comparing.Metadata &&
+		comparable.SerialNumber == comparing.SerialNumber &&
+		comparable.IsNft == comparing.IsNft
 }
 
 func messagesFieldsMatch(comparing, comparable entity.Message) bool {
