@@ -45,6 +45,7 @@ type Transfers interface {
 }
 
 type TransferData struct {
+	IsNft         bool     `json:"isNft"`
 	Recipient     string   `json:"recipient"`
 	RouterAddress string   `json:"routerAddress"`
 	SourceChainId int64    `json:"sourceChainId"`

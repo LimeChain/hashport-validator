@@ -468,6 +468,7 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	}
 
 	transferData := service.TransferData{
+		IsNft:         t.IsNft,
 		Recipient:     t.Receiver,
 		RouterAddress: ts.contractServices[t.TargetChainID].Address().String(),
 		SourceChainId: t.SourceChainID,

@@ -1757,6 +1757,9 @@ func verifyFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVM
 		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
 	}
 
+	if transferDataResponse.IsNft {
+		t.Fatalf("Transaction data mismatch: Expected response data to not be NFT related.")
+	}
 	if transferDataResponse.Amount != expectedSendAmount {
 		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", expectedSendAmount, transferDataResponse.Amount)
 	}
@@ -1784,6 +1787,9 @@ func verifyNonFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.
 		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
 	}
 
+	if !transferDataResponse.IsNft {
+		t.Fatalf("Transaction data mismatch: Expected response data to be NFT related.")
+	}
 	if transferDataResponse.Metadata != metadata {
 		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", metadata, transferDataResponse.Metadata)
 	}
