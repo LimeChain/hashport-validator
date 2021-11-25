@@ -162,6 +162,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	tx, err := ctw.client.GetSuccessfulTransaction(txID)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to get Transaction. Error: [%s]", txID, err)
+		return
 	}
 
 	isNft, amountOrSerialNum, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
