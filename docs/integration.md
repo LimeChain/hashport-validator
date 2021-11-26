@@ -738,6 +738,7 @@ Before user submits the burn transaction, two approvals will be needed:
   `await erc721PaymentTokenContract.approve(routerContractAddress, erc721Fee)` - A standard ERC-20 ABI can be used.
 * Approve ERC-721 wrapped NFT for Router contract:
   `await erc721Contract.approve(routerContractAddress, tokenId)` - A standard ERC-721 ABI can be used.
+* Receiver of the native NFT **must** be manually or automatically associated with the given token on Hedera.
 
 Now that everything has been approved, users can execute a `burnERC721` transaction to the Router Contract.
 
