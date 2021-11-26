@@ -15,8 +15,8 @@ const (
 	amount          = "100"
 )
 
-func Test_EncodeBytesFromWithInvalidAmount(t *testing.T) {
-	actualResult, err := EncodeBytesFrom(
+func Test_EncodeFungibleBytesFromWithInvalidAmount(t *testing.T) {
+	actualResult, err := EncodeFungibleBytesFrom(
 		sourceChainId,
 		targetChainId,
 		txId,
@@ -28,8 +28,8 @@ func Test_EncodeBytesFromWithInvalidAmount(t *testing.T) {
 	assert.Nil(t, actualResult)
 }
 
-func Test_EncodeBytesFromWorks(t *testing.T) {
-	actualResult, err := EncodeBytesFrom(
+func Test_EncodeFungibleBytesFromWorks(t *testing.T) {
+	actualResult, err := EncodeFungibleBytesFrom(
 		sourceChainId,
 		targetChainId,
 		txId,

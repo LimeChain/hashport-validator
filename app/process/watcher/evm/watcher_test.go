@@ -59,56 +59,72 @@ var (
 
 	networks = map[int64]*parser.Network{
 		0: {
-			Tokens: map[string]parser.Token{
-				constants.Hbar: {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000001",
-					},
-				},
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					constants.Hbar: {
+						Networks: map[int64]string{
+							33: "0x0000000000000000000000000000000000000001",
+						},
+					}},
+				Nft: nil,
 			},
 		},
 		1: {
-			Tokens: map[string]parser.Token{
-				"0xsomeethaddress": {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000123",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0xsomeethaddress": {
+						Networks: map[int64]string{
+							33: "0x0000000000000000000000000000000000000123",
+						},
 					},
 				},
+				Nft: nil,
 			},
 		},
 		2: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0x0000000000000000000000000000000000000000": {
+						Networks: map[int64]string{
+							0: "",
+						},
 					},
 				},
+				Nft: nil,
 			},
 		},
 		3: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0x0000000000000000000000000000000000000000": {
+						Networks: map[int64]string{
+							0: "",
+						},
 					},
 				},
+				Nft: nil,
 			},
 		},
 		32: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0x0000000000000000000000000000000000000000": {
+						Networks: map[int64]string{
+							0: "",
+						},
 					},
 				},
+				Nft: nil,
 			},
 		},
 		33: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: constants.Hbar,
-						1: "0xsome-other-eth-address",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0x0000000000000000000000000000000000000000": {
+						Networks: map[int64]string{
+							0: constants.Hbar,
+							1: "0xsome-other-eth-address",
+						},
 					},
 				},
 			}},
@@ -466,6 +482,7 @@ func TestNewWatcher(t *testing.T) {
 		t.Fatalf("Failed to parse router ABI. Error: [%s]", err)
 	}
 
+	burnERC721Hash := abi.Events["BurnERC721"].ID
 	burnHash := abi.Events["Burn"].ID
 	lockHash := abi.Events["Lock"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
@@ -475,6 +492,7 @@ func TestNewWatcher(t *testing.T) {
 			burnHash,
 			lockHash,
 			memberUpdatedHash,
+			burnERC721Hash,
 		},
 	}
 
@@ -488,6 +506,7 @@ func TestNewWatcher(t *testing.T) {
 		addresses:         addresses,
 		burnHash:          burnHash,
 		lockHash:          lockHash,
+		burnERC721Hash:    burnERC721Hash,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     220,
 	}

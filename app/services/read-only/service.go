@@ -26,20 +26,26 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Service struct {
+	pollingInterval    time.Duration
 	mirrorNode         client.MirrorNode
 	transferRepository repository.Transfer
 	logger             *log.Entry
 }
 
+const CryptoTransfer = "CRYPTOTRANSFER"
+
 func New(
 	mirrorNode client.MirrorNode,
-	transferRepository repository.Transfer) *Service {
+	transferRepository repository.Transfer,
+	pollingInterval time.Duration) *Service {
 	return &Service{
 		mirrorNode:         mirrorNode,
 		transferRepository: transferRepository,
+		pollingInterval:    pollingInterval,
 		logger:             config.GetLoggerFor("Read-only Transfer Fetcher"),
 	}
 }
@@ -107,6 +113,65 @@ func (s Service) FindAssetTransfer(
 		if finished {
 			break
 		}
+
+		time.Sleep(s.pollingInterval * time.Second)
+	}
+}
+
+func (s Service) FindNftTransfer(
+	transferID string, tokenID string, serialNum int64, sender string, receiver string,
+	save func(transactionID, scheduleID, status string) error) {
+	for {
+		response, err := s.mirrorNode.GetNftTransactions(tokenID, serialNum)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to get transactions after timestamp. Error: [%s]", transferID, err)
+			continue
+		}
+
+		finished := false
+		for _, transaction := range response.Transactions {
+			if transaction.Type == CryptoTransfer &&
+				transaction.ReceiverAccountID == receiver &&
+				transaction.SenderAccountID == sender {
+
+				isFound := false
+				scheduledTx, err := s.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
+				if err != nil {
+					s.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferID, transaction.TransactionID, err)
+					continue
+				}
+				for _, tx := range scheduledTx.Transactions {
+					if tx.Result == hedera.StatusSuccess.String() {
+						scheduleID, err := s.mirrorNode.GetSchedule(tx.EntityId)
+						if err != nil {
+							s.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferID, scheduleID, err)
+							break
+						}
+						if scheduleID.Memo == transferID {
+							isFound = true
+						}
+					}
+					if isFound {
+						s.logger.Infof("[%s] - Found a corresponding transaction [%s], ScheduleID [%s].", transferID, transaction.TransactionID, tx.EntityId)
+						finished = true
+						txStatus := status.Completed
+
+						err := save(transaction.TransactionID, tx.EntityId, txStatus)
+						if err != nil {
+							s.logger.Errorf("[%s] - Failed to save entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
+							break
+						}
+
+						break
+					}
+				}
+			}
+		}
+		if finished {
+			break
+		}
+
+		time.Sleep(s.pollingInterval * time.Second)
 	}
 }
 
@@ -171,6 +236,8 @@ func (s Service) FindTransfer(
 		if finished {
 			break
 		}
+
+		time.Sleep(s.pollingInterval * time.Second)
 	}
 }
 

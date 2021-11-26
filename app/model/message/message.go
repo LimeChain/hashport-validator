@@ -25,17 +25,36 @@ import (
 
 // Message serves as a model between Topic Message Watcher and Handler
 type Message struct {
-	*model.TopicEthSignatureMessage
+	*model.TopicMessage
+	TransactionTimestamp int64
 }
 
 // FromBytes instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
 func FromBytes(data []byte) (*Message, error) {
-	msg := &model.TopicEthSignatureMessage{}
+	msg := &model.TopicMessage{}
 	err := proto.Unmarshal(data, msg)
 	if err != nil {
 		return nil, err
 	}
-	return &Message{msg}, nil
+	switch msg.Message.(type) {
+	case *model.TopicMessage_NftSignatureMessage:
+		return &Message{TopicMessage: msg}, nil
+	case *model.TopicMessage_FungibleSignatureMessage:
+		return &Message{TopicMessage: msg}, nil
+	default: // try to parse it to backward compatible type
+		oldFungibleMessage := &model.TopicEthSignatureMessage{}
+		err = proto.Unmarshal(data, oldFungibleMessage)
+		if err != nil {
+			return nil, err
+		}
+
+		result := &model.TopicMessage{
+			Message: &model.TopicMessage_FungibleSignatureMessage{
+				FungibleSignatureMessage: oldFungibleMessage,
+			},
+		}
+		return &Message{TopicMessage: result}, nil
+	}
 }
 
 // FromBytesWithTS instantiates new TopicMessage protobuf used internally by the Watchers/Handlers
@@ -63,8 +82,8 @@ func FromString(data, ts string) (*Message, error) {
 	return FromBytesWithTS(bytes, t)
 }
 
-// NewSignature instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewSignature(sourceChainId, targetChainId uint64, transferID, asset, receiver, amount, signature string) *Message {
+// NewFungibleSignature instantiates Signature Message struct ready for submission to the Bridge Topic
+func NewFungibleSignature(sourceChainId, targetChainId uint64, transferID, asset, receiver, amount, signature string) *Message {
 	topicMsg := &model.TopicEthSignatureMessage{
 		SourceChainId: sourceChainId,
 		TargetChainId: targetChainId,
@@ -74,10 +93,26 @@ func NewSignature(sourceChainId, targetChainId uint64, transferID, asset, receiv
 		Amount:        amount,
 		Signature:     signature,
 	}
-	return &Message{topicMsg}
+	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_FungibleSignatureMessage{FungibleSignatureMessage: topicMsg}}}
+}
+
+// NewNftSignature instantiates Signature Message struct ready for submission to the Bridge Topic
+func NewNftSignature(sourceChainId, targetChainId uint64, transferID, asset string, tokenId uint64, metadata, recipient, signature string) *Message {
+	topicMsg := &model.TopicEthNftSignatureMessage{
+		SourceChainId: sourceChainId,
+		TargetChainId: targetChainId,
+		TransferID:    transferID,
+		Asset:         asset,
+		TokenId:       tokenId,
+		Metadata:      metadata,
+		Recipient:     recipient,
+		Signature:     signature,
+	}
+	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_NftSignatureMessage{NftSignatureMessage: topicMsg}}}
+
 }
 
 // ToBytes marshals the underlying protobuf Message into bytes
 func (tm *Message) ToBytes() ([]byte, error) {
-	return proto.Marshal(tm.TopicEthSignatureMessage)
+	return proto.Marshal(tm.TopicMessage)
 }

@@ -18,16 +18,21 @@ package e2e
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -89,7 +94,7 @@ func Test_HBAR(t *testing.T) {
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset, t)
 
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
@@ -119,8 +124,20 @@ func Test_HBAR(t *testing.T) {
 		fee,
 		hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 
+	authMsgBytes, err := auth_message.
+		EncodeFungibleBytesFrom(
+			expectedTxRecord.SourceChainID,
+			expectedTxRecord.TargetChainID,
+			expectedTxRecord.TransactionID,
+			expectedTxRecord.TargetAsset,
+			expectedTxRecord.Receiver,
+			strconv.FormatInt(mintAmount, 10))
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
+	}
+
 	// Step 9 - Verify Database Records
-	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
@@ -151,7 +168,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, setupEnv.TokenID.String(), fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.TokenID.String(), fmt.Sprint(mintAmount), targetAsset, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.TokenID.String(), fmt.Sprint(mintAmount), targetAsset, t)
 
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
@@ -180,8 +197,20 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		scheduleID, fee,
 		hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 
+	authMsgBytes, err := auth_message.
+		EncodeFungibleBytesFrom(
+			expectedTxRecord.SourceChainID,
+			expectedTxRecord.TargetChainID,
+			expectedTxRecord.TransactionID,
+			expectedTxRecord.TargetAsset,
+			expectedTxRecord.Receiver,
+			strconv.FormatInt(mintAmount, 10))
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
+	}
+
 	// Step 9 - Verify Database Records
-	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(mintAmount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
 }
@@ -485,7 +514,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	burnTransactionID, burnScheduleID := validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
 
 	// Step 5 - Submit Unlock transaction
 	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
@@ -523,8 +552,20 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		},
 	}
 
+	authMsgBytes, err := auth_message.
+		EncodeFungibleBytesFrom(
+			expectedTxRecord.SourceChainID,
+			expectedTxRecord.TargetChainID,
+			expectedTxRecord.TransactionID,
+			expectedTxRecord.TargetAsset,
+			expectedTxRecord.Receiver,
+			strconv.FormatInt(expectedSubmitUnlockAmount, 10))
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
+	}
+
 	// Step 9 - Verify Database Records
-	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, strconv.FormatInt(expectedSubmitUnlockAmount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
 	// and
 	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleBurnRecord, t)
 }
@@ -567,7 +608,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, lockEventId, t)
 
 	// Step 5 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset, t)
 
 	// Step 6 - Submit Mint transaction
 	txHash := submitMintTransaction(wrappedEvm, lockEventId, transactionData, common.HexToAddress(wrappedAsset), t)
@@ -591,8 +632,20 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		evm.Receiver.String(),
 		status.Completed)
 
+	authMsgBytes, err := auth_message.
+		EncodeFungibleBytesFrom(
+			expectedLockEventRecord.SourceChainID,
+			expectedLockEventRecord.TargetChainID,
+			expectedLockEventRecord.TransactionID,
+			expectedLockEventRecord.TargetAsset,
+			expectedLockEventRecord.Receiver,
+			expectedAmount.String())
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedLockEventRecord.TransactionID, err)
+	}
+
 	// Step 10 - Verify Database Records
-	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, expectedAmount.String(), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, authMsgBytes, receivedSignatures, t)
 }
 
 // Test_EVM_Wrapped_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
@@ -631,7 +684,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	receivedSignatures := verifyTopicMessages(setupEnv, burnEventId, t)
 
 	// Step 5 - Verify Transfer retrieved from Validator API
-	transactionData := verifyTransferFromValidatorAPI(setupEnv, nativeEvm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, nativeEvm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken, t)
 
 	// Step 6 - Submit Mint transaction
 	txHash := submitUnlockTransaction(nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
@@ -657,8 +710,227 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		nativeEvm.Receiver.String(),
 		status.Completed)
 
+	authMsgBytes, err := auth_message.
+		EncodeFungibleBytesFrom(
+			expectedLockEventRecord.SourceChainID,
+			expectedLockEventRecord.TargetChainID,
+			expectedLockEventRecord.TransactionID,
+			expectedLockEventRecord.TargetAsset,
+			expectedLockEventRecord.Receiver,
+			strconv.FormatInt(amount, 10))
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedLockEventRecord.TransactionID, err)
+	}
+
 	// Step 9 - Verify Database Records
-	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, strconv.FormatInt(amount, 10), receivedSignatures, t)
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedLockEventRecord, authMsgBytes, receivedSignatures, t)
+}
+
+// Test_Hedera_Native_EVM_NFT_Transfer recreates User who wants to portal a Hedera Native NFT to an EVM chain.
+func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
+	serialNumber := int64(17)
+	now = time.Now()
+	setupEnv := setup.Load()
+	nftToken := setupEnv.NftTokenID.String()
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	evm := setupEnv.Clients.EVM[chainId]
+	receiver := evm.Receiver
+	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
+
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, nftToken)
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
+	}
+
+	transferFee := setupEnv.NftFees[nftToken]
+	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
+
+	// Step 1 - Get Token Metadata
+	nftData, err := setupEnv.Clients.MirrorNode.GetNft(nftToken, serialNumber)
+	if err != nil {
+		t.Fatalf("Failed to get mirror node nft. Error [%s]", err)
+	}
+	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
+	if e != nil {
+		t.Fatalf("Failed to decode metadata [%s]. Error [%s]", nftData.Metadata, e)
+	}
+
+	// Step 2 - Send the NFT transfer, including the fee to the Bridge Account
+	transactionResponse, err := sendNFTWithFeeToBridgeAccount(setupEnv, memo, nftToken, serialNumber, transferFee)
+	if err != nil {
+		t.Fatalf("Failed to send NFT transfer. Error: [%s]", err)
+	}
+
+	transactionID := hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()
+
+	// Step 3 - Verify the submitted topic messages
+	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), t)
+
+	// Step 4 - Validate members fee scheduled transaction
+	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, validatorsFee), t)
+
+	// Step 5 - Verify Non-Fungible Transfer retrieved from Validator API
+	transactionData := verifyNonFungibleTransferFromValidatorAPI(
+		setupEnv,
+		evm,
+		transactionID,
+		nftToken, string(decodedMetadata), serialNumber, targetAsset, t)
+
+	// Step 5 - Submit Mint ERC-721 transaction
+	txHash := submitMintERC721Transaction(evm, transactionID, transactionData, t)
+
+	// Step 6 - Wait for transaction to be mined
+	waitForTransaction(evm, txHash, t)
+
+	// Step 7 - Validate EVM TokenId
+	verifyERC721TokenId(evm.EVMClient, targetAsset, serialNumber, receiver.String(), string(decodedMetadata), t)
+
+	// Step 8 - Verify Database records
+	expectedTxRecord := &entity.Transfer{
+		TransactionID: transactionID,
+		SourceChainID: 0,
+		TargetChainID: chainId,
+		NativeChainID: 0,
+		SourceAsset:   nftToken,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nftToken,
+		Receiver:      receiver.String(),
+		Amount:        "",
+		Fee:           strconv.FormatInt(validatorsFee, 10),
+		Status:        status.Completed,
+		SerialNumber:  serialNumber,
+		Metadata:      string(decodedMetadata),
+		IsNft:         true,
+	}
+	// and:
+	expectedFeeRecord := util.PrepareExpectedFeeRecord(
+		scheduledTxID,
+		scheduleID, validatorsFee,
+		transactionID)
+	// and:
+	expectedScheduleTransferRecord := &entity.Schedule{
+		TransactionID: scheduledTxID,
+		ScheduleID:    scheduleID,
+		Operation:     schedule.TRANSFER,
+		HasReceiver:   false,
+		Status:        status.Completed,
+		TransferID: sql.NullString{
+			String: transactionID,
+			Valid:  true,
+		},
+	}
+	// and recreate signed auth message
+	authMsgBytes, err := auth_message.
+		EncodeNftBytesFrom(
+			expectedTxRecord.SourceChainID,
+			expectedTxRecord.TargetChainID,
+			expectedTxRecord.TransactionID,
+			expectedTxRecord.TargetAsset,
+			expectedTxRecord.SerialNumber,
+			expectedTxRecord.Metadata,
+			expectedTxRecord.Receiver)
+	if err != nil {
+		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
+	}
+
+	// Step 9 - Verify Database Records
+	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
+	// and:
+	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
+	// and:
+	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleTransferRecord, t)
+}
+
+// Test_Hedera_EVM_BurnERC721_Transfer recreates User who wants to portal back a Hedera Native NFT from an EVM chain.
+func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
+	serialNumber := int64(17)
+	now = time.Now()
+	setupEnv := setup.Load()
+	nftToken := setupEnv.NftTokenID.String()
+
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	evm := setupEnv.Clients.EVM[chainId]
+
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, nftToken)
+	if err != nil {
+		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nftToken, err)
+	}
+
+	// 1. Validate that NFT owner is the bridge account
+	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.BridgeAccount, t)
+
+	// 2. Submit burnERC721 transaction to the bridge contract
+	burnTxReceipt, expectedRouterBurnERC721 := sendBurnERC721Transaction(evm, wrappedAsset, 0, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), serialNumber, t)
+
+	// 3. Validate that the burn ERC-721 transaction went through and emitted the correct event
+	expectedTxId := validateBurnERC721Event(burnTxReceipt, expectedRouterBurnERC721, t)
+
+	// 4. Validate that a scheduled NFT transaction was submitted
+	scheduledTxID, scheduleID := validateScheduledNftTransfer(setupEnv, expectedTxId, nftToken, serialNumber, t)
+
+	// 5. Validate Event Transaction ID retrieved from Validator API
+	validateEventTransactionIDFromValidatorAPI(setupEnv, expectedTxId, scheduledTxID, t)
+
+	// 6. Validate that the NFT was sent to the receiver account
+	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
+
+	// 7. Prepare Expected Database Records
+	expectedTxRecord := &entity.Transfer{
+		TransactionID: expectedTxId,
+		SourceChainID: chainId,
+		TargetChainID: 0,
+		NativeChainID: 0,
+		SourceAsset:   wrappedAsset,
+		TargetAsset:   nftToken,
+		NativeAsset:   nftToken,
+		Receiver:      setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+		Status:        status.Completed,
+		SerialNumber:  serialNumber,
+		IsNft:         true,
+	}
+	expectedScheduleTransferRecord := &entity.Schedule{
+		TransactionID: scheduledTxID,
+		ScheduleID:    scheduleID,
+		Operation:     schedule.TRANSFER,
+		HasReceiver:   true,
+		Status:        status.Completed,
+		TransferID: sql.NullString{
+			String: expectedTxId,
+			Valid:  true,
+		},
+	}
+
+	// 8. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(10 * time.Second)
+
+	// 9. Validate Database Records
+	verifyTransferRecord(setupEnv.DbValidator, expectedTxRecord, t)
+	// and:
+	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleTransferRecord, t)
+}
+
+func validateNftOwner(setup *setup.Setup, tokenID string, serialNumber int64, expectedOwner hedera.AccountID, t *testing.T) {
+	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNumber, tokenID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nftInfo, err := hedera.NewTokenNftInfoQuery().
+		SetNftID(nftID).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(nftInfo) != 1 {
+		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftID.String(), nftInfo)
+	}
+
+	owner := nftInfo[0].AccountID
+	if owner != expectedOwner {
+		t.Fatalf("Invalid NftID [%s] owner. Expected [%s], actual [%s].", nftID.String(), expectedOwner, owner)
+	}
 }
 
 func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, t *testing.T) {
@@ -788,6 +1060,48 @@ func validateLockEvent(txReceipt *types.Receipt, expectedRouterLock *router.Rout
 	return ""
 }
 
+func validateBurnERC721Event(txReceipt *types.Receipt, expectedRouterLock *router.RouterBurnERC721, t *testing.T) string {
+	parsedAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	event := router.RouterBurnERC721{}
+	eventSignature := parsedAbi.Events["BurnERC721"].ID
+	for _, log := range txReceipt.Logs {
+		if log.Topics[0] != eventSignature {
+			continue
+		}
+
+		err := parsedAbi.UnpackIntoInterface(&event, "BurnERC721", log.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if event.TokenId.String() != expectedRouterLock.TokenId.String() {
+			t.Fatalf("Expected Burn-ERC721 Event TokenId [%v], actual [%v]", expectedRouterLock.TokenId, event.TokenId)
+		}
+
+		if event.TargetChain.String() != expectedRouterLock.TargetChain.String() {
+			t.Fatalf("Expected Burn-ERC721 Event Target Chain [%v], actual [%v]", expectedRouterLock.TargetChain, event.TargetChain)
+		}
+
+		if !reflect.DeepEqual(event.WrappedToken, expectedRouterLock.WrappedToken) {
+			t.Fatalf("Expected Burn-ERC721 Event Token [%v], actual [%v]", expectedRouterLock.WrappedToken, event.WrappedToken)
+		}
+
+		if !reflect.DeepEqual(event.Receiver, expectedRouterLock.Receiver) {
+			t.Fatalf("Expected Burn-ERC721 Event Receiver [%v], actual [%v]", expectedRouterLock.Receiver, event.Receiver)
+		}
+
+		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
+		return expectedId
+	}
+
+	t.Fatal("Could not retrieve valid Burn Event Log information.")
+	return ""
+}
+
 func validateSubmittedScheduledTx(setupEnv *setup.Setup, asset string, expectedTransfers []model.Transfer, t *testing.T) (transactionID, scheduleID string) {
 	receiverTransactionID, receiverScheduleID := validateScheduledTx(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), asset, expectedTransfers, t)
 
@@ -853,6 +1167,52 @@ func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, as
 
 		if timeLeft > 0 {
 			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			timeLeft -= 10
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
+	return "", ""
+}
+
+func validateScheduledNftTransfer(setupEnv *setup.Setup, expectedTransactionID, token string, serialNum int64, t *testing.T) (transactionID, scheduleID string) {
+	receiver := setupEnv.Clients.Hedera.GetOperatorAccountID()
+	timeLeft := 180
+
+	for {
+		response, err := setupEnv.Clients.MirrorNode.GetNftTransactions(token, serialNum)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, nftTransfer := range response.Transactions {
+			if nftTransfer.Type == "CRYPTOTRANSFER" &&
+				nftTransfer.ReceiverAccountID == receiver.String() &&
+				nftTransfer.SenderAccountID == setupEnv.BridgeAccount.String() {
+
+				scheduledTx, err := setupEnv.Clients.MirrorNode.GetScheduledTransaction(nftTransfer.TransactionID)
+				if err != nil {
+					t.Fatalf("Failed to retrieve scheduled transaction [%s]. Error: [%s]", nftTransfer.TransactionID, err)
+				}
+				for _, tx := range scheduledTx.Transactions {
+					if tx.Result == hedera.StatusSuccess.String() {
+						schedule, err := setupEnv.Clients.MirrorNode.GetSchedule(tx.EntityId)
+						if err != nil {
+							t.Fatalf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", expectedTransactionID, scheduleID, err)
+						}
+						if schedule.Memo == expectedTransactionID {
+							return nftTransfer.TransactionID, schedule.ScheduleId
+						}
+					}
+				}
+			}
+		}
+
+		if timeLeft > 0 {
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", receiver, timeLeft))
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -988,7 +1348,7 @@ func calculateExpectedUnlockAmount(evm setup.EVMUtils, token string, amount int6
 	return new(big.Int).Sub(amountBn, serviceFee)
 }
 
-func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *service.TransferData, tokenAddress common.Address, t *testing.T) common.Hash {
+func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -1018,7 +1378,34 @@ func submitMintTransaction(evm setup.EVMUtils, txId string, transactionData *ser
 	return res.Hash()
 }
 
-func submitUnlockTransaction(evm setup.EVMUtils, txId string, transactionData *service.TransferData, tokenAddress common.Address, t *testing.T) common.Hash {
+func submitMintERC721Transaction(evm setup.EVMUtils, txId string, transactionData *service.NonFungibleTransferData, t *testing.T) common.Hash {
+	var signatures [][]byte
+	for i := 0; i < len(transactionData.Signatures); i++ {
+		signature, err := hex.DecodeString(transactionData.Signatures[i])
+		if err != nil {
+			t.Fatalf("Failed to decode signature with error: [%s]", err)
+		}
+		signatures = append(signatures, signature)
+	}
+
+	res, err := evm.RouterContract.MintERC721(
+		evm.KeyTransactor,
+		big.NewInt(transactionData.SourceChainId),
+		[]byte(txId),
+		common.HexToAddress(transactionData.TargetAsset),
+		big.NewInt(transactionData.TokenId),
+		transactionData.Metadata,
+		evm.Receiver,
+		signatures,
+	)
+
+	if err != nil {
+		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
+	}
+	return res.Hash()
+}
+
+func submitUnlockTransaction(evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address, t *testing.T) common.Hash {
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
 		signature, err := hex.DecodeString(transactionData.Signatures[i])
@@ -1222,6 +1609,71 @@ func sendLockEthTransaction(evm setup.EVMUtils, asset string, targetChainId int6
 	return lockTxReceipt, expectedRouterLock
 }
 
+func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetChainId int64, receiver []byte, serialNumber int64, t *testing.T) (*types.Receipt, *router.RouterBurnERC721) {
+	wrappedAddress := common.HexToAddress(wrappedToken)
+
+	paymentToken, err := evm.RouterContract.Erc721Payment(nil, wrappedAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fee, err := evm.RouterContract.Erc721Fee(nil, wrappedAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	erc20Contract, err := wtoken.NewWtoken(paymentToken, evm.EVMClient.GetClient())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	approveERC20Tx, err := erc20Contract.Approve(evm.KeyTransactor, evm.RouterAddress, fee)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-20 Approval Transaction", approveERC20Tx.Hash()))
+	waitForTransaction(evm, approveERC20Tx.Hash(), t)
+
+	erc721Contract, err := werc721.NewWerc721(wrappedAddress, evm.EVMClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokenId := big.NewInt(serialNumber)
+
+	approveERC721Tx, err := erc721Contract.Approve(evm.KeyTransactor, evm.RouterAddress, tokenId)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-721 Approval Transaction", approveERC721Tx.Hash()))
+	waitForTransaction(evm, approveERC721Tx.Hash(), t)
+
+	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, big.NewInt(targetChainId), wrappedAddress, tokenId, receiver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+
+	expectedRouterBurn := &router.RouterBurnERC721{
+		TargetChain:  big.NewInt(targetChainId),
+		WrappedToken: common.HexToAddress(wrappedToken),
+		TokenId:      tokenId,
+		Receiver:     receiver,
+	}
+
+	burnTxHash := burnTx.Hash()
+
+	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn ERC-721 Transaction Receipt.", burnTxHash))
+	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Sprintf("[%s] Burn ERC-721 Transaction mined and retrieved receipt.", burnTxHash))
+
+	return burnTxReceipt, expectedRouterBurn
+}
+
 func waitForTransaction(evm setup.EVMUtils, txHash common.Hash, t *testing.T) {
 	receipt, err := evm.EVMClient.WaitForTransactionReceipt(txHash)
 	if err != nil {
@@ -1258,6 +1710,31 @@ func verifyWrappedAssetBalance(evm setup.EVMUtils, nativeAsset string, mintAmoun
 	}
 }
 
+func verifyERC721TokenId(evm *evm.Client, wrappedToken string, serialNumber int64, receiver string, expectedMetadata string, t *testing.T) {
+	contract, err := werc721.NewWerc721(common.HexToAddress(wrappedToken), evm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	owner, err := contract.OwnerOf(nil, big.NewInt(serialNumber))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if owner.String() != receiver {
+		t.Fatalf("Invalid owner. Expected owner for serial number [%d] to be [%s], but was [%s]", serialNumber, receiver, owner.String())
+	}
+
+	tokenURI, err := contract.TokenURI(nil, big.NewInt(serialNumber))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if expectedMetadata != tokenURI {
+		t.Fatalf("Invalid token URI. Expected token URI for serial number [%d] to be [%s], but was [%s]", serialNumber, expectedMetadata, tokenURI)
+	}
+}
+
 func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, expectedTxID string, t *testing.T) {
 	actualTxID, err := setupEnv.Clients.ValidatorClient.GetEventTransactionID(eventID)
 	if err != nil {
@@ -1269,25 +1746,67 @@ func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, 
 	}
 }
 
-func verifyTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.TransferData {
-	transactionData, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
+func verifyFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.FungibleTransferData {
+	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
-	if transactionData.Amount != expectedSendAmount {
-		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", expectedSendAmount, transactionData.Amount)
-	}
-	if transactionData.NativeAsset != tokenID {
-		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transactionData.NativeAsset)
-	}
-	if transactionData.Recipient != evm.Receiver.String() {
-		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transactionData.Recipient)
-	}
-	if transactionData.TargetAsset != targetAsset {
-		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", targetAsset, transactionData.TargetAsset)
+	var transferDataResponse *service.FungibleTransferData
+	err = json.Unmarshal(bytes, &transferDataResponse)
+	if err != nil {
+		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
 	}
 
-	return transactionData
+	if transferDataResponse.IsNft {
+		t.Fatalf("Transaction data mismatch: Expected response data to not be NFT related.")
+	}
+	if transferDataResponse.Amount != expectedSendAmount {
+		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", expectedSendAmount, transferDataResponse.Amount)
+	}
+	if transferDataResponse.NativeAsset != tokenID {
+		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transferDataResponse.NativeAsset)
+	}
+	if transferDataResponse.Recipient != evm.Receiver.String() {
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transferDataResponse.Recipient)
+	}
+	if transferDataResponse.TargetAsset != targetAsset {
+		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", targetAsset, transferDataResponse.TargetAsset)
+	}
+
+	return transferDataResponse
+}
+
+func verifyNonFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, metadata string, tokenIdOrSerialNum int64, targetAsset string, t *testing.T) *service.NonFungibleTransferData {
+	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
+	if err != nil {
+		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
+	}
+	var transferDataResponse *service.NonFungibleTransferData
+	err = json.Unmarshal(bytes, &transferDataResponse)
+	if err != nil {
+		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
+	}
+
+	if !transferDataResponse.IsNft {
+		t.Fatalf("Transaction data mismatch: Expected response data to be NFT related.")
+	}
+	if transferDataResponse.Metadata != metadata {
+		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", metadata, transferDataResponse.Metadata)
+	}
+	if transferDataResponse.TokenId != tokenIdOrSerialNum {
+		t.Fatalf("Transaction tokenId/serialNum mismatch: Expected [%d], but was [%d]", tokenIdOrSerialNum, transferDataResponse.TokenId)
+	}
+	if transferDataResponse.NativeAsset != tokenID {
+		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transferDataResponse.NativeAsset)
+	}
+	if transferDataResponse.Recipient != evm.Receiver.String() {
+		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transferDataResponse.Recipient)
+	}
+	if transferDataResponse.TargetAsset != targetAsset {
+		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", targetAsset, transferDataResponse.TargetAsset)
+	}
+
+	return transferDataResponse
 }
 
 func verifyFeeRecord(dbValidation *database.Service, expectedRecord *entity.Fee, t *testing.T) {
@@ -1320,8 +1839,8 @@ func verifyScheduleRecord(dbValidation *database.Service, expectedRecord *entity
 	}
 }
 
-func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, amount string, signatures []string, t *testing.T) {
-	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, amount, signatures)
+func verifyTransferRecordAndSignatures(dbValidation *database.Service, expectedRecord *entity.Transfer, authMsgBytes []byte, signatures []string, t *testing.T) {
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, authMsgBytes, signatures)
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
@@ -1431,19 +1950,33 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 		Subscribe(
 			setup.Clients.Hedera,
 			func(response hedera.TopicMessage) {
-				msg := &validatorproto.TopicEthSignatureMessage{}
+				msg := &validatorproto.TopicMessage{}
 				err := proto.Unmarshal(response.Contents, msg)
 				if err != nil {
 					t.Fatal(err)
 				}
 
+				var transferID string
+				var signature string
+				switch msg.Message.(type) {
+				case *validatorproto.TopicMessage_FungibleSignatureMessage:
+					message := msg.GetFungibleSignatureMessage()
+					transferID = message.TransferID
+					signature = message.Signature
+					break
+				case *validatorproto.TopicMessage_NftSignatureMessage:
+					message := msg.GetNftSignatureMessage()
+					transferID = message.TransferID
+					signature = message.Signature
+				}
+
 				//Verify that all the submitted messages have signed the same transaction
-				if msg.TransferID != txId {
+				if transferID != txId {
 					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, txId))
 				} else {
-					receivedSignatures = append(receivedSignatures, msg.Signature)
+					receivedSignatures = append(receivedSignatures, signature)
 					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", msg.Signature))
+					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signature))
 				}
 			},
 		)
@@ -1493,6 +2026,36 @@ func sendTokensToBridgeAccount(setup *setup.Setup, tokenID hedera.TokenID, memo 
 		SetTransactionMemo(memo).
 		AddTokenTransfer(tokenID, setup.Clients.Hedera.GetOperatorAccountID(), -amount).
 		AddTokenTransfer(tokenID, setup.BridgeAccount, amount).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+	rec, err := res.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	time.Sleep(1 * time.Second)
+
+	return &res, err
+}
+
+func sendNFTWithFeeToBridgeAccount(setup *setup.Setup, memo string, token string, serialNum int64, fee int64) (*hedera.TransactionResponse, error) {
+	hbarSendAmount := hedera.HbarFromTinybar(fee)
+	hbarRemovalAmount := hedera.HbarFromTinybar(-fee)
+
+	fmt.Println(fmt.Sprintf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]", token, serialNum, memo))
+	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNum, token))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := hedera.NewTransferTransaction().
+		AddNftTransfer(nftID, setup.Clients.Hedera.GetOperatorAccountID(), setup.BridgeAccount).
+		AddHbarTransfer(setup.Clients.Hedera.GetOperatorAccountID(), hbarRemovalAmount).
+		AddHbarTransfer(setup.BridgeAccount, hbarSendAmount).
+		SetTransactionMemo(memo).
 		Execute(setup.Clients.Hedera)
 	if err != nil {
 		return nil, err

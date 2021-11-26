@@ -37,12 +37,31 @@ func New(
 	}
 }
 
-// Execute submits a scheduled transaction and executes provided functions when necessary
+// ExecuteScheduledTransferTransaction submits a scheduled transaction and executes provided functions when necessary
 func (s *Service) ExecuteScheduledTransferTransaction(
 	id, nativeAsset string,
 	transfers []transfer.Hedera,
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
+		if transactionResponse != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+		}
+		return
+	}
+	err = s.createOrSignScheduledTransaction(transactionResponse, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled transfer transaction. Error [%s].", id, err)
+		return
+	}
+}
+
+// ExecuteScheduledNftTransferTransaction submits a scheduled nft transaction and executes provided functions when necessary
+func (s *Service) ExecuteScheduledNftTransferTransaction(
+	id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID,
+	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	transactionResponse, err := s.hederaNodeClient.SubmitScheduledNftTransferTransaction(nftID, s.payerAccount, sender, receiving, id)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
@@ -155,7 +174,10 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 		id,
 		scheduledTxID)
 
-	txReceipt, err := transactionResponse.GetReceipt(s.hederaNodeClient.GetClient())
+	txReceipt, err := hedera.NewTransactionReceiptQuery().
+		SetTransactionID(transactionResponse.TransactionID).
+		SetNodeAccountIDs([]hedera.AccountID{transactionResponse.NodeID}).
+		Execute(s.hederaNodeClient.GetClient())
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]. Error: [%s]", id, transactionResponse.TransactionID.String(), err)
 		onExecutionFail(scheduledTxID)

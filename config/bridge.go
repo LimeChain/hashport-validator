@@ -18,6 +18,7 @@ package config
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	log "github.com/sirupsen/logrus"
 )
 
 type Bridge struct {
@@ -33,9 +34,11 @@ type BridgeHedera struct {
 	Members        []string
 	Tokens         map[string]HederaToken
 	FeePercentages map[string]int64
+	NftFees        map[string]int64
 }
 
 type HederaToken struct {
+	Fee           int64
 	FeePercentage int64
 	Networks      map[int64]string
 }
@@ -65,17 +68,23 @@ func NewBridge(bridge parser.Bridge) Bridge {
 				Tokens:        make(map[string]HederaToken),
 			}
 
-			for name, value := range value.Tokens {
+			for name, value := range value.Tokens.Fungible {
 				config.Hedera.Tokens[name] = HederaToken(value)
 			}
-			config.Hedera.FeePercentages = LoadHederaFeePercentages(value.Tokens)
+			for name, value := range value.Tokens.Nft {
+				config.Hedera.Tokens[name] = HederaToken(value)
+			}
+			hederaFeePercentages, hederaNftFees := LoadHederaFees(value.Tokens)
+			config.Hedera.FeePercentages = hederaFeePercentages
+			config.Hedera.NftFees = hederaNftFees
 			continue
 		}
 		config.EVMs[key] = BridgeEvm{
 			RouterContractAddress: value.RouterContractAddress,
 			Tokens:                make(map[string]Token),
 		}
-		for name, value := range value.Tokens {
+		// Currently, only EVM Fungible native tokens are supported
+		for name, value := range value.Tokens.Fungible {
 			config.EVMs[key].Tokens[name] = Token{Networks: value.Networks}
 		}
 	}
@@ -83,11 +92,18 @@ func NewBridge(bridge parser.Bridge) Bridge {
 	return config
 }
 
-func LoadHederaFeePercentages(tokens map[string]parser.Token) map[string]int64 {
+func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, nftFees map[string]int64) {
 	feePercentages := map[string]int64{}
-	for token, value := range tokens {
+	fees := map[string]int64{}
+	for token, value := range tokens.Fungible {
 		feePercentages[token] = value.FeePercentage
 	}
+	for token, value := range tokens.Nft {
+		if value.Fee == 0 {
+			log.Fatalf("NFT [%s] has zero fee", token)
+		}
+		fees[token] = value.Fee
+	}
 
-	return feePercentages
+	return feePercentages, fees
 }

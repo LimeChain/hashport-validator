@@ -25,14 +25,20 @@ type Bridge struct {
 }
 
 type Network struct {
-	BridgeAccount         string           `yaml:"bridge_account"`
-	PayerAccount          string           `yaml:"payer_account"`
-	RouterContractAddress string           `yaml:"router_contract_address"`
-	Members               []string         `yaml:"members"`
-	Tokens                map[string]Token `yaml:"tokens"`
+	BridgeAccount         string   `yaml:"bridge_account"`
+	PayerAccount          string   `yaml:"payer_account"`
+	RouterContractAddress string   `yaml:"router_contract_address"`
+	Members               []string `yaml:"members"`
+	Tokens                Tokens   `yaml:"tokens"`
+}
+
+type Tokens struct {
+	Fungible map[string]Token `yaml:"fungible"`
+	Nft      map[string]Token `yaml:"nft"`
 }
 
 type Token struct {
-	FeePercentage int64            `yaml:"fee_percentage"`
+	Fee           int64            `yaml:"fee"`            // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
+	FeePercentage int64            `yaml:"fee_percentage"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
 	Networks      map[int64]string `yaml:"networks"`
 }

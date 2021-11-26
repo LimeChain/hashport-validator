@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	proto_models "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"strconv"
 	"time"
 
@@ -78,9 +79,9 @@ func NewService(
 	}
 }
 
-// SanityCheckSignature performs validation on the topic message metadata.
+// SanityCheckFungibleSignature performs validation on the topic message metadata.
 // Validates it against the Transaction Record metadata from DB
-func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, error) {
+func (ss *Service) SanityCheckFungibleSignature(topicMessage *proto_models.TopicEthSignatureMessage) (bool, error) {
 	// In case a topic message for given transfer is being processed before the actual transfer
 	t, err := ss.awaitTransfer(topicMessage.TransferID)
 	if err != nil {
@@ -114,8 +115,29 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	return match, nil
 }
 
-func (ss Service) SignMessage(tm model.Transfer) (*message.Message, error) {
-	authMsgHash, err := auth_message.EncodeBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
+// SanityCheckNftSignature performs validation on the topic message metadata.
+// Validates it against the Transaction Record metadata from DB
+func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNftSignatureMessage) (bool, error) {
+	// In case a topic message for given transfer is being processed before the actual transfer
+	t, err := ss.awaitTransfer(topicMessage.TransferID)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to await incoming transfer and its fee. Error: [%s]", topicMessage.TransferID, err)
+		return false, err
+	}
+
+	match :=
+		topicMessage.Recipient == t.Receiver &&
+			int64(topicMessage.TokenId) == t.SerialNumber &&
+			topicMessage.Metadata == t.Metadata &&
+			topicMessage.Asset == t.TargetAsset &&
+			int64(topicMessage.TargetChainId) == t.TargetChainID &&
+			int64(topicMessage.SourceChainId) == t.SourceChainID &&
+			topicMessage.TransferID == t.TransactionID
+	return match, nil
+}
+
+func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
+	authMsgHash, err := auth_message.EncodeFungibleBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return nil, err
@@ -128,66 +150,99 @@ func (ss Service) SignMessage(tm model.Transfer) (*message.Message, error) {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	return message.NewSignature(
+	msg := message.NewFungibleSignature(
 		uint64(tm.SourceChainId),
 		uint64(tm.TargetChainId),
 		tm.TransactionId,
 		tm.TargetAsset,
 		tm.Receiver,
 		tm.Amount,
-		signature), nil
+		signature)
+
+	bytes, err := msg.ToBytes()
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+	return bytes, nil
+}
+
+func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
+	authMsgHash, err := auth_message.EncodeNftBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.SerialNum, tm.Metadata, tm.Receiver)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+
+	signatureBytes, err := ss.ethSigners[tm.TargetChainId].Sign(authMsgHash)
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+	signature := hex.EncodeToString(signatureBytes)
+
+	msg := message.NewNftSignature(
+		uint64(tm.SourceChainId),
+		uint64(tm.TargetChainId),
+		tm.TransactionId,
+		tm.TargetAsset,
+		uint64(tm.SerialNum),
+		tm.Metadata,
+		tm.Receiver,
+		signature)
+
+	bytes, err := msg.ToBytes()
+	if err != nil {
+		ss.logger.Errorf("[%s] - Failed to marshal NFT Signature Message to bytes. Error [%s]", tm.TransactionId, err)
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-func (ss *Service) ProcessSignature(tsm message.Message) error {
-	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
-		return err
-	}
-
+func (ss *Service) ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error {
 	// Prepare Signature
-	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(tsm.GetSignature())
+	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(signature)
 	if err != nil {
-		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: [%s]", tsm.TransferID, tsm.GetSignature(), err)
+		ss.logger.Errorf("[%s] - Decoding Signature [%s] for TX failed. Error: [%s]", transferID, signature, err)
 		return err
 	}
-	authMessageStr := hex.EncodeToString(authMsgBytes)
+	authMessageStr := hex.EncodeToString(authMsg)
 
 	// Check for duplicated signature
-	exists, err := ss.messageRepository.Exist(tsm.TransferID, signatureHex, authMessageStr)
+	exists, err := ss.messageRepository.Exist(transferID, signatureHex, authMessageStr)
 	if err != nil {
-		ss.logger.Errorf("[%s] - An error occurred while checking existence from DB. Error: [%s]", tsm.TransferID, err)
+		ss.logger.Errorf("[%s] - An error occurred while checking existence from DB. Error: [%s]", transferID, err)
 		return err
 	}
 	if exists {
-		ss.logger.Errorf("[%s] - Signature already received. Signature [%s], Auth Message [%s].", tsm.TransferID, signatureHex, authMessageStr)
+		ss.logger.Errorf("[%s] - Signature already received. Signature [%s], Auth Message [%s].", transferID, signatureHex, authMessageStr)
 		return err
 	}
 
 	// Verify Signature
-	address, err := ss.verifySignature(err, authMsgBytes, signatureBytes, tsm.TransferID, int64(tsm.TargetChainId), authMessageStr)
+	address, err := ss.verifySignature(err, authMsg, signatureBytes, transferID, targetChainId, authMessageStr)
 	if err != nil {
 		return err
 	}
 
-	ss.logger.Debugf("[%s] - Successfully verified new Signature from [%s]", tsm.TransferID, address.String())
+	ss.logger.Debugf("[%s] - Successfully verified new Signature from [%s]", transferID, address.String())
 
 	// Persist in DB
 	err = ss.messageRepository.Create(&entity.Message{
-		TransferID:           tsm.TransferID,
+		TransferID:           transferID,
 		Signature:            signatureHex,
 		Hash:                 authMessageStr,
 		Signer:               address.String(),
-		TransactionTimestamp: tsm.TransactionTimestamp,
+		TransactionTimestamp: timestamp,
 	})
 	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: [%s]", tsm.TransferID, signatureHex, err)
+		ss.logger.Errorf("[%s] - Failed to save Transaction Message in DB with Signature [%s]. Error: [%s]", transferID, signatureHex, err)
 		return err
 	}
 
-	ss.logger.Infof("[%s] - Successfully processed Signature Message from [%s]", tsm.TransferID, address.String())
+	ss.logger.Infof("[%s] - Successfully processed Signature Message from [%s]", transferID, address.String())
 	return nil
 }
 

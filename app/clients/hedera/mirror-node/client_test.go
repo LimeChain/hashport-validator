@@ -24,7 +24,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -102,8 +104,11 @@ func Test_GetSchedule_Fails(t *testing.T) {
 
 func Test_AccountExists_Status400(t *testing.T) {
 	setup()
+	stringReader := strings.NewReader("error")
+	stringReadCloser := ioutil.NopCloser(stringReader)
 	response := &http.Response{
 		StatusCode: 400,
+		Body:       stringReadCloser,
 	}
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
 	exists := c.AccountExists(accountId)
@@ -112,8 +117,11 @@ func Test_AccountExists_Status400(t *testing.T) {
 
 func Test_TopicExists_Status400(t *testing.T) {
 	setup()
+	stringReader := strings.NewReader("error")
+	stringReadCloser := ioutil.NopCloser(stringReader)
 	response := &http.Response{
 		StatusCode: 400,
+		Body:       stringReadCloser,
 	}
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
 	exists := c.TopicExists(topicId)
