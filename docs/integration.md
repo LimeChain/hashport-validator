@@ -67,7 +67,7 @@ Once supermajority is reached the users can claim _wrapped version_ of the asset
 
 The mint operation can be constructed using the following arguments:
 
-	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] _signatures)
+	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] signatures)
 
 Argument | Description
 ---------- | ----------
@@ -350,7 +350,7 @@ Once supermajority is reached users can unlock the _native version_ of the asset
 
 The `unlock` operation can be constructed using the following arguments:
 
-	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] _signatures)
+	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] signatures)
 
 Argument | Description
 ---------- | ----------
@@ -456,7 +456,7 @@ Once supermajority is reached the users can claim _wrapped version_ of the asset
 
 The mint operation can be constructed using the following arguments:
 
-	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] _signatures)
+	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] signatures)
 
 Argument | Description
 ---------- | ----------
@@ -633,7 +633,7 @@ Once supermajority is reached users can unlock the _native version_ of the asset
 
 The `unlock` operation can be constructed using the following arguments:
 
-	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] _signatures)
+	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] signatures)
 
 Argument | Description
 ---------- | ----------
@@ -713,7 +713,7 @@ Once majority is reached, users can mint the _wrapped version_ of the NFT. In or
 
 The mint operation can be constructed using the following arguments:
 
-	mintERC721(uint256 sourceChainId, bytes transactionId, address targetAsset, uint256 tokenId, string metadata, address recipient, bytes[] _signatures)
+	mintERC721(uint256 sourceChainId, bytes transactionId, address targetAsset, uint256 tokenId, string metadata, address recipient, bytes[] signatures)
 
 Argument | Description
 ---------- | ----------
