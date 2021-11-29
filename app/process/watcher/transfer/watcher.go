@@ -257,7 +257,8 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
 }
 
-func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, nativeAsset config.NativeAsset, amount int64, targetChainId int64, targetChainAsset string) (*transfer.Transfer, error) {
+func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset config.NativeAsset, amount int64, targetChainId int64, targetChainAsset string) (*transfer.Transfer, error) {
+	nativeAsset := ctw.mappings.FungibleNativeAsset(asset.ChainId, asset.Asset)
 	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(amount), targetChainAsset)
 	if err != nil {
 		ctw.logger.Errorf(
@@ -267,6 +268,9 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 			amount,
 			err)
 		return nil, err
+	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		return nil, errors.New(fmt.Sprintf("Transfer Amount [%s] is less than Minimum Amount [%s].", properAmount, nativeAsset.MinAmount))
 	}
 
 	return transfer.New(
