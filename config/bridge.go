@@ -37,11 +37,13 @@ type BridgeHedera struct {
 
 type HederaToken struct {
 	FeePercentage int64
+	MinAmount     string
 	Networks      map[int64]string
 }
 
 type Token struct {
-	Networks map[int64]string
+	MinAmount *big.Int
+	Networks  map[int64]string
 }
 
 type BridgeEvm struct {

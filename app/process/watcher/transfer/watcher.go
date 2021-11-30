@@ -202,6 +202,15 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 			err)
 		return
 	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		ctw.logger.Errorf(
+			"[%s] - Transfer Amount [%s] is less than minimum Amount [%s]",
+			tx.TransactionID,
+			properAmount,
+			nativeAsset.MinAmount,
+		)
+		return
+	}
 
 	transferMessage := transfer.New(
 		tx.TransactionID,
