@@ -47,7 +47,7 @@ func (a Assets) WrappedToNative(wrappedAsset string, wrappedChainId int64) *Nati
 }
 
 func (a Assets) NetworkAssets(id int64) []string {
-	return a.networkAssets[id]
+	return a.fungibleNetworkAssets[id]
 }
 
 func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
@@ -68,7 +68,7 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			fungibleNativeAssets[nativeChainId] = make(map[string]*NativeAsset)
 		}
 
-		for nativeAsset, nativeAssetMapping := range network.Tokens.Fungible {
+		for nativeAsset, nativeAssetMapping := range network.Tokens {
 			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
 				nativeToWrapped[nativeChainId][nativeAsset] = make(map[int64]string)
 			}

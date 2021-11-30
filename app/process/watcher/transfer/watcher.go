@@ -202,6 +202,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 			err)
 		return
 	}
+	nativeAsset = ctw.mappings.FungibleNativeAsset(nativeAsset.ChainId, nativeAsset.Asset)
 	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
 		ctw.logger.Errorf(
 			"[%s] - Transfer Amount [%s] is less than minimum Amount [%s]",

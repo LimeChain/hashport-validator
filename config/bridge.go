@@ -18,6 +18,7 @@ package config
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"math/big"
 )
 
 type Bridge struct {
