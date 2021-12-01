@@ -168,10 +168,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := &config.NativeAsset{
-		ChainId: 0,
-		Asset:   asset,
-	}
+	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
 	if targetChainAsset == "" {
 		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
@@ -200,6 +197,15 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 			nativeAsset,
 			intAmount,
 			err)
+		return
+	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		ctw.logger.Errorf(
+			"[%s] - Transfer Amount [%s] is less than minimum Amount [%s]",
+			tx.TransactionID,
+			properAmount,
+			nativeAsset.MinAmount,
+		)
 		return
 	}
 
