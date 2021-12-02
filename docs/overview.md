@@ -159,7 +159,7 @@ The transfer of NFT assets from Hedera to the EVM chain is described in the foll
 
 #### Steps
 1. **Initiating the transfer**
-   Alice wants to transfer `HTS NFT` from Hedera to the EVM chain. She opens any UI that integrates the Bridge and sends the NFT asset and flat fee to the `Bridge` Account. The memo of the transfer contains the `evm-address`, which is going to be the receiver of the wrapped ERC-721 (NFT)) asset on the other chain.
+   Alice wants to transfer `HTS NFT` from Hedera to the EVM chain. She opens any UI that integrates the Bridge and sends the NFT asset and flat fee to the `Bridge` Account. The memo of the transfer contains the `evm-address`, which is going to be the receiver of the wrapped ERC-721 (NFT) asset on the other chain.
 2. **Picking up the Transfer**
    The Bridge validator nodes listen for new incoming transfers to the `Bridge` Account. Once they pick up the new transaction, they validate that the `memo` contains a valid EVM address configured as receiver of the wrapped asset.
 3. **Paying out fees**
