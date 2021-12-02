@@ -192,17 +192,17 @@ The transfer of ERC-721 (NFT) assets from the EVM chain to Hedera is described i
 </p>
 
 #### Steps
-    Alice wants to transfer her `WHBAR`/`WHTS` tokens from the EVM chain to Hedera. Before initiating the actual transfer, Alice needs to:
-1. **Approve flat fee**
-   Alice submits an approve ERC-20 transaction, which approves the flat fee amount to the `Router` contract.
-2. **Approve ERC-721 (NFT)**
-   Alice submits an approve ERC-721 (NFT) transaction, which approves the NFT to be burnt by the `Router` contract.
-3. **Initiating the Transfer**
+1. Alice wants to transfer her **wrapped** `NFT` from the EVM chain back to Hedera. Before initiating the actual transfer, Alice needs to:
+   1.1 **Approve flat fee**
+      Alice submits an approve ERC-20 transaction, which approves the flat fee amount to the `Router` contract.
+   1.2 **Approve ERC-721 (NFT)**
+      Alice submits an approve ERC-721 (NFT) transaction, which approves the NFT to be burnt by the `Router` contract.
+2. **Initiating the Transfer**
    Alice sends `burn` transaction to the `Router` contract. As parameter of the `burn` function, she specifies the NFT and the Hedera account to receive the Hedera native NFT.
-4. **Burn Operation**
+3. **Burn Operation**
    The smart contract transfers the flat fee from Alice's address, and burns the NFT. At the end of the process, a `Burn` event is emitted, containing the information about the NFT and the receiver.
-5. **Picking up the Transfer**
+4. **Picking up the Transfer**
    Validator nodes watch for `Burn` events and once such occurs, they prepare and submit `ScheduleCreate` operation that transfers the `NFT` from the `Bridge` account to the receiver. Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `IDENTICAL_SCHEDULE_ALREADY_CREATED` error, and the transaction receipt will include the `ScheduleID` and the `TransactionID` of the first submitted transaction.
    All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the transfer of the fees will be executed.
-6. **Unlocking the Asset**
+5. **Unlocking the Asset**
    Each Validator performs a `ScheduleCreate` operation that transfers the `NFT` to the receiving Hedera Account. All validators that got their `ScheduleCreate` rejected, submit an equivalent `ScheduleSign`. Once `n out of m` validators execute the Sign operation, the transfer is completed.
