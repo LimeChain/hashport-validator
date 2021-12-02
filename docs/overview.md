@@ -193,10 +193,13 @@ The transfer of ERC-721 (NFT) assets from the EVM chain to Hedera is described i
 
 #### Steps
 1. Alice wants to transfer her **wrapped** `NFT` from the EVM chain back to Hedera. Before initiating the actual transfer, Alice needs to:
+
    1.1 **Approve flat fee**
       Alice submits an approve ERC-20 transaction, which approves the flat fee amount to the `Router` contract.
+
    1.2 **Approve ERC-721 (NFT)**
       Alice submits an approve ERC-721 (NFT) transaction, which approves the NFT to be burnt by the `Router` contract.
+
 2. **Initiating the Transfer**
    Alice sends `burn` transaction to the `Router` contract. As parameter of the `burn` function, she specifies the NFT and the Hedera account to receive the Hedera native NFT.
 3. **Burn Operation**
