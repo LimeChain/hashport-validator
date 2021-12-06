@@ -43,6 +43,18 @@ func main() {
 	}
 
 	switch deserialized.(type) {
+	case hedera.TransferTransaction:
+		tx := deserialized.(hedera.TransferTransaction)
+		ref := &tx
+		for _, key := range keys {
+			ref = ref.Sign(key)
+		}
+		bytes, err := ref.ToBytes()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(hex.EncodeToString(bytes))
+		break
 	case hedera.TopicUpdateTransaction:
 		tx := deserialized.(hedera.TopicUpdateTransaction)
 		ref := &tx
