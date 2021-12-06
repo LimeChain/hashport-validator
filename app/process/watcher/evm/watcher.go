@@ -337,6 +337,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
 		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinAmount)
+		return
 	}
 
 	burnEvent := &transfer.Transfer{

@@ -68,7 +68,7 @@ const (
 
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
-	amount := int64(1000000000)
+	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now = time.Now()
 
@@ -144,7 +144,7 @@ func Test_HBAR(t *testing.T) {
 
 // Test_E2E_Token_Transfer recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
 func Test_E2E_Token_Transfer(t *testing.T) {
-	amount := int64(1000000000)
+	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now = time.Now()
 
@@ -217,7 +217,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 // Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
-	amount := int64(100)
+	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
 	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
@@ -274,7 +274,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 
 // Test_EVM_Hedera_Token recreates a real life situation of a user who wants to return a Hedera native token from the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera one) gets burned, then the amount gets unlocked on the Hedera bridge account, forwarding it to the recipient account.
 func Test_EVM_Hedera_Token(t *testing.T) {
-	amount := int64(100)
+	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
 	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
@@ -339,7 +339,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 
 // Test_EVM_Hedera_Native_Token recreates a real life situation of a user who wants to bridge an EVM native token to the Hedera infrastructure. A new wrapped token (corresponding to the native EVM one) gets minted to the bridge account, then gets transferred to the recipient account.
 func Test_EVM_Hedera_Native_Token(t *testing.T) {
-	amount := int64(100000000000)
+	amount := int64(1000000000000) // 1 000 gwei
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
@@ -481,7 +481,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	unlockAmount := int64(1)
+	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
@@ -572,7 +572,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 // Test_EVM_Native_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Native_to_EVM_Token(t *testing.T) {
-	amount := int64(1000000000)
+	amount := int64(1000000000000) // 1000 gwei
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
@@ -650,7 +650,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 
 // Test_EVM_Wrapped_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
-	amount := int64(900000000)
+	amount := int64(100000000000) // 100 gwei
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
