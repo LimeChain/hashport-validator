@@ -124,6 +124,7 @@ func main() {
 func cryptoCreate(client *hedera.Client) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.GeneratePrivateKey()
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
+	fmt.Printf("Hederea Public Key: %v\n", privateKey.PublicKey().String())
 	publicKey := privateKey.PublicKey()
 	newAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(publicKey).
