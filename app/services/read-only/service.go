@@ -26,20 +26,24 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Service struct {
 	mirrorNode         client.MirrorNode
 	transferRepository repository.Transfer
+	pollingInterval    time.Duration
 	logger             *log.Entry
 }
 
 func New(
 	mirrorNode client.MirrorNode,
-	transferRepository repository.Transfer) *Service {
+	transferRepository repository.Transfer,
+	pollingInterval time.Duration) *Service {
 	return &Service{
 		mirrorNode:         mirrorNode,
 		transferRepository: transferRepository,
+		pollingInterval:    pollingInterval,
 		logger:             config.GetLoggerFor("Read-only Transfer Fetcher"),
 	}
 }
@@ -107,6 +111,9 @@ func (s Service) FindAssetTransfer(
 		if finished {
 			break
 		}
+		s.logger.Tracef("[%s] - No asset transfers found.", transferID)
+
+		time.Sleep(s.pollingInterval * time.Second)
 	}
 }
 
@@ -171,6 +178,9 @@ func (s Service) FindTransfer(
 		if finished {
 			break
 		}
+
+		s.logger.Tracef("[%s] - No transfers found.", transferID)
+		time.Sleep(s.pollingInterval * time.Second)
 	}
 }
 
