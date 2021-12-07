@@ -1439,7 +1439,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 
 				//Verify that all the submitted messages have signed the same transaction
 				if msg.TransferID != txId {
-					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, txId))
+					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id [%s], got [%s]. Message signature [%s]`, txId, msg.TransferID, msg.Signature))
 				} else {
 					receivedSignatures = append(receivedSignatures, msg.Signature)
 					ethSignaturesCollected++
