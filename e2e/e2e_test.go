@@ -1452,7 +1452,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 	}
 
 	select {
-	case <-time.After(90 * time.Second):
+	case <-time.After(120 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
 		}
