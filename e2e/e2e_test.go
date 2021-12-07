@@ -235,7 +235,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// 9. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
@@ -300,7 +300,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// 9. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
@@ -348,7 +348,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	bridgeMintTransactionID, bridgeMintScheduleID := validateScheduledMintTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Step 5: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
@@ -386,7 +386,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Transfer
 	expectedScheduleTransferRecord := &entity.Schedule{
