@@ -104,7 +104,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled,
 		transfers)
 
-	readOnly := read_only.New(clients.MirrorNode, repositories.transfer)
+	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
 	return &Services{
 		signers:          evmSigners,
@@ -115,6 +115,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		lockEvents:       lockEvent,
 		fees:             fees,
 		distributor:      distributor,
+		scheduled:        scheduled,
 		readOnly:         readOnly,
 	}
 }
