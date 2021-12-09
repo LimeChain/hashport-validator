@@ -902,7 +902,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	}
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// 9. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedTxRecord, t)
