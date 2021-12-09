@@ -20,4 +20,4 @@ require (
 	gorm.io/gorm v1.20.6
 )
 
-replace github.com/hashgraph/hedera-sdk-go/v2 => github.com/limechain/hedera-sdk-go/v2 v2.0.0-20211209111032-975e06a0142d
+replace github.com/hashgraph/hedera-sdk-go/v2 => github.com/limechain/hedera-sdk-go/v2 v2.0.0-20211209120149-f880d235f18d
