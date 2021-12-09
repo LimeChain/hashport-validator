@@ -40,5 +40,6 @@ type Tokens struct {
 type Token struct {
 	Fee           int64            `yaml:"fee"`            // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
 	FeePercentage int64            `yaml:"fee_percentage"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
+	MinAmount     string           `yaml:"min_amount"`     // Represents a constant minimum amount for each Native token.
 	Networks      map[int64]string `yaml:"networks"`
 }
