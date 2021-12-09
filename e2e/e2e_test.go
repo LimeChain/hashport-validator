@@ -1649,7 +1649,7 @@ func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetCh
 	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-721 Approval Transaction", approveERC721Tx.Hash()))
 	waitForTransaction(evm, approveERC721Tx.Hash(), t)
 
-	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, big.NewInt(targetChainId), wrappedAddress, tokenId, receiver)
+	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, big.NewInt(targetChainId), wrappedAddress, tokenId, paymentToken, fee, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}

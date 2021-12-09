@@ -125,7 +125,7 @@ func (s Service) FindNftTransfer(
 	for {
 		response, err := s.mirrorNode.GetNftTransactions(tokenID, serialNum)
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to get transactions after timestamp. Error: [%s]", transferID, err)
+			s.logger.Errorf("[%s] - Failed to get nft transactions after timestamp. Error: [%s]", transferID, err)
 			continue
 		}
 
