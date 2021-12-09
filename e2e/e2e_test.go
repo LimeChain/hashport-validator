@@ -88,16 +88,16 @@ func Test_HBAR(t *testing.T) {
 	transactionResponse, wrappedBalanceBefore := verifyTransferToBridgeAccount(setupEnv, targetAsset, evm, memo, receiver, amount, t)
 
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), t)
+	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
 
 	// Step 3 - Validate fee scheduled transaction
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset, t)
 
 	// Step 5 - Submit Mint transaction
-	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
+	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
 
 	// Step 6 - Wait for transaction to be mined
 	waitForTransaction(evm, txHash, t)
@@ -110,7 +110,7 @@ func Test_HBAR(t *testing.T) {
 		0,
 		chainId,
 		0,
-		hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
+		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		constants.Hbar,
 		targetAsset,
 		constants.Hbar,
@@ -162,16 +162,16 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	transactionResponse, wrappedBalanceBefore := verifyTokenTransferToBridgeAccount(setupEnv, targetAsset, setupEnv.TokenID, evm, memo, evm.Receiver, amount, t)
 
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), t)
+	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
 
 	// Step 3 - Validate fee scheduled transaction
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, setupEnv.TokenID.String(), generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, setupEnv.TokenID.String(), fee), t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.TokenID.String(), fmt.Sprint(mintAmount), targetAsset, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.TokenID.String(), fmt.Sprint(mintAmount), targetAsset, t)
 
 	// Step 5 - Submit Mint transaction
-	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
+	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
 
 	// Step 6 - Wait for transaction to be mined
 	waitForTransaction(evm, txHash, t)
@@ -184,7 +184,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		0,
 		chainId,
 		0,
-		hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
+		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		setupEnv.TokenID.String(),
 		targetAsset,
 		setupEnv.TokenID.String(),
@@ -264,7 +264,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// 9. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
@@ -329,7 +329,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// 9. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedBurnEventRecord, t)
@@ -377,7 +377,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	bridgeMintTransactionID, bridgeMintScheduleID := validateScheduledMintTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Step 5: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
@@ -415,7 +415,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Transfer
 	expectedScheduleTransferRecord := &entity.Schedule{
@@ -508,16 +508,16 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		},
 	}
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), t)
+	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
 
 	// Step 3 - Validate burn scheduled transaction
 	burnTransactionID, burnScheduleID := validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
+	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
 
 	// Step 5 - Submit Unlock transaction
-	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
+	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
 
 	// Step 6 - Wait for transaction to be mined
 	waitForTransaction(evm, txHash, t)
@@ -532,7 +532,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		0,
 		chainId,
 		chainId,
-		hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
+		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		wrappedAsset,
 		setupEnv.NativeEvmToken,
 		setupEnv.NativeEvmToken,
@@ -547,7 +547,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		Operation:     schedule.BURN,
 		Status:        status.Completed,
 		TransferID: sql.NullString{
-			String: hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(),
+			String: hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 			Valid:  true,
 		},
 	}
@@ -762,10 +762,10 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Failed to send NFT transfer. Error: [%s]", err)
 	}
 
-	transactionID := hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String()
+	transactionID := hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String()
 
 	// Step 3 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(&transactionResponse.TransactionID).String(), t)
+	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
 
 	// Step 4 - Validate members fee scheduled transaction
 	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, validatorsFee), t)
@@ -1944,7 +1944,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 	fmt.Println(fmt.Sprintf("Waiting for Signatures & TX Hash to be published to Topic [%v]", setup.TopicID.String()))
 
 	// Subscribe to Topic
-	_, err := hedera.NewTopicMessageQuery().
+	subscription, err := hedera.NewTopicMessageQuery().
 		SetStartTime(time.Unix(0, time.Now().UnixNano())).
 		SetTopicID(setup.TopicID).
 		Subscribe(
@@ -1985,10 +1985,11 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 	}
 
 	select {
-	case <-time.After(90 * time.Second):
+	case <-time.After(120 * time.Second):
 		if ethSignaturesCollected != expectedValidatorsCount {
 			t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
 		}
+		subscription.Unsubscribe()
 		return receivedSignatures
 	}
 	// Not possible end-case

@@ -30,9 +30,9 @@ import (
 )
 
 type Service struct {
-	pollingInterval    time.Duration
 	mirrorNode         client.MirrorNode
 	transferRepository repository.Transfer
+	pollingInterval    time.Duration
 	logger             *log.Entry
 }
 
@@ -113,6 +113,7 @@ func (s Service) FindAssetTransfer(
 		if finished {
 			break
 		}
+		s.logger.Tracef("[%s] - No asset transfers found.", transferID)
 
 		time.Sleep(s.pollingInterval * time.Second)
 	}
@@ -237,6 +238,7 @@ func (s Service) FindTransfer(
 			break
 		}
 
+		s.logger.Tracef("[%s] - No transfers found.", transferID)
 		time.Sleep(s.pollingInterval * time.Second)
 	}
 }

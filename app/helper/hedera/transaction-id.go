@@ -37,7 +37,7 @@ func ToMirrorNodeTransactionID(txId string) string {
 		fmt.Sprintf("%09s", split[1]))
 }
 
-func FromHederaTransactionID(id *hedera.TransactionID) HederaTransactionID {
+func FromHederaTransactionID(id hedera.TransactionID) HederaTransactionID {
 	stringTxId := id.String()
 	split := strings.Split(stringTxId, "@")
 	accId := split[0]
