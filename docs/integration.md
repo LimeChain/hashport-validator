@@ -662,6 +662,9 @@ response, _ := hedera.NewTransferTransaction().
 ```
 
 The corresponding `response.TransactionID` must be converted in the following format: `{accountID}-{validStartSeconds}-{validStartNanos}`.
+
+**Important: If** `validStartNanos` is **less** than 9 symbols, it has to be zero padded with `0` from the start, e.g. `14578` -> `000014578`.
+
 The transactionID is a unique identifier for the Bridge transfer operation and can be used to query the status of the Bridge transfer.
 
 ### Step 2. Waiting for Signatures
