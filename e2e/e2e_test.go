@@ -728,7 +728,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 
 // Test_Hedera_Native_EVM_NFT_Transfer recreates User who wants to portal a Hedera Native NFT to an EVM chain.
 func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
-	serialNumber := int64(17)
+	serialNumber := int64(20)
 	now = time.Now()
 	setupEnv := setup.Load()
 	nftToken := setupEnv.NftTokenID.String()
@@ -844,7 +844,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 
 // Test_Hedera_EVM_BurnERC721_Transfer recreates User who wants to portal back a Hedera Native NFT from an EVM chain.
 func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
-	serialNumber := int64(17)
+	serialNumber := int64(20)
 	now = time.Now()
 	setupEnv := setup.Load()
 	nftToken := setupEnv.NftTokenID.String()

@@ -177,7 +177,10 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
+	nativeAsset := &config.NativeAsset{
+		ChainId: 0,
+		Asset:   asset,
+	}
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
 	if targetChainAsset == "" {
 		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
