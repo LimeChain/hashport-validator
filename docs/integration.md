@@ -742,7 +742,7 @@ Before user submits the burn transaction, two approvals will be needed:
 
 Now that everything has been approved, users can execute a `burnERC721` transaction to the Router Contract.
 
-	burnERC721(uint256 targetChainId, address erc721ContractAddress, uint256 tokenId, bytes receiver)
+	burnERC721(uint256 targetChainId, address erc721ContractAddress, uint256 tokenId, address paymentToken, uint256 fee, bytes receiver)
 
 Argument | Description
 ---------- | ----------
