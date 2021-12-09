@@ -19,6 +19,7 @@ package config
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 )
 
 type Bridge struct {
@@ -40,11 +41,13 @@ type BridgeHedera struct {
 type HederaToken struct {
 	Fee           int64
 	FeePercentage int64
+	MinAmount     string
 	Networks      map[int64]string
 }
 
 type Token struct {
-	Networks map[int64]string
+	MinAmount *big.Int
+	Networks  map[int64]string
 }
 
 type BridgeEvm struct {
