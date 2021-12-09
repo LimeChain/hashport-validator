@@ -1,8 +1,7 @@
 name: Build and Publish Image to GCR
 
 on:
-  release:
-    types: [published]
+  push:
 
 jobs:
   deploy:
@@ -22,11 +21,10 @@ jobs:
       - name: Build and Push Container
         run: |-
           docker build \
-            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }} \
-            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest \
+            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-2-debug \
             -f build/Dockerfile .
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
+          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-2-debug
+#          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
 
 #      - name: Dispatch image release event
 #        uses: peter-evans/repository-dispatch@v1.1.3
