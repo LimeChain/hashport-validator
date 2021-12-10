@@ -658,6 +658,7 @@ response, _ := hedera.NewTransferTransaction().
     SetTransactionMemo("80001-0x0000000000000000000000000000000000000002"). // 80001 - chainId of Polygon Mumbai Testnet, 0x0000000000000000000000000000000000000002 - receiver address
     AddNftTransfer(nftID, client.GetOperatorAccountID(), bridgeAccount). // Send the NFT to the bridge account
     AddHbarTransfer(bridgeAccount, hedera.HbarFrom(1, "hbar")). // Send the NFT bridge transfer fee to the bridge account
+    AddHbarTransfer(client.GetOperatorAccountID(), hedera.HbarFrom(-1, "hbar")). // The negated transfer fee from the sender account
     Execute(client)
 ```
 
