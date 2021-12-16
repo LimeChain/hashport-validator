@@ -17,7 +17,9 @@
 package config
 
 import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -55,6 +57,7 @@ type Evm struct {
 type Hedera struct {
 	Operator       Operator
 	Network        string
+	Rpc            map[string]hedera.AccountID
 	StartTimestamp int64
 }
 
@@ -75,6 +78,15 @@ type Recovery struct {
 }
 
 func New(node parser.Node) Node {
+	rpc := make(map[string]hedera.AccountID)
+	for key, value := range node.Clients.Hedera.Rpc {
+		nodeAccoundID, err := hedera.AccountIDFromString(value)
+		if err != nil {
+			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
+		}
+		rpc[key] = nodeAccoundID
+	}
+
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
@@ -82,6 +94,7 @@ func New(node parser.Node) Node {
 				Operator:       Operator(node.Clients.Hedera.Operator),
 				Network:        node.Clients.Hedera.Network,
 				StartTimestamp: node.Clients.Hedera.StartTimestamp,
+				Rpc:            rpc,
 			},
 			MirrorNode: MirrorNode(node.Clients.MirrorNode),
 			Evm:        make(map[int64]Evm),
