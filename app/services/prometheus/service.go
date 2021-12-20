@@ -26,7 +26,10 @@ func NewGaugeMetric(name string, help string) prometheus.Gauge {
 		Help: help,
 	}
 	gauge := prometheus.NewGauge(opts)
-	prometheus.MustRegister(gauge)
 
 	return gauge
+}
+
+func RegisterGaugeMetric(gauge prometheus.Gauge) {
+	prometheus.MustRegister(gauge)
 }

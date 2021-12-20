@@ -22,9 +22,9 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -54,6 +54,7 @@ func NewHandler(
 	}
 
 	participationRate := prometheusServices.NewGaugeMetric("validators_participation_rate", "Participation rate: Track validators' activity in %.")
+	prometheusServices.RegisterGaugeMetric(participationRate)
 
 	return &Handler{
 		transferRepository: transferRepository,
