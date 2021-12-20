@@ -53,9 +53,10 @@ type Evm struct {
 }
 
 type Hedera struct {
-	Operator       Operator `yaml:"operator"`
-	Network        string   `yaml:"network"`
-	StartTimestamp int64    `yaml:"start_timestamp"`
+	Operator       Operator          `yaml:"operator"`
+	Network        string            `yaml:"network"`
+	Rpc            map[string]string `yaml:"rpc"`
+	StartTimestamp int64             `yaml:"start_timestamp"`
 }
 
 type Operator struct {
