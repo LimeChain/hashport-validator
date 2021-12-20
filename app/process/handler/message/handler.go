@@ -18,12 +18,17 @@ package message
 
 import (
 	"fmt"
+	"github.com/dariubs/percent"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"math"
 	"math/big"
 )
 
@@ -33,6 +38,7 @@ type Handler struct {
 	contracts          map[int64]service.Contracts
 	messages           service.Messages
 	logger             *log.Entry
+	participationRate  prometheus.Gauge
 }
 
 func NewHandler(
@@ -47,12 +53,15 @@ func NewHandler(
 		log.Fatalf("Invalid topic id: [%v]", topicId)
 	}
 
+	participationRate := prometheusServices.NewGaugeMetric("validators_participation_rate", "Participation rate: Track validators' activity in %.")
+
 	return &Handler{
 		transferRepository: transferRepository,
 		messageRepository:  messageRepository,
 		contracts:          contractServices,
 		messages:           messages,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		participationRate: 	participationRate,
 	}
 }
 
@@ -107,8 +116,15 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 
 	membersCount := len(cmh.contracts[targetChainId].GetMembers())
 	bnSignaturesLength := big.NewInt(int64(len(signatureMessages)))
+	cmh.setParticipationRate(signatureMessages, membersCount)
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
 	return cmh.contracts[targetChainId].
 		HasValidSignaturesLength(bnSignaturesLength)
+}
+
+func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
+	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
+	cmh.logger.Infof("Percentage callc [%f]", participationRate)
+	cmh.participationRate.Set(participationRate)
 }
