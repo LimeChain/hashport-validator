@@ -1,0 +1,15 @@
+scrape_configs:
+
+  - job_name: hashport-validator
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+    - targets:
+      - prometheus:9090
+
+  - job_name: validator
+    scrape_interval: 15s
+    metrics_path: /api/v1/metrics
+    static_configs:
+    - targets:
+      - alice:5200 #inside port of the validator

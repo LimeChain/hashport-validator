@@ -40,7 +40,7 @@ services:
       - --web.enable-lifecycle
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-       - prometheus_data:/prometheus
+      - prometheus_data:/prometheus
 
   grafana:
     image: grafana/grafana:latest
@@ -50,10 +50,11 @@ services:
       - 3000:3000
     volumes:
       - ./grafana:/etc/grafana/provisioning/
-       - grafana_data:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
 
 volumes:
   prometheus_data: {}
   grafana_data: {}
+
