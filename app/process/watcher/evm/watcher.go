@@ -84,7 +84,7 @@ func NewWatcher(
 	validator bool,
 	pollingInterval time.Duration,
 	maxLogsBlocks int64) *Watcher {
-	currentBlock, err := evmClient.BlockNumber(context.Background())
+	currentBlock, err := evmClient.RetryBlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
@@ -189,7 +189,7 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 			continue
 		}
 
-		currentBlock, err := ew.evmClient.BlockNumber(context.Background())
+		currentBlock, err := ew.evmClient.RetryBlockNumber(context.Background())
 		if err != nil {
 			ew.logger.Errorf("Failed to retrieve latest block number. Error [%s]", err)
 			time.Sleep(ew.sleepDuration)
@@ -218,16 +218,16 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 }
 
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
-	query := &ethereum.FilterQuery{
+	query := ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
 		ToBlock:   new(big.Int).SetInt64(endBlock),
 		Addresses: ew.filterConfig.addresses,
 		Topics:    ew.filterConfig.topics,
 	}
 
-	logs, err := ew.evmClient.FilterLogs(context.Background(), *query)
+	logs, err := ew.evmClient.RetryFilterLogs(query)
 	if err != nil {
-		ew.logger.Errorf("Failed to to filter logs. Error: [%s]", err)
+		ew.logger.Errorf("Failed to filter logs. Error: [%s]", err)
 		return err
 	}
 
