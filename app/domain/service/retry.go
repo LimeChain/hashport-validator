@@ -24,8 +24,11 @@ import (
 	"time"
 )
 
+const (
+	sleepPeriod = 5 * time.Second
+)
+
 var (
-	sleepPeriod  = 5 * time.Second
 	timeoutError = errors.New(fmt.Sprintf("Timeout after [%d]", sleepPeriod))
 )
 
@@ -64,14 +67,15 @@ func Retry(executionFunction func() <-chan retry.Result, retries int) (interface
 		case executionResult = <-timeout():
 		case executionResult = <-executionFunction():
 		}
-		times++
-		if times >= retries {
-			log.Warnf("Function execution timeouted. [%d/%d] tries.", times, retries)
-			return 0, errors.New("too many retries")
-		}
 
 		if executionResult.Error != nil {
 			if errors.Is(executionResult.Error, timeoutError) {
+				times++
+				if times >= retries {
+					log.Warnf("Function execution timeouted. [%d/%d] tries.", times, retries)
+					return 0, errors.New("too many retries")
+				}
+
 				log.Warnf("Function execution timeout. [%d/%d] tries.", times, retries)
 				return retryFunction()
 			}
