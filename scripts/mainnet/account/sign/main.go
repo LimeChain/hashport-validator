@@ -90,6 +90,17 @@ func main() {
 			panic(err)
 		}
 		fmt.Println(hex.EncodeToString(bytes))
+	case hedera.TokenCreateTransaction:
+		tx := deserialized.(hedera.TokenCreateTransaction)
+		ref := &tx
+		for _, key := range keys {
+			ref = ref.Sign(key)
+		}
+		bytes, err := ref.ToBytes()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(hex.EncodeToString(bytes))
 	default:
 		panic("invalid tx type provided")
 	}
