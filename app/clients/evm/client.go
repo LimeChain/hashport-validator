@@ -162,13 +162,13 @@ func (ec Client) BlockConfirmations() uint64 {
 
 // RetryBlockNumber returns the most recent block number
 // Uses a retry mechanism in case the filter query is stuck
-func (ec Client) RetryBlockNumber(ctx context.Context) (uint64, error) {
+func (ec Client) RetryBlockNumber() (uint64, error) {
 	blockNumberFunc := func() <-chan retry.Result {
 		r := make(chan retry.Result)
 		go func() {
 			defer close(r)
 
-			block, err := ec.BlockNumber(ctx)
+			block, err := ec.BlockNumber(context.Background())
 			r <- retry.Result{
 				Value: block,
 				Error: err,

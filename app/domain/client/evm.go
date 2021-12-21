@@ -43,7 +43,7 @@ type EVM interface {
 	BlockConfirmations() uint64
 	// RetryBlockNumber returns the most recent block number
 	// Uses a retry mechanism in case the filter query is stuck
-	RetryBlockNumber(ctx context.Context) (uint64, error)
+	RetryBlockNumber() (uint64, error)
 	// RetryFilterLogs returns the logs from the input query
 	// Uses a retry mechanism in case the filter query is stuck
 	RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error)

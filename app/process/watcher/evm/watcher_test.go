@@ -458,7 +458,7 @@ func TestNewWatcher(t *testing.T) {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	mocks.MEVMClient.On("BlockNumber", mock.Anything).Return(uint64(10), nil)
+	mocks.MEVMClient.On("RetryBlockNumber").Return(uint64(10), nil)
 	mocks.MEVMClient.On("BlockConfirmations", mock.Anything).Return(uint64(5))
 
 	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
@@ -532,7 +532,7 @@ func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 		Topics:  topics,
 	}
 
-	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+	mocks.MEVMClient.On("RetryFilterLogs", *query).
 		Return([]types.Log{
 			{
 				Topics: []common.Hash{
@@ -573,7 +573,7 @@ func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 		Topics:  topics,
 	}
 
-	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+	mocks.MEVMClient.On("RetryFilterLogs", *query).
 		Return([]types.Log{
 			{
 				Topics: []common.Hash{
@@ -614,7 +614,7 @@ func Test_ProcessLogs_FilterLogsFails(t *testing.T) {
 		Topics:  topics,
 	}
 
-	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+	mocks.MEVMClient.On("RetryFilterLogs", *query).
 		Return([]types.Log{}, errors.New("some-error"))
 
 	w.processLogs(0, 5, mocks.MQueue)
@@ -644,7 +644,7 @@ func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 	}
 	expectedErr := errors.New("some-error")
 
-	mocks.MEVMClient.On("FilterLogs", context.Background(), *query).
+	mocks.MEVMClient.On("RetryFilterLogs", *query).
 		Return([]types.Log{}, nil)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(expectedErr)
 	res := w.processLogs(0, 0, mocks.MQueue)
