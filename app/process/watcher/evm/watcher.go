@@ -55,7 +55,15 @@ type Watcher struct {
 	filterConfig  FilterConfig
 }
 
-var defaultSleepDuration = 15 * time.Second
+// Certain node providers (Alchemy, Infura) have a limitation on how many blocks
+// eth_getLogs can process at once. For this to be mitigated, a maximum amount of blocks
+// is introduced, splitting the request into chunks with a range of N.
+// For example, a query for events with a range of 5 000 blocks, will be split into 10 queries, each having
+// a range of 500 blocks
+const defaultMaxLogsBlocks = int64(500)
+
+// The default polling interval (in seconds) when querying for upcoming events/logs
+const defaultSleepDuration = 15 * time.Second
 
 type FilterConfig struct {
 	abi               abi.ABI
@@ -64,6 +72,7 @@ type FilterConfig struct {
 	burnHash          common.Hash
 	lockHash          common.Hash
 	memberUpdatedHash common.Hash
+	maxLogsBlocks     int64
 }
 
 func NewWatcher(
@@ -73,7 +82,8 @@ func NewWatcher(
 	mappings c.Assets,
 	startBlock int64,
 	validator bool,
-	pollingInterval time.Duration) *Watcher {
+	pollingInterval time.Duration,
+	maxLogsBlocks int64) *Watcher {
 	currentBlock, err := evmClient.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
@@ -101,6 +111,10 @@ func NewWatcher(
 		contracts.Address(),
 	}
 
+	if maxLogsBlocks == 0 {
+		maxLogsBlocks = defaultMaxLogsBlocks
+	}
+
 	filterConfig := FilterConfig{
 		abi:               abi,
 		topics:            topics,
@@ -108,6 +122,7 @@ func NewWatcher(
 		burnHash:          burnHash,
 		lockHash:          lockHash,
 		memberUpdatedHash: memberUpdatedHash,
+		maxLogsBlocks:     maxLogsBlocks,
 	}
 
 	if pollingInterval == 0 {
@@ -187,6 +202,10 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 			continue
 		}
 
+		if toBlock-fromBlock > ew.filterConfig.maxLogsBlocks {
+			toBlock = fromBlock + ew.filterConfig.maxLogsBlocks
+		}
+
 		err = ew.processLogs(fromBlock, toBlock, queue)
 		if err != nil {
 			ew.logger.Errorf("Failed to process logs. Error: [%s].", err)
@@ -199,7 +218,6 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 }
 
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
-
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
 		ToBlock:   new(big.Int).SetInt64(endBlock),
@@ -296,14 +314,18 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	properAmount := eventLog.Amount
 	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token)
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
 		}
 	}
 	if properAmount.Cmp(big.NewInt(0)) == 0 {
 		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+		return
+	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinAmount)
 		return
 	}
 
@@ -381,12 +403,17 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
+	nativeAsset := ew.mappings.FungibleNativeAsset(chain.Int64(), eventLog.Token.String())
+	if eventLog.Amount.Cmp(nativeAsset.MinAmount) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, nativeAsset.MinAmount)
+		return
+	}
 
 	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
 	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(eventLog.Amount, eventLog.Token)
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, eventLog.Amount)
+			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
 		}
 	}
@@ -409,7 +436,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
-		eventLog.Amount.String(),
+		properAmount,
 		recipientAccount,
 		chain.Int64(),
 		eventLog.TargetChain.Int64())

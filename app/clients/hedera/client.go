@@ -43,6 +43,15 @@ func NewNodeClient(config config.Hedera) *Node {
 	default:
 		log.Fatalf("Invalid Client Network provided: [%s]", config.Network)
 	}
+	if len(config.Rpc) > 0 {
+		log.Infof("Setting provided RPC nodes for [%s].", config.Network)
+		err := client.SetNetwork(config.Rpc)
+		if err != nil {
+			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", config.Rpc, err)
+		}
+	} else {
+		log.Infof("Setting default node rpc urls for [%s].", config.Network)
+	}
 
 	accID, err := hedera.AccountIDFromString(config.Operator.AccountId)
 	if err != nil {

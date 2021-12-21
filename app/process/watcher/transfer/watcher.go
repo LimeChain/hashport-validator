@@ -19,7 +19,6 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -132,7 +131,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	for {
 		transactions, e := ctw.client.GetAccountCreditTransactionsAfterTimestamp(ctw.accountID, milestoneTimestamp)
 		if e != nil {
-			ctw.logger.Errorf("Suddenly stopped monitoring account - [%s]", e)
+			ctw.logger.Errorf("Suddenly stopped monitoring account. Error: [%s]", e)
 			go ctw.beginWatching(q)
 			return
 		}
@@ -169,10 +168,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := &config.NativeAsset{
-		ChainId: 0,
-		Asset:   asset,
-	}
+	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
 	if targetChainAsset == "" {
 		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
@@ -193,9 +189,23 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
-	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), common.HexToAddress(targetChainAsset))
+	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), targetChainAsset)
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to adjust [%v] amount [%d] decimals between chains.", tx.TransactionID, nativeAsset, intAmount)
+		ctw.logger.Errorf(
+			"[%s] - Failed to adjust [%v] amount [%d] decimals between chains. Error: [%s]",
+			tx.TransactionID,
+			nativeAsset,
+			intAmount,
+			err)
+		return
+	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		ctw.logger.Errorf(
+			"[%s] - Transfer Amount [%s] is less than minimum Amount [%s]",
+			tx.TransactionID,
+			properAmount,
+			nativeAsset.MinAmount,
+		)
 		return
 	}
 

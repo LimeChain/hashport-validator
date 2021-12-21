@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# Hedera - EVM Bridge
+# Hashport Validator
 
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -44,6 +44,7 @@ docker-compose up
  - [Testing](docs/testing.md)
  - [Workflows](docs/workflows.md)
  - [Release](docs/release.md)
+ - [Mainnet Deployment](docs/mainnet-deployment.md)
 
 ## Examples
 * [Three Validators Bridge Network](./examples/three-validators/README.md)

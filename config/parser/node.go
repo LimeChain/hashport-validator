@@ -49,12 +49,14 @@ type Evm struct {
 	PrivateKey         string        `yaml:"private_key"`
 	StartBlock         int64         `yaml:"start_block"`
 	PollingInterval    time.Duration `yaml:"polling_interval"`
+	MaxLogsBlocks      int64         `yaml:"max_logs_blocks"`
 }
 
 type Hedera struct {
-	Operator       Operator `yaml:"operator"`
-	Network        string   `yaml:"network"`
-	StartTimestamp int64    `yaml:"start_timestamp"`
+	Operator       Operator          `yaml:"operator"`
+	Network        string            `yaml:"network"`
+	Rpc            map[string]string `yaml:"rpc"`
+	StartTimestamp int64             `yaml:"start_timestamp"`
 }
 
 type Operator struct {

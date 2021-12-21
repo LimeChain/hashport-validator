@@ -20,9 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 	hedera_mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -107,20 +105,6 @@ func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
-	stateProof, e := ts.mirrorNode.GetStateProof(tx.TransactionID)
-	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("Could not GET state proof. Error [%s]", e))
-	}
-
-	verified, e := stateproof.Verify(tx.TransactionID, stateProof)
-	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("State proof verification failed. Error [%s]", e))
-	}
-
-	if !verified {
-		return 0, "", errors.New("invalid state proof")
-	}
-
 	memoArgs := strings.Split(m, "-")
 	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
 	evmAddress := memoArgs[1]
@@ -193,7 +177,7 @@ func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, common.HexToAddress(tm.TargetAsset))
+	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, tm.TargetAsset)
 	if properAmount.Cmp(big.NewInt(0)) == 0 {
 		return errors.New(fmt.Sprintf("removed decimals resolves to 0, initial value [%s]", amount))
 	}
@@ -403,8 +387,9 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 			return
 		}
 		err = ts.feeRepository.Create(&entity.Fee{
-			Amount: feeAmount,
-			Status: status.Failed,
+			TransactionID: transactionID,
+			Amount:        feeAmount,
+			Status:        status.Failed,
 			TransferID: sql.NullString{
 				String: transferID,
 				Valid:  true,

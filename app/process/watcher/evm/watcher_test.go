@@ -158,7 +158,7 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
-	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -179,7 +179,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 
 func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.Setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token).Return(lockLog.Amount, nil)
+	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
@@ -274,7 +274,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 
 func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
@@ -375,7 +375,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 
 func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.Setup()
-	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token).Return(lockLog.Amount, nil)
+	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	w = &Watcher{
@@ -489,6 +489,7 @@ func TestNewWatcher(t *testing.T) {
 		burnHash:          burnHash,
 		lockHash:          lockHash,
 		memberUpdatedHash: memberUpdatedHash,
+		maxLogsBlocks:     220,
 	}
 
 	assets := config.LoadAssets(networks)
@@ -504,7 +505,7 @@ func TestNewWatcher(t *testing.T) {
 		filterConfig:  filterConfig,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15))
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15, 220))
 }
 
 // TODO: Test_NewWatcher_Fails

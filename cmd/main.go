@@ -137,7 +137,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				configuration.Bridge.Assets,
 				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
 				configuration.Node.Validator,
-				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval))
+				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval,
+				configuration.Node.Clients.Evm[chain.Int64()].MaxLogsBlocks))
 	}
 
 	// Register read-only handlers
