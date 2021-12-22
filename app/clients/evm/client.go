@@ -33,9 +33,9 @@ import (
 	"time"
 )
 
-// Used to as a maximum amount of retries than need to be done when executing
+// Used as a maximum amount of retries than need to be done when executing
 // RetryBlockNumber, RetryFilterLogs
-const executionRetries = 5
+const executionRetries = 10
 
 // Client EVM JSON RPC Client
 type Client struct {
