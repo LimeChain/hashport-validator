@@ -25,11 +25,17 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/retry"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
 )
+
+// Used as a maximum amount of retries that need to be done when executing
+// RetryBlockNumber, RetryFilterLogs
+const executionRetries = 10
 
 // Client EVM JSON RPC Client
 type Client struct {
@@ -152,6 +158,68 @@ func (ec *Client) GetPrivateKey() string {
 
 func (ec Client) BlockConfirmations() uint64 {
 	return ec.config.BlockConfirmations
+}
+
+// RetryBlockNumber returns the most recent block number
+// Uses a retry mechanism in case the filter query is stuck
+func (ec Client) RetryBlockNumber() (uint64, error) {
+	blockNumberFunc := func() <-chan retry.Result {
+		r := make(chan retry.Result)
+		go func() {
+			defer close(r)
+
+			block, err := ec.BlockNumber(context.Background())
+			r <- retry.Result{
+				Value: block,
+				Error: err,
+			}
+		}()
+
+		return r
+	}
+
+	result, err := service.Retry(blockNumberFunc, executionRetries)
+	if err != nil {
+		return 0, err
+	}
+
+	block, ok := result.(uint64)
+	if !ok {
+		return 0, errors.New(fmt.Sprintf("failed to cast block [%v]", result))
+	}
+
+	return block, nil
+}
+
+// RetryFilterLogs returns the logs from the input query
+// Uses a retry mechanism in case the filter query is stuck
+func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error) {
+	filterLogsFunc := func() <-chan retry.Result {
+		r := make(chan retry.Result)
+		go func() {
+			defer close(r)
+
+			logs, err := ec.FilterLogs(context.Background(), query)
+			r <- retry.Result{
+				Value: logs,
+				Error: err,
+			}
+		}()
+
+		return r
+	}
+
+	result, err := service.Retry(filterLogsFunc, executionRetries)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, ok := result.([]types.Log)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("failed to cast logs [%v]", result))
+	}
+
+	return logs, nil
 }
 
 func (ec *Client) WaitForConfirmations(raw types.Log) error {

@@ -25,33 +25,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var mainnetNodes = map[string]hedera.AccountID{
-	"15.165.118.251:50211":  {Account: 3},
-	"137.116.36.18:50211":   {Account: 4},
-	"107.155.64.98:50211":   {Account: 5},
-	"13.71.90.154:50211":    {Account: 6},
-	"23.102.74.34:50211":    {Account: 7},
-	"23.96.185.18:50211":    {Account: 8},
-	"31.214.8.131:50211":    {Account: 9},
-	"179.190.33.184:50211":  {Account: 10},
-	"69.87.221.231:50211":   {Account: 11},
-	"51.140.102.228:50211":  {Account: 12},
-	"13.77.158.252:50211":   {Account: 13},
-	"40.114.107.85:50211":   {Account: 14},
-	"40.89.139.247:50211":   {Account: 15},
-	"50.7.124.46:50211":     {Account: 16},
-	"40.114.92.39:50211":    {Account: 17},
-	"139.162.156.222:50211": {Account: 18},
-	"51.140.43.81:50211":    {Account: 19},
-	"13.77.151.212:50211":   {Account: 20},
-	"13.36.123.209:50211":   {Account: 21},
-	"52.78.202.34:50211":    {Account: 22},
-	"3.18.91.176:50211":     {Account: 23},
-	"18.135.7.211:50211":    {Account: 24},
-	"13.232.240.207:50211":  {Account: 25},
-	"13.228.103.14:50211":   {Account: 26},
-}
-
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
 type Node struct {
 	client *hedera.Client
@@ -63,16 +36,21 @@ func NewNodeClient(config config.Hedera) *Node {
 	switch config.Network {
 	case "mainnet":
 		client = hedera.ClientForMainnet()
-		err := client.SetNetwork(mainnetNodes)
-		if err != nil {
-			log.Fatalf("Could not set mainnet nodes. Error [%s]", err)
-		}
 	case "testnet":
 		client = hedera.ClientForTestnet()
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
 		log.Fatalf("Invalid Client Network provided: [%s]", config.Network)
+	}
+	if len(config.Rpc) > 0 {
+		log.Infof("Setting provided RPC nodes for [%s].", config.Network)
+		err := client.SetNetwork(config.Rpc)
+		if err != nil {
+			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", config.Rpc, err)
+		}
+	} else {
+		log.Infof("Setting default node rpc urls for [%s].", config.Network)
 	}
 
 	accID, err := hedera.AccountIDFromString(config.Operator.AccountId)

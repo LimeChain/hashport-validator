@@ -21,9 +21,9 @@ jobs:
       - name: Build and Push Container
         run: |-
           docker build \
-            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-2-debug \
+            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-3-debug \
             -f build/Dockerfile .
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-2-debug
+          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:0.0.2-rc-3-debug
 #          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
 
 #      - name: Dispatch image release event
