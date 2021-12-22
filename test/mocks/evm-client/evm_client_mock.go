@@ -50,6 +50,26 @@ func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) 
 	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
+func (m *MockEVMClient) RetryBlockNumber() (uint64, error) {
+	args := m.Called()
+
+	if args.Get(1) == nil {
+		return args.Get(0).(uint64), nil
+	}
+
+	return args.Get(0).(uint64), args.Get(1).(error)
+}
+
+func (m *MockEVMClient) RetryFilterLogs(q ethereum.FilterQuery) ([]types.Log, error) {
+	args := m.Called(q)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]types.Log), nil
+	}
+
+	return args.Get(0).([]types.Log), args.Get(1).(error)
+}
+
 func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil && args.Get(1) == nil {
