@@ -18,7 +18,4 @@
 #      polling_interval: 5
 #  log_level: info
 #  port: 5200
-#  recovery:
-#    start_timestamp:
-#    start_block:
 #  validator: true

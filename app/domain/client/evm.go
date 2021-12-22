@@ -41,4 +41,10 @@ type EVM interface {
 	// GetPrivateKey retrieves private key used for the specific EVM Client
 	GetPrivateKey() string
 	BlockConfirmations() uint64
+	// RetryBlockNumber returns the most recent block number
+	// Uses a retry mechanism in case the filter query is stuck
+	RetryBlockNumber() (uint64, error)
+	// RetryFilterLogs returns the logs from the input query
+	// Uses a retry mechanism in case the filter query is stuck
+	RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error)
 }
