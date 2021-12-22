@@ -33,7 +33,7 @@ import (
 	"time"
 )
 
-// Used as a maximum amount of retries than need to be done when executing
+// Used as a maximum amount of retries that need to be done when executing
 // RetryBlockNumber, RetryFilterLogs
 const executionRetries = 10
 
