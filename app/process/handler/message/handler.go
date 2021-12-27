@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"math"
@@ -53,7 +54,7 @@ func NewHandler(
 		log.Fatalf("Invalid topic id: [%v]", topicId)
 	}
 
-	participationRate := prometheusServices.NewGaugeMetric("validators_participation_rate", "Participation rate: Track validators' activity in %.")
+	participationRate := prometheusServices.NewGaugeMetric(constants.ValidatorsParticipationRateName, constants.ValidatorsParticipationRateHelp)
 	prometheusServices.RegisterGaugeMetric(participationRate)
 
 	return &Handler{
@@ -62,7 +63,7 @@ func NewHandler(
 		contracts:          contractServices,
 		messages:           messages,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
-		participationRate: 	participationRate,
+		participationRate:  participationRate,
 	}
 }
 
