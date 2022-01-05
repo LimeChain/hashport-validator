@@ -53,6 +53,8 @@ type MirrorNode interface {
 	GetStateProof(transactionID string) ([]byte, error)
 	// AccountExists sends a query to check whether a specific account exists. If the query returns a status != 200, the function returns a false value
 	AccountExists(accountID hedera.AccountID) bool
+	// GetAccount gets the account data by ID.
+	GetAccount(accountID string) (*model.AccountsResponse, error)
 	// TopicExists sends a query to check whether a specific topic exists. If the query returns a status != 200, the function returns a false value
 	TopicExists(topicID hedera.TopicID) bool
 	// WaitForTransaction Polls the transaction at intervals. Depending on the

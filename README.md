@@ -45,6 +45,7 @@ docker-compose up
  - [Workflows](docs/workflows.md)
  - [Release](docs/release.md)
  - [Mainnet Deployment](docs/mainnet-deployment.md)
+ - [Metrics](docs/metrics.md)
 
 ## Examples
 * [Three Validators Bridge Network](./examples/three-validators/README.md)

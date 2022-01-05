@@ -110,6 +110,25 @@ func Test_AccountExists_Status400(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func Test_GetAccount_Status400(t *testing.T) {
+	setup()
+	response := &http.Response{
+		StatusCode: 400,
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
+	schedule, err := c.GetAccount("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
+}
+
+func Test_GetAccount_Fails(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	schedule, err := c.GetAccount("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
+}
+
 func Test_TopicExists_Status400(t *testing.T) {
 	setup()
 	response := &http.Response{

@@ -38,6 +38,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
+	pw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/prometheus"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
@@ -47,6 +48,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func main() {
@@ -68,6 +70,9 @@ func main() {
 	services = PrepareServices(configuration, *clients, *repositories)
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
+
+	//init Prometheus watcher for dashboard metrics
+	initializePrometheusWatcher(server, configuration, clients.MirrorNode)
 
 	apiRouter := initializeAPIRouter(services)
 
@@ -179,6 +184,20 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 
+func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode) {
+	dashboardPolling := configuration.Node.Clients.MirrorNode.DashboardPolling * time.Minute
+	//skip if there is no config
+	if dashboardPolling == 0 {
+		log.Infoln("Missing dashboard pooling config. No metrics will be added.")
+	} else {
+		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
+		server.AddWatcher(addPrometheusWatcher(
+			dashboardPolling,
+			client,
+			configuration.Bridge))
+	}
+}
+
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
@@ -211,4 +230,16 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		repository,
 		configuration.Node.Clients.MirrorNode.PollingInterval,
 		configuration.Node.Clients.Hedera.StartTimestamp)
+}
+
+func addPrometheusWatcher(
+	dashboardPolling time.Duration,
+	client client.MirrorNode,
+	bridgeConfig config.Bridge,
+) *pw.Watcher {
+	log.Debugf("Added Prometheus Watcher for dashboard metrics")
+	return pw.NewWatcher(
+		dashboardPolling,
+		client,
+		bridgeConfig)
 }

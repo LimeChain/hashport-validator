@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package constants
+package model
 
-// Prometheus metrics
-const (
-	ValidatorsParticipationRateName = "validators_participation_rate"
-	ValidatorsParticipationRateHelp = "Participation rate: Track validators' activity in %."
-	FeeAccountAmountName            = "fee_account_amount"
-	FeeAccountAmountHelp            = "Fee account amount."
-	BridgeAccountAmountName         = "bridge_account_amount"
-	BridgeAccountAmountHelp         = "Bridge account amount."
+type (
+	// AccountsResponse struct used by the Hedera Mirror node REST API to return information
+	// regarding a given Account
+	AccountsResponse struct {
+		Account string  `json:"account"`
+		Balance Balance `json:"balance"`
+	}
+	// Balance struct used by the Hedera Mirror node REST API to return information
+	// regarding a given Account
+	Balance struct {
+		Balance   int    `json:"balance"`
+		Timestamp string `json:"timestamp"`
+	}
 )
