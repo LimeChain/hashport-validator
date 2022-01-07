@@ -23,7 +23,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -149,5 +151,6 @@ func setup() {
 		contracts:          map[int64]service.Contracts{1: mocks.MBridgeContractService},
 		messages:           mocks.MMessageService,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
+		participationRate:  prometheusServices.NewGaugeMetric(constants.ValidatorsParticipationRateName, constants.ValidatorsParticipationRateHelp),
 	}
 }

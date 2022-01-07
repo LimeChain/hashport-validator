@@ -211,6 +211,35 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 	return true
 }
 
+// GetAccount retrieves an account entity by its id
+func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
+	query := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		accountID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.AccountsResponse
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
 func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
 	accountQuery := fmt.Sprintf("%s/%s/messages",

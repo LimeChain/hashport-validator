@@ -67,9 +67,10 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	ClientAddress   string
-	ApiAddress      string
-	PollingInterval time.Duration
+	ClientAddress    string
+	ApiAddress       string
+	PollingInterval  time.Duration
+	DashboardPolling time.Duration
 }
 
 type Recovery struct {

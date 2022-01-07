@@ -123,6 +123,15 @@ func (m *MockHederaMirrorClient) AccountExists(accountID hedera.AccountID) bool 
 	return args.Get(0).(bool)
 }
 
+func (m *MockHederaMirrorClient) GetAccount(accountID string) (*model.AccountsResponse, error) {
+	args := m.Called(accountID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*model.AccountsResponse), nil
+	}
+	return args.Get(0).(*model.AccountsResponse), args.Get(1).(error)
+}
+
 func (m *MockHederaMirrorClient) TopicExists(topicID hedera.TopicID) bool {
 	args := m.Called(topicID)
 	return args.Get(0).(bool)

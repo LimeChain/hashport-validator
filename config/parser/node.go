@@ -65,7 +65,8 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	ClientAddress   string        `yaml:"client_address"`
-	ApiAddress      string        `yaml:"api_address"`
-	PollingInterval time.Duration `yaml:"polling_interval"`
+	ClientAddress    string        `yaml:"client_address"`
+	ApiAddress       string        `yaml:"api_address"`
+	PollingInterval  time.Duration `yaml:"polling_interval"`
+	DashboardPolling time.Duration `yaml:"dashboard_polling"`
 }
