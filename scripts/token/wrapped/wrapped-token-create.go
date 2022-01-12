@@ -39,7 +39,11 @@ func main() {
 	supplyKeys := flag.String("supplyKeys", "", "Supply keys")
 	// Keys that are key to the bridge ID, which need to sign the transaction
 	memberPrKeys := flag.String("memberPrKeys", "", "The count of the members")
+	// Generate supplyKeys from members privateKeys
+	generateSupplyKeysFromMemberPrKeys := flag.Bool("generateSupplyKeysFromMemberPrKeys", false, "Flag to generate the supplyKeys (public keys) from members private keys.")
+
 	flag.Parse()
+
 	if *privateKey == "0x0" {
 		panic("Private key was not provided")
 	}
@@ -72,15 +76,22 @@ func main() {
 		custodianKey = append(custodianKey, privateKeyFromStr)
 	}
 
-	supplyKeysSlice := strings.Split(*supplyKeys, ",")
-
 	supplyKey := hedera.KeyListWithThreshold(*threshold)
-	for _, sk := range supplyKeysSlice {
-		key, err := hedera.PublicKeyFromString(sk)
-		if err != nil {
-			panic(fmt.Sprintf("failed to parse supply key [%s]. error [%s]", sk, err))
+	if generateSupplyKeysFromMemberPrKeys != nil && *generateSupplyKeysFromMemberPrKeys == true {
+		for _, prKey := range custodianKey {
+			key := prKey.PublicKey()
+			supplyKey.Add(key)
 		}
-		supplyKey.Add(key)
+	} else {
+		supplyKeysSlice := strings.Split(*supplyKeys, ",")
+
+		for _, sk := range supplyKeysSlice {
+			key, err := hedera.PublicKeyFromString(sk)
+			if err != nil {
+				panic(fmt.Sprintf("failed to parse supply key [%s]. error [%s]", sk, err))
+			}
+			supplyKey.Add(key)
+		}
 	}
 
 	bridgeIDFromString, err := hedera.AccountIDFromString(*bridgeID)
