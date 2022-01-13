@@ -18,10 +18,10 @@ package constants
 
 // Prometheus metrics
 const (
-	ValidatorsParticipationRateName = "validators_participation_rate"
-	ValidatorsParticipationRateHelp = "Participation rate: Track validators' activity in %."
-	FeeAccountAmountName            = "fee_account_amount"
-	FeeAccountAmountHelp            = "Fee account amount."
-	BridgeAccountAmountName         = "bridge_account_amount"
-	BridgeAccountAmountHelp         = "Bridge account amount."
+	ValidatorsParticipationRateGaugeName = "validators_participation_rate"
+	ValidatorsParticipationRateGaugeHelp = "Participation rate: Track validators' activity in %."
+	FeeAccountAmountGaugeName            = "fee_account_amount"
+	FeeAccountAmountGaugeHelp            = "Fee account amount."
+	BridgeAccountAmountGaugeName         = "bridge_account_amount"
+	BridgeAccountAmountGaugeHelp         = "Bridge account amount."
 )

@@ -24,7 +24,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
@@ -34,12 +33,14 @@ import (
 )
 
 type Handler struct {
-	transferRepository repository.Transfer
-	messageRepository  repository.Message
-	contracts          map[int64]service.Contracts
-	messages           service.Messages
-	logger             *log.Entry
-	participationRate  prometheus.Gauge
+	transferRepository     repository.Transfer
+	messageRepository      repository.Message
+	contracts              map[int64]service.Contracts
+	messages               service.Messages
+	logger                 *log.Entry
+	participationRateGauge prometheus.Gauge
+	enableMonitoring       bool
+	prometheusService      service.Prometheus
 }
 
 func NewHandler(
@@ -48,22 +49,28 @@ func NewHandler(
 	messageRepository repository.Message,
 	contractServices map[int64]service.Contracts,
 	messages service.Messages,
+	enableMonitoring bool,
+	prometheusService service.Prometheus,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
 		log.Fatalf("Invalid topic id: [%v]", topicId)
 	}
 
-	participationRate := prometheusServices.NewGaugeMetric(constants.ValidatorsParticipationRateName, constants.ValidatorsParticipationRateHelp)
-	prometheusServices.RegisterGaugeMetric(participationRate)
+	var participationRate prometheus.Gauge
+	if enableMonitoring && prometheusService != nil {
+		participationRate = prometheusService.GetGauge(constants.ValidatorsParticipationRateGaugeName)
+	}
 
 	return &Handler{
-		transferRepository: transferRepository,
-		messageRepository:  messageRepository,
-		contracts:          contractServices,
-		messages:           messages,
-		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
-		participationRate:  participationRate,
+		transferRepository:     transferRepository,
+		messageRepository:      messageRepository,
+		contracts:              contractServices,
+		messages:               messages,
+		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
+		prometheusService:      prometheusService,
+		enableMonitoring:       enableMonitoring,
+		participationRateGauge: participationRate,
 	}
 }
 
@@ -126,7 +133,11 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
+	if !cmh.enableMonitoring {
+		return
+	}
+
 	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
 	cmh.logger.Infof("Percentage callc [%f]", participationRate)
-	cmh.participationRate.Set(participationRate)
+	cmh.participationRateGauge.Set(participationRate)
 }

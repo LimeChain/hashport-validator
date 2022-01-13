@@ -20,38 +20,49 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
-	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
-var (
-	payerAccountBalance = prometheusServices.NewGaugeMetric(constants.FeeAccountAmountName,
-		constants.FeeAccountAmountHelp)
-	bridgeAccountBalance = prometheusServices.NewGaugeMetric(constants.BridgeAccountAmountName,
-		constants.BridgeAccountAmountHelp)
-)
-
-func registerMetrics() {
-	//Fee Account Balance
-	prometheusServices.RegisterGaugeMetric(payerAccountBalance)
-	//Bridge Account Balance
-	prometheusServices.RegisterGaugeMetric(bridgeAccountBalance)
-}
-
 type Watcher struct {
-	dashboardPolling time.Duration
-	client           client.MirrorNode
-	bridgeConfig     config.Bridge
+	dashboardPolling          time.Duration
+	client                    client.MirrorNode
+	bridgeConfig              config.Bridge
+	prometheusService         service.Prometheus
+	enableMonitoring          bool
+	payerAccountBalanceGauge  prometheus.Gauge
+	bridgeAccountBalanceGauge prometheus.Gauge
 }
 
-func NewWatcher(dashboardPolling time.Duration, client client.MirrorNode, bridgeConfig config.Bridge) *Watcher {
+func NewWatcher(
+	dashboardPolling time.Duration,
+	client client.MirrorNode,
+	bridgeConfig config.Bridge,
+	enableMonitoring bool,
+	prometheusService service.Prometheus) *Watcher {
+
+	var (
+		payerAccountBalanceGauge  prometheus.Gauge
+		bridgeAccountBalanceGauge prometheus.Gauge
+	)
+
+	if enableMonitoring && prometheusService != nil {
+		payerAccountBalanceGauge = prometheusService.GetGauge(constants.FeeAccountAmountGaugeName)
+		bridgeAccountBalanceGauge = prometheusService.GetGauge(constants.BridgeAccountAmountGaugeName)
+	}
+
 	return &Watcher{
-		dashboardPolling: dashboardPolling,
-		client:           client,
-		bridgeConfig:     bridgeConfig,
+		dashboardPolling:          dashboardPolling,
+		client:                    client,
+		bridgeConfig:              bridgeConfig,
+		prometheusService:         prometheusService,
+		enableMonitoring:          enableMonitoring,
+		payerAccountBalanceGauge:  payerAccountBalanceGauge,
+		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
 	}
 }
 
@@ -65,24 +76,28 @@ func (pw Watcher) beginWatching() {
 	dashboardPolling := pw.dashboardPolling
 	node := pw.client
 	bridgeConfig := pw.bridgeConfig
-	registerMetrics()
-	setMetrics(
+	pw.setMetrics(
 		node,
 		bridgeConfig,
 		dashboardPolling)
 }
 
-func setMetrics(node client.MirrorNode, bridgeConfig config.Bridge, dashboardPolling time.Duration) {
+func (pw Watcher) setMetrics(node client.MirrorNode, bridgeConfig config.Bridge, dashboardPolling time.Duration) {
+	if !pw.enableMonitoring {
+		return
+	}
+
 	for {
-		payerAccountBalance.Set(getAccountBalance(node, bridgeConfig.Hedera.PayerAccount))
-		bridgeAccountBalance.Set(getAccountBalance(node, bridgeConfig.Hedera.BridgeAccount))
+
+		pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(node, bridgeConfig.Hedera.PayerAccount))
+		pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(node, bridgeConfig.Hedera.BridgeAccount))
 
 		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
 		time.Sleep(dashboardPolling)
 	}
 }
 
-func getAccountBalance(node client.MirrorNode, accountId string) float64 {
+func (pw Watcher) getAccountBalance(node client.MirrorNode, accountId string) float64 {
 	account, e := node.GetAccount(accountId)
 	if e != nil {
 		panic(e)

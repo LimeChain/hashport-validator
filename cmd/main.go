@@ -71,8 +71,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	//init Prometheus watcher for dashboard metrics
-	initializePrometheusWatcher(server, configuration, clients.MirrorNode)
+	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode)
 
 	apiRouter := initializeAPIRouter(services)
 
@@ -80,6 +79,15 @@ func main() {
 
 	// Start
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
+}
+
+func initializeMonitoring(prometheusService service.Prometheus, s *server.Server, configuration config.Config, mirrorNode client.MirrorNode) {
+	if configuration.Monitoring.Enable {
+		initializeAndRegisterGauges(prometheusService)
+		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService)
+	} else {
+		log.Infoln("Monitoring is disabled. No metrics will be added.")
+	}
 }
 
 func initializeAPIRouter(services *Services) *apirouter.APIRouter {
@@ -129,7 +137,9 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.transfer,
 		repositories.message,
 		services.contractServices,
-		services.messages))
+		services.messages,
+		configuration.Monitoring.Enable,
+		services.prometheus))
 
 	for _, evmClient := range clients.EVMClients {
 		chain, err := evmClient.ChainID(context.Background())
@@ -184,18 +194,29 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 
-func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode) {
-	dashboardPolling := configuration.Node.Clients.MirrorNode.DashboardPolling * time.Minute
+func initializeAndRegisterGauges(prometheusService service.Prometheus) {
+
+	// Initialize the Gauges //
+	FeeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
+	BridgeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
+	ValidatorsParticipationRateGauge := prometheusService.NewGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+
+	// Register the Gauges
+	prometheusService.RegisterGaugeMetric(FeeAccountAmountGauge)
+	prometheusService.RegisterGaugeMetric(BridgeAccountAmountGauge)
+	prometheusService.RegisterGaugeMetric(ValidatorsParticipationRateGauge)
+}
+
+func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode, prometheusService service.Prometheus) {
+	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 	//skip if there is no config
-	if dashboardPolling == 0 {
-		log.Infoln("Missing dashboard pooling config. No metrics will be added.")
-	} else {
-		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
-		server.AddWatcher(addPrometheusWatcher(
-			dashboardPolling,
-			client,
-			configuration.Bridge))
-	}
+	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
+	server.AddWatcher(addPrometheusWatcher(
+		dashboardPolling,
+		client,
+		configuration.Bridge,
+		configuration.Monitoring.Enable,
+		prometheusService))
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -236,10 +257,14 @@ func addPrometheusWatcher(
 	dashboardPolling time.Duration,
 	client client.MirrorNode,
 	bridgeConfig config.Bridge,
+	enableMonitoring bool,
+	prometheusService service.Prometheus,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
 		dashboardPolling,
 		client,
-		bridgeConfig)
+		bridgeConfig,
+		enableMonitoring,
+		prometheusService)
 }

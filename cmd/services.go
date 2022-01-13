@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
+	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
@@ -43,6 +44,7 @@ type Services struct {
 	distributor      service.Distributor
 	scheduled        service.Scheduled
 	readOnly         service.ReadOnly
+	prometheus       service.Prometheus
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -106,6 +108,11 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
+	prometheus := prometheusServices.NewService(
+		clients.MirrorNode,
+		repositories.transfer,
+		c.Node.Monitoring.DashboardPolling)
+
 	return &Services{
 		signers:          evmSigners,
 		contractServices: contractServices,
@@ -117,6 +124,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor:      distributor,
 		scheduled:        scheduled,
 		readOnly:         readOnly,
+		prometheus:       prometheus,
 	}
 }
 

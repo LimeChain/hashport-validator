@@ -51,6 +51,7 @@ var MEVMClient *evm_client.MockEVMClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
+var MPrometheusService *service.MockPrometheusService
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -76,4 +77,5 @@ func Setup() {
 	MEVMCoreClient = &evm_client.MockEVMCoreClient{}
 	MHTTPClient = &http_client.MockHttpClient{}
 	MQueue = &queue.MockQueue{}
+	MPrometheusService = &service.MockPrometheusService{}
 }

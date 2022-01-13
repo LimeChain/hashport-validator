@@ -59,6 +59,7 @@ func Load() *Setup {
 			Sender:            Sender(e2eConfig.Hedera.Sender),
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
 			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
+			Monitoring:        config.Monitoring(e2eConfig.Hedera.Monitoring),
 		},
 		EVM:            make(map[int64]config.Evm),
 		Tokens:         e2eConfig.Tokens,
@@ -296,6 +297,7 @@ type Hedera struct {
 	Sender            Sender
 	DbValidationProps []config.Database
 	MirrorNode        config.MirrorNode
+	Monitoring        config.Monitoring
 }
 
 // Sender props from the application.yml
