@@ -17,7 +17,7 @@
 package prometheus
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -30,39 +30,43 @@ import (
 
 type Watcher struct {
 	dashboardPolling          time.Duration
-	client                    client.MirrorNode
-	bridgeConfig              config.Bridge
+	mirrorNode                client.MirrorNode
+	configuration             config.Config
 	prometheusService         service.Prometheus
 	enableMonitoring          bool
 	payerAccountBalanceGauge  prometheus.Gauge
 	bridgeAccountBalanceGauge prometheus.Gauge
+	operatorBalanceGauge      prometheus.Gauge
 }
 
 func NewWatcher(
 	dashboardPolling time.Duration,
-	client client.MirrorNode,
-	bridgeConfig config.Bridge,
+	mirrorNode client.MirrorNode,
+	configuration config.Config,
 	enableMonitoring bool,
 	prometheusService service.Prometheus) *Watcher {
 
 	var (
 		payerAccountBalanceGauge  prometheus.Gauge
 		bridgeAccountBalanceGauge prometheus.Gauge
+		operatorBalanceGauge      prometheus.Gauge
 	)
 
 	if enableMonitoring && prometheusService != nil {
 		payerAccountBalanceGauge = prometheusService.GetGauge(constants.FeeAccountAmountGaugeName)
 		bridgeAccountBalanceGauge = prometheusService.GetGauge(constants.BridgeAccountAmountGaugeName)
+		operatorBalanceGauge = prometheusService.GetGauge(constants.OperatorAccountAmountName)
 	}
 
 	return &Watcher{
 		dashboardPolling:          dashboardPolling,
-		client:                    client,
-		bridgeConfig:              bridgeConfig,
+		mirrorNode:                mirrorNode,
+		configuration:             configuration,
 		prometheusService:         prometheusService,
 		enableMonitoring:          enableMonitoring,
 		payerAccountBalanceGauge:  payerAccountBalanceGauge,
 		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
+		operatorBalanceGauge:      operatorBalanceGauge,
 	}
 }
 
@@ -73,37 +77,38 @@ func (pw Watcher) Watch(q qi.Queue) {
 
 func (pw Watcher) beginWatching() {
 	//The queue will be not used
-	dashboardPolling := pw.dashboardPolling
-	node := pw.client
-	bridgeConfig := pw.bridgeConfig
-	pw.setMetrics(
-		node,
-		bridgeConfig,
-		dashboardPolling)
+	pw.setMetrics()
 }
 
-func (pw Watcher) setMetrics(node client.MirrorNode, bridgeConfig config.Bridge, dashboardPolling time.Duration) {
+func (pw Watcher) setMetrics() {
 	if !pw.enableMonitoring {
 		return
 	}
 
 	for {
+		payerAccount := pw.getAccount(pw.configuration.Bridge.Hedera.PayerAccount)
+		bridgeAccount := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
+		operatorAccount := pw.getAccount(pw.configuration.Node.Clients.Hedera.Operator.AccountId)
 
-		pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(node, bridgeConfig.Hedera.PayerAccount))
-		pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(node, bridgeConfig.Hedera.BridgeAccount))
+		pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(payerAccount))
+		pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(bridgeAccount))
+		pw.operatorBalanceGauge.Set(pw.getAccountBalance(operatorAccount))
 
-		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
-		time.Sleep(dashboardPolling)
+		log.Infoln("Dashboard Polling interval: ", pw.dashboardPolling)
+		time.Sleep(pw.dashboardPolling)
 	}
 }
 
-func (pw Watcher) getAccountBalance(node client.MirrorNode, accountId string) float64 {
-	account, e := node.GetAccount(accountId)
+func (pw Watcher) getAccount(accountId string) *model.AccountsResponse {
+	account, e := pw.mirrorNode.GetAccount(accountId)
 	if e != nil {
 		panic(e)
 	}
-	accountBalance := float64(account.Balance.Balance)
-	tinyBarBalance := float64(hedera.NewHbar(accountBalance).AsTinybar())
-	log.Infof("The Account with ID [%s] has balance AsTinybar = %b", accountId, tinyBarBalance)
-	return tinyBarBalance
+	return account
+}
+func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
+	balance := float64(account.Balance.Balance)
+	log.Infof("The Account with ID [%s] has balance = %f", account.Account, balance)
+
+	return balance
 }

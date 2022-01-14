@@ -200,21 +200,27 @@ func initializeAndRegisterGauges(prometheusService service.Prometheus) {
 	FeeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
 	BridgeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 	ValidatorsParticipationRateGauge := prometheusService.NewGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+	OperatorAccountGauge := prometheusService.NewGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
 
 	// Register the Gauges
 	prometheusService.RegisterGaugeMetric(FeeAccountAmountGauge)
 	prometheusService.RegisterGaugeMetric(BridgeAccountAmountGauge)
 	prometheusService.RegisterGaugeMetric(ValidatorsParticipationRateGauge)
+	prometheusService.RegisterGaugeMetric(OperatorAccountGauge)
 }
 
-func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode, prometheusService service.Prometheus) {
+func initializePrometheusWatcher(
+	server *server.Server,
+	configuration config.Config,
+	mirrorNode client.MirrorNode,
+	prometheusService service.Prometheus,
+) {
 	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
-	//skip if there is no config
 	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
 	server.AddWatcher(addPrometheusWatcher(
 		dashboardPolling,
-		client,
-		configuration.Bridge,
+		mirrorNode,
+		configuration,
 		configuration.Monitoring.Enable,
 		prometheusService))
 }
@@ -255,16 +261,16 @@ func addConsensusTopicWatcher(configuration *config.Config,
 
 func addPrometheusWatcher(
 	dashboardPolling time.Duration,
-	client client.MirrorNode,
-	bridgeConfig config.Bridge,
+	mirrorNode client.MirrorNode,
+	configuration config.Config,
 	enableMonitoring bool,
 	prometheusService service.Prometheus,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
 		dashboardPolling,
-		client,
-		bridgeConfig,
+		mirrorNode,
+		configuration,
 		enableMonitoring,
 		prometheusService)
 }

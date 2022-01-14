@@ -24,4 +24,6 @@ const (
 	FeeAccountAmountGaugeHelp            = "Fee account amount."
 	BridgeAccountAmountGaugeName         = "bridge_account_amount"
 	BridgeAccountAmountGaugeHelp         = "Bridge account amount."
+	OperatorAccountAmountName            = "operator_account_amount"
+	OperatorAccountAmountHelp            = "Operator account amount."
 )
