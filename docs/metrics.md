@@ -7,3 +7,4 @@ The following table lists the currently available metrics in Prometheus/Grafana 
 | `validators_participation_rate`               | Participation rate: Track validators' activity in %.                                                                                                                                                                                                                                                                                                                                                                                         |
 | `fee_account_amount`                          | Fee account amount. 
 | `bridge_account_amount`                       | Bridge account amount. 
+| `operator_account_amount`                     | Operator account amount. 
