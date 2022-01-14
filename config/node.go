@@ -24,11 +24,12 @@ import (
 )
 
 type Node struct {
-	Database  Database
-	Clients   Clients
-	LogLevel  string
-	Port      string
-	Validator bool
+	Database   Database
+	Clients    Clients
+	LogLevel   string
+	Port       string
+	Validator  bool
+	Monitoring Monitoring
 }
 
 type Database struct {
@@ -67,9 +68,13 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	ClientAddress    string
-	ApiAddress       string
-	PollingInterval  time.Duration
+	ClientAddress   string
+	ApiAddress      string
+	PollingInterval time.Duration
+}
+
+type Monitoring struct {
+	Enable           bool
 	DashboardPolling time.Duration
 }
 

@@ -17,19 +17,52 @@
 package prometheus
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
+	"time"
 )
 
-func NewGaugeMetric(name string, help string) prometheus.Gauge {
+type Service struct {
+	mirrorNode         client.MirrorNode
+	transferRepository repository.Transfer
+	pollingInterval    time.Duration
+	logger             *log.Entry
+	gauges             map[string]prometheus.Gauge
+}
+
+func NewService(
+	mirrorNode client.MirrorNode,
+	transferRepository repository.Transfer,
+	pollingInterval time.Duration) *Service {
+
+	return &Service{
+		mirrorNode:         mirrorNode,
+		transferRepository: transferRepository,
+		pollingInterval:    pollingInterval,
+		logger:             config.GetLoggerFor("Prometheus Service"),
+		gauges:             map[string]prometheus.Gauge{},
+	}
+}
+
+func (s Service) NewGaugeMetric(name string, help string) prometheus.Gauge {
 	opts := prometheus.GaugeOpts{
 		Name: name,
 		Help: help,
 	}
 	gauge := prometheus.NewGauge(opts)
+	s.gauges[name] = gauge
 
 	return gauge
 }
 
-func RegisterGaugeMetric(gauge prometheus.Gauge) {
+func (s Service) RegisterGaugeMetric(gauge prometheus.Gauge) {
 	prometheus.MustRegister(gauge)
+}
+
+func (s Service) GetGauge(name string) prometheus.Gauge {
+	gauge := s.gauges[name]
+	return gauge
 }

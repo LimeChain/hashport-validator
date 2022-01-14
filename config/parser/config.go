@@ -17,6 +17,7 @@
 package parser
 
 type Config struct {
-	Node   Node   `yaml:"node"`
-	Bridge Bridge `yaml:"bridge"`
+	Node       Node       `yaml:"node"`
+	Bridge     Bridge     `yaml:"bridge"`
+	Monitoring Monitoring `yaml:"monitoring"`
 }

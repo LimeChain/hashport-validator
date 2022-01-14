@@ -18,7 +18,9 @@ node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600
       polling_interval: 5
-      dashboard_polling: 15 #in minutes
+  monitoring:
+    enable: true
+    dashboard_polling: 15 #in minutes
   log_level: info
   port: 5200
   validator: true

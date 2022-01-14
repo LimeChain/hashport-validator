@@ -21,6 +21,7 @@ type HederaParser struct {
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []parser.Database `yaml:"dbs"`
 	MirrorNode        parser.MirrorNode `yaml:"mirror_node"`
+	Monitoring        parser.Monitoring `yaml:"monitoring"`
 }
 
 type Sender struct {

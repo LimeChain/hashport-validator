@@ -22,11 +22,12 @@ import "time"
 	Structs used to parse the node YAML configuration
 */
 type Node struct {
-	Database  Database `yaml:"database"`
-	Clients   Clients  `yaml:"clients"`
-	LogLevel  string   `yaml:"log_level"`
-	Port      string   `yaml:"port"`
-	Validator bool     `yaml:"validator"`
+	Database   Database   `yaml:"database"`
+	Clients    Clients    `yaml:"clients"`
+	LogLevel   string     `yaml:"log_level"`
+	Port       string     `yaml:"port"`
+	Validator  bool       `yaml:"validator"`
+	Monitoring Monitoring `yaml:"monitoring"`
 }
 
 type Database struct {
@@ -65,8 +66,12 @@ type Operator struct {
 }
 
 type MirrorNode struct {
-	ClientAddress    string        `yaml:"client_address"`
-	ApiAddress       string        `yaml:"api_address"`
-	PollingInterval  time.Duration `yaml:"polling_interval"`
+	ClientAddress   string        `yaml:"client_address"`
+	ApiAddress      string        `yaml:"api_address"`
+	PollingInterval time.Duration `yaml:"polling_interval"`
+}
+
+type Monitoring struct {
+	Enable           bool          `yaml:"enable"`
 	DashboardPolling time.Duration `yaml:"dashboard_polling"`
 }

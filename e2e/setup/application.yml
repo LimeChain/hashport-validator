@@ -27,7 +27,6 @@ hedera:
     api_address:
     client_address:
     polling_interval:
-    dashboard_polling: #in minutes
   network_type:
   sender:
     account:
@@ -39,3 +38,6 @@ tokens:
   wtoken:
   evm_native_token:
 validator_url:
+monitoring:
+  enable: true
+  dashboard_polling: # in minutes

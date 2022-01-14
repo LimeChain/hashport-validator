@@ -70,6 +70,7 @@ func GetConfig(config interface{}, path string) error {
 }
 
 type Config struct {
-	Node   Node
-	Bridge Bridge
+	Node       Node
+	Bridge     Bridge
+	Monitoring Monitoring
 }
