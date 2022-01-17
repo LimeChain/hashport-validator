@@ -132,6 +132,24 @@ func (m *MockHederaMirrorClient) GetAccount(accountID string) (*model.AccountsRe
 	return args.Get(0).(*model.AccountsResponse), args.Get(1).(error)
 }
 
+func (m *MockHederaMirrorClient) GetToken(tokenID string) (*model.TokenResponse, error) {
+	args := m.Called(tokenID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*model.TokenResponse), nil
+	}
+	return args.Get(0).(*model.TokenResponse), args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) GetNetworkSupply() (*model.NetworkSupplyResponse, error) {
+	args := m.Called()
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*model.NetworkSupplyResponse), nil
+	}
+	return args.Get(0).(*model.NetworkSupplyResponse), args.Get(1).(error)
+}
+
 func (m *MockHederaMirrorClient) TopicExists(topicID hedera.TopicID) bool {
 	args := m.Called(topicID)
 	return args.Get(0).(bool)

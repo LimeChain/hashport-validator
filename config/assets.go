@@ -50,6 +50,10 @@ func (a Assets) NetworkAssets(id int64) []string {
 	return a.fungibleNetworkAssets[id]
 }
 
+func (a Assets) GetFungibleNetworkAssets() map[int64][]string {
+	return a.fungibleNetworkAssets
+}
+
 func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
 	return a.fungibleNativeAssets[id][asset]
 }
