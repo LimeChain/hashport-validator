@@ -51,8 +51,8 @@ func NewWatcher(
 	)
 
 	if enableMonitoring && prometheusService != nil {
-		payerAccountBalanceGauge = prometheusService.NewGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
-		bridgeAccountBalanceGauge = prometheusService.NewGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
+		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
+		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 	}
 
 	return &Watcher{

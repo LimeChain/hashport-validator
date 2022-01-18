@@ -47,7 +47,7 @@ func NewService(
 	}
 }
 
-func (s Service) NewGaugeMetric(name string, help string) prometheus.Gauge {
+func (s Service) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
 	if gauge, exist := s.gauges[name]; exist {
 		return gauge
 	}
@@ -57,13 +57,11 @@ func (s Service) NewGaugeMetric(name string, help string) prometheus.Gauge {
 		Help: help,
 	}
 	gauge := prometheus.NewGauge(opts)
+	// Registering the Gauge
+	prometheus.MustRegister(gauge)
 	s.gauges[name] = gauge
 
 	return gauge
-}
-
-func (s Service) RegisterGaugeMetric(gauge prometheus.Gauge) {
-	prometheus.MustRegister(gauge)
 }
 
 func (s Service) GetGauge(name string) prometheus.Gauge {

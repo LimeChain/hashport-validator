@@ -154,7 +154,7 @@ func setup() {
 	gauge := prometheus.NewGauge(opts)
 
 	mocks.MPrometheusService.On(
-		"NewGaugeMetric",
+		"CreateAndRegisterGaugeMetric",
 		constants.ValidatorsParticipationRateGaugeName,
 		constants.ValidatorsParticipationRateGaugeHelp).Return(gauge)
 	mocks.MPrometheusService.On("GetGauge", constants.ValidatorsParticipationRateGaugeName).Return(gauge)

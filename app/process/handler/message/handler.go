@@ -59,7 +59,7 @@ func NewHandler(
 
 	var participationRate prometheus.Gauge
 	if enableMonitoring && prometheusService != nil {
-		participationRate = prometheusService.NewGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+		participationRate = prometheusService.CreateAndRegisterGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
 	}
 
 	return &Handler{
