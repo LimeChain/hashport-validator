@@ -167,6 +167,6 @@ func setup() {
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
 		enableMonitoring:       enableMonitoring,
 		prometheusService:      mocks.MPrometheusService,
-		participationRateGauge: nil,
+		participationRateGauge: gauge,
 	}
 }
