@@ -40,11 +40,12 @@ func LoadConfig() Config {
 	if err := env.Parse(&parsed); err != nil {
 		panic(err)
 	}
-
-	return Config{
+	result := Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),
 	}
+
+	return result
 }
 
 func GetConfig(config interface{}, path string) error {
@@ -70,7 +71,6 @@ func GetConfig(config interface{}, path string) error {
 }
 
 type Config struct {
-	Node       Node
-	Bridge     Bridge
-	Monitoring Monitoring
+	Node   Node
+	Bridge Bridge
 }

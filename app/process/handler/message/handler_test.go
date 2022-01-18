@@ -41,7 +41,7 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	enableMonitoring = false
+	enableMonitoring = true
 
 	tesm = &proto.TopicEthSignatureMessage{
 		SourceChainId:        0,

@@ -2,3 +2,6 @@
 # Check docs/configuration.md for more information
 node:
   validator: false
+#  monitoring:
+#    enable: true
+#    dashboard_polling: 15 #in minutes

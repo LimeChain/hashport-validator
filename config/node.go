@@ -108,6 +108,10 @@ func New(node parser.Node) Node {
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,
 		Validator: node.Validator,
+		Monitoring: Monitoring{
+			Enable:           node.Monitoring.Enable,
+			DashboardPolling: node.Monitoring.DashboardPolling,
+		},
 	}
 
 	for key, value := range node.Clients.Evm {
