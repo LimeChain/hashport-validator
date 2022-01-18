@@ -83,7 +83,6 @@ func main() {
 
 func initializeMonitoring(prometheusService service.Prometheus, s *server.Server, configuration config.Config, mirrorNode client.MirrorNode) {
 	if configuration.Node.Monitoring.Enable {
-		initializeAndRegisterGauges(prometheusService)
 		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService)
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
@@ -192,19 +191,6 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		services.readOnly))
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
-}
-
-func initializeAndRegisterGauges(prometheusService service.Prometheus) {
-
-	// Initialize the Gauges //
-	FeeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
-	BridgeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
-	ValidatorsParticipationRateGauge := prometheusService.NewGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
-
-	// Register the Gauges
-	prometheusService.RegisterGaugeMetric(FeeAccountAmountGauge)
-	prometheusService.RegisterGaugeMetric(BridgeAccountAmountGauge)
-	prometheusService.RegisterGaugeMetric(ValidatorsParticipationRateGauge)
 }
 
 func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode, prometheusService service.Prometheus) {
