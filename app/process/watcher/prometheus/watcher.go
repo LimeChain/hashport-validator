@@ -295,8 +295,12 @@ func (pw Watcher) setAssetsMetrics() {
 func (pw Watcher) setBridgeAccAssetsMetrics(bridgeAcc *model.AccountsResponse) {
 	for _, token := range bridgeAcc.Balance.Tokens {
 		metric := pw.prometheusService.GetGauge(pw.bridgeAccAssetsMetrics[token.TokenID])
-		metric.Set(float64(token.Balance))
-		log.Infof("The Bridge Account asset with ID [%s] has Balance = %f", token.TokenID, float64(token.Balance))
+		if metric == nil {
+			log.Infof("Skip metrics for Bridge Account asset with ID [%s]", token.TokenID)
+		} else {
+			metric.Set(float64(token.Balance))
+			log.Infof("The Bridge Account asset with ID [%s] has Balance = %f", token.TokenID, float64(token.Balance))
+		}
 	}
 }
 
