@@ -145,7 +145,7 @@ func (pw Watcher) registerAssetsMetrics() {
 func (pw Watcher) registerHederaAssetsSupplyMetrics(asset string, res *model.TokenResponse) {
 	name := fmt.Sprintf("%s%s",
 		constants.SupplyAssetMetricNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s",
 		constants.SupplyAssetMetricsHelpPrefix,
 		res.Name)
@@ -155,7 +155,7 @@ func (pw Watcher) registerHederaAssetsSupplyMetrics(asset string, res *model.Tok
 func (pw Watcher) registerHbarSuppyMetric(asset string) {
 	name := fmt.Sprintf("%s%s",
 		constants.SupplyAssetMetricNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s",
 		constants.SupplyAssetMetricsHelpPrefix,
 		asset)
@@ -165,7 +165,7 @@ func (pw Watcher) registerHbarSuppyMetric(asset string) {
 func (pw Watcher) registerBridgeAccAssetsMetrics(asset string) {
 	name := fmt.Sprintf("%s%s",
 		constants.BridgeAccAssetMetricsNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s",
 		constants.BridgeAccAssetMetricsNameHelp,
 		asset)
@@ -175,7 +175,7 @@ func (pw Watcher) registerBridgeAccAssetsMetrics(asset string) {
 func (pw Watcher) registerEvmAssetSupplyMetric(asset string, name string) {
 	assetMetricName := fmt.Sprintf("%s%s",
 		constants.SupplyAssetMetricNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s", constants.SupplyAssetMetricsHelpPrefix, name)
 	pw.initAndRegAssetMetric(asset, pw.supplyAssetsMetrics, assetMetricName, help)
 }
@@ -183,7 +183,7 @@ func (pw Watcher) registerEvmAssetSupplyMetric(asset string, name string) {
 func (pw Watcher) registerEvmAssetBalanceMetric(asset string, name string, address string) {
 	metricName := fmt.Sprintf("%s%s",
 		constants.BalanceAssetMetricNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s%s%s",
 		constants.BalanceAssetMetricHelpPrefix,
 		name,
@@ -195,7 +195,7 @@ func (pw Watcher) registerEvmAssetBalanceMetric(asset string, name string, addre
 func (pw Watcher) registerEvmAssetCountMetric(asset string, name string, address string) {
 	metricName := fmt.Sprintf("%s%s",
 		constants.CountAssetMetricNamePrefix,
-		pw.tokenIDtoMetricName(asset))
+		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s%s%s",
 		constants.CountAssetMetricHelpPrefix,
 		name,
@@ -204,7 +204,7 @@ func (pw Watcher) registerEvmAssetCountMetric(asset string, name string, address
 	pw.initAndRegAssetMetric(asset, pw.countAssetsMetrics, metricName, help)
 }
 
-func (pw Watcher) tokenIDtoMetricName(id string) string {
+func tokenIDtoMetricName(id string) string {
 	replace := strings.Replace(id, constants.DotSymbol, constants.ReplaceDotSymbol, constants.DotSymbolRep)
 	result := fmt.Sprintf("%s%s", constants.AssetMetricsNamePrefix, replace)
 	return result
