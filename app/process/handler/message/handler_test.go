@@ -41,7 +41,7 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	enableMonitoring = false
+	enableMonitoring = true
 
 	tesm = &proto.TopicEthSignatureMessage{
 		SourceChainId:        0,
@@ -167,6 +167,6 @@ func setup() {
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
 		enableMonitoring:       enableMonitoring,
 		prometheusService:      mocks.MPrometheusService,
-		participationRateGauge: nil,
+		participationRateGauge: gauge,
 	}
 }

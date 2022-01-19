@@ -8,3 +8,6 @@
 #    port:
 #    username:
 #  port:
+#  monitoring:
+#    enable: true
+#    dashboard_polling: 15 #in minutes

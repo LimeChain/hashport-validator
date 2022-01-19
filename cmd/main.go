@@ -88,7 +88,7 @@ func initializeMonitoring(
 	mirrorNode client.MirrorNode,
 	EVMClients map[int64]client.EVM,
 ) {
-	if configuration.Monitoring.Enable {
+	if configuration.Node.Monitoring.Enable {
 		initializeAndRegisterGauges(prometheusService)
 		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
 	} else {
@@ -144,7 +144,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.message,
 		services.contractServices,
 		services.messages,
-		configuration.Monitoring.Enable,
+		configuration.Node.Monitoring.Enable,
 		services.prometheus))
 
 	for _, evmClient := range clients.EVMClients {
@@ -231,7 +231,7 @@ func initializePrometheusWatcher(
 		dashboardPolling,
 		mirrorNode,
 		configuration,
-		configuration.Monitoring.Enable,
+		configuration.Node.Monitoring.Enable,
 		prometheusService,
 		EVMClients))
 }

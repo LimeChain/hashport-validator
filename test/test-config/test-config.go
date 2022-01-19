@@ -53,6 +53,10 @@ var (
 					StartTimestamp: 5,
 				},
 			},
+			Monitoring: config.Monitoring{
+				Enable:           true,
+				DashboardPolling: 1,
+			},
 		},
 		Bridge: config.Bridge{
 			TopicId: "0.0.12389",
