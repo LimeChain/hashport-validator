@@ -89,7 +89,6 @@ func initializeMonitoring(
 	EVMClients map[int64]client.EVM,
 ) {
 	if configuration.Node.Monitoring.Enable {
-		initializeAndRegisterGauges(prometheusService)
 		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
@@ -198,24 +197,6 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		services.readOnly))
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
-}
-
-func initializeAndRegisterGauges(prometheusService service.Prometheus) {
-	// Initialize the Gauges //
-	FeeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.FeeAccountAmountGaugeName,
-		constants.FeeAccountAmountGaugeHelp)
-	BridgeAccountAmountGauge := prometheusService.NewGaugeMetric(constants.BridgeAccountAmountGaugeName,
-		constants.BridgeAccountAmountGaugeHelp)
-	ValidatorsParticipationRateGauge := prometheusService.NewGaugeMetric(constants.ValidatorsParticipationRateGaugeName,
-		constants.ValidatorsParticipationRateGaugeHelp)
-	OperatorAccountGauge := prometheusService.NewGaugeMetric(constants.OperatorAccountAmountName,
-		constants.OperatorAccountAmountHelp)
-
-	// Register the Gauges
-	prometheusService.RegisterGaugeMetric(FeeAccountAmountGauge)
-	prometheusService.RegisterGaugeMetric(BridgeAccountAmountGauge)
-	prometheusService.RegisterGaugeMetric(ValidatorsParticipationRateGauge)
-	prometheusService.RegisterGaugeMetric(OperatorAccountGauge)
 }
 
 func initializePrometheusWatcher(

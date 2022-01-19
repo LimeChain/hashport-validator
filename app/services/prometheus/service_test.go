@@ -29,27 +29,22 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, service, actualService)
 }
 
-func Test_NewGaugeMetric(t *testing.T) {
+func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 	setup()
 
-	gauge = service.NewGaugeMetric(gaugeName, gaugeHelp)
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	defer prometheus.Unregister(gauge)
 	gaugeInMapping := service.GetGauge(gaugeName)
 
 	assert.NotNil(t, gauge)
 	assert.NotNil(t, gaugeInMapping)
 }
 
-func Test_RegisterGaugeMetric(t *testing.T) {
-	setup()
-
-	gauge = service.NewGaugeMetric(gaugeName, gaugeHelp)
-	service.RegisterGaugeMetric(gauge)
-}
-
 func Test_GetGauge(t *testing.T) {
 	setup()
 
-	gauge = service.NewGaugeMetric(gaugeName, gaugeHelp)
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	defer prometheus.Unregister(gauge)
 	gaugeInMapping := service.GetGauge(gaugeName)
 
 	assert.NotNil(t, gaugeInMapping)
