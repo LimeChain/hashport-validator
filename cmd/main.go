@@ -41,6 +41,7 @@ import (
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
+	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -68,7 +69,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	apiRouter := initializeAPIRouter(services)
+	apiRouter := initializeAPIRouter(services, configuration.Bridge)
 
 	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
 
@@ -76,11 +77,12 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
-func initializeAPIRouter(services *Services) *apirouter.APIRouter {
+func initializeAPIRouter(services *Services, bridgeConfig config.Bridge) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
+	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
 	return apiRouter
 }
 
