@@ -42,8 +42,9 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		Node:   New(parsed.Node),
-		Bridge: NewBridge(parsed.Bridge),
+		Node:         New(parsed.Node),
+		Bridge:       NewBridge(parsed.Bridge),
+		ParsedBridge: parsed.Bridge,
 	}
 }
 
@@ -70,6 +71,7 @@ func GetConfig(config interface{}, path string) error {
 }
 
 type Config struct {
-	Node   Node
-	Bridge Bridge
+	Node         Node
+	Bridge       Bridge
+	ParsedBridge parser.Bridge
 }

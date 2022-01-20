@@ -45,6 +45,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,7 +70,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	apiRouter := initializeAPIRouter(services, configuration.Bridge)
+	apiRouter := initializeAPIRouter(services, configuration.ParsedBridge)
 
 	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
 
@@ -77,7 +78,7 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
-func initializeAPIRouter(services *Services, bridgeConfig config.Bridge) *apirouter.APIRouter {
+func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))

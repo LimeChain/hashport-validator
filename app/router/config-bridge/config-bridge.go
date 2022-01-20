@@ -3,7 +3,7 @@ package config_bridge
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"net/http"
 )
 
@@ -12,14 +12,14 @@ var (
 )
 
 //Router for bridge config
-func NewRouter(bridgeConfig config.Bridge) http.Handler {
+func NewRouter(bridgeConfig parser.Bridge) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", configBridgeResponse(bridgeConfig))
 	return r
 }
 
 // GET: .../config/bridge
-func configBridgeResponse(bridgeConfig config.Bridge) func(w http.ResponseWriter, r *http.Request) {
+func configBridgeResponse(bridgeConfig parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, bridgeConfig)
 	}
