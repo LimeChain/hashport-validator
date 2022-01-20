@@ -26,7 +26,14 @@ type (
 	// Balance struct used by the Hedera Mirror node REST API to return information
 	// regarding a given Account
 	Balance struct {
-		Balance   int    `json:"balance"`
-		Timestamp string `json:"timestamp"`
+		Balance   int     `json:"balance"`
+		Timestamp string  `json:"timestamp"`
+		Tokens    []Token `json:"tokens"`
+	}
+	// Tokens struct used by the Hedera Mirror node REST API to return information
+	// regarding a given Account's tokens
+	Token struct {
+		TokenID string `json:"token_id"`
+		Balance int    `json:"balance"`
 	}
 )

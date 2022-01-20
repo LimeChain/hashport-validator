@@ -17,48 +17,42 @@
 package prometheus
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Service struct {
-	mirrorNode         client.MirrorNode
-	transferRepository repository.Transfer
-	pollingInterval    time.Duration
-	logger             *log.Entry
-	gauges             map[string]prometheus.Gauge
+	logger *log.Entry
+	gauges map[string]prometheus.Gauge
 }
 
-func NewService(
-	mirrorNode client.MirrorNode,
-	transferRepository repository.Transfer,
-	pollingInterval time.Duration) *Service {
+func NewService() *Service {
 
 	return &Service{
-		mirrorNode:         mirrorNode,
-		transferRepository: transferRepository,
-		pollingInterval:    pollingInterval,
-		logger:             config.GetLoggerFor("Prometheus Service"),
-		gauges:             map[string]prometheus.Gauge{},
+		logger: config.GetLoggerFor("Prometheus Service"),
+		gauges: map[string]prometheus.Gauge{},
 	}
 }
 
 func (s Service) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
+
 	if gauge, exist := s.gauges[name]; exist {
 		return gauge
 	}
 
+	s.logger.Infof("Creating Gauge Metric '%v' ...", name)
 	opts := prometheus.GaugeOpts{
 		Name: name,
 		Help: help,
 	}
 	gauge := prometheus.NewGauge(opts)
-	// Registering the Gauge
+	s.logger.Infof("Gauge Metric '%v' successfully created!", name)
+
+	s.logger.Infof("Registring Gauge Metric '%v' ...", name)
 	prometheus.MustRegister(gauge)
+	s.logger.Infof("Gauge Metric '%v' successfully registed!", name)
+
 	s.gauges[name] = gauge
 
 	return gauge

@@ -6,25 +6,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"time"
 )
 
 var (
-	gauge           prometheus.Gauge
-	service         *Service
-	gaugeName       = "GaugeName"
-	gaugeHelp       = "GaugeHelp"
-	pollingInterval = 5 * time.Second
+	gauge     prometheus.Gauge
+	service   *Service
+	gaugeName = "GaugeName"
+	gaugeHelp = "GaugeHelp"
 )
 
 func Test_New(t *testing.T) {
 	setup()
 
-	actualService := NewService(
-		mocks.MHederaMirrorClient,
-		mocks.MTransferRepository,
-		pollingInterval,
-	)
+	actualService := NewService()
 
 	assert.Equal(t, service, actualService)
 }
@@ -54,10 +48,7 @@ func setup() {
 	mocks.Setup()
 
 	service = &Service{
-		mirrorNode:         mocks.MHederaMirrorClient,
-		transferRepository: mocks.MTransferRepository,
-		pollingInterval:    pollingInterval,
-		logger:             config.GetLoggerFor("Prometheus Service"),
-		gauges:             map[string]prometheus.Gauge{},
+		logger: config.GetLoggerFor("Prometheus Service"),
+		gauges: map[string]prometheus.Gauge{},
 	}
 }

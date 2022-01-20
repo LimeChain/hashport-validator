@@ -71,7 +71,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode)
+	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode, clients.EVMClients)
 
 	apiRouter := initializeAPIRouter(services)
 
@@ -81,9 +81,15 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
-func initializeMonitoring(prometheusService service.Prometheus, s *server.Server, configuration config.Config, mirrorNode client.MirrorNode) {
+func initializeMonitoring(
+	prometheusService service.Prometheus,
+	s *server.Server,
+	configuration config.Config,
+	mirrorNode client.MirrorNode,
+	EVMClients map[int64]client.EVM,
+) {
 	if configuration.Node.Monitoring.Enable {
-		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService)
+		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
 	}
@@ -193,16 +199,22 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
 
-func initializePrometheusWatcher(server *server.Server, configuration config.Config, client client.MirrorNode, prometheusService service.Prometheus) {
+func initializePrometheusWatcher(
+	server *server.Server,
+	configuration config.Config,
+	mirrorNode client.MirrorNode,
+	prometheusService service.Prometheus,
+	EVMClients map[int64]client.EVM,
+) {
 	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
-	//skip if there is no config
 	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
 	server.AddWatcher(addPrometheusWatcher(
 		dashboardPolling,
-		client,
-		configuration.Bridge,
+		mirrorNode,
+		configuration,
 		configuration.Node.Monitoring.Enable,
-		prometheusService))
+		prometheusService,
+		EVMClients))
 }
 
 func addTransferWatcher(configuration *config.Config,
@@ -241,16 +253,18 @@ func addConsensusTopicWatcher(configuration *config.Config,
 
 func addPrometheusWatcher(
 	dashboardPolling time.Duration,
-	client client.MirrorNode,
-	bridgeConfig config.Bridge,
+	mirrorNode client.MirrorNode,
+	configuration config.Config,
 	enableMonitoring bool,
 	prometheusService service.Prometheus,
+	EVMClients map[int64]client.EVM,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
 		dashboardPolling,
-		client,
-		bridgeConfig,
+		mirrorNode,
+		configuration,
 		enableMonitoring,
-		prometheusService)
+		prometheusService,
+		EVMClients)
 }

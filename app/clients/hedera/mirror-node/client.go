@@ -240,6 +240,61 @@ func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
 	return response, nil
 }
 
+// GetToken retrieves a token entity by its id
+func (c Client) GetToken(tokenID string) (*model.TokenResponse, error) {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "tokens")
+	query := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		tokenID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.TokenResponse
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
+// GetNetworkSupply retrieves the Hedera network supply of HBAR
+func (c Client) GetNetworkSupply() (*model.NetworkSupplyResponse, error) {
+	query := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "network/supply")
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.NetworkSupplyResponse
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
 func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
 	accountQuery := fmt.Sprintf("%s/%s/messages",
