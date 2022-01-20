@@ -32,7 +32,7 @@ const (
 	defaultNodeFile   = "config/node.yml"
 )
 
-func LoadConfig() Config {
+func LoadConfig() (Config, parser.Bridge) {
 	var parsed parser.Config
 	GetConfig(&parsed, defaultBridgeFile)
 	GetConfig(&parsed, defaultNodeFile)
@@ -42,10 +42,9 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		Node:         New(parsed.Node),
-		Bridge:       NewBridge(parsed.Bridge),
-		ParsedBridge: parsed.Bridge,
-	}
+		Node:   New(parsed.Node),
+		Bridge: NewBridge(parsed.Bridge),
+	}, parsed.Bridge
 }
 
 func GetConfig(config interface{}, path string) error {
@@ -71,7 +70,6 @@ func GetConfig(config interface{}, path string) error {
 }
 
 type Config struct {
-	Node         Node
-	Bridge       Bridge
-	ParsedBridge parser.Bridge
+	Node   Node
+	Bridge Bridge
 }

@@ -52,7 +52,7 @@ import (
 
 func main() {
 	// Config
-	configuration := config.LoadConfig()
+	configuration, parsedBridge := config.LoadConfig()
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
@@ -70,7 +70,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	apiRouter := initializeAPIRouter(services, configuration.ParsedBridge)
+	apiRouter := initializeAPIRouter(services, parsedBridge)
 
 	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
 
