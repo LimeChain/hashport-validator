@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -49,7 +48,6 @@ type Watcher struct {
 	// A mapping, storing all assets <> metric name
 	supplyAssetsMetrics    map[string]string
 	balanceAssetsMetrics   map[string]string
-	countAssetsMetrics     map[string]string
 	bridgeAccAssetsMetrics map[string]string
 }
 
@@ -69,7 +67,6 @@ func NewWatcher(
 		// A mapping, storing all assets <> metric name
 		supplyAssetsMetrics    = make(map[string]string)
 		balanceAssetsMetrics   = make(map[string]string)
-		countAssetsMetrics     = make(map[string]string)
 		bridgeAccAssetsMetrics = make(map[string]string)
 	)
 
@@ -77,8 +74,7 @@ func NewWatcher(
 		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
 		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
-
-  }
+	}
 
 	return &Watcher{
 		dashboardPolling:          dashboardPolling,
@@ -92,7 +88,6 @@ func NewWatcher(
 		operatorBalanceGauge:      operatorBalanceGauge,
 		supplyAssetsMetrics:       supplyAssetsMetrics,
 		balanceAssetsMetrics:      balanceAssetsMetrics,
-		countAssetsMetrics:        countAssetsMetrics,
 		bridgeAccAssetsMetrics:    bridgeAccAssetsMetrics,
 	}
 }
@@ -119,10 +114,10 @@ func (pw Watcher) registerAssetsMetrics() {
 						panic(e)
 					}
 					pw.registerHederaAssetsSupplyMetrics(asset, res)
+					pw.registerBridgeAccAssetsMetrics(asset)
 				} else { // HBAR
 					pw.registerHbarSuppyMetric(asset)
 				}
-				pw.registerBridgeAccAssetsMetrics(asset)
 			} else { // EVM
 				evm := pw.EVMClients[chainId].GetClient()
 				wrappedInstance, e := wtoken.NewWtoken(common.HexToAddress(asset), evm)
@@ -137,7 +132,6 @@ func (pw Watcher) registerAssetsMetrics() {
 
 				pw.registerEvmAssetSupplyMetric(asset, name)
 				pw.registerEvmAssetBalanceMetric(asset, name, address)
-				pw.registerEvmAssetCountMetric(asset, name, address)
 			}
 		}
 	}
@@ -191,18 +185,6 @@ func (pw Watcher) registerEvmAssetBalanceMetric(asset string, name string, addre
 		constants.AssetMetricHelpSuffix,
 		address)
 	pw.initAndRegAssetMetric(asset, pw.balanceAssetsMetrics, metricName, help)
-}
-
-func (pw Watcher) registerEvmAssetCountMetric(asset string, name string, address string) {
-	metricName := fmt.Sprintf("%s%s",
-		constants.CountAssetMetricNamePrefix,
-		tokenIDtoMetricName(asset))
-	help := fmt.Sprintf("%s%s%s%s",
-		constants.CountAssetMetricHelpPrefix,
-		name,
-		constants.AssetMetricHelpSuffix,
-		address)
-	pw.initAndRegAssetMetric(asset, pw.countAssetsMetrics, metricName, help)
 }
 
 func tokenIDtoMetricName(id string) string {
@@ -280,14 +262,8 @@ func (pw Watcher) setAssetsMetrics() {
 					panic(e)
 				}
 
-				routerInstance, e := router.NewRouter(address, evm)
-				if e != nil {
-					panic(e)
-				}
-
 				pw.setEvmAssetSupplyMetric(wrappedInstance, asset)
 				pw.setEvmAssetBalanceMetric(wrappedInstance, asset, address)
-				pw.setEvmCountMetric(routerInstance, asset)
 			}
 		}
 	}
@@ -344,15 +320,6 @@ func (pw Watcher) setEvmAssetBalanceMetric(wrappedInstance *wtoken.Wtoken, asset
 	}
 	balanceMetric := pw.prometheusService.GetGauge(pw.balanceAssetsMetrics[asset])
 	pw.setEvmAssetMetric(balanceMetric, asset, "Balance of", balance)
-}
-
-func (pw Watcher) setEvmCountMetric(routerInstance *router.Router, asset string) {
-	countMetric := pw.prometheusService.GetGauge(pw.countAssetsMetrics[asset])
-	count, e := routerInstance.NativeTokensCount(&bind.CallOpts{})
-	if e != nil {
-		panic(e)
-	}
-	pw.setEvmAssetMetric(countMetric, asset, "Count of", count)
 }
 
 func (pw Watcher) setEvmAssetMetric(metric prometheus.Gauge, asset string, metricName string, value *big.Int) {
