@@ -20,20 +20,20 @@ package parser
 	Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
-	TopicId  string             `yaml:"topic_id"`
-	Networks map[int64]*Network `yaml:"networks"`
+	TopicId  string             `yaml:"topic_id" json:"topicId,omitempty"`
+	Networks map[int64]*Network `yaml:"networks" json:"networks,omitempty"`
 }
 
 type Network struct {
-	BridgeAccount         string           `yaml:"bridge_account"`
-	PayerAccount          string           `yaml:"payer_account"`
-	RouterContractAddress string           `yaml:"router_contract_address"`
-	Members               []string         `yaml:"members"`
-	Tokens                map[string]Token `yaml:"tokens"`
+	BridgeAccount         string           `yaml:"bridge_account" json:"bridgeAccount,omitempty"`
+	PayerAccount          string           `yaml:"payer_account" json:"payerAccount,omitempty"`
+	RouterContractAddress string           `yaml:"router_contract_address" json:"routerContractAddress,omitempty"`
+	Members               []string         `yaml:"members" json:"members,omitempty"`
+	Tokens                map[string]Token `yaml:"tokens" json:"tokens,omitempty"`
 }
 
 type Token struct {
-	FeePercentage int64            `yaml:"fee_percentage"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
-	MinAmount     string           `yaml:"min_amount"`     // Represents a constant minimum amount for each Native token.
-	Networks      map[int64]string `yaml:"networks"`
+	FeePercentage int64            `yaml:"fee_percentage" json:"feePercentage,omitempty"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
+	MinAmount     string           `yaml:"min_amount" json:"minAmount,omitempty"`         // Represents a constant minimum amount for each Native token.
+	Networks      map[int64]string `yaml:"networks" json:"networks,omitempty"`
 }
