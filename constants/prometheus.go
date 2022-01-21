@@ -37,6 +37,4 @@ const (
 	BalanceAssetMetricNamePrefix         = "balance_"
 	BalanceAssetMetricHelpPrefix         = "The balance of "
 	AssetMetricHelpSuffix                = " at router address "
-	CountAssetMetricNamePrefix           = "count_"
-	CountAssetMetricHelpPrefix           = "The count of "
 )
