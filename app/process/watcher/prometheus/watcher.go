@@ -74,7 +74,6 @@ func NewWatcher(
 		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
 		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
-
 	}
 
 	return &Watcher{
@@ -115,10 +114,10 @@ func (pw Watcher) registerAssetsMetrics() {
 						panic(e)
 					}
 					pw.registerHederaAssetsSupplyMetrics(asset, res)
+					pw.registerBridgeAccAssetsMetrics(asset)
 				} else { // HBAR
 					pw.registerHbarSuppyMetric(asset)
 				}
-				pw.registerBridgeAccAssetsMetrics(asset)
 			} else { // EVM
 				evm := pw.EVMClients[chainId].GetClient()
 				wrappedInstance, e := wtoken.NewWtoken(common.HexToAddress(asset), evm)
