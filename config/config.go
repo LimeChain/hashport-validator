@@ -32,7 +32,7 @@ const (
 	defaultNodeFile   = "config/node.yml"
 )
 
-func LoadConfig() Config {
+func LoadConfig() (Config, parser.Bridge) {
 	var parsed parser.Config
 	GetConfig(&parsed, defaultBridgeFile)
 	GetConfig(&parsed, defaultNodeFile)
@@ -40,12 +40,10 @@ func LoadConfig() Config {
 	if err := env.Parse(&parsed); err != nil {
 		panic(err)
 	}
-	result := Config{
+	return Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),
-	}
-
-	return result
+	}, parsed.Bridge
 }
 
 func GetConfig(config interface{}, path string) error {

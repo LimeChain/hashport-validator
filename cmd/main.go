@@ -42,9 +42,11 @@ import (
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
+	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -53,7 +55,7 @@ import (
 
 func main() {
 	// Config
-	configuration := config.LoadConfig()
+	configuration, parsedBridge := config.LoadConfig()
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
@@ -73,7 +75,7 @@ func main() {
 
 	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode, clients.EVMClients)
 
-	apiRouter := initializeAPIRouter(services)
+	apiRouter := initializeAPIRouter(services, parsedBridge)
 
 	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
 
@@ -95,12 +97,13 @@ func initializeMonitoring(
 	}
 }
 
-func initializeAPIRouter(services *Services) *apirouter.APIRouter {
+func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
 	apiRouter.AddV1Router("/metrics", promhttp.Handler())
+	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
 	return apiRouter
 }
 
