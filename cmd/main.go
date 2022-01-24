@@ -154,12 +154,19 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		if err != nil {
 			panic(err)
 		}
+		contractService := services.contractServices[chain.Int64()]
+		// Given that addresses between different
+		// EVM networks might be the same, a concatenation between
+		// <chain-id>-<contract-address> removes possible duplication.
+		dbIdentifier := fmt.Sprintf("%d-%s", chain.Int64(), contractService.Address().String())
+
 		server.AddWatcher(
 			evm.NewWatcher(
 				repositories.transferStatus,
-				services.contractServices[chain.Int64()],
+				contractService,
 				evmClient,
 				configuration.Bridge.Assets,
+				dbIdentifier,
 				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
 				configuration.Node.Validator,
 				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval,
