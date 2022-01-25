@@ -24,10 +24,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
@@ -41,7 +39,7 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	enableMonitoring = true
+	enableMonitoring = false
 
 	tesm = &proto.TopicEthSignatureMessage{
 		SourceChainId:        0,
@@ -147,18 +145,6 @@ func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 func setup() {
 	mocks.Setup()
 
-	opts := prometheus.GaugeOpts{
-		Name: constants.ValidatorsParticipationRateGaugeName,
-		Help: constants.ValidatorsParticipationRateGaugeHelp,
-	}
-	gauge := prometheus.NewGauge(opts)
-
-	mocks.MPrometheusService.On(
-		"CreateAndRegisterGaugeMetric",
-		constants.ValidatorsParticipationRateGaugeName,
-		constants.ValidatorsParticipationRateGaugeHelp).Return(gauge)
-	mocks.MPrometheusService.On("GetGauge", constants.ValidatorsParticipationRateGaugeName).Return(gauge)
-
 	h = &Handler{
 		transferRepository:     mocks.MTransferRepository,
 		messageRepository:      mocks.MMessageRepository,
@@ -167,6 +153,6 @@ func setup() {
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
 		enableMonitoring:       enableMonitoring,
 		prometheusService:      mocks.MPrometheusService,
-		participationRateGauge: gauge,
+		participationRateGauge: nil,
 	}
 }

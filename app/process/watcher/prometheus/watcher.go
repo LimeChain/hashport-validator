@@ -25,13 +25,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -74,6 +74,7 @@ func NewWatcher(
 		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
 		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
+
 	}
 
 	return &Watcher{
@@ -188,7 +189,7 @@ func (pw Watcher) registerEvmAssetBalanceMetric(asset string, name string, addre
 }
 
 func tokenIDtoMetricName(id string) string {
-	replace := strings.Replace(id, constants.DotSymbol, constants.ReplaceDotSymbol, constants.DotSymbolRep)
+	replace := metrics.PrepareIdForPrometheus(id)
 	result := fmt.Sprintf("%s%s", constants.AssetMetricsNamePrefix, replace)
 	return result
 }

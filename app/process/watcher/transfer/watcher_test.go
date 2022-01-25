@@ -54,7 +54,8 @@ var (
 			},
 		},
 	}
-	assets = config.LoadAssets(networks)
+	enableMonitoring = false
+	assets           = config.LoadAssets(networks)
 )
 
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
@@ -80,7 +81,9 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		0,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
-		true)
+		true,
+		mocks.MPrometheusService,
+		enableMonitoring)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
 }
@@ -98,7 +101,9 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		1,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
-		true)
+		true,
+		mocks.MPrometheusService,
+		enableMonitoring)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
 }
@@ -182,5 +187,7 @@ func initializeWatcher() *Watcher {
 		0,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
-		true)
+		true,
+		mocks.MPrometheusService,
+		enableMonitoring)
 }

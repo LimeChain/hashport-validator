@@ -108,7 +108,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
-	prometheus := prometheusServices.NewService()
+	prometheus := prometheusServices.NewService(c.Bridge.Assets)
 
 	return &Services{
 		signers:          evmSigners,

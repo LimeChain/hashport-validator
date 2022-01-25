@@ -119,7 +119,9 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		clients.MirrorNode,
 		&repositories.transferStatus,
-		services.contractServices))
+		services.contractServices,
+		services.prometheus,
+		configuration.Node.Monitoring.Enable))
 
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -232,6 +234,8 @@ func addTransferWatcher(configuration *config.Config,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	contractServices map[int64]service.Contracts,
+	prometheusService service.Prometheus,
+	enableMonitoring bool,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
 
@@ -245,7 +249,10 @@ func addTransferWatcher(configuration *config.Config,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
 		configuration.Bridge.Assets,
-		configuration.Node.Validator)
+		configuration.Node.Validator,
+		prometheusService,
+		enableMonitoring,
+	)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,

@@ -158,6 +158,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 		remainder += fee - validFee
 	}
 
+	// TODO: For Success Rate - Pass TargetChainId
 	go ts.processFeeTransfer(tm.TransactionId, validFee, tm.NativeAsset)
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
@@ -229,6 +230,7 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *mes
 }
 
 func (ts *Service) processFeeTransfer(transferID string, totalFee int64, nativeAsset string) {
+
 	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
 	if err != nil {
 		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)

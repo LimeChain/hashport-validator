@@ -58,6 +58,11 @@ func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
 	return a.fungibleNativeAssets[id][asset]
 }
 
+func (a Assets) IsNative(networkId int64, asset string) bool {
+	_, isNative := a.nativeToWrapped[networkId][asset]
+	return isNative
+}
+
 func LoadAssets(networks map[int64]*parser.Network) Assets {
 	nativeToWrapped := make(map[int64]map[string]map[int64]string)
 	wrappedToNative := make(map[int64]map[string]*NativeAsset)

@@ -59,7 +59,9 @@ func NewHandler(
 
 	var participationRate prometheus.Gauge
 	if enableMonitoring && prometheusService != nil {
-		participationRate = prometheusService.CreateAndRegisterGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
+			constants.ValidatorsParticipationRateGaugeName,
+			constants.ValidatorsParticipationRateGaugeHelp)
 	}
 
 	return &Handler{
@@ -108,6 +110,8 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 		return
 	}
 
+	err = cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID, majorityReached)
+
 	if majorityReached {
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
@@ -128,8 +132,10 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 	cmh.setParticipationRate(signatureMessages, membersCount)
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
-	return cmh.contracts[targetChainId].
+	majorityReached, err = cmh.contracts[targetChainId].
 		HasValidSignaturesLength(bnSignaturesLength)
+
+	return majorityReached, err
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
@@ -140,4 +146,44 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
 	cmh.logger.Infof("Percentage callc [%f]", participationRate)
 	cmh.participationRateGauge.Set(participationRate)
+}
+
+func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string, majorityReached bool) error {
+
+	// Metric needed only for transactions with Hedera as a source Chain
+	if !cmh.enableMonitoring || sourceChainId != constants.HederaChainId {
+		return nil
+	}
+
+	if cmh.prometheusService.IsNative(int64(sourceChainId), asset) {
+		// For NH -> EVM
+		asset = cmh.prometheusService.NativeToWrapped(asset, int64(sourceChainId), int64(targetChainId))
+	} else {
+		nativeAsset := cmh.prometheusService.WrappedToNative(asset, int64(sourceChainId))
+		if nativeAsset == nil {
+			// For WH > EVM
+			asset = cmh.prometheusService.NativeToWrapped(asset, int64(targetChainId), int64(sourceChainId))
+		}
+	}
+
+	nameForMetric, err := cmh.prometheusService.ConstructNameForSuccessRateMetric(
+		sourceChainId,
+		targetChainId,
+		asset,
+		transactionId,
+		constants.MajorityReachedNameSuffix)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
+		return err
+	}
+
+	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)
+
+	thresholdReached := 0.0
+	if majorityReached {
+		thresholdReached = 1.0
+	}
+	gauge.Set(thresholdReached)
+
+	return nil
 }

@@ -26,9 +26,11 @@ const (
 	BridgeAccountAmountGaugeHelp         = "Bridge account amount."
 	OperatorAccountAmountName            = "operator_account_amount"
 	OperatorAccountAmountHelp            = "Operator account amount."
-	DotSymbol                            = "." //not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	ReplaceDotSymbol                     = "_"
+	DotSymbol                            = "." // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	DashSymbol                           = "-" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	NotAllowedSymbolsReplacement         = "_"
 	DotSymbolRep                         = 2
+	DashSymbolRep                        = 2
 	AssetMetricsNamePrefix               = "asset_id_"
 	SupplyAssetMetricNamePrefix          = "total_supply_"
 	SupplyAssetMetricsHelpPrefix         = "The total supply of "
@@ -37,4 +39,18 @@ const (
 	BalanceAssetMetricNamePrefix         = "balance_"
 	BalanceAssetMetricHelpPrefix         = "The balance of "
 	AssetMetricHelpSuffix                = " at router address "
+
+	// Success Rate Metrics //
+
+	MajorityReachedNameSuffix = "majority_reached"
+	MajorityReachedHelp       = "Majority reached for hedera transaction."
+	FeeTransferredNameSuffix  = "fee_transferred"
+	FeeTransferredHelp        = "Fee transferred to the bridge account."
+)
+
+var (
+	PrometheusNotAllowedSymbolsWithRepetitions = map[string]int{
+		DotSymbol:  DotSymbolRep,
+		DashSymbol: DashSymbolRep,
+	}
 )

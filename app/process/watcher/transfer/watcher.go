@@ -38,16 +38,18 @@ import (
 )
 
 type Watcher struct {
-	transfers        service.Transfers
-	client           client.MirrorNode
-	accountID        hedera.AccountID
-	pollingInterval  time.Duration
-	statusRepository repository.Status
-	targetTimestamp  int64
-	logger           *log.Entry
-	contractServices map[int64]service.Contracts
-	mappings         config.Assets
-	validator        bool
+	transfers         service.Transfers
+	client            client.MirrorNode
+	accountID         hedera.AccountID
+	pollingInterval   time.Duration
+	statusRepository  repository.Status
+	targetTimestamp   int64
+	logger            *log.Entry
+	contractServices  map[int64]service.Contracts
+	mappings          config.Assets
+	validator         bool
+	prometheusService service.Prometheus
+	enableMonitoring  bool
 }
 
 func NewWatcher(
@@ -60,6 +62,8 @@ func NewWatcher(
 	contractServices map[int64]service.Contracts,
 	mappings config.Assets,
 	validator bool,
+	prometheusService service.Prometheus,
+	enableMonitoring bool,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -91,16 +95,18 @@ func NewWatcher(
 	}
 
 	return &Watcher{
-		transfers:        transfers,
-		client:           client,
-		accountID:        id,
-		pollingInterval:  pollingInterval,
-		statusRepository: repository,
-		targetTimestamp:  targetTimestamp,
-		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices: contractServices,
-		mappings:         mappings,
-		validator:        validator,
+		transfers:         transfers,
+		client:            client,
+		accountID:         id,
+		pollingInterval:   pollingInterval,
+		statusRepository:  repository,
+		targetTimestamp:   targetTimestamp,
+		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:  contractServices,
+		mappings:          mappings,
+		validator:         validator,
+		prometheusService: prometheusService,
+		enableMonitoring:  enableMonitoring,
 	}
 }
 
@@ -156,6 +162,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 
 func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
+
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
@@ -211,7 +218,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 
 	transferMessage := transfer.New(
 		tx.TransactionID,
-		0,
+		constants.HederaChainId,
 		targetChainId,
 		nativeAsset.ChainId,
 		receiverAddress,
@@ -219,6 +226,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		targetChainAsset,
 		nativeAsset.Asset,
 		properAmount.String())
+	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaChainId, targetChainId, asset)
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
@@ -228,6 +236,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
+
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
@@ -240,4 +249,38 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
 		}
 	}
+}
+
+func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
+	if !ctw.enableMonitoring {
+		return
+	}
+
+	majorityReachMetricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		asset,
+		tx.TransactionID,
+		constants.MajorityReachedNameSuffix)
+
+	if err != nil {
+		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", constants.MajorityReachedNameSuffix)
+	}
+
+	ctw.prometheusService.CreateAndRegisterGaugeMetric(majorityReachMetricName, constants.MajorityReachedHelp)
+
+	feeTransferredMetricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		asset,
+		tx.TransactionID,
+		constants.FeeTransferredNameSuffix)
+
+	if err != nil {
+		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", constants.FeeTransferredNameSuffix)
+	}
+
+	ctw.prometheusService.CreateAndRegisterGaugeMetric(feeTransferredMetricName, constants.FeeTransferredHelp)
+
+	// TODO: For Success Rate - Create Gauge for HasUserClaimedHisTokens
 }
