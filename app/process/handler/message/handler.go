@@ -110,7 +110,7 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 		return
 	}
 
-	err = cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID, majorityReached)
+	err = cmh.setMajorityReachedMetricForHederaMessages(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID, majorityReached)
 
 	if majorityReached {
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
@@ -148,24 +148,14 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	cmh.participationRateGauge.Set(participationRate)
 }
 
-func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string, majorityReached bool) error {
+func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, targetChainId uint64, asset, transactionId string, majorityReached bool) error {
 
 	// Metric needed only for transactions with Hedera as a source Chain
 	if !cmh.enableMonitoring || sourceChainId != constants.HederaChainId {
 		return nil
 	}
 
-	if cmh.prometheusService.IsNative(int64(sourceChainId), asset) {
-		// For NH -> EVM
-		asset = cmh.prometheusService.NativeToWrapped(asset, int64(sourceChainId), int64(targetChainId))
-	} else {
-		nativeAsset := cmh.prometheusService.WrappedToNative(asset, int64(sourceChainId))
-		if nativeAsset == nil {
-			// For WH > EVM
-			asset = cmh.prometheusService.NativeToWrapped(asset, int64(targetChainId), int64(sourceChainId))
-		}
-	}
-
+	asset = cmh.getOppositeAsset(sourceChainId, targetChainId, asset)
 	nameForMetric, err := cmh.prometheusService.ConstructNameForSuccessRateMetric(
 		sourceChainId,
 		targetChainId,
@@ -176,7 +166,6 @@ func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64
 		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
 		return err
 	}
-
 	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)
 
 	thresholdReached := 0.0
@@ -186,4 +175,25 @@ func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64
 	gauge.Set(thresholdReached)
 
 	return nil
+}
+
+func (cmh *Handler) getOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
+	sourceChainIdCasted, targetChainIdCasted := int64(sourceChainId), int64(targetChainId)
+
+	nativeAssetForTargetChain := cmh.prometheusService.WrappedToNative(asset, sourceChainIdCasted)
+	if nativeAssetForTargetChain != nil {
+		return nativeAssetForTargetChain.Asset
+	}
+
+	nativeAssetForSourceChain := cmh.prometheusService.WrappedToNative(asset, targetChainIdCasted)
+	if nativeAssetForSourceChain != nil {
+		return nativeAssetForSourceChain.Asset
+	}
+
+	if cmh.prometheusService.IsNative(sourceChainIdCasted, asset) {
+		return cmh.prometheusService.NativeToWrapped(asset, sourceChainIdCasted, targetChainIdCasted)
+	} else {
+		return cmh.prometheusService.NativeToWrapped(asset, targetChainIdCasted, sourceChainIdCasted)
+	}
+
 }
