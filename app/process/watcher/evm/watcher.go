@@ -44,7 +44,12 @@ import (
 )
 
 type Watcher struct {
-	repository    repository.Status
+	repository repository.Status
+	// A unique database identifier, used as a key to track the progress
+	// of the given EVM watcher. Given that addresses between different
+	// EVM networks might be the same, a concatenation between
+	// <chain-id>-<contract-address> removes possible duplication.
+	dbIdentifier  string
 	contracts     service.Contracts
 	evmClient     client.EVM
 	logger        *log.Entry
@@ -81,6 +86,7 @@ func NewWatcher(
 	contracts service.Contracts,
 	evmClient client.EVM,
 	mappings c.Assets,
+	dbIdentifier string,
 	startBlock int64,
 	validator bool,
 	pollingInterval time.Duration,
@@ -136,31 +142,32 @@ func NewWatcher(
 	}
 
 	if startBlock == 0 {
-		_, err := repository.Get(contracts.Address().String())
+		_, err := repository.Get(dbIdentifier)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err := repository.Create(contracts.Address().String(), int64(targetBlock))
+				err := repository.Create(dbIdentifier, int64(targetBlock))
 				if err != nil {
-					log.Fatalf("[%s] - Failed to create Transfer Watcher timestamp. Error: [%s]", contracts.Address(), err)
+					log.Fatalf("[%s] - Failed to create Transfer Watcher timestamp. Error: [%s]", dbIdentifier, err)
 				}
-				log.Tracef("[%s] - Created new Transfer Watcher timestamp [%s]", contracts.Address(), timestamp.ToHumanReadable(int64(targetBlock)))
+				log.Tracef("[%s] - Created new Transfer Watcher timestamp [%s]", dbIdentifier, timestamp.ToHumanReadable(int64(targetBlock)))
 			} else {
-				log.Fatalf("[%s] - Failed to fetch last Transfer Watcher timestamp. Error: [%s]", contracts.Address(), err)
+				log.Fatalf("[%s] - Failed to fetch last Transfer Watcher timestamp. Error: [%s]", dbIdentifier, err)
 			}
 		}
 	} else {
-		err := repository.Update(contracts.Address().String(), startBlock)
+		err := repository.Update(dbIdentifier, startBlock)
 		if err != nil {
-			log.Fatalf("[%s] - Failed to update Transfer Watcher Status timestamp. Error [%s]", contracts.Address(), err)
+			log.Fatalf("[%s] - Failed to update Transfer Watcher Status timestamp. Error [%s]", dbIdentifier, err)
 		}
 		targetBlock = uint64(startBlock)
-		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", contracts.Address(), timestamp.ToHumanReadable(startBlock))
+		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", dbIdentifier, timestamp.ToHumanReadable(startBlock))
 	}
 	return &Watcher{
 		repository:    repository,
+		dbIdentifier:  dbIdentifier,
 		contracts:     contracts,
 		evmClient:     evmClient,
-		logger:        c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", contracts.Address())),
+		logger:        c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:      mappings,
 		targetBlock:   targetBlock,
 		validator:     validator,
@@ -172,11 +179,11 @@ func NewWatcher(
 func (ew *Watcher) Watch(queue qi.Queue) {
 	go ew.beginWatching(queue)
 
-	ew.logger.Infof("Listening for events at contract [%s]", ew.contracts.Address())
+	ew.logger.Infof("Listening for events at contract [%s]", ew.dbIdentifier)
 }
 
 func (ew Watcher) beginWatching(queue qi.Queue) {
-	fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
+	fromBlock, err := ew.repository.Get(ew.dbIdentifier)
 	if err != nil {
 		ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
 		time.Sleep(ew.sleepDuration)
@@ -187,7 +194,7 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 	ew.logger.Infof("Processing events from [%d]", fromBlock)
 
 	for {
-		fromBlock, err := ew.repository.Get(ew.contracts.Address().String())
+		fromBlock, err := ew.repository.Get(ew.dbIdentifier)
 		if err != nil {
 			ew.logger.Errorf("Failed to retrieve EVM Watcher Status fromBlock. Error: [%s]", err)
 			continue
@@ -269,7 +276,7 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 	// so that processing of duplicate events does not occur
 	blockToBeUpdated := endBlock + 1
 
-	err = ew.repository.Update(ew.contracts.Address().String(), blockToBeUpdated)
+	err = ew.repository.Update(ew.dbIdentifier, blockToBeUpdated)
 	if err != nil {
 		ew.logger.Errorf("Failed to update latest processed block [%d]. Error: [%s]", blockToBeUpdated, err)
 		return err

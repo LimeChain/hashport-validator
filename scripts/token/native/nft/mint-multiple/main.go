@@ -22,10 +22,10 @@ func main() {
 		panic("Account id was not provided")
 	}
 	if *tokenID == "0.0" {
-		panic("Bridge id was not provided")
+		panic("TokenID id was not provided")
 	}
 	if *metadataArr == "" {
-		panic("no metadatas provided")
+		panic("no metadata provided")
 	}
 
 	fmt.Println("-----------Start-----------")

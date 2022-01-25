@@ -755,7 +755,7 @@ Now that everything has been approved, users can execute a `burnERC721` transact
 | **receiver**              | The Account/Address to receive the native representation of the wrapped asset. If the transfer is to Hedera, the receiver must be encoded in the SDK `hedera.AccountID.toBytes()` protobuf format. |
 
 ### Step 2. Find the corresponding transaction
-    GET {validator_url}/api/v1/transfers/{burn_erc721_id}
+    GET {validator_url}/api/v1/events/{burn_erc721_id}/tx
 
 where `burn_erc721_id` is constructed in the following format: `{transactionHash}-{eventLogIndex}`
 
