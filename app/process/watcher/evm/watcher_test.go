@@ -56,6 +56,7 @@ var (
 	}
 	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
 	hederaBytes  = hederaAcc.ToBytes()
+	dbIdentifier = "3-0x0000000000000000000000000000000000000001"
 
 	networks = map[int64]*parser.Network{
 		0: {
@@ -516,7 +517,8 @@ func TestNewWatcher(t *testing.T) {
 		repository:    mocks.MStatusRepository,
 		contracts:     mocks.MBridgeContractService,
 		evmClient:     mocks.MEVMClient,
-		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		dbIdentifier:  dbIdentifier,
+		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:      assets,
 		validator:     true,
 		targetBlock:   5,
@@ -524,7 +526,7 @@ func TestNewWatcher(t *testing.T) {
 		filterConfig:  filterConfig,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, 0, true, 15, 220))
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220))
 }
 
 // TODO: Test_NewWatcher_Fails
@@ -565,7 +567,7 @@ func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 			burnHash,
 		},
 	}).Return(burnLog, errors.New("some-error"))
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(nil)
+	mocks.MStatusRepository.On("Update", dbIdentifier, int64(1)).Return(nil)
 	w.processLogs(0, 0, mocks.MQueue)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
@@ -606,7 +608,7 @@ func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 			lockHash,
 		},
 	}).Return(lockLog, errors.New("some-error"))
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(nil)
+	mocks.MStatusRepository.On("Update", dbIdentifier, int64(1)).Return(nil)
 	w.processLogs(0, 0, mocks.MQueue)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
@@ -665,7 +667,7 @@ func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 
 	mocks.MEVMClient.On("RetryFilterLogs", *query).
 		Return([]types.Log{}, nil)
-	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(1)).Return(expectedErr)
+	mocks.MStatusRepository.On("Update", dbIdentifier, int64(1)).Return(expectedErr)
 	res := w.processLogs(0, 0, mocks.MQueue)
 	assert.Equal(t, expectedErr, res)
 }
@@ -681,6 +683,7 @@ func setup() {
 		repository:    mocks.MStatusRepository,
 		contracts:     mocks.MBridgeContractService,
 		evmClient:     mocks.MEVMClient,
+		dbIdentifier:  dbIdentifier,
 		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
 		mappings:      config.LoadAssets(networks),
 		validator:     true,
