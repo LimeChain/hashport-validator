@@ -163,7 +163,7 @@ func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, tar
 		transactionId,
 		constants.MajorityReachedNameSuffix)
 	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
+		cmh.logger.Fatalf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
 		return err
 	}
 	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)

@@ -256,31 +256,46 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 		return
 	}
 
-	majorityReachMetricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		asset,
-		tx.TransactionID,
-		constants.MajorityReachedNameSuffix)
+	// Metrics only for Transfers starting from Hedera
+	if sourceChainId == constants.HederaChainId {
 
-	if err != nil {
-		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", constants.MajorityReachedNameSuffix)
+		// Majority Reached
+		_ = ctw.initSuccessRatePrometheusMetric(
+			tx,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.MajorityReachedNameSuffix,
+			constants.MajorityReachedHelp,
+		)
+
+		// Fee Transfer
+		_ = ctw.initSuccessRatePrometheusMetric(
+			tx,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.FeeTransferredNameSuffix,
+			constants.FeeTransferredHelp,
+		)
 	}
-
-	ctw.prometheusService.CreateAndRegisterGaugeMetric(majorityReachMetricName, constants.MajorityReachedHelp)
-
-	feeTransferredMetricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		asset,
-		tx.TransactionID,
-		constants.FeeTransferredNameSuffix)
-
-	if err != nil {
-		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", constants.FeeTransferredNameSuffix)
-	}
-
-	ctw.prometheusService.CreateAndRegisterGaugeMetric(feeTransferredMetricName, constants.FeeTransferredHelp)
 
 	// TODO: For Success Rate - Create Gauge for HasUserClaimedHisTokens
+}
+
+func (ctw Watcher) initSuccessRatePrometheusMetric(tx model.Transaction, sourceChainId int64, targetChainId int64, asset, nameSuffix, metricHelp string) error {
+	metricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		asset,
+		tx.TransactionID,
+		nameSuffix,
+	)
+
+	if err != nil {
+		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", nameSuffix)
+	}
+
+	ctw.prometheusService.CreateAndRegisterGaugeMetric(metricName, metricHelp)
+	return err
 }

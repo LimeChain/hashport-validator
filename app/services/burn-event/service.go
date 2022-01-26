@@ -242,8 +242,6 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string, has
 
 func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(transactionID string)) {
 
-	// TODO: For Success Rate Metrics - think about overriding fee transfers success when validators > 9
-
 	onSuccess = func(transactionID string) {
 		s.logger.Debugf("[%s] - Scheduled TX execution successful.", id)
 		err := s.repository.UpdateStatusCompleted(id)
@@ -262,7 +260,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] Fee - Failed to update status completed. Error [%s].", transactionID, err)
 			return
 		}
-		// TODO: For Success Rate Metrics - Add FeeTransfer metric Set
+		// TODO: For Success Rate Metrics (Wrapped EVM to Hedera (native))- Add FeeTransfer metric Set
 	}
 
 	onFail = func(transactionID string) {
@@ -284,7 +282,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] Fee - Failed to update status failed. Error [%s].", transactionID, err)
 			return
 		}
-		// TODO: For Success Rate Metrics - Add FeeTransfer metric Set
+		// TODO: For Success Rate Metrics (Wrapped EVM to Hedera (native)) - Add FeeTransfer metric Set
 	}
 
 	return onSuccess, onFail

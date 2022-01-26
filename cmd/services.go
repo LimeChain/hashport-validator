@@ -65,6 +65,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
+	prometheus := prometheusServices.NewService(c.Bridge.Assets)
 	messages := messages.NewService(
 		evmSigners,
 		contractServices,
@@ -87,7 +88,9 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
 		scheduled,
-		messages)
+		messages,
+		prometheus,
+		c.Node.Monitoring.Enable)
 
 	burnEvent := burn_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,
@@ -107,8 +110,6 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		transfers)
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
-
-	prometheus := prometheusServices.NewService(c.Bridge.Assets)
 
 	return &Services{
 		signers:          evmSigners,
