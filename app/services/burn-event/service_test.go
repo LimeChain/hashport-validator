@@ -28,6 +28,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -71,6 +72,7 @@ var (
 		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
+	enableMonitoring = false
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -161,7 +163,9 @@ func Test_New(t *testing.T) {
 		mocks.MDistributorService,
 		mocks.MScheduledService,
 		mocks.MFeeService,
-		mocks.MTransferService)
+		mocks.MTransferService,
+		mocks.MPrometheusService,
+		enableMonitoring)
 	assert.Equal(t, s, actualService)
 }
 
@@ -398,7 +402,10 @@ func Test_ScheduledTxMinedExecutionSuccessCallback(t *testing.T) {
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(nil)
 
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onSuccess(txId)
 }
 
@@ -409,7 +416,10 @@ func Test_ScheduledTxMinedExecutionSuccessUpdateStatusFails(t *testing.T) {
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-status-fail"))
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusCompleted", txId)
 
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onSuccess(txId)
 }
 
@@ -420,7 +430,10 @@ func Test_ScheduledTxMinedExecutionFailCallback(t *testing.T) {
 	mocks.MTransferRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(nil)
 
-	_, onFail := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onFail(txId)
 }
 
@@ -431,7 +444,10 @@ func Test_ScheduledTxMinedExecutionFailUpdateStatusFailedFails(t *testing.T) {
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusFailed", id)
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusFailed", txId)
 
-	_, onFail := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onFail(txId)
 }
 
@@ -442,7 +458,10 @@ func Test_ScheduledTxMinedExecutionFailFeeUpdateFails(t *testing.T) {
 	mocks.MTransferRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(errors.New("update-fail"))
 
-	_, onFail := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onFail(txId)
 }
 
@@ -453,7 +472,10 @@ func Test_ScheduledTxMinedExecutionSuccessFeeUpdateFails(t *testing.T) {
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-fail"))
 
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id)
+	resultPerTransfer := true
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
 	onSuccess(txId)
 }
 
@@ -468,6 +490,8 @@ func setup() {
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
+		prometheusService:  mocks.MPrometheusService,
+		enableMonitoring:   enableMonitoring,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }

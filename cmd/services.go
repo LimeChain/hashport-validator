@@ -100,7 +100,9 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		scheduled,
 		fees,
-		transfers)
+		transfers,
+		prometheus,
+		c.Node.Monitoring.Enable)
 
 	lockEvent := lock_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,

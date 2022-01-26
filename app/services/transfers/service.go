@@ -456,12 +456,12 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (ts *Service) scheduledTxMinedCallbacks(isTransferSuccessful *bool, wg *sync.WaitGroup) (onSuccess, onFail func(transactionID string)) {
+func (ts *Service) scheduledTxMinedCallbacks(outIsTransferSuccessful *bool, wg *sync.WaitGroup) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 		defer wg.Done()
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution successful.", transactionID)
 		result := true
-		isTransferSuccessful = &result
+		outIsTransferSuccessful = &result
 
 		err := ts.scheduleRepository.UpdateStatusCompleted(transactionID)
 		if err != nil {
@@ -480,7 +480,7 @@ func (ts *Service) scheduledTxMinedCallbacks(isTransferSuccessful *bool, wg *syn
 		defer wg.Done()
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution has failed.", transactionID)
 		result := false
-		isTransferSuccessful = &result
+		outIsTransferSuccessful = &result
 
 		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {

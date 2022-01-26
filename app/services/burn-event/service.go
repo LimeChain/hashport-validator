@@ -28,8 +28,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
 )
 
 type Service struct {
@@ -42,6 +44,8 @@ type Service struct {
 	scheduledService   service.Scheduled
 	transferService    service.Transfers
 	logger             *log.Entry
+	prometheusService  service.Prometheus
+	enableMonitoring   bool
 }
 
 func NewService(
@@ -52,7 +56,9 @@ func NewService(
 	distributor service.Distributor,
 	scheduled service.Scheduled,
 	feeService service.Fee,
-	transferService service.Transfers) *Service {
+	transferService service.Transfers,
+	prometheusService service.Prometheus,
+	enableMonitoring bool) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -68,11 +74,15 @@ func NewService(
 		feeService:         feeService,
 		scheduledService:   scheduled,
 		transferService:    transferService,
+		prometheusService:  prometheusService,
+		enableMonitoring:   enableMonitoring,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
 
 func (s Service) ProcessEvent(event transfer.Transfer) {
+	s.initializeSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.TargetAsset)
+
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
@@ -108,12 +118,93 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
-	for _, splitTransfer := range splitTransfers {
+	countOfTransfers := len(splitTransfers)
+	// Wait Group and resultPerTransfer slice are needed to wait for the end result of the mined transactions
+	// to set metric value.
+	wg := new(sync.WaitGroup)
+	wg.Add(countOfTransfers)
+	resultPerTransfer := make([]*bool, countOfTransfers)
+	for index, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
-		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId)
+		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId, resultPerTransfer[index], wg)
 
 		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	}
+
+	go s.awaitMinedTransactionAndSetMetricsValueForEVM(wg, resultPerTransfer, event.SourceChainId, event.TargetChainId, event.NativeAsset, event.TransactionId)
+
+}
+
+func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+	if !s.enableMonitoring {
+		return
+	}
+
+	// Metrics only for Transfers starting from Hedera
+	if sourceChainId != constants.HederaChainId {
+
+		// Fee Transfer
+		_ = s.initSuccessRatePrometheusMetric(
+			transactionId,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.FeeTransferredNameSuffix,
+			constants.FeeTransferredHelp,
+		)
+	}
+
+}
+
+func (s Service) initSuccessRatePrometheusMetric(transactionId string, sourceChainId int64, targetChainId int64, asset, nameSuffix, metricHelp string) error {
+	metricName, err := s.prometheusService.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		asset,
+		transactionId,
+		nameSuffix,
+	)
+
+	if err != nil {
+		s.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", nameSuffix)
+	}
+
+	s.prometheusService.CreateAndRegisterGaugeMetric(metricName, metricHelp)
+	return err
+}
+
+func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string) {
+
+	if !s.enableMonitoring || sourceChainId == constants.HederaChainId {
+		return
+	}
+	wg.Wait()
+
+	name, err := s.prometheusService.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		nativeAsset,
+		transactionId,
+		constants.FeeTransferredNameSuffix,
+	)
+
+	if err != nil {
+		s.logger.Fatalf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.FeeTransferredNameSuffix, err)
+	}
+
+	isSuccessful := true
+	for _, result := range resultPerTransfer {
+		if result != nil && *result == false {
+			isSuccessful = false
+			break
+		}
+	}
+
+	gauge := s.prometheusService.GetGauge(name)
+	if isSuccessful {
+		s.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.FeeTransferredNameSuffix)
+		gauge.Set(1.0)
 	}
 }
 
@@ -240,10 +331,14 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string, has
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(transactionID string)) {
+func (s *Service) scheduledTxMinedCallbacks(id string, outIsTransferSuccessful *bool, wg *sync.WaitGroup) (onSuccess, onFail func(transactionID string)) {
 
 	onSuccess = func(transactionID string) {
+		defer wg.Done()
 		s.logger.Debugf("[%s] - Scheduled TX execution successful.", id)
+		result := true
+		outIsTransferSuccessful = &result
+
 		err := s.repository.UpdateStatusCompleted(id)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status completed. Error [%s].", id, err)
@@ -260,11 +355,14 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] Fee - Failed to update status completed. Error [%s].", transactionID, err)
 			return
 		}
-		// TODO: For Success Rate Metrics (Wrapped EVM to Hedera (native))- Add FeeTransfer metric Set
 	}
 
 	onFail = func(transactionID string) {
+		defer wg.Done()
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
+		result := false
+		outIsTransferSuccessful = &result
+
 		err := s.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
@@ -282,7 +380,6 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 			s.logger.Errorf("[%s] Fee - Failed to update status failed. Error [%s].", transactionID, err)
 			return
 		}
-		// TODO: For Success Rate Metrics (Wrapped EVM to Hedera (native)) - Add FeeTransfer metric Set
 	}
 
 	return onSuccess, onFail

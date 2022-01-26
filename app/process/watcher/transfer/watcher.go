@@ -161,6 +161,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 }
 
 func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
+
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
 
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
@@ -174,6 +175,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
+	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaChainId, targetChainId, asset)
 
 	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
@@ -226,7 +228,6 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		targetChainAsset,
 		nativeAsset.Asset,
 		properAmount.String())
-	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaChainId, targetChainId, asset)
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
