@@ -150,7 +150,7 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 
 func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, targetChainId uint64, asset, transactionId string, majorityReached bool) error {
 
-	// Metric needed only for transactions with Hedera as a source Chain
+	// Metric needed only for transactions with Hedera as a Source Chain/Network
 	if !cmh.enableMonitoring || sourceChainId != constants.HederaChainId {
 		return nil
 	}
@@ -168,11 +168,10 @@ func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, tar
 	}
 	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)
 
-	thresholdReached := 0.0
 	if majorityReached {
-		thresholdReached = 1.0
+		cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedHelp)
+		gauge.Set(1.0)
 	}
-	gauge.Set(thresholdReached)
 
 	return nil
 }
