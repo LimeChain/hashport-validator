@@ -269,13 +269,13 @@ func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int
 		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
 
-	go ts.awaitMinedTransactionAndSetMetricsValue(wg, resultPerTransfer, sourceChainId, targetChainId, nativeAsset, transferID)
+	go ts.awaitMinedTransactionAndSetMetricsValueForHedera(wg, resultPerTransfer, sourceChainId, targetChainId, nativeAsset, transferID)
 
 }
 
-func (ts *Service) awaitMinedTransactionAndSetMetricsValue(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transferID string) {
+func (ts *Service) awaitMinedTransactionAndSetMetricsValueForHedera(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transferID string) {
 
-	if !ts.enableMonitoring && sourceChainId == constants.HederaChainId {
+	if !ts.enableMonitoring || sourceChainId != constants.HederaChainId {
 		return
 	}
 	wg.Wait()
