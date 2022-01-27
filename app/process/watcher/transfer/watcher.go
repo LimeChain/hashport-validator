@@ -236,15 +236,14 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	}
 
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
-		if nativeAsset.ChainId == 0 {
-
+		if nativeAsset.ChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
 		}
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
-		if nativeAsset.ChainId == 0 {
+		if nativeAsset.ChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
@@ -257,31 +256,26 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 		return
 	}
 
-	// Metrics only for Transfers starting from Hedera
-	if sourceChainId == constants.HederaChainId {
+	// Majority Reached
+	_ = ctw.initSuccessRatePrometheusMetric(
+		tx,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.MajorityReachedNameSuffix,
+		constants.MajorityReachedHelp,
+	)
 
-		// Majority Reached
-		_ = ctw.initSuccessRatePrometheusMetric(
-			tx,
-			sourceChainId,
-			targetChainId,
-			asset,
-			constants.MajorityReachedNameSuffix,
-			constants.MajorityReachedHelp,
-		)
+	// Fee Transfer
+	_ = ctw.initSuccessRatePrometheusMetric(
+		tx,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.FeeTransferredNameSuffix,
+		constants.FeeTransferredHelp,
+	)
 
-		// Fee Transfer
-		_ = ctw.initSuccessRatePrometheusMetric(
-			tx,
-			sourceChainId,
-			targetChainId,
-			asset,
-			constants.FeeTransferredNameSuffix,
-			constants.FeeTransferredHelp,
-		)
-	}
-
-	// TODO: For Success Rate - Create Gauge for HasUserClaimedHisTokens
 }
 
 func (ctw Watcher) initSuccessRatePrometheusMetric(tx model.Transaction, sourceChainId int64, targetChainId int64, asset, nameSuffix, metricHelp string) error {

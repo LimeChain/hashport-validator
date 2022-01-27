@@ -108,7 +108,7 @@ func (pw Watcher) registerAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == 0 { // Hedera
+			if chainId == constants.HederaChainId { // Hedera
 				if asset != constants.Hbar {
 					res, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {
@@ -244,7 +244,7 @@ func (pw Watcher) setAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == 0 { // Hedera
+			if chainId == constants.HederaChainId { // Hedera
 				if asset != constants.Hbar {
 					token, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {

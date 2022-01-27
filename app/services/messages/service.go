@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"strconv"
 	"time"
 
@@ -89,7 +90,7 @@ func (ss *Service) SanityCheckSignature(topicMessage message.Message) (bool, err
 	}
 
 	signedAmount := t.Amount
-	if t.NativeChainID == 0 {
+	if t.NativeChainID == constants.HederaChainId {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", topicMessage.TransferID, err)
@@ -221,10 +222,10 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 		}
 
 		if t != nil {
-			if t.NativeChainID != 0 {
+			if t.NativeChainID != constants.HederaChainId {
 				return t, nil
 			}
-			if t.NativeChainID == 0 && t.Fee != "" {
+			if t.NativeChainID == constants.HederaChainId && t.Fee != "" {
 				return t, nil
 			}
 		}

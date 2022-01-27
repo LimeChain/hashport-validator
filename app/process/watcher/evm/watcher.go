@@ -308,7 +308,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	recipientAccount := ""
 	var err error
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Int64() == constants.HederaChainId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -320,7 +320,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	properAmount := eventLog.Amount
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Int64() == constants.HederaChainId {
 		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
@@ -356,7 +356,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if burnEvent.TargetChainId == 0 {
+		if burnEvent.TargetChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
@@ -365,7 +365,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		burnEvent.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if burnEvent.TargetChainId == 0 {
+		if burnEvent.TargetChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyHederaTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyTransferSave})
@@ -381,7 +381,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	if len(eventLog.Receiver) == 0 {
+	if len(eventLog.Receiver) == constants.HederaChainId {
 		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
@@ -394,7 +394,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	recipientAccount := ""
 	var err error
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Int64() == constants.HederaChainId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -417,7 +417,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Int64() == constants.HederaChainId {
 		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
@@ -451,7 +451,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if tr.TargetChainId == 0 {
+		if tr.TargetChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
@@ -460,7 +460,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		tr.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if tr.TargetChainId == 0 {
+		if tr.TargetChainId == constants.HederaChainId {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyTransferSave})

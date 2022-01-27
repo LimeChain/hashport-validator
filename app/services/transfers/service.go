@@ -510,12 +510,12 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	if t != nil && t.NativeChainID == 0 && t.Fee == "" {
+	if t != nil && t.NativeChainID == constants.HederaChainId && t.Fee == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
 	signedAmount := t.Amount
-	if t.NativeChainID == 0 {
+	if t.NativeChainID == constants.HederaChainId {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
