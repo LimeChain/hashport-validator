@@ -29,8 +29,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -57,63 +57,6 @@ var (
 	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
 	hederaBytes  = hederaAcc.ToBytes()
 	dbIdentifier = "3-0x0000000000000000000000000000000000000001"
-
-	networks = map[int64]*parser.Network{
-		0: {
-			Tokens: map[string]parser.Token{
-				constants.Hbar: {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000001",
-					},
-				},
-			},
-		},
-		1: {
-			Tokens: map[string]parser.Token{
-				"0xsomeethaddress": {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000123",
-					},
-				},
-			},
-		},
-		2: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		3: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		32: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		33: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: constants.Hbar,
-						1: "0xsome-other-eth-address",
-					},
-				},
-			}},
-	}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -189,7 +132,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
 		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
+		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
 
@@ -224,7 +167,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
 		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
+		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
 
@@ -343,7 +286,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
 		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
+		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
 
@@ -384,7 +327,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
 		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
+		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
 
@@ -493,7 +436,7 @@ func TestNewWatcher(t *testing.T) {
 		maxLogsBlocks:     220,
 	}
 
-	assets := config.LoadAssets(networks)
+	assets := config.LoadAssets(testConstants.Networks)
 	w = &Watcher{
 		repository:    mocks.MStatusRepository,
 		contracts:     mocks.MBridgeContractService,
@@ -507,7 +450,16 @@ func TestNewWatcher(t *testing.T) {
 		filterConfig:  filterConfig,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220))
+	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository,
+		mocks.MBridgeContractService,
+		mocks.MPrometheusService,
+		mocks.MEVMClient,
+		assets, dbIdentifier,
+		0,
+		true,
+		15,
+		220,
+	))
 }
 
 // TODO: Test_NewWatcher_Fails
@@ -666,7 +618,7 @@ func setup() {
 		evmClient:     mocks.MEVMClient,
 		dbIdentifier:  dbIdentifier,
 		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:      config.LoadAssets(networks),
+		mappings:      config.LoadAssets(testConstants.Networks),
 		validator:     true,
 		sleepDuration: defaultSleepDuration,
 		filterConfig: FilterConfig{

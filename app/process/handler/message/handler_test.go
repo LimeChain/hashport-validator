@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -39,7 +40,6 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	enableMonitoring = false
 
 	tesm = &proto.TopicEthSignatureMessage{
 		SourceChainId:        0,
@@ -54,11 +54,13 @@ var (
 	tsm = message.Message{
 		TopicEthSignatureMessage: tesm,
 	}
+
+	assets config.Assets
 )
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, enableMonitoring, mocks.MPrometheusService))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -145,14 +147,15 @@ func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 func setup() {
 	mocks.Setup()
 
+	assets = config.LoadAssets(constants.Networks)
 	h = &Handler{
 		transferRepository:     mocks.MTransferRepository,
 		messageRepository:      mocks.MMessageRepository,
 		contracts:              map[int64]service.Contracts{1: mocks.MBridgeContractService},
 		messages:               mocks.MMessageService,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
-		enableMonitoring:       enableMonitoring,
 		prometheusService:      mocks.MPrometheusService,
+		assetsConfig:           assets,
 		participationRateGauge: nil,
 	}
 }

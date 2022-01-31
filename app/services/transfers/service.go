@@ -57,7 +57,6 @@ type Service struct {
 	scheduledService   service.Scheduled
 	messageService     service.Messages
 	prometheusService  service.Prometheus
-	enableMonitoring   bool
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
 }
@@ -76,7 +75,6 @@ func NewService(
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 	prometheusService service.Prometheus,
-	enableMonitoring bool,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -102,7 +100,6 @@ func NewService(
 		scheduledService:   scheduledService,
 		messageService:     messageService,
 		prometheusService:  prometheusService,
-		enableMonitoring:   enableMonitoring,
 	}
 }
 
@@ -268,43 +265,28 @@ func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int
 
 		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
-
-	go ts.awaitMinedTransactionAndSetMetricsValueForHedera(wg, resultPerTransfer, sourceChainId, targetChainId, nativeAsset, transferID)
-
+	go hederahelper.AwaitMultipleMinedScheduledTransactions(wg, resultPerTransfer, sourceChainId, targetChainId, nativeAsset, transferID, ts.onMinedTransactionsSetMetrics)
 }
 
-func (ts *Service) awaitMinedTransactionAndSetMetricsValueForHedera(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transferID string) {
-
-	if !ts.enableMonitoring || sourceChainId != constants.HederaChainId {
+func (ts *Service) onMinedTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false {
 		return
 	}
-	wg.Wait()
 
-	name, err := ts.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		nativeAsset,
+	gauge, err := ts.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 		transferID,
+		sourceChainId,
+		targetChainId,
+		nativeAsset,
 		constants.FeeTransferredNameSuffix,
-	)
+		constants.FeeTransferredHelp)
 
 	if err != nil {
-		ts.logger.Fatalf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transferID, constants.FeeTransferredNameSuffix, err)
+		ts.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s", transferID, constants.UserGetHisTokensNameSuffix, err)
 	}
 
-	isSuccessful := true
-	for _, result := range resultPerTransfer {
-		if result != nil && *result == false {
-			isSuccessful = false
-			break
-		}
-	}
-
-	gauge := ts.prometheusService.GetGauge(name)
-	if isSuccessful {
-		ts.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
-		gauge.Set(1.0)
-	}
+	ts.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
+	gauge.Set(1.0)
 }
 
 func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -510,12 +492,12 @@ func (ts *Service) TransferData(txId string) (service.TransferData, error) {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
-	if t != nil && t.NativeChainID == constants.HederaChainId && t.Fee == "" {
+	if t != nil && t.NativeChainID == constants.HederaNetworkId && t.Fee == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
 
 	signedAmount := t.Amount
-	if t.NativeChainID == constants.HederaChainId {
+	if t.NativeChainID == constants.HederaNetworkId {
 		amount, err := strconv.ParseInt(t.Amount, 10, 64)
 		if err != nil {
 			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)

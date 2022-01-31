@@ -42,10 +42,12 @@ const (
 
 	// Success Rate Metrics //
 
-	MajorityReachedNameSuffix = "majority_reached"
-	MajorityReachedHelp       = "Majority reached for hedera transaction."
-	FeeTransferredNameSuffix  = "fee_transferred"
-	FeeTransferredHelp        = "Fee transferred to the bridge account."
+	MajorityReachedNameSuffix  = "majority_reached"
+	MajorityReachedHelp        = "Majority reached for hedera transaction."
+	FeeTransferredNameSuffix   = "fee_transferred"
+	FeeTransferredHelp         = "Fee transferred to the bridge account."
+	UserGetHisTokensNameSuffix = "user_get_his_tokens"
+	UserGetHisTokensHelp       = "The user get his tokens after bridging."
 )
 
 var (

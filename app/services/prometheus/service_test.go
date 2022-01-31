@@ -3,8 +3,8 @@ package prometheus
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -19,69 +19,13 @@ var (
 	gaugeHelp   = "GaugeHelp"
 	counterName = "CounterName"
 	counterHelp = "CounterHelp"
-	networks    = map[int64]*parser.Network{
-		0: {
-			Tokens: map[string]parser.Token{
-				constants.Hbar: {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000001",
-					},
-				},
-			},
-		},
-		1: {
-			Tokens: map[string]parser.Token{
-				"0xsomeethaddress": {
-					Networks: map[int64]string{
-						33: "0x0000000000000000000000000000000000000123",
-					},
-				},
-			},
-		},
-		2: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		3: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		32: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: "",
-					},
-				},
-			},
-		},
-		33: {
-			Tokens: map[string]parser.Token{
-				"0x0000000000000000000000000000000000000000": {
-					Networks: map[int64]string{
-						0: constants.Hbar,
-						1: "0xsome-other-eth-address",
-					},
-				},
-			}},
-	}
-	assets = config.LoadAssets(networks)
+	assets      = config.LoadAssets(testConstants.Networks)
 )
 
 func Test_New(t *testing.T) {
 	setup()
 
-	actualService := NewService(assets)
+	actualService := NewService(assets, true)
 
 	assert.Equal(t, service, actualService)
 }
@@ -90,38 +34,81 @@ func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 	setup()
 
 	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
-	defer prometheus.Unregister(gauge)
+	defer service.UnregisterGauge(gaugeName)
 
 	assert.NotNil(t, gauge)
+}
+
+func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
+	setup()
+
+	transactionId := "0.0.1234"
+	sourceChainId := int64(constants.HederaNetworkId)
+	targetChainId := int64(constants.EthereumChainId)
+	asset := constants.Hbar
+	gauge, err := service.CreateAndRegisterGaugeMetricForSuccessRate(
+		transactionId,
+		sourceChainId,
+		targetChainId,
+		asset,
+		gaugeName,
+		gaugeHelp)
+
+	defer service.UnregisterGauge(gaugeName)
+
+	assert.NotNil(t, gauge)
+	assert.Nil(t, err)
 }
 
 func Test_GetGauge(t *testing.T) {
 	setup()
 
 	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
-	defer prometheus.Unregister(gauge)
+	defer service.UnregisterGauge(gaugeName)
 	gaugeInMapping := service.GetGauge(gaugeName)
 
 	assert.NotNil(t, gaugeInMapping)
+}
+
+func Test_UnregisterGauge(t *testing.T) {
+	setup()
+
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	service.UnregisterGauge(gaugeName)
+
+	gaugeInMapping := service.GetGauge(gaugeName)
+
+	assert.Nil(t, gaugeInMapping)
 }
 
 func Test_CreateAndRegisterCounterMetric(t *testing.T) {
 	setup()
 
 	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
-	defer prometheus.Unregister(counter)
+	defer service.UnregisterCounter(counterName)
 
-	assert.NotNil(t, gauge)
+	assert.NotNil(t, counter)
 }
 
 func Test_GetCounter(t *testing.T) {
 	setup()
 
 	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
-	defer prometheus.Unregister(counter)
+	defer service.UnregisterCounter(counterName)
 	counterInMapping := service.GetCounter(counterName)
 
 	assert.NotNil(t, counterInMapping)
+}
+
+func Test_UnregisterCounter(t *testing.T) {
+	setup()
+
+	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
+	service.UnregisterCounter(counterName)
+
+	counterInMapping := service.GetCounter(counterName)
+
+	assert.Nil(t, counterInMapping)
 }
 
 func Test_ConstructNameForSuccessRateMetric_Native(t *testing.T) {
@@ -151,25 +138,6 @@ func Test_ConstructNameForSuccessRateMetric_ShouldThrow(t *testing.T) {
 
 	expectedError := fmt.Sprintf("Network id %v is missing in id to name mapping.", 10)
 	assert.Errorf(t, err, expectedError)
-}
-
-func Test_NativeToWrapped(t *testing.T) {
-	setup()
-
-	actual := service.NativeToWrapped(constants.Hbar, 0, 33)
-	expected := "0x0000000000000000000000000000000000000001"
-
-	assert.Equal(t, expected, actual)
-}
-
-func Test_WrappedToNative(t *testing.T) {
-	setup()
-
-	actual := service.WrappedToNative("0x0000000000000000000000000000000000000001", 33)
-	expected := constants.Hbar
-
-	assert.NotNil(t, actual)
-	assert.Equal(t, expected, actual.Asset)
 }
 
 func setup() {

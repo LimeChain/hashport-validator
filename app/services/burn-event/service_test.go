@@ -72,7 +72,6 @@ var (
 		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
-	enableMonitoring = false
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -164,8 +163,7 @@ func Test_New(t *testing.T) {
 		mocks.MScheduledService,
 		mocks.MFeeService,
 		mocks.MTransferService,
-		mocks.MPrometheusService,
-		enableMonitoring)
+		mocks.MPrometheusService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -491,7 +489,6 @@ func setup() {
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
 		prometheusService:  mocks.MPrometheusService,
-		enableMonitoring:   enableMonitoring,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }

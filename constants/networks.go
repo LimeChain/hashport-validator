@@ -1,9 +1,11 @@
 package constants
 
 const (
-	Hedera   = "Hedera"
-	Ethereum = "Ethereum"
-	Polygon  = "Polygon"
+	Hedera          = "Hedera"
+	Ethereum        = "Ethereum"
+	Polygon         = "Polygon"
+	EthereumChainId = 3
+	PolygonChainId  = 80001
 )
 
 var (

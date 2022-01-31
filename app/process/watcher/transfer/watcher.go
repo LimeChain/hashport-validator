@@ -49,7 +49,6 @@ type Watcher struct {
 	mappings          config.Assets
 	validator         bool
 	prometheusService service.Prometheus
-	enableMonitoring  bool
 }
 
 func NewWatcher(
@@ -63,7 +62,6 @@ func NewWatcher(
 	mappings config.Assets,
 	validator bool,
 	prometheusService service.Prometheus,
-	enableMonitoring bool,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -106,7 +104,6 @@ func NewWatcher(
 		mappings:          mappings,
 		validator:         validator,
 		prometheusService: prometheusService,
-		enableMonitoring:  enableMonitoring,
 	}
 }
 
@@ -175,7 +172,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaChainId, targetChainId, asset)
+	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, asset)
 
 	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
@@ -220,7 +217,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 
 	transferMessage := transfer.New(
 		tx.TransactionID,
-		constants.HederaChainId,
+		constants.HederaNetworkId,
 		targetChainId,
 		nativeAsset.ChainId,
 		receiverAddress,
@@ -236,14 +233,14 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	}
 
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
-		if nativeAsset.ChainId == constants.HederaChainId {
+		if nativeAsset.ChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
 		}
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
-		if nativeAsset.ChainId == constants.HederaChainId {
+		if nativeAsset.ChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
@@ -252,13 +249,13 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 }
 
 func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
-	if !ctw.enableMonitoring {
+	if ctw.prometheusService == nil {
 		return
 	}
 
 	// Majority Reached
-	_ = ctw.initSuccessRatePrometheusMetric(
-		tx,
+	_, err := ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		tx.TransactionID,
 		sourceChainId,
 		targetChainId,
 		asset,
@@ -266,31 +263,41 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 		constants.MajorityReachedHelp,
 	)
 
-	// Fee Transfer
-	_ = ctw.initSuccessRatePrometheusMetric(
-		tx,
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.MajorityReachedNameSuffix, err)
+		return
+	}
+
+	if ctw.mappings.IsNative(sourceChainId, asset) {
+		// Fee Transfer
+		_, err = ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+			tx.TransactionID,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.FeeTransferredNameSuffix,
+			constants.FeeTransferredHelp,
+		)
+	}
+
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.FeeTransferredNameSuffix, err)
+		return
+	}
+
+	// User Get His Tokens
+	_, err = ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		tx.TransactionID,
 		sourceChainId,
 		targetChainId,
 		asset,
-		constants.FeeTransferredNameSuffix,
-		constants.FeeTransferredHelp,
-	)
-
-}
-
-func (ctw Watcher) initSuccessRatePrometheusMetric(tx model.Transaction, sourceChainId int64, targetChainId int64, asset, nameSuffix, metricHelp string) error {
-	metricName, err := ctw.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		asset,
-		tx.TransactionID,
-		nameSuffix,
+		constants.UserGetHisTokensNameSuffix,
+		constants.UserGetHisTokensHelp,
 	)
 
 	if err != nil {
-		ctw.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", nameSuffix)
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.UserGetHisTokensNameSuffix, err)
+		return
 	}
 
-	ctw.prometheusService.CreateAndRegisterGaugeMetric(metricName, metricHelp)
-	return err
 }

@@ -39,8 +39,8 @@ type Handler struct {
 	messages               service.Messages
 	logger                 *log.Entry
 	participationRateGauge prometheus.Gauge
-	enableMonitoring       bool
 	prometheusService      service.Prometheus
+	assetsConfig           config.Assets
 }
 
 func NewHandler(
@@ -49,8 +49,8 @@ func NewHandler(
 	messageRepository repository.Message,
 	contractServices map[int64]service.Contracts,
 	messages service.Messages,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
+	assetsConfig config.Assets,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
@@ -58,7 +58,7 @@ func NewHandler(
 	}
 
 	var participationRate prometheus.Gauge
-	if enableMonitoring && prometheusService != nil {
+	if prometheusService != nil {
 		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
 			constants.ValidatorsParticipationRateGaugeName,
 			constants.ValidatorsParticipationRateGaugeHelp)
@@ -71,8 +71,8 @@ func NewHandler(
 		messages:               messages,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 		prometheusService:      prometheusService,
-		enableMonitoring:       enableMonitoring,
 		participationRateGauge: participationRate,
+		assetsConfig:           assetsConfig,
 	}
 }
 
@@ -110,9 +110,8 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 		return
 	}
 
-	err = cmh.setMajorityReachedMetricForHederaMessages(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID, majorityReached)
-
 	if majorityReached {
+		_ = cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID)
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
@@ -139,7 +138,7 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
-	if !cmh.enableMonitoring {
+	if cmh.prometheusService == nil {
 		return
 	}
 
@@ -148,14 +147,13 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	cmh.participationRateGauge.Set(participationRate)
 }
 
-func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, targetChainId uint64, asset, transactionId string, majorityReached bool) error {
+func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) error {
 
-	// Metric needed only for transactions with Hedera as a Source Chain/Network
-	if !cmh.enableMonitoring || sourceChainId != constants.HederaChainId {
+	if cmh.prometheusService == nil {
 		return nil
 	}
 
-	asset = cmh.getOppositeAsset(sourceChainId, targetChainId, asset)
+	asset = cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
 	nameForMetric, err := cmh.prometheusService.ConstructNameForSuccessRateMetric(
 		sourceChainId,
 		targetChainId,
@@ -163,36 +161,12 @@ func (cmh *Handler) setMajorityReachedMetricForHederaMessages(sourceChainId, tar
 		transactionId,
 		constants.MajorityReachedNameSuffix)
 	if err != nil {
-		cmh.logger.Fatalf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
+		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
 		return err
 	}
 	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)
-
-	if majorityReached {
-		cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedHelp)
-		gauge.Set(1.0)
-	}
+	cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedNameSuffix)
+	gauge.Set(1.0)
 
 	return nil
-}
-
-func (cmh *Handler) getOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
-	sourceChainIdCasted, targetChainIdCasted := int64(sourceChainId), int64(targetChainId)
-
-	nativeAssetForTargetChain := cmh.prometheusService.WrappedToNative(asset, sourceChainIdCasted)
-	if nativeAssetForTargetChain != nil {
-		return nativeAssetForTargetChain.Asset
-	}
-
-	nativeAssetForSourceChain := cmh.prometheusService.WrappedToNative(asset, targetChainIdCasted)
-	if nativeAssetForSourceChain != nil {
-		return nativeAssetForSourceChain.Asset
-	}
-
-	if cmh.prometheusService.IsNative(sourceChainIdCasted, asset) {
-		return cmh.prometheusService.NativeToWrapped(asset, sourceChainIdCasted, targetChainIdCasted)
-	} else {
-		return cmh.prometheusService.NativeToWrapped(asset, targetChainIdCasted, sourceChainIdCasted)
-	}
-
 }

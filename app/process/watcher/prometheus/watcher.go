@@ -41,7 +41,6 @@ type Watcher struct {
 	EVMClients                map[int64]client.EVM
 	configuration             config.Config
 	prometheusService         service.Prometheus
-	enableMonitoring          bool
 	payerAccountBalanceGauge  prometheus.Gauge
 	bridgeAccountBalanceGauge prometheus.Gauge
 	operatorBalanceGauge      prometheus.Gauge
@@ -55,7 +54,6 @@ func NewWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
 	EVMClients map[int64]client.EVM,
 ) *Watcher {
@@ -70,11 +68,10 @@ func NewWatcher(
 		bridgeAccAssetsMetrics = make(map[string]string)
 	)
 
-	if enableMonitoring && prometheusService != nil {
+	if prometheusService != nil {
 		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
 		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
 		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
-
 	}
 
 	return &Watcher{
@@ -83,7 +80,6 @@ func NewWatcher(
 		EVMClients:                EVMClients,
 		configuration:             configuration,
 		prometheusService:         prometheusService,
-		enableMonitoring:          enableMonitoring,
 		payerAccountBalanceGauge:  payerAccountBalanceGauge,
 		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
 		operatorBalanceGauge:      operatorBalanceGauge,
@@ -108,7 +104,7 @@ func (pw Watcher) registerAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == constants.HederaChainId { // Hedera
+			if chainId == constants.HederaNetworkId { // Hedera
 				if asset != constants.Hbar {
 					res, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {
@@ -205,7 +201,7 @@ func (pw Watcher) initAndRegGauge(name string, help string) {
 }
 
 func (pw Watcher) setMetrics() {
-	if !pw.enableMonitoring {
+	if pw.prometheusService == nil {
 		return
 	}
 
@@ -244,7 +240,7 @@ func (pw Watcher) setAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == constants.HederaChainId { // Hedera
+			if chainId == constants.HederaNetworkId { // Hedera
 				if asset != constants.Hbar {
 					token, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {

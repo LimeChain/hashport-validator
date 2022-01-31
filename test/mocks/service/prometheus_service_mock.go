@@ -17,7 +17,6 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/mock"
 )
@@ -33,11 +32,22 @@ func (mps *MockPrometheusService) CreateAndRegisterGaugeMetric(name string, help
 	return result
 }
 
+// CreateAndRegisterGaugeMetricForSuccessRate creates new Gauge Metric for Success Rate and registers it in Prometheus
+func (mps *MockPrometheusService) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+	args := mps.Called(transactionId, sourceChainId, targetChainId, asset, metricNameSuffix, metricHelp)
+	return args.Get(0).(prometheus.Gauge), args.Error(1)
+}
+
 // GetGauge retrieves Gauge by name with flag for existence
 func (mps *MockPrometheusService) GetGauge(name string) prometheus.Gauge {
 	args := mps.Called(name)
 	result := args.Get(0).(prometheus.Gauge)
 	return result
+}
+
+// UnregisterGauge unregisters Gauge with the passed name
+func (mps *MockPrometheusService) UnregisterGauge(name string) {
+	_ = mps.Called(name)
 }
 
 // CreateAndRegisterCounterMetric creates new Counter Metric and registers it in Prometheus
@@ -60,20 +70,7 @@ func (mps *MockPrometheusService) ConstructNameForSuccessRateMetric(sourceNetwor
 	return args.Get(0).(string), args.Error(1)
 }
 
-// IsNative Returns true if the asset is native to the passed network
-func (mps *MockPrometheusService) IsNative(networkId int64, asset string) bool {
-	args := mps.Called(networkId, asset)
-	return args.Get(0).(bool)
-}
-
-// NativeToWrapped Getting Wrapped token from Native token for the given network/chain ids
-func (mps *MockPrometheusService) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
-	args := mps.Called(nativeAsset, nativeChainId, targetChainId)
-	return args.Get(0).(string)
-}
-
-// WrappedToNative Getting Native token from Wrapped token for the given network/chain ids
-func (mps *MockPrometheusService) WrappedToNative(wrappedAsset string, wrappedChainId int64) *config.NativeAsset {
-	args := mps.Called(wrappedAsset, wrappedChainId)
-	return args.Get(0).(*config.NativeAsset)
+// UnregisterCounter unregisters Counter with the passed name
+func (mps *MockPrometheusService) UnregisterCounter(name string) {
+	_ = mps.Called(name)
 }

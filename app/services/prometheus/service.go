@@ -33,7 +33,10 @@ type Service struct {
 	assetsConfig config.Assets
 }
 
-func NewService(assetsConfig config.Assets) *Service {
+func NewService(assetsConfig config.Assets, isMonitoringEnabled bool) *Service {
+	if isMonitoringEnabled == false {
+		return nil
+	}
 
 	return &Service{
 		logger:       config.GetLoggerFor("Prometheus Service"),
@@ -42,8 +45,6 @@ func NewService(assetsConfig config.Assets) *Service {
 		assetsConfig: assetsConfig,
 	}
 }
-
-//func (s Service) A
 
 func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
 	s.mu.Lock()
@@ -70,12 +71,40 @@ func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometh
 	return gauge
 }
 
+func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+
+	metricName, err := s.ConstructNameForSuccessRateMetric(
+		uint64(sourceChainId),
+		uint64(targetChainId),
+		asset,
+		transactionId,
+		metricNameSuffix,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	gauge := s.CreateAndRegisterGaugeMetric(metricName, metricHelp)
+	return gauge, nil
+}
+
 func (s *Service) GetGauge(name string) prometheus.Gauge {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	gauge := s.gauges[name]
 	return gauge
+}
+
+// UnregisterGauge unregisters Gauge with the passed name
+func (s *Service) UnregisterGauge(name string) {
+
+	s.logger.Infof("Unregistering Gauge Metric '%v' ...", name)
+	gauge := s.GetGauge(name)
+	prometheus.Unregister(gauge)
+	delete(s.gauges, name)
+	s.logger.Infof("Gauge Metric '%v' successfully unregisted!", name)
 }
 
 func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prometheus.Counter {
@@ -121,15 +150,11 @@ func (s *Service) GetCounter(name string) prometheus.Counter {
 	return counter
 }
 
-func (s *Service) IsNative(networkId int64, asset string) bool {
-	return s.assetsConfig.IsNative(networkId, asset)
-}
-
-func (s *Service) NativeToWrapped(nativeAsset string, nativeNetworkId, targetNetworkId int64) string {
-	return s.assetsConfig.NativeToWrapped(nativeAsset, nativeNetworkId, targetNetworkId)
-}
-
-func (s *Service) WrappedToNative(wrappedAsset string, wrappedNetworkId int64) *config.NativeAsset {
-	nativeAsset := s.assetsConfig.WrappedToNative(wrappedAsset, wrappedNetworkId)
-	return nativeAsset
+// UnregisterCounter unregisters Counter with the passed name
+func (s *Service) UnregisterCounter(name string) {
+	s.logger.Infof("Unregistering Counter Metric '%v' ...", name)
+	counter := s.GetCounter(name)
+	prometheus.Unregister(counter)
+	delete(s.counters, name)
+	s.logger.Infof("Counter Metric '%v' successfully unregisted!", name)
 }

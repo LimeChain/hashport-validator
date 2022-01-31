@@ -45,7 +45,6 @@ type Service struct {
 	transferService    service.Transfers
 	logger             *log.Entry
 	prometheusService  service.Prometheus
-	enableMonitoring   bool
 }
 
 func NewService(
@@ -57,8 +56,7 @@ func NewService(
 	scheduled service.Scheduled,
 	feeService service.Fee,
 	transferService service.Transfers,
-	prometheusService service.Prometheus,
-	enableMonitoring bool) *Service {
+	prometheusService service.Prometheus) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -75,7 +73,6 @@ func NewService(
 		scheduledService:   scheduled,
 		transferService:    transferService,
 		prometheusService:  prometheusService,
-		enableMonitoring:   enableMonitoring,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
@@ -124,28 +121,32 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	wg := new(sync.WaitGroup)
 	wg.Add(countOfTransfers)
 	resultPerTransfer := make([]*bool, countOfTransfers)
+	receiverFound := false
 	for index, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
+		if hasReceiver {
+			receiverFound = true
+		}
 		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId, resultPerTransfer[index], wg)
 
 		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
 
-	go s.awaitMinedTransactionAndSetMetricsValueForEVM(wg, resultPerTransfer, event.SourceChainId, event.TargetChainId, event.NativeAsset, event.TransactionId)
+	go s.awaitMinedTransactionAndSetMetricsValueForEVM(wg, resultPerTransfer, event.SourceChainId, event.TargetChainId, event.NativeAsset, event.TransactionId, receiverFound)
 
 }
 
 func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
-	if !s.enableMonitoring {
+	if s.prometheusService == nil {
 		return
 	}
 
 	// Metrics only for Transfers starting from Hedera
-	if sourceChainId != constants.HederaChainId {
+	if sourceChainId != constants.HederaNetworkId {
 
 		// Fee Transfer
-		_ = s.initSuccessRatePrometheusMetric(
+		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 			transactionId,
 			sourceChainId,
 			targetChainId,
@@ -153,44 +154,49 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 			constants.FeeTransferredNameSuffix,
 			constants.FeeTransferredHelp,
 		)
-	}
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
+			return
+		}
 
+		// User Get His Tokens
+		_, err = s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+			transactionId,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.UserGetHisTokensNameSuffix,
+			constants.UserGetHisTokensHelp,
+		)
+
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+			return
+		}
+
+	}
 }
 
-func (s Service) initSuccessRatePrometheusMetric(transactionId string, sourceChainId int64, targetChainId int64, asset, nameSuffix, metricHelp string) error {
-	metricName, err := s.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		asset,
-		transactionId,
-		nameSuffix,
-	)
+func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, hasReceiver bool) {
 
-	if err != nil {
-		s.logger.Fatalf("Couldn't create name for metric with name suffix '%v'", nameSuffix)
-	}
-
-	s.prometheusService.CreateAndRegisterGaugeMetric(metricName, metricHelp)
-	return err
-}
-
-func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string) {
-
-	if !s.enableMonitoring || sourceChainId == constants.HederaChainId {
+	if s.prometheusService == nil || sourceChainId == constants.HederaNetworkId {
 		return
 	}
+
 	wg.Wait()
 
-	name, err := s.prometheusService.ConstructNameForSuccessRateMetric(
-		uint64(sourceChainId),
-		uint64(targetChainId),
-		nativeAsset,
+	feeTransferredGauge, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 		transactionId,
+		sourceChainId,
+		targetChainId,
+		nativeAsset,
 		constants.FeeTransferredNameSuffix,
+		constants.FeeAccountAmountGaugeHelp,
 	)
 
 	if err != nil {
-		s.logger.Fatalf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.FeeTransferredNameSuffix, err)
+		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
+		return
 	}
 
 	isSuccessful := true
@@ -201,10 +207,27 @@ func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGro
 		}
 	}
 
-	gauge := s.prometheusService.GetGauge(name)
 	if isSuccessful {
 		s.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.FeeTransferredNameSuffix)
-		gauge.Set(1.0)
+		feeTransferredGauge.Set(1.0)
+
+		if hasReceiver {
+			userGetHisTokensGauge, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+				transactionId,
+				sourceChainId,
+				targetChainId,
+				nativeAsset,
+				constants.UserGetHisTokensNameSuffix,
+				constants.UserGetHisTokensHelp,
+			)
+			if err != nil {
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+				return
+			}
+
+			s.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.UserGetHisTokensNameSuffix)
+			userGetHisTokensGauge.Set(1.0)
+		}
 	}
 }
 
