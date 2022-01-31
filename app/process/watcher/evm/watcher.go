@@ -615,6 +615,7 @@ func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceC
 	if ew.prometheusService == nil || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
 		return nil, nil
 	}
+
 	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 		transactionId,
 		sourceChainId,

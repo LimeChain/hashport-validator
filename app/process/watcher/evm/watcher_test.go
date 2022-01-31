@@ -54,9 +54,36 @@ var (
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
 	}
+
 	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
 	hederaBytes  = hederaAcc.ToBytes()
 	dbIdentifier = "3-0x0000000000000000000000000000000000000001"
+	mintHash     = common.HexToHash("0579df6e9dbf066ba9fbd51ef5241e2b9f9c042a70289e8e5333d714ed4e5787")
+	burnHash     = common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash     = common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	unlockHash   = common.HexToHash("483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73")
+	membersHash  = common.HexToHash("30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+	topics       = [][]common.Hash{
+		{
+			mintHash,
+			burnHash,
+			lockHash,
+			unlockHash,
+			membersHash,
+		},
+	}
+	filterConfig = FilterConfig{
+		abi:    abi.ABI{},
+		topics: topics,
+		addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		},
+		mintHash:          mintHash,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		unlockHash:        unlockHash,
+		memberUpdatedHash: membersHash,
+	}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -131,7 +158,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
@@ -166,7 +193,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
@@ -285,7 +312,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
@@ -326,7 +353,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		repository: mocks.MStatusRepository,
 		contracts:  mocks.MBridgeContractService,
 		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:   config.LoadAssets(testConstants.Networks),
 		validator:  false,
 	}
@@ -409,29 +436,24 @@ func TestNewWatcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse router ABI. Error: [%s]", err)
 	}
-
-	burnHash := abi.Events["Burn"].ID
-	lockHash := abi.Events["Lock"].ID
+	mintHashFromAbi := abi.Events["Mint"].ID
+	burnHashFromAbi := abi.Events["Burn"].ID
+	lockHashFromAbi := abi.Events["Lock"].ID
+	unlockHashFromAbi := abi.Events["Unlock"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
-
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			memberUpdatedHash,
-		},
-	}
 
 	addresses := []common.Address{
 		{},
 	}
 
-	filterConfig := FilterConfig{
+	filterCfg := FilterConfig{
 		abi:               abi,
 		topics:            topics,
 		addresses:         addresses,
-		burnHash:          burnHash,
-		lockHash:          lockHash,
+		mintHash:          mintHashFromAbi,
+		burnHash:          burnHashFromAbi,
+		lockHash:          lockHashFromAbi,
+		unlockHash:        unlockHashFromAbi,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     220,
 	}
@@ -447,19 +469,11 @@ func TestNewWatcher(t *testing.T) {
 		validator:     true,
 		targetBlock:   5,
 		sleepDuration: defaultSleepDuration,
-		filterConfig:  filterConfig,
+		filterConfig:  filterCfg,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository,
-		mocks.MBridgeContractService,
-		nil,
-		mocks.MEVMClient,
-		assets, dbIdentifier,
-		0,
-		true,
-		15,
-		220,
-	))
+	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, nil, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
+	assert.Equal(t, w, actual)
 }
 
 // TODO: Test_NewWatcher_Fails
@@ -467,16 +481,6 @@ func TestNewWatcher(t *testing.T) {
 func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -508,16 +512,6 @@ func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -549,16 +543,6 @@ func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 func Test_ProcessLogs_FilterLogsFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -578,16 +562,6 @@ func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 	mocks.Setup()
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -609,33 +583,16 @@ func setup() {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+
 	w = &Watcher{
 		repository:    mocks.MStatusRepository,
 		contracts:     mocks.MBridgeContractService,
 		evmClient:     mocks.MEVMClient,
 		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%v]", dbIdentifier)),
+		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
 		mappings:      config.LoadAssets(testConstants.Networks),
 		validator:     true,
 		sleepDuration: defaultSleepDuration,
-		filterConfig: FilterConfig{
-			abi: abi.ABI{},
-			topics: [][]common.Hash{
-				{
-					burnHash,
-					lockHash,
-					membersHash,
-				},
-			},
-			addresses: []common.Address{
-				common.HexToAddress("0x0000000000000000000000000000000000000000"),
-			},
-			burnHash:          burnHash,
-			lockHash:          lockHash,
-			memberUpdatedHash: membersHash,
-		},
+		filterConfig:  filterConfig,
 	}
 }
