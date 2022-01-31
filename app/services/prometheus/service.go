@@ -80,7 +80,7 @@ func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId strin
 		return nil, errors.New("monitoring is disabled.")
 	}
 
-	metricName, err := s.ConstructNameForSuccessRateMetric(
+	metricName, err := s.ConstructMetricName(
 		uint64(sourceChainId),
 		uint64(targetChainId),
 		asset,
@@ -149,7 +149,7 @@ func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prome
 	return counter
 }
 
-func (s *Service) ConstructNameForSuccessRateMetric(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error) {
+func (s *Service) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error) {
 	tokenType := constants.Wrapped
 	isNativeAsset := s.assetsConfig.IsNative(int64(sourceNetworkId), asset)
 	if isNativeAsset {

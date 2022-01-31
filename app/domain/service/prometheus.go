@@ -19,8 +19,8 @@ type Prometheus interface {
 	GetCounter(name string) prometheus.Counter
 	// UnregisterCounter unregisters Counter with the passed name
 	UnregisterCounter(name string)
-	// ConstructNameForSuccessRateMetric constructing name for success rate metric
-	ConstructNameForSuccessRateMetric(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error)
+	// ConstructMetricName constructing name for metric
+	ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error)
 	// GetIsMonitoringEnabled returns if the monitoring is enabled
 	GetIsMonitoringEnabled() bool
 }

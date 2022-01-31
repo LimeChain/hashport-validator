@@ -64,8 +64,8 @@ func (mps *MockPrometheusService) GetCounter(name string) prometheus.Counter {
 	return result
 }
 
-// ConstructNameForSuccessRateMetric constructing name for success rate metric
-func (mps *MockPrometheusService) ConstructNameForSuccessRateMetric(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error) {
+// ConstructMetricName constructing name for metric
+func (mps *MockPrometheusService) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error) {
 	args := mps.Called(sourceNetworkId, targetNetworkId, asset, transactionId, metricTarget)
 	return args.Get(0).(string), args.Error(1)
 }

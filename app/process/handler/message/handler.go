@@ -154,7 +154,7 @@ func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64
 	}
 
 	asset = cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
-	nameForMetric, err := cmh.prometheusService.ConstructNameForSuccessRateMetric(
+	nameForMetric, err := cmh.prometheusService.ConstructMetricName(
 		sourceChainId,
 		targetChainId,
 		asset,

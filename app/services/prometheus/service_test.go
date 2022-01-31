@@ -42,30 +42,30 @@ func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 	assert.NotNil(t, gauge)
 }
 
-func Test_ConstructNameForSuccessRateMetric_Native(t *testing.T) {
+func Test_ConstructMetricName_Native(t *testing.T) {
 	setup()
 
 	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, constants.Hedera, constants.Ethereum, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructNameForSuccessRateMetric(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	actual, err := service.ConstructMetricName(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, expectedNative, actual)
 }
 
-func Test_ConstructNameForSuccessRateMetric_Wrapped(t *testing.T) {
+func Test_ConstructMetricName_Wrapped(t *testing.T) {
 	setup()
 
 	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, constants.Ethereum, constants.Hedera, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructNameForSuccessRateMetric(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	actual, err := service.ConstructMetricName(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, expectedNative, actual)
 }
 
-func Test_ConstructNameForSuccessRateMetric_ShouldThrow(t *testing.T) {
+func Test_ConstructMetricName_ShouldThrow(t *testing.T) {
 	setup()
 
-	_, err := service.ConstructNameForSuccessRateMetric(10, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	_, err := service.ConstructMetricName(10, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
 
 	expectedError := fmt.Sprintf("Network id %v is missing in id to name mapping.", 10)
 	assert.Errorf(t, err, expectedError)
@@ -86,7 +86,7 @@ func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 		gaugeSuffix,
 		gaugeHelp)
 
-	fullGaugeName, err2 := service.ConstructNameForSuccessRateMetric(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
+	fullGaugeName, err2 := service.ConstructMetricName(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
 
 	defer service.UnregisterGauge(fullGaugeName)
 
