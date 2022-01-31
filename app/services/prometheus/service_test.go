@@ -12,22 +12,23 @@ import (
 )
 
 var (
-	service       *Service
-	gauge         prometheus.Gauge
-	counter       prometheus.Counter
-	gaugeName     = "GaugeName"
-	gaugeSuffix   = "gauge_suffix"
-	gaugeHelp     = "GaugeHelp"
-	counterName   = "CounterName"
-	counterSuffix = "counter_suffix"
-	counterHelp   = "CounterHelp"
-	assets        = config.LoadAssets(testConstants.Networks)
+	service             *Service
+	gauge               prometheus.Gauge
+	counter             prometheus.Counter
+	isMonitoringEnabled = true
+	gaugeName           = "GaugeName"
+	gaugeSuffix         = "gauge_suffix"
+	gaugeHelp           = "GaugeHelp"
+	counterName         = "CounterName"
+	counterSuffix       = "counter_suffix"
+	counterHelp         = "CounterHelp"
+	assets              = config.LoadAssets(testConstants.Networks)
 )
 
 func Test_New(t *testing.T) {
 	setup()
 
-	actualService := NewService(assets, true)
+	actualService := NewService(assets, isMonitoringEnabled)
 
 	assert.Equal(t, service, actualService)
 }
@@ -149,9 +150,10 @@ func setup() {
 	mocks.Setup()
 
 	service = &Service{
-		logger:       config.GetLoggerFor("Prometheus Service"),
-		gauges:       map[string]prometheus.Gauge{},
-		counters:     map[string]prometheus.Counter{},
-		assetsConfig: assets,
+		logger:              config.GetLoggerFor("Prometheus Service"),
+		gauges:              map[string]prometheus.Gauge{},
+		counters:            map[string]prometheus.Counter{},
+		assetsConfig:        assets,
+		isMonitoringEnabled: isMonitoringEnabled,
 	}
 }

@@ -249,7 +249,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 }
 
 func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
-	if ctw.prometheusService == nil {
+	if !ctw.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 

@@ -21,4 +21,6 @@ type Prometheus interface {
 	UnregisterCounter(name string)
 	// ConstructNameForSuccessRateMetric constructing name for success rate metric
 	ConstructNameForSuccessRateMetric(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error)
+	// GetIsMonitoringEnabled returns if the monitoring is enabled
+	GetIsMonitoringEnabled() bool
 }

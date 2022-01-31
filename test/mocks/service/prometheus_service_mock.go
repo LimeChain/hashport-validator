@@ -74,3 +74,9 @@ func (mps *MockPrometheusService) ConstructNameForSuccessRateMetric(sourceNetwor
 func (mps *MockPrometheusService) UnregisterCounter(name string) {
 	_ = mps.Called(name)
 }
+
+// GetIsMonitoringEnabled returns if the monitoring is enabled
+func (mps *MockPrometheusService) GetIsMonitoringEnabled() bool {
+	args := mps.Called()
+	return args.Get(0).(bool)
+}

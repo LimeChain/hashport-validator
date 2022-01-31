@@ -138,7 +138,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 }
 
 func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
-	if s.prometheusService == nil {
+	if !s.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
@@ -179,7 +179,7 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 
 func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, hasReceiver bool) {
 
-	if s.prometheusService == nil || sourceChainId == constants.HederaNetworkId {
+	if !s.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId {
 		return
 	}
 

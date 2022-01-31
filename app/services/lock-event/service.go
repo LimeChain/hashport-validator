@@ -190,7 +190,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, event transfer.Transfer, scheduleType string) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 
-		if scheduleType == schedule.TRANSFER && s.prometheusService != nil {
+		if scheduleType == schedule.TRANSFER && s.prometheusService.GetIsMonitoringEnabled() {
 			s.setUserGetHisTokensMetric(event.SourceChainId, event.TargetChainId, event.SourceAsset, event.TransactionId, true)
 		}
 

@@ -17,6 +17,7 @@
 package prometheus
 
 import (
+	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -26,27 +27,30 @@ import (
 )
 
 type Service struct {
-	mu           sync.RWMutex
-	logger       *log.Entry
-	gauges       map[string]prometheus.Gauge
-	counters     map[string]prometheus.Counter
-	assetsConfig config.Assets
+	mu                  sync.RWMutex
+	logger              *log.Entry
+	gauges              map[string]prometheus.Gauge
+	counters            map[string]prometheus.Counter
+	isMonitoringEnabled bool
+	assetsConfig        config.Assets
 }
 
 func NewService(assetsConfig config.Assets, isMonitoringEnabled bool) *Service {
-	if isMonitoringEnabled == false {
-		return nil
-	}
 
 	return &Service{
-		logger:       config.GetLoggerFor("Prometheus Service"),
-		gauges:       map[string]prometheus.Gauge{},
-		counters:     map[string]prometheus.Counter{},
-		assetsConfig: assetsConfig,
+		logger:              config.GetLoggerFor("Prometheus Service"),
+		gauges:              map[string]prometheus.Gauge{},
+		counters:            map[string]prometheus.Counter{},
+		isMonitoringEnabled: isMonitoringEnabled,
+		assetsConfig:        assetsConfig,
 	}
 }
 
 func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
+	if !s.isMonitoringEnabled {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,6 +76,9 @@ func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometh
 }
 
 func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+	if !s.isMonitoringEnabled {
+		return nil, errors.New("monitoring is disabled.")
+	}
 
 	metricName, err := s.ConstructNameForSuccessRateMetric(
 		uint64(sourceChainId),
@@ -90,6 +97,10 @@ func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId strin
 }
 
 func (s *Service) GetGauge(name string) prometheus.Gauge {
+	if !s.isMonitoringEnabled {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -97,8 +108,10 @@ func (s *Service) GetGauge(name string) prometheus.Gauge {
 	return gauge
 }
 
-// UnregisterGauge unregisters Gauge with the passed name
 func (s *Service) UnregisterGauge(name string) {
+	if !s.isMonitoringEnabled {
+		return
+	}
 
 	s.logger.Infof("Unregistering Gauge Metric '%v' ...", name)
 	gauge := s.GetGauge(name)
@@ -108,6 +121,10 @@ func (s *Service) UnregisterGauge(name string) {
 }
 
 func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prometheus.Counter {
+	if !s.isMonitoringEnabled {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -143,6 +160,10 @@ func (s *Service) ConstructNameForSuccessRateMetric(sourceNetworkId, targetNetwo
 }
 
 func (s *Service) GetCounter(name string) prometheus.Counter {
+	if !s.isMonitoringEnabled {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -150,11 +171,18 @@ func (s *Service) GetCounter(name string) prometheus.Counter {
 	return counter
 }
 
-// UnregisterCounter unregisters Counter with the passed name
 func (s *Service) UnregisterCounter(name string) {
+	if !s.isMonitoringEnabled {
+		return
+	}
+
 	s.logger.Infof("Unregistering Counter Metric '%v' ...", name)
 	counter := s.GetCounter(name)
 	prometheus.Unregister(counter)
 	delete(s.counters, name)
 	s.logger.Infof("Counter Metric '%v' successfully unregisted!", name)
+}
+
+func (s *Service) GetIsMonitoringEnabled() bool {
+	return s.isMonitoringEnabled
 }

@@ -589,7 +589,7 @@ func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId
 }
 
 func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
-	if ew.prometheusService == nil {
+	if !ew.prometheusService.GetIsMonitoringEnabled() {
 		return nil, nil
 	}
 
@@ -612,7 +612,7 @@ func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainI
 }
 
 func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
-	if ew.prometheusService == nil || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
+	if !ew.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
 		return nil, nil
 	}
 

@@ -58,7 +58,7 @@ func NewHandler(
 	}
 
 	var participationRate prometheus.Gauge
-	if prometheusService != nil {
+	if prometheusService.GetIsMonitoringEnabled() {
 		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
 			constants.ValidatorsParticipationRateGaugeName,
 			constants.ValidatorsParticipationRateGaugeHelp)
@@ -138,7 +138,7 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
-	if cmh.prometheusService == nil {
+	if !cmh.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
@@ -149,7 +149,7 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 
 func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) error {
 
-	if cmh.prometheusService == nil {
+	if !cmh.prometheusService.GetIsMonitoringEnabled() {
 		return nil
 	}
 
