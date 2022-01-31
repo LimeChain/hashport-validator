@@ -67,7 +67,7 @@ func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 }
 
 func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
-	mocks.Setup()
+	setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
 	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(nil)
 
@@ -81,13 +81,13 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true,
-		nil)
+		mocks.MPrometheusService)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
 }
 
 func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
-	mocks.Setup()
+	setup()
 	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(nil)
 
 	NewWatcher(
@@ -100,7 +100,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true,
-		nil)
+		mocks.MPrometheusService)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
 }
@@ -170,8 +170,13 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	w.processTransaction(anotherTx, mocks.MQueue)
 }
 
-func initializeWatcher() *Watcher {
+func setup() {
 	mocks.Setup()
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+}
+
+func initializeWatcher() *Watcher {
+	setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
@@ -185,5 +190,5 @@ func initializeWatcher() *Watcher {
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
 		true,
-		nil)
+		mocks.MPrometheusService)
 }

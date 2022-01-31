@@ -130,6 +130,8 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -153,14 +155,16 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:   config.LoadAssets(testConstants.Networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
+		prometheusService: mocks.MPrometheusService,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
@@ -187,15 +191,17 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	lockLog.TargetChain = big.NewInt(1)
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:   config.LoadAssets(testConstants.Networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
@@ -222,6 +228,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	lockLog.TargetChain = big.NewInt(1)
 	parsedLockLog := &transfer.Transfer{
@@ -247,6 +254,8 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: int64(33),
@@ -277,6 +286,7 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	burnLog.TargetChain = big.NewInt(1)
 	defaultToken := burnLog.Token
@@ -306,15 +316,17 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	burnLog.TargetChain = big.NewInt(1)
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:   config.LoadAssets(testConstants.Networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
@@ -349,13 +361,16 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:   config.LoadAssets(testConstants.Networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
@@ -431,6 +446,7 @@ func TestNewWatcher(t *testing.T) {
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	mocks.MEVMClient.On("RetryBlockNumber").Return(uint64(10), nil)
 	mocks.MEVMClient.On("BlockConfirmations", mock.Anything).Return(uint64(5))
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
@@ -460,19 +476,20 @@ func TestNewWatcher(t *testing.T) {
 
 	assets := config.LoadAssets(testConstants.Networks)
 	w = &Watcher{
-		repository:    mocks.MStatusRepository,
-		contracts:     mocks.MBridgeContractService,
-		evmClient:     mocks.MEVMClient,
-		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:      assets,
-		validator:     true,
-		targetBlock:   5,
-		sleepDuration: defaultSleepDuration,
-		filterConfig:  filterCfg,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		dbIdentifier:      dbIdentifier,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          assets,
+		validator:         true,
+		targetBlock:       5,
+		sleepDuration:     defaultSleepDuration,
+		filterConfig:      filterCfg,
 	}
 
-	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, nil, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
+	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
 	assert.Equal(t, w, actual)
 }
 
@@ -583,16 +600,18 @@ func setup() {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	w = &Watcher{
-		repository:    mocks.MStatusRepository,
-		contracts:     mocks.MBridgeContractService,
-		evmClient:     mocks.MEVMClient,
-		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:      config.LoadAssets(testConstants.Networks),
-		validator:     true,
-		sleepDuration: defaultSleepDuration,
-		filterConfig:  filterConfig,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		dbIdentifier:      dbIdentifier,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         true,
+		sleepDuration:     defaultSleepDuration,
+		filterConfig:      filterConfig,
 	}
 }

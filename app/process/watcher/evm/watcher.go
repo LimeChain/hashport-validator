@@ -362,8 +362,10 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	token := eventLog.Token.String()
 
 	// Metrics
-	_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
-	_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+	if ew.prometheusService.GetIsMonitoringEnabled() {
+		_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
+		_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+	}
 
 	targetAsset := nativeAsset.Asset
 	// This is the case when you are bridging wrapped to wrapped

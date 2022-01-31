@@ -163,7 +163,7 @@ func Test_New(t *testing.T) {
 		mocks.MScheduledService,
 		mocks.MFeeService,
 		mocks.MTransferService,
-		nil)
+		mocks.MPrometheusService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -479,6 +479,9 @@ func Test_ScheduledTxMinedExecutionSuccessFeeUpdateFails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	s = &Service{
 		bridgeAccount:      hederaAccount,
 		feeRepository:      mocks.MFeeRepository,
@@ -488,7 +491,7 @@ func setup() {
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
-		prometheusService:  nil,
+		prometheusService:  mocks.MPrometheusService,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }

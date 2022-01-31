@@ -60,7 +60,7 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, nil, assets))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -146,6 +146,7 @@ func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	assets = config.LoadAssets(constants.Networks)
 	h = &Handler{
@@ -154,7 +155,7 @@ func setup() {
 		contracts:              map[int64]service.Contracts{1: mocks.MBridgeContractService},
 		messages:               mocks.MMessageService,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
-		prometheusService:      nil,
+		prometheusService:      mocks.MPrometheusService,
 		assetsConfig:           assets,
 		participationRateGauge: nil,
 	}

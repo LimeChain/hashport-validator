@@ -59,7 +59,7 @@ func Test_New(t *testing.T) {
 		mocks.MScheduleRepository,
 		mocks.MScheduledService,
 		mocks.MTransferService,
-		nil)
+		mocks.MPrometheusService)
 	assert.Equal(t, s, actualService)
 }
 
@@ -71,7 +71,7 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 		mocks.MScheduleRepository,
 		mocks.MScheduledService,
 		mocks.MTransferService,
-		nil)
+		mocks.MPrometheusService)
 
 	mocks.MTransferService.On("InitiateNewTransfer", lockEvent).Return(nil, errors.New("new-error"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledMintTransaction")
@@ -212,13 +212,16 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	s = &Service{
 		bridgeAccount:      hederaAccount,
 		repository:         mocks.MTransferRepository,
 		scheduleRepository: mocks.MScheduleRepository,
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
-		prometheusService:  nil,
+		prometheusService:  mocks.MPrometheusService,
 		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }
