@@ -60,7 +60,7 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, nil, assets))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -154,7 +154,7 @@ func setup() {
 		contracts:              map[int64]service.Contracts{1: mocks.MBridgeContractService},
 		messages:               mocks.MMessageService,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
-		prometheusService:      mocks.MPrometheusService,
+		prometheusService:      nil,
 		assetsConfig:           assets,
 		participationRateGauge: nil,
 	}

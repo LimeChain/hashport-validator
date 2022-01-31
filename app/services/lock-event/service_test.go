@@ -59,7 +59,7 @@ func Test_New(t *testing.T) {
 		mocks.MScheduleRepository,
 		mocks.MScheduledService,
 		mocks.MTransferService,
-		mocks.MPrometheusService)
+		nil)
 	assert.Equal(t, s, actualService)
 }
 
@@ -71,7 +71,7 @@ func Test_ProcessEventFailsOnCreate(t *testing.T) {
 		mocks.MScheduleRepository,
 		mocks.MScheduledService,
 		mocks.MTransferService,
-		mocks.MPrometheusService)
+		nil)
 
 	mocks.MTransferService.On("InitiateNewTransfer", lockEvent).Return(nil, errors.New("new-error"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledMintTransaction")
@@ -218,7 +218,7 @@ func setup() {
 		scheduleRepository: mocks.MScheduleRepository,
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
-		prometheusService:  mocks.MPrometheusService,
+		prometheusService:  nil,
 		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }

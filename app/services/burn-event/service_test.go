@@ -163,7 +163,7 @@ func Test_New(t *testing.T) {
 		mocks.MScheduledService,
 		mocks.MFeeService,
 		mocks.MTransferService,
-		mocks.MPrometheusService)
+		nil)
 	assert.Equal(t, s, actualService)
 }
 
@@ -488,7 +488,7 @@ func setup() {
 		feeService:         mocks.MFeeService,
 		scheduledService:   mocks.MScheduledService,
 		transferService:    mocks.MTransferService,
-		prometheusService:  mocks.MPrometheusService,
+		prometheusService:  nil,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }

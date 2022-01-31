@@ -452,7 +452,7 @@ func TestNewWatcher(t *testing.T) {
 
 	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository,
 		mocks.MBridgeContractService,
-		mocks.MPrometheusService,
+		nil,
 		mocks.MEVMClient,
 		assets, dbIdentifier,
 		0,
@@ -617,7 +617,7 @@ func setup() {
 		contracts:     mocks.MBridgeContractService,
 		evmClient:     mocks.MEVMClient,
 		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
+		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%v]", dbIdentifier)),
 		mappings:      config.LoadAssets(testConstants.Networks),
 		validator:     true,
 		sleepDuration: defaultSleepDuration,
