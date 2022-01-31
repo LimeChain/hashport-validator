@@ -12,14 +12,16 @@ import (
 )
 
 var (
-	service     *Service
-	gauge       prometheus.Gauge
-	counter     prometheus.Counter
-	gaugeName   = "GaugeName"
-	gaugeHelp   = "GaugeHelp"
-	counterName = "CounterName"
-	counterHelp = "CounterHelp"
-	assets      = config.LoadAssets(testConstants.Networks)
+	service       *Service
+	gauge         prometheus.Gauge
+	counter       prometheus.Counter
+	gaugeName     = "GaugeName"
+	gaugeSuffix   = "gauge_suffix"
+	gaugeHelp     = "GaugeHelp"
+	counterName   = "CounterName"
+	counterSuffix = "counter_suffix"
+	counterHelp   = "CounterHelp"
+	assets        = config.LoadAssets(testConstants.Networks)
 )
 
 func Test_New(t *testing.T) {
@@ -39,6 +41,35 @@ func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 	assert.NotNil(t, gauge)
 }
 
+func Test_ConstructNameForSuccessRateMetric_Native(t *testing.T) {
+	setup()
+
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, constants.Hedera, constants.Ethereum, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	actual, err := service.ConstructNameForSuccessRateMetric(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+
+	assert.Equal(t, err, nil)
+	assert.Equal(t, expectedNative, actual)
+}
+
+func Test_ConstructNameForSuccessRateMetric_Wrapped(t *testing.T) {
+	setup()
+
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, constants.Ethereum, constants.Hedera, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	actual, err := service.ConstructNameForSuccessRateMetric(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+
+	assert.Equal(t, err, nil)
+	assert.Equal(t, expectedNative, actual)
+}
+
+func Test_ConstructNameForSuccessRateMetric_ShouldThrow(t *testing.T) {
+	setup()
+
+	_, err := service.ConstructNameForSuccessRateMetric(10, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+
+	expectedError := fmt.Sprintf("Network id %v is missing in id to name mapping.", 10)
+	assert.Errorf(t, err, expectedError)
+}
+
 func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 	setup()
 
@@ -51,13 +82,16 @@ func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 		sourceChainId,
 		targetChainId,
 		asset,
-		gaugeName,
+		gaugeSuffix,
 		gaugeHelp)
 
-	defer service.UnregisterGauge(gaugeName)
+	fullGaugeName, err2 := service.ConstructNameForSuccessRateMetric(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
+
+	defer service.UnregisterGauge(fullGaugeName)
 
 	assert.NotNil(t, gauge)
 	assert.Nil(t, err)
+	assert.Nil(t, err2)
 }
 
 func Test_GetGauge(t *testing.T) {
@@ -109,35 +143,6 @@ func Test_UnregisterCounter(t *testing.T) {
 	counterInMapping := service.GetCounter(counterName)
 
 	assert.Nil(t, counterInMapping)
-}
-
-func Test_ConstructNameForSuccessRateMetric_Native(t *testing.T) {
-	setup()
-
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, constants.Hedera, constants.Ethereum, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructNameForSuccessRateMetric(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
-
-	assert.Equal(t, err, nil)
-	assert.Equal(t, expectedNative, actual)
-}
-
-func Test_ConstructNameForSuccessRateMetric_Wrapped(t *testing.T) {
-	setup()
-
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, constants.Ethereum, constants.Hedera, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructNameForSuccessRateMetric(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
-
-	assert.Equal(t, err, nil)
-	assert.Equal(t, expectedNative, actual)
-}
-
-func Test_ConstructNameForSuccessRateMetric_ShouldThrow(t *testing.T) {
-	setup()
-
-	_, err := service.ConstructNameForSuccessRateMetric(10, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
-
-	expectedError := fmt.Sprintf("Network id %v is missing in id to name mapping.", 10)
-	assert.Errorf(t, err, expectedError)
 }
 
 func setup() {
