@@ -269,7 +269,7 @@ func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int
 }
 
 func (ts *Service) onMinedTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
-	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false {
+	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false || !ts.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
