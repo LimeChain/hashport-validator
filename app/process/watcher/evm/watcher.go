@@ -569,6 +569,10 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 }
 
 func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) error {
+	if !ew.prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
 	oppositeAsset := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), asset)
 	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 		transactionId,
