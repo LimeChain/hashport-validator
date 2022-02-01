@@ -327,7 +327,6 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
-
 }
 
 func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
