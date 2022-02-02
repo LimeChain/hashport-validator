@@ -67,6 +67,8 @@ func NewService(
 }
 
 func (s *Service) ProcessEvent(event transfer.Transfer) {
+	s.initializeSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.SourceAsset)
+
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
@@ -141,6 +143,48 @@ statusBlocker:
 		onTransferSuccess,
 		onTransferFail,
 	)
+}
+
+func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+	if !s.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	// Metrics only for Transfers starting from Hedera
+	if sourceChainId != constants.HederaNetworkId {
+
+		if targetChainId != constants.HederaNetworkId {
+			// Majority Reached
+			_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+				transactionId,
+				sourceChainId,
+				targetChainId,
+				asset,
+				constants.MajorityReachedNameSuffix,
+				constants.MajorityReachedHelp,
+			)
+
+			if err != nil {
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.MajorityReachedNameSuffix, err)
+				return
+			}
+		}
+
+		// User Get His Tokens
+		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+			transactionId,
+			sourceChainId,
+			targetChainId,
+			asset,
+			constants.UserGetHisTokensNameSuffix,
+			constants.UserGetHisTokensHelp,
+		)
+
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+			return
+		}
+	}
 }
 
 func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *chan string, hasReceiver bool) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {

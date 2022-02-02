@@ -145,22 +145,26 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 	// Metrics only for Transfers starting from Hedera
 	if sourceChainId != constants.HederaNetworkId {
 
-		// Fee Transfer
-		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
-			transactionId,
-			sourceChainId,
-			targetChainId,
-			asset,
-			constants.FeeTransferredNameSuffix,
-			constants.FeeTransferredHelp,
-		)
-		if err != nil {
-			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
-			return
+		if targetChainId == constants.HederaNetworkId {
+			// Fee Transfer
+			_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+				transactionId,
+				sourceChainId,
+				targetChainId,
+				asset,
+				constants.FeeTransferredNameSuffix,
+				constants.FeeTransferredHelp,
+			)
+			
+			if err != nil {
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
+				return
+			}
+
 		}
 
 		// User Get His Tokens
-		_, err = s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
 			transactionId,
 			sourceChainId,
 			targetChainId,
