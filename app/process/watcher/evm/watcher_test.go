@@ -70,7 +70,7 @@ var (
 		},
 		1: {
 			Tokens: map[string]parser.Token{
-				"0xsomeethaddress": {
+				"0xb083879B1e10C8476802016CB12cd2F25a896691": {
 					Networks: map[int64]string{
 						33: "0x0000000000000000000000000000000000000123",
 					},
@@ -318,8 +318,8 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 		TargetChainId: 1,
 		NativeChainId: int64(1),
 		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   "0xsomeethaddress",
-		NativeAsset:   "0xsomeethaddress",
+		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
 	}
@@ -359,8 +359,8 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		TargetChainId: 1,
 		NativeChainId: int64(1),
 		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   "0xsomeethaddress",
-		NativeAsset:   "0xsomeethaddress",
+		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
 		Timestamp:     "1",
