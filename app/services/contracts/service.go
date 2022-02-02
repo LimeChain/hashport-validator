@@ -78,6 +78,11 @@ func (bsc *Service) HasValidSignaturesLength(signaturesLength *big.Int) (bool, e
 	return bsc.contract.HasValidSignaturesLength(nil, signaturesLength)
 }
 
+// ParseMintLog parses a general typed log to a RouterMint event
+func (bsc *Service) ParseMintLog(log types.Log) (*router.RouterMint, error) {
+	return bsc.contract.ParseMint(log)
+}
+
 // ParseBurnLog parses a general typed log to a RouterBurn event
 func (bsc *Service) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
 	return bsc.contract.ParseBurn(log)
@@ -86,6 +91,11 @@ func (bsc *Service) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
 // ParseLockLog parses a general typed log to a RouterLock event
 func (bsc *Service) ParseLockLog(log types.Log) (*router.RouterLock, error) {
 	return bsc.contract.ParseLock(log)
+}
+
+// ParseUnlockLog parses a general typed log to a RouterUnlock event
+func (bsc *Service) ParseUnlockLog(log types.Log) (*router.RouterUnlock, error) {
+	return bsc.contract.ParseUnlock(log)
 }
 
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract

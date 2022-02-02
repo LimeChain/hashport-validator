@@ -35,6 +35,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math/big"
@@ -49,15 +50,16 @@ type Watcher struct {
 	// of the given EVM watcher. Given that addresses between different
 	// EVM networks might be the same, a concatenation between
 	// <chain-id>-<contract-address> removes possible duplication.
-	dbIdentifier  string
-	contracts     service.Contracts
-	evmClient     client.EVM
-	logger        *log.Entry
-	mappings      c.Assets
-	targetBlock   uint64
-	sleepDuration time.Duration
-	validator     bool
-	filterConfig  FilterConfig
+	dbIdentifier      string
+	contracts         service.Contracts
+	prometheusService service.Prometheus
+	evmClient         client.EVM
+	logger            *log.Entry
+	mappings          c.Assets
+	targetBlock       uint64
+	sleepDuration     time.Duration
+	validator         bool
+	filterConfig      FilterConfig
 }
 
 // Certain node providers (Alchemy, Infura) have a limitation on how many blocks
@@ -74,8 +76,10 @@ type FilterConfig struct {
 	abi               abi.ABI
 	topics            [][]common.Hash
 	addresses         []common.Address
+	mintHash          common.Hash
 	burnHash          common.Hash
 	lockHash          common.Hash
+	unlockHash        common.Hash
 	memberUpdatedHash common.Hash
 	maxLogsBlocks     int64
 }
@@ -83,6 +87,7 @@ type FilterConfig struct {
 func NewWatcher(
 	repository repository.Status,
 	contracts service.Contracts,
+	prometheusService service.Prometheus,
 	evmClient client.EVM,
 	mappings c.Assets,
 	dbIdentifier string,
@@ -101,14 +106,18 @@ func NewWatcher(
 		log.Fatalf("Failed to parse router ABI. Error: [%s]", err)
 	}
 
+	mintHash := abi.Events["Mint"].ID
 	burnHash := abi.Events["Burn"].ID
 	lockHash := abi.Events["Lock"].ID
+	unlockHash := abi.Events["Unlock"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
 
 	topics := [][]common.Hash{
 		{
+			mintHash,
 			burnHash,
 			lockHash,
+			unlockHash,
 			memberUpdatedHash,
 		},
 	}
@@ -125,8 +134,10 @@ func NewWatcher(
 		abi:               abi,
 		topics:            topics,
 		addresses:         addresses,
+		mintHash:          mintHash,
 		burnHash:          burnHash,
 		lockHash:          lockHash,
+		unlockHash:        unlockHash,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     maxLogsBlocks,
 	}
@@ -159,16 +170,17 @@ func NewWatcher(
 		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", dbIdentifier, timestamp.ToHumanReadable(startBlock))
 	}
 	return &Watcher{
-		repository:    repository,
-		dbIdentifier:  dbIdentifier,
-		contracts:     contracts,
-		evmClient:     evmClient,
-		logger:        c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:      mappings,
-		targetBlock:   targetBlock,
-		validator:     validator,
-		sleepDuration: pollingInterval,
-		filterConfig:  filterConfig,
+		repository:        repository,
+		dbIdentifier:      dbIdentifier,
+		contracts:         contracts,
+		prometheusService: prometheusService,
+		evmClient:         evmClient,
+		logger:            c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          mappings,
+		targetBlock:       targetBlock,
+		validator:         validator,
+		sleepDuration:     pollingInterval,
+		filterConfig:      filterConfig,
 	}
 }
 
@@ -247,6 +259,20 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 					continue
 				}
 				ew.handleLockLog(lock, queue)
+			} else if log.Topics[0] == ew.filterConfig.unlockHash {
+				unlock, err := ew.contracts.ParseUnlockLog(log)
+				if err != nil {
+					ew.logger.Errorf("Could not parse unlock log [%s]. Error [%s].", unlock.Raw.TxHash.String(), err)
+					continue
+				}
+				ew.handleUnlockLog(unlock)
+			} else if log.Topics[0] == ew.filterConfig.mintHash {
+				mint, err := ew.contracts.ParseMintLog(log)
+				if err != nil {
+					ew.logger.Errorf("Could not parse mint log [%s]. Error [%s].", mint.Raw.TxHash.String(), err)
+					continue
+				}
+				ew.handleMintLog(mint)
 			} else if log.Topics[0] == ew.filterConfig.burnHash {
 				burn, err := ew.contracts.ParseBurnLog(log)
 				if err != nil {
@@ -274,6 +300,35 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 	return nil
 }
 
+func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
+	ew.logger.Infof("[%s] - New Mint Event Log received.", eventLog.Raw.TxHash)
+
+	if eventLog.Raw.Removed {
+		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
+	}
+
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
+	transactionId := string(eventLog.TransactionId)
+	sourceChainId := eventLog.SourceChain.Int64()
+	targetChainId := chain.Int64()
+	token := eventLog.Token.String()
+
+	// Metrics
+	_ = ew.setUserGetHisTokensMetric(transactionId, sourceChainId, targetChainId, token)
+
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
+	if nativeAsset == nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
+		return
+	}
+}
+
 func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	ew.logger.Debugf("[%s] - New Burn Event Log received.", eventLog.Raw.TxHash)
 
@@ -293,22 +348,34 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
+
 	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
+	sourceChainId := chain.Int64()
+	targetChainId := eventLog.TargetChain.Int64()
+	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
+	token := eventLog.Token.String()
+
+	// Metrics
+	if ew.prometheusService.GetIsMonitoringEnabled() {
+		_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
+		_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+	}
+
 	targetAsset := nativeAsset.Asset
 	// This is the case when you are bridging wrapped to wrapped
-	if eventLog.TargetChain.Int64() != nativeAsset.ChainId {
+	if targetChainId != nativeAsset.ChainId {
 		ew.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
 		return
 	}
 
 	recipientAccount := ""
 	var err error
-	if eventLog.TargetChain.Int64() == 0 {
+	if targetChainId == constants.HederaNetworkId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -320,8 +387,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	properAmount := eventLog.Amount
-	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
+	if targetChainId == constants.HederaNetworkId {
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, token)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
@@ -337,11 +404,11 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	burnEvent := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: chain.Int64(),
-		TargetChainId: eventLog.TargetChain.Int64(),
+		TransactionId: transactionId,
+		SourceChainId: sourceChainId,
+		TargetChainId: targetChainId,
 		NativeChainId: nativeAsset.ChainId,
-		SourceAsset:   eventLog.Token.String(),
+		SourceAsset:   token,
 		TargetAsset:   targetAsset,
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
@@ -356,7 +423,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if burnEvent.TargetChainId == 0 {
+		if burnEvent.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.HederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
@@ -365,7 +432,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		burnEvent.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if burnEvent.TargetChainId == 0 {
+		if burnEvent.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyHederaTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyTransferSave})
@@ -375,6 +442,10 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	ew.logger.Debugf("[%s] - New Lock Event Log received.", eventLog.Raw.TxHash)
+
+	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
+	targetChainId := eventLog.TargetChain.Int64()
+	token := eventLog.Token.String()
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -387,14 +458,19 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 	var chain *big.Int
 	chain, e := ew.evmClient.ChainID(context.Background())
+	sourceChainId := chain.Int64()
 	if e != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
 
+	// Metrics
+	_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
+	_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+
 	recipientAccount := ""
 	var err error
-	if eventLog.TargetChain.Int64() == 0 {
+	if targetChainId == constants.HederaNetworkId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -405,20 +481,20 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	wrappedAsset := ew.mappings.NativeToWrapped(eventLog.Token.String(), chain.Int64(), eventLog.TargetChain.Int64())
+	wrappedAsset := ew.mappings.NativeToWrapped(token, sourceChainId, targetChainId)
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
-	nativeAsset := ew.mappings.FungibleNativeAsset(chain.Int64(), eventLog.Token.String())
+	nativeAsset := ew.mappings.FungibleNativeAsset(sourceChainId, token)
 	if eventLog.Amount.Cmp(nativeAsset.MinAmount) < 0 {
 		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, nativeAsset.MinAmount)
 		return
 	}
 
 	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
-	if eventLog.TargetChain.Int64() == 0 {
-		properAmount, err = ew.contracts.RemoveDecimals(properAmount, eventLog.Token.String())
+	if targetChainId == constants.HederaNetworkId {
+		properAmount, err = ew.contracts.RemoveDecimals(properAmount, token)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
 			return
@@ -430,13 +506,13 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	tr := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: chain.Int64(),
-		TargetChainId: eventLog.TargetChain.Int64(),
-		NativeChainId: chain.Int64(),
-		SourceAsset:   eventLog.Token.String(),
+		TransactionId: transactionId,
+		SourceChainId: sourceChainId,
+		TargetChainId: targetChainId,
+		NativeChainId: sourceChainId,
+		SourceAsset:   token,
 		TargetAsset:   wrappedAsset,
-		NativeAsset:   eventLog.Token.String(),
+		NativeAsset:   token,
 		Receiver:      recipientAccount,
 		Amount:        properAmount.String(),
 	}
@@ -445,13 +521,13 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		eventLog.Raw.TxHash.String(),
 		properAmount,
 		recipientAccount,
-		chain.Int64(),
+		sourceChainId,
 		eventLog.TargetChain.Int64())
 
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if tr.TargetChainId == 0 {
+		if tr.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.HederaMintHtsTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
@@ -460,10 +536,104 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		tr.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if tr.TargetChainId == 0 {
+		if tr.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyTransferSave})
 		}
 	}
+}
+
+func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
+	ew.logger.Debugf("[%s] - New Unlock Event Log received.", eventLog.Raw.TxHash)
+
+	if eventLog.Raw.Removed {
+		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
+		return
+	}
+
+	var chain *big.Int
+	chain, e := ew.evmClient.ChainID(context.Background())
+	if e != nil {
+		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
+		return
+	}
+	transactionId := string(eventLog.TransactionId)
+	sourceChain := eventLog.SourceChain.Int64()
+	targetChain := chain.Int64()
+	token := eventLog.Token.String()
+
+	// Metrics
+	_ = ew.setUserGetHisTokensMetric(transactionId, sourceChain, targetChain, token)
+}
+
+func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) error {
+	if !ew.prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
+	oppositeAsset := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), asset)
+	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		transactionId,
+		sourceChainId,
+		targetChainId,
+		oppositeAsset,
+		constants.UserGetHisTokensNameSuffix,
+		constants.UserGetHisTokensHelp,
+	)
+
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s", transactionId, constants.UserGetHisTokensNameSuffix, err)
+		return err
+	}
+
+	ew.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.UserGetHisTokensNameSuffix)
+	gauge.Set(1)
+
+	return nil
+}
+
+func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
+	if !ew.prometheusService.GetIsMonitoringEnabled() {
+		return nil, nil
+	}
+
+	// User Get His Tokens
+	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		transactionId,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.UserGetHisTokensNameSuffix,
+		constants.UserGetHisTokensHelp,
+	)
+
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+		return nil, err
+	}
+
+	return gauge, nil
+}
+
+func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
+	if !ew.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
+		return nil, nil
+	}
+
+	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		transactionId,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.MajorityReachedNameSuffix,
+		constants.MajorityReachedHelp,
+	)
+
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.MajorityReachedNameSuffix, err)
+		return nil, err
+	}
+
+	return gauge, err
 }

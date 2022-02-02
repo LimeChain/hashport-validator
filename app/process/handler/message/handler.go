@@ -39,8 +39,8 @@ type Handler struct {
 	messages               service.Messages
 	logger                 *log.Entry
 	participationRateGauge prometheus.Gauge
-	enableMonitoring       bool
 	prometheusService      service.Prometheus
+	assetsConfig           config.Assets
 }
 
 func NewHandler(
@@ -49,8 +49,8 @@ func NewHandler(
 	messageRepository repository.Message,
 	contractServices map[int64]service.Contracts,
 	messages service.Messages,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
+	assetsConfig config.Assets,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
@@ -58,8 +58,11 @@ func NewHandler(
 	}
 
 	var participationRate prometheus.Gauge
-	if enableMonitoring && prometheusService != nil {
-		participationRate = prometheusService.CreateAndRegisterGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+	if prometheusService.GetIsMonitoringEnabled() {
+		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
+			constants.ValidatorsParticipationRateGaugeName,
+			constants.ValidatorsParticipationRateGaugeHelp,
+			prometheus.Labels{})
 	}
 
 	return &Handler{
@@ -69,8 +72,8 @@ func NewHandler(
 		messages:               messages,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 		prometheusService:      prometheusService,
-		enableMonitoring:       enableMonitoring,
 		participationRateGauge: participationRate,
+		assetsConfig:           assetsConfig,
 	}
 }
 
@@ -109,6 +112,7 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 	}
 
 	if majorityReached {
+		_ = cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID)
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
@@ -128,16 +132,42 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 	cmh.setParticipationRate(signatureMessages, membersCount)
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
-	return cmh.contracts[targetChainId].
+	majorityReached, err = cmh.contracts[targetChainId].
 		HasValidSignaturesLength(bnSignaturesLength)
+
+	return majorityReached, err
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
-	if !cmh.enableMonitoring {
+	if !cmh.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
 	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
 	cmh.logger.Infof("Percentage callc [%f]", participationRate)
 	cmh.participationRateGauge.Set(participationRate)
+}
+
+func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) error {
+
+	if !cmh.prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
+	asset = cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
+	nameForMetric, err := cmh.prometheusService.ConstructMetricName(
+		sourceChainId,
+		targetChainId,
+		asset,
+		transactionId,
+		constants.MajorityReachedNameSuffix)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
+		return err
+	}
+	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp, prometheus.Labels{})
+	cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedNameSuffix)
+	gauge.Set(1.0)
+
+	return nil
 }

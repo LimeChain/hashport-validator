@@ -119,7 +119,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		clients.MirrorNode,
 		&repositories.transferStatus,
-		services.contractServices))
+		services.contractServices,
+		services.prometheus))
 
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -146,8 +147,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.message,
 		services.contractServices,
 		services.messages,
-		configuration.Node.Monitoring.Enable,
-		services.prometheus))
+		services.prometheus,
+		configuration.Bridge.Assets))
 
 	for _, evmClient := range clients.EVMClients {
 		chain, err := evmClient.ChainID(context.Background())
@@ -164,13 +165,15 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 			evm.NewWatcher(
 				repositories.transferStatus,
 				contractService,
+				services.prometheus,
 				evmClient,
 				configuration.Bridge.Assets,
 				dbIdentifier,
 				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
 				configuration.Node.Validator,
 				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval,
-				configuration.Node.Clients.Evm[chain.Int64()].MaxLogsBlocks))
+				configuration.Node.Clients.Evm[chain.Int64()].MaxLogsBlocks,
+			))
 	}
 
 	// Register read-only handlers
@@ -222,7 +225,6 @@ func initializePrometheusWatcher(
 		dashboardPolling,
 		mirrorNode,
 		configuration,
-		configuration.Node.Monitoring.Enable,
 		prometheusService,
 		EVMClients))
 }
@@ -232,6 +234,7 @@ func addTransferWatcher(configuration *config.Config,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	contractServices map[int64]service.Contracts,
+	prometheusService service.Prometheus,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
 
@@ -245,7 +248,9 @@ func addTransferWatcher(configuration *config.Config,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
 		configuration.Bridge.Assets,
-		configuration.Node.Validator)
+		configuration.Node.Validator,
+		prometheusService,
+	)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
@@ -265,7 +270,6 @@ func addPrometheusWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
 	EVMClients map[int64]client.EVM,
 ) *pw.Watcher {
@@ -274,7 +278,6 @@ func addPrometheusWatcher(
 		dashboardPolling,
 		mirrorNode,
 		configuration,
-		enableMonitoring,
 		prometheusService,
 		EVMClients)
 }

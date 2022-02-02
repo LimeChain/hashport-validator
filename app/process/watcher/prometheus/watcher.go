@@ -25,13 +25,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -41,7 +41,6 @@ type Watcher struct {
 	EVMClients                map[int64]client.EVM
 	configuration             config.Config
 	prometheusService         service.Prometheus
-	enableMonitoring          bool
 	payerAccountBalanceGauge  prometheus.Gauge
 	bridgeAccountBalanceGauge prometheus.Gauge
 	operatorBalanceGauge      prometheus.Gauge
@@ -55,7 +54,6 @@ func NewWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
 	EVMClients map[int64]client.EVM,
 ) *Watcher {
@@ -70,10 +68,10 @@ func NewWatcher(
 		bridgeAccAssetsMetrics = make(map[string]string)
 	)
 
-	if enableMonitoring && prometheusService != nil {
-		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp)
-		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp)
-		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp)
+	if prometheusService.GetIsMonitoringEnabled() {
+		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp, prometheus.Labels{})
+		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp, prometheus.Labels{})
+		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetric(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp, prometheus.Labels{})
 	}
 
 	return &Watcher{
@@ -82,7 +80,6 @@ func NewWatcher(
 		EVMClients:                EVMClients,
 		configuration:             configuration,
 		prometheusService:         prometheusService,
-		enableMonitoring:          enableMonitoring,
 		payerAccountBalanceGauge:  payerAccountBalanceGauge,
 		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
 		operatorBalanceGauge:      operatorBalanceGauge,
@@ -107,7 +104,7 @@ func (pw Watcher) registerAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == 0 { // Hedera
+			if chainId == constants.HederaNetworkId { // Hedera
 				if asset != constants.Hbar {
 					res, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {
@@ -188,23 +185,23 @@ func (pw Watcher) registerEvmAssetBalanceMetric(asset string, name string, addre
 }
 
 func tokenIDtoMetricName(id string) string {
-	replace := strings.Replace(id, constants.DotSymbol, constants.ReplaceDotSymbol, constants.DotSymbolRep)
+	replace := metrics.PrepareIdForPrometheus(id)
 	result := fmt.Sprintf("%s%s", constants.AssetMetricsNamePrefix, replace)
 	return result
 }
 
 func (pw Watcher) initAndRegAssetMetric(asset string, metricsMap map[string]string, name string, help string) {
 	metricsMap[asset] = name
-	pw.initAndRegGauge(name, help)
+	pw.initAndRegGauge(name, help, prometheus.Labels{})
 }
 
-func (pw Watcher) initAndRegGauge(name string, help string) {
-	pw.prometheusService.CreateAndRegisterGaugeMetric(name, help)
+func (pw Watcher) initAndRegGauge(name string, help string, labels prometheus.Labels) {
+	pw.prometheusService.CreateAndRegisterGaugeMetric(name, help, labels)
 	log.Infof("Registered metric with name [%s] help [%s]", name, help)
 }
 
 func (pw Watcher) setMetrics() {
-	if !pw.enableMonitoring {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
@@ -243,7 +240,7 @@ func (pw Watcher) setAssetsMetrics() {
 	fungibleNetworkAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for chainId, assetArr := range fungibleNetworkAssets {
 		for _, asset := range assetArr {
-			if chainId == 0 { // Hedera
+			if chainId == constants.HederaNetworkId { // Hedera
 				if asset != constants.Hbar {
 					token, e := pw.mirrorNode.GetToken(asset)
 					if e != nil {
@@ -270,6 +267,10 @@ func (pw Watcher) setAssetsMetrics() {
 }
 
 func (pw Watcher) setBridgeAccAssetsMetrics(bridgeAcc *model.AccountsResponse) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
 	for _, token := range bridgeAcc.Balance.Tokens {
 		metric := pw.prometheusService.GetGauge(pw.bridgeAccAssetsMetrics[token.TokenID])
 		if metric == nil {
@@ -282,11 +283,19 @@ func (pw Watcher) setBridgeAccAssetsMetrics(bridgeAcc *model.AccountsResponse) {
 }
 
 func (pw Watcher) setHederaAssetSupplyMetric(asset string, token *model.TokenResponse) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
 	totalSupplyMetric := pw.prometheusService.GetGauge(pw.supplyAssetsMetrics[asset])
 	pw.setHederaAssetMetric(totalSupplyMetric, token.TotalSupply, asset)
 }
 
 func (pw Watcher) setHederaNetworkSupply(asset string) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
 	supply, e := pw.mirrorNode.GetNetworkSupply()
 	if e != nil {
 		panic(e)
@@ -305,6 +314,10 @@ func (pw Watcher) setHederaAssetMetric(metric prometheus.Gauge, value string, as
 }
 
 func (pw Watcher) setEvmAssetSupplyMetric(wrappedInstance *wtoken.Wtoken, asset string) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
 	totalSupply, e := wrappedInstance.TotalSupply(&bind.CallOpts{})
 	if e != nil {
 		panic(e)
@@ -314,6 +327,10 @@ func (pw Watcher) setEvmAssetSupplyMetric(wrappedInstance *wtoken.Wtoken, asset 
 }
 
 func (pw Watcher) setEvmAssetBalanceMetric(wrappedInstance *wtoken.Wtoken, asset string, address common.Address) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
 	balance, e := wrappedInstance.BalanceOf(&bind.CallOpts{}, address)
 	if e != nil {
 		panic(e)
