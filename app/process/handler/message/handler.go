@@ -61,7 +61,8 @@ func NewHandler(
 	if prometheusService.GetIsMonitoringEnabled() {
 		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
 			constants.ValidatorsParticipationRateGaugeName,
-			constants.ValidatorsParticipationRateGaugeHelp)
+			constants.ValidatorsParticipationRateGaugeHelp,
+			prometheus.Labels{})
 	}
 
 	return &Handler{
@@ -164,7 +165,7 @@ func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64
 		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
 		return err
 	}
-	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp)
+	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp, prometheus.Labels{})
 	cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedNameSuffix)
 	gauge.Set(1.0)
 

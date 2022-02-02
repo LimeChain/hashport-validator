@@ -23,6 +23,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"sync"
 )
 
@@ -46,7 +47,7 @@ func NewService(assetsConfig config.Assets, isMonitoringEnabled bool) *Service {
 	}
 }
 
-func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
+func (s *Service) CreateAndRegisterGaugeMetric(name string, help string, labels prometheus.Labels) prometheus.Gauge {
 	if !s.isMonitoringEnabled {
 		return nil
 	}
@@ -60,11 +61,12 @@ func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometh
 
 	s.logger.Infof("Creating Gauge Metric '%v' ...", name)
 	opts := prometheus.GaugeOpts{
-		Name: name,
-		Help: help,
+		Name:        name,
+		Help:        help,
+		ConstLabels: labels,
 	}
 	gauge := prometheus.NewGauge(opts)
-	s.logger.Infof("Gauge Metric '%v' successfully created!", name)
+	s.logger.Infof("Gauge Metric '%v' successfully created! Labels: %s", name, labels)
 
 	s.logger.Infof("Registering Gauge Metric '%v' ...", name)
 	prometheus.MustRegister(gauge)
@@ -75,7 +77,7 @@ func (s *Service) CreateAndRegisterGaugeMetric(name string, help string) prometh
 	return gauge
 }
 
-func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricType, metricHelp string) (prometheus.Gauge, error) {
 	if !s.isMonitoringEnabled {
 		return nil, errors.New("monitoring is disabled.")
 	}
@@ -85,14 +87,21 @@ func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId strin
 		uint64(targetChainId),
 		asset,
 		transactionId,
-		metricNameSuffix,
+		metricType,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	gauge := s.CreateAndRegisterGaugeMetric(metricName, metricHelp)
+	gauge := s.CreateAndRegisterGaugeMetric(metricName, metricHelp, prometheus.Labels{
+		"source_network_id": strconv.FormatInt(sourceChainId, 10),
+		"target_network_id": strconv.FormatInt(targetChainId, 10),
+		"asset":             asset,
+		"transaction_id":    transactionId,
+		"metric_type":       metricType,
+	})
+
 	return gauge, nil
 }
 
@@ -120,7 +129,7 @@ func (s *Service) UnregisterGauge(name string) {
 	s.logger.Infof("Gauge Metric '%v' successfully unregisted!", name)
 }
 
-func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prometheus.Counter {
+func (s *Service) CreateAndRegisterCounterMetric(name string, help string, labels prometheus.Labels) prometheus.Counter {
 	if !s.isMonitoringEnabled {
 		return nil
 	}
@@ -134,8 +143,9 @@ func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prome
 
 	s.logger.Infof("Creating Counter Metric '%v' ...", name)
 	opts := prometheus.CounterOpts{
-		Name: name,
-		Help: help,
+		Name:        name,
+		Help:        help,
+		ConstLabels: labels,
 	}
 	counter := prometheus.NewCounter(opts)
 	s.logger.Infof("Counter Metric '%v' successfully created!", name)
@@ -149,14 +159,14 @@ func (s *Service) CreateAndRegisterCounterMetric(name string, help string) prome
 	return counter
 }
 
-func (s *Service) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricTarget string) (string, error) {
+func (s *Service) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricType string) (string, error) {
 	tokenType := constants.Wrapped
 	isNativeAsset := s.assetsConfig.IsNative(int64(sourceNetworkId), asset)
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
 
-	return metrics.ConstructNameForMetric(sourceNetworkId, targetNetworkId, tokenType, transactionId, metricTarget)
+	return metrics.ConstructNameForMetric(sourceNetworkId, targetNetworkId, tokenType, transactionId, metricType)
 }
 
 func (s *Service) GetCounter(name string) prometheus.Counter {
