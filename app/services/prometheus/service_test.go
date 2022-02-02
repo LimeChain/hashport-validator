@@ -36,7 +36,7 @@ func Test_New(t *testing.T) {
 func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
 	defer service.UnregisterGauge(gaugeName)
 
 	assert.NotNil(t, gauge)
@@ -98,7 +98,7 @@ func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 func Test_GetGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
 	defer service.UnregisterGauge(gaugeName)
 	gaugeInMapping := service.GetGauge(gaugeName)
 
@@ -108,7 +108,7 @@ func Test_GetGauge(t *testing.T) {
 func Test_UnregisterGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp)
+	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
 	service.UnregisterGauge(gaugeName)
 
 	gaugeInMapping := service.GetGauge(gaugeName)
@@ -119,7 +119,7 @@ func Test_UnregisterGauge(t *testing.T) {
 func Test_CreateAndRegisterCounterMetric(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
+	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
 	defer service.UnregisterCounter(counterName)
 
 	assert.NotNil(t, counter)
@@ -128,7 +128,7 @@ func Test_CreateAndRegisterCounterMetric(t *testing.T) {
 func Test_GetCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
+	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
 	defer service.UnregisterCounter(counterName)
 	counterInMapping := service.GetCounter(counterName)
 
@@ -138,7 +138,7 @@ func Test_GetCounter(t *testing.T) {
 func Test_UnregisterCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp)
+	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
 	service.UnregisterCounter(counterName)
 
 	counterInMapping := service.GetCounter(counterName)

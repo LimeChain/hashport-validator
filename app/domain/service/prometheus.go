@@ -6,7 +6,7 @@ import (
 
 type Prometheus interface {
 	// CreateAndRegisterGaugeMetric creates new Gauge Metric and registers it in Prometheus
-	CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge
+	CreateAndRegisterGaugeMetric(name string, help string, labels prometheus.Labels) prometheus.Gauge
 	// CreateAndRegisterGaugeMetricForSuccessRate creates new Gauge Metric for Success Rate and registers it in Prometheus
 	CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error)
 	// GetGauge retrieves Gauge by name with flag for existence
@@ -14,7 +14,7 @@ type Prometheus interface {
 	// UnregisterGauge unregisters Gauge with the passed name
 	UnregisterGauge(name string)
 	// CreateAndRegisterCounterMetric creates new Counter Metric and registers it in Prometheus
-	CreateAndRegisterCounterMetric(name string, help string) prometheus.Counter
+	CreateAndRegisterCounterMetric(name string, help string, labels prometheus.Labels) prometheus.Counter
 	// GetCounter retrieves Counter by name with flag for existence
 	GetCounter(name string) prometheus.Counter
 	// UnregisterCounter unregisters Counter with the passed name

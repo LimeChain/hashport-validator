@@ -26,8 +26,8 @@ type MockPrometheusService struct {
 }
 
 // CreateAndRegisterGaugeMetric creates new Gauge Metric and registers it in Prometheus
-func (mps *MockPrometheusService) CreateAndRegisterGaugeMetric(name string, help string) prometheus.Gauge {
-	args := mps.Called(name, help)
+func (mps *MockPrometheusService) CreateAndRegisterGaugeMetric(name string, help string, labels prometheus.Labels) prometheus.Gauge {
+	args := mps.Called(name, help, labels)
 	result := args.Get(0).(prometheus.Gauge)
 	return result
 }
@@ -51,8 +51,8 @@ func (mps *MockPrometheusService) UnregisterGauge(name string) {
 }
 
 // CreateAndRegisterCounterMetric creates new Counter Metric and registers it in Prometheus
-func (mps *MockPrometheusService) CreateAndRegisterCounterMetric(name string, help string) prometheus.Counter {
-	args := mps.Called(name, help)
+func (mps *MockPrometheusService) CreateAndRegisterCounterMetric(name string, help string, labels prometheus.Labels) prometheus.Counter {
+	args := mps.Called(name, help, labels)
 	result := args.Get(0).(prometheus.Counter)
 	return result
 }
