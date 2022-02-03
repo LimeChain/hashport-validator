@@ -33,11 +33,11 @@ func PrepareIdForPrometheus(id string) string {
 
 func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, transactionId, metricTarget string) (string, error) {
 	errMsg := "Network id %v is missing in id to name mapping."
-	sourceNetworkName, exist := constants.NetworkIdToName[sourceNetworkId]
+	sourceNetworkName, exist := constants.NetworksById[sourceNetworkId]
 	if !exist {
 		return "", errors.New(fmt.Sprintf(errMsg, sourceNetworkId))
 	}
-	targetNetworkName, exist := constants.NetworkIdToName[targetNetworkId]
+	targetNetworkName, exist := constants.NetworksById[targetNetworkId]
 	if !exist {
 		return "", errors.New(fmt.Sprintf(errMsg, targetNetworkId))
 	}

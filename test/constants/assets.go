@@ -24,6 +24,7 @@ import (
 var (
 	Networks = map[int64]*parser.Network{
 		0: {
+			Name: "Hedera",
 			Tokens: map[string]parser.Token{
 				constants.Hbar: {
 					Networks: map[int64]string{
@@ -33,6 +34,7 @@ var (
 			},
 		},
 		1: {
+			Name: "Network1",
 			Tokens: map[string]parser.Token{
 				"0xsomeethaddress": {
 					Networks: map[int64]string{
@@ -42,6 +44,7 @@ var (
 			},
 		},
 		2: {
+			Name: "Network2",
 			Tokens: map[string]parser.Token{
 				"0x0000000000000000000000000000000000000000": {
 					Networks: map[int64]string{
@@ -51,6 +54,7 @@ var (
 			},
 		},
 		3: {
+			Name: "Network3",
 			Tokens: map[string]parser.Token{
 				"0x0000000000000000000000000000000000000000": {
 					Networks: map[int64]string{
@@ -60,6 +64,7 @@ var (
 			},
 		},
 		32: {
+			Name: "Network32",
 			Tokens: map[string]parser.Token{
 				"0x0000000000000000000000000000000000000000": {
 					Networks: map[int64]string{
@@ -69,6 +74,7 @@ var (
 			},
 		},
 		33: {
+			Name: "Network33",
 			Tokens: map[string]parser.Token{
 				"0x0000000000000000000000000000000000000000": {
 					Networks: map[int64]string{

@@ -320,13 +320,7 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 	token := eventLog.Token.String()
 
 	// Metrics
-	_ = ew.setUserGetHisTokensMetric(transactionId, sourceChainId, targetChainId, token)
-
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
-	if nativeAsset == nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
-		return
-	}
+	ew.setUserGetHisTokensMetric(transactionId, sourceChainId, targetChainId, token)
 }
 
 func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
@@ -362,8 +356,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 
 	// Metrics
 	if ew.prometheusService.GetIsMonitoringEnabled() {
-		_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
-		_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+		ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
+		ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
 	}
 
 	targetAsset := nativeAsset.Asset
@@ -465,8 +459,8 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	// Metrics
-	_, _ = ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
-	_, _ = ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+	ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
+	ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
 
 	recipientAccount := ""
 	var err error
@@ -552,7 +546,6 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 		return
 	}
 
-	var chain *big.Int
 	chain, e := ew.evmClient.ChainID(context.Background())
 	if e != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
@@ -564,16 +557,16 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	token := eventLog.Token.String()
 
 	// Metrics
-	_ = ew.setUserGetHisTokensMetric(transactionId, sourceChain, targetChain, token)
+	ew.setUserGetHisTokensMetric(transactionId, sourceChain, targetChain, token)
 }
 
-func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) error {
+func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) {
 	if !ew.prometheusService.GetIsMonitoringEnabled() {
-		return nil
+		return
 	}
 
 	oppositeAsset := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), asset)
-	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
@@ -583,23 +576,21 @@ func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId
 	)
 
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s", transactionId, constants.UserGetHisTokensNameSuffix, err)
-		return err
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transactionId, constants.UserGetHisTokensNameSuffix, err)
+		return
 	}
 
 	ew.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.UserGetHisTokensNameSuffix)
 	gauge.Set(1)
-
-	return nil
 }
 
-func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
+func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainId int64, targetChainId int64, asset string) prometheus.Gauge {
 	if !ew.prometheusService.GetIsMonitoringEnabled() {
-		return nil, nil
+		return nil
 	}
 
 	// User Get His Tokens
-	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
@@ -609,19 +600,19 @@ func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainI
 	)
 
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
-		return nil, err
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
+		return nil
 	}
 
-	return gauge, nil
+	return gauge
 }
 
-func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) (prometheus.Gauge, error) {
+func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) prometheus.Gauge {
 	if !ew.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
-		return nil, nil
+		return nil
 	}
 
-	gauge, err := ew.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
@@ -631,9 +622,9 @@ func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceC
 	)
 
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.MajorityReachedNameSuffix, err)
-		return nil, err
+		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.MajorityReachedNameSuffix, err)
+		return nil
 	}
 
-	return gauge, err
+	return gauge
 }
