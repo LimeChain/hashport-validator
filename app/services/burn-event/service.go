@@ -121,19 +121,20 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	wg := new(sync.WaitGroup)
 	wg.Add(countOfTransfers)
 	resultPerTransfer := make([]*bool, countOfTransfers)
-	receiverFound := false
+
+	receiverIndex := -1
 	for index, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
-		if hasReceiver {
-			receiverFound = true
+		if receiverIndex < 0 && hasReceiver {
+			receiverIndex = index
 		}
 		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId, resultPerTransfer[index], wg)
 
 		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
 
-	go s.awaitMinedTransactionAndSetMetricsValueForEVM(wg, resultPerTransfer, event.SourceChainId, event.TargetChainId, event.NativeAsset, event.TransactionId, receiverFound)
+	go s.awaitMinedTransactionAndSetMetricsValue(wg, resultPerTransfer, event.SourceChainId, event.TargetChainId, event.NativeAsset, event.TransactionId, receiverIndex)
 
 }
 
@@ -147,7 +148,7 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 
 		if targetChainId == constants.HederaNetworkId {
 			// Fee Transfer
-			_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+			_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 				transactionId,
 				sourceChainId,
 				targetChainId,
@@ -155,16 +156,16 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 				constants.FeeTransferredNameSuffix,
 				constants.FeeTransferredHelp,
 			)
-			
+
 			if err != nil {
-				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.FeeTransferredNameSuffix, err)
 				return
 			}
 
 		}
 
 		// User Get His Tokens
-		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 			transactionId,
 			sourceChainId,
 			targetChainId,
@@ -174,14 +175,14 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 		)
 
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
 			return
 		}
 
 	}
 }
 
-func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, hasReceiver bool) {
+func (s *Service) awaitMinedTransactionAndSetMetricsValue(wg *sync.WaitGroup, resultPerTransfer []*bool, sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, receiverIndex int) {
 
 	if !s.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId {
 		return
@@ -189,7 +190,7 @@ func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGro
 
 	wg.Wait()
 
-	feeTransferredGauge, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	feeTransferredGauge, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
@@ -199,7 +200,7 @@ func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGro
 	)
 
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.FeeTransferredNameSuffix, err)
+		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.FeeTransferredNameSuffix, err)
 		return
 	}
 
@@ -215,8 +216,8 @@ func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGro
 		s.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.FeeTransferredNameSuffix)
 		feeTransferredGauge.Set(1.0)
 
-		if hasReceiver {
-			userGetHisTokensGauge, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		if receiverIndex >= 0 && *resultPerTransfer[receiverIndex] == true {
+			userGetHisTokensGauge, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 				transactionId,
 				sourceChainId,
 				targetChainId,
@@ -225,7 +226,7 @@ func (s *Service) awaitMinedTransactionAndSetMetricsValueForEVM(wg *sync.WaitGro
 				constants.UserGetHisTokensHelp,
 			)
 			if err != nil {
-				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
 				return
 			}
 
