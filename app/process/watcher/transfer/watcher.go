@@ -254,7 +254,7 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 	}
 
 	// Majority Reached
-	_, err := ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	_, err := ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		tx.TransactionID,
 		sourceChainId,
 		targetChainId,
@@ -264,13 +264,13 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 	)
 
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.MajorityReachedNameSuffix, err)
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.MajorityReachedNameSuffix, err)
 		return
 	}
 
 	if ctw.mappings.IsNative(sourceChainId, asset) {
 		// Fee Transfer
-		_, err = ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		_, err = ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 			tx.TransactionID,
 			sourceChainId,
 			targetChainId,
@@ -281,12 +281,12 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 	}
 
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.FeeTransferredNameSuffix, err)
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.FeeTransferredNameSuffix, err)
 		return
 	}
 
 	// User Get His Tokens
-	_, err = ctw.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	_, err = ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		tx.TransactionID,
 		sourceChainId,
 		targetChainId,
@@ -296,7 +296,7 @@ func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, 
 	)
 
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", tx.TransactionID, constants.UserGetHisTokensNameSuffix, err)
+		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.UserGetHisTokensNameSuffix, err)
 		return
 	}
 

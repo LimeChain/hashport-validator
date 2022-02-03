@@ -238,7 +238,7 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 				return err
 			}
 			if err != nil {
-				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: %s", raw.TxHash.String(), err)
+				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: [%s]", raw.TxHash.String(), err)
 				return err
 			}
 

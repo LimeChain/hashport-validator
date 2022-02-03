@@ -61,7 +61,10 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		Assets:  LoadAssets(bridge.Networks),
 	}
 	for key, value := range bridge.Networks {
-		if key == constants.HederaNetworkId {
+		constants.NetworksByName[value.Name] = uint64(key)
+		constants.NetworksById[uint64(key)] = value.Name
+
+		if value.Name == "Hedera" {
 			config.Hedera = &BridgeHedera{
 				BridgeAccount: value.BridgeAccount,
 				PayerAccount:  value.PayerAccount,

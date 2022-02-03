@@ -538,7 +538,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	targetChainID := int64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	targetChainID := int64(3) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
@@ -601,8 +601,8 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := int64(80001)     // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
-	sourceChain := int64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	chainId := int64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	sourceChain := int64(3) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
 	wrappedEvm := setupEnv.Clients.EVM[sourceChain]
 	now = time.Now()
 	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, sourceChain, setupEnv.NativeEvmToken)

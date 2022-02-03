@@ -59,7 +59,7 @@ func NewHandler(
 
 	var participationRate prometheus.Gauge
 	if prometheusService.GetIsMonitoringEnabled() {
-		participationRate = prometheusService.CreateAndRegisterGaugeMetric(
+		participationRate = prometheusService.CreateAndRegisterGaugeMetricIfNotExists(
 			constants.ValidatorsParticipationRateGaugeName,
 			constants.ValidatorsParticipationRateGaugeHelp,
 			prometheus.Labels{})
@@ -112,7 +112,7 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 	}
 
 	if majorityReached {
-		_ = cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID)
+		cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID)
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
@@ -132,10 +132,7 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 	cmh.setParticipationRate(signatureMessages, membersCount)
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
-	majorityReached, err = cmh.contracts[targetChainId].
-		HasValidSignaturesLength(bnSignaturesLength)
-
-	return majorityReached, err
+	return cmh.contracts[targetChainId].HasValidSignaturesLength(bnSignaturesLength)
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
@@ -148,10 +145,10 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	cmh.participationRateGauge.Set(participationRate)
 }
 
-func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) error {
+func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) {
 
 	if !cmh.prometheusService.GetIsMonitoringEnabled() {
-		return nil
+		return
 	}
 
 	asset = cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
@@ -163,11 +160,10 @@ func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64
 		constants.MajorityReachedNameSuffix)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
-		return err
+		return
 	}
-	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetric(nameForMetric, constants.MajorityReachedHelp, prometheus.Labels{})
+	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetricIfNotExists(nameForMetric, constants.MajorityReachedHelp, prometheus.Labels{})
 	cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedNameSuffix)
 	gauge.Set(1.0)
 
-	return nil
 }

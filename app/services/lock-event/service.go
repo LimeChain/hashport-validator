@@ -155,7 +155,7 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 
 		if targetChainId != constants.HederaNetworkId {
 			// Majority Reached
-			_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+			_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 				transactionId,
 				sourceChainId,
 				targetChainId,
@@ -165,13 +165,13 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 			)
 
 			if err != nil {
-				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.MajorityReachedNameSuffix, err)
+				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.MajorityReachedNameSuffix, err)
 				return
 			}
 		}
 
 		// User Get His Tokens
-		_, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+		_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 			transactionId,
 			sourceChainId,
 			targetChainId,
@@ -181,7 +181,7 @@ func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, so
 		)
 
 		if err != nil {
-			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s.", transactionId, constants.UserGetHisTokensNameSuffix, err)
+			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
 			return
 		}
 	}
@@ -280,7 +280,7 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, even
 }
 
 func (s *Service) setUserGetHisTokensMetric(sourceChainId int64, targetChainId int64, sourceAsset string, transferID string, isTransferSuccessful bool) {
-	gauge, err := s.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transferID,
 		sourceChainId,
 		targetChainId,
@@ -289,7 +289,7 @@ func (s *Service) setUserGetHisTokensMetric(sourceChainId int64, targetChainId i
 		constants.UserGetHisTokensHelp)
 
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s", transferID, constants.UserGetHisTokensNameSuffix, err)
+		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
 	}
 
 	if isTransferSuccessful {

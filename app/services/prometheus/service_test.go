@@ -33,11 +33,11 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, service, actualService)
 }
 
-func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
+func Test_CreateAndRegisterGaugeMetricIfNotExists(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
-	defer service.UnregisterGauge(gaugeName)
+	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
+	defer service.UnregisterAndDeleteGauge(gaugeName)
 
 	assert.NotNil(t, gauge)
 }
@@ -45,17 +45,17 @@ func Test_CreateAndRegisterGaugeMetric(t *testing.T) {
 func Test_ConstructMetricName_Native(t *testing.T) {
 	setup()
 
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, constants.Hedera, constants.Ethereum, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, "Hedera", "Network3", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
 	actual, err := service.ConstructMetricName(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
 
-	assert.Equal(t, err, nil)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, expectedNative, actual)
 }
 
 func Test_ConstructMetricName_Wrapped(t *testing.T) {
 	setup()
 
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, constants.Ethereum, constants.Hedera, "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, "Network3", "Hedera", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
 	actual, err := service.ConstructMetricName(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, err, nil)
@@ -71,14 +71,14 @@ func Test_ConstructMetricName_ShouldThrow(t *testing.T) {
 	assert.Errorf(t, err, expectedError)
 }
 
-func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
+func Test_CreateAndRegisterSuccessRateGaugeMetricIfNotExists(t *testing.T) {
 	setup()
 
 	transactionId := "0.0.1234"
 	sourceChainId := int64(constants.HederaNetworkId)
-	targetChainId := int64(constants.EthereumChainId)
+	targetChainId := int64(constants.NetworksByName["Ethereum"])
 	asset := constants.Hbar
-	gauge, err := service.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := service.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
@@ -88,7 +88,7 @@ func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 
 	fullGaugeName, err2 := service.ConstructMetricName(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
 
-	defer service.UnregisterGauge(fullGaugeName)
+	defer service.UnregisterAndDeleteGauge(fullGaugeName)
 
 	assert.NotNil(t, gauge)
 	assert.Nil(t, err)
@@ -98,29 +98,29 @@ func Test_CreateAndRegisterGaugeMetricForSuccessRate(t *testing.T) {
 func Test_GetGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
-	defer service.UnregisterGauge(gaugeName)
+	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
+	defer service.UnregisterAndDeleteGauge(gaugeName)
 	gaugeInMapping := service.GetGauge(gaugeName)
 
 	assert.NotNil(t, gaugeInMapping)
 }
 
-func Test_UnregisterGauge(t *testing.T) {
+func Test_UnregisterAndDeleteGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetric(gaugeName, gaugeHelp, prometheus.Labels{})
-	service.UnregisterGauge(gaugeName)
+	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
+	service.UnregisterAndDeleteGauge(gaugeName)
 
 	gaugeInMapping := service.GetGauge(gaugeName)
 
 	assert.Nil(t, gaugeInMapping)
 }
 
-func Test_CreateAndRegisterCounterMetric(t *testing.T) {
+func Test_CreateAndRegisterCounterMetricIfNotExists(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
-	defer service.UnregisterCounter(counterName)
+	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
+	defer service.UnregisterAndDeleteCounter(counterName)
 
 	assert.NotNil(t, counter)
 }
@@ -128,18 +128,18 @@ func Test_CreateAndRegisterCounterMetric(t *testing.T) {
 func Test_GetCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
-	defer service.UnregisterCounter(counterName)
+	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
+	defer service.UnregisterAndDeleteCounter(counterName)
 	counterInMapping := service.GetCounter(counterName)
 
 	assert.NotNil(t, counterInMapping)
 }
 
-func Test_UnregisterCounter(t *testing.T) {
+func Test_UnregisterAndDeleteCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetric(counterName, counterHelp, prometheus.Labels{})
-	service.UnregisterCounter(counterName)
+	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
+	service.UnregisterAndDeleteCounter(counterName)
 
 	counterInMapping := service.GetCounter(counterName)
 
@@ -148,6 +148,11 @@ func Test_UnregisterCounter(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	for key, value := range testConstants.Networks {
+		constants.NetworksById[uint64(key)] = value.Name
+		constants.NetworksByName[value.Name] = uint64(key)
+	}
 
 	service = &Service{
 		logger:              config.GetLoggerFor("Prometheus Service"),

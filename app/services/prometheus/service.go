@@ -47,7 +47,7 @@ func NewService(assetsConfig config.Assets, isMonitoringEnabled bool) *Service {
 	}
 }
 
-func (s *Service) CreateAndRegisterGaugeMetric(name string, help string, labels prometheus.Labels) prometheus.Gauge {
+func (s *Service) CreateAndRegisterGaugeMetricIfNotExists(name string, help string, labels prometheus.Labels) prometheus.Gauge {
 	if !s.isMonitoringEnabled {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (s *Service) CreateAndRegisterGaugeMetric(name string, help string, labels 
 	return gauge
 }
 
-func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId string, sourceChainId int64, targetChainId int64, asset, metricType, metricHelp string) (prometheus.Gauge, error) {
+func (s *Service) CreateAndRegisterSuccessRateGaugeMetricIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricType, metricHelp string) (prometheus.Gauge, error) {
 	if !s.isMonitoringEnabled {
 		return nil, errors.New("monitoring is disabled.")
 	}
@@ -94,7 +94,7 @@ func (s *Service) CreateAndRegisterGaugeMetricForSuccessRate(transactionId strin
 		return nil, err
 	}
 
-	gauge := s.CreateAndRegisterGaugeMetric(metricName, metricHelp, prometheus.Labels{
+	gauge := s.CreateAndRegisterGaugeMetricIfNotExists(metricName, metricHelp, prometheus.Labels{
 		"source_network_id": strconv.FormatInt(sourceChainId, 10),
 		"target_network_id": strconv.FormatInt(targetChainId, 10),
 		"asset":             asset,
@@ -117,7 +117,7 @@ func (s *Service) GetGauge(name string) prometheus.Gauge {
 	return gauge
 }
 
-func (s *Service) UnregisterGauge(name string) {
+func (s *Service) UnregisterAndDeleteGauge(name string) {
 	if !s.isMonitoringEnabled {
 		return
 	}
@@ -129,7 +129,7 @@ func (s *Service) UnregisterGauge(name string) {
 	s.logger.Infof("Gauge Metric '%v' successfully unregisted!", name)
 }
 
-func (s *Service) CreateAndRegisterCounterMetric(name string, help string, labels prometheus.Labels) prometheus.Counter {
+func (s *Service) CreateAndRegisterCounterMetricIfNotExists(name string, help string, labels prometheus.Labels) prometheus.Counter {
 	if !s.isMonitoringEnabled {
 		return nil
 	}
@@ -181,7 +181,7 @@ func (s *Service) GetCounter(name string) prometheus.Counter {
 	return counter
 }
 
-func (s *Service) UnregisterCounter(name string) {
+func (s *Service) UnregisterAndDeleteCounter(name string) {
 	if !s.isMonitoringEnabled {
 		return
 	}

@@ -16,8 +16,10 @@
 
 package constants
 
-const Hbar = "HBAR"
-const HederaNetworkId = 0
+const (
+	Hbar            = "HBAR"
+	HederaNetworkId = 0
+)
 
 // Handler topics
 const (

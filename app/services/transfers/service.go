@@ -273,7 +273,7 @@ func (ts *Service) onMinedTransactionsSetMetrics(sourceChainId int64, targetChai
 		return
 	}
 
-	gauge, err := ts.prometheusService.CreateAndRegisterGaugeMetricForSuccessRate(
+	gauge, err := ts.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
 		transferID,
 		sourceChainId,
 		targetChainId,
@@ -282,7 +282,7 @@ func (ts *Service) onMinedTransactionsSetMetrics(sourceChainId int64, targetChai
 		constants.FeeTransferredHelp)
 
 	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: %s", transferID, constants.UserGetHisTokensNameSuffix, err)
+		ts.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
 	}
 
 	ts.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
