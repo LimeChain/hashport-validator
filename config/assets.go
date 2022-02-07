@@ -17,10 +17,13 @@
 package config
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"math/big"
+	"regexp"
 )
 
 type Assets struct {
@@ -62,6 +65,8 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 	fungibleNetworkAssets := make(map[int64][]string)
 	fungibleNativeAssets := make(map[int64]map[string]*NativeAsset)
 
+	re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
+
 	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {
 			nativeToWrapped[nativeChainId] = make(map[string]map[int64]string)
@@ -71,6 +76,10 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 		}
 
 		for nativeAsset, nativeAssetMapping := range network.Tokens.Fungible {
+			if nativeChainId != constants.HederaNetworkId {
+				nativeAsset = common.HexToAddress(nativeAsset).String()
+			}
+
 			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
 				nativeToWrapped[nativeChainId][nativeAsset] = make(map[int64]string)
 			}
@@ -88,6 +97,10 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 
 			fungibleNetworkAssets[nativeChainId] = append(fungibleNetworkAssets[nativeChainId], nativeAsset)
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
+				if isMatch := re.MatchString(wrappedAsset); isMatch {
+					wrappedAsset = common.HexToAddress(wrappedAsset).String()
+				}
+
 				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
 
 				if wrappedToNative[wrappedChainId] == nil {
@@ -99,10 +112,18 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 		}
 
 		for nativeAsset, nativeAssetMapping := range network.Tokens.Nft {
+			if nativeChainId != constants.HederaNetworkId {
+				nativeAsset = common.HexToAddress(nativeAsset).String()
+			}
+
 			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
 				nativeToWrapped[nativeChainId][nativeAsset] = make(map[int64]string)
 			}
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
+				if isMatch := re.MatchString(wrappedAsset); isMatch {
+					wrappedAsset = common.HexToAddress(wrappedAsset).String()
+				}
+
 				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
 				if wrappedToNative[wrappedChainId] == nil {
 					wrappedToNative[wrappedChainId] = make(map[string]*NativeAsset)

@@ -46,7 +46,7 @@ var (
 		TargetChainId: 1,
 		TransferID:    "some-transfer-id",
 		Asset:         "0.0.1",
-		Recipient:     "0xsomeethaddress",
+		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Amount:        "100",
 		Signature:     "custom-signature",
 	}

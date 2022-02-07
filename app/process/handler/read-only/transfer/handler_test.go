@@ -36,7 +36,7 @@ var (
 		TargetChainId: 1,
 		NativeChainId: 0,
 		SourceAsset:   constants.Hbar,
-		TargetAsset:   "0xsomeethaddress",
+		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		NativeAsset:   constants.Hbar,
 		Receiver:      "0xsomeotherethaddress",
 		Amount:        "100",
