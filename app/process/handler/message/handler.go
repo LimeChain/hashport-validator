@@ -22,6 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -59,10 +60,10 @@ func NewHandler(
 
 	var participationRate prometheus.Gauge
 	if prometheusService.GetIsMonitoringEnabled() {
-		participationRate = prometheusService.CreateAndRegisterGaugeMetricIfNotExists(
-			constants.ValidatorsParticipationRateGaugeName,
-			constants.ValidatorsParticipationRateGaugeHelp,
-			prometheus.Labels{})
+		participationRate = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+			Name: constants.ValidatorsParticipationRateGaugeName,
+			Help: constants.ValidatorsParticipationRateGaugeHelp,
+		})
 	}
 
 	return &Handler{
@@ -112,7 +113,16 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 	}
 
 	if majorityReached {
-		cmh.setMajorityReachedMetric(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset, tsm.TransferID)
+		asset := cmh.assetsConfig.GetOppositeAsset(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset)
+		metrics.SetMajorityReached(
+			int64(tsm.SourceChainId),
+			int64(tsm.TargetChainId),
+			asset,
+			tsm.TransferID,
+			cmh.prometheusService,
+			cmh.logger,
+		)
+
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
@@ -143,27 +153,4 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
 	cmh.logger.Infof("Percentage callc [%f]", participationRate)
 	cmh.participationRateGauge.Set(participationRate)
-}
-
-func (cmh *Handler) setMajorityReachedMetric(sourceChainId, targetChainId uint64, asset, transactionId string) {
-
-	if !cmh.prometheusService.GetIsMonitoringEnabled() {
-		return
-	}
-
-	asset = cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
-	nameForMetric, err := cmh.prometheusService.ConstructMetricName(
-		sourceChainId,
-		targetChainId,
-		asset,
-		transactionId,
-		constants.MajorityReachedNameSuffix)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to create name for '%v' metric. Error: [%s]", transactionId, constants.MajorityReachedNameSuffix, err)
-		return
-	}
-	gauge := cmh.prometheusService.CreateAndRegisterGaugeMetricIfNotExists(nameForMetric, constants.MajorityReachedHelp, prometheus.Labels{})
-	cmh.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.MajorityReachedNameSuffix)
-	gauge.Set(1.0)
-
 }

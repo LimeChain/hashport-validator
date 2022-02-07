@@ -31,11 +31,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	helper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math/big"
@@ -317,10 +317,9 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Int64()
 	targetChainId := chain.Int64()
-	token := eventLog.Token.String()
+	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
 
-	// Metrics
-	ew.setUserGetHisTokensMetric(transactionId, sourceChainId, targetChainId, token)
+	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }
 
 func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
@@ -354,13 +353,15 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
 	token := eventLog.Token.String()
 
-	// Metrics
 	if ew.prometheusService.GetIsMonitoringEnabled() {
-		ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
-		ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+		if targetChainId != constants.HederaNetworkId {
+			metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
+		} else {
+			metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
+		}
+		metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
 	}
 
-	targetAsset := nativeAsset.Asset
 	// This is the case when you are bridging wrapped to wrapped
 	if targetChainId != nativeAsset.ChainId {
 		ew.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
@@ -403,7 +404,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		TargetChainId: targetChainId,
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   token,
-		TargetAsset:   targetAsset,
+		TargetAsset:   nativeAsset.Asset,
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
 		Amount:        properAmount.String(),
@@ -458,9 +459,10 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	// Metrics
-	ew.initializeMajorityReachedMetric(transactionId, sourceChainId, targetChainId, token)
-	ew.initializeUserGetHisTokens(transactionId, sourceChainId, targetChainId, token)
+	if targetChainId != constants.HederaNetworkId {
+		metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
+	}
+	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
 
 	recipientAccount := ""
 	var err error
@@ -552,79 +554,9 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 		return
 	}
 	transactionId := string(eventLog.TransactionId)
-	sourceChain := eventLog.SourceChain.Int64()
-	targetChain := chain.Int64()
-	token := eventLog.Token.String()
+	sourceChainId := eventLog.SourceChain.Int64()
+	targetChainId := chain.Int64()
+	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
 
-	// Metrics
-	ew.setUserGetHisTokensMetric(transactionId, sourceChain, targetChain, token)
-}
-
-func (ew *Watcher) setUserGetHisTokensMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) {
-	if !ew.prometheusService.GetIsMonitoringEnabled() {
-		return
-	}
-
-	oppositeAsset := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), asset)
-	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		transactionId,
-		sourceChainId,
-		targetChainId,
-		oppositeAsset,
-		constants.UserGetHisTokensNameSuffix,
-		constants.UserGetHisTokensHelp,
-	)
-
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transactionId, constants.UserGetHisTokensNameSuffix, err)
-		return
-	}
-
-	ew.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transactionId, constants.UserGetHisTokensNameSuffix)
-	gauge.Set(1)
-}
-
-func (ew *Watcher) initializeUserGetHisTokens(transactionId string, sourceChainId int64, targetChainId int64, asset string) prometheus.Gauge {
-	if !ew.prometheusService.GetIsMonitoringEnabled() {
-		return nil
-	}
-
-	// User Get His Tokens
-	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		transactionId,
-		sourceChainId,
-		targetChainId,
-		asset,
-		constants.UserGetHisTokensNameSuffix,
-		constants.UserGetHisTokensHelp,
-	)
-
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
-		return nil
-	}
-
-	return gauge
-}
-
-func (ew *Watcher) initializeMajorityReachedMetric(transactionId string, sourceChainId int64, targetChainId int64, asset string) prometheus.Gauge {
-	if !ew.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || targetChainId == constants.HederaNetworkId {
-		return nil
-	}
-
-	gauge, err := ew.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		transactionId,
-		sourceChainId,
-		targetChainId,
-		asset,
-		constants.MajorityReachedNameSuffix,
-		constants.MajorityReachedHelp,
-	)
-
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.MajorityReachedNameSuffix, err)
-		return nil
-	}
-
-	return gauge
+	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }

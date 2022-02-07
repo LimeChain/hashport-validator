@@ -16,12 +16,10 @@ var (
 	gauge               prometheus.Gauge
 	counter             prometheus.Counter
 	isMonitoringEnabled = true
-	gaugeName           = "GaugeName"
+	gaugeOpts           = prometheus.GaugeOpts{Name: "GaugeName", Help: "GaugeHelp"}
 	gaugeSuffix         = "gauge_suffix"
-	gaugeHelp           = "GaugeHelp"
-	counterName         = "CounterName"
+	counterOpts         = prometheus.CounterOpts{Name: "CounterName", Help: "CounterHelp"}
 	counterSuffix       = "counter_suffix"
-	counterHelp         = "CounterHelp"
 	assets              = config.LoadAssets(testConstants.Networks)
 )
 
@@ -33,11 +31,11 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, service, actualService)
 }
 
-func Test_CreateAndRegisterGaugeMetricIfNotExists(t *testing.T) {
+func Test_CreateGaugeIfNotExists(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
-	defer service.UnregisterAndDeleteGauge(gaugeName)
+	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
+	defer service.DeleteGauge(gaugeOpts.Name)
 
 	assert.NotNil(t, gauge)
 }
@@ -71,24 +69,24 @@ func Test_ConstructMetricName_ShouldThrow(t *testing.T) {
 	assert.Errorf(t, err, expectedError)
 }
 
-func Test_CreateAndRegisterSuccessRateGaugeMetricIfNotExists(t *testing.T) {
+func Test_CreateSuccessRateGaugeIfNotExists(t *testing.T) {
 	setup()
 
 	transactionId := "0.0.1234"
 	sourceChainId := int64(constants.HederaNetworkId)
 	targetChainId := int64(constants.NetworksByName["Ethereum"])
 	asset := constants.Hbar
-	gauge, err := service.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
+	gauge, err := service.CreateSuccessRateGaugeIfNotExists(
 		transactionId,
 		sourceChainId,
 		targetChainId,
 		asset,
 		gaugeSuffix,
-		gaugeHelp)
+		gaugeOpts.Help)
 
 	fullGaugeName, err2 := service.ConstructMetricName(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
 
-	defer service.UnregisterAndDeleteGauge(fullGaugeName)
+	defer service.DeleteGauge(fullGaugeName)
 
 	assert.NotNil(t, gauge)
 	assert.Nil(t, err)
@@ -98,29 +96,29 @@ func Test_CreateAndRegisterSuccessRateGaugeMetricIfNotExists(t *testing.T) {
 func Test_GetGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
-	defer service.UnregisterAndDeleteGauge(gaugeName)
-	gaugeInMapping := service.GetGauge(gaugeName)
+	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
+	defer service.DeleteGauge(gaugeOpts.Name)
+	gaugeInMapping := service.GetGauge(gaugeOpts.Name)
 
 	assert.NotNil(t, gaugeInMapping)
 }
 
-func Test_UnregisterAndDeleteGauge(t *testing.T) {
+func Test_DeleteGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateAndRegisterGaugeMetricIfNotExists(gaugeName, gaugeHelp, prometheus.Labels{})
-	service.UnregisterAndDeleteGauge(gaugeName)
+	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
+	service.DeleteGauge(gaugeOpts.Name)
 
-	gaugeInMapping := service.GetGauge(gaugeName)
+	gaugeInMapping := service.GetGauge(gaugeOpts.Name)
 
 	assert.Nil(t, gaugeInMapping)
 }
 
-func Test_CreateAndRegisterCounterMetricIfNotExists(t *testing.T) {
+func Test_CreateCounterIfNotExists(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
-	defer service.UnregisterAndDeleteCounter(counterName)
+	counter = service.CreateCounterIfNotExists(counterOpts)
+	defer service.DeleteCounter(counterOpts.Name)
 
 	assert.NotNil(t, counter)
 }
@@ -128,20 +126,20 @@ func Test_CreateAndRegisterCounterMetricIfNotExists(t *testing.T) {
 func Test_GetCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
-	defer service.UnregisterAndDeleteCounter(counterName)
-	counterInMapping := service.GetCounter(counterName)
+	counter = service.CreateCounterIfNotExists(counterOpts)
+	defer service.DeleteCounter(counterOpts.Name)
+	counterInMapping := service.GetCounter(counterOpts.Name)
 
 	assert.NotNil(t, counterInMapping)
 }
 
-func Test_UnregisterAndDeleteCounter(t *testing.T) {
+func Test_DeleteCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateAndRegisterCounterMetricIfNotExists(counterName, counterHelp, prometheus.Labels{})
-	service.UnregisterAndDeleteCounter(counterName)
+	counter = service.CreateCounterIfNotExists(counterOpts)
+	service.DeleteCounter(counterOpts.Name)
 
-	counterInMapping := service.GetCounter(counterName)
+	counterInMapping := service.GetCounter(counterOpts.Name)
 
 	assert.Nil(t, counterInMapping)
 }

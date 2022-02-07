@@ -25,15 +25,15 @@ type MockPrometheusService struct {
 	mock.Mock
 }
 
-// CreateAndRegisterGaugeMetricIfNotExists creates new Gauge Metric and registers it in Prometheus if not exists
-func (mps *MockPrometheusService) CreateAndRegisterGaugeMetricIfNotExists(name string, help string, labels prometheus.Labels) prometheus.Gauge {
-	args := mps.Called(name, help, labels)
+// CreateGaugeIfNotExists creates new Gauge Metric and registers it in Prometheus if not exists
+func (mps *MockPrometheusService) CreateGaugeIfNotExists(opts prometheus.GaugeOpts) prometheus.Gauge {
+	args := mps.Called(opts)
 	result := args.Get(0).(prometheus.Gauge)
 	return result
 }
 
-// CreateAndRegisterSuccessRateGaugeMetricIfNotExists creates new Gauge Metric for Success Rate and registers it in Prometheus if not exists
-func (mps *MockPrometheusService) CreateAndRegisterSuccessRateGaugeMetricIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+// CreateSuccessRateGaugeIfNotExists creates new Gauge Metric for Success Rate and registers it in Prometheus if not exists
+func (mps *MockPrometheusService) CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
 	args := mps.Called(transactionId, sourceChainId, targetChainId, asset, metricNameSuffix, metricHelp)
 	return args.Get(0).(prometheus.Gauge), args.Error(1)
 }
@@ -45,14 +45,14 @@ func (mps *MockPrometheusService) GetGauge(name string) prometheus.Gauge {
 	return result
 }
 
-// UnregisterAndDeleteGauge unregisters and deletes Gauge with the passed name
-func (mps *MockPrometheusService) UnregisterAndDeleteGauge(name string) {
+// DeleteGauge unregisters and deletes Gauge with the passed name
+func (mps *MockPrometheusService) DeleteGauge(name string) {
 	_ = mps.Called(name)
 }
 
-// CreateAndRegisterCounterMetricIfNotExists creates new Counter Metric and registers it in Prometheus
-func (mps *MockPrometheusService) CreateAndRegisterCounterMetricIfNotExists(name string, help string, labels prometheus.Labels) prometheus.Counter {
-	args := mps.Called(name, help, labels)
+// CreateCounterIfNotExists creates new Counter Metric and registers it in Prometheus
+func (mps *MockPrometheusService) CreateCounterIfNotExists(opts prometheus.CounterOpts) prometheus.Counter {
+	args := mps.Called(opts)
 	result := args.Get(0).(prometheus.Counter)
 	return result
 }
@@ -70,8 +70,8 @@ func (mps *MockPrometheusService) ConstructMetricName(sourceNetworkId, targetNet
 	return args.Get(0).(string), args.Error(1)
 }
 
-// UnregisterAndDeleteCounter unregisters and deletes Counter with the passed name
-func (mps *MockPrometheusService) UnregisterAndDeleteCounter(name string) {
+// DeleteCounter unregisters and deletes Counter with the passed name
+func (mps *MockPrometheusService) DeleteCounter(name string) {
 	_ = mps.Called(name)
 }
 
