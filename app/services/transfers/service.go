@@ -26,8 +26,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
-	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	syncHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -41,7 +42,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type Service struct {
@@ -229,7 +229,7 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(signatureMessage *mes
 	// Attach update callbacks on Signature HCS Message
 	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", signatureMessage.TransferID, ts.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(signatureMessage.TransferID)
-	ts.mirrorNode.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
+	ts.mirrorNode.WaitForTransaction(hederaHelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }
 
@@ -252,41 +252,40 @@ func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int
 		return
 	}
 
-	countOfTransfers := len(splitTransfers)
-	// Wait Group and resultPerTransfer slice are needed to wait for the end result of the mined transactions
-	// to set metric value.
-	wg := new(sync.WaitGroup)
-	wg.Add(countOfTransfers)
-	resultPerTransfer := make([]*bool, countOfTransfers)
-	for index, splitTransfer := range splitTransfers {
+	var (
+		feeOutParams *hederaHelper.FeeOutParams
+	)
+
+	if ts.prometheusService.GetIsMonitoringEnabled() {
+		feeOutParams = hederaHelper.NewFeeOutParams(len(splitTransfers))
+	}
+
+	for _, splitTransfer := range splitTransfers {
 		fee := -splitTransfer[len(splitTransfer)-1].Amount
 		onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(fee, 10))
-		onSuccess, onFail := ts.scheduledTxMinedCallbacks(resultPerTransfer[index], wg)
+		onSuccess, onFail := ts.scheduledTxMinedCallbacks(feeOutParams, splitTransfer)
 
 		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
-	go hederahelper.AwaitMultipleMinedScheduledTransactions(wg, resultPerTransfer, sourceChainId, targetChainId, nativeAsset, transferID, ts.onMinedTransactionsSetMetrics)
+
+	if ts.prometheusService.GetIsMonitoringEnabled() {
+		go hederaHelper.AwaitMultipleScheduledTransactions(
+			feeOutParams.OutParams,
+			sourceChainId,
+			targetChainId,
+			nativeAsset,
+			transferID,
+			ts.onMinedFeeTransactionsSetMetrics,
+		)
+	}
 }
 
-func (ts *Service) onMinedTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+func (ts *Service) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
 	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false || !ts.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
-	gauge, err := ts.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		transferID,
-		sourceChainId,
-		targetChainId,
-		nativeAsset,
-		constants.FeeTransferredNameSuffix,
-		constants.FeeTransferredHelp)
-
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
-	}
-
-	ts.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
-	gauge.Set(1.0)
+	metrics.SetFeeTransferred(sourceChainId, targetChainId, nativeAsset, transferID, ts.prometheusService, ts.logger)
 }
 
 func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -438,12 +437,14 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (ts *Service) scheduledTxMinedCallbacks(outIsTransferSuccessful *bool, wg *sync.WaitGroup) (onSuccess, onFail func(transactionID string)) {
+func (ts *Service) scheduledTxMinedCallbacks(feeOutParams *hederaHelper.FeeOutParams, splitTransfer []model.Hedera) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
-		defer wg.Done()
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution successful.", transactionID)
-		result := true
-		outIsTransferSuccessful = &result
+
+		if ts.prometheusService.GetIsMonitoringEnabled() {
+			result := true
+			feeOutParams.HandleResultForAwaitedTransfer(&result, false, splitTransfer)
+		}
 
 		err := ts.scheduleRepository.UpdateStatusCompleted(transactionID)
 		if err != nil {
@@ -459,10 +460,11 @@ func (ts *Service) scheduledTxMinedCallbacks(outIsTransferSuccessful *bool, wg *
 	}
 
 	onFail = func(transactionID string) {
-		defer wg.Done()
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution has failed.", transactionID)
 		result := false
-		outIsTransferSuccessful = &result
+		if ts.prometheusService.GetIsMonitoringEnabled() {
+			feeOutParams.HandleResultForAwaitedTransfer(&result, false, splitTransfer)
+		}
 
 		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {

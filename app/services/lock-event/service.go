@@ -21,6 +21,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	syncHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -67,7 +68,7 @@ func NewService(
 }
 
 func (s *Service) ProcessEvent(event transfer.Transfer) {
-	s.initializeSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.SourceAsset)
+	s.initSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.SourceAsset)
 
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
@@ -145,45 +146,17 @@ statusBlocker:
 	)
 }
 
-func (s Service) initializeSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
 	if !s.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
-	// Metrics only for Transfers starting from Hedera
 	if sourceChainId != constants.HederaNetworkId {
-
 		if targetChainId != constants.HederaNetworkId {
-			// Majority Reached
-			_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-				transactionId,
-				sourceChainId,
-				targetChainId,
-				asset,
-				constants.MajorityReachedNameSuffix,
-				constants.MajorityReachedHelp,
-			)
-
-			if err != nil {
-				s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.MajorityReachedNameSuffix, err)
-				return
-			}
+			metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
 		}
 
-		// User Get His Tokens
-		_, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-			transactionId,
-			sourceChainId,
-			targetChainId,
-			asset,
-			constants.UserGetHisTokensNameSuffix,
-			constants.UserGetHisTokensHelp,
-		)
-
-		if err != nil {
-			s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", transactionId, constants.UserGetHisTokensNameSuffix, err)
-			return
-		}
+		metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
 	}
 }
 
@@ -235,7 +208,14 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, even
 	onSuccess = func(transactionID string) {
 
 		if scheduleType == schedule.TRANSFER && s.prometheusService.GetIsMonitoringEnabled() {
-			s.setUserGetHisTokensMetric(event.SourceChainId, event.TargetChainId, event.SourceAsset, event.TransactionId, true)
+			metrics.SetUserGetHisTokens(
+				event.SourceChainId,
+				event.TargetChainId,
+				event.SourceAsset,
+				event.TransactionId,
+				s.prometheusService,
+				s.logger,
+			)
 		}
 
 		s.logger.Debugf("[%s] - Scheduled [%s] TX execution successful.", id, transactionID)
@@ -277,24 +257,4 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, even
 	}
 
 	return onSuccess, onFail
-}
-
-func (s *Service) setUserGetHisTokensMetric(sourceChainId int64, targetChainId int64, sourceAsset string, transferID string, isTransferSuccessful bool) {
-	gauge, err := s.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		transferID,
-		sourceChainId,
-		targetChainId,
-		sourceAsset,
-		constants.UserGetHisTokensNameSuffix,
-		constants.UserGetHisTokensHelp)
-
-	if err != nil {
-		s.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
-	}
-
-	if isTransferSuccessful {
-		s.logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.UserGetHisTokensNameSuffix)
-		gauge.Set(1.0)
-	}
-
 }

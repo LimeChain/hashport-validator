@@ -69,9 +69,9 @@ func NewWatcher(
 	)
 
 	if prometheusService.GetIsMonitoringEnabled() {
-		payerAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetricIfNotExists(constants.FeeAccountAmountGaugeName, constants.FeeAccountAmountGaugeHelp, prometheus.Labels{})
-		bridgeAccountBalanceGauge = prometheusService.CreateAndRegisterGaugeMetricIfNotExists(constants.BridgeAccountAmountGaugeName, constants.BridgeAccountAmountGaugeHelp, prometheus.Labels{})
-		operatorBalanceGauge = prometheusService.CreateAndRegisterGaugeMetricIfNotExists(constants.OperatorAccountAmountName, constants.OperatorAccountAmountHelp, prometheus.Labels{})
+		payerAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.FeeAccountAmountGaugeName, Help: constants.FeeAccountAmountGaugeHelp})
+		bridgeAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.BridgeAccountAmountGaugeName, Help: constants.BridgeAccountAmountGaugeHelp})
+		operatorBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.OperatorAccountAmountName, Help: constants.OperatorAccountAmountHelp})
 	}
 
 	return &Watcher{
@@ -192,12 +192,7 @@ func tokenIDtoMetricName(id string) string {
 
 func (pw Watcher) initAndRegAssetMetric(asset string, metricsMap map[string]string, name string, help string) {
 	metricsMap[asset] = name
-	pw.initAndRegGauge(name, help, prometheus.Labels{})
-}
-
-func (pw Watcher) initAndRegGauge(name string, help string, labels prometheus.Labels) {
-	pw.prometheusService.CreateAndRegisterGaugeMetricIfNotExists(name, help, labels)
-	log.Infof("Registered metric with name [%s] help [%s]", name, help)
+	pw.prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: name, Help: help})
 }
 
 func (pw Watcher) setMetrics() {
