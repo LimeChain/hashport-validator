@@ -413,7 +413,7 @@ func (pw Watcher) setHederaAssetMetric(metric prometheus.Gauge, value string, de
 		panic(e)
 	}
 	metric.Set(*parseValue)
-	log.Infof("The Asset with ID [%s] has Total Supply = %f", asset, parseValue)
+	log.Infof("The Asset with ID [%s] has Total Supply = %f", asset, *parseValue)
 }
 
 func (pw Watcher) setEvmAssetSupplyMetric(wrappedInstance *wtoken.Wtoken, asset string, decimal uint8) {
