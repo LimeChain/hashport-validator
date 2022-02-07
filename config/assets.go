@@ -30,6 +30,8 @@ type Assets struct {
 	fungibleNetworkAssets map[int64][]string
 	// A mapping, storing all fungible native assets per network
 	fungibleNativeAssets map[int64]map[string]*NativeAsset
+	// A mapping, storing all wrapped tokens per native network
+	wrappedToNativeNetwork map[string]int64
 }
 
 type NativeAsset struct {
@@ -84,11 +86,16 @@ func (a Assets) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, ass
 
 }
 
+func (a Assets) GetWrappedToNativeNetwork(wrappedAsset string) int64 {
+	return a.wrappedToNativeNetwork[wrappedAsset]
+}
+
 func LoadAssets(networks map[int64]*parser.Network) Assets {
 	nativeToWrapped := make(map[int64]map[string]map[int64]string)
 	wrappedToNative := make(map[int64]map[string]*NativeAsset)
 	fungibleNetworkAssets := make(map[int64][]string)
 	fungibleNativeAssets := make(map[int64]map[string]*NativeAsset)
+	wrappedToNativeNetwork := make(map[string]int64)
 
 	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {
@@ -117,6 +124,7 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			fungibleNetworkAssets[nativeChainId] = append(fungibleNetworkAssets[nativeChainId], nativeAsset)
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
+				wrappedToNativeNetwork[wrappedAsset] = nativeChainId
 
 				if wrappedToNative[wrappedChainId] == nil {
 					wrappedToNative[wrappedChainId] = make(map[string]*NativeAsset)
@@ -128,10 +136,11 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 	}
 
 	return Assets{
-		nativeToWrapped:       nativeToWrapped,
-		wrappedToNative:       wrappedToNative,
-		fungibleNativeAssets:  fungibleNativeAssets,
-		fungibleNetworkAssets: fungibleNetworkAssets,
+		nativeToWrapped:        nativeToWrapped,
+		wrappedToNative:        wrappedToNative,
+		fungibleNativeAssets:   fungibleNativeAssets,
+		fungibleNetworkAssets:  fungibleNetworkAssets,
+		wrappedToNativeNetwork: wrappedToNativeNetwork,
 	}
 }
 
