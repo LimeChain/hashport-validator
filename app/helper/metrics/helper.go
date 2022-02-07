@@ -19,7 +19,10 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -45,4 +48,94 @@ func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, 
 	transactionId = PrepareIdForPrometheus(transactionId)
 
 	return fmt.Sprintf("%s_%s_to_%s_%s_%s", tokenType, sourceNetworkName, targetNetworkName, transactionId, metricTarget), nil
+}
+
+// Success Rate Metrics //
+
+func CreateUserGetHisTokensIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
+	gauge, err := prometheusService.CreateSuccessRateGaugeIfNotExists(
+		transferID,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.UserGetHisTokensNameSuffix,
+		constants.UserGetHisTokensHelp)
+
+	if err != nil {
+		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
+	}
+	return gauge
+}
+
+func SetUserGetHisTokens(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+	gauge := CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.UserGetHisTokensNameSuffix)
+	gauge.Set(1.0)
+}
+
+func CreateFeeTransferredIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
+	gauge, err := prometheusService.CreateSuccessRateGaugeIfNotExists(
+		transferID,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.FeeTransferredNameSuffix,
+		constants.FeeTransferredHelp)
+
+	if err != nil {
+		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.FeeTransferredNameSuffix, err)
+	}
+	return gauge
+}
+
+func SetFeeTransferred(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+	gauge := CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
+	gauge.Set(1.0)
+}
+
+func CreateMajorityReachedIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return nil
+	}
+
+	gauge, err := prometheusService.CreateSuccessRateGaugeIfNotExists(
+		transferID,
+		sourceChainId,
+		targetChainId,
+		asset,
+		constants.MajorityReachedNameSuffix,
+		constants.MajorityReachedHelp)
+
+	if err != nil {
+		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.MajorityReachedNameSuffix, err)
+	}
+
+	return gauge
+}
+
+func SetMajorityReached(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+	if !prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+	gauge := CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.MajorityReachedNameSuffix)
+	gauge.Set(1.0)
 }

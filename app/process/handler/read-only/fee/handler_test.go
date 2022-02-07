@@ -62,7 +62,8 @@ func Test_NewHandler(t *testing.T) {
 		mocks.MDistributorService,
 		mocks.MFeeService,
 		mocks.MTransferService,
-		mocks.MReadOnlyService))
+		mocks.MReadOnlyService,
+		mocks.MPrometheusService))
 }
 
 func Test_Handle(t *testing.T) {
@@ -129,6 +130,9 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	h = &Handler{
 		transferRepository: mocks.MTransferRepository,
 		feeRepository:      mocks.MFeeRepository,
@@ -139,6 +143,7 @@ func setup() {
 		feeService:         mocks.MFeeService,
 		transfersService:   mocks.MTransferService,
 		readOnlyService:    mocks.MReadOnlyService,
+		prometheusService:  mocks.MPrometheusService,
 		logger:             config.GetLoggerFor("Hedera Transfer and Topic Submission Read-only Handler"),
 	}
 }

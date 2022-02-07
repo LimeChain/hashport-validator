@@ -26,6 +26,7 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -172,7 +173,8 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-	ctw.initializeSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, asset)
+
+	ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, asset)
 
 	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
@@ -248,56 +250,12 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	}
 }
 
-func (ctw Watcher) initializeSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
+func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
 	if !ctw.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 
-	// Majority Reached
-	_, err := ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		tx.TransactionID,
-		sourceChainId,
-		targetChainId,
-		asset,
-		constants.MajorityReachedNameSuffix,
-		constants.MajorityReachedHelp,
-	)
-
-	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.MajorityReachedNameSuffix, err)
-		return
-	}
-
-	if ctw.mappings.IsNative(sourceChainId, asset) {
-		// Fee Transfer
-		_, err = ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-			tx.TransactionID,
-			sourceChainId,
-			targetChainId,
-			asset,
-			constants.FeeTransferredNameSuffix,
-			constants.FeeTransferredHelp,
-		)
-	}
-
-	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.FeeTransferredNameSuffix, err)
-		return
-	}
-
-	// User Get His Tokens
-	_, err = ctw.prometheusService.CreateAndRegisterSuccessRateGaugeMetricIfNotExists(
-		tx.TransactionID,
-		sourceChainId,
-		targetChainId,
-		asset,
-		constants.UserGetHisTokensNameSuffix,
-		constants.UserGetHisTokensHelp,
-	)
-
-	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s].", tx.TransactionID, constants.UserGetHisTokensNameSuffix, err)
-		return
-	}
-
+	metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
 }

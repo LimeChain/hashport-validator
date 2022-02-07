@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -28,7 +29,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"strconv"
-	"sync"
 	"testing"
 )
 
@@ -72,6 +72,11 @@ var (
 		Fees:          []entity.Fee{},
 		Schedules:     nil,
 	}
+
+	hasReceiver    bool
+	splitTransfers [][]transfer.Hedera
+	feeOutParams   *hederaHelper.FeeOutParams
+	userOutParams  *hederaHelper.UserOutParams
 )
 
 func Test_ProcessEvent(t *testing.T) {
@@ -394,87 +399,78 @@ func Test_ScheduledExecutionFailedCreateFeeFails(t *testing.T) {
 }
 
 func Test_ScheduledTxMinedExecutionSuccessCallback(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(nil)
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onSuccess(txId)
 }
 
 func Test_ScheduledTxMinedExecutionSuccessUpdateStatusFails(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-status-fail"))
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusCompleted", txId)
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onSuccess(txId)
 }
 
 func Test_ScheduledTxMinedExecutionFailCallback(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MScheduleRepository.On("UpdateStatusFailed", txId).Return(nil)
 	mocks.MTransferRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(nil)
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	_, onFail := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onFail(txId)
 }
 
 func Test_ScheduledTxMinedExecutionFailUpdateStatusFailedFails(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MScheduleRepository.On("UpdateStatusFailed", txId).Return(errors.New("update-status-fail"))
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusFailed", id)
 	mocks.MFeeRepository.AssertNotCalled(t, "UpdateStatusFailed", txId)
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	_, onFail := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onFail(txId)
 }
 
 func Test_ScheduledTxMinedExecutionFailFeeUpdateFails(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MScheduleRepository.On("UpdateStatusFailed", txId).Return(nil)
 	mocks.MTransferRepository.On("UpdateStatusFailed", id).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusFailed", txId).Return(errors.New("update-fail"))
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	_, onFail := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	_, onFail := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onFail(txId)
 }
 
 func Test_ScheduledTxMinedExecutionSuccessFeeUpdateFails(t *testing.T) {
-	setup()
+	setupScheduledTxMinedCallbacks()
 
 	mocks.MTransferRepository.On("UpdateStatusCompleted", id).Return(nil)
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", txId).Return(nil)
 	mocks.MFeeRepository.On("UpdateStatusCompleted", txId).Return(errors.New("update-fail"))
 
-	resultPerTransfer := true
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	onSuccess, _ := s.scheduledTxMinedCallbacks(id, &resultPerTransfer, wg)
+	onSuccess, _ := s.scheduledTxMinedCallbacks(id, hasReceiver, splitTransfers[0], feeOutParams, userOutParams)
 	onSuccess(txId)
+}
+
+func setupScheduledTxMinedCallbacks() {
+	setup()
+	hasReceiver = true
+	splitTransfer := []transfer.Hedera{{hederaAccount, 10000000}}
+	splitTransfers = append(splitTransfers, splitTransfer)
+	feeOutParams = hederaHelper.NewFeeOutParams(len(splitTransfers))
+	userOutParams = hederaHelper.NewUserOutParams()
 }
 
 func setup() {

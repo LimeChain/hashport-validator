@@ -53,7 +53,7 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(mocks.MScheduleRepository, accountId.String(), mocks.MHederaMirrorClient, mocks.MTransferService, mocks.MReadOnlyService))
+	assert.Equal(t, h, NewHandler(mocks.MScheduleRepository, accountId.String(), mocks.MHederaMirrorClient, mocks.MTransferService, mocks.MReadOnlyService, mocks.MPrometheusService))
 }
 
 func Test_Handle(t *testing.T) {
@@ -90,12 +90,16 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	h = &Handler{
 		bridgeAccount:      accountId,
 		transfersService:   mocks.MTransferService,
 		scheduleRepository: mocks.MScheduleRepository,
 		mirrorNode:         mocks.MHederaMirrorClient,
 		readOnlyService:    mocks.MReadOnlyService,
+		prometheusService:  mocks.MPrometheusService,
 		logger:             config.GetLoggerFor("Hedera Mint and Transfer Handler"),
 	}
 }
