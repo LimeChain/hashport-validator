@@ -17,3 +17,6 @@ application.yml
 .idea/
 db/
 testscenario/
+
+# Mac
+.DS_Store
