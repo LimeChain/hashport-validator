@@ -121,7 +121,7 @@ func (pw Watcher) registerAssetsMetrics() {
 					pw.registerHederaAssetsSupplyMetrics(res, isNativeAsset, nativeNetworkName)
 					pw.registerBridgeAccAssetsMetrics(res, isNativeAsset, nativeNetworkName)
 				} else { // HBAR
-					pw.registerHbarSuppyMetric(asset, isNativeAsset, nativeNetworkName)
+					pw.registerHbarSupplyMetric(asset, isNativeAsset, nativeNetworkName)
 				}
 			} else { // EVM
 				evm := pw.EVMClients[chainId].GetClient()
@@ -182,7 +182,7 @@ func (pw Watcher) registerHederaAssetsSupplyMetrics(
 	pw.initAndRegAssetMetric(res.TokenID, pw.supplyAssetsMetrics, name, help, res.Name)
 }
 
-func (pw Watcher) registerHbarSuppyMetric(asset string, isNativeAsset bool, nativeNetworkName string) {
+func (pw Watcher) registerHbarSupplyMetric(asset string, isNativeAsset bool, nativeNetworkName string) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
