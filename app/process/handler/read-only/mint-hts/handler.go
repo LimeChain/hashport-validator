@@ -23,7 +23,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -108,17 +107,6 @@ func (fmh *Handler) Handle(payload interface{}) {
 			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
-
-			if status == entityStatus.Completed {
-				metrics.SetFeeTransferred(
-					transferMsg.SourceChainId,
-					transferMsg.TargetChainId,
-					transferMsg.SourceAsset,
-					transferMsg.TransactionId,
-					fmh.prometheusService,
-					fmh.logger,
-				)
-			}
 
 			return fmh.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,

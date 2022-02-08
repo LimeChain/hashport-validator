@@ -359,6 +359,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		} else {
 			metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
 		}
+
 		metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
 	}
 
@@ -553,13 +554,11 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
+
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Int64()
 	targetChainId := chain.Int64()
 	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
-	if sourceChainId == constants.HederaNetworkId {
-		metrics.SetFeeTransferred(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
-	}
 }
