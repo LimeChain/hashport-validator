@@ -185,7 +185,7 @@ func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceCh
 
 func (s *Service) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
 
-	if !s.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || !isTransferSuccessful {
+	if !s.prometheusService.GetIsMonitoringEnabled() || targetChainId != constants.HederaNetworkId || !isTransferSuccessful {
 		return
 	}
 
