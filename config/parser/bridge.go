@@ -25,6 +25,7 @@ type Bridge struct {
 }
 
 type Network struct {
+	Name                  string           `yaml:"name" json:"name,omitempty"`
 	BridgeAccount         string           `yaml:"bridge_account" json:"bridgeAccount,omitempty"`
 	PayerAccount          string           `yaml:"payer_account" json:"payerAccount,omitempty"`
 	RouterContractAddress string           `yaml:"router_contract_address" json:"routerContractAddress,omitempty"`

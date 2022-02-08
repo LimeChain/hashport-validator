@@ -26,6 +26,7 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -38,16 +39,17 @@ import (
 )
 
 type Watcher struct {
-	transfers        service.Transfers
-	client           client.MirrorNode
-	accountID        hedera.AccountID
-	pollingInterval  time.Duration
-	statusRepository repository.Status
-	targetTimestamp  int64
-	logger           *log.Entry
-	contractServices map[int64]service.Contracts
-	mappings         config.Assets
-	validator        bool
+	transfers         service.Transfers
+	client            client.MirrorNode
+	accountID         hedera.AccountID
+	pollingInterval   time.Duration
+	statusRepository  repository.Status
+	targetTimestamp   int64
+	logger            *log.Entry
+	contractServices  map[int64]service.Contracts
+	mappings          config.Assets
+	validator         bool
+	prometheusService service.Prometheus
 }
 
 func NewWatcher(
@@ -60,6 +62,7 @@ func NewWatcher(
 	contractServices map[int64]service.Contracts,
 	mappings config.Assets,
 	validator bool,
+	prometheusService service.Prometheus,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -91,16 +94,17 @@ func NewWatcher(
 	}
 
 	return &Watcher{
-		transfers:        transfers,
-		client:           client,
-		accountID:        id,
-		pollingInterval:  pollingInterval,
-		statusRepository: repository,
-		targetTimestamp:  targetTimestamp,
-		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices: contractServices,
-		mappings:         mappings,
-		validator:        validator,
+		transfers:         transfers,
+		client:            client,
+		accountID:         id,
+		pollingInterval:   pollingInterval,
+		statusRepository:  repository,
+		targetTimestamp:   targetTimestamp,
+		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:  contractServices,
+		mappings:          mappings,
+		validator:         validator,
+		prometheusService: prometheusService,
 	}
 }
 
@@ -155,7 +159,9 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 }
 
 func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
+
 	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
+
 	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
@@ -167,6 +173,8 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
 	}
+
+	ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, asset)
 
 	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
 	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
@@ -211,7 +219,7 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 
 	transferMessage := transfer.New(
 		tx.TransactionID,
-		0,
+		constants.HederaNetworkId,
 		targetChainId,
 		nativeAsset.ChainId,
 		receiverAddress,
@@ -227,17 +235,29 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 	}
 
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
-		if nativeAsset.ChainId == 0 {
+		if nativeAsset.ChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
 		}
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
-		if nativeAsset.ChainId == 0 {
+		if nativeAsset.ChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
 		}
 	}
+}
+
+func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
+	if !ctw.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	if ctw.mappings.IsNative(constants.HederaNetworkId, asset) && targetChainId != constants.HederaNetworkId {
+		metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	}
+	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
 }

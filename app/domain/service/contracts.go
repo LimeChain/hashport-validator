@@ -40,10 +40,14 @@ type Contracts interface {
 	IsMember(address string) bool
 	// HasValidSignaturesLength returns whether the signatures are enough for submission
 	HasValidSignaturesLength(*big.Int) (bool, error)
+	// ParseMintLog parses a general typed log to a RouterMint event
+	ParseMintLog(log types.Log) (*abi.RouterMint, error)
 	// ParseBurnLog parses a general typed log to a RouterBurn event
 	ParseBurnLog(log types.Log) (*abi.RouterBurn, error)
 	// ParseLockLog parses a general typed log to a RouterLock event
 	ParseLockLog(log types.Log) (*abi.RouterLock, error)
+	// ParseUnlockLog parses a general typed log to a RouterUnlock event
+	ParseUnlockLog(log types.Log) (*abi.RouterUnlock, error)
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract

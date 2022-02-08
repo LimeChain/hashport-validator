@@ -24,12 +24,15 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	util "github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	entityStatus "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -45,6 +48,7 @@ type Handler struct {
 	distributorService service.Distributor
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
+	prometheusService  service.Prometheus
 	logger             *log.Entry
 }
 
@@ -57,7 +61,8 @@ func NewHandler(
 	distributorService service.Distributor,
 	feeService service.Fee,
 	transfersService service.Transfers,
-	readOnlyService service.ReadOnly) *Handler {
+	readOnlyService service.ReadOnly,
+	prometheusServices service.Prometheus) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -73,10 +78,11 @@ func NewHandler(
 		logger:             config.GetLoggerFor("Hedera Fee and Schedule Transfer Read-only Handler"),
 		transfersService:   transfersService,
 		readOnlyService:    readOnlyService,
+		prometheusService:  prometheusServices,
 	}
 }
 
-func (fmh Handler) Handle(payload interface{}) {
+func (fmh *Handler) Handle(payload interface{}) {
 	transferMsg, ok := payload.(*model.Transfer)
 	if !ok {
 		fmh.logger.Errorf("Could not cast payload [%s]", payload)
@@ -95,7 +101,7 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != status.Initial {
+	if transactionRecord.Status != entityStatus.Initial {
 		fmh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
@@ -132,12 +138,32 @@ func (fmh Handler) Handle(payload interface{}) {
 			Amount:    -intAmount,
 		})
 
+	var (
+		feeOutParams  *hederaHelper.FeeOutParams
+		userOutParams *hederaHelper.UserOutParams
+	)
+
+	if fmh.prometheusService.GetIsMonitoringEnabled() {
+		feeOutParams = hederaHelper.NewFeeOutParams(len(splitTransfers))
+		userOutParams = hederaHelper.NewUserOutParams()
+	}
+
 	for _, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.TargetAsset, splitTransfer, func() (*mirror_node.Response, error) {
 			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		}, func(transactionID, scheduleID, status string) error {
+			result := false
+			if status == entityStatus.Completed {
+				result = true
+			}
+
+			if fmh.prometheusService.GetIsMonitoringEnabled() {
+				feeOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver, splitTransfer)
+				userOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver)
+			}
+
 			err := fmh.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,
@@ -169,4 +195,48 @@ func (fmh Handler) Handle(payload interface{}) {
 			return err
 		})
 	}
+
+	fmh.startAwaitingFunctionsForMetrics(userOutParams, transferMsg, feeOutParams)
+}
+
+func (fmh *Handler) startAwaitingFunctionsForMetrics(userOutParams *hederaHelper.UserOutParams, transferMsg *model.Transfer, feeOutParams *hederaHelper.FeeOutParams) {
+	if !fmh.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	// Await results to set metrics for 'user_get_his_tokens'
+	go hederaHelper.AwaitMultipleScheduledTransactions(
+		userOutParams.OutParams,
+		transferMsg.SourceChainId,
+		transferMsg.TargetChainId,
+		transferMsg.TargetAsset,
+		transferMsg.TransactionId,
+		fmh.onMinedUserTransactionSetMetrics,
+	)
+
+	// Await results to set metrics for 'fee_transferred'
+	go hederaHelper.AwaitMultipleScheduledTransactions(
+		feeOutParams.OutParams,
+		transferMsg.SourceChainId,
+		transferMsg.TargetChainId,
+		transferMsg.TargetAsset,
+		transferMsg.TransactionId,
+		fmh.onMinedFeeTransactionsSetMetrics,
+	)
+}
+
+func (fmh *Handler) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+	if sourceChainId == constants.HederaNetworkId || isTransferSuccessful == false || !fmh.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	metrics.SetFeeTransferred(sourceChainId, targetChainId, nativeAsset, transferID, fmh.prometheusService, fmh.logger)
+}
+
+func (fmh *Handler) onMinedUserTransactionSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+	if sourceChainId == constants.HederaNetworkId || isTransferSuccessful == false || !fmh.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, nativeAsset, transferID, fmh.prometheusService, fmh.logger)
 }

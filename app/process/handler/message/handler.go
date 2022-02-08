@@ -22,6 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -39,8 +40,8 @@ type Handler struct {
 	messages               service.Messages
 	logger                 *log.Entry
 	participationRateGauge prometheus.Gauge
-	enableMonitoring       bool
 	prometheusService      service.Prometheus
+	assetsConfig           config.Assets
 }
 
 func NewHandler(
@@ -49,8 +50,8 @@ func NewHandler(
 	messageRepository repository.Message,
 	contractServices map[int64]service.Contracts,
 	messages service.Messages,
-	enableMonitoring bool,
 	prometheusService service.Prometheus,
+	assetsConfig config.Assets,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
@@ -58,8 +59,11 @@ func NewHandler(
 	}
 
 	var participationRate prometheus.Gauge
-	if enableMonitoring && prometheusService != nil {
-		participationRate = prometheusService.CreateAndRegisterGaugeMetric(constants.ValidatorsParticipationRateGaugeName, constants.ValidatorsParticipationRateGaugeHelp)
+	if prometheusService.GetIsMonitoringEnabled() {
+		participationRate = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+			Name: constants.ValidatorsParticipationRateGaugeName,
+			Help: constants.ValidatorsParticipationRateGaugeHelp,
+		})
 	}
 
 	return &Handler{
@@ -69,8 +73,8 @@ func NewHandler(
 		messages:               messages,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 		prometheusService:      prometheusService,
-		enableMonitoring:       enableMonitoring,
 		participationRateGauge: participationRate,
+		assetsConfig:           assetsConfig,
 	}
 }
 
@@ -109,6 +113,16 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 	}
 
 	if majorityReached {
+		asset := cmh.assetsConfig.GetOppositeAsset(tsm.SourceChainId, tsm.TargetChainId, tsm.Asset)
+		metrics.SetMajorityReached(
+			int64(tsm.SourceChainId),
+			int64(tsm.TargetChainId),
+			asset,
+			tsm.TransferID,
+			cmh.prometheusService,
+			cmh.logger,
+		)
+
 		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
@@ -128,12 +142,11 @@ func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (major
 	cmh.setParticipationRate(signatureMessages, membersCount)
 	cmh.logger.Infof("[%s] - Collected [%d/%d] Signatures", transferID, len(signatureMessages), membersCount)
 
-	return cmh.contracts[targetChainId].
-		HasValidSignaturesLength(bnSignaturesLength)
+	return cmh.contracts[targetChainId].HasValidSignaturesLength(bnSignaturesLength)
 }
 
 func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, membersCount int) {
-	if !cmh.enableMonitoring {
+	if !cmh.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
 

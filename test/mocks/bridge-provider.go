@@ -53,6 +53,17 @@ func (m *MockBridgeContract) GetClient() client.Core {
 	panic("implement me")
 }
 
+func (m *MockBridgeContract) ParseMintLog(log types.Log) (*router.RouterMint, error) {
+	args := m.Called(log)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(*router.RouterMint), nil
+	}
+	return args.Get(0).(*router.RouterMint), args.Get(1).(error)
+}
+
 func (m *MockBridgeContract) ParseBurnLog(log types.Log) (*router.RouterBurn, error) {
 	args := m.Called(log)
 	if args[0] == nil {
@@ -73,6 +84,18 @@ func (m *MockBridgeContract) ParseLockLog(log types.Log) (*router.RouterLock, er
 		return args.Get(0).(*router.RouterLock), nil
 	}
 	return args.Get(0).(*router.RouterLock), args.Get(1).(error)
+}
+
+// ParseUnlockLog parses a general typed log to a RouterUnlock event
+func (m *MockBridgeContract) ParseUnlockLog(log types.Log) (*router.RouterUnlock, error) {
+	args := m.Called(log)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(*router.RouterUnlock), nil
+	}
+	return args.Get(0).(*router.RouterUnlock), args.Get(1).(error)
 }
 
 func (m *MockBridgeContract) IsMember(address string) bool {

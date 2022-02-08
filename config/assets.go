@@ -58,6 +58,32 @@ func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
 	return a.fungibleNativeAssets[id][asset]
 }
 
+func (a Assets) IsNative(networkId int64, asset string) bool {
+	_, isNative := a.nativeToWrapped[networkId][asset]
+	return isNative
+}
+
+func (a Assets) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
+	sourceChainIdCasted, targetChainIdCasted := int64(sourceChainId), int64(targetChainId)
+
+	nativeAssetForTargetChain := a.WrappedToNative(asset, sourceChainIdCasted)
+	if nativeAssetForTargetChain != nil {
+		return nativeAssetForTargetChain.Asset
+	}
+
+	nativeAssetForSourceChain := a.WrappedToNative(asset, targetChainIdCasted)
+	if nativeAssetForSourceChain != nil {
+		return nativeAssetForSourceChain.Asset
+	}
+
+	if a.IsNative(sourceChainIdCasted, asset) {
+		return a.NativeToWrapped(asset, sourceChainIdCasted, targetChainIdCasted)
+	} else {
+		return a.NativeToWrapped(asset, targetChainIdCasted, sourceChainIdCasted)
+	}
+
+}
+
 func LoadAssets(networks map[int64]*parser.Network) Assets {
 	nativeToWrapped := make(map[int64]map[string]map[int64]string)
 	wrappedToNative := make(map[int64]map[string]*NativeAsset)

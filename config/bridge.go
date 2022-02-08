@@ -18,6 +18,7 @@ package config
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"math/big"
 )
 
@@ -60,7 +61,10 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		Assets:  LoadAssets(bridge.Networks),
 	}
 	for key, value := range bridge.Networks {
-		if key == 0 {
+		constants.NetworksByName[value.Name] = uint64(key)
+		constants.NetworksById[uint64(key)] = value.Name
+
+		if value.Name == "Hedera" {
 			config.Hedera = &BridgeHedera{
 				BridgeAccount: value.BridgeAccount,
 				PayerAccount:  value.PayerAccount,

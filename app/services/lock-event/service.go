@@ -21,12 +21,14 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
+	syncHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -37,6 +39,7 @@ type Service struct {
 	scheduleRepository repository.Schedule
 	transferService    service.Transfers
 	scheduledService   service.Scheduled
+	prometheusService  service.Prometheus
 	logger             *log.Entry
 }
 
@@ -45,7 +48,8 @@ func NewService(
 	repository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	scheduled service.Scheduled,
-	transferService service.Transfers) *Service {
+	transferService service.Transfers,
+	prometheusService service.Prometheus) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -58,11 +62,14 @@ func NewService(
 		scheduleRepository: scheduleRepository,
 		scheduledService:   scheduled,
 		transferService:    transferService,
+		prometheusService:  prometheusService,
 		logger:             config.GetLoggerFor("Lock Event Service"),
 	}
 }
 
-func (s Service) ProcessEvent(event transfer.Transfer) {
+func (s *Service) ProcessEvent(event transfer.Transfer) {
+	s.initSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.SourceAsset)
+
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
@@ -81,8 +88,8 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 
 	status := make(chan string)
 
+	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status, event, schedule.MINT)
 	onExecutionMintSuccess, onExecutionMintFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.MINT, &status, false)
-	onTokenMintSuccess, onTokenMintFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status)
 
 	s.scheduledService.ExecuteScheduledMintTransaction(
 		event.TransactionId,
@@ -100,10 +107,10 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 statusBlocker:
 	for {
 		switch <-status {
-		case sync.DONE:
+		case syncHelper.DONE:
 			s.logger.Debugf("[%s] - Proceeding to submit the Scheduled Transfer Transaction.", event.TransactionId)
 			break statusBlocker
-		case sync.FAIL:
+		case syncHelper.FAIL:
 			s.logger.Errorf("[%s] - Failed to await the execution of Scheduled Mint Transaction.", event.TransactionId)
 			return
 		}
@@ -126,7 +133,7 @@ statusBlocker:
 	}
 
 	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.TRANSFER, &status, true)
-	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status)
+	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status, event, schedule.TRANSFER)
 
 	s.scheduledService.ExecuteScheduledTransferTransaction(
 		event.TransactionId,
@@ -137,6 +144,20 @@ statusBlocker:
 		onTransferSuccess,
 		onTransferFail,
 	)
+}
+
+func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+	if !s.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	if sourceChainId != constants.HederaNetworkId {
+		if targetChainId != constants.HederaNetworkId {
+			metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
+		}
+
+		metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
+	}
 }
 
 func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *chan string, hasReceiver bool) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -156,7 +177,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 			},
 		})
 		if err != nil {
-			*blocker <- sync.FAIL
+			*blocker <- syncHelper.FAIL
 			s.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				id, transactionID, scheduleID, err)
@@ -165,7 +186,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*blocker <- sync.FAIL
+		*blocker <- syncHelper.FAIL
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Status:        status.Failed,
@@ -183,8 +204,20 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string) (onSuccess, onFail func(transactionID string)) {
+func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, event transfer.Transfer, scheduleType string) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
+
+		if scheduleType == schedule.TRANSFER && s.prometheusService.GetIsMonitoringEnabled() {
+			metrics.SetUserGetHisTokens(
+				event.SourceChainId,
+				event.TargetChainId,
+				event.SourceAsset,
+				event.TransactionId,
+				s.prometheusService,
+				s.logger,
+			)
+		}
+
 		s.logger.Debugf("[%s] - Scheduled [%s] TX execution successful.", id, transactionID)
 
 		err := s.repository.UpdateStatusCompleted(id)
@@ -199,15 +232,16 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string) (onS
 		}
 
 		if err != nil {
-			*status <- sync.FAIL
+			*status <- syncHelper.FAIL
 			s.logger.Errorf("[%s] - Failed to update scheduled [%s] status completed. Error [%s].", id, transactionID, err)
 			return
 		}
-		*status <- sync.DONE
+		*status <- syncHelper.DONE
 	}
 
 	onFail = func(transactionID string) {
-		*status <- sync.FAIL
+
+		*status <- syncHelper.FAIL
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
 		err := s.scheduleRepository.UpdateStatusFailed(id)
 		if err != nil {

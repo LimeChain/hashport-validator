@@ -24,10 +24,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
@@ -41,7 +40,6 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	enableMonitoring = true
 
 	tesm = &proto.TopicEthSignatureMessage{
 		SourceChainId:        0,
@@ -56,11 +54,13 @@ var (
 	tsm = message.Message{
 		TopicEthSignatureMessage: tesm,
 	}
+
+	assets config.Assets
 )
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, enableMonitoring, mocks.MPrometheusService))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -146,27 +146,17 @@ func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	opts := prometheus.GaugeOpts{
-		Name: constants.ValidatorsParticipationRateGaugeName,
-		Help: constants.ValidatorsParticipationRateGaugeHelp,
-	}
-	gauge := prometheus.NewGauge(opts)
-
-	mocks.MPrometheusService.On(
-		"CreateAndRegisterGaugeMetric",
-		constants.ValidatorsParticipationRateGaugeName,
-		constants.ValidatorsParticipationRateGaugeHelp).Return(gauge)
-	mocks.MPrometheusService.On("GetGauge", constants.ValidatorsParticipationRateGaugeName).Return(gauge)
-
+	assets = config.LoadAssets(constants.Networks)
 	h = &Handler{
 		transferRepository:     mocks.MTransferRepository,
 		messageRepository:      mocks.MMessageRepository,
 		contracts:              map[int64]service.Contracts{1: mocks.MBridgeContractService},
 		messages:               mocks.MMessageService,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
-		enableMonitoring:       enableMonitoring,
 		prometheusService:      mocks.MPrometheusService,
-		participationRateGauge: gauge,
+		assetsConfig:           assets,
+		participationRateGauge: nil,
 	}
 }
