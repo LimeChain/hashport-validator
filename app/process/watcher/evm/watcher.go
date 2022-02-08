@@ -559,4 +559,7 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
+	if sourceChainId == constants.HederaNetworkId {
+		metrics.SetFeeTransferred(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
+	}
 }
