@@ -256,6 +256,8 @@ func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, source
 	}
 
 	metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
-	metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	if ctw.mappings.IsNative(constants.HederaNetworkId, asset) && targetChainId != constants.HederaNetworkId {
+		metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+	}
 	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
 }

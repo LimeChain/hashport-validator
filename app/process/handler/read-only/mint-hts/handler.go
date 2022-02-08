@@ -110,7 +110,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 		func(transactionID, scheduleID, status string) error {
 
 			if status == entityStatus.Completed {
-				metrics.SetFeeTransferred(
+				metrics.SetUserGetHisTokens(
 					transferMsg.SourceChainId,
 					transferMsg.TargetChainId,
 					transferMsg.SourceAsset,
