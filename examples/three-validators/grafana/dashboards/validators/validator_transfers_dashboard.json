@@ -321,7 +321,7 @@
           "refId": "A"
         }
       ],
-      "title": "[Success Rate] All Networks (without user_get_his_tokens)",
+      "title": "[Success Rate] All Networks (without user_get_his_tokens metric)",
       "type": "stat"
     },
     {
@@ -411,7 +411,7 @@
           "refId": "A"
         }
       ],
-      "title": "[Transfers Status] All Networks (without user_get_his_tokens)",
+      "title": "[Transfers Status] All Networks (without user_get_his_tokens metric)",
       "type": "timeseries"
     },
     {
