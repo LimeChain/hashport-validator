@@ -72,9 +72,27 @@ func NewWatcher(
 	)
 
 	if prometheusService.GetIsMonitoringEnabled() {
-		payerAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.FeeAccountAmountGaugeName, Help: constants.FeeAccountAmountGaugeHelp})
-		bridgeAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.BridgeAccountAmountGaugeName, Help: constants.BridgeAccountAmountGaugeHelp})
-		operatorBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{Name: constants.OperatorAccountAmountName, Help: constants.OperatorAccountAmountHelp})
+		payerAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+			Name: constants.FeeAccountAmountGaugeName,
+			Help: constants.FeeAccountAmountGaugeHelp,
+			ConstLabels: prometheus.Labels{
+				"account_id": configuration.Bridge.Hedera.PayerAccount,
+			},
+		})
+		bridgeAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+			Name: constants.BridgeAccountAmountGaugeName,
+			Help: constants.BridgeAccountAmountGaugeHelp,
+			ConstLabels: prometheus.Labels{
+				"account_id": configuration.Bridge.Hedera.BridgeAccount,
+			},
+		})
+		operatorBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+			Name: constants.OperatorAccountAmountName,
+			Help: constants.OperatorAccountAmountHelp,
+			ConstLabels: prometheus.Labels{
+				"account_id": configuration.Node.Clients.Hedera.Operator.AccountId,
+			},
+		})
 	}
 
 	return &Watcher{
@@ -134,10 +152,14 @@ func (pw Watcher) registerAssetsMetrics() {
 				if e != nil {
 					panic(e)
 				}
+				symbol, e := wrappedInstance.Symbol(&bind.CallOpts{})
+				if e != nil {
+					panic(e)
+				}
 				address := pw.configuration.Bridge.EVMs[chainId].RouterContractAddress
 
-				pw.registerEvmAssetSupplyMetric(asset, name, isNativeAsset, nativeNetworkName, networkName)
-				pw.registerEvmAssetBalanceMetric(asset, name, address, isNativeAsset, nativeNetworkName, networkName)
+				pw.registerEvmAssetSupplyMetric(asset, name, symbol, isNativeAsset, nativeNetworkName, networkName)
+				pw.registerEvmAssetBalanceMetric(asset, name, symbol, address, isNativeAsset, nativeNetworkName, networkName)
 			}
 		}
 	}
@@ -182,7 +204,7 @@ func (pw Watcher) registerHederaAssetsSupplyMetrics(
 		constants.SupplyAssetMetricsHelpPrefix,
 		tokenType,
 		res.Name)
-	pw.initAndRegAssetMetric(res.TokenID, pw.supplyAssetsMetrics, name, help, res.Name)
+	pw.initAndRegAssetMetric(res.TokenID, pw.supplyAssetsMetrics, name, help, res.Symbol)
 }
 
 func (pw Watcher) registerHbarSupplyMetric(
@@ -228,12 +250,13 @@ func (pw Watcher) registerBridgeAccAssetsMetrics(
 		constants.BridgeAccAssetMetricsNameHelp,
 		tokenType,
 		res.TokenID)
-	pw.initAndRegAssetMetric(res.TokenID, pw.bridgeAccAssetsMetrics, name, help, res.Name)
+	pw.initAndRegAssetMetric(res.TokenID, pw.bridgeAccAssetsMetrics, name, help, res.Symbol)
 }
 
 func (pw Watcher) registerEvmAssetSupplyMetric(
 	asset string,
 	name string,
+	symbol string,
 	isNativeAsset bool,
 	nativeNetworkName string,
 	networkName string,
@@ -252,12 +275,13 @@ func (pw Watcher) registerEvmAssetSupplyMetric(
 		constants.SupplyAssetMetricsHelpPrefix,
 		tokenType,
 		name)
-	pw.initAndRegAssetMetric(asset, pw.supplyAssetsMetrics, assetMetricName, help, name)
+	pw.initAndRegAssetMetric(asset, pw.supplyAssetsMetrics, assetMetricName, help, symbol)
 }
 
 func (pw Watcher) registerEvmAssetBalanceMetric(
 	asset string,
 	name string,
+	symbol string,
 	address string,
 	isNativeAsset bool,
 	nativeNetworkName string,
@@ -279,7 +303,7 @@ func (pw Watcher) registerEvmAssetBalanceMetric(
 		name,
 		constants.AssetMetricHelpSuffix,
 		address)
-	pw.initAndRegAssetMetric(asset, pw.balanceAssetsMetrics, metricName, help, name)
+	pw.initAndRegAssetMetric(asset, pw.balanceAssetsMetrics, metricName, help, symbol)
 }
 
 func tokenIDtoMetricName(id string) string {
@@ -293,13 +317,13 @@ func (pw Watcher) initAndRegAssetMetric(
 	metricsMap map[string]string,
 	name string,
 	help string,
-	assetName string) {
+	assetSymbol string) {
 	metricsMap[asset] = name
 	pw.prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
 		Name: name,
 		Help: help,
 		ConstLabels: prometheus.Labels{
-			"name": assetName,
+			"symbol": assetSymbol,
 		},
 	})
 }
