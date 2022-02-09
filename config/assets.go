@@ -21,6 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	log "github.com/sirupsen/logrus"
 	"math/big"
+	"strconv"
 )
 
 type Assets struct {
@@ -31,6 +32,7 @@ type Assets struct {
 	// A mapping, storing all fungible native assets per network
 	fungibleNativeAssets map[int64]map[string]*NativeAsset
 	// A mapping, storing all wrapped tokens per native network
+	// to avoid a collision the key is a concatenation of wrappedChainId_wrappedAsset
 	wrappedToNativeNetwork map[string]int64
 }
 
@@ -124,7 +126,9 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			fungibleNetworkAssets[nativeChainId] = append(fungibleNetworkAssets[nativeChainId], nativeAsset)
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
-				wrappedToNativeNetwork[wrappedAsset] = nativeChainId
+
+				uniqueKey := strconv.FormatInt(wrappedChainId, 10) + "_" + wrappedAsset
+				wrappedToNativeNetwork[uniqueKey] = nativeChainId
 
 				if wrappedToNative[wrappedChainId] == nil {
 					wrappedToNative[wrappedChainId] = make(map[string]*NativeAsset)

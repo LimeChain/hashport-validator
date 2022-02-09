@@ -175,7 +175,8 @@ func (pw Watcher) getNativeNetworkName(chainId int64, asset string, isNativeAsse
 			return nativeNetworkName, nil
 		}
 	} else {
-		nativeNetworkName, exist := constants.NetworksById[uint64(pw.configuration.Bridge.Assets.GetWrappedToNativeNetwork(asset))]
+		key := strconv.FormatInt(chainId, 10) + "_" + asset
+		nativeNetworkName, exist := constants.NetworksById[uint64(pw.configuration.Bridge.Assets.GetWrappedToNativeNetwork(key))]
 		if !exist {
 			return "", errors.New(fmt.Sprintf(errMsg, chainId))
 		} else {
