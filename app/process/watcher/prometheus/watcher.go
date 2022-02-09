@@ -109,6 +109,7 @@ func (pw Watcher) registerAssetsMetrics() {
 		for _, asset := range assetArr {
 			isNativeAsset := pw.configuration.Bridge.Assets.IsNative(chainId, asset)
 			nativeNetworkName, err := pw.getNativeNetworkName(chainId, asset, isNativeAsset)
+			networkName := constants.NetworksById[uint64(chainId)]
 			if err != nil {
 				panic(err)
 			}
@@ -118,10 +119,10 @@ func (pw Watcher) registerAssetsMetrics() {
 					if e != nil {
 						panic(e)
 					}
-					pw.registerHederaAssetsSupplyMetrics(res, isNativeAsset, nativeNetworkName)
-					pw.registerBridgeAccAssetsMetrics(res, isNativeAsset, nativeNetworkName)
+					pw.registerHederaAssetsSupplyMetrics(res, isNativeAsset, nativeNetworkName, networkName)
+					pw.registerBridgeAccAssetsMetrics(res, isNativeAsset, nativeNetworkName, networkName)
 				} else { // HBAR
-					pw.registerHbarSupplyMetric(asset, isNativeAsset, nativeNetworkName)
+					pw.registerHbarSupplyMetric(asset, isNativeAsset, nativeNetworkName, networkName)
 				}
 			} else { // EVM
 				evm := pw.EVMClients[chainId].GetClient()
@@ -135,8 +136,8 @@ func (pw Watcher) registerAssetsMetrics() {
 				}
 				address := pw.configuration.Bridge.EVMs[chainId].RouterContractAddress
 
-				pw.registerEvmAssetSupplyMetric(asset, name, isNativeAsset, nativeNetworkName)
-				pw.registerEvmAssetBalanceMetric(asset, name, address, isNativeAsset, nativeNetworkName)
+				pw.registerEvmAssetSupplyMetric(asset, name, isNativeAsset, nativeNetworkName, networkName)
+				pw.registerEvmAssetBalanceMetric(asset, name, address, isNativeAsset, nativeNetworkName, networkName)
 			}
 		}
 	}
@@ -165,14 +166,16 @@ func (pw Watcher) registerHederaAssetsSupplyMetrics(
 	res *model.TokenResponse,
 	isNativeAsset bool,
 	nativeNetworkName string,
+	networkName string,
 ) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
-	name := fmt.Sprintf("%s_%s%s%s",
+	name := fmt.Sprintf("%s_%s_%s%s%s",
 		tokenType,
 		nativeNetworkName,
+		networkName,
 		constants.SupplyAssetMetricNameSuffix,
 		tokenIDtoMetricName(res.TokenID))
 	help := fmt.Sprintf("%s%s %s",
@@ -182,14 +185,20 @@ func (pw Watcher) registerHederaAssetsSupplyMetrics(
 	pw.initAndRegAssetMetric(res.TokenID, pw.supplyAssetsMetrics, name, help, res.Name)
 }
 
-func (pw Watcher) registerHbarSupplyMetric(asset string, isNativeAsset bool, nativeNetworkName string) {
+func (pw Watcher) registerHbarSupplyMetric(
+	asset string,
+	isNativeAsset bool,
+	nativeNetworkName string,
+	networkName string,
+) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
-	name := fmt.Sprintf("%s_%s%s%s",
+	name := fmt.Sprintf("%s_%s_%s%s%s",
 		tokenType,
 		nativeNetworkName,
+		networkName,
 		constants.SupplyAssetMetricNameSuffix,
 		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s %s",
@@ -199,14 +208,20 @@ func (pw Watcher) registerHbarSupplyMetric(asset string, isNativeAsset bool, nat
 	pw.initAndRegAssetMetric(asset, pw.supplyAssetsMetrics, name, help, constants.Hbar)
 }
 
-func (pw Watcher) registerBridgeAccAssetsMetrics(res *model.TokenResponse, isNativeAsset bool, nativeNetworkName string) {
+func (pw Watcher) registerBridgeAccAssetsMetrics(
+	res *model.TokenResponse,
+	isNativeAsset bool,
+	nativeNetworkName string,
+	networkName string,
+) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
-	name := fmt.Sprintf("%s_%s%s%s",
+	name := fmt.Sprintf("%s_%s_%s%s%s",
 		tokenType,
 		nativeNetworkName,
+		networkName,
 		constants.BridgeAccAssetMetricsNameSuffix,
 		tokenIDtoMetricName(res.TokenID))
 	help := fmt.Sprintf("%s%s %s",
@@ -221,14 +236,16 @@ func (pw Watcher) registerEvmAssetSupplyMetric(
 	name string,
 	isNativeAsset bool,
 	nativeNetworkName string,
+	networkName string,
 ) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
-	assetMetricName := fmt.Sprintf("%s_%s%s%s",
+	assetMetricName := fmt.Sprintf("%s_%s_%s%s%s",
 		tokenType,
 		nativeNetworkName,
+		networkName,
 		constants.SupplyAssetMetricNameSuffix,
 		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s %s",
@@ -244,14 +261,16 @@ func (pw Watcher) registerEvmAssetBalanceMetric(
 	address string,
 	isNativeAsset bool,
 	nativeNetworkName string,
+	networkName string,
 ) {
 	tokenType := constants.Wrapped
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
-	metricName := fmt.Sprintf("%s_%s%s%s",
+	metricName := fmt.Sprintf("%s_%s_%s%s%s",
 		tokenType,
 		nativeNetworkName,
+		networkName,
 		constants.BalanceAssetMetricNameSuffix,
 		tokenIDtoMetricName(asset))
 	help := fmt.Sprintf("%s%s %s%s%s",
