@@ -28,17 +28,23 @@ const (
 	OperatorAccountAmountHelp            = "Operator account amount."
 	DotSymbol                            = "." // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
 	DashSymbol                           = "-" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	OpenSquareBracket                    = "[" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	CloseSquareBracket                   = "]" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	Space                                = " " // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
 	NotAllowedSymbolsReplacement         = "_"
 	DotSymbolRep                         = 2
 	DashSymbolRep                        = 2
+	NoLimitRep                           = -1
 	AssetMetricsNamePrefix               = "asset_id_"
-	SupplyAssetMetricNamePrefix          = "total_supply_"
-	SupplyAssetMetricsHelpPrefix         = "The total supply of "
-	BridgeAccAssetMetricsNamePrefix      = "bridge_acc_"
-	BridgeAccAssetMetricsNameHelp        = "Bridge account balance for "
-	BalanceAssetMetricNamePrefix         = "balance_"
-	BalanceAssetMetricHelpPrefix         = "The balance of "
-	AssetMetricHelpSuffix                = " at router address "
+	SupplyAssetMetricNameSuffix          = "_total_supply_"
+	SupplyAssetMetricsHelpPrefix         = "total supply"
+	BalanceAssetMetricNameSuffix         = "_balance_"
+	BalanceAssetMetricHelpPrefix         = "balance"
+	AssetMetricLabelKey                  = "symbol"
+	AccountMetricLabelKey                = "account_id"
+
+	CreateDecimalPrefix = "1"
+	CreateDecimalRepeat = "0"
 
 	// Success Rate Metrics //
 
@@ -52,7 +58,10 @@ const (
 
 var (
 	PrometheusNotAllowedSymbolsWithRepetitions = map[string]int{
-		DotSymbol:  DotSymbolRep,
-		DashSymbol: DashSymbolRep,
+		DotSymbol:          DotSymbolRep,
+		DashSymbol:         DashSymbolRep,
+		OpenSquareBracket:  NoLimitRep,
+		CloseSquareBracket: NoLimitRep,
+		Space:              NoLimitRep,
 	}
 )

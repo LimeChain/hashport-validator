@@ -57,8 +57,6 @@ type MirrorNode interface {
 	GetAccount(accountID string) (*model.AccountsResponse, error)
 	// GetToken gets the token data by ID.
 	GetToken(tokenID string) (*model.TokenResponse, error)
-	// GetNetworkSupply retrieves the Hedera network supply of HBAR
-	GetNetworkSupply() (*model.NetworkSupplyResponse, error)
 	// TopicExists sends a query to check whether a specific topic exists. If the query returns a status != 200, the function returns a false value
 	TopicExists(topicID hedera.TopicID) bool
 	// WaitForTransaction Polls the transaction at intervals. Depending on the

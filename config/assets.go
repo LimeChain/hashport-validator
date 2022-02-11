@@ -38,6 +38,10 @@ type NativeAsset struct {
 	Asset     string
 }
 
+func (a Assets) GetNativeToWrapped() map[int64]map[string]map[int64]string {
+	return a.nativeToWrapped
+}
+
 func (a Assets) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
 	return a.nativeToWrapped[nativeChainId][nativeAsset][targetChainId]
 }
@@ -48,10 +52,6 @@ func (a Assets) WrappedToNative(wrappedAsset string, wrappedChainId int64) *Nati
 
 func (a Assets) NetworkAssets(id int64) []string {
 	return a.fungibleNetworkAssets[id]
-}
-
-func (a Assets) GetFungibleNetworkAssets() map[int64][]string {
-	return a.fungibleNetworkAssets
 }
 
 func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {

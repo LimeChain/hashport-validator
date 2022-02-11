@@ -32,6 +32,498 @@
         "x": 0,
         "y": 0
       },
+      "id": 61,
+      "panels": [],
+      "title": "Balances in HBAR",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "min": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 0,
+        "y": 1
+      },
+      "id": 55,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "8.3.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "({__name__=~\"fee_account_amount\"})",
+          "interval": "",
+          "legendFormat": "Fee account ID [{{account_id}}]",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "({__name__=~\"operator_account_amount\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "Operator account ID [{{account_id}}]",
+          "refId": "B"
+        }
+      ],
+      "title": "Balances in HBAR",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 57,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "bridge_account_amount",
+          "interval": "",
+          "legendFormat": "HBAR",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Wrapped_Hedera_.*_total_supply.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "B"
+        }
+      ],
+      "title": "HBAR Locked vs Minted",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 47,
+      "panels": [],
+      "title": "Balance between networks",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "id": 49,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "bridge_account_amount",
+          "interval": "",
+          "legendFormat": "Locked Hbars in the Bridge account",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Native_Hedera_.*_balance.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Wrapped_Hedera_.*_total_supply.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Hedera",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 8,
+        "x": 8,
+        "y": 19
+      },
+      "id": 51,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Native_Ethereum_.*_balance.*\"}",
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Wrapped_Ethereum_.*_total_supply.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Ethereum",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 8,
+        "x": 16,
+        "y": 19
+      },
+      "id": 53,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Native_Polygon_.*_balance.*\"}",
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Wrapped_Polygon_.*_total_supply.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Polygon",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
       "id": 31,
       "panels": [],
       "title": "All networks",
@@ -68,7 +560,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 32
       },
       "id": 2,
       "options": {
@@ -85,7 +577,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -134,7 +626,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 37
       },
       "id": 43,
       "options": {
@@ -151,7 +643,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -228,7 +720,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 6
+        "y": 37
       },
       "id": 28,
       "options": {
@@ -290,7 +782,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 43
       },
       "id": 44,
       "options": {
@@ -307,7 +799,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -384,7 +876,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 43
       },
       "id": 45,
       "options": {
@@ -420,7 +912,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 49
       },
       "id": 21,
       "panels": [],
@@ -459,7 +951,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 50
       },
       "id": 23,
       "options": {
@@ -476,7 +968,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -553,7 +1045,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 50
       },
       "id": 33,
       "options": {
@@ -615,7 +1107,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 58
       },
       "id": 14,
       "options": {
@@ -632,7 +1124,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -709,7 +1201,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 58
       },
       "id": 22,
       "options": {
@@ -745,7 +1237,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 66
       },
       "id": 35,
       "panels": [],
@@ -784,7 +1276,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 36
+        "y": 67
       },
       "id": 36,
       "options": {
@@ -801,7 +1293,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -878,7 +1370,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 36
+        "y": 67
       },
       "id": 4,
       "options": {
@@ -940,7 +1432,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 44
+        "y": 75
       },
       "id": 37,
       "options": {
@@ -957,7 +1449,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -1034,7 +1526,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 44
+        "y": 75
       },
       "id": 38,
       "options": {
@@ -1070,7 +1562,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 83
       },
       "id": 25,
       "panels": [],
@@ -1109,7 +1601,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 84
       },
       "id": 39,
       "options": {
@@ -1126,7 +1618,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -1203,7 +1695,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 53
+        "y": 84
       },
       "id": 40,
       "options": {
@@ -1265,7 +1757,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 61
+        "y": 92
       },
       "id": 41,
       "options": {
@@ -1282,7 +1774,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -1359,7 +1851,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 92
       },
       "id": 42,
       "options": {

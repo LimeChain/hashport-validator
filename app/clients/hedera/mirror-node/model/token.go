@@ -22,6 +22,7 @@ type (
 		Name        string `json:"name"`
 		Symbol      string `json:"symbol"`
 		TotalSupply string `json:"total_supply"`
+		Decimals    string `json:"decimals"`
 	}
 
 	NetworkSupplyResponse struct {
