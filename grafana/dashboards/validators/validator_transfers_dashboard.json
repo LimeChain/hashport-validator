@@ -294,7 +294,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "{__name__=~\"Native_Hedera_.*_bridge_acc.*\"}",
+          "expr": "{__name__=~\"Native_Hedera_.*_balance.*\"}",
           "hide": false,
           "interval": "",
           "legendFormat": "{{symbol}}",

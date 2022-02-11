@@ -19,10 +19,13 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -138,4 +141,27 @@ func SetMajorityReached(sourceChainId int64, targetChainId int64, asset string, 
 
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.MajorityReachedNameSuffix)
 	gauge.Set(1.0)
+}
+
+func AssetAddressToMetricName(assetAddress string) string {
+	replace := PrepareIdForPrometheus(assetAddress)
+	result := fmt.Sprintf("%s%s", constants.AssetMetricsNamePrefix, replace)
+	return result
+}
+
+func ConvertToHbar(amount int) float64 {
+	hbar := hedera.HbarFromTinybar(int64(amount))
+	return hbar.As(hedera.HbarUnits.Hbar)
+}
+
+func ConvertBasedOnDecimal(value *big.Int, decimal uint8) (*float64, error) {
+	if decimal < 1 {
+		return nil, errors.New(fmt.Sprintf(`Failed to calc with decimal: [%d].`, decimal))
+	}
+	parseValue, e := strconv.ParseFloat(constants.CreateDecimalPrefix+strings.Repeat(constants.CreateDecimalRepeat, int(decimal)), 64)
+	if e != nil {
+		return nil, e
+	}
+	res, _ := new(big.Float).Set(new(big.Float).Quo(new(big.Float).SetInt(value), big.NewFloat(parseValue))).Float64()
+	return &res, nil
 }

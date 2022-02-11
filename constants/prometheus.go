@@ -37,12 +37,11 @@ const (
 	NoLimitRep                           = -1
 	AssetMetricsNamePrefix               = "asset_id_"
 	SupplyAssetMetricNameSuffix          = "_total_supply_"
-	SupplyAssetMetricsHelpPrefix         = "The total supply of "
-	BridgeAccAssetMetricsNameSuffix      = "_bridge_acc_"
-	BridgeAccAssetMetricsNameHelp        = "Bridge account balance for "
+	SupplyAssetMetricsHelpPrefix         = "total supply"
 	BalanceAssetMetricNameSuffix         = "_balance_"
-	BalanceAssetMetricHelpPrefix         = "The balance of "
-	AssetMetricHelpSuffix                = " at router address "
+	BalanceAssetMetricHelpPrefix         = "balance"
+	AssetMetricLabelKey                  = "symbol"
+	AccountMetricLabelKey                = "account_id"
 
 	CreateDecimalPrefix = "1"
 	CreateDecimalRepeat = "0"

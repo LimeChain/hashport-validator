@@ -148,25 +148,6 @@ func Test_GetToken_Fails(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func Test_GetNetworkSupply_Status400(t *testing.T) {
-	setup()
-	response := &http.Response{
-		StatusCode: 400,
-	}
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
-	schedule, err := c.GetNetworkSupply()
-	assert.Nil(t, schedule)
-	assert.NotNil(t, err)
-}
-
-func Test_GetNetworkSupply_Fails(t *testing.T) {
-	setup()
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	schedule, err := c.GetNetworkSupply()
-	assert.Nil(t, schedule)
-	assert.NotNil(t, err)
-}
-
 func Test_TopicExists_Status400(t *testing.T) {
 	setup()
 	response := &http.Response{

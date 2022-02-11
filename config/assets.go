@@ -21,7 +21,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	log "github.com/sirupsen/logrus"
 	"math/big"
-	"strconv"
 )
 
 type Assets struct {
@@ -31,15 +30,16 @@ type Assets struct {
 	fungibleNetworkAssets map[int64][]string
 	// A mapping, storing all fungible native assets per network
 	fungibleNativeAssets map[int64]map[string]*NativeAsset
-	// A mapping, storing all wrapped tokens per native network
-	// to avoid a collision the key is a concatenation of wrappedChainId_wrappedAsset
-	wrappedToNativeNetwork map[string]int64
 }
 
 type NativeAsset struct {
 	MinAmount *big.Int
 	ChainId   int64
 	Asset     string
+}
+
+func (a Assets) GetNativeToWrapped() map[int64]map[string]map[int64]string {
+	return a.nativeToWrapped
 }
 
 func (a Assets) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
@@ -52,10 +52,6 @@ func (a Assets) WrappedToNative(wrappedAsset string, wrappedChainId int64) *Nati
 
 func (a Assets) NetworkAssets(id int64) []string {
 	return a.fungibleNetworkAssets[id]
-}
-
-func (a Assets) GetFungibleNetworkAssets() map[int64][]string {
-	return a.fungibleNetworkAssets
 }
 
 func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
@@ -88,16 +84,11 @@ func (a Assets) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, ass
 
 }
 
-func (a Assets) GetWrappedToNativeNetwork(wrappedAsset string) int64 {
-	return a.wrappedToNativeNetwork[wrappedAsset]
-}
-
 func LoadAssets(networks map[int64]*parser.Network) Assets {
 	nativeToWrapped := make(map[int64]map[string]map[int64]string)
 	wrappedToNative := make(map[int64]map[string]*NativeAsset)
 	fungibleNetworkAssets := make(map[int64][]string)
 	fungibleNativeAssets := make(map[int64]map[string]*NativeAsset)
-	wrappedToNativeNetwork := make(map[string]int64)
 
 	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {
@@ -127,9 +118,6 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
 
-				uniqueKey := strconv.FormatInt(wrappedChainId, 10) + "_" + wrappedAsset
-				wrappedToNativeNetwork[uniqueKey] = nativeChainId
-
 				if wrappedToNative[wrappedChainId] == nil {
 					wrappedToNative[wrappedChainId] = make(map[string]*NativeAsset)
 				}
@@ -140,11 +128,10 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 	}
 
 	return Assets{
-		nativeToWrapped:        nativeToWrapped,
-		wrappedToNative:        wrappedToNative,
-		fungibleNativeAssets:   fungibleNativeAssets,
-		fungibleNetworkAssets:  fungibleNetworkAssets,
-		wrappedToNativeNetwork: wrappedToNativeNetwork,
+		nativeToWrapped:       nativeToWrapped,
+		wrappedToNative:       wrappedToNative,
+		fungibleNativeAssets:  fungibleNativeAssets,
+		fungibleNetworkAssets: fungibleNetworkAssets,
 	}
 }
 
