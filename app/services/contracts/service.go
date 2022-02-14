@@ -88,6 +88,11 @@ func (bsc *Service) ParseLockLog(log types.Log) (*router.RouterLock, error) {
 	return bsc.contract.ParseLock(log)
 }
 
+// ParseBurnERC721Log parses a general typed log to a BurnERC721event
+func (bsc *Service) ParseBurnERC721Log(log types.Log) (*router.RouterBurnERC721, error) {
+	return bsc.contract.ParseBurnERC721(log)
+}
+
 // WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract
 func (bsc *Service) WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
 	return bsc.contract.WatchBurn(opts, sink)

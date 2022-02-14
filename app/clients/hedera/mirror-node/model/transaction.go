@@ -20,27 +20,27 @@ import (
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"strconv"
 )
 
 type (
 	// Transaction struct used by the Hedera Mirror node REST API
 	Transaction struct {
-		ConsensusTimestamp   string     `json:"consensus_timestamp"`
-		EntityId             string     `json:"entity_id"`
-		TransactionHash      string     `json:"transaction_hash"`
-		ValidStartTimestamp  string     `json:"valid_start_timestamp"`
-		ChargedTxFee         int        `json:"charged_tx_fee"`
-		MemoBase64           string     `json:"memo_base64"`
-		Result               string     `json:"result"`
-		Name                 string     `json:"name"`
-		MaxFee               string     `json:"max_fee"`
-		ValidDurationSeconds string     `json:"valid_duration_seconds"`
-		Node                 string     `json:"node"`
-		Scheduled            bool       `json:"scheduled"`
-		TransactionID        string     `json:"transaction_id"`
-		Transfers            []Transfer `json:"transfers"`
-		TokenTransfers       []Transfer `json:"token_transfers"`
+		ConsensusTimestamp   string        `json:"consensus_timestamp"`
+		EntityId             string        `json:"entity_id"`
+		TransactionHash      string        `json:"transaction_hash"`
+		ValidStartTimestamp  string        `json:"valid_start_timestamp"`
+		ChargedTxFee         int           `json:"charged_tx_fee"`
+		MemoBase64           string        `json:"memo_base64"`
+		Result               string        `json:"result"`
+		Name                 string        `json:"name"`
+		MaxFee               string        `json:"max_fee"`
+		ValidDurationSeconds string        `json:"valid_duration_seconds"`
+		Node                 string        `json:"node"`
+		Scheduled            bool          `json:"scheduled"`
+		TransactionID        string        `json:"transaction_id"`
+		Transfers            []Transfer    `json:"transfers"`
+		TokenTransfers       []Transfer    `json:"token_transfers"`
+		NftTransfers         []NftTransfer `json:"nft_transfers"`
 	}
 	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
@@ -48,6 +48,13 @@ type (
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
 		Token string `json:"token_id"`
+	}
+	// NftTransfer struct used by the Hedera mirror node REST API
+	NftTransfer struct {
+		ReceiverAccountID string `json:"receiver_account_id"`
+		SenderAccountID   string `json:"sender_account_id"`
+		SerialNumber      int64  `json:"serial_number"`
+		Token             string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried
@@ -65,44 +72,122 @@ type (
 		PayerAccountId     string `json:"payer_account_id"`
 		ScheduleId         string `json:"schedule_id"`
 	}
+	// Token struct used by Hedera Mirror node REST API to return information
+	// regarding a given Token entity
+	Token struct {
+		Type string `json:"type"`
+	}
+
+	// Nft struct used by Hedera Mirror node REST API to return information
+	// for a given Nft entity
+	Nft struct {
+		AccountID         string `json:"account_id"`         // The account ID of the account associated with the NFT
+		CreatedTimestamp  string `json:"created_timestamp"`  // The timestamp of when the NFT was created
+		Deleted           bool   `json:"deleted"`            // Whether the token was deleted or not
+		Metadata          string `json:"metadata"`           // The metadata of the NFT, in base64
+		ModifiedTimestamp string `json:"modified_timestamp"` // The last time the token properties were modified
+		SerialNumber      int64  `json:"serial_number"`      // The serial number of the NFT
+		TokenID           string `json:"token_id"`           // The token ID of the NFT
+	}
+	// NftTransactionsResponse struct used by Hedera Mirror node REST API to return information
+	// about an NFT's transaction
+	NftTransactionsResponse struct {
+		Transactions []NftTransaction `json:"transactions"`
+		Links        Pagination       `json:"links"`
+	}
+	NftTransaction struct {
+		TransactionID     string `json:"transaction_id"`      // The transaction ID of the transaction
+		Type              string `json:"type"`                // The type of transaction TOKENBURN, TOKEMINT, CRYPTOTRANSFER
+		SenderAccountID   string `json:"sender_account_id"`   // The account that sent the NFT
+		ReceiverAccountID string `json:"receiver_account_id"` // The account that received the NFT
+	}
+	Pagination struct {
+		Next string `json:"next"` // Hyperlink to the next page of results
+	}
+	// ParsedTransfer Used in GetIncomingTransfer to return the information about an Incoming Transfer
+	ParsedTransfer struct {
+		IsNft             bool
+		AmountOrSerialNum int64
+		Asset             string
+	}
 )
 
 // getIncomingAmountFor returns the amount that is credited to the specified
 // account for the given transaction
-func (t Transaction) getIncomingAmountFor(account string) (string, string, error) {
+func (t Transaction) getIncomingAmountFor(account string) (int64, string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
-			return strconv.Itoa(int(tr.Amount)), constants.Hbar, nil
+			return tr.Amount, constants.Hbar, nil
 		}
 	}
-	return "", "", errors.New("no incoming transfer found")
+	return 0, "", errors.New("no incoming transfer found")
 }
 
 // getIncomingTokenAmountFor returns the token amount that is credited to the specified
 // account for the given transaction
-func (t Transaction) getIncomingTokenAmountFor(account string) (string, string, error) {
+func (t Transaction) getIncomingTokenAmountFor(account string) (int64, string, error) {
 	for _, tr := range t.TokenTransfers {
 		if tr.Account == account {
-			return strconv.Itoa(int(tr.Amount)), tr.Token, nil
+			return tr.Amount, tr.Token, nil
 		}
 	}
-	return "", "", errors.New("no incoming token transfer found")
+	return 0, "", errors.New("no incoming token transfer found")
 }
 
-// GetIncomingTransfer returns the token amount OR the hbar amount that is credited to the specified
-// account for the given transaction. It depends on getIncomingAmountFor() and getIncomingTokenAmountFor()
-func (t Transaction) GetIncomingTransfer(account string) (string, string, error) {
+func (t Transaction) getIncomingNftTransferFor(account string) (serialNum int64, token string, err error) {
+	for _, ntr := range t.NftTransfers {
+		if ntr.ReceiverAccountID == account {
+			return ntr.SerialNumber, ntr.Token, nil
+		}
+	}
+
+	return 0, "", errors.New("no incoming nft transfer found")
+}
+
+// GetHBARTransfer gets the HBAR transfer for an Account
+func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool) {
+	for _, tr := range t.Transfers {
+		if tr.Account == account {
+			return tr.Amount, true
+		}
+	}
+
+	return 0, false
+}
+
+// GetIncomingTransfer returns the transfer to an account in the following order:
+// 1. Checks if there is an NFT transfer
+// 2. Checks if there is a Fungible Token transfer
+// 3. Checks if there is an HBAR transfer
+func (t Transaction) GetIncomingTransfer(account string) (parsed ParsedTransfer, err error) {
+	serialNum, asset, err := t.getIncomingNftTransferFor(account)
+	if err == nil {
+		return ParsedTransfer{
+			IsNft:             true,
+			AmountOrSerialNum: serialNum,
+			Asset:             asset,
+		}, nil
+	}
+
 	amount, asset, err := t.getIncomingTokenAmountFor(account)
 	if err == nil {
-		return amount, asset, err
+		return ParsedTransfer{
+			IsNft:             false,
+			AmountOrSerialNum: amount,
+			Asset:             asset,
+		}, nil
 	}
 
 	amount, asset, err = t.getIncomingAmountFor(account)
 	if err == nil {
-		return amount, asset, err
+		return ParsedTransfer{
+			IsNft:             false,
+			AmountOrSerialNum: amount,
+			Asset:             asset,
+		}, nil
 	}
 
-	return amount, asset, err
+	return ParsedTransfer{}, err
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one

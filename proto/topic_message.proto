@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/limechain/hedera-eth-bridge-validator/proto";
+
+import "topic_eth_signature_message.proto";
+import "topic_eth_nft_signature_message.proto";
+
+message TopicMessage {
+  oneof message {
+    TopicEthSignatureMessage fungibleSignatureMessage = 1;
+    TopicEthNftSignatureMessage nftSignatureMessage = 2;
+  }
+}

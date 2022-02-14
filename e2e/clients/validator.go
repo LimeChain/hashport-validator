@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	transfers "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 )
 
 type Validator struct {
@@ -36,21 +34,9 @@ func NewValidatorClient(url string) *Validator {
 	return &Validator{baseUrl: url}
 }
 
-func (v *Validator) GetTransferData(transactionID string) (*transfers.TransferData, error) {
+func (v *Validator) GetTransferData(transactionID string) ([]byte, error) {
 	url := v.baseUrl + "/api/v1/transfers/" + transactionID
-
-	bodyBytes, err := v.get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	var transferDataResponse *transfers.TransferData
-	err = json.Unmarshal(bodyBytes, &transferDataResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return transferDataResponse, nil
+	return v.get(url)
 }
 
 func (v *Validator) GetEventTransactionID(eventId string) (string, error) {

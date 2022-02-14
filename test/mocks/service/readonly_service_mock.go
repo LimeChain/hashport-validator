@@ -26,6 +26,10 @@ type MockReadOnlyService struct {
 	mock.Mock
 }
 
+func (m *MockReadOnlyService) FindNftTransfer(transferID string, tokenID string, serialNum int64, sender string, receiver string, save func(transactionID string, scheduleID string, status string) error) {
+	panic("implement me")
+}
+
 func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error) {
 	m.Called(transferID, fetch, save)
 }

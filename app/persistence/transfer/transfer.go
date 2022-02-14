@@ -133,6 +133,9 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		NativeAsset:   ct.NativeAsset,
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
+		SerialNumber:  ct.SerialNum,
+		Metadata:      ct.Metadata,
+		IsNft:         ct.IsNft,
 		Status:        status,
 	}
 	err := tr.dbClient.Create(tx).Error

@@ -17,10 +17,10 @@
 package cryptotransfer
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -33,7 +33,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math/big"
-	"strconv"
 	"time"
 )
 
@@ -47,6 +46,7 @@ type Watcher struct {
 	logger           *log.Entry
 	contractServices map[int64]service.Contracts
 	mappings         config.Assets
+	hederaNftFees    map[string]int64
 	validator        bool
 }
 
@@ -59,6 +59,7 @@ func NewWatcher(
 	startTimestamp int64,
 	contractServices map[int64]service.Contracts,
 	mappings config.Assets,
+	hederaNftFees map[string]int64,
 	validator bool,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
@@ -100,6 +101,7 @@ func NewWatcher(
 		logger:           config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractServices: contractServices,
 		mappings:         mappings,
+		hederaNftFees:    hederaNftFees,
 		validator:        validator,
 	}
 }
@@ -139,7 +141,7 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 		ctw.logger.Tracef("Polling found [%d] Transactions", len(transactions.Transactions))
 		if len(transactions.Transactions) > 0 {
 			for _, tx := range transactions.Transactions {
-				go ctw.processTransaction(tx, q)
+				go ctw.processTransaction(tx.TransactionID, q)
 			}
 			var err error
 			milestoneTimestamp, err = timestamp.FromString(transactions.Transactions[len(transactions.Transactions)-1].ConsensusTimestamp)
@@ -154,9 +156,16 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	}
 }
 
-func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
-	ctw.logger.Infof("New Transaction with ID: [%s]", tx.TransactionID)
-	amount, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
+	ctw.logger.Infof("New Transaction with ID: [%s]", txID)
+
+	tx, err := ctw.client.GetSuccessfulTransaction(txID)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to get Transaction. Error: [%s]", txID, err)
+		return
+	}
+
+	parsedTransfer, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
@@ -168,12 +177,15 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ctw.mappings.FungibleNativeAsset(0, asset)
-	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
+	nativeAsset := &config.NativeAsset{
+		ChainId: 0,
+		Asset:   parsedTransfer.Asset,
+	}
+	targetChainAsset := ctw.mappings.NativeToWrapped(parsedTransfer.Asset, 0, targetChainId)
 	if targetChainAsset == "" {
-		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
+		nativeAsset = ctw.mappings.WrappedToNative(parsedTransfer.Asset, 0)
 		if nativeAsset == nil {
-			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, parsedTransfer.Asset)
 			return
 		}
 		targetChainAsset = nativeAsset.Asset
@@ -183,42 +195,26 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		}
 	}
 
-	intAmount, err := strconv.ParseInt(amount, 10, 64)
+	var transferMessage *transfer.Transfer
+	if parsedTransfer.IsNft {
+		// Validate that the HBAR fee is sent
+		amount, found := tx.GetHBARTransfer(ctw.accountID.String())
+		if !found {
+			ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
+			return
+		}
+		if amount != ctw.hederaNftFees[parsedTransfer.Asset] {
+			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaNftFees[parsedTransfer.Asset])
+			return
+		}
+		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+	} else {
+		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+	}
 	if err != nil {
-		ctw.logger.Errorf("[%s] - Could not parse amount [%s] to int. Error: [%s]", tx.TransactionID, amount, err)
+		ctw.logger.Errorf("[%s] - Failed to create payload. Error: [%s]", tx.TransactionID, err)
 		return
 	}
-
-	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(intAmount), targetChainAsset)
-	if err != nil {
-		ctw.logger.Errorf(
-			"[%s] - Failed to adjust [%v] amount [%d] decimals between chains. Error: [%s]",
-			tx.TransactionID,
-			nativeAsset,
-			intAmount,
-			err)
-		return
-	}
-	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
-		ctw.logger.Errorf(
-			"[%s] - Transfer Amount [%s] is less than minimum Amount [%s]",
-			tx.TransactionID,
-			properAmount,
-			nativeAsset.MinAmount,
-		)
-		return
-	}
-
-	transferMessage := transfer.New(
-		tx.TransactionID,
-		0,
-		targetChainId,
-		nativeAsset.ChainId,
-		receiverAddress,
-		asset,
-		targetChainAsset,
-		nativeAsset.Asset,
-		properAmount.String())
 
 	transactionTimestamp, err := timestamp.FromString(tx.ConsensusTimestamp)
 	if err != nil {
@@ -226,18 +222,95 @@ func (ctw Watcher) processTransaction(tx model.Transaction, q qi.Queue) {
 		return
 	}
 
+	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
-			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaTransferMessageSubmission})
+			if parsedTransfer.IsNft {
+				topic = constants.HederaNativeNftTransfer
+			} else {
+				topic = constants.HederaTransferMessageSubmission
+			}
 		} else {
-			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.HederaBurnMessageSubmission})
+			if parsedTransfer.IsNft {
+				ctw.logger.Errorf("[%s] - NFT Transfer not supported", tx.TransactionID)
+				return
+			}
+			topic = constants.HederaBurnMessageSubmission
 		}
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == 0 {
-			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaFeeTransfer})
+			if parsedTransfer.IsNft {
+				topic = constants.ReadOnlyHederaNativeNftTransfer
+			} else {
+				topic = constants.ReadOnlyHederaFeeTransfer
+			}
 		} else {
-			q.Push(&queue.Message{Payload: transferMessage, Topic: constants.ReadOnlyHederaBurn})
+			if parsedTransfer.IsNft {
+				ctw.logger.Errorf("[%s] - NFT Read-only Transfer not supported", tx.TransactionID)
+				return
+			}
+			topic = constants.ReadOnlyHederaBurn
 		}
 	}
+
+	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
+}
+
+func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset config.NativeAsset, amount int64, targetChainId int64, targetChainAsset string) (*transfer.Transfer, error) {
+	nativeAsset := ctw.mappings.FungibleNativeAsset(asset.ChainId, asset.Asset)
+	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(amount), targetChainAsset)
+	if err != nil {
+		ctw.logger.Errorf(
+			"[%s] - Failed to adjust [%v] amount [%d] decimals between chains. Error: [%s]",
+			transactionID,
+			nativeAsset,
+			amount,
+			err)
+		return nil, err
+	}
+	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
+		return nil, errors.New(fmt.Sprintf("Transfer Amount [%s] is less than Minimum Amount [%s].", properAmount, nativeAsset.MinAmount))
+	}
+
+	return transfer.New(
+		transactionID,
+		0,
+		targetChainId,
+		nativeAsset.ChainId,
+		receiver,
+		sourceAsset,
+		targetChainAsset,
+		nativeAsset.Asset,
+		properAmount.String()), nil
+}
+
+func (ctw Watcher) createNonFungiblePayload(
+	transactionID string,
+	receiver string,
+	sourceAsset string,
+	nativeAsset config.NativeAsset,
+	serialNum int64,
+	targetChainId int64,
+	targetChainAsset string) (*transfer.Transfer, error) {
+	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
+	if err != nil {
+		return nil, err
+	}
+	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
+	if e != nil {
+		return nil, errors.New(fmt.Sprintf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e))
+	}
+
+	return transfer.NewNft(
+		transactionID,
+		0,
+		targetChainId,
+		nativeAsset.ChainId,
+		receiver,
+		sourceAsset,
+		targetChainAsset,
+		nativeAsset.Asset,
+		serialNum,
+		string(decodedMetadata)), nil
 }

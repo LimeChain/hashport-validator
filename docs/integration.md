@@ -32,6 +32,7 @@ The response is in JSON format and contains the following data:
 
 ```json
 {
+  "isNft": false,
   "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
   "routerAddress": "0x",
   "amount": "100",
@@ -46,18 +47,19 @@ The response is in JSON format and contains the following data:
 }
 ```
 
-Property | Description
----------- | ----------
-**Recipient** | EVM address of the receiver
-**RouterAddress** | Address of the router contract
-**Amount** | The transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars.
-**SourceChainId** | The chain ID from which the transfer has been initiated
-**TargetChainId** | The chain ID to which the transfer data and has to be submitted
-**SourceAsset** | The asset from the source chain
-**NativeAsset** | The native asset of the transferred asset
-**TargetAsset** | The target asset for the transfer
-**Signatures** | Array of all provided signatures by the validators up until this moment
-**Majority** | True if supermajority is reached and the wrapped token may be claimed
+| Property          | Description                                                                                                                                                           |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **isNft**         | Whether the transfer is fungible or non-fungible                                                                                                                      |
+| **recipient**     | EVM address of the receiver                                                                                                                                           |
+| **routerAddress** | Address of the router contract                                                                                                                                        |
+| **amount**        | The transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars. |
+| **sourceChainId** | The chain ID from which the transfer has been initiated                                                                                                               |
+| **targetChainId** | The chain ID to which the transfer data and has to be submitted                                                                                                       |
+| **sourceAsset**   | The asset from the source chain                                                                                                                                       |
+| **nativeAsset**   | The native asset of the transferred asset                                                                                                                             |
+| **targetAsset**   | The target asset for the transfer                                                                                                                                     |
+| **signatures**    | Array of all provided signatures by the validators up until this moment                                                                                               |
+| **majority**      | True if supermajority is reached and the wrapped token may be claimed                                                                                                 |
 
 ### Step 3. Claiming Wrapped Asset
 
@@ -65,11 +67,11 @@ Once supermajority is reached the users can claim _wrapped version_ of the asset
 
 The mint operation can be constructed using the following arguments:
 
-	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] _signatures)
+	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] signatures)
 
-Argument | Description
----------- | ----------
-**transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)`
+| Argument          | Description                                                                                                                       |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| **transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)` |
 
 ### Service Fee
 
@@ -94,12 +96,12 @@ The straightforward way for burning the wrapped assets would be by executing 2 t
 The burn transaction has the following format:
 - `burn(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`
-**wrappedAsset** | The corresponding wrapped asset to burn
-**amount** | The amount of wrapped tokens to be burned and transferred in their native version on Hedera
-**receiver** | The Hedera Account to receive the native representation of the wrapped asset
+| Argument          | Description                                                                                    |
+|-------------------|------------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0` |
+| **wrappedAsset**  | The corresponding wrapped asset to burn                                                        |
+| **amount**        | The amount of wrapped tokens to be burned and transferred in their native version on Hedera    |
+| **receiver**      | The Hedera Account to receive the native representation of the wrapped asset                   |
 
 >Note: The receiver [AccountId](https://hashgraph.github.io/hedera-sdk-java/index.html?com/hedera/hashgraph/sdk/account/AccountId.html) must be serialized by Hedera SDK as such:
 >`accountId._toProto().serializeBinary()`, before passing it as an argument to the _burn_ function.
@@ -153,14 +155,14 @@ async function createPermit(
 Once the user signs the `permit`, the `burnWithPermit` transaction can be executed. The signature (`v`, `r` and `s`) along with the `deadline` are send as part of the burn transaction: 
 - `burnWithPermit(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver, uint256 deadline, uint8 v, uint8 r ,uint8 s)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`
-**wrappedAsset** | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function
-**amount** | The amount of wrapped tokens to be burned and transferred
-**receiver** | The Hedera account to receive the wrapped tokens
-**deadline**: | Timestamp of the deadline
-**v, r, s** | Information about the signature, computed when the user signs the permit.
+| Argument          | Description                                                                                                          |
+|-------------------|----------------------------------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`                       |
+| **wrappedAsset**  | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function |
+| **amount**        | The amount of wrapped tokens to be burned and transferred                                                            |
+| **receiver**      | The Hedera account to receive the wrapped tokens                                                                     |
+| **deadline**:     | Timestamp of the deadline                                                                                            |
+| **v, r, s**       | Information about the signature, computed when the user signs the permit.                                            |
 
 _burnWithPermit_ works exactly as _burn_ but doesn't require submitting _approve_ TX before burning the tokens, but it is necessary that signature and deadline are provided. The user can use this function to do both operations in one step.
 
@@ -209,10 +211,10 @@ where `burn_event_id` is the id of the Ethereum burn event. It must be construct
 
 `{TX-Hash}-{LogIndex}`
 
-Parameter| Description
------- | -------
-txHash | Transaction hash of the `burn` or `burnWithPermit` transactions
-logIndex | Index of the burn event in the transaction receipt
+| Parameter | Description                                                     |
+|-----------|-----------------------------------------------------------------|
+| txHash    | Transaction hash of the `burn` or `burnWithPermit` transactions |
+| logIndex  | Index of the burn event in the transaction receipt              |
 
 Example format: `0x00cf6cbfbfd1f48dbcdef5cf2ce982085422434ce9a8fd21246cb2f39de8a94a-14`
 If the transfer is not processed yet, the response will be `404`. 
@@ -234,12 +236,12 @@ The straightforward way for locking the native assets would be by executing the 
 The lock transaction has the following format:
 - `lock(uint256 targetChainId, address nativeAsset, uint256 amount, bytes receiver)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`
-**nativeAsset** | The corresponding native token to lock
-**amount** | The amount of tokens to be locked and transferred in their wrapped version on Hedera
-**receiver** | The Hedera Account to receive the wrapped representation of the native asset
+| Argument          | Description                                                                                    |
+|-------------------|------------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0` |
+| **nativeAsset**   | The corresponding native token to lock                                                         |
+| **amount**        | The amount of tokens to be locked and transferred in their wrapped version on Hedera           |
+| **receiver**      | The Hedera Account to receive the wrapped representation of the native asset                   |
 
 >Note: The receiver [AccountId](https://hashgraph.github.io/hedera-sdk-java/index.html?com/hedera/hashgraph/sdk/account/AccountId.html) must be serialized by Hedera SDK as such:
 >`accountId._toProto().serializeBinary()`, before passing it as an argument to the _lock_ function.
@@ -276,10 +278,10 @@ where `lock_event_id` is the id of the Ethereum Lock event. It must be construct
 
 `{TX-Hash}-{LogIndex}`
 
-Parameter| Description
------- | -------
-txHash | Transaction hash of the `lock` or `lockWithPermit` transactions
-logIndex | Index of the lock event in the transaction receipt
+| Parameter | Description                                                     |
+|-----------|-----------------------------------------------------------------|
+| txHash    | Transaction hash of the `lock` or `lockWithPermit` transactions |
+| logIndex  | Index of the lock event in the transaction receipt              |
 
 ## Return Wrapped Hedera assets to EVM Native
 
@@ -313,6 +315,7 @@ The response is in JSON format and contains the following data:
 
 ```json
 {
+  "isNft": false,
   "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
   "routerAddress": "0x",
   "amount": "100",
@@ -327,18 +330,19 @@ The response is in JSON format and contains the following data:
 }
 ```
 
-Property | Description
----------- | ----------
-**Recipient** | EVM address of the receiver
-**RouterAddress** | Address of the router contract
-**Amount** | The burned amount
-**SourceChainId** | The chain ID from which the transfer has been initiated
-**TargetChainId** | The chain ID to which the transfer data and has to be submitted
-**SourceAsset** | The asset from the source chain
-**NativeAsset** | The native asset of the transferred asset
-**TargetAsset** | The target asset for the transfer
-**Signatures** | Array of all provided signatures by the validators up until this moment
-**Majority** | True if supermajority is reached and the wrapped token may be claimed
+| Property          | Description                                                             |
+|-------------------|-------------------------------------------------------------------------|
+| **isNft**         | Whether the transfer is fungible or non-fungible                        |
+| **recipient**     | EVM address of the receiver                                             |
+| **routerAddress** | Address of the router contract                                          |
+| **amount**        | The burned amount                                                       |
+| **sourceChainId** | The chain ID from which the transfer has been initiated                 |
+| **targetChainId** | The chain ID to which the transfer data and has to be submitted         |
+| **sourceAsset**   | The asset from the source chain                                         |
+| **nativeAsset**   | The native asset of the transferred asset                               |
+| **targetAsset**   | The target asset for the transfer                                       |
+| **signatures**    | Array of all provided signatures by the validators up until this moment |
+| **majority**      | True if supermajority is reached and the wrapped token may be claimed   |
 
 ### Step 3. Unlock the Native Asset
 
@@ -346,12 +350,11 @@ Once supermajority is reached users can unlock the _native version_ of the asset
 
 The `unlock` operation can be constructed using the following arguments:
 
-	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] _signatures)
+	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] signatures)
 
-Argument | Description
----------- | ----------
-**transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)`
-
+| Argument          | Description                                                                                                                       |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| **transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes:`Web3.utils.fromAscii(transactionId)` |
 
 ## Wrap EVM Native assets to another EVM
 
@@ -368,12 +371,12 @@ The straightforward way for locking the native assets would be by executing the 
 The lock transaction has the following format:
 - `lock(uint256 targetChainId, address nativeAsset, uint256 amount, bytes receiver)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer
-**nativeAsset** | The corresponding native token to lock
-**amount** | The amount of tokens to be locked and transferred in their wrapped version on the other EVM
-**receiver** | The address to receive the wrapped representation of the native asset
+| Argument          | Description                                                                                 |
+|-------------------|---------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer                                     |
+| **nativeAsset**   | The corresponding native token to lock                                                      |
+| **amount**        | The amount of tokens to be locked and transferred in their wrapped version on the other EVM |
+| **receiver**      | The address to receive the wrapped representation of the native asset                       |
 
 #### Option 2 - Sign Permit + Lock
 
@@ -405,10 +408,10 @@ where `lock_event_id` is the id of the Ethereum Lock event. It must be construct
 
 `{TX-Hash}-{LogIndex}`
 
-Parameter| Description
------- | -------
-txHash | Transaction hash of the `lock` or `lockWithPermit` transactions
-logIndex | Index of the lock event in the transaction receipt
+| Parameter | Description                                                     |
+|-----------|-----------------------------------------------------------------|
+| txHash    | Transaction hash of the `lock` or `lockWithPermit` transactions |
+| logIndex  | Index of the lock event in the transaction receipt              |
 
 The user can query the Validator API in order to get information on the Bridge transfer using the EVM `TX Hash` and the `logIndex` of the `lock` event that is
 emitted as part of the `lock` / `lockWithPermit` transactions.
@@ -417,6 +420,7 @@ The response is in JSON format and contains the following data:
 
 ```json
 {
+  "isNft": false,
   "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
   "routerAddress": "0x",
   "amount": "100",
@@ -431,18 +435,19 @@ The response is in JSON format and contains the following data:
 }
 ```
 
-Property | Description
----------- | ----------
-**Recipient** | EVM address of the receiver
-**RouterAddress** | Address of the router contract
-**Amount** | The transfer original transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars.
-**SourceChainId** | The chain ID from which the transfer has been initiated
-**TargetChainId** | The chain ID to which the transfer data and has to be submitted
-**SourceAsset** | The asset from the source chain
-**NativeAsset** | The native asset of the transferred asset
-**TargetAsset** | The target asset for the transfer
-**Signatures** | Array of all provided signatures by the validators up until this moment
-**Majority** | True if supermajority is reached and the wrapped token may be claimed
+| Property          | Description                                                                                                                                                                             |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **isNft**         | Whether the transfer is fungible or non-fungible                                                                                                                                        |
+| **recipient**     | EVM address of the receiver                                                                                                                                                             |
+| **routerAddress** | Address of the router contract                                                                                                                                                          |
+| **amount**        | The transfer original transfer amount minus the services fee that is applied. If service fee is 1% and original transfer amount is 100 Hbars, the returned property will have 99 hbars. |
+| **sourceChainId** | The chain ID from which the transfer has been initiated                                                                                                                                 |
+| **targetChainId** | The chain ID to which the transfer data and has to be submitted                                                                                                                         |
+| **sourceAsset**   | The asset from the source chain                                                                                                                                                         |
+| **nativeAsset**   | The native asset of the transferred asset                                                                                                                                               |
+| **targetAsset**   | The target asset for the transfer                                                                                                                                                       |
+| **signatures**    | Array of all provided signatures by the validators up until this moment                                                                                                                 |
+| **majority**      | True if supermajority is reached and the wrapped token may be claimed                                                                                                                   |
 
 ### Step 3. Claiming Wrapped Asset
 
@@ -450,12 +455,11 @@ Once supermajority is reached the users can claim _wrapped version_ of the asset
 
 The mint operation can be constructed using the following arguments:
 
-	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] _signatures)
+	mint(uint256 sourceChainId, bytes transactionId, address targetAsset, address recipient, uint256 amount, bytes[] signatures)
 
-Argument | Description
----------- | ----------
-**transactionId** | `{TX-Hash}-{LogIndex}`
-
+| Argument          | Description            |
+|-------------------|------------------------|
+| **transactionId** | `{TX-Hash}-{LogIndex}` |
 
 ## Return Wrapped EVM assets to EVM Native
 This functionality allows the user to transfer Wrapped EVM Tokens from one EVM chain to their Native EVM Chain.
@@ -474,12 +478,12 @@ The straightforward way for burning the wrapped assets would be by executing 2 t
 The burn transaction has the following format:
 - `burn(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer
-**wrappedAsset** | The corresponding wrapped asset to burn
-**amount** | The amount of wrapped tokens to be burned and unlocked on the `targetChainId`
-**receiver** | The EVM address which will receive the native tokens on the `targetChainId`
+| Argument          | Description                                                                   |
+|-------------------|-------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer                       |
+| **wrappedAsset**  | The corresponding wrapped asset to burn                                       |
+| **amount**        | The amount of wrapped tokens to be burned and unlocked on the `targetChainId` |
+| **receiver**      | The EVM address which will receive the native tokens on the `targetChainId`   |
 
 #### Option 2 - Sign Permit + Burn
 
@@ -530,14 +534,14 @@ async function createPermit(
 Once the user signs the `permit`, the `burnWithPermit` transaction can be executed. The signature (`v`, `r` and `s`) along with the `deadline` are send as part of the burn transaction:
 - `burnWithPermit(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver, uint256 deadline, uint8 v, uint8 r ,uint8 s)`
 
-Argument | Description
----------- | ----------
-**targetChainId** | The chain id to which you would like to bridge transfer.
-**wrappedAsset** | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function
-**amount** | The amount of wrapped tokens to be burned and transferred
-**receiver** | The EVM address which will receive the native tokens on the `targetChainId`
-**deadline**: | Timestamp of the deadline
-**v, r, s** | Information about the signature, computed when the user signs the permit.
+| Argument          | Description                                                                                                          |
+|-------------------|----------------------------------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer.                                                             |
+| **wrappedAsset**  | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function |
+| **amount**        | The amount of wrapped tokens to be burned and transferred                                                            |
+| **receiver**      | The EVM address which will receive the native tokens on the `targetChainId`                                          |
+| **deadline**:     | Timestamp of the deadline                                                                                            |
+| **v, r, s**       | Information about the signature, computed when the user signs the permit.                                            |
 
 _burnWithPermit_ works exactly as _burn_ but doesn't require submitting _approve_ TX before burning the tokens, but it is necessary that signature and deadline are provided. The user can use this function to do both operations in one step.
 
@@ -581,17 +585,18 @@ The user can query the Validator API in order to get information on the Bridge t
 
     GET {validator_url}:{port}/api/v1/transfers/{burn_event_id}
 
-where `burn_event_id` is the id of the Ethereum Lock event. It must be constructed in the form:
+where `burn_event_id` is the id of the Ethereum Burn event. It must be constructed in the form:
 
 `{TX-Hash}-{LogIndex}`
 
-Parameter| Description
------- | -------
-txHash | Transaction hash of the `burn` or `burnWithPermit` transactions
-logIndex | Index of the burn event in the transaction receipt
+| Parameter | Description                                                     |
+|-----------|-----------------------------------------------------------------|
+| txHash    | Transaction hash of the `burn` or `burnWithPermit` transactions |
+| logIndex  | Index of the burn event in the transaction receipt              |
 
 ```json
 {
+  "isNft": false,
   "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
   "routerAddress": "0x",
   "amount": "100",
@@ -606,18 +611,19 @@ logIndex | Index of the burn event in the transaction receipt
 }
 ```
 
-Property | Description
----------- | ----------
-**Recipient** | EVM address of the receiver
-**RouterAddress** | Address of the router contract
-**Amount** | The transfer original transfer amount minus the services fee that is applied
-**SourceChainId** | The chain ID from which the transfer has been initiated
-**TargetChainId** | The chain ID to which the transfer data and has to be submitted
-**SourceAsset** | The asset from the source chain
-**NativeAsset** | The native asset of the transferred asset
-**TargetAsset** | The target asset for the transfer
-**Signatures** | Array of all provided signatures by the validators up until this moment
-**Majority** | True if supermajority is reached and the wrapped token may be claimed
+| Property          | Description                                                                  |
+|-------------------|------------------------------------------------------------------------------|
+| **isNft**         | Whether the transfer is fungible or non-fungible                             |
+| **recipient**     | EVM address of the receiver                                                  |
+| **routerAddress** | Address of the router contract                                               |
+| **amount**        | The transfer original transfer amount minus the services fee that is applied |
+| **sourceChainId** | The chain ID from which the transfer has been initiated                      |
+| **targetChainId** | The chain ID to which the transfer data and has to be submitted              |
+| **sourceAsset**   | The asset from the source chain                                              |
+| **nativeAsset**   | The native asset of the transferred asset                                    |
+| **targetAsset**   | The target asset for the transfer                                            |
+| **signatures**    | Array of all provided signatures by the validators up until this moment      |
+| **majority**      | True if supermajority is reached and the wrapped token may be claimed        |
 
 ### Step 3. Unlock the Native Asset
 
@@ -625,8 +631,135 @@ Once supermajority is reached users can unlock the _native version_ of the asset
 
 The `unlock` operation can be constructed using the following arguments:
 
-	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] _signatures)
+	unlock(uint256 sourceChainId, bytes transactionId, address nativeAsset, uint256 amount, address recipient, bytes[] signatures)
 
-Argument | Description
----------- | ----------
-**transactionId** | `{TX-Hash}-{LogIndex}`
+| Argument          | Description            |
+|-------------------|------------------------|
+| **transactionId** | `{TX-Hash}-{LogIndex}` |
+
+## NFT Transfers from Hedera to EVM
+The steps below will showcase a bridge transfer from Hedera Native NFT to any EVM chain.
+
+### Step 1. Deposit Transaction
+
+In order to initiate transfer, user must submit a deposit transfer transaction, which will include the serial number of the given TokenID and an HBAR transfer with the fee.
+Similar to fungible transfers, the transfer **must** include a memo, in the following format: `{targetChainId}-{receiverAddress}`, where:
+
+* `targetChainId` - the chain id of the network to which the bridge transfer will go to.
+* `receiverAddress` - the address to which the wrapped version of the NFT will be minted. 
+
+Example of how to submit a Deposit transaction to the Bridge account in Go using Hedera Go SDK:
+```go
+nftID, _ := hedera.NftIDFromString("11@0.0.15633470") // 11 - Hedera Token serial number, 0.0.15633470 - tokenID of the Hedera token
+response, _ := hedera.NewTransferTransaction().
+    SetTransactionMemo("80001-0x0000000000000000000000000000000000000002"). // 80001 - chainId of Polygon Mumbai Testnet, 0x0000000000000000000000000000000000000002 - receiver address
+    AddNftTransfer(nftID, client.GetOperatorAccountID(), bridgeAccount). // Send the NFT to the bridge account
+    AddHbarTransfer(bridgeAccount, hedera.HbarFrom(1, "hbar")). // Send the NFT bridge transfer fee to the bridge account
+    AddHbarTransfer(client.GetOperatorAccountID(), hedera.HbarFrom(-1, "hbar")). // The negated transfer fee from the sender account
+    Execute(client)
+```
+
+The corresponding `response.TransactionID` must be converted in the following format: `{accountID}-{validStartSeconds}-{validStartNanos}`.
+
+**Important: If** `validStartNanos` is **less** than 9 symbols, it has to be zero padded with `0` from the start, e.g. `14578` -> `000014578`.
+
+The transactionID is a unique identifier for the Bridge transfer operation and can be used to query the status of the Bridge transfer.
+
+### Step 2. Waiting for Signatures
+
+After the user has submitted the deposit transfer, he can begin to query a validator's API to see whether the necessary components for the transfer are met:
+
+    GET {validator_url}/api/v1/transfers/{transaction_id}
+
+Where `transaction_id` is the Hedera `TransactionID` of the NFT transfer to the Bridge account.
+
+The response is in JSON format and contains the following data:
+
+```json
+{
+  "isNft": true,
+  "recipient": "0x700d8a76b37f672a06ab89fe1ec95acfba799f1c",
+  "routerAddress": "0x",
+  "sourceChainId": "",
+  "targetChainId": "",
+  "sourceAsset": "",
+  "nativeAsset": "",
+  "targetAsset": "",
+  "tokenId": "",
+  "metadata": "",
+  "signatures": [
+  ],
+  "majority": false
+}
+```
+
+| Property          | Description                                                           |
+|-------------------|-----------------------------------------------------------------------|
+| **isNft**         | Whether the transfer is fungible or non-fungible                      |
+| **recipient**     | EVM address of the receiver                                           |
+| **routerAddress** | Address of the router contract                                        |
+| **sourceChainId** | The chain ID from which the transfer has been initiated               |
+| **targetChainId** | The chain ID to which the transfer data and has to be submitted       |
+| **sourceAsset**   | The asset from the source chain                                       |
+| **nativeAsset**   | The native asset of the transferred asset                             |
+| **targetAsset**   | The target asset for the transfer                                     |
+| **tokenId**       | The tokenId of the NFT                                                |
+| **metadata**      | The metadata/tokenURI of the NFT                                      |
+| **signatures**    | Array of all provided signatures by the validators                    |
+| **majority**      | True if supermajority is reached and the wrapped token may be claimed |
+
+### Step 3. Mint Wrapped Asset
+
+Once majority is reached, users can mint the _wrapped version_ of the NFT. In order to do that, users must submit a `mintERC721` transaction to the Bridge Router Contract.
+
+The mint operation can be constructed using the following arguments:
+
+	mintERC721(uint256 sourceChainId, bytes transactionId, address targetAsset, uint256 tokenId, string metadata, address recipient, bytes[] signatures)
+
+| Argument          | Description                                                                                                                                                                                |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **transactionId** | The Hedera `TransactionID` of the Deposit transaction. Converting the TX ID string to bytes for JS/TS: `Web3.utils.fromAscii(transactionId)` or `ethers.utils.toUtf8Bytes(transactionId)`. |
+| **signatures**    | Depending on the library chosen for EVM submission, it might be required to add to each signature a `0x` prefix.                                                                           |
+
+## NFT Transfers from EVM back to Hedera
+The steps below will showcase a bridge transfer of a wrapped NFT from any EVM back to Hedera.
+
+### Step 1. Burn the Wrapped NFT Asset
+Wrapped NFT burn consists of the following actions:
+* An ERC-20 fee for the ERC-721 is sent from the user to the Router contract.
+* An ERC-721 tokenId is burnt from the user.
+
+Before user submits the burn transaction, two approvals will be needed:
+* Approve ERC-20 bridge fee for Router contract:
+  * To find the ERC-721's ERC-20 fee token, call the router contract with the following method:
+  `const erc721PaymentTokenAddress = await routerContract.erc721Payment(address _wrappedERC721)`, [Router ABI](https://github.com/LimeChain/hashport-validator/blob/develop/app/clients/evm/contracts/router/diamond-router.go#L50).
+  * To find the ERC-721's required ERC-20 fee, call the router contract with the following method:
+  `const erc721Fee = await routerContract.erc721Fee(address _wrappedERC721)`, [Router ABI](https://github.com/LimeChain/hashport-validator/blob/develop/app/clients/evm/contracts/router/diamond-router.go#L50).
+  * Approve the Router contract with the ERC-20 token fee amount:
+  `await erc721PaymentTokenContract.approve(routerContractAddress, erc721Fee)` - A standard ERC-20 ABI can be used.
+* Approve ERC-721 wrapped NFT for Router contract:
+  `await erc721Contract.approve(routerContractAddress, tokenId)` - A standard ERC-721 ABI can be used.
+* Receiver of the native NFT **must** be manually or automatically associated with the given token on Hedera.
+
+Now that everything has been approved, users can execute a `burnERC721` transaction to the Router Contract.
+
+	burnERC721(uint256 targetChainId, address erc721ContractAddress, uint256 tokenId, address paymentToken, uint256 fee, bytes receiver)
+
+| Argument                  | Description                                                                                                                                                                                        |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **targetChainId**         | The chain id of the Network to which the NFT is bridged. In the case of Hedera, it must be `0`.                                                                                                    |
+| **erc721ContractAddress** | The address of the wrapped ERC-721 Contract.                                                                                                                                                       |
+| **tokenId**               | The token ID to be bridged.                                                                                                                                                                        |
+| **paymentToken**          | The address of the payment token.                                                                                                                                                                  |
+| **fee**                   | The fee amount for the bridge transfer.                                                                                                                                                            |
+| **receiver**              | The Account/Address to receive the native representation of the wrapped asset. If the transfer is to Hedera, the receiver must be encoded in the SDK `hedera.AccountID.toBytes()` protobuf format. |
+
+### Step 2. Find the corresponding transaction
+    GET {validator_url}/api/v1/events/{burn_erc721_id}/tx
+
+where `burn_erc721_id` is constructed in the following format: `{transactionHash}-{eventLogIndex}`
+
+| Argument            | Description                                                           |
+|---------------------|-----------------------------------------------------------------------|
+| **transactionHash** | The transaction hash of the `burnERC721` transaction                  |
+| **eventLogIndex**   | The log index of the `BurnERC721` event from the transaction receipt. |

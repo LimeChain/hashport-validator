@@ -25,14 +25,20 @@ type Bridge struct {
 }
 
 type Network struct {
-	BridgeAccount         string           `yaml:"bridge_account" json:"bridgeAccount,omitempty"`
-	PayerAccount          string           `yaml:"payer_account" json:"payerAccount,omitempty"`
-	RouterContractAddress string           `yaml:"router_contract_address" json:"routerContractAddress,omitempty"`
-	Members               []string         `yaml:"members" json:"members,omitempty"`
-	Tokens                map[string]Token `yaml:"tokens" json:"tokens,omitempty"`
+	BridgeAccount         string   `yaml:"bridge_account" json:"bridgeAccount,omitempty"`
+	PayerAccount          string   `yaml:"payer_account" json:"payerAccount,omitempty"`
+	RouterContractAddress string   `yaml:"router_contract_address" json:"routerContractAddress,omitempty"`
+	Members               []string `yaml:"members" json:"members,omitempty"`
+	Tokens                Tokens   `yaml:"tokens" json:"tokens,omitempty"`
+}
+
+type Tokens struct {
+	Fungible map[string]Token `yaml:"fungible" json:"fungible,omitempty"`
+	Nft      map[string]Token `yaml:"nft" json:"nft,omitempty"`
 }
 
 type Token struct {
+	Fee           int64            `yaml:"fee" json:"fee,omitempty"`                      // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
 	FeePercentage int64            `yaml:"fee_percentage" json:"feePercentage,omitempty"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
 	MinAmount     string           `yaml:"min_amount" json:"minAmount,omitempty"`         // Represents a constant minimum amount for each Native token.
 	Networks      map[int64]string `yaml:"networks" json:"networks,omitempty"`

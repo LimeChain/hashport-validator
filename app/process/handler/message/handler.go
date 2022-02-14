@@ -21,8 +21,10 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 )
@@ -63,12 +65,22 @@ func (cmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	cmh.handleSignatureMessage(*m)
+	switch msg := m.Message.(type) {
+	case *proto.TopicMessage_FungibleSignatureMessage:
+		cmh.handleFungibleSignatureMessage(msg.FungibleSignatureMessage, m.TransactionTimestamp)
+		break
+	case *proto.TopicMessage_NftSignatureMessage:
+		cmh.handleNftSignatureMessage(msg.NftSignatureMessage, m.TransactionTimestamp)
+		break
+	default:
+		cmh.logger.Errorf("Invalid topic message provided: [%v]", msg)
+		break
+	}
 }
 
-// handleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleSignatureMessage(tsm message.Message) {
-	valid, err := cmh.messages.SanityCheckSignature(tsm)
+// handleFungibleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
+func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMessage, timestamp int64) {
+	valid, err := cmh.messages.SanityCheckFungibleSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
 		return
@@ -78,22 +90,61 @@ func (cmh Handler) handleSignatureMessage(tsm message.Message) {
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tsm)
+	// Parse incoming message
+	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
+		return
+	}
+
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 
-	majorityReached, err := cmh.checkMajority(tsm.TransferID, int64(tsm.TargetChainId))
+	cmh.completeTransfer(tsm.TransferID, int64(tsm.TargetChainId))
+}
+
+// handleNftSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
+func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMessage, timestamp int64) {
+	valid, err := cmh.messages.SanityCheckNftSignature(tsm)
 	if err != nil {
-		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached. Error: [%s]", tsm.TransferID, err)
+		cmh.logger.Errorf("[%s] - Failed to perform sanity check on nft incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
+		return
+	}
+	if !valid {
+		cmh.logger.Errorf("[%s] - Incoming nft signature is invalid", tsm.TransferID)
+		return
+	}
+
+	// Parse incoming message
+	authMsgBytes, err := auth_message.EncodeNftBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, int64(tsm.TokenId), tsm.Metadata, tsm.Recipient)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Failed to encode the authorisation nft signature. Error: [%s]", tsm.TransferID, err)
+		return
+	}
+
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Could not process nft signature [%s]", tsm.TransferID, tsm.GetSignature())
+		return
+	}
+
+	cmh.completeTransfer(tsm.TransferID, int64(tsm.TargetChainId))
+}
+
+func (cmh Handler) completeTransfer(transferID string, targetChainId int64) {
+	majorityReached, err := cmh.checkMajority(transferID, targetChainId)
+	if err != nil {
+		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached. Error: [%s]", transferID, err)
 		return
 	}
 
 	if majorityReached {
-		err = cmh.transferRepository.UpdateStatusCompleted(tsm.TransferID)
+		err = cmh.transferRepository.UpdateStatusCompleted(transferID)
 		if err != nil {
-			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", tsm.TransferID, err)
+			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", transferID, err)
 		}
 	}
 }

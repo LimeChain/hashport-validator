@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
-	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
@@ -61,7 +60,7 @@ func NewService(dbConfigs []config.Database) *Service {
 	}
 }
 
-func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *entity.Transfer, amount string, signatures []string) (bool, error) {
+func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *entity.Transfer, authMsgBytes []byte, signatures []string) (bool, error) {
 	valid, record, err := s.validTransactionRecord(expectedTransferRecord)
 	if err != nil {
 		return false, err
@@ -70,7 +69,7 @@ func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *enti
 		return false, nil
 	}
 
-	valid, err = s.validSignatureMessages(record, amount, signatures)
+	valid, err = s.validSignatureMessages(record, authMsgBytes, signatures)
 	if err != nil {
 		return false, err
 	}
@@ -130,14 +129,8 @@ func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, er
 	return true, nil
 }
 
-func (s *Service) validSignatureMessages(record *entity.Transfer, mintAmount string, signatures []string) (bool, error) {
+func (s *Service) validSignatureMessages(record *entity.Transfer, authMsgBytes []byte, signatures []string) (bool, error) {
 	var expectedMessageRecords []entity.Message
-
-	authMsgBytes, err := auth_message.EncodeBytesFrom(record.SourceChainID, record.TargetChainID, record.TransactionID, record.TargetAsset, record.Receiver, mintAmount)
-	if err != nil {
-		s.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", record.TransactionID, err)
-		return false, err
-	}
 
 	authMessageStr := hex.EncodeToString(authMsgBytes)
 

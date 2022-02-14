@@ -45,10 +45,12 @@ var (
 	}
 	networks = map[int64]*parser.Network{
 		0: {
-			Tokens: map[string]parser.Token{
-				"0.0.111111": {
-					Networks: map[int64]string{
-						3: "0x0000000000000000000000000000000000000001",
+			Tokens: parser.Tokens{
+				Fungible: map[string]parser.Token{
+					"0.0.111111": {
+						Networks: map[int64]string{
+							3: "0x0000000000000000000000000000000000000001",
+						},
 					},
 				},
 			},
@@ -59,9 +61,10 @@ var (
 
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(int64(0), "0xevmaddress", nil)
 
-	w.processTransaction(tx, mocks.MQueue)
+	w.processTransaction(tx.TransactionID, mocks.MQueue)
 	mocks.MTransferService.AssertCalled(t, "SanityCheckTransfer", tx)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
@@ -80,6 +83,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		0,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
+		map[string]int64{},
 		true)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
@@ -98,6 +102,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		1,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
+		map[string]int64{},
 		true)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
@@ -116,20 +121,22 @@ func Test_Watch_AccountNotExist(t *testing.T) {
 
 func Test_ProcessTransaction(t *testing.T) {
 	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(int64(3), "0xaiskdjakdjakl", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
-	w.processTransaction(tx, mocks.MQueue)
+	w.processTransaction(tx.TransactionID, mocks.MQueue)
 }
 
 func Test_ProcessTransaction_WithTS(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
 	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
-	w.processTransaction(anotherTx, mocks.MQueue)
+	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
 func Test_UpdateStatusTimestamp_Works(t *testing.T) {
@@ -140,9 +147,10 @@ func Test_UpdateStatusTimestamp_Works(t *testing.T) {
 
 func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(int64(0), "", errors.New("some-error"))
 
-	w.processTransaction(tx, mocks.MQueue)
+	w.processTransaction(tx.TransactionID, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
@@ -152,7 +160,8 @@ func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	anotherTx := tx
 	anotherTx.Transfers = []model.Transfer{}
 	anotherTx.TokenTransfers = []model.Transfer{}
-	w.processTransaction(anotherTx, mocks.MQueue)
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
+	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 	mocks.MTransferService.AssertNotCalled(t, "SanityCheckTransfer", mock.Anything)
@@ -162,10 +171,11 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = "asd"
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(int64(3), "0xaiskdjakdjakl", nil)
 	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
-	w.processTransaction(anotherTx, mocks.MQueue)
+	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
 func initializeWatcher() *Watcher {
@@ -182,5 +192,6 @@ func initializeWatcher() *Watcher {
 		0,
 		map[int64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		assets,
+		map[string]int64{},
 		true)
 }

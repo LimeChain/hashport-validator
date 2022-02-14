@@ -141,10 +141,54 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	return res, nil
 }
 
+// GetNftTransactions returns the nft transactions for tokenID and serialNum
+func (c Client) GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error) {
+	query := fmt.Sprintf("%stokens/%s/nfts/%d/transactions", c.mirrorAPIAddress, tokenID, serialNum)
+
+	httpResponse, err := c.get(query)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	bodyBytes, err := readResponseBody(httpResponse)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	if httpResponse.StatusCode != http.StatusOK {
+		return model.NftTransactionsResponse{}, errors.New(fmt.Sprintf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes))
+	}
+
+	var response *model.NftTransactionsResponse
+	err = json.Unmarshal(bodyBytes, &response)
+	if err != nil {
+		return model.NftTransactionsResponse{}, err
+	}
+
+	return *response, nil
+}
+
 func (c Client) GetTransaction(transactionID string) (*model.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
+}
+
+func (c Client) GetSuccessfulTransaction(transactionID string) (model.Transaction, error) {
+	transactionsDownloadQuery := fmt.Sprintf("/%s",
+		transactionID)
+	response, err := c.getTransactionsByQuery(transactionsDownloadQuery)
+	if err != nil {
+		return model.Transaction{}, err
+	}
+	txs := response.Transactions
+	for _, tx := range txs {
+		if tx.Result == hedera.StatusSuccess.String() {
+			return tx, nil
+		}
+	}
+
+	return model.Transaction{}, errors.New(fmt.Sprintf("[%s] - No SUCCESS transaction found", transactionID))
 }
 
 // GetScheduledTransaction gets the Scheduled transaction of an executed transaction
@@ -194,34 +238,90 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	return readResponseBody(response)
 }
 
+func (c Client) GetToken(tokenID string) (*model.Token, error) {
+	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.Token
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
+func (c Client) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
+	nftQuery := fmt.Sprintf("%s%d", "/nfts/", serialNum)
+	query := fmt.Sprintf("%s%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID, nftQuery)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.Nft
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
 func (c Client) AccountExists(accountID hedera.AccountID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 	accountQuery := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,
 		accountID.String())
-	response, e := c.httpClient.Get(accountQuery)
-	if e != nil {
-		return false
-	}
 
-	if response.StatusCode != 200 {
-		return false
-	}
-
-	return true
+	return c.query(accountQuery, accountID.String())
 }
 
 func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "topics")
-	accountQuery := fmt.Sprintf("%s/%s/messages",
+	topicQuery := fmt.Sprintf("%s/%s/messages",
 		mirrorNodeApiTransactionAddress,
 		topicID.String())
-	response, e := c.httpClient.Get(accountQuery)
-	if e != nil {
+
+	return c.query(topicQuery, topicID.String())
+}
+
+func (c Client) query(query, entityID string) bool {
+	response, err := c.httpClient.Get(query)
+	if err != nil {
+		c.logger.Errorf("[%s] - failed to query account. Error [%s].", entityID, err)
+		return false
+	}
+
+	body, err := readResponseBody(response)
+	if err != nil {
+		c.logger.Errorf("[%s] - failed to read response body. Error [%s].", entityID, err)
 		return false
 	}
 
 	if response.StatusCode != 200 {
+		c.logger.Errorf("[%s] - query ended with [%d]. Response body: [%s]. ", entityID, response.StatusCode, body)
 		return false
 	}
 

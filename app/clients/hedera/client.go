@@ -163,6 +163,18 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }
 
+func (hc Node) SubmitScheduledNftTransferTransaction(
+	nftID hedera.NftID,
+	payerAccount hedera.AccountID,
+	sender hedera.AccountID,
+	receiving hedera.AccountID,
+	memo string) (*hedera.TransactionResponse, error) {
+	transferTransaction := hedera.NewTransferTransaction().
+		AddNftTransfer(nftID, sender, receiving)
+
+	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
+}
+
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
 func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
 	tx, err := tx.FreezeWith(hc.GetClient())

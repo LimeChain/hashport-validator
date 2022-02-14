@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -41,18 +42,23 @@ var (
 	}
 
 	tesm = &proto.TopicEthSignatureMessage{
-		SourceChainId:        0,
-		TargetChainId:        1,
-		TransferID:           "some-transfer-id",
-		Asset:                "0.0.1",
-		Recipient:            "0xb083879B1e10C8476802016CB12cd2F25a896691",
-		Amount:               "100",
-		Signature:            "custom-signature",
-		TransactionTimestamp: 0,
+		SourceChainId: 0,
+		TargetChainId: 1,
+		TransferID:    "some-transfer-id",
+		Asset:         "0.0.1",
+		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		Amount:        "100",
+		Signature:     "custom-signature",
 	}
 	tsm = message.Message{
-		TopicEthSignatureMessage: tesm,
+		TopicMessage: &proto.TopicMessage{
+			Message: &proto.TopicMessage_FungibleSignatureMessage{
+				FungibleSignatureMessage: tesm,
+			},
+		},
 	}
+	transactionTimestamp = int64(0)
+	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(int64(tesm.SourceChainId), int64(tesm.TargetChainId), tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
 )
 
 func Test_NewHandler(t *testing.T) {
@@ -70,23 +76,23 @@ func Test_Handle_Fails(t *testing.T) {
 
 func Test_HandleSignatureMessage_SanityCheckFails(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(false, errors.New("some-error"))
-	h.handleSignatureMessage(tsm)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(false, errors.New("some-error"))
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MMessageService.AssertNotCalled(t, "ProcessSignature", tsm)
 }
 
 func Test_HandleSignatureMessage_SanityCheckIsNotValid(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(false, nil)
-	h.handleSignatureMessage(tsm)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(false, nil)
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MMessageService.AssertNotCalled(t, "ProcessSignature", tsm)
 }
 
 func Test_HandleSignatureMessage_ProcessSignatureFails(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm).Return(errors.New("some-error"))
-	h.handleSignatureMessage(tsm)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(errors.New("some-error"))
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MTransferRepository.AssertNotCalled(t, "Update", mock.Anything)
 	mocks.MMessageRepository.AssertNotCalled(t, "Get", mock.Anything)
 	mocks.MBridgeContractService.AssertNotCalled(t, "GetMembers")
@@ -94,51 +100,51 @@ func Test_HandleSignatureMessage_ProcessSignatureFails(t *testing.T) {
 
 func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
-	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
-	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(nil)
-	h.handleSignatureMessage(tsm)
+	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(nil)
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
-	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.TransferID)
+	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID)
 }
 
 func Test_Handle(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
-	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
-	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(nil)
+	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(nil)
 	h.Handle(&tsm)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
-	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.TransferID)
+	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID)
 }
 
 func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
-	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, nil)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
-	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.TransferID).Return(errors.New("some-error"))
-	h.handleSignatureMessage(tsm)
+	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(errors.New("some-error"))
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusCompleted")
 }
 
 func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 	setup()
-	mocks.MMessageService.On("SanityCheckSignature", tsm).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm).Return(nil)
-	mocks.MMessageRepository.On("Get", tsm.TransferID).Return([]entity.Message{{}, {}, {}}, errors.New("some-error"))
-	h.handleSignatureMessage(tsm)
+	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, errors.New("some-error"))
+	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertNotCalled(t, "GetMembers")
-	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusCompleted", tsm.TransferID)
+	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID)
 }
 
 func setup() {
