@@ -165,7 +165,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	isNft, amountOrSerialNum, asset, err := tx.GetIncomingTransfer(ctw.accountID.String())
+	parsedTransfer, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
 		return
@@ -179,13 +179,13 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 
 	nativeAsset := &config.NativeAsset{
 		ChainId: 0,
-		Asset:   asset,
+		Asset:   parsedTransfer.Asset,
 	}
-	targetChainAsset := ctw.mappings.NativeToWrapped(asset, 0, targetChainId)
+	targetChainAsset := ctw.mappings.NativeToWrapped(parsedTransfer.Asset, 0, targetChainId)
 	if targetChainAsset == "" {
-		nativeAsset = ctw.mappings.WrappedToNative(asset, 0)
+		nativeAsset = ctw.mappings.WrappedToNative(parsedTransfer.Asset, 0)
 		if nativeAsset == nil {
-			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, asset)
+			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, parsedTransfer.Asset)
 			return
 		}
 		targetChainAsset = nativeAsset.Asset
@@ -196,20 +196,20 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 
 	var transferMessage *transfer.Transfer
-	if isNft {
+	if parsedTransfer.IsNft {
 		// Validate that the HBAR fee is sent
 		amount, found := tx.GetHBARTransfer(ctw.accountID.String())
 		if !found {
 			ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
 			return
 		}
-		if amount != ctw.hederaNftFees[asset] {
-			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, asset, ctw.hederaNftFees[asset])
+		if amount != ctw.hederaNftFees[parsedTransfer.Asset] {
+			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaNftFees[parsedTransfer.Asset])
 			return
 		}
-		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, receiverAddress, asset, *nativeAsset, amountOrSerialNum, targetChainId, targetChainAsset)
+		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
 	} else {
-		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, receiverAddress, asset, *nativeAsset, amountOrSerialNum, targetChainId, targetChainAsset)
+		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
 	}
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to create payload. Error: [%s]", tx.TransactionID, err)
@@ -225,13 +225,13 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == 0 {
-			if isNft {
+			if parsedTransfer.IsNft {
 				topic = constants.HederaNativeNftTransfer
 			} else {
 				topic = constants.HederaTransferMessageSubmission
 			}
 		} else {
-			if isNft {
+			if parsedTransfer.IsNft {
 				ctw.logger.Errorf("[%s] - NFT Transfer not supported", tx.TransactionID)
 				return
 			}
@@ -240,13 +240,13 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	} else {
 		transferMessage.Timestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == 0 {
-			if isNft {
+			if parsedTransfer.IsNft {
 				topic = constants.ReadOnlyHederaNativeNftTransfer
 			} else {
 				topic = constants.ReadOnlyHederaFeeTransfer
 			}
 		} else {
-			if isNft {
+			if parsedTransfer.IsNft {
 				ctw.logger.Errorf("[%s] - NFT Read-only Transfer not supported", tx.TransactionID)
 				return
 			}

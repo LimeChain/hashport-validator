@@ -104,6 +104,12 @@ type (
 	Pagination struct {
 		Next string `json:"next"` // Hyperlink to the next page of results
 	}
+	// ParsedTransfer Used in GetIncomingTransfer to return the information about an Incoming Transfer
+	ParsedTransfer struct {
+		IsNft             bool
+		AmountOrSerialNum int64
+		Asset             string
+	}
 )
 
 // getIncomingAmountFor returns the amount that is credited to the specified
@@ -153,23 +159,35 @@ func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool
 // 1. Checks if there is an NFT transfer
 // 2. Checks if there is a Fungible Token transfer
 // 3. Checks if there is an HBAR transfer
-func (t Transaction) GetIncomingTransfer(account string) (isNft bool, amountOrSerialNum int64, asset string, err error) {
+func (t Transaction) GetIncomingTransfer(account string) (parsed ParsedTransfer, err error) {
 	serialNum, asset, err := t.getIncomingNftTransferFor(account)
 	if err == nil {
-		return true, serialNum, asset, err
+		return ParsedTransfer{
+			IsNft:             true,
+			AmountOrSerialNum: serialNum,
+			Asset:             asset,
+		}, nil
 	}
 
 	amount, asset, err := t.getIncomingTokenAmountFor(account)
 	if err == nil {
-		return false, amount, asset, err
+		return ParsedTransfer{
+			IsNft:             false,
+			AmountOrSerialNum: amount,
+			Asset:             asset,
+		}, nil
 	}
 
 	amount, asset, err = t.getIncomingAmountFor(account)
 	if err == nil {
-		return false, amount, asset, err
+		return ParsedTransfer{
+			IsNft:             false,
+			AmountOrSerialNum: amount,
+			Asset:             asset,
+		}, nil
 	}
 
-	return false, amount, asset, err
+	return ParsedTransfer{}, err
 }
 
 // GetLatestTxnConsensusTime iterates all transactions and returns the consensus timestamp of the latest one
