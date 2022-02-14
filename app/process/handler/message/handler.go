@@ -64,6 +64,8 @@ func NewHandler(
 			Name: constants.ValidatorsParticipationRateGaugeName,
 			Help: constants.ValidatorsParticipationRateGaugeHelp,
 		})
+		// Set to 100 in order not to fire alerts until a transaction is processed
+		participationRate.Set(constants.ValidatorsParticipationRateInitialValue)
 	}
 
 	return &Handler{
