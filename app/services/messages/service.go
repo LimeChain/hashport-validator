@@ -150,14 +150,16 @@ func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	msg := message.NewFungibleSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		tm.Receiver,
-		tm.Amount,
-		signature)
+	topicMsg := &proto_models.TopicEthSignatureMessage{
+		SourceChainId: uint64(tm.SourceChainId),
+		TargetChainId: uint64(tm.TargetChainId),
+		TransferID:    tm.TransactionId,
+		Asset:         tm.TargetAsset,
+		Recipient:     tm.Receiver,
+		Amount:        tm.Amount,
+		Signature:     signature,
+	}
+	msg := message.NewFungibleSignature(topicMsg)
 
 	bytes, err := msg.ToBytes()
 	if err != nil {
@@ -181,15 +183,17 @@ func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
 	}
 	signature := hex.EncodeToString(signatureBytes)
 
-	msg := message.NewNftSignature(
-		uint64(tm.SourceChainId),
-		uint64(tm.TargetChainId),
-		tm.TransactionId,
-		tm.TargetAsset,
-		uint64(tm.SerialNum),
-		tm.Metadata,
-		tm.Receiver,
-		signature)
+	topicMessage := &proto_models.TopicEthNftSignatureMessage{
+		SourceChainId: uint64(tm.SourceChainId),
+		TargetChainId: uint64(tm.TargetChainId),
+		TransferID:    tm.TransactionId,
+		Asset:         tm.TargetAsset,
+		TokenId:       uint64(tm.SerialNum),
+		Metadata:      tm.Metadata,
+		Recipient:     tm.Receiver,
+		Signature:     signature,
+	}
+	msg := message.NewNftSignature(topicMessage)
 
 	bytes, err := msg.ToBytes()
 	if err != nil {

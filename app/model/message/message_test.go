@@ -65,14 +65,16 @@ func Test_FromBytesWithTSWithInvalidBytes(t *testing.T) {
 }
 
 func Test_NewSignatureWorks(t *testing.T) {
-	actualSignature := NewFungibleSignature(
-		0,
-		1,
-		"0.0.123321-123321-420",
-		"0xasset",
-		"0xsomereceiver",
-		"100",
-		"somesigneddatahere")
+	topicMsg := &model.TopicEthSignatureMessage{
+		SourceChainId: 0,
+		TargetChainId: 1,
+		TransferID:    "0.0.123321-123321-420",
+		Asset:         "0xasset",
+		Recipient:     "0xsomereceiver",
+		Amount:        "100",
+		Signature:     "somesigneddatahere",
+	}
+	actualSignature := NewFungibleSignature(topicMsg)
 	signatureEqualFields(t, expectedSignature(), actualSignature.TopicMessage.GetFungibleSignatureMessage())
 }
 

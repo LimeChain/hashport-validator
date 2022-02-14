@@ -77,13 +77,6 @@ var (
 		Amount:        transferRecord.Amount,
 		Signature:     "signature",
 	}
-	//m = &message.Message{
-	//	TopicMessage: &proto.TopicMessage{
-	//		Message: &proto.TopicMessage_FungibleSignatureMessage{
-	//			FungibleSignatureMessage: fungibleMessage},
-	//	},
-	//	TransactionTimestamp: 0,
-	//}
 	authMsgBytes, _ = auth_message.EncodeFungibleBytesFrom(transferRecord.SourceChainID, transferRecord.TargetChainID, transferRecord.TransactionID, transferRecord.TargetAsset, transferRecord.Receiver, transferRecord.Amount)
 	date            = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
 	txId            = &hedera.TransactionID{

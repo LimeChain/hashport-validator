@@ -83,33 +83,13 @@ func FromString(data, ts string) (*Message, error) {
 }
 
 // NewFungibleSignature instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewFungibleSignature(sourceChainId, targetChainId uint64, transferID, asset, receiver, amount, signature string) *Message {
-	topicMsg := &model.TopicEthSignatureMessage{
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		TransferID:    transferID,
-		Asset:         asset,
-		Recipient:     receiver,
-		Amount:        amount,
-		Signature:     signature,
-	}
+func NewFungibleSignature(topicMsg *model.TopicEthSignatureMessage) *Message {
 	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_FungibleSignatureMessage{FungibleSignatureMessage: topicMsg}}}
 }
 
 // NewNftSignature instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewNftSignature(sourceChainId, targetChainId uint64, transferID, asset string, tokenId uint64, metadata, recipient, signature string) *Message {
-	topicMsg := &model.TopicEthNftSignatureMessage{
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		TransferID:    transferID,
-		Asset:         asset,
-		TokenId:       tokenId,
-		Metadata:      metadata,
-		Recipient:     recipient,
-		Signature:     signature,
-	}
+func NewNftSignature(topicMsg *model.TopicEthNftSignatureMessage) *Message {
 	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_NftSignatureMessage{NftSignatureMessage: topicMsg}}}
-
 }
 
 // ToBytes marshals the underlying protobuf Message into bytes

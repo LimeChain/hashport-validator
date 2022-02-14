@@ -135,7 +135,6 @@ func (s Service) FindNftTransfer(
 				transaction.ReceiverAccountID == receiver &&
 				transaction.SenderAccountID == sender {
 
-				isFound := false
 				scheduledTx, err := s.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
 				if err != nil {
 					s.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferID, transaction.TransactionID, err)
@@ -149,21 +148,18 @@ func (s Service) FindNftTransfer(
 							break
 						}
 						if scheduleID.Memo == transferID {
-							isFound = true
-						}
-					}
-					if isFound {
-						s.logger.Infof("[%s] - Found a corresponding transaction [%s], ScheduleID [%s].", transferID, transaction.TransactionID, tx.EntityId)
-						finished = true
-						txStatus := status.Completed
+							s.logger.Infof("[%s] - Found a corresponding transaction [%s], ScheduleID [%s].", transferID, transaction.TransactionID, tx.EntityId)
+							finished = true
+							txStatus := status.Completed
 
-						err := save(transaction.TransactionID, tx.EntityId, txStatus)
-						if err != nil {
-							s.logger.Errorf("[%s] - Failed to save entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
+							err := save(transaction.TransactionID, tx.EntityId, txStatus)
+							if err != nil {
+								s.logger.Errorf("[%s] - Failed to save entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
+								break
+							}
+
 							break
 						}
-
-						break
 					}
 				}
 			}
