@@ -18,30 +18,31 @@ package constants
 
 // Prometheus metrics
 const (
-	ValidatorsParticipationRateGaugeName = "validators_participation_rate"
-	ValidatorsParticipationRateGaugeHelp = "Participation rate: Track validators' activity in %."
-	FeeAccountAmountGaugeName            = "fee_account_amount"
-	FeeAccountAmountGaugeHelp            = "Fee account amount."
-	BridgeAccountAmountGaugeName         = "bridge_account_amount"
-	BridgeAccountAmountGaugeHelp         = "Bridge account amount."
-	OperatorAccountAmountName            = "operator_account_amount"
-	OperatorAccountAmountHelp            = "Operator account amount."
-	DotSymbol                            = "." // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	DashSymbol                           = "-" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	OpenSquareBracket                    = "[" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	CloseSquareBracket                   = "]" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	Space                                = " " // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
-	NotAllowedSymbolsReplacement         = "_"
-	DotSymbolRep                         = 2
-	DashSymbolRep                        = 2
-	NoLimitRep                           = -1
-	AssetMetricsNamePrefix               = "asset_id_"
-	SupplyAssetMetricNameSuffix          = "_total_supply_"
-	SupplyAssetMetricsHelpPrefix         = "total supply"
-	BalanceAssetMetricNameSuffix         = "_balance_"
-	BalanceAssetMetricHelpPrefix         = "balance"
-	AssetMetricLabelKey                  = "symbol"
-	AccountMetricLabelKey                = "account_id"
+	ValidatorsParticipationRateInitialValue = 100
+	ValidatorsParticipationRateGaugeName    = "validators_participation_rate"
+	ValidatorsParticipationRateGaugeHelp    = "Participation rate: Track validators' activity in %."
+	FeeAccountAmountGaugeName               = "fee_account_amount"
+	FeeAccountAmountGaugeHelp               = "Fee account amount."
+	BridgeAccountAmountGaugeName            = "bridge_account_amount"
+	BridgeAccountAmountGaugeHelp            = "Bridge account amount."
+	OperatorAccountAmountName               = "operator_account_amount"
+	OperatorAccountAmountHelp               = "Operator account amount."
+	DotSymbol                               = "." // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	DashSymbol                              = "-" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	OpenSquareBracket                       = "[" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	CloseSquareBracket                      = "]" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	Space                                   = " " // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
+	NotAllowedSymbolsReplacement            = "_"
+	DotSymbolRep                            = 2
+	DashSymbolRep                           = 2
+	NoLimitRep                              = -1
+	AssetMetricsNamePrefix                  = "asset_id_"
+	SupplyAssetMetricNameSuffix             = "_total_supply_"
+	SupplyAssetMetricsHelpPrefix            = "total supply"
+	BalanceAssetMetricNameSuffix            = "_balance_"
+	BalanceAssetMetricHelpPrefix            = "balance"
+	AssetMetricLabelKey                     = "symbol"
+	AccountMetricLabelKey                   = "account_id"
 
 	CreateDecimalPrefix = "1"
 	CreateDecimalRepeat = "0"
