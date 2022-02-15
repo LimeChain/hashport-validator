@@ -140,8 +140,9 @@ func NewWatcher(
 		mintHash:          mintHash,
 		burnHash:          burnHash,
 		lockHash:          lockHash,
-		memberUpdatedHash: memberUpdatedHash,
+		unlockHash:        unlockHash,
 		burnERC721Hash:    burnERC721Hash,
+		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     maxLogsBlocks,
 	}
 
