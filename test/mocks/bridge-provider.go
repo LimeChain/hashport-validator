@@ -98,6 +98,17 @@ func (m *MockBridgeContract) ParseUnlockLog(log types.Log) (*router.RouterUnlock
 	return args.Get(0).(*router.RouterUnlock), args.Get(1).(error)
 }
 
+func (m *MockBridgeContract) ParseBurnERC721Log(log types.Log) (*router.RouterBurnERC721, error) {
+	args := m.Called(log)
+	if args[0] == nil {
+		return nil, args.Get(1).(error)
+	}
+	if args[1] == nil {
+		return args.Get(0).(*router.RouterBurnERC721), nil
+	}
+	return args.Get(0).(*router.RouterBurnERC721), args.Get(1).(error)
+}
+
 func (m *MockBridgeContract) IsMember(address string) bool {
 	panic("implement me")
 }

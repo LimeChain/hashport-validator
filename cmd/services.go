@@ -58,7 +58,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		}
 		chainId := chain.Int64()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.NetworkAssets(chainId))
+		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
@@ -87,6 +87,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		distributor,
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
+		c.Bridge.Hedera.NftFees,
 		scheduled,
 		messages,
 		prometheus)
@@ -137,7 +138,7 @@ func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
 			panic(err)
 		}
 		chainId := chain.Int64()
-		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.NetworkAssets(chainId))
+		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
 		contractServices[chain.Int64()] = contractService
 	}
 

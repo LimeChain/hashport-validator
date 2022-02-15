@@ -30,21 +30,24 @@ type Transfers interface {
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
-	// ProcessNativeTransfer processes the native transfer message by signing the required
+	// ProcessNativeTransfer processes the native fungible transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessNativeTransfer(tm transfer.Transfer) error
+	// ProcessNativeNftTransfer processes the native nft transfer message by signing the required
+	// authorisation signature submitting it into the required HCS Topic
+	ProcessNativeNftTransfer(tm transfer.Transfer) error
 	// ProcessWrappedTransfer processes the wrapped transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessWrappedTransfer(tm transfer.Transfer) error
 	// TransferData returns from the database the given transfer, its signatures and
 	// calculates if its messages have reached super majority
-	TransferData(txId string) (TransferData, error)
+	TransferData(txId string) (interface{}, error)
 }
 
 type TransferData struct {
+	IsNft         bool     `json:"isNft"`
 	Recipient     string   `json:"recipient"`
 	RouterAddress string   `json:"routerAddress"`
-	Amount        string   `json:"amount"`
 	SourceChainId int64    `json:"sourceChainId"`
 	TargetChainId int64    `json:"targetChainId"`
 	SourceAsset   string   `json:"sourceAsset"`
@@ -52,4 +55,15 @@ type TransferData struct {
 	TargetAsset   string   `json:"wrappedAsset"`
 	Signatures    []string `json:"signatures"`
 	Majority      bool     `json:"majority"`
+}
+
+type NonFungibleTransferData struct {
+	TransferData
+	TokenId  int64  `json:"tokenId"`
+	Metadata string `json:"metadata"`
+}
+
+type FungibleTransferData struct {
+	TransferData
+	Amount string `json:"amount"`
 }

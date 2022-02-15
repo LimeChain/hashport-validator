@@ -26,6 +26,10 @@ type MockHederaMirrorClient struct {
 	mock.Mock
 }
 
+func (m *MockHederaMirrorClient) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
+	panic("implement me")
+}
+
 func (m *MockHederaMirrorClient) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
 	panic("implement me")
 }
@@ -47,6 +51,20 @@ func (m *MockHederaMirrorClient) GetScheduledTransaction(transactionID string) (
 }
 
 func (m *MockHederaMirrorClient) GetSchedule(scheduleID string) (*model.Schedule, error) {
+	panic("implement me")
+}
+
+// GetSuccessfulTransaction gets the success transaction by transaction id or returns an error
+func (m *MockHederaMirrorClient) GetSuccessfulTransaction(transactionID string) (model.Transaction, error) {
+	args := m.Called(transactionID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(model.Transaction), nil
+	}
+	return model.Transaction{}, args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error) {
 	panic("implement me")
 }
 

@@ -32,6 +32,7 @@ type Sender struct {
 type Tokens struct {
 	WHbar          string `yaml:"whbar"`
 	WToken         string `yaml:"wtoken"`
+	NftToken       string `yaml:"nft_token"`
 	EvmNativeToken string `yaml:"evm_native_token"`
 }
 

@@ -20,7 +20,7 @@ import (
 	"errors"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
+	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -68,21 +68,18 @@ var (
 		Realm: 0,
 		Topic: 10,
 	}
-
-	m = &message.Message{
-		TopicEthSignatureMessage: &proto.TopicEthSignatureMessage{
-			SourceChainId:        uint64(transferRecord.SourceChainID),
-			TargetChainId:        uint64(transferRecord.TargetChainID),
-			TransferID:           transferRecord.TransactionID,
-			Asset:                transferRecord.NativeAsset,
-			Recipient:            transferRecord.Receiver,
-			Amount:               transferRecord.Amount,
-			Signature:            "signature",
-			TransactionTimestamp: 0,
-		},
+	fungibleMessage = &proto.TopicEthSignatureMessage{
+		SourceChainId: uint64(transferRecord.SourceChainID),
+		TargetChainId: uint64(transferRecord.TargetChainID),
+		TransferID:    transferRecord.TransactionID,
+		Asset:         transferRecord.NativeAsset,
+		Recipient:     transferRecord.Receiver,
+		Amount:        transferRecord.Amount,
+		Signature:     "signature",
 	}
-	date = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
-	txId = &hedera.TransactionID{
+	authMsgBytes, _ = auth_message.EncodeFungibleBytesFrom(transferRecord.SourceChainID, transferRecord.TargetChainID, transferRecord.TransactionID, transferRecord.TargetAsset, transferRecord.Receiver, transferRecord.Amount)
+	date            = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
+	txId            = &hedera.TransactionID{
 		AccountID: &hedera.AccountID{
 			Shard:   0,
 			Realm:   0,
@@ -136,7 +133,7 @@ func Test_AuthMessageSubmissionCallbacks(t *testing.T) {
 func Test_Handle(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
+	mocks.MMessageService.On("SignFungibleMessage", mock.Anything).Return(authMsgBytes, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, nil)
 	mocks.MHederaMirrorClient.On("WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)
 	msHandler.Handle(&tr)
@@ -145,7 +142,7 @@ func Test_Handle(t *testing.T) {
 func Test_Handle_SubmitTopicConsensusMessageFails(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MMessageService.On("SignMessage", mock.Anything).Return(m, nil)
+	mocks.MMessageService.On("SignFungibleMessage", mock.Anything).Return(authMsgBytes, nil)
 	mocks.MHederaNodeClient.On("SubmitTopicConsensusMessage", topicId, mock.Anything).Return(txId, errors.New("some-error"))
 	msHandler.Handle(&tr)
 	mocks.MHederaMirrorClient.AssertNotCalled(t, "WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)
@@ -173,10 +170,10 @@ func Test_Handle_InitiateNewTransfer_NotInitial(t *testing.T) {
 	transferRecord.Status = status.Initial
 }
 
-func Test_Handle_SignMessage_Fails(t *testing.T) {
+func Test_Handle_SignFungibleMessage_Fails(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(transferRecord, nil)
-	mocks.MMessageService.On("SignMessage", mock.Anything).Return(&message.Message{}, errors.New("some-error"))
+	mocks.MMessageService.On("SignFungibleMessage", mock.Anything).Return([]byte{}, errors.New("some-error"))
 	msHandler.Handle(&tr)
 	mocks.MHederaNodeClient.AssertNotCalled(t, "SubmitTopicConsensusMessage", topicId, mock.Anything)
 	mocks.MHederaMirrorClient.AssertNotCalled(t, "WaitForTransaction", hederahelper.ToMirrorNodeTransactionID(txId.String()), mock.Anything, mock.Anything)

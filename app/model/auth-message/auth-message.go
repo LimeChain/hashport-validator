@@ -24,10 +24,10 @@ import (
 	"math/big"
 )
 
-// EncodeBytesFrom returns the array of bytes representing an
-// authorisation signature ready to be signed by EVM Private Key
-func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
-	args, err := generateArguments()
+// EncodeFungibleBytesFrom returns the array of bytes representing an
+// authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
+func EncodeFungibleBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
+	args, err := generateFungibleArguments()
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +43,81 @@ func EncodeBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEt
 		common.HexToAddress(asset),
 		common.HexToAddress(receiverEthAddress),
 		amountBn)
+	if err != nil {
+		return nil, err
+	}
 	return keccak(bytesToHash), nil
 }
 
-func generateArguments() (abi.Arguments, error) {
+// EncodeNftBytesFrom returns the array of bytes representing an
+// authorisation ERC-721 NFT signature for Mint ready to be signed by EVM Private Key
+func EncodeNftBytesFrom(sourceChainId, targetChainId int64, txId, asset string, serialNum int64, metadata, receiverEthAddress string) ([]byte, error) {
+	args, err := generateNftArguments()
+	if err != nil {
+		return nil, err
+	}
+
+	bytesToHash, err := args.Pack(
+		big.NewInt(sourceChainId),
+		big.NewInt(targetChainId),
+		[]byte(txId),
+		common.HexToAddress(asset),
+		big.NewInt(serialNum),
+		metadata,
+		common.HexToAddress(receiverEthAddress))
+	if err != nil {
+		return nil, err
+	}
+	return keccak(bytesToHash), nil
+}
+
+func generateNftArguments() (abi.Arguments, error) {
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	stringType, err := abi.NewType("string", "internalType", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return abi.Arguments{
+		{
+			Type: uint256Type,
+		},
+		{
+			Type: uint256Type,
+		},
+		{
+			Type: bytesType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: uint256Type,
+		},
+		{
+			Type: stringType,
+		},
+		{
+			Type: addressType,
+		},
+	}, nil
+}
+
+func generateFungibleArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, err

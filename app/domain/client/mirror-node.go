@@ -42,15 +42,21 @@ type MirrorNode interface {
 	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]model.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]model.Message, error)
+	// GetNftTransactions returns the nft transactions for tokenID and serialNum
+	GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error)
 	// GetScheduledTransaction gets the Scheduled transaction of an executed transaction
 	GetScheduledTransaction(transactionID string) (*model.Response, error)
 	// GetTransaction gets all data related to a specific transaction id or returns an error
 	GetTransaction(transactionID string) (*model.Response, error)
+	// GetSuccessfulTransaction gets the success transaction by transaction id or returns an error
+	GetSuccessfulTransaction(transactionID string) (model.Transaction, error)
 	// GetSchedule retrieves a schedule entity by its id
 	GetSchedule(scheduleID string) (*model.Schedule, error)
 	// GetStateProof sends a query to get the state proof. If the query is successful, the function returns the state.
 	// If the query returns a status != 200, the function returns an error.
 	GetStateProof(transactionID string) ([]byte, error)
+	// GetNft retrieves an nft token entity by its id and serial number
+	GetNft(tokenID string, serialNum int64) (*model.Nft, error)
 	// AccountExists sends a query to check whether a specific account exists. If the query returns a status != 200, the function returns a false value
 	AccountExists(accountID hedera.AccountID) bool
 	// GetAccount gets the account data by ID.

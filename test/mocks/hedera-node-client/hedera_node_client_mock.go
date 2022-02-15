@@ -26,6 +26,14 @@ type MockHederaNodeClient struct {
 	mock.Mock
 }
 
+func (m *MockHederaNodeClient) SubmitScheduledNftTransferTransaction(nftID hedera.NftID, payerAccount hedera.AccountID, sender hedera.AccountID, receiving hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+	args := m.Called(nftID, payerAccount, sender, receiving, memo)
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+	return nil, args.Get(1).(error)
+}
+
 func (m *MockHederaNodeClient) GetClient() *hedera.Client {
 	args := m.Called()
 
