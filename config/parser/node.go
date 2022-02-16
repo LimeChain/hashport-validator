@@ -39,9 +39,9 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[int64]Evm `yaml:"evm"`
-	Hedera     Hedera        `yaml:"hedera"`
-	MirrorNode MirrorNode    `yaml:"mirror_node"`
+	Evm        map[uint64]Evm `yaml:"evm"`
+	Hedera     Hedera         `yaml:"hedera"`
+	MirrorNode MirrorNode     `yaml:"mirror_node"`
 }
 
 type Evm struct {

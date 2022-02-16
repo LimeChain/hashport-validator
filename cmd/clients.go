@@ -28,12 +28,12 @@ import (
 type Clients struct {
 	HederaNode client.HederaNode
 	MirrorNode client.MirrorNode
-	EVMClients map[int64]client.EVM
+	EVMClients map[uint64]client.EVM
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Clients) *Clients {
-	EVMClients := make(map[int64]client.EVM)
+	EVMClients := make(map[uint64]client.EVM)
 	for chainId, ec := range config.Evm {
 		EVMClients[chainId] = evm.NewClient(ec)
 	}

@@ -34,8 +34,8 @@ import (
 )
 
 type Services struct {
-	signers          map[int64]service.Signer
-	contractServices map[int64]service.Contracts
+	signers          map[uint64]service.Signer
+	contractServices map[uint64]service.Contracts
 	transfers        service.Transfers
 	messages         service.Messages
 	burnEvents       service.BurnEvent
@@ -49,14 +49,14 @@ type Services struct {
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
-	evmSigners := make(map[int64]service.Signer)
-	contractServices := make(map[int64]service.Contracts)
+	evmSigners := make(map[uint64]service.Signer)
+	contractServices := make(map[uint64]service.Contracts)
 	for _, client := range clients.EVMClients {
 		chain, err := client.ChainID(context.Background())
 		if err != nil {
 			panic(err)
 		}
-		chainId := chain.Int64()
+		chainId := chain.Uint64()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
 		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
 	}
@@ -131,15 +131,15 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
 func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
-	contractServices := make(map[int64]service.Contracts)
+	contractServices := make(map[uint64]service.Contracts)
 	for _, client := range clients.EVMClients {
 		chain, err := client.ChainID(context.Background())
 		if err != nil {
 			panic(err)
 		}
-		chainId := chain.Int64()
+		chainId := chain.Uint64()
 		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
-		contractServices[chain.Int64()] = contractService
+		contractServices[chainId] = contractService
 	}
 
 	return &Services{

@@ -44,7 +44,7 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 func PrepareExpectedTransfer(
 	sourceChainId,
 	targetChainId,
-	nativeChainId int64,
+	nativeChainId uint64,
 	transactionID,
 	sourceAsset,
 	targetAsset,

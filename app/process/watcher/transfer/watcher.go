@@ -46,7 +46,7 @@ type Watcher struct {
 	statusRepository  repository.Status
 	targetTimestamp   int64
 	logger            *log.Entry
-	contractServices  map[int64]service.Contracts
+	contractServices  map[uint64]service.Contracts
 	mappings          config.Assets
 	hederaNftFees     map[string]int64
 	validator         bool
@@ -60,7 +60,7 @@ func NewWatcher(
 	pollingInterval time.Duration,
 	repository repository.Status,
 	startTimestamp int64,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
 	mappings config.Assets,
 	hederaNftFees map[string]int64,
 	validator bool,
@@ -264,7 +264,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
 }
 
-func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset config.NativeAsset, amount int64, targetChainId int64, targetChainAsset string) (*transfer.Transfer, error) {
+func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset config.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*transfer.Transfer, error) {
 	nativeAsset := ctw.mappings.FungibleNativeAsset(asset.ChainId, asset.Asset)
 	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(amount), targetChainAsset)
 	if err != nil {
@@ -298,7 +298,7 @@ func (ctw Watcher) createNonFungiblePayload(
 	sourceAsset string,
 	nativeAsset config.NativeAsset,
 	serialNum int64,
-	targetChainId int64,
+	targetChainId uint64,
 	targetChainAsset string) (*transfer.Transfer, error) {
 	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
 	if err != nil {
@@ -322,7 +322,7 @@ func (ctw Watcher) createNonFungiblePayload(
 		string(decodedMetadata)), nil
 }
 
-func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId int64, asset string) {
+func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId uint64, asset string) {
 	if !ctw.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

@@ -76,12 +76,12 @@ func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) err
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SanityCheckTransfer(tx model.Transaction) (int64, string, error) {
+func (mts *MockTransferService) SanityCheckTransfer(tx model.Transaction) (uint64, string, error) {
 	args := mts.Called(tx)
 	if args.Get(2) == nil {
-		return args.Get(0).(int64), args.Get(1).(string), nil
+		return args.Get(0).(uint64), args.Get(1).(string), nil
 	}
-	return args.Get(0).(int64), args.Get(1).(string), args.Get(2).(error)
+	return args.Get(0).(uint64), args.Get(1).(string), args.Get(2).(error)
 }
 
 func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {

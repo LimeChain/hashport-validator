@@ -41,24 +41,24 @@ import (
 )
 
 type Service struct {
-	ethSigners         map[int64]service.Signer
-	contractServices   map[int64]service.Contracts
+	ethSigners         map[uint64]service.Signer
+	contractServices   map[uint64]service.Contracts
 	transferRepository repository.Transfer
 	messageRepository  repository.Message
 	topicID            hedera.TopicID
 	mirrorClient       client.MirrorNode
-	ethClients         map[int64]client.EVM
+	ethClients         map[uint64]client.EVM
 	logger             *log.Entry
 	mappings           config.Assets
 }
 
 func NewService(
-	ethSigners map[int64]service.Signer,
-	contractServices map[int64]service.Contracts,
+	ethSigners map[uint64]service.Signer,
+	contractServices map[uint64]service.Contracts,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
 	mirrorClient client.MirrorNode,
-	ethClients map[int64]client.EVM,
+	ethClients map[uint64]client.EVM,
 	topicID string,
 	mappings config.Assets,
 ) *Service {
@@ -110,8 +110,8 @@ func (ss *Service) SanityCheckFungibleSignature(topicMessage *proto_models.Topic
 		topicMessage.Recipient == t.Receiver &&
 			topicMessage.Amount == signedAmount &&
 			topicMessage.Asset == t.TargetAsset &&
-			int64(topicMessage.TargetChainId) == t.TargetChainID &&
-			int64(topicMessage.SourceChainId) == t.SourceChainID &&
+			topicMessage.TargetChainId == t.TargetChainID &&
+			topicMessage.SourceChainId == t.SourceChainID &&
 			topicMessage.TransferID == t.TransactionID
 	return match, nil
 }
@@ -131,8 +131,8 @@ func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNf
 			int64(topicMessage.TokenId) == t.SerialNumber &&
 			topicMessage.Metadata == t.Metadata &&
 			topicMessage.Asset == t.TargetAsset &&
-			int64(topicMessage.TargetChainId) == t.TargetChainID &&
-			int64(topicMessage.SourceChainId) == t.SourceChainID &&
+			topicMessage.TargetChainId == t.TargetChainID &&
+			topicMessage.SourceChainId == t.SourceChainID &&
 			topicMessage.TransferID == t.TransactionID
 	return match, nil
 }
@@ -206,7 +206,7 @@ func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-func (ss *Service) ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error {
+func (ss *Service) ProcessSignature(transferID, signature string, targetChainId uint64, timestamp int64, authMsg []byte) error {
 	// Prepare Signature
 	signatureBytes, signatureHex, err := ethhelper.DecodeSignature(signature)
 	if err != nil {
@@ -251,7 +251,7 @@ func (ss *Service) ProcessSignature(transferID, signature string, targetChainId,
 	return nil
 }
 
-func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID string, targetChainId int64, authMessageStr string) (common.Address, error) {
+func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID string, targetChainId uint64, authMessageStr string) (common.Address, error) {
 	publicKey, err := crypto.Ecrecover(authMsgBytes, signatureBytes)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to recover public key. Hash [%s]. Error: [%s]", transferID, authMessageStr, err)

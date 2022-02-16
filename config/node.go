@@ -41,7 +41,7 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[int64]Evm
+	Evm        map[uint64]Evm
 	Hedera     Hedera
 	MirrorNode MirrorNode
 }
@@ -103,7 +103,7 @@ func New(node parser.Node) Node {
 				Rpc:            rpc,
 			},
 			MirrorNode: MirrorNode(node.Clients.MirrorNode),
-			Evm:        make(map[int64]Evm),
+			Evm:        make(map[uint64]Evm),
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,

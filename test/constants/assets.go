@@ -22,13 +22,13 @@ import (
 )
 
 var (
-	Networks = map[int64]*parser.Network{
+	Networks = map[uint64]*parser.Network{
 		0: {
 			Name: "Hedera",
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					constants.Hbar: {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							33: "0x0000000000000000000000000000000000000001",
 						},
 					},
@@ -41,7 +41,7 @@ var (
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					"0xb083879B1e10C8476802016CB12cd2F25a896691": {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							33: "0x0000000000000000000000000000000000000123",
 						},
 					},
@@ -54,7 +54,7 @@ var (
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							0: "",
 						},
 					},
@@ -67,7 +67,7 @@ var (
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							0: "",
 						},
 					},
@@ -80,7 +80,7 @@ var (
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							0: "",
 						},
 					},
@@ -93,7 +93,7 @@ var (
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
+						Networks: map[uint64]string{
 							0: constants.Hbar,
 							1: "0xsome-other-eth-address",
 						},

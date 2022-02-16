@@ -24,7 +24,7 @@ type Prometheus interface {
 	// CreateGaugeIfNotExists creates new Gauge Metric and registers it in Prometheus if not exists
 	CreateGaugeIfNotExists(opts prometheus.GaugeOpts) prometheus.Gauge
 	// CreateSuccessRateGaugeIfNotExists creates new Gauge Metric for Success Rate and registers it in Prometheus if not exists
-	CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error)
+	CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId, targetChainId uint64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error)
 	// GetGauge retrieves Gauge by name with flag for existence
 	GetGauge(name string) prometheus.Gauge
 	// DeleteGauge unregisters and deletes Gauge with the passed name

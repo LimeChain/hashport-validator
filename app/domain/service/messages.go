@@ -29,7 +29,7 @@ type Messages interface {
 	// (verifies input data against the corresponding Transaction record)
 	SanityCheckNftSignature(tm *proto.TopicEthNftSignatureMessage) (bool, error)
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-	ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error
+	ProcessSignature(transferID, signature string, targetChainId uint64, timestamp int64, authMsg []byte) error
 	// SignFungibleMessage signs a Fungible message based on Transfer
 	SignFungibleMessage(transfer model.Transfer) ([]byte, error)
 	// SignNftMessage signs an NFT messaged based on Transfer

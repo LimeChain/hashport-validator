@@ -92,7 +92,7 @@ func initializeMonitoring(
 	s *server.Server,
 	configuration config.Config,
 	mirrorNode client.MirrorNode,
-	EVMClients map[int64]client.EVM,
+	EVMClients map[uint64]client.EVM,
 ) {
 	if configuration.Node.Monitoring.Enable {
 		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
@@ -108,6 +108,7 @@ func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirou
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
 	apiRouter.AddV1Router("/metrics", promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
+
 	return apiRouter
 }
 
@@ -159,11 +160,11 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		if err != nil {
 			panic(err)
 		}
-		contractService := services.contractServices[chain.Int64()]
+		contractService := services.contractServices[chain.Uint64()]
 		// Given that addresses between different
 		// EVM networks might be the same, a concatenation between
 		// <chain-id>-<contract-address> removes possible duplication.
-		dbIdentifier := fmt.Sprintf("%d-%s", chain.Int64(), contractService.Address().String())
+		dbIdentifier := fmt.Sprintf("%d-%s", chain.Uint64(), contractService.Address().String())
 
 		server.AddWatcher(
 			evm.NewWatcher(
@@ -173,10 +174,10 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				evmClient,
 				configuration.Bridge.Assets,
 				dbIdentifier,
-				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
+				configuration.Node.Clients.Evm[chain.Uint64()].StartBlock,
 				configuration.Node.Validator,
-				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval,
-				configuration.Node.Clients.Evm[chain.Int64()].MaxLogsBlocks,
+				configuration.Node.Clients.Evm[chain.Uint64()].PollingInterval,
+				configuration.Node.Clients.Evm[chain.Uint64()].MaxLogsBlocks,
 			))
 	}
 
@@ -251,7 +252,7 @@ func initializePrometheusWatcher(
 	configuration config.Config,
 	mirrorNode client.MirrorNode,
 	prometheusService service.Prometheus,
-	EVMClients map[int64]client.EVM,
+	EVMClients map[uint64]client.EVM,
 ) {
 	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
@@ -267,7 +268,7 @@ func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
 	prometheusService service.Prometheus,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
@@ -306,7 +307,7 @@ func addPrometheusWatcher(
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
 	prometheusService service.Prometheus,
-	EVMClients map[int64]client.EVM,
+	EVMClients map[uint64]client.EVM,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(

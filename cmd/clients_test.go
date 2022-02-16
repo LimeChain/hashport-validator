@@ -29,7 +29,7 @@ func TestPrepareClients(t *testing.T) {
 	clients := PrepareClients(tc.TestConfig.Node.Clients)
 	assert.NotEmpty(t, clients)
 
-	assert.IsType(t, map[int64]client.EVM{}, clients.EVMClients)
+	assert.IsType(t, map[uint64]client.EVM{}, clients.EVMClients)
 	assert.IsType(t, &hedera.Node{}, clients.HederaNode)
 	assert.IsType(t, &mirror_node.Client{}, clients.MirrorNode)
 

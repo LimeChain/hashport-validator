@@ -26,7 +26,7 @@ import (
 type Transfers interface {
 	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
-	SanityCheckTransfer(tx model.Transaction) (int64, string, error)
+	SanityCheckTransfer(tx model.Transaction) (uint64, string, error)
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
@@ -48,8 +48,8 @@ type TransferData struct {
 	IsNft         bool     `json:"isNft"`
 	Recipient     string   `json:"recipient"`
 	RouterAddress string   `json:"routerAddress"`
-	SourceChainId int64    `json:"sourceChainId"`
-	TargetChainId int64    `json:"targetChainId"`
+	SourceChainId uint64   `json:"sourceChainId"`
+	TargetChainId uint64   `json:"targetChainId"`
 	SourceAsset   string   `json:"sourceAsset"`
 	NativeAsset   string   `json:"nativeAsset"`
 	TargetAsset   string   `json:"wrappedAsset"`
