@@ -19,7 +19,7 @@ node:
       client_address: hcs.testnet.mirrornode.hedera.com:5600
       polling_interval: 5
   monitoring:
-    enable: true
+    enable: false
     dashboard_polling: 15 #in minutes
   log_level: info
   port: 5200

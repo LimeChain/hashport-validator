@@ -3,5 +3,5 @@
 node:
   validator: false
 #  monitoring:
-#    enable: true
+#    enable: false
 #    dashboard_polling: 15 #in minutes
