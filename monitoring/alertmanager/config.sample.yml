@@ -1,0 +1,52 @@
+global:
+  resolve_timeout: 800h
+
+templates:
+  - '/etc/alertmanager/email.html'
+
+route:
+  receiver: 'slack-notifications'
+  group_interval: 30s
+  group_wait: 30s
+  repeat_interval: 30s
+  routes:
+    - match:
+        severity: critical
+      continue: true
+      receiver: slack-notifications
+    - match:
+        severity: critical
+      receiver: email
+
+receivers:
+
+  - name: 'slack-notifications'
+    slack_configs:
+      - api_url: ''
+        channel: ''
+        send_resolved: true
+        icon_url: https://avatars3.githubusercontent.com/u/3380462
+        color: '{{ if eq .Status "resolved" }}good{{ else }}{{ if eq .CommonLabels.severity "minor"}}warning{{ else }}danger{{ end }}{{ end }}'
+        title: |-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+        text: >-
+          {{ range .Alerts -}}
+          *Alert:* {{ .Annotations.title }}{{ if .Labels.severity }} - `{{ .Labels.severity }}`{{ end }}
+
+          *Description:* {{ if eq .Status "firing" }}{{ .Annotations.description }}{{else}}Everything is okay!{{ end }}
+
+          *Details:*
+            {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+            {{ end }}
+          {{ end }}
+
+  - name: 'email'
+    email_configs:
+      - to: ''
+        from: ''
+        smarthost: smtp.gmail.com:587
+        html: '{{ template "email.html" . }}'
+        send_resolved: true
+        auth_username: ''
+        auth_identity: ''
+        auth_password: ''

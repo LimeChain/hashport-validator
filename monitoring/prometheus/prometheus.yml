@@ -17,7 +17,7 @@ scrape_configs:
     metrics_path: /api/v1/metrics
     static_configs:
     - targets:
-      - dave_read_only:5200 #inside port of the validator
+      - validator:5200 #inside port of the validator
 
 # Rules and alerts are read from the specified file(s)
 rule_files:
