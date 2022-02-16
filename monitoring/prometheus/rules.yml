@@ -1,23 +1,14 @@
 #groups:
-#  - name: validators
+#  - name: account_amounts
 #    rules:
-#      - alert: LowValidatorsParticipationRate
-#        # Condition for alerting
-#        expr: validators_participation_rate < 66.66
-#        for: 1m
-#        # Labels - additional labels to be attached to the alert
-#        labels:
-#          severity: 'critical'
-#        annotations:
-#          description: "Participation Rate: {{ $value }} %"
-#
 #      - alert: LowFeeAccountAmount
 #        # Condition for alerting
-#        expr: fee_account_amount < 101
+#        expr: fee_account_amount < 100
 #        for: 1m
 #        # Labels - additional labels to be attached to the alert
 #        labels:
-#          severity: 'critical'
+#          severity: 'minor'
+#          group: 'account_amounts'
 #        annotations:
 #          description: "Fee account amount: {{ $value }} HBAR"
 #
@@ -27,6 +18,20 @@
 #        for: 1m
 #        # Labels - additional labels to be attached to the alert
 #        labels:
-#          severity: 'critical'
+#          severity: 'minor'
+#          group: 'account_amounts'
 #        annotations:
 #          description: "Operator account amount: {{ $value }} HBAR"
+#
+#  - name: validators
+#    rules:
+#      - alert: LowValidatorsParticipationRate
+#        # Condition for alerting
+#        expr: validators_participation_rate < 66.67
+#        for: 1m
+#        # Labels - additional labels to be attached to the alert
+#        labels:
+#          severity: 'critical'
+#          group: 'validators'
+#        annotations:
+#          description: "Participation Rate: {{ $value }} %"

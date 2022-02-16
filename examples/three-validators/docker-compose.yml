@@ -136,7 +136,7 @@ services:
     ports:
       - 9093:9093
     volumes:
-      - ./monitoring/alertmanager/:/etc/alertmanager/
+      - ./monitoring/alertmanager:/etc/alertmanager/
     restart: always
     command:
       - '--config.file=/etc/alertmanager/config.yml'

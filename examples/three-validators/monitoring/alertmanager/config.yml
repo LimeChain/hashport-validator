@@ -1,5 +1,4 @@
 global:
-  slack_api_url: ''
   resolve_timeout: 800h
 
 templates:
@@ -27,6 +26,7 @@ receivers:
         channel: ''
         send_resolved: true
         icon_url: https://avatars3.githubusercontent.com/u/3380462
+        color: '{{ if eq .Status "resolved" }}good{{ else }}{{ if eq .CommonLabels.severity "minor"}}warning{{ else }}danger{{ end }}{{ end }}'
         title: |-
           [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
         text: >-
