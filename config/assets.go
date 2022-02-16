@@ -43,6 +43,14 @@ type NativeAsset struct {
 	Asset     string
 }
 
+func (a Assets) GetFungibleNetworkAssets() map[uint64][]string {
+	return a.fungibleNetworkAssets
+}
+
+func (a Assets) WrappedFromNative(nativeChainId uint64, nativeAsset string) map[uint64]string {
+	return a.nativeToWrapped[nativeChainId][nativeAsset]
+}
+
 func (a Assets) GetNativeToWrapped() map[uint64]map[string]map[uint64]string {
 	return a.nativeToWrapped
 }

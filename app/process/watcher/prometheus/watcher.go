@@ -116,26 +116,29 @@ func (pw Watcher) beginWatching() {
 }
 
 func (pw Watcher) registerAssetsMetrics() {
-	nativeToWrapped := pw.configuration.Bridge.Assets.GetNativeToWrapped()
-	for nativeNetworkId, nativeMap := range nativeToWrapped {
-		for nativeAsset, wrappedMap := range nativeMap {
-			// register native assets balance
-			pw.registerAssetMetric(
-				nativeNetworkId,
-				nativeNetworkId,
-				nativeAsset,
-				constants.BalanceAssetMetricNameSuffix,
-				constants.BalanceAssetMetricHelpPrefix,
-			)
-			for wrappedNetworkId, wrappedAsset := range wrappedMap {
-				//register wrapped assets total supply
+	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	for networkId, networkAssets := range fungibleAssets {
+		for _, assetAddress := range networkAssets { // native
+			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
+				// register native assets balance
 				pw.registerAssetMetric(
-					nativeNetworkId,
-					wrappedNetworkId,
-					wrappedAsset,
-					constants.SupplyAssetMetricNameSuffix,
-					constants.SupplyAssetMetricsHelpPrefix,
+					networkId,
+					networkId,
+					assetAddress,
+					constants.BalanceAssetMetricNameSuffix,
+					constants.BalanceAssetMetricHelpPrefix,
 				)
+				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
+					//register wrapped assets total supply
+					pw.registerAssetMetric(
+						networkId,
+						wrappedNetworkId,
+						wrappedAssetAddress,
+						constants.SupplyAssetMetricNameSuffix,
+						constants.SupplyAssetMetricsHelpPrefix,
+					)
+				}
 			}
 		}
 	}
@@ -278,14 +281,17 @@ func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
 }
 
 func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
-	nativeToWrapped := pw.configuration.Bridge.Assets.GetNativeToWrapped()
-	for nativeNetworkId, nativeMap := range nativeToWrapped {
-		for nativeAsset, wrappedMap := range nativeMap {
+	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	for networkId, networkAssets := range fungibleAssets {
+		for _, assetAddress := range networkAssets { // native
 			// set native assets balance
-			pw.prepareAndSetAssetMetric(nativeNetworkId, nativeAsset, bridgeAccount, true)
-			for wrappedNetworkId, wrappedAsset := range wrappedMap {
-				//set wrapped assets total supply
-				pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAsset, bridgeAccount, false)
+			pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
+			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
+				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
+					//set wrapped assets total supply
+					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
+				}
 			}
 		}
 	}
