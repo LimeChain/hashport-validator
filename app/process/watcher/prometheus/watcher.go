@@ -39,7 +39,7 @@ import (
 type Watcher struct {
 	dashboardPolling          time.Duration
 	mirrorNode                client.MirrorNode
-	EVMClients                map[int64]client.EVM
+	EVMClients                map[uint64]client.EVM
 	configuration             config.Config
 	prometheusService         service.Prometheus
 	logger                    *log.Entry
@@ -47,7 +47,7 @@ type Watcher struct {
 	bridgeAccountBalanceGauge prometheus.Gauge
 	operatorBalanceGauge      prometheus.Gauge
 	// A mapping, storing all network ID - asset address - metric name
-	assetsMetrics map[int64]map[string]string
+	assetsMetrics map[uint64]map[string]string
 }
 
 func NewWatcher(
@@ -55,7 +55,7 @@ func NewWatcher(
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
 	prometheusService service.Prometheus,
-	EVMClients map[int64]client.EVM,
+	EVMClients map[uint64]client.EVM,
 ) *Watcher {
 
 	var (
@@ -63,7 +63,7 @@ func NewWatcher(
 		bridgeAccountBalanceGauge prometheus.Gauge
 		operatorBalanceGauge      prometheus.Gauge
 		// A mapping, storing all network ID - asset address - metric name
-		assetsMetrics = make(map[int64]map[string]string)
+		assetsMetrics = make(map[uint64]map[string]string)
 	)
 
 	if prometheusService.GetIsMonitoringEnabled() {
@@ -142,8 +142,8 @@ func (pw Watcher) registerAssetsMetrics() {
 }
 
 func (pw Watcher) registerAssetMetric(
-	nativeNetworkId int64,
-	wrappedNetworkId int64,
+	nativeNetworkId,
+	wrappedNetworkId uint64,
 	assetAddress string,
 	metricNameCnt string,
 	metricHelpCnt string,
@@ -175,7 +175,7 @@ func (pw Watcher) registerAssetMetric(
 	}
 }
 
-func (pw Watcher) getAssetData(networkId int64, assetAddress string) (name string, symbol string, err error) {
+func (pw Watcher) getAssetData(networkId uint64, assetAddress string) (name string, symbol string, err error) {
 	if networkId == constants.HederaNetworkId { // Hedera
 		asset, e := pw.mirrorNode.GetToken(assetAddress)
 		if e != nil {
@@ -208,16 +208,16 @@ func (pw Watcher) getAssetData(networkId int64, assetAddress string) (name strin
 }
 
 func getMetricData(
-	nativeNetworkId int64,
-	wrappedNetworkId int64,
+	nativeNetworkId,
+	wrappedNetworkId uint64,
 	assetAddress string,
 	assetName string,
 	metricNameSuffix string,
 	metricsHelpPrefix string,
 ) (string, string) {
 
-	nativeNetworkName := constants.NetworksById[uint64(nativeNetworkId)]
-	wrappedNetworkName := constants.NetworksById[uint64(wrappedNetworkId)]
+	nativeNetworkName := constants.NetworksById[nativeNetworkId]
+	wrappedNetworkName := constants.NetworksById[wrappedNetworkId]
 	assetType := constants.Wrapped
 	if nativeNetworkId == wrappedNetworkId {
 		assetType = constants.Native
@@ -291,7 +291,7 @@ func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
 	}
 }
 
-func (pw Watcher) prepareAndSetAssetMetric(networkId int64,
+func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
 	bridgeAccount *model.AccountsResponse,
 	isNative bool,
@@ -318,7 +318,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId int64,
 }
 
 func (pw Watcher) getAssetMetricValue(
-	networkId int64,
+	networkId uint64,
 	assetAddress string,
 	bridgeAccount *model.AccountsResponse,
 	isNative bool,
@@ -416,7 +416,7 @@ func (pw Watcher) getHederaTokenSupply(assetAddress string) (float64, error) {
 }
 
 func (pw Watcher) getEVMBalance(
-	networkId int64,
+	networkId uint64,
 	evmAssetInstance *wtoken.Wtoken,
 	decimal uint8,
 	assetAddress string,
@@ -438,7 +438,7 @@ func (pw Watcher) getEVMBalance(
 
 func (pw Watcher) getEVMSupply(evmAssetInstance *wtoken.Wtoken,
 	decimal uint8,
-	networkId int64,
+	networkId uint64,
 	assetAddress string,
 ) (float64, error) {
 	ts, e := evmAssetInstance.TotalSupply(&bind.CallOpts{})

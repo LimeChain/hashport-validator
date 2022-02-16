@@ -136,9 +136,9 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   lockLog.Token.String(),
@@ -172,9 +172,9 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   lockLog.Token.String(),
@@ -209,9 +209,9 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   "0xsome-other-eth-address",
 		NativeAsset:   lockLog.Token.String(),
@@ -235,9 +235,9 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	lockLog.TargetChain = big.NewInt(1)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   "0xsome-other-eth-address",
 		NativeAsset:   lockLog.Token.String(),
@@ -260,9 +260,9 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: burnLog.TargetChain.Int64(),
-		NativeChainId: int64(0),
+		SourceChainId: 33,
+		TargetChainId: burnLog.TargetChain.Uint64(),
+		NativeChainId: 0,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   constants.Hbar,
@@ -296,9 +296,9 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 1,
-		NativeChainId: int64(1),
+		NativeChainId: 1,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
@@ -339,9 +339,9 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 1,
-		NativeChainId: int64(1),
+		NativeChainId: 1,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
@@ -378,9 +378,9 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 0,
-		NativeChainId: int64(0),
+		NativeChainId: 0,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   constants.Hbar,

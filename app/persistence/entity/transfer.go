@@ -20,9 +20,9 @@ import "database/sql"
 
 type Transfer struct {
 	TransactionID string `gorm:"primaryKey"`
-	SourceChainID int64
-	TargetChainID int64
-	NativeChainID int64
+	SourceChainID uint64
+	TargetChainID uint64
+	NativeChainID uint64
 	SourceAsset   string
 	TargetAsset   string
 	NativeAsset   string

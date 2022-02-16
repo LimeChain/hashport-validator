@@ -191,7 +191,7 @@ func (fmh Handler) Handle(payload interface{}) {
 	}
 }
 
-func (fmh *Handler) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+func (fmh *Handler) onMinedFeeTransactionsSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transferID string, isTransferSuccessful bool) {
 	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false || !fmh.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

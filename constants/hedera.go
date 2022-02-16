@@ -18,7 +18,7 @@ package constants
 
 const (
 	Hbar            = "HBAR"
-	HederaNetworkId = 0
+	HederaNetworkId = uint64(0)
 )
 
 // Handler topics

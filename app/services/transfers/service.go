@@ -47,7 +47,7 @@ type Service struct {
 	logger             *log.Entry
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
-	contractServices   map[int64]service.Contracts
+	contractServices   map[uint64]service.Contracts
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
 	feeRepository      repository.Fee
@@ -64,7 +64,7 @@ type Service struct {
 func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	feeRepository repository.Fee,
@@ -106,14 +106,14 @@ func NewService(
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64, string, error) {
+func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (uint64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
 	memoArgs := strings.Split(m, "-")
-	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
+	chainId, _ := strconv.ParseUint(memoArgs[0], 10, 64)
 	evmAddress := memoArgs[1]
 
 	return chainId, evmAddress, nil
@@ -243,7 +243,7 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(transferID string, si
 	return nil
 }
 
-func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int64, transferID string, nativeAsset string) {
+func (ts *Service) processFeeTransfer(totalFee int64, sourceChainId, targetChainId uint64, transferID string, nativeAsset string) {
 
 	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
 	if err != nil {
@@ -290,7 +290,7 @@ func (ts *Service) processFeeTransfer(totalFee, sourceChainId, targetChainId int
 	}
 }
 
-func (ts *Service) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+func (ts *Service) onMinedFeeTransactionsSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transferID string, isTransferSuccessful bool) {
 	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false || !ts.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

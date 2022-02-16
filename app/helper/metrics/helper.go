@@ -55,7 +55,7 @@ func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, 
 
 // Success Rate Metrics //
 
-func CreateUserGetHisTokensIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+func CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return nil
 	}
@@ -74,7 +74,7 @@ func CreateUserGetHisTokensIfNotExists(sourceChainId int64, targetChainId int64,
 	return gauge
 }
 
-func SetUserGetHisTokens(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+func SetUserGetHisTokens(sourceChainId, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
@@ -84,7 +84,7 @@ func SetUserGetHisTokens(sourceChainId int64, targetChainId int64, asset string,
 	gauge.Set(1.0)
 }
 
-func CreateFeeTransferredIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+func CreateFeeTransferredIfNotExists(sourceChainId, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return nil
 	}
@@ -103,7 +103,7 @@ func CreateFeeTransferredIfNotExists(sourceChainId int64, targetChainId int64, a
 	return gauge
 }
 
-func SetFeeTransferred(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+func SetFeeTransferred(sourceChainId, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
@@ -113,7 +113,7 @@ func SetFeeTransferred(sourceChainId int64, targetChainId int64, asset string, t
 	gauge.Set(1.0)
 }
 
-func CreateMajorityReachedIfNotExists(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
+func CreateMajorityReachedIfNotExists(sourceChainId uint64, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) prometheus.Gauge {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return nil
 	}
@@ -133,7 +133,7 @@ func CreateMajorityReachedIfNotExists(sourceChainId int64, targetChainId int64, 
 	return gauge
 }
 
-func SetMajorityReached(sourceChainId int64, targetChainId int64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
+func SetMajorityReached(sourceChainId, targetChainId uint64, asset string, transferID string, prometheusService service.Prometheus, logger *log.Entry) {
 	if !prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

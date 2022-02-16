@@ -63,7 +63,7 @@ func (m *MockMessageService) SanityCheckNftSignature(tm *proto.TopicEthNftSignat
 }
 
 // ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
-func (m *MockMessageService) ProcessSignature(transferID, signature string, targetChainId, timestamp int64, authMsg []byte) error {
+func (m *MockMessageService) ProcessSignature(transferID, signature string, targetChainId uint64, timestamp int64, authMsg []byte) error {
 	args := m.Called(transferID, signature, targetChainId, timestamp, authMsg)
 	if args[0] == nil {
 		return nil

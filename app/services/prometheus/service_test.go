@@ -89,8 +89,8 @@ func Test_CreateSuccessRateGaugeIfNotExists(t *testing.T) {
 	setup()
 
 	transactionId := "0.0.1234"
-	sourceChainId := int64(constants.HederaNetworkId)
-	targetChainId := int64(constants.NetworksByName["Ethereum"])
+	sourceChainId := constants.HederaNetworkId
+	targetChainId := constants.NetworksByName["Ethereum"]
 	asset := constants.Hbar
 	gauge, err := service.CreateSuccessRateGaugeIfNotExists(
 		transactionId,

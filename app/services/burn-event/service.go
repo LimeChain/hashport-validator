@@ -170,7 +170,7 @@ func (s Service) startAwaitingFunctionsForMetrics(event transfer.Transfer, feeOu
 	)
 }
 
-func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId uint64, asset string) {
 	if !s.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}
@@ -183,7 +183,7 @@ func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceCh
 	}
 }
 
-func (s *Service) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
+func (s *Service) onMinedFeeTransactionsSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
 
 	if !s.prometheusService.GetIsMonitoringEnabled() || targetChainId != constants.HederaNetworkId || !isTransferSuccessful {
 		return
@@ -192,7 +192,7 @@ func (s *Service) onMinedFeeTransactionsSetMetrics(sourceChainId int64, targetCh
 	metrics.SetFeeTransferred(sourceChainId, targetChainId, nativeAsset, transactionId, s.prometheusService, s.logger)
 }
 
-func (s *Service) onMinedUserTransactionSetMetrics(sourceChainId int64, targetChainId int64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
+func (s *Service) onMinedUserTransactionSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
 
 	if !s.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || !isTransferSuccessful {
 		return

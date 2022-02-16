@@ -33,7 +33,7 @@ func (mps *MockPrometheusService) CreateGaugeIfNotExists(opts prometheus.GaugeOp
 }
 
 // CreateSuccessRateGaugeIfNotExists creates new Gauge Metric for Success Rate and registers it in Prometheus if not exists
-func (mps *MockPrometheusService) CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
+func (mps *MockPrometheusService) CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId, targetChainId uint64, asset, metricNameSuffix, metricHelp string) (prometheus.Gauge, error) {
 	args := mps.Called(transactionId, sourceChainId, targetChainId, asset, metricNameSuffix, metricHelp)
 	return args.Get(0).(prometheus.Gauge), args.Error(1)
 }

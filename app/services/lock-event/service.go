@@ -146,7 +146,7 @@ statusBlocker:
 	)
 }
 
-func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId int64, asset string) {
+func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId uint64, asset string) {
 	if !s.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

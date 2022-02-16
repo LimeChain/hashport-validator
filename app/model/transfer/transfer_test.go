@@ -7,9 +7,9 @@ import (
 
 const (
 	txId          = "0.0.123123-123321-420"
-	sourceChainId = int64(0)
-	targetChainId = int64(1)
-	nativeChainId = int64(0)
+	sourceChainId = 0
+	targetChainId = 1
+	nativeChainId = 0
 	receiver      = "0xreceiver"
 	amount        = "100"
 	sourceAsset   = "0.0.123"

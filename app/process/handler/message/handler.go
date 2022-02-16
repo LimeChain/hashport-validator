@@ -38,7 +38,7 @@ import (
 type Handler struct {
 	transferRepository     repository.Transfer
 	messageRepository      repository.Message
-	contracts              map[int64]service.Contracts
+	contracts              map[uint64]service.Contracts
 	messages               service.Messages
 	logger                 *log.Entry
 	participationRateGauge prometheus.Gauge
@@ -50,7 +50,7 @@ func NewHandler(
 	topicId string,
 	transferRepository repository.Transfer,
 	messageRepository repository.Message,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
 	messages service.Messages,
 	prometheusService service.Prometheus,
 	assetsConfig config.Assets,
@@ -115,19 +115,19 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 	}
 
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
+	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, tsm.TargetChainId, timestamp, authMsgBytes)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 
-	cmh.completeTransfer(tsm.TransferID, int64(tsm.TargetChainId), int64(tsm.SourceChainId), tsm.Asset, false)
+	cmh.completeTransfer(tsm.TransferID, tsm.TargetChainId, tsm.SourceChainId, tsm.Asset, false)
 }
 
 // handleNftSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
@@ -143,22 +143,22 @@ func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMess
 	}
 
 	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeNftBytesFrom(int64(tsm.SourceChainId), int64(tsm.TargetChainId), tsm.TransferID, tsm.Asset, int64(tsm.TokenId), tsm.Metadata, tsm.Recipient)
+	authMsgBytes, err := auth_message.EncodeNftBytesFrom(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, int64(tsm.TokenId), tsm.Metadata, tsm.Recipient)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to encode the authorisation nft signature. Error: [%s]", tsm.TransferID, err)
 		return
 	}
 
-	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, int64(tsm.TargetChainId), timestamp, authMsgBytes)
+	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, tsm.TargetChainId, timestamp, authMsgBytes)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not process nft signature [%s]", tsm.TransferID, tsm.GetSignature())
 		return
 	}
 
-	cmh.completeTransfer(tsm.TransferID, int64(tsm.TargetChainId), int64(tsm.SourceChainId), tsm.Asset, true)
+	cmh.completeTransfer(tsm.TransferID, tsm.TargetChainId, tsm.SourceChainId, tsm.Asset, true)
 }
 
-func (cmh Handler) completeTransfer(transferID string, targetChainId int64, sourceChainId int64, asset string, isNFT bool) {
+func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChainId uint64, asset string, isNFT bool) {
 	majorityReached, err := cmh.checkMajority(transferID, targetChainId)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached. Error: [%s]", transferID, err)
@@ -167,7 +167,7 @@ func (cmh Handler) completeTransfer(transferID string, targetChainId int64, sour
 
 	if majorityReached {
 		if !isNFT { // metrics for fungible only
-			oppositeAsset := cmh.assetsConfig.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), asset)
+			oppositeAsset := cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
 			metrics.SetMajorityReached(
 				sourceChainId,
 				targetChainId,
@@ -184,7 +184,7 @@ func (cmh Handler) completeTransfer(transferID string, targetChainId int64, sour
 	}
 }
 
-func (cmh *Handler) checkMajority(transferID string, targetChainId int64) (majorityReached bool, err error) {
+func (cmh *Handler) checkMajority(transferID string, targetChainId uint64) (majorityReached bool, err error) {
 	signatureMessages, err := cmh.messageRepository.Get(transferID)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to query all Signature Messages. Error: [%s]", transferID, err)

@@ -25,11 +25,11 @@ import (
 // AwaitMultipleScheduledTransactions is meant to be used when you need to wait all the scheduled transactions to be mined.
 func AwaitMultipleScheduledTransactions(
 	outParams *OutParams,
-	sourceChainId int64,
-	targetChainId int64,
+	sourceChainId uint64,
+	targetChainId uint64,
 	asset string,
 	transferID string,
-	callback func(sourceChainId int64, targetChainId int64, nativeAsset string, transferID string, isTransferSuccessful bool)) {
+	callback func(sourceChainId, targetChainId uint64, nativeAsset string, transferID string, isTransferSuccessful bool)) {
 
 	if outParams.waitGroup == nil {
 		panic(fmt.Sprintf("[%v] Await group is nil. [AwaitMultipleScheduledTransactions]", transferID))

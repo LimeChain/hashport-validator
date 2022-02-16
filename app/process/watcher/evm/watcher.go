@@ -326,9 +326,9 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 		return
 	}
 	transactionId := string(eventLog.TransactionId)
-	sourceChainId := eventLog.SourceChain.Int64()
-	targetChainId := chain.Int64()
-	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
+	sourceChainId := eventLog.SourceChain.Uint64()
+	targetChainId := chain.Uint64()
+	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }
@@ -353,14 +353,14 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Int64())
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Uint64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
-	sourceChainId := chain.Int64()
-	targetChainId := eventLog.TargetChain.Int64()
+	sourceChainId := chain.Uint64()
+	targetChainId := eventLog.TargetChain.Uint64()
 	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
 	token := eventLog.Token.String()
 
@@ -451,7 +451,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	ew.logger.Debugf("[%s] - New Lock Event Log received.", eventLog.Raw.TxHash)
 
 	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
-	targetChainId := eventLog.TargetChain.Int64()
+	targetChainId := eventLog.TargetChain.Uint64()
 	token := eventLog.Token.String()
 
 	if eventLog.Raw.Removed {
@@ -465,7 +465,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 	var chain *big.Int
 	chain, e := ew.evmClient.ChainID(context.Background())
-	sourceChainId := chain.Int64()
+	sourceChainId := chain.Uint64()
 	if e != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
@@ -571,7 +571,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.WrappedToken.String(), chain.Int64())
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.WrappedToken.String(), chain.Uint64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken)
 		return
@@ -579,7 +579,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 
 	targetAsset := nativeAsset.Asset
 	// This is the case when you are bridging wrapped to wrapped
-	if eventLog.TargetChain.Int64() != nativeAsset.ChainId {
+	if eventLog.TargetChain.Uint64() != nativeAsset.ChainId {
 		ew.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
 		return
 	}
@@ -598,8 +598,8 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 
 	transfer := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: chain.Int64(),
-		TargetChainId: eventLog.TargetChain.Int64(),
+		SourceChainId: chain.Uint64(),
+		TargetChainId: eventLog.TargetChain.Uint64(),
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   eventLog.WrappedToken.String(),
 		TargetAsset:   targetAsset,
@@ -651,9 +651,9 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	}
 
 	transactionId := string(eventLog.TransactionId)
-	sourceChainId := eventLog.SourceChain.Int64()
-	targetChainId := chain.Int64()
-	oppositeToken := ew.mappings.GetOppositeAsset(uint64(sourceChainId), uint64(targetChainId), eventLog.Token.String())
+	sourceChainId := eventLog.SourceChain.Uint64()
+	targetChainId := chain.Uint64()
+	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }

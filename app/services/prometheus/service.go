@@ -73,14 +73,14 @@ func (s *Service) CreateGaugeIfNotExists(opts prometheus.GaugeOpts) prometheus.G
 	return gauge
 }
 
-func (s *Service) CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId int64, targetChainId int64, asset, metricType, metricHelp string) (prometheus.Gauge, error) {
+func (s *Service) CreateSuccessRateGaugeIfNotExists(transactionId string, sourceChainId, targetChainId uint64, asset, metricType, metricHelp string) (prometheus.Gauge, error) {
 	if !s.isMonitoringEnabled {
 		return nil, errors.New("monitoring is disabled.")
 	}
 
 	metricName, err := s.ConstructMetricName(
-		uint64(sourceChainId),
-		uint64(targetChainId),
+		sourceChainId,
+		targetChainId,
 		asset,
 		transactionId,
 		metricType,
@@ -94,8 +94,8 @@ func (s *Service) CreateSuccessRateGaugeIfNotExists(transactionId string, source
 		Name: metricName,
 		Help: metricHelp,
 		ConstLabels: prometheus.Labels{
-			"source_network_id": strconv.FormatInt(sourceChainId, 10),
-			"target_network_id": strconv.FormatInt(targetChainId, 10),
+			"source_network_id": strconv.FormatUint(sourceChainId, 10),
+			"target_network_id": strconv.FormatUint(targetChainId, 10),
 			"asset":             asset,
 			"transaction_id":    transactionId,
 			"metric_type":       metricType,
@@ -156,7 +156,7 @@ func (s *Service) CreateCounterIfNotExists(opts prometheus.CounterOpts) promethe
 
 func (s *Service) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricType string) (string, error) {
 	tokenType := constants.Wrapped
-	isNativeAsset := s.assetsConfig.IsNative(int64(sourceNetworkId), asset)
+	isNativeAsset := s.assetsConfig.IsNative(sourceNetworkId, asset)
 	if isNativeAsset {
 		tokenType = constants.Native
 	}
