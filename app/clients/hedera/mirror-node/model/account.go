@@ -30,7 +30,7 @@ type (
 		Timestamp string         `json:"timestamp"`
 		Tokens    []AccountToken `json:"tokens"`
 	}
-	// Tokens struct used by the Hedera Mirror node REST API to return information
+	// AccountToken struct used by the Hedera Mirror node REST API to return information
 	// regarding a given Account's tokens
 	AccountToken struct {
 		TokenID string `json:"token_id"`

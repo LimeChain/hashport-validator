@@ -72,11 +72,6 @@ type (
 		PayerAccountId     string `json:"payer_account_id"`
 		ScheduleId         string `json:"schedule_id"`
 	}
-	// Token struct used by Hedera Mirror node REST API to return information
-	// regarding a given Token entity
-	Token struct {
-		Type string `json:"type"`
-	}
 
 	// Nft struct used by Hedera Mirror node REST API to return information
 	// for a given Nft entity
