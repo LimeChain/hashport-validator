@@ -105,6 +105,10 @@ func NewWatcher(
 }
 
 func (pw Watcher) Watch(q qi.Queue) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		pw.logger.Warnf("Tried to executed Prometheus watcher, when monitoring is not enabled.")
+		return
+	}
 	// there will be no handler, so the q is to implement the interface
 	go pw.beginWatching()
 }
