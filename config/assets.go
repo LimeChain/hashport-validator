@@ -77,24 +77,21 @@ func (a Assets) IsNative(networkId uint64, asset string) bool {
 }
 
 func (a Assets) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
-	sourceChainIdCasted, targetChainIdCasted := sourceChainId, targetChainId
-
-	nativeAssetForTargetChain := a.WrappedToNative(asset, sourceChainIdCasted)
+	nativeAssetForTargetChain := a.WrappedToNative(asset, sourceChainId)
 	if nativeAssetForTargetChain != nil {
 		return nativeAssetForTargetChain.Asset
 	}
 
-	nativeAssetForSourceChain := a.WrappedToNative(asset, targetChainIdCasted)
+	nativeAssetForSourceChain := a.WrappedToNative(asset, targetChainId)
 	if nativeAssetForSourceChain != nil {
 		return nativeAssetForSourceChain.Asset
 	}
 
-	if a.IsNative(sourceChainIdCasted, asset) {
-		return a.NativeToWrapped(asset, sourceChainIdCasted, targetChainIdCasted)
-	} else {
-		return a.NativeToWrapped(asset, targetChainIdCasted, sourceChainIdCasted)
+	if a.IsNative(sourceChainId, asset) {
+		return a.NativeToWrapped(asset, sourceChainId, targetChainId)
 	}
 
+	return a.NativeToWrapped(asset, targetChainId, sourceChainId)
 }
 
 func LoadAssets(networks map[uint64]*parser.Network) Assets {
