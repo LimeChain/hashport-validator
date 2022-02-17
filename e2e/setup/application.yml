@@ -40,6 +40,3 @@ tokens:
   ntf_serial_number:
   evm_native_token:
 validator_url:
-monitoring:
-  enable: false
-  dashboard_polling: # in minutes
