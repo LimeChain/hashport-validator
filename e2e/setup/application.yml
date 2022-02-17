@@ -39,5 +39,5 @@ tokens:
   evm_native_token:
 validator_url:
 monitoring:
-  enable: true
+  enable: false
   dashboard_polling: # in minutes
