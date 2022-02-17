@@ -182,7 +182,9 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, parsedTransfer.Asset)
+	if !parsedTransfer.IsNft {
+		ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, parsedTransfer.Asset)
+	}
 
 	nativeAsset := &config.NativeAsset{
 		ChainId: constants.HederaNetworkId,
@@ -218,6 +220,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	} else {
 		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
 	}
+
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to create payload. Error: [%s]", tx.TransactionID, err)
 		return

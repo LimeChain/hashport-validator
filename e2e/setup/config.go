@@ -92,17 +92,18 @@ func Load() *Setup {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount  hederaSDK.AccountID
-	TopicID        hederaSDK.TopicID
-	TokenID        hederaSDK.TokenID
-	NativeEvmToken string
-	NftTokenID     hederaSDK.TokenID
-	NftFees        map[string]int64
-	FeePercentages map[string]int64
-	Members        []hederaSDK.AccountID
-	Clients        *clients
-	DbValidator    *db_validation.Service
-	AssetMappings  config.Assets
+	BridgeAccount   hederaSDK.AccountID
+	TopicID         hederaSDK.TopicID
+	TokenID         hederaSDK.TokenID
+	NativeEvmToken  string
+	NftTokenID      hederaSDK.TokenID
+	NftSerialNumber int64
+	NftFees         map[string]int64
+	FeePercentages  map[string]int64
+	Members         []hederaSDK.AccountID
+	Clients         *clients
+	DbValidator     *db_validation.Service
+	AssetMappings   config.Assets
 }
 
 // newSetup instantiates new Setup struct
@@ -153,17 +154,18 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:  bridgeAccount,
-		TopicID:        topicID,
-		TokenID:        tokenID,
-		NftTokenID:     nftTokenID,
-		NativeEvmToken: config.Tokens.EvmNativeToken,
-		NftFees:        config.NftFees,
-		FeePercentages: config.FeePercentages,
-		Members:        members,
-		Clients:        clients,
-		DbValidator:    dbValidator,
-		AssetMappings:  config.AssetMappings,
+		BridgeAccount:   bridgeAccount,
+		TopicID:         topicID,
+		TokenID:         tokenID,
+		NftTokenID:      nftTokenID,
+		NftSerialNumber: config.Tokens.NftSerialNumber,
+		NativeEvmToken:  config.Tokens.EvmNativeToken,
+		NftFees:         config.NftFees,
+		FeePercentages:  config.FeePercentages,
+		Members:         members,
+		Clients:         clients,
+		DbValidator:     dbValidator,
+		AssetMappings:   config.AssetMappings,
 	}, nil
 }
 
