@@ -30,10 +30,11 @@ type Sender struct {
 }
 
 type Tokens struct {
-	WHbar          string `yaml:"whbar"`
-	WToken         string `yaml:"wtoken"`
-	NftToken       string `yaml:"nft_token"`
-	EvmNativeToken string `yaml:"evm_native_token"`
+	WHbar           string `yaml:"whbar"`
+	WToken          string `yaml:"wtoken"`
+	NftToken        string `yaml:"nft_token"`
+	NftSerialNumber int64  `yaml:"nft_serial_number"`
+	EvmNativeToken  string `yaml:"evm_native_token"`
 }
 
 type E2E struct {

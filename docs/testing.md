@@ -28,13 +28,14 @@ Name                                      | Description                         
 `hedera.sender.private_key`               | The private key for the account that will be sending assets through the bridge.
 `hedera.topic_id`                         | The configured Bridge Topic. Validators watch & submit signatures to that Topic.
 `evm[]`                                   | The chain id of the EVM network. Used as a key for the following `node.clients.evm[i].*` configuration fields below.
-`evm[].block_confirmations`                | The number of block confirmations to wait for before processing an event for the given EVM network. 
+`evm[].block_confirmations`               | The number of block confirmations to wait for before processing an event for the given EVM network. 
 `evm[].node_url`                          | The endpoint of the node for the given EVM network.
 `evm[].private_key`                       | The private key for the given EVM network.
 `tokens.whbar`                            | The native asset, which represents HBAR. Used as a bridged asset between the two networks.
 `tokens.wtoken`                           | The native asset, which represents a Token on Hedera. Used as a bridged asset between the two networks.
 `tokens.evm_native_token`                 | The address of the EVM native token, which will be used as a bridged asset to Hedera and other EVMs.
 `tokens.nft_token`                        | The Hedera TokenID of the token, used in NFT E2E tests.
+`tokens.nft_serial_number`                | The Hedera Serial Number of the token, used in NFT E2E tests.
 `validator_url`                           | The URL of the Validator node. Used for querying Metadata.
 
 
