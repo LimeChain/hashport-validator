@@ -1,5 +1,5 @@
 /*
-* Copyright 2021 LimeChain Ltd.
+* Copyright 2022 LimeChain Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -113,6 +113,44 @@ func Test_AccountExists_Status400(t *testing.T) {
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
 	exists := c.AccountExists(accountId)
 	assert.False(t, exists)
+}
+
+func Test_GetAccount_Status400(t *testing.T) {
+	setup()
+	response := &http.Response{
+		StatusCode: 400,
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
+	schedule, err := c.GetAccount("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
+}
+
+func Test_GetAccount_Fails(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	schedule, err := c.GetAccount("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
+}
+
+func Test_GetToken_Status400(t *testing.T) {
+	setup()
+	response := &http.Response{
+		StatusCode: 400,
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(response, nil)
+	schedule, err := c.GetToken("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
+}
+
+func Test_GetToken_Fails(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	schedule, err := c.GetToken("0.0.2")
+	assert.Nil(t, schedule)
+	assert.NotNil(t, err)
 }
 
 func Test_TopicExists_Status400(t *testing.T) {

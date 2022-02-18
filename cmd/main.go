@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
+	pw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/prometheus"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
@@ -51,7 +52,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func main() {
@@ -74,6 +77,8 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
+	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode, clients.EVMClients)
+
 	apiRouter := initializeAPIRouter(services, parsedBridge)
 
 	executeRecovery(repositories.fee, repositories.schedule, clients.MirrorNode)
@@ -82,12 +87,28 @@ func main() {
 	server.Run(apiRouter.Router, fmt.Sprintf(":%s", configuration.Node.Port))
 }
 
+func initializeMonitoring(
+	prometheusService service.Prometheus,
+	s *server.Server,
+	configuration config.Config,
+	mirrorNode client.MirrorNode,
+	EVMClients map[uint64]client.EVM,
+) {
+	if configuration.Node.Monitoring.Enable {
+		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
+	} else {
+		log.Infoln("Monitoring is disabled. No metrics will be added.")
+	}
+}
+
 func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
+	apiRouter.AddV1Router("/metrics", promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
+
 	return apiRouter
 }
 
@@ -103,7 +124,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers,
 		clients.MirrorNode,
 		&repositories.transferStatus,
-		services.contractServices))
+		services.contractServices,
+		services.prometheus))
 
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -129,30 +151,34 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.transfer,
 		repositories.message,
 		services.contractServices,
-		services.messages))
+		services.messages,
+		services.prometheus,
+		configuration.Bridge.Assets))
 
 	for _, evmClient := range clients.EVMClients {
 		chain, err := evmClient.ChainID(context.Background())
 		if err != nil {
 			panic(err)
 		}
-		contractService := services.contractServices[chain.Int64()]
+		contractService := services.contractServices[chain.Uint64()]
 		// Given that addresses between different
 		// EVM networks might be the same, a concatenation between
 		// <chain-id>-<contract-address> removes possible duplication.
-		dbIdentifier := fmt.Sprintf("%d-%s", chain.Int64(), contractService.Address().String())
+		dbIdentifier := fmt.Sprintf("%d-%s", chain.Uint64(), contractService.Address().String())
 
 		server.AddWatcher(
 			evm.NewWatcher(
 				repositories.transferStatus,
 				contractService,
+				services.prometheus,
 				evmClient,
 				configuration.Bridge.Assets,
 				dbIdentifier,
-				configuration.Node.Clients.Evm[chain.Int64()].StartBlock,
+				configuration.Node.Clients.Evm[chain.Uint64()].StartBlock,
 				configuration.Node.Validator,
-				configuration.Node.Clients.Evm[chain.Int64()].PollingInterval,
-				configuration.Node.Clients.Evm[chain.Int64()].MaxLogsBlocks))
+				configuration.Node.Clients.Evm[chain.Uint64()].PollingInterval,
+				configuration.Node.Clients.Evm[chain.Uint64()].MaxLogsBlocks,
+			))
 	}
 
 	// Register read-only handlers
@@ -165,7 +191,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.distributor,
 		services.fees,
 		services.transfers,
-		services.readOnly))
+		services.readOnly,
+		services.prometheus))
 	server.AddHandler(constants.ReadOnlyHederaFeeTransfer, rfh.NewHandler(
 		repositories.transfer,
 		repositories.fee,
@@ -175,7 +202,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.distributor,
 		services.fees,
 		services.transfers,
-		services.readOnly))
+		services.readOnly,
+		services.prometheus))
 	server.AddHandler(constants.ReadOnlyHederaBurn, rbh.NewHandler(
 		configuration.Bridge.Hedera.BridgeAccount,
 		clients.MirrorNode,
@@ -187,7 +215,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		configuration.Bridge.Hedera.BridgeAccount,
 		clients.MirrorNode,
 		services.transfers,
-		services.readOnly))
+		services.readOnly,
+		services.prometheus))
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 
 	// Hedera Native Nft handlers
@@ -218,11 +247,29 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.transfers))
 }
 
+func initializePrometheusWatcher(
+	server *server.Server,
+	configuration config.Config,
+	mirrorNode client.MirrorNode,
+	prometheusService service.Prometheus,
+	EVMClients map[uint64]client.EVM,
+) {
+	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
+	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
+	server.AddWatcher(addPrometheusWatcher(
+		dashboardPolling,
+		mirrorNode,
+		configuration,
+		prometheusService,
+		EVMClients))
+}
+
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
+	prometheusService service.Prometheus,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
 
@@ -237,7 +284,9 @@ func addTransferWatcher(configuration *config.Config,
 		contractServices,
 		configuration.Bridge.Assets,
 		configuration.Bridge.Hedera.NftFees,
-		configuration.Node.Validator)
+		configuration.Node.Validator,
+		prometheusService,
+	)
 }
 
 func addConsensusTopicWatcher(configuration *config.Config,
@@ -251,4 +300,20 @@ func addConsensusTopicWatcher(configuration *config.Config,
 		repository,
 		configuration.Node.Clients.MirrorNode.PollingInterval,
 		configuration.Node.Clients.Hedera.StartTimestamp)
+}
+
+func addPrometheusWatcher(
+	dashboardPolling time.Duration,
+	mirrorNode client.MirrorNode,
+	configuration config.Config,
+	prometheusService service.Prometheus,
+	EVMClients map[uint64]client.EVM,
+) *pw.Watcher {
+	log.Debugf("Added Prometheus Watcher for dashboard metrics")
+	return pw.NewWatcher(
+		dashboardPolling,
+		mirrorNode,
+		configuration,
+		prometheusService,
+		EVMClients)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package transfer
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId string
-	SourceChainId int64
-	TargetChainId int64
-	NativeChainId int64
+	SourceChainId uint64
+	TargetChainId uint64
+	NativeChainId uint64
 	SourceAsset   string
 	TargetAsset   string
 	NativeAsset   string
@@ -35,7 +35,7 @@ type Transfer struct {
 
 // New instantiates Transfer struct ready for submission to the handler
 func New(txId string,
-	sourceChainId, targetChainId, nativeChainId int64,
+	sourceChainId, targetChainId, nativeChainId uint64,
 	receiver, sourceAsset, targetAsset, nativeAsset, amount string) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
@@ -54,7 +54,7 @@ func New(txId string,
 // NewNft instantiates a Transfer, consisting of serial num and metadata for a given NFT
 func NewNft(
 	txId string,
-	sourceChainId, targetChainId, nativeChainId int64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string) *Transfer {
+	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
 		SourceChainId: sourceChainId,

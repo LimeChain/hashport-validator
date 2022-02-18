@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ func Load() *Setup {
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
 			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
 		},
-		EVM:            make(map[int64]config.Evm),
+		EVM:            make(map[uint64]config.Evm),
 		Tokens:         e2eConfig.Tokens,
 		ValidatorUrl:   e2eConfig.ValidatorUrl,
 		Bridge:         e2eConfig.Bridge,
@@ -91,17 +91,18 @@ func Load() *Setup {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount  hederaSDK.AccountID
-	TopicID        hederaSDK.TopicID
-	TokenID        hederaSDK.TokenID
-	NativeEvmToken string
-	NftTokenID     hederaSDK.TokenID
-	NftFees        map[string]int64
-	FeePercentages map[string]int64
-	Members        []hederaSDK.AccountID
-	Clients        *clients
-	DbValidator    *db_validation.Service
-	AssetMappings  config.Assets
+	BridgeAccount   hederaSDK.AccountID
+	TopicID         hederaSDK.TopicID
+	TokenID         hederaSDK.TokenID
+	NativeEvmToken  string
+	NftTokenID      hederaSDK.TokenID
+	NftSerialNumber int64
+	NftFees         map[string]int64
+	FeePercentages  map[string]int64
+	Members         []hederaSDK.AccountID
+	Clients         *clients
+	DbValidator     *db_validation.Service
+	AssetMappings   config.Assets
 }
 
 // newSetup instantiates new Setup struct
@@ -152,24 +153,25 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
-		BridgeAccount:  bridgeAccount,
-		TopicID:        topicID,
-		TokenID:        tokenID,
-		NftTokenID:     nftTokenID,
-		NativeEvmToken: config.Tokens.EvmNativeToken,
-		NftFees:        config.NftFees,
-		FeePercentages: config.FeePercentages,
-		Members:        members,
-		Clients:        clients,
-		DbValidator:    dbValidator,
-		AssetMappings:  config.AssetMappings,
+		BridgeAccount:   bridgeAccount,
+		TopicID:         topicID,
+		TokenID:         tokenID,
+		NftTokenID:      nftTokenID,
+		NftSerialNumber: config.Tokens.NftSerialNumber,
+		NativeEvmToken:  config.Tokens.EvmNativeToken,
+		NftFees:         config.NftFees,
+		FeePercentages:  config.FeePercentages,
+		Members:         members,
+		Clients:         clients,
+		DbValidator:     dbValidator,
+		AssetMappings:   config.AssetMappings,
 	}, nil
 }
 
 // clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
-	EVM             map[int64]EVMUtils
+	EVM             map[uint64]EVMUtils
 	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator
 	FeeCalculator   service.Fee
@@ -183,7 +185,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	EVM := make(map[int64]EVMUtils)
+	EVM := make(map[uint64]EVMUtils)
 	for chainId, conf := range config.EVM {
 		evmClient := evm.NewClient(conf)
 		routerContractAddress := common.HexToAddress(config.Bridge.Networks[chainId].RouterContractAddress)
@@ -221,7 +223,7 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func InitWrappedAssetContract(nativeAsset string, nativeAssets config.Assets, sourceChain, targetChain int64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+func InitWrappedAssetContract(nativeAsset string, nativeAssets config.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
@@ -234,7 +236,7 @@ func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, err
 	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.GetClient())
 }
 
-func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain int64, nativeAsset string) (string, error) {
+func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain uint64, nativeAsset string) (string, error) {
 	wrappedAsset := assetMappings.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
@@ -244,7 +246,7 @@ func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain 
 	return wrappedAsset, nil
 }
 
-func WrappedToNativeAsset(assetMappings config.Assets, sourceChainId int64, asset string) (*config.NativeAsset, error) {
+func WrappedToNativeAsset(assetMappings config.Assets, sourceChainId uint64, asset string) (*config.NativeAsset, error) {
 	targetAsset := assetMappings.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
 		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
@@ -281,7 +283,7 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 // Config used to load and parse from application.yml
 type Config struct {
 	Hedera         Hedera
-	EVM            map[int64]config.Evm
+	EVM            map[uint64]config.Evm
 	Tokens         e2eParser.Tokens
 	ValidatorUrl   string
 	Bridge         parser.Bridge

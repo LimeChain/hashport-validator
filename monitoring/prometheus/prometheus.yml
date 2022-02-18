@@ -1,0 +1,32 @@
+global:
+  scrape_interval:     15s # By default, scrape targets every 15 seconds.
+  evaluation_interval: 15s # By default, scrape targets every 15 seconds.
+  # scrape_timeout is set to the global default (10s).
+
+scrape_configs:
+
+  - job_name: hashport-validator
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+    - targets:
+      - prometheus:9090
+
+  - job_name: validator
+    scrape_interval: 15s
+    metrics_path: /api/v1/metrics
+    static_configs:
+    - targets:
+      - validator:5200 #inside port of the validator
+
+# Rules and alerts are read from the specified file(s)
+rule_files:
+  - rules.yml
+
+# alert
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets:
+            - "alertmanager:9093"

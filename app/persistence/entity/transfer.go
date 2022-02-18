@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import "database/sql"
 
 type Transfer struct {
 	TransactionID string `gorm:"primaryKey"`
-	SourceChainID int64
-	TargetChainID int64
-	NativeChainID int64
+	SourceChainID uint64
+	TargetChainID uint64
+	NativeChainID uint64
 	SourceAsset   string
 	TargetAsset   string
 	NativeAsset   string

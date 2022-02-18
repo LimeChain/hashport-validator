@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,10 +40,14 @@ type Contracts interface {
 	IsMember(address string) bool
 	// HasValidSignaturesLength returns whether the signatures are enough for submission
 	HasValidSignaturesLength(*big.Int) (bool, error)
+	// ParseMintLog parses a general typed log to a RouterMint event
+	ParseMintLog(log types.Log) (*abi.RouterMint, error)
 	// ParseBurnLog parses a general typed log to a RouterBurn event
 	ParseBurnLog(log types.Log) (*abi.RouterBurn, error)
 	// ParseLockLog parses a general typed log to a RouterLock event
 	ParseLockLog(log types.Log) (*abi.RouterLock, error)
+	// ParseUnlockLog parses a general typed log to a RouterUnlock event
+	ParseUnlockLog(log types.Log) (*abi.RouterUnlock, error)
 	// ParseBurnERC721Log parses a general typed log to a BurnERC721event
 	ParseBurnERC721Log(log types.Log) (*abi.RouterBurnERC721, error)
 	// WatchBurnEventLogs creates a subscription for Burn Events emitted in the Bridge contract

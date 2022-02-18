@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,48 +28,83 @@ import (
 
 type Assets struct {
 	// A mapping, storing all networks' native tokens and their corresponding wrapped tokens
-	nativeToWrapped map[int64]map[string]map[int64]string
+	nativeToWrapped map[uint64]map[string]map[uint64]string
 	// A mapping, storing all networks' wrapped tokens and their corresponding native asset
-	wrappedToNative map[int64]map[string]*NativeAsset
+	wrappedToNative map[uint64]map[string]*NativeAsset
 	// A mapping, storing all fungible tokens per network
-	fungibleNetworkAssets map[int64][]string
+	fungibleNetworkAssets map[uint64][]string
 	// A mapping, storing all fungible native assets per network
-	fungibleNativeAssets map[int64]map[string]*NativeAsset
+	fungibleNativeAssets map[uint64]map[string]*NativeAsset
 }
 
 type NativeAsset struct {
 	MinAmount *big.Int
-	ChainId   int64
+	ChainId   uint64
 	Asset     string
 }
 
-func (a Assets) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId int64) string {
+func (a Assets) GetFungibleNetworkAssets() map[uint64][]string {
+	return a.fungibleNetworkAssets
+}
+
+func (a Assets) WrappedFromNative(nativeChainId uint64, nativeAsset string) map[uint64]string {
+	return a.nativeToWrapped[nativeChainId][nativeAsset]
+}
+
+func (a Assets) GetNativeToWrapped() map[uint64]map[string]map[uint64]string {
+	return a.nativeToWrapped
+}
+
+func (a Assets) NativeToWrapped(nativeAsset string, nativeChainId, targetChainId uint64) string {
 	return a.nativeToWrapped[nativeChainId][nativeAsset][targetChainId]
 }
 
-func (a Assets) WrappedToNative(wrappedAsset string, wrappedChainId int64) *NativeAsset {
+func (a Assets) WrappedToNative(wrappedAsset string, wrappedChainId uint64) *NativeAsset {
 	return a.wrappedToNative[wrappedChainId][wrappedAsset]
 }
 
-func (a Assets) FungibleNetworkAssets(id int64) []string {
+func (a Assets) FungibleNetworkAssets(id uint64) []string {
 	return a.fungibleNetworkAssets[id]
 }
 
-func (a Assets) FungibleNativeAsset(id int64, asset string) *NativeAsset {
+func (a Assets) FungibleNativeAsset(id uint64, asset string) *NativeAsset {
 	return a.fungibleNativeAssets[id][asset]
 }
 
-func LoadAssets(networks map[int64]*parser.Network) Assets {
-	nativeToWrapped := make(map[int64]map[string]map[int64]string)
-	wrappedToNative := make(map[int64]map[string]*NativeAsset)
-	fungibleNetworkAssets := make(map[int64][]string)
-	fungibleNativeAssets := make(map[int64]map[string]*NativeAsset)
+func (a Assets) IsNative(networkId uint64, asset string) bool {
+	_, isNative := a.nativeToWrapped[networkId][asset]
+	return isNative
+}
+
+func (a Assets) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
+	nativeAssetForTargetChain := a.WrappedToNative(asset, sourceChainId)
+	if nativeAssetForTargetChain != nil {
+		return nativeAssetForTargetChain.Asset
+	}
+
+	nativeAssetForSourceChain := a.WrappedToNative(asset, targetChainId)
+	if nativeAssetForSourceChain != nil {
+		return nativeAssetForSourceChain.Asset
+	}
+
+	if a.IsNative(sourceChainId, asset) {
+		return a.NativeToWrapped(asset, sourceChainId, targetChainId)
+	}
+
+	return a.NativeToWrapped(asset, targetChainId, sourceChainId)
+}
+
+func LoadAssets(networks map[uint64]*parser.Network) Assets {
+	nativeToWrapped := make(map[uint64]map[string]map[uint64]string)
+	wrappedToNative := make(map[uint64]map[string]*NativeAsset)
+	fungibleNetworkAssets := make(map[uint64][]string)
+	fungibleNativeAssets := make(map[uint64]map[string]*NativeAsset)
 
 	re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
 
 	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {
-			nativeToWrapped[nativeChainId] = make(map[string]map[int64]string)
+			nativeToWrapped[nativeChainId] = make(map[string]map[uint64]string)
 		}
 		if fungibleNativeAssets[nativeChainId] == nil {
 			fungibleNativeAssets[nativeChainId] = make(map[string]*NativeAsset)
@@ -81,7 +116,7 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			}
 
 			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
-				nativeToWrapped[nativeChainId][nativeAsset] = make(map[int64]string)
+				nativeToWrapped[nativeChainId][nativeAsset] = make(map[uint64]string)
 			}
 
 			minAmount, err := parseAmount(nativeAssetMapping.MinAmount)
@@ -117,7 +152,7 @@ func LoadAssets(networks map[int64]*parser.Network) Assets {
 			}
 
 			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
-				nativeToWrapped[nativeChainId][nativeAsset] = make(map[int64]string)
+				nativeToWrapped[nativeChainId][nativeAsset] = make(map[uint64]string)
 			}
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				if isMatch := re.MatchString(wrappedAsset); isMatch {

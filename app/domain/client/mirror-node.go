@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,12 +55,14 @@ type MirrorNode interface {
 	// GetStateProof sends a query to get the state proof. If the query is successful, the function returns the state.
 	// If the query returns a status != 200, the function returns an error.
 	GetStateProof(transactionID string) ([]byte, error)
-	// GetToken retrieves a token entity by its id
-	GetToken(tokenID string) (*model.Token, error)
 	// GetNft retrieves an nft token entity by its id and serial number
 	GetNft(tokenID string, serialNum int64) (*model.Nft, error)
 	// AccountExists sends a query to check whether a specific account exists. If the query returns a status != 200, the function returns a false value
 	AccountExists(accountID hedera.AccountID) bool
+	// GetAccount gets the account data by ID.
+	GetAccount(accountID string) (*model.AccountsResponse, error)
+	// GetToken gets the token data by ID.
+	GetToken(tokenID string) (*model.TokenResponse, error)
 	// TopicExists sends a query to check whether a specific topic exists. If the query returns a status != 200, the function returns a false value
 	TopicExists(topicID hedera.TopicID) bool
 	// WaitForTransaction Polls the transaction at intervals. Depending on the

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,6 @@ import (
 
 type MockHederaMirrorClient struct {
 	mock.Mock
-}
-
-func (m *MockHederaMirrorClient) GetToken(tokenID string) (*model.Token, error) {
-	panic("implement me")
 }
 
 func (m *MockHederaMirrorClient) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
@@ -143,6 +139,24 @@ func (m *MockHederaMirrorClient) GetStateProof(transactionID string) ([]byte, er
 func (m *MockHederaMirrorClient) AccountExists(accountID hedera.AccountID) bool {
 	args := m.Called(accountID)
 	return args.Get(0).(bool)
+}
+
+func (m *MockHederaMirrorClient) GetAccount(accountID string) (*model.AccountsResponse, error) {
+	args := m.Called(accountID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*model.AccountsResponse), nil
+	}
+	return args.Get(0).(*model.AccountsResponse), args.Get(1).(error)
+}
+
+func (m *MockHederaMirrorClient) GetToken(tokenID string) (*model.TokenResponse, error) {
+	args := m.Called(tokenID)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*model.TokenResponse), nil
+	}
+	return args.Get(0).(*model.TokenResponse), args.Get(1).(error)
 }
 
 func (m *MockHederaMirrorClient) TopicExists(topicID hedera.TopicID) bool {

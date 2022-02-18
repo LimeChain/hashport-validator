@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 
 // EncodeFungibleBytesFrom returns the array of bytes representing an
 // authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
-func EncodeFungibleBytesFrom(sourceChainId, targetChainId int64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
+func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
 	args, err := generateFungibleArguments()
 	if err != nil {
 		return nil, err
@@ -37,8 +37,8 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId int64, txId, asset, re
 	}
 
 	bytesToHash, err := args.Pack(
-		big.NewInt(sourceChainId),
-		big.NewInt(targetChainId),
+		new(big.Int).SetUint64(sourceChainId),
+		new(big.Int).SetUint64(targetChainId),
 		[]byte(txId),
 		common.HexToAddress(asset),
 		common.HexToAddress(receiverEthAddress),
@@ -51,15 +51,15 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId int64, txId, asset, re
 
 // EncodeNftBytesFrom returns the array of bytes representing an
 // authorisation ERC-721 NFT signature for Mint ready to be signed by EVM Private Key
-func EncodeNftBytesFrom(sourceChainId, targetChainId int64, txId, asset string, serialNum int64, metadata, receiverEthAddress string) ([]byte, error) {
+func EncodeNftBytesFrom(sourceChainId, targetChainId uint64, txId, asset string, serialNum int64, metadata, receiverEthAddress string) ([]byte, error) {
 	args, err := generateNftArguments()
 	if err != nil {
 		return nil, err
 	}
 
 	bytesToHash, err := args.Pack(
-		big.NewInt(sourceChainId),
-		big.NewInt(targetChainId),
+		new(big.Int).SetUint64(sourceChainId),
+		new(big.Int).SetUint64(targetChainId),
 		[]byte(txId),
 		common.HexToAddress(asset),
 		big.NewInt(serialNum),

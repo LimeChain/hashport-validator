@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +19,15 @@ package mint_hts
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirrorNode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	entityStatus "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +39,7 @@ type Handler struct {
 	bridgeAccount      hedera.AccountID
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
+	prometheusService  service.Prometheus
 	logger             *log.Entry
 }
 
@@ -46,11 +48,14 @@ func NewHandler(
 	bridgeAccount string,
 	mirrorNode client.MirrorNode,
 	transfersService service.Transfers,
-	readOnlyService service.ReadOnly) *Handler {
+	readOnlyService service.ReadOnly,
+	prometheusService service.Prometheus) *Handler {
+
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
 	}
+
 	return &Handler{
 		scheduleRepository: scheduleRepository,
 		bridgeAccount:      bridgeAcc,
@@ -58,10 +63,11 @@ func NewHandler(
 		logger:             config.GetLoggerFor("Hedera Mint and Transfer Handler"),
 		transfersService:   transfersService,
 		readOnlyService:    readOnlyService,
+		prometheusService:  prometheusService,
 	}
 }
 
-func (fmh Handler) Handle(payload interface{}) {
+func (fmh *Handler) Handle(payload interface{}) {
 	transferMsg, ok := payload.(*model.Transfer)
 	if !ok {
 		fmh.logger.Errorf("Could not cast payload [%s]", payload)
@@ -74,13 +80,13 @@ func (fmh Handler) Handle(payload interface{}) {
 		return
 	}
 
-	if transactionRecord.Status != status.Initial {
+	if transactionRecord.Status != entityStatus.Initial {
 		fmh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
 
 	fmh.readOnlyService.FindTransfer(transferMsg.TransactionId,
-		func() (*mirror_node.Response, error) {
+		func() (*mirrorNode.Response, error) {
 			return fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
@@ -98,10 +104,22 @@ func (fmh Handler) Handle(payload interface{}) {
 
 	fmh.readOnlyService.FindTransfer(
 		transferMsg.TransactionId,
-		func() (*mirror_node.Response, error) {
+		func() (*mirrorNode.Response, error) {
 			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
+
+			if status == entityStatus.Completed {
+				metrics.SetUserGetHisTokens(
+					transferMsg.SourceChainId,
+					transferMsg.TargetChainId,
+					transferMsg.SourceAsset,
+					transferMsg.TransactionId,
+					fmh.prometheusService,
+					fmh.logger,
+				)
+			}
+
 			return fmh.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,

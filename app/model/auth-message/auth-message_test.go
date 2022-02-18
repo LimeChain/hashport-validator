@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	sourceChainId   = int64(0)
-	targetChainId   = int64(1)
+	sourceChainId   = 0
+	targetChainId   = 1
 	txId            = "0.0.123-123321-123321"
 	asset           = "0x00000"
 	receiverAddress = "0xsomeaddress"

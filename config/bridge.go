@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package config
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 )
@@ -25,7 +26,7 @@ import (
 type Bridge struct {
 	TopicId string
 	Hedera  *BridgeHedera
-	EVMs    map[int64]BridgeEvm
+	EVMs    map[uint64]BridgeEvm
 	Assets  Assets
 }
 
@@ -42,12 +43,12 @@ type HederaToken struct {
 	Fee           int64
 	FeePercentage int64
 	MinAmount     string
-	Networks      map[int64]string
+	Networks      map[uint64]string
 }
 
 type Token struct {
 	MinAmount *big.Int
-	Networks  map[int64]string
+	Networks  map[uint64]string
 }
 
 type BridgeEvm struct {
@@ -59,11 +60,14 @@ func NewBridge(bridge parser.Bridge) Bridge {
 	config := Bridge{
 		TopicId: bridge.TopicId,
 		Hedera:  nil,
-		EVMs:    make(map[int64]BridgeEvm),
+		EVMs:    make(map[uint64]BridgeEvm),
 		Assets:  LoadAssets(bridge.Networks),
 	}
 	for key, value := range bridge.Networks {
-		if key == 0 {
+		constants.NetworksByName[value.Name] = key
+		constants.NetworksById[key] = value.Name
+
+		if value.Name == "Hedera" {
 			config.Hedera = &BridgeHedera{
 				BridgeAccount: value.BridgeAccount,
 				PayerAccount:  value.PayerAccount,

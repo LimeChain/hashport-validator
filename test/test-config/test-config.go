@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ var (
 				Username: "validator",
 			},
 			Clients: config.Clients{
-				Evm: map[int64]config.Evm{
+				Evm: map[uint64]config.Evm{
 					3: {
 						NodeUrl:            "wss://ropsten.infura.io/ws/v3/64364afbcf794ff9a00deabde636b7e1",
 						BlockConfirmations: 5,
@@ -53,6 +53,10 @@ var (
 					StartTimestamp: 5,
 				},
 			},
+			Monitoring: config.Monitoring{
+				Enable:           true,
+				DashboardPolling: 1,
+			},
 		},
 		Bridge: config.Bridge{
 			TopicId: "0.0.12389",
@@ -66,7 +70,7 @@ var (
 					},
 				},
 			},
-			EVMs: map[int64]config.BridgeEvm{
+			EVMs: map[uint64]config.BridgeEvm{
 				3: {
 					RouterContractAddress: "B5762f4159e7bFE24B5E7E9a2e829F535744d30e",
 				},

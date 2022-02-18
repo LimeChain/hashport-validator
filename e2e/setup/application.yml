@@ -36,5 +36,7 @@ evm:
 tokens:
   whbar: "HBAR"
   wtoken:
+  nft_token:
+  ntf_serial_number:
   evm_native_token:
 validator_url:

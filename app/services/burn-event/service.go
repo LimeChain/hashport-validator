@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,15 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	util "github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -42,6 +45,7 @@ type Service struct {
 	scheduledService   service.Scheduled
 	transferService    service.Transfers
 	logger             *log.Entry
+	prometheusService  service.Prometheus
 }
 
 func NewService(
@@ -52,7 +56,8 @@ func NewService(
 	distributor service.Distributor,
 	scheduled service.Scheduled,
 	feeService service.Fee,
-	transferService service.Transfers) *Service {
+	transferService service.Transfers,
+	prometheusService service.Prometheus) *Service {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -68,11 +73,14 @@ func NewService(
 		feeService:         feeService,
 		scheduledService:   scheduled,
 		transferService:    transferService,
+		prometheusService:  prometheusService,
 		logger:             config.GetLoggerFor("Burn Event Service"),
 	}
 }
 
 func (s Service) ProcessEvent(event transfer.Transfer) {
+	s.initSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.TargetAsset)
+
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to parse event amount [%s]. Error [%s].", event.TransactionId, event.Amount, err)
@@ -108,13 +116,89 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 		return
 	}
 
+	var (
+		feeOutParams  *hederaHelper.FeeOutParams
+		userOutParams *hederaHelper.UserOutParams
+	)
+
+	if s.prometheusService.GetIsMonitoringEnabled() {
+		feeOutParams = hederaHelper.NewFeeOutParams(len(splitTransfers))
+		userOutParams = hederaHelper.NewUserOutParams()
+	}
+
 	for _, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
 		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
-		onSuccess, onFail := s.scheduledTxMinedCallbacks(event.TransactionId)
+
+		onSuccess, onFail := s.scheduledTxMinedCallbacks(
+			event.TransactionId,
+			hasReceiver,
+			splitTransfer,
+			feeOutParams,
+			userOutParams,
+		)
 
 		s.scheduledService.ExecuteScheduledTransferTransaction(event.TransactionId, event.NativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
+
+	s.startAwaitingFunctionsForMetrics(event, feeOutParams, userOutParams)
+}
+
+func (s Service) startAwaitingFunctionsForMetrics(event transfer.Transfer, feeOutParams *hederaHelper.FeeOutParams, userOutParams *hederaHelper.UserOutParams) {
+	if !s.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	// Await Fee Transfer To Set Metrics
+	go hederaHelper.AwaitMultipleScheduledTransactions(
+		feeOutParams.OutParams,
+		event.SourceChainId,
+		event.TargetChainId,
+		event.NativeAsset,
+		event.TransactionId,
+		s.onMinedFeeTransactionsSetMetrics,
+	)
+
+	// Await User Transfer To Set Metrics
+	go hederaHelper.AwaitMultipleScheduledTransactions(
+		userOutParams.OutParams,
+		event.SourceChainId,
+		event.TargetChainId,
+		event.NativeAsset,
+		event.TransactionId,
+		s.onMinedUserTransactionSetMetrics,
+	)
+}
+
+func (s Service) initSuccessRatePrometheusMetrics(transactionId string, sourceChainId, targetChainId uint64, asset string) {
+	if !s.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	if sourceChainId != constants.HederaNetworkId {
+		if targetChainId == constants.HederaNetworkId {
+			metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
+		}
+		metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transactionId, s.prometheusService, s.logger)
+	}
+}
+
+func (s *Service) onMinedFeeTransactionsSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
+
+	if !s.prometheusService.GetIsMonitoringEnabled() || targetChainId != constants.HederaNetworkId || !isTransferSuccessful {
+		return
+	}
+
+	metrics.SetFeeTransferred(sourceChainId, targetChainId, nativeAsset, transactionId, s.prometheusService, s.logger)
+}
+
+func (s *Service) onMinedUserTransactionSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transactionId string, isTransferSuccessful bool) {
+
+	if !s.prometheusService.GetIsMonitoringEnabled() || sourceChainId == constants.HederaNetworkId || !isTransferSuccessful {
+		return
+	}
+
+	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, nativeAsset, transactionId, s.prometheusService, s.logger)
 }
 
 func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (fee int64, splitTransfers [][]transfer.Hedera, err error) {
@@ -240,9 +324,17 @@ func (s *Service) scheduledTxExecutionCallbacks(id string, feeAmount string, has
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(transactionID string)) {
+func (s *Service) scheduledTxMinedCallbacks(id string, hasReceiver bool, splitTransfer []transfer.Hedera, feeOutParams *hederaHelper.FeeOutParams, userOutParams *hederaHelper.UserOutParams) (onSuccess, onFail func(transactionID string)) {
+
 	onSuccess = func(transactionID string) {
+
 		s.logger.Debugf("[%s] - Scheduled TX execution successful.", id)
+		if s.prometheusService.GetIsMonitoringEnabled() {
+			result := true
+			feeOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver, splitTransfer)
+			userOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver)
+		}
+
 		err := s.repository.UpdateStatusCompleted(id)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status completed. Error [%s].", id, err)
@@ -263,6 +355,12 @@ func (s *Service) scheduledTxMinedCallbacks(id string) (onSuccess, onFail func(t
 
 	onFail = func(transactionID string) {
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
+		if s.prometheusService.GetIsMonitoringEnabled() {
+			result := false
+			feeOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver, splitTransfer)
+			userOutParams.HandleResultForAwaitedTransfer(&result, hasReceiver)
+		}
+
 		err := s.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to update status signature failed. Error [%s].", id, err)
