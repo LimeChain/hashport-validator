@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@ package parser
 	Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
-	TopicId  string             `yaml:"topic_id" json:"topicId,omitempty"`
-	Networks map[int64]*Network `yaml:"networks" json:"networks,omitempty"`
+	TopicId  string              `yaml:"topic_id" json:"topicId,omitempty"`
+	Networks map[uint64]*Network `yaml:"networks" json:"networks,omitempty"`
 }
 
 type Network struct {
+	Name                  string   `yaml:"name" json:"name,omitempty"`
 	BridgeAccount         string   `yaml:"bridge_account" json:"bridgeAccount,omitempty"`
 	PayerAccount          string   `yaml:"payer_account" json:"payerAccount,omitempty"`
 	RouterContractAddress string   `yaml:"router_contract_address" json:"routerContractAddress,omitempty"`
@@ -38,8 +39,8 @@ type Tokens struct {
 }
 
 type Token struct {
-	Fee           int64            `yaml:"fee" json:"fee,omitempty"`                      // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
-	FeePercentage int64            `yaml:"fee_percentage" json:"feePercentage,omitempty"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
-	MinAmount     string           `yaml:"min_amount" json:"minAmount,omitempty"`         // Represents a constant minimum amount for each Native token.
-	Networks      map[int64]string `yaml:"networks" json:"networks,omitempty"`
+	Fee           int64             `yaml:"fee" json:"fee,omitempty"`                      // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
+	FeePercentage int64             `yaml:"fee_percentage" json:"feePercentage,omitempty"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
+	MinAmount     string            `yaml:"min_amount" json:"minAmount,omitempty"`         // Represents a constant minimum amount for each Native token.
+	Networks      map[uint64]string `yaml:"networks" json:"networks,omitempty"`
 }

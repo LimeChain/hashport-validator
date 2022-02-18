@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
-	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
+	syncHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -46,7 +47,7 @@ type Service struct {
 	logger             *log.Entry
 	hederaNode         client.HederaNode
 	mirrorNode         client.MirrorNode
-	contractServices   map[int64]service.Contracts
+	contractServices   map[uint64]service.Contracts
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
 	feeRepository      repository.Fee
@@ -54,6 +55,7 @@ type Service struct {
 	feeService         service.Fee
 	scheduledService   service.Scheduled
 	messageService     service.Messages
+	prometheusService  service.Prometheus
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
 	hederaNftFees      map[string]int64
@@ -62,7 +64,7 @@ type Service struct {
 func NewService(
 	hederaNode client.HederaNode,
 	mirrorNode client.MirrorNode,
-	contractServices map[int64]service.Contracts,
+	contractServices map[uint64]service.Contracts,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	feeRepository repository.Fee,
@@ -73,6 +75,7 @@ func NewService(
 	hederaNftFees map[string]int64,
 	scheduledService service.Scheduled,
 	messageService service.Messages,
+	prometheusService service.Prometheus,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -98,18 +101,19 @@ func NewService(
 		scheduledService:   scheduledService,
 		messageService:     messageService,
 		hederaNftFees:      hederaNftFees,
+		prometheusService:  prometheusService,
 	}
 }
 
 // SanityCheck performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (int64, string, error) {
+func (ts *Service) SanityCheckTransfer(tx hedera_mirror_node.Transaction) (uint64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
 		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 	}
 
 	memoArgs := strings.Split(m, "-")
-	chainId, _ := strconv.ParseInt(memoArgs[0], 10, 64)
+	chainId, _ := strconv.ParseUint(memoArgs[0], 10, 64)
 	evmAddress := memoArgs[1]
 
 	return chainId, evmAddress, nil
@@ -161,7 +165,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 		remainder += fee - validFee
 	}
 
-	go ts.processFeeTransfer(tm.TransactionId, validFee, tm.NativeAsset)
+	go ts.processFeeTransfer(validFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.NativeAsset)
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
@@ -178,7 +182,7 @@ func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
 	fee := ts.hederaNftFees[tm.SourceAsset]
 	validFee := ts.distributor.ValidAmount(fee)
 
-	go ts.processFeeTransfer(tm.TransactionId, validFee, constants.Hbar)
+	go ts.processFeeTransfer(validFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 
 	signatureMessage, err := ts.messageService.SignNftMessage(tm)
 	if err != nil {
@@ -206,10 +210,10 @@ func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
 statusBlocker:
 	for {
 		switch <-status {
-		case sync.DONE:
+		case syncHelper.DONE:
 			ts.logger.Debugf("[%s] - Proceeding to sign and submit unlock permission messages.", tm.TransactionId)
 			break statusBlocker
-		case sync.FAIL:
+		case syncHelper.FAIL:
 			ts.logger.Errorf("[%s] - Failed to await the execution of Scheduled Burn Transaction.", tm.TransactionId)
 			return errors.New("failed-scheduled-burn")
 		}
@@ -235,11 +239,12 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(transferID string, si
 	// Attach update callbacks on Signature HCS Message
 	ts.logger.Infof("[%s] - Submitted signature on Topic [%s]", transferID, ts.topicID)
 	onSuccessfulAuthMessage, onFailedAuthMessage := ts.authMessageSubmissionCallbacks(transferID)
-	ts.mirrorNode.WaitForTransaction(hederahelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
+	ts.mirrorNode.WaitForTransaction(hederaHelper.ToMirrorNodeTransactionID(messageTxId.String()), onSuccessfulAuthMessage, onFailedAuthMessage)
 	return nil
 }
 
-func (ts *Service) processFeeTransfer(transferID string, totalFee int64, nativeAsset string) {
+func (ts *Service) processFeeTransfer(totalFee int64, sourceChainId, targetChainId uint64, transferID string, nativeAsset string) {
+
 	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
 	if err != nil {
 		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)
@@ -257,13 +262,40 @@ func (ts *Service) processFeeTransfer(transferID string, totalFee int64, nativeA
 		return
 	}
 
+	var (
+		feeOutParams *hederaHelper.FeeOutParams
+	)
+
+	if ts.prometheusService.GetIsMonitoringEnabled() {
+		feeOutParams = hederaHelper.NewFeeOutParams(len(splitTransfers))
+	}
+
 	for _, splitTransfer := range splitTransfers {
 		fee := -splitTransfer[len(splitTransfer)-1].Amount
 		onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(fee, 10))
-		onSuccess, onFail := ts.scheduledTxMinedCallbacks()
+		onSuccess, onFail := ts.scheduledTxMinedCallbacks(feeOutParams, splitTransfer)
 
 		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
+
+	if ts.prometheusService.GetIsMonitoringEnabled() {
+		go hederaHelper.AwaitMultipleScheduledTransactions(
+			feeOutParams.OutParams,
+			sourceChainId,
+			targetChainId,
+			nativeAsset,
+			transferID,
+			ts.onMinedFeeTransactionsSetMetrics,
+		)
+	}
+}
+
+func (ts *Service) onMinedFeeTransactionsSetMetrics(sourceChainId, targetChainId uint64, nativeAsset string, transferID string, isTransferSuccessful bool) {
+	if sourceChainId != constants.HederaNetworkId || isTransferSuccessful == false || !ts.prometheusService.GetIsMonitoringEnabled() {
+		return
+	}
+
+	metrics.SetFeeTransferred(sourceChainId, targetChainId, nativeAsset, transferID, ts.prometheusService, ts.logger)
 }
 
 func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker *chan string) (onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail func(transactionID string)) {
@@ -282,7 +314,7 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker 
 			},
 		})
 		if err != nil {
-			*blocker <- sync.FAIL
+			*blocker <- syncHelper.FAIL
 			ts.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				transferID, transactionID, scheduleID, err)
@@ -291,7 +323,7 @@ func (ts *Service) scheduledBurnTxExecutionCallbacks(transferID string, blocker 
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*blocker <- sync.FAIL
+		*blocker <- syncHelper.FAIL
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Operation:     schedule.BURN,
@@ -320,15 +352,15 @@ func (ts *Service) scheduledBurnTxMinedCallbacks(status *chan string) (onSuccess
 			return
 		}
 		if err != nil {
-			*status <- sync.FAIL
+			*status <- syncHelper.FAIL
 			ts.logger.Errorf("[%s] - Failed to update scheduled burn status completed. Error [%s].", transactionID, err)
 			return
 		}
-		*status <- sync.DONE
+		*status <- syncHelper.DONE
 	}
 
 	onFail = func(transactionID string) {
-		*status <- sync.FAIL
+		*status <- syncHelper.FAIL
 		ts.logger.Debugf("[%s] - Scheduled TX execution has failed.", transactionID)
 		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
@@ -415,9 +447,14 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transactionID string)) {
+func (ts *Service) scheduledTxMinedCallbacks(feeOutParams *hederaHelper.FeeOutParams, splitTransfer []model.Hedera) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution successful.", transactionID)
+
+		if ts.prometheusService.GetIsMonitoringEnabled() {
+			result := true
+			feeOutParams.HandleResultForAwaitedTransfer(&result, false, splitTransfer)
+		}
 
 		err := ts.scheduleRepository.UpdateStatusCompleted(transactionID)
 		if err != nil {
@@ -434,6 +471,10 @@ func (ts *Service) scheduledTxMinedCallbacks() (onSuccess, onFail func(transacti
 
 	onFail = func(transactionID string) {
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution has failed.", transactionID)
+		result := false
+		if ts.prometheusService.GetIsMonitoringEnabled() {
+			feeOutParams.HandleResultForAwaitedTransfer(&result, false, splitTransfer)
+		}
 
 		err := ts.scheduleRepository.UpdateStatusFailed(transactionID)
 		if err != nil {
@@ -463,8 +504,8 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 		return nil, service.ErrNotFound
 	}
 
-	if t != nil && t.NativeChainID == 0 && t.Fee == "" {
-		return nil, service.ErrNotFound
+	if t != nil && t.NativeChainID == constants.HederaNetworkId && t.Fee == "" {
+		return service.TransferData{}, service.ErrNotFound
 	}
 
 	transferData := service.TransferData{
@@ -496,7 +537,7 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 
 	if !t.IsNft {
 		signedAmount := t.Amount
-		if t.NativeChainID == 0 {
+		if t.NativeChainID == constants.HederaNetworkId {
 			amount, err := strconv.ParseInt(t.Amount, 10, 64)
 			if err != nil {
 				ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)

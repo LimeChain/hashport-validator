@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,11 +71,6 @@ type (
 		Memo               string `json:"memo"`
 		PayerAccountId     string `json:"payer_account_id"`
 		ScheduleId         string `json:"schedule_id"`
-	}
-	// Token struct used by Hedera Mirror node REST API to return information
-	// regarding a given Token entity
-	Token struct {
-		Type string `json:"type"`
 	}
 
 	// Nft struct used by Hedera Mirror node REST API to return information

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,12 @@ import "time"
 	Structs used to parse the node YAML configuration
 */
 type Node struct {
-	Database  Database `yaml:"database"`
-	Clients   Clients  `yaml:"clients"`
-	LogLevel  string   `yaml:"log_level"`
-	Port      string   `yaml:"port"`
-	Validator bool     `yaml:"validator"`
+	Database   Database   `yaml:"database"`
+	Clients    Clients    `yaml:"clients"`
+	LogLevel   string     `yaml:"log_level"`
+	Port       string     `yaml:"port"`
+	Validator  bool       `yaml:"validator"`
+	Monitoring Monitoring `yaml:"monitoring"`
 }
 
 type Database struct {
@@ -38,9 +39,9 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[int64]Evm `yaml:"evm"`
-	Hedera     Hedera        `yaml:"hedera"`
-	MirrorNode MirrorNode    `yaml:"mirror_node"`
+	Evm        map[uint64]Evm `yaml:"evm"`
+	Hedera     Hedera         `yaml:"hedera"`
+	MirrorNode MirrorNode     `yaml:"mirror_node"`
 }
 
 type Evm struct {
@@ -68,4 +69,9 @@ type MirrorNode struct {
 	ClientAddress   string        `yaml:"client_address"`
 	ApiAddress      string        `yaml:"api_address"`
 	PollingInterval time.Duration `yaml:"polling_interval"`
+}
+
+type Monitoring struct {
+	Enable           bool          `yaml:"enable"`
+	DashboardPolling time.Duration `yaml:"dashboard_polling"`
 }

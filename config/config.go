@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@ func LoadConfig() (Config, parser.Bridge) {
 	if err := env.Parse(&parsed); err != nil {
 		panic(err)
 	}
-
 	return Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),

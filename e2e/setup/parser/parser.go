@@ -6,11 +6,11 @@ import (
 
 // Config used to load and parse from application.yml
 type Config struct {
-	Hedera       HederaParser         `yaml:"hedera"`
-	EVM          map[int64]parser.Evm `yaml:"evm"`
-	Tokens       Tokens               `yaml:"tokens"`
-	ValidatorUrl string               `yaml:"validator_url"`
-	Bridge       parser.Bridge        `yaml:"bridge"`
+	Hedera       HederaParser          `yaml:"hedera"`
+	EVM          map[uint64]parser.Evm `yaml:"evm"`
+	Tokens       Tokens                `yaml:"tokens"`
+	ValidatorUrl string                `yaml:"validator_url"`
+	Bridge       parser.Bridge         `yaml:"bridge"`
 }
 
 type HederaParser struct {
@@ -29,16 +29,17 @@ type Sender struct {
 }
 
 type Tokens struct {
-	WHbar          string `yaml:"whbar"`
-	WToken         string `yaml:"wtoken"`
-	NftToken       string `yaml:"nft_token"`
-	EvmNativeToken string `yaml:"evm_native_token"`
+	WHbar           string `yaml:"whbar"`
+	WToken          string `yaml:"wtoken"`
+	NftToken        string `yaml:"nft_token"`
+	NftSerialNumber int64  `yaml:"nft_serial_number"`
+	EvmNativeToken  string `yaml:"evm_native_token"`
 }
 
 type E2E struct {
-	Hedera       HederaParser         `yaml:"hedera"`
-	EVM          map[int64]parser.Evm `yaml:"evm"`
-	Tokens       Tokens               `yaml:"tokens"`
-	ValidatorUrl string               `yaml:"validator_url"`
+	Hedera       HederaParser          `yaml:"hedera"`
+	EVM          map[uint64]parser.Evm `yaml:"evm"`
+	Tokens       Tokens                `yaml:"tokens"`
+	ValidatorUrl string                `yaml:"validator_url"`
 	Bridge       parser.Bridge
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package constants
 
 const (
 	Hbar            = "HBAR"
-	HederaNetworkId = 0
+	HederaNetworkId = uint64(0)
 )
 
 // Handler topics

@@ -18,7 +18,7 @@ This repository contains the Hedera <-> EVM Bridge Node. The bridge is operated 
 ## Technologies
 The Validator node is using Hedera Consensus Service for aggregating authorisation signatures resolving the need for nodes to have p2p communication and providing traceability for the bridging operations.
 The node is a Go service with several watchers and handlers for Transfers, Message submission and EVM-based events.
-Postgres is used for persisting state.
+Postgres is used for persisting state. Prometheus and Grafana are used for monitoring the Hashport.
 
 ## Prerequisite Tools
 
@@ -45,6 +45,7 @@ docker-compose up
  - [Workflows](docs/workflows.md)
  - [Release](docs/release.md)
  - [Mainnet Deployment](docs/mainnet-deployment.md)
+ - [Metrics](docs/metrics.md)
 
 ## Examples
 * [Three Validators Bridge Network](./examples/three-validators/README.md)

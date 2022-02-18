@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
+	"github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -57,13 +58,14 @@ var (
 			},
 		},
 	}
+	assets               config.Assets
 	transactionTimestamp = int64(0)
-	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(int64(tesm.SourceChainId), int64(tesm.TargetChainId), tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
+	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(tesm.SourceChainId, tesm.TargetChainId, tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
 )
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[int64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[uint64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -91,7 +93,7 @@ func Test_HandleSignatureMessage_SanityCheckIsNotValid(t *testing.T) {
 func Test_HandleSignatureMessage_ProcessSignatureFails(t *testing.T) {
 	setup()
 	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(errors.New("some-error"))
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, tsm.GetFungibleSignatureMessage().TargetChainId, transactionTimestamp, authMsgBytes).Return(errors.New("some-error"))
 	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MTransferRepository.AssertNotCalled(t, "Update", mock.Anything)
 	mocks.MMessageRepository.AssertNotCalled(t, "Get", mock.Anything)
@@ -101,7 +103,7 @@ func Test_HandleSignatureMessage_ProcessSignatureFails(t *testing.T) {
 func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {
 	setup()
 	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, tsm.GetFungibleSignatureMessage().TargetChainId, transactionTimestamp, authMsgBytes).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
@@ -114,7 +116,7 @@ func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {
 func Test_Handle(t *testing.T) {
 	setup()
 	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, tsm.GetFungibleSignatureMessage().TargetChainId, transactionTimestamp, authMsgBytes).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
@@ -127,7 +129,7 @@ func Test_Handle(t *testing.T) {
 func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
 	setup()
 	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, tsm.GetFungibleSignatureMessage().TargetChainId, transactionTimestamp, authMsgBytes).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, nil)
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
@@ -140,7 +142,7 @@ func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
 func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 	setup()
 	mocks.MMessageService.On("SanityCheckFungibleSignature", tsm.GetFungibleSignatureMessage()).Return(true, nil)
-	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, int64(tsm.GetFungibleSignatureMessage().TargetChainId), transactionTimestamp, authMsgBytes).Return(nil)
+	mocks.MMessageService.On("ProcessSignature", tsm.GetFungibleSignatureMessage().TransferID, tsm.GetFungibleSignatureMessage().Signature, tsm.GetFungibleSignatureMessage().TargetChainId, transactionTimestamp, authMsgBytes).Return(nil)
 	mocks.MMessageRepository.On("Get", tsm.GetFungibleSignatureMessage().TransferID).Return([]entity.Message{{}, {}, {}}, errors.New("some-error"))
 	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertNotCalled(t, "GetMembers")
@@ -149,11 +151,17 @@ func Test_HandleSignatureMessage_CheckMajority_Fails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	assets = config.LoadAssets(constants.Networks)
 	h = &Handler{
-		transferRepository: mocks.MTransferRepository,
-		messageRepository:  mocks.MMessageRepository,
-		contracts:          map[int64]service.Contracts{1: mocks.MBridgeContractService},
-		messages:           mocks.MMessageService,
-		logger:             config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
+		transferRepository:     mocks.MTransferRepository,
+		messageRepository:      mocks.MMessageRepository,
+		contracts:              map[uint64]service.Contracts{1: mocks.MBridgeContractService},
+		messages:               mocks.MMessageService,
+		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
+		prometheusService:      mocks.MPrometheusService,
+		assetsConfig:           assets,
+		participationRateGauge: nil,
 	}
 }

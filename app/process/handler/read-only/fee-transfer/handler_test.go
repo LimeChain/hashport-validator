@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@ func Test_NewHandler(t *testing.T) {
 		mocks.MDistributorService,
 		mocks.MFeeService,
 		mocks.MTransferService,
-		mocks.MReadOnlyService))
+		mocks.MReadOnlyService,
+		mocks.MPrometheusService))
 }
 
 func Test_Handle(t *testing.T) {
@@ -129,6 +130,9 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
+
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	h = &Handler{
 		transferRepository: mocks.MTransferRepository,
 		feeRepository:      mocks.MFeeRepository,
@@ -139,6 +143,7 @@ func setup() {
 		distributorService: mocks.MDistributorService,
 		transfersService:   mocks.MTransferService,
 		readOnlyService:    mocks.MReadOnlyService,
+		prometheusService:  mocks.MPrometheusService,
 		logger:             config.GetLoggerFor("Hedera Fee and Schedule Transfer Read-only Handler"),
 	}
 }

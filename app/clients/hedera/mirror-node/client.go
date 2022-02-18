@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -238,31 +238,6 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	return readResponseBody(response)
 }
 
-func (c Client) GetToken(tokenID string) (*model.Token, error) {
-	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID)
-
-	httpResponse, e := c.get(query)
-	if e != nil {
-		return nil, e
-	}
-	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
-	}
-
-	bodyBytes, e := readResponseBody(httpResponse)
-	if e != nil {
-		return nil, e
-	}
-
-	var response *model.Token
-	e = json.Unmarshal(bodyBytes, &response)
-	if e != nil {
-		return nil, e
-	}
-
-	return response, nil
-}
-
 func (c Client) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
 	nftQuery := fmt.Sprintf("%s%d", "/nfts/", serialNum)
 	query := fmt.Sprintf("%s%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID, nftQuery)
@@ -296,6 +271,64 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 		accountID.String())
 
 	return c.query(accountQuery, accountID.String())
+}
+
+// GetAccount retrieves an account entity by its id
+func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
+	query := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		accountID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.AccountsResponse
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
+}
+
+// GetToken retrieves a token entity by its id
+func (c Client) GetToken(tokenID string) (*model.TokenResponse, error) {
+	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "tokens")
+	query := fmt.Sprintf("%s/%s",
+		mirrorNodeApiTransactionAddress,
+		tokenID)
+
+	httpResponse, e := c.get(query)
+	if e != nil {
+		return nil, e
+	}
+	if httpResponse.StatusCode >= 400 {
+		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+	}
+
+	bodyBytes, e := readResponseBody(httpResponse)
+	if e != nil {
+		return nil, e
+	}
+
+	var response *model.TokenResponse
+	e = json.Unmarshal(bodyBytes, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return response, nil
 }
 
 func (c Client) TopicExists(topicID hedera.TopicID) bool {

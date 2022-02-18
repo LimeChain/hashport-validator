@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -54,81 +54,37 @@ var (
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
 	}
-	hederaAcc, _ = hedera.AccountIDFromString("0.0.123456")
-	hederaBytes  = hederaAcc.ToBytes()
-	dbIdentifier = "3-0x0000000000000000000000000000000000000001"
 
-	networks = map[int64]*parser.Network{
-		0: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					constants.Hbar: {
-						Networks: map[int64]string{
-							33: "0x0000000000000000000000000000000000000001",
-						},
-					}},
-				Nft: nil,
-			},
+	hederaAcc, _   = hedera.AccountIDFromString("0.0.123456")
+	hederaBytes    = hederaAcc.ToBytes()
+	dbIdentifier   = "3-0x0000000000000000000000000000000000000001"
+	mintHash       = common.HexToHash("0579df6e9dbf066ba9fbd51ef5241e2b9f9c042a70289e8e5333d714ed4e5787")
+	burnHash       = common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
+	lockHash       = common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
+	unlockHash     = common.HexToHash("483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73")
+	membersHash    = common.HexToHash("30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+	burnERC721Hash = common.HexToHash("eb703661daf51ce0c247ebbf71a8747e6a79f36b2e93a4e5a22f191321e5750e")
+	topics         = [][]common.Hash{
+		{
+			mintHash,
+			burnHash,
+			lockHash,
+			unlockHash,
+			membersHash,
+			burnERC721Hash,
 		},
-		1: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-				"0xb083879B1e10C8476802016CB12cd2F25a896691": {
-						Networks: map[int64]string{
-							33: "0x0000000000000000000000000000000000000123",
-						},
-					},
-				},
-				Nft: nil,
-			},
+	}
+	filterConfig = FilterConfig{
+		abi:    abi.ABI{},
+		topics: topics,
+		addresses: []common.Address{
+			common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		},
-		2: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
-							0: "",
-						},
-					},
-				},
-				Nft: nil,
-			},
-		},
-		3: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
-							0: "",
-						},
-					},
-				},
-				Nft: nil,
-			},
-		},
-		32: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
-							0: "",
-						},
-					},
-				},
-				Nft: nil,
-			},
-		},
-		33: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					"0x0000000000000000000000000000000000000000": {
-						Networks: map[int64]string{
-							0: constants.Hbar,
-							1: "0xsome-other-eth-address",
-						},
-					},
-				},
-			}},
+		mintHash:          mintHash,
+		burnHash:          burnHash,
+		lockHash:          lockHash,
+		unlockHash:        unlockHash,
+		memberUpdatedHash: membersHash,
 	}
 )
 
@@ -176,11 +132,13 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   lockLog.Token.String(),
@@ -199,22 +157,24 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
+		prometheusService: mocks.MPrometheusService,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   lockLog.Token.String(),
@@ -233,23 +193,25 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	lockLog.TargetChain = big.NewInt(1)
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   "0xsome-other-eth-address",
 		NativeAsset:   lockLog.Token.String(),
@@ -268,13 +230,14 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	lockLog.TargetChain = big.NewInt(1)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: lockLog.TargetChain.Int64(),
-		NativeChainId: int64(33),
+		SourceChainId: 33,
+		TargetChainId: lockLog.TargetChain.Uint64(),
+		NativeChainId: 33,
 		SourceAsset:   lockLog.Token.String(),
 		TargetAsset:   "0xsome-other-eth-address",
 		NativeAsset:   lockLog.Token.String(),
@@ -293,11 +256,13 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
-		TargetChainId: burnLog.TargetChain.Int64(),
-		NativeChainId: int64(0),
+		SourceChainId: 33,
+		TargetChainId: burnLog.TargetChain.Uint64(),
+		NativeChainId: 0,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   constants.Hbar,
@@ -323,6 +288,7 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	burnLog.TargetChain = big.NewInt(1)
 	defaultToken := burnLog.Token
@@ -330,9 +296,9 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 1,
-		NativeChainId: int64(1),
+		NativeChainId: 1,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
@@ -352,15 +318,17 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.Setup()
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	burnLog.TargetChain = big.NewInt(1)
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
@@ -371,9 +339,9 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 1,
-		NativeChainId: int64(1),
+		NativeChainId: 1,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
@@ -395,21 +363,24 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	w = &Watcher{
-		repository: mocks.MStatusRepository,
-		contracts:  mocks.MBridgeContractService,
-		evmClient:  mocks.MEVMClient,
-		logger:     config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:   config.LoadAssets(networks),
-		validator:  false,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         false,
 	}
 
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: int64(33),
+		SourceChainId: 33,
 		TargetChainId: 0,
-		NativeChainId: int64(0),
+		NativeChainId: 0,
 		SourceAsset:   burnLog.Token.String(),
 		TargetAsset:   constants.Hbar,
 		NativeAsset:   constants.Hbar,
@@ -477,56 +448,53 @@ func TestNewWatcher(t *testing.T) {
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	mocks.MEVMClient.On("RetryBlockNumber").Return(uint64(10), nil)
 	mocks.MEVMClient.On("BlockConfirmations", mock.Anything).Return(uint64(5))
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		t.Fatalf("Failed to parse router ABI. Error: [%s]", err)
 	}
-
-	burnERC721Hash := abi.Events["BurnERC721"].ID
-	burnHash := abi.Events["Burn"].ID
-	lockHash := abi.Events["Lock"].ID
+	mintHashFromAbi := abi.Events["Mint"].ID
+	burnHashFromAbi := abi.Events["Burn"].ID
+	lockHashFromAbi := abi.Events["Lock"].ID
+	unlockHashFromAbi := abi.Events["Unlock"].ID
+	burnERC721HashAbi := abi.Events["BurnERC721"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
-
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			memberUpdatedHash,
-			burnERC721Hash,
-		},
-	}
 
 	addresses := []common.Address{
 		{},
 	}
 
-	filterConfig := FilterConfig{
+	filterCfg := FilterConfig{
 		abi:               abi,
 		topics:            topics,
 		addresses:         addresses,
-		burnHash:          burnHash,
-		lockHash:          lockHash,
-		burnERC721Hash:    burnERC721Hash,
+		mintHash:          mintHashFromAbi,
+		burnHash:          burnHashFromAbi,
+		lockHash:          lockHashFromAbi,
+		unlockHash:        unlockHashFromAbi,
+		burnERC721Hash:    burnERC721HashAbi,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     220,
 	}
 
-	assets := config.LoadAssets(networks)
+	assets := config.LoadAssets(testConstants.Networks)
 	w = &Watcher{
-		repository:    mocks.MStatusRepository,
-		contracts:     mocks.MBridgeContractService,
-		evmClient:     mocks.MEVMClient,
-		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:      assets,
-		validator:     true,
-		targetBlock:   5,
-		sleepDuration: defaultSleepDuration,
-		filterConfig:  filterConfig,
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		dbIdentifier:      dbIdentifier,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          assets,
+		validator:         true,
+		targetBlock:       5,
+		sleepDuration:     defaultSleepDuration,
+		filterConfig:      filterCfg,
 	}
 
-	assert.EqualValues(t, w, NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220))
+	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
+	assert.Equal(t, w, actual)
 }
 
 // TODO: Test_NewWatcher_Fails
@@ -534,16 +502,6 @@ func TestNewWatcher(t *testing.T) {
 func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -575,16 +533,6 @@ func Test_ProcessLogs_ParseBurnLogFails(t *testing.T) {
 func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -616,16 +564,6 @@ func Test_ProcessLogs_ParseLockLogFails(t *testing.T) {
 func Test_ProcessLogs_FilterLogsFails(t *testing.T) {
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -645,16 +583,6 @@ func Test_ProcessLogs_RepoUpdateFails(t *testing.T) {
 	mocks.Setup()
 	setup()
 
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	topics := [][]common.Hash{
-		{
-			burnHash,
-			lockHash,
-			membersHash,
-		},
-	}
 	query := &ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(0),
 		Addresses: []common.Address{
@@ -676,33 +604,18 @@ func setup() {
 	mocks.Setup()
 
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
-	burnHash := common.HexToHash("97715804dcd62a721835eaba4356dc90eaf6d442a12fe944f01bbf5f8c0b8992")
-	lockHash := common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
-	membersHash := common.HexToHash("0x30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
 	w = &Watcher{
-		repository:    mocks.MStatusRepository,
-		contracts:     mocks.MBridgeContractService,
-		evmClient:     mocks.MEVMClient,
-		dbIdentifier:  dbIdentifier,
-		logger:        config.GetLoggerFor("EVM Router Watcher [0x0000000000000000000000000000000000000000]"),
-		mappings:      config.LoadAssets(networks),
-		validator:     true,
-		sleepDuration: defaultSleepDuration,
-		filterConfig: FilterConfig{
-			abi: abi.ABI{},
-			topics: [][]common.Hash{
-				{
-					burnHash,
-					lockHash,
-					membersHash,
-				},
-			},
-			addresses: []common.Address{
-				common.HexToAddress("0x0000000000000000000000000000000000000000"),
-			},
-			burnHash:          burnHash,
-			lockHash:          lockHash,
-			memberUpdatedHash: membersHash,
-		},
+		repository:        mocks.MStatusRepository,
+		contracts:         mocks.MBridgeContractService,
+		prometheusService: mocks.MPrometheusService,
+		evmClient:         mocks.MEVMClient,
+		dbIdentifier:      dbIdentifier,
+		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		mappings:          config.LoadAssets(testConstants.Networks),
+		validator:         true,
+		sleepDuration:     defaultSleepDuration,
+		filterConfig:      filterConfig,
 	}
 }

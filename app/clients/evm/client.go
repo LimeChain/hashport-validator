@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -238,7 +238,7 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 				return err
 			}
 			if err != nil {
-				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: %s", raw.TxHash.String(), err)
+				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: [%s]", raw.TxHash.String(), err)
 				return err
 			}
 

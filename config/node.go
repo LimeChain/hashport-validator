@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 LimeChain Ltd.
+ * Copyright 2022 LimeChain Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,12 @@ import (
 )
 
 type Node struct {
-	Database  Database
-	Clients   Clients
-	LogLevel  string
-	Port      string
-	Validator bool
+	Database   Database
+	Clients    Clients
+	LogLevel   string
+	Port       string
+	Validator  bool
+	Monitoring Monitoring
 }
 
 type Database struct {
@@ -40,7 +41,7 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[int64]Evm
+	Evm        map[uint64]Evm
 	Hedera     Hedera
 	MirrorNode MirrorNode
 }
@@ -72,6 +73,11 @@ type MirrorNode struct {
 	PollingInterval time.Duration
 }
 
+type Monitoring struct {
+	Enable           bool
+	DashboardPolling time.Duration
+}
+
 type Recovery struct {
 	StartTimestamp int64
 	StartBlock     int64
@@ -97,11 +103,15 @@ func New(node parser.Node) Node {
 				Rpc:            rpc,
 			},
 			MirrorNode: MirrorNode(node.Clients.MirrorNode),
-			Evm:        make(map[int64]Evm),
+			Evm:        make(map[uint64]Evm),
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,
 		Validator: node.Validator,
+		Monitoring: Monitoring{
+			Enable:           node.Monitoring.Enable,
+			DashboardPolling: node.Monitoring.DashboardPolling,
+		},
 	}
 
 	for key, value := range node.Clients.Evm {
