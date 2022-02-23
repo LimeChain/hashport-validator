@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: endsWith(github.head_ref, 'workflows')
     steps:
       - uses: actions/checkout@v2
       
@@ -22,9 +23,9 @@ jobs:
 #         if: ${{ !endsWith(github.head_ref, 'workflows') }}
 #         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
       
-      - name: Exit if on test/workflows branch
-        if: ${{ endsWith(github.head_ref, 'workflows') }}
-        run: exit -1
+#       - name: Exit if on test/workflows branch
+#         if: ${{ endsWith(github.head_ref, 'workflows') }}
+#         run: exit -1
 #         run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
         
 #       - name: Exit if not on mainnet branch
@@ -33,6 +34,8 @@ jobs:
 #         run:  echo "NOT mainnet"
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
+   
+
    
    
 #       - name: Setup GCloud SDK
