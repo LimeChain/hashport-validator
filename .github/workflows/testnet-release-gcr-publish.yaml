@@ -24,11 +24,12 @@ jobs:
       
       - name: Exit if on test/workflows branch
         if: ${{ endsWith(github.head_ref, 'workflows') }}
-        run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
-        
-      - name: Exit if not on mainnet branch
-        if: ${{ !endsWith(github.head_ref, 'mainnet') }}
         run: exit -1
+#         run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
+        
+#       - name: Exit if not on mainnet branch
+#         if: ${{ !endsWith(github.head_ref, 'mainnet') }}
+#         run: exit -1
 #         run:  echo "NOT mainnet"
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
