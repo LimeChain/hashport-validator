@@ -13,9 +13,10 @@ jobs:
       
 #       - run: echo " tag_name ${{ github.event.release.tag_name }}."
       
-      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"      
-      - run: echo "Test 3. Tag is ${GITHUB_REF#refs/tags/}"
-            
+      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
+      
+      - run: echo "Test 3 Push. Tag is ${{ github.event.push.tag_name }}"
+      
       - run: echo "🍏 This job's status is ${{ job.status }}."
       
    
