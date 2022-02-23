@@ -19,11 +19,8 @@ jobs:
 #       - run: echo "github ref is ${{ github.ref }}"
       
       - run: echo "github base ref ${{ github.event.base_ref }}"
-      
-      - run: echo "github inputs from branch ${{ github.event.inputs.from_branch }}"
-      
-      - run: echo " if not ends with test/workflows ${{ !endsWith(github.head_ref, 'test/workflows') }}"
-      
+            
+#       - run: echo " if not ends with test/workflows ${{ !endsWith(github.head_ref, 'test/workflows') }}"
       - run: echo " if not ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
       
 #       - run: echo "github head ref ${{ github.head_ref }}"
@@ -31,11 +28,15 @@ jobs:
 #       - run: echo "github event name ${{ github.event_name }}"
       
       - name: Exit if not on test/workflows branch
-#         if: endsWith(github.head_ref, 'test/workflows') != true
-        if: ${{ !endsWith(github.head_ref, 'test/workflows') }}
-        run: exit -1
+        if: ${{ !endsWith(github.head_ref, 'workflows') }}
+        run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
+#         run: exit -1
       
-      
+      - name: Exit if on test/workflows branch
+        if: ${{ endsWith(github.head_ref, 'workflows') }}
+        run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
+#         run: exit -1
+
       - run: echo "🍏 This job's status is ${{ job.status }}."
    
    
