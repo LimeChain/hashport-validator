@@ -11,18 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - run: echo " tag_name ${{ github.event.release.tag_name }}."
+#       - run: echo " tag_name ${{ github.event.release.tag_name }}."
       - run: echo "Works. Tag is ${GITHUB_REF##*/}"
       
-      - run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
       
+      - run: echo "Test 3. Tag is ${GITHUB_REF#refs/tags/}"
+            
       - run: echo "🍏 This job's status is ${{ job.status }}."
       
-      - name: Branch name
-        run: |
-          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
-          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
-          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
    
 #       - name: Setup GCloud SDK
 #         uses: google-github-actions/setup-gcloud@v0.2.0
