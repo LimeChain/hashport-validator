@@ -10,23 +10,23 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+#       - name: Setup GCloud SDK
+#         uses: google-github-actions/setup-gcloud@v0.2.0
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT }}
+#           service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Authorize Docker
-        run: gcloud auth configure-docker
+#       - name: Authorize Docker
+#         run: gcloud auth configure-docker
 
-      - name: Build and Push Container
-        run: |-
-          docker build \
-            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }} \
-            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest \
-            -f build/Dockerfile .
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
+#       - name: Build and Push Container
+#         run: |-
+#           docker build \
+#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }} \
+#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest \
+#             -f build/Dockerfile .
+#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
+#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
 
 #      - name: Dispatch image release event
 #        uses: peter-evans/repository-dispatch@v1.1.3
