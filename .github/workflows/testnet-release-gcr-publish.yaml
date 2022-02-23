@@ -13,16 +13,19 @@ jobs:
       
 #       - run: echo " tag_name ${{ github.event.release.tag_name }}."
       
-      - run: echo "Test with if"
+#       - run: echo "Test with if"
       
       - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
-            
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+      
+      - run: echo "github ref is ${{ github.ref }}"
       
       - name: Exit if not on test/workflows branch
         if: endsWith(github.ref, 'test/workflows') == false
         run: exit -1
       
+      
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+   
    
 #       - name: Setup GCloud SDK
 #         uses: google-github-actions/setup-gcloud@v0.2.0
