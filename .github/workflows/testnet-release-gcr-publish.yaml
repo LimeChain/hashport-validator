@@ -6,7 +6,7 @@ on:
       - '*-rc-*' #TODO: mainnet '*-alpha-*'
   
 jobs:
-  build: # deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,8 +19,14 @@ jobs:
       
       - run: echo "github ref is ${{ github.ref }}"
       
+      - run: echo "github base ref ${{ github.event.base_ref }}"
+      
+      - run: echo "github head ref ${{ github.head_ref }}"
+      
+      - run: echo "github event name ${{ github.event_name }}"
+      
       - name: Exit if not on test/workflows branch
-        if: endsWith(github.ref, 'test/workflows') == false
+        if: endsWith(github.ref, 'test/workflows') != true
         run: exit -1
       
       
