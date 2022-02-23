@@ -12,10 +12,8 @@ jobs:
       - uses: actions/checkout@v2
       
 #       - run: echo " tag_name ${{ github.event.release.tag_name }}."
-      - run: echo "Works. Tag is ${GITHUB_REF##*/}"
       
-      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
-      
+      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"      
       - run: echo "Test 3. Tag is ${GITHUB_REF#refs/tags/}"
             
       - run: echo "🍏 This job's status is ${{ job.status }}."
@@ -35,17 +33,17 @@ jobs:
 #       - name: Build and Push Container
 #         run: |-
 #           docker build \
-#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }} \
+#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${GITHUB_REF/refs\/tags\//} \
 #             -f build/Dockerfile .
-#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
+#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${GITHUB_REF/refs\/tags\//}
 
 # TODO Mainnet
 
 #       - name: Build and Push Container
 #         run: |-
 #           docker build \
-#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }} \
+#             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${GITHUB_REF/refs\/tags\//} \
 #             -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest \
 #             -f build/Dockerfile .
-#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
+#           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${GITHUB_REF/refs\/tags\//}
 #           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
