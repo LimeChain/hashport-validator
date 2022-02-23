@@ -3,7 +3,7 @@ name: Testnet Build and Publish Image to GCR
 on:
   push:
     branches:
-      - testnet
+      - test/workflows
   
 jobs:
   deploy:
