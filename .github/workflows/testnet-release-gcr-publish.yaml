@@ -2,8 +2,8 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
 on:
   push:
-    branches:
-      - test/workflows #TODO: testnet/mainnet branch
+    tags:
+      - 'testnet-*' #TODO: testnet/mainnet branch
   
 jobs:
   deploy:
