@@ -1,4 +1,4 @@
-name: Build and Publish Testnet Image to GCR
+name: Testnet Build and Publish Image to GCR
 
 on:
   push:
