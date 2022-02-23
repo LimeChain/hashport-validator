@@ -11,31 +11,25 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-#       - run: echo " tag_name ${{ github.event.release.tag_name }}."
-      
-#       - run: echo "Test with if"
-      
-#       - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
-#       - run: echo "github ref is ${{ github.ref }}"
-      
       - run: echo "github base ref ${{ github.event.base_ref }}"
-            
-#       - run: echo " if not ends with test/workflows ${{ !endsWith(github.head_ref, 'test/workflows') }}"
-      - run: echo " if not ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
       
-#       - run: echo "github head ref ${{ github.head_ref }}"
+      - run: echo " if ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
       
+#       - run: echo "github head ref ${{ github.head_ref }}"      
 #       - run: echo "github event name ${{ github.event_name }}"
       
-      - name: Exit if not on test/workflows branch
-        if: ${{ !endsWith(github.head_ref, 'workflows') }}
-        run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
-#         run: exit -1
+#       - name: Exit if not on test/workflows branch
+#         if: ${{ !endsWith(github.head_ref, 'workflows') }}
+#         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
       
       - name: Exit if on test/workflows branch
         if: ${{ endsWith(github.head_ref, 'workflows') }}
         run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
-#         run: exit -1
+        
+      - name: Exit if not on mainnet branch
+        if: ${{ !endsWith(github.head_ref, 'mainnet') }}
+        run: exit -1
+#         run:  echo "NOT mainnet"
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
    
