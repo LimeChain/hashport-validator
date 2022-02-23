@@ -15,17 +15,24 @@ jobs:
       
 #       - run: echo "Test with if"
       
-      - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
+#       - run: echo "Test 2. Tag is ${GITHUB_REF/refs\/tags\//}"
 #       - run: echo "github ref is ${{ github.ref }}"
       
       - run: echo "github base ref ${{ github.event.base_ref }}"
+      
+      - run: echo "github inputs from branch ${{ github.event.inputs.from_branch }}"
+      
+      - run: echo " if not ends with test/workflows ${{ !endsWith(github.head_ref, 'test/workflows') }}"
+      
+      - run: echo " if not ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
       
 #       - run: echo "github head ref ${{ github.head_ref }}"
       
 #       - run: echo "github event name ${{ github.event_name }}"
       
       - name: Exit if not on test/workflows branch
-        if: endsWith(github.head_ref, 'refs/heads/test/workflows') != true
+#         if: endsWith(github.head_ref, 'test/workflows') != true
+        if: ${{ !endsWith(github.head_ref, 'test/workflows') }}
         run: exit -1
       
       
