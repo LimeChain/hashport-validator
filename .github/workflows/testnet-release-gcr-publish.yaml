@@ -1,10 +1,5 @@
 name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
-# on:
-#   push:
-#     tags:
-#       - '*-rc-*' #TODO: mainnet '*-alpha-*' tag name convention
-
 on:
   release:
     types: [published]
@@ -12,52 +7,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-#ON PUSH
-#     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
 # ON RELEASE PUBLISHED
 #TODO: mainnet '*-alpha-*' tag name convention && branch names mainnet and testnet
 #     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
     if: |
       contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'test/workflows'
+      github.event.release.target_commitish == 'testnet'
     steps:
       - uses: actions/checkout@v2
       
-      - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
-            
-#ON RELEASE PUBLISHED
-
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
-      - run: echo "if EQUAL == target commitish workflows ${{ (github.event.release.target_commitish == 'test/workflows') }}"
-      
-      - run: echo "if target commitish workflows ${{ endsWith(github.event.release.target_commitish, 'workflows') }}"
-      - run: echo "if ! target commitish workflows ${{ !endsWith(github.event.release.target_commitish, 'workflows') }}"
-
-#       - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
-#       - run: echo "FALSE TEST 2 conditions 1 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
-#       - run: echo "FALSE TEST 2 conditions 2 ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
-#       - run: echo "FALSE TEST 2 conditions 3 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
-
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
-      - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
-      - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
-      
-
-
-#ON PUSH
-#       - run: echo "github base ref ${{ github.event.base_ref }}"
-#       - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
-#       - run: echo " if ends with workflows ${{ endsWith(github.event.base_ref, 'workflows') }}"
-      
-#       - name: Exit if not on workflows branch
-#         if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
-#         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
-        
-    
-#       - name: DO stuff on workflows branch
-#         if: ${{ endsWith(github.event.base_ref, 'workflows') }}
-#         run:  echo "Branch is workflows. OK."
-
       - run: echo "🍏 This job's status is ${{ job.status }}."
    
 
