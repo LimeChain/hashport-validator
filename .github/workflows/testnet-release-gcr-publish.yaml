@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-#     if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
+    if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
     steps:
       - uses: actions/checkout@v2
       
