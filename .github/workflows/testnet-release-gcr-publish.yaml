@@ -12,7 +12,7 @@ jobs:
 #     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
     if: |
       contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'testnet'
+      github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
       
