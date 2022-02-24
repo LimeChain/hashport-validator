@@ -3,14 +3,16 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 on:
   push:
     tags:
-      - '*-rc-*' #TODO: mainnet '*-alpha-*'
+      - '*-rc-*' #TODO: mainnet '*-alpha-*' tag name convention
   
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
+    if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
     steps:
       - uses: actions/checkout@v2
+      
+      - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
       
       - run: echo "github base ref ${{ github.event.base_ref }}"
       - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
@@ -24,22 +26,6 @@ jobs:
       - name: DO stuff on workflows branch
         if: ${{ endsWith(github.event.base_ref, 'workflows') }}
         run:  echo "Branch is workflows. OK."
-        
-        
-      
-#       - name: Exit if not on test/workflows branch
-#         if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
-#         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
-      
-#       - name: Exit if on test/workflows branch
-#         if: ${{ endsWith(github.event.base_ref, 'workflows') }}
-#         run: exit -1
-#         run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
-        
-#       - name: Exit if not on mainnet branch
-#         if: ${{ !endsWith(github.event.base_ref, 'mainnet') }}
-#         run: exit -1
-#         run:  echo "NOT mainnet"
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
    
