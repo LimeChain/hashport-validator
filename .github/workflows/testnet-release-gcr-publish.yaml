@@ -13,9 +13,13 @@ jobs:
       - uses: actions/checkout@v2
       
       - run: echo "github base ref ${{ github.event.base_ref }}"
+      - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
+      - run: echo " if ends with workflows ${{ endsWith(github.event.base_ref, 'workflows') }}"
       
+      - run: echo "github head ref ${{ github.head_ref }}"
       - run: echo " if ! ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
       - run: echo " if ends with workflows ${{ endsWith(github.head_ref, 'workflows') }}"
+
       
 #       - run: echo "github head ref ${{ github.head_ref }}"      
 #       - run: echo "github event name ${{ github.event_name }}"
