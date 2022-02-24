@@ -2,13 +2,13 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
 on:
   push:
-#     tags:
-#       - '*-rc-*' #TODO: mainnet '*-alpha-*'
+    tags:
+      - '*-rc-*' #TODO: mainnet '*-alpha-*'
   
 jobs:
   deploy:
     runs-on: ubuntu-latest
-#     if: ${{ !endsWith(github.head_ref, 'workflows') }}
+#     if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
     steps:
       - uses: actions/checkout@v2
       
@@ -16,25 +16,28 @@ jobs:
       - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
       - run: echo " if ends with workflows ${{ endsWith(github.event.base_ref, 'workflows') }}"
       
-      - run: echo "github head ref ${{ github.head_ref }}"
-      - run: echo " if ! ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
-      - run: echo " if ends with workflows ${{ endsWith(github.head_ref, 'workflows') }}"
-
-      
-#       - run: echo "github head ref ${{ github.head_ref }}"      
-#       - run: echo "github event name ${{ github.event_name }}"
+      - name: Exit if not on workflows branch
+        if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
+        run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
+        
+    
+      - name: DO stuff on workflows branch
+        if: ${{ endsWith(github.event.base_ref, 'workflows') }}
+        run:  echo "Branch is workflows. OK."
+        
+        
       
 #       - name: Exit if not on test/workflows branch
-#         if: ${{ !endsWith(github.head_ref, 'workflows') }}
+#         if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
 #         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
       
 #       - name: Exit if on test/workflows branch
-#         if: ${{ endsWith(github.head_ref, 'workflows') }}
+#         if: ${{ endsWith(github.event.base_ref, 'workflows') }}
 #         run: exit -1
 #         run:  echo "Branch is OK-GO. IF endsWith workflows TRUE"
         
 #       - name: Exit if not on mainnet branch
-#         if: ${{ !endsWith(github.head_ref, 'mainnet') }}
+#         if: ${{ !endsWith(github.event.base_ref, 'mainnet') }}
 #         run: exit -1
 #         run:  echo "NOT mainnet"
 
