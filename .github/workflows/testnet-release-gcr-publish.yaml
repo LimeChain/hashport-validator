@@ -1,9 +1,13 @@
 name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
+# on:
+#   push:
+#     tags:
+#       - '*-rc-*' #TODO: mainnet '*-alpha-*' tag name convention
+
 on:
-  push:
-    tags:
-      - '*-rc-*' #TODO: mainnet '*-alpha-*' tag name convention
+  release:
+    types: [published]
   
 jobs:
   deploy:
@@ -11,6 +15,10 @@ jobs:
     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
     steps:
       - uses: actions/checkout@v2
+      
+      - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
+      - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, "-rc-") }}"
+      - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, "-rc-") }}"
       
       - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
       
