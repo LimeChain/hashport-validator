@@ -8,8 +8,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: |
-      ${{ (contains(github.event.release.tag_name, '-alpha-') &&
-      endsWith(github.event.release.target_commitish, 'mainnet')) }}
+      contains(github.event.release.tag_name, '-alpha-') &&
+      github.event.release.target_commitish == 'mainnet'
     steps:
       - uses: actions/checkout@v2
 
