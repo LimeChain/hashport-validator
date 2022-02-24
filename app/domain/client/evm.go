@@ -25,7 +25,7 @@ import (
 )
 
 type EVM interface {
-	ChainID(ctx context.Context) (*big.Int, error)
+	ChainID() uint64
 	GetClient() Core
 	BlockNumber(ctx context.Context) (uint64, error)
 	FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)

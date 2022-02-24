@@ -26,7 +26,7 @@ import (
 
 type Core interface {
 	bind.ContractBackend
-	ChainID(ctx context.Context) (*big.Int, error)
+	//ChainID(ctx context.Context) (*big.Int, error)
 	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
 	BlockNumber(ctx context.Context) (uint64, error)
 	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)

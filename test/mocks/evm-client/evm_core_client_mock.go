@@ -29,18 +29,9 @@ type MockEVMCoreClient struct {
 	mock.Mock
 }
 
-func (m *MockEVMCoreClient) ChainID(ctx context.Context) (*big.Int, error) {
-	args := m.Called(ctx)
-	if args[0] == nil && args[1] == nil {
-		return nil, nil
-	}
-	if args[0] == nil {
-		return nil, args[1].(error)
-	}
-	if args[1] == nil {
-		return args[0].(*big.Int), nil
-	}
-	return args[0].(*big.Int), args[1].(error)
+func (m *MockEVMCoreClient) ChainID() uint64 {
+	args := m.Called()
+	return args[0].(uint64)
 }
 
 func (m *MockEVMCoreClient) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {

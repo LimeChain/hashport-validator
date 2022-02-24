@@ -47,11 +47,8 @@ func setup() {
 
 func Test_ChainID(t *testing.T) {
 	setup()
-	mocks.MEVMCoreClient.On("ChainID", context.Background()).Return(big.NewInt(1), nil)
-	chain, err := c.ChainID(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	mocks.MEVMCoreClient.On("ChainID").Return(uint64(1))
+	chain := c.ChainID()
 	assert.Equal(t, big.NewInt(1), chain)
 }
 

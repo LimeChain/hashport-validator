@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -155,16 +154,12 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.prometheus,
 		configuration.Bridge.Assets))
 
-	for _, evmClient := range clients.EVMClients {
-		chain, err := evmClient.ChainID(context.Background())
-		if err != nil {
-			panic(err)
-		}
-		contractService := services.contractServices[chain.Uint64()]
+	for chain, evmClient := range clients.EVMClients {
+		contractService := services.contractServices[chain]
 		// Given that addresses between different
 		// EVM networks might be the same, a concatenation between
 		// <chain-id>-<contract-address> removes possible duplication.
-		dbIdentifier := fmt.Sprintf("%d-%s", chain.Uint64(), contractService.Address().String())
+		dbIdentifier := fmt.Sprintf("%d-%s", chain, contractService.Address().String())
 
 		server.AddWatcher(
 			evm.NewWatcher(
@@ -174,10 +169,10 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				evmClient,
 				configuration.Bridge.Assets,
 				dbIdentifier,
-				configuration.Node.Clients.Evm[chain.Uint64()].StartBlock,
+				configuration.Node.Clients.Evm[chain].StartBlock,
 				configuration.Node.Validator,
-				configuration.Node.Clients.Evm[chain.Uint64()].PollingInterval,
-				configuration.Node.Clients.Evm[chain.Uint64()].MaxLogsBlocks,
+				configuration.Node.Clients.Evm[chain].PollingInterval,
+				configuration.Node.Clients.Evm[chain].MaxLogsBlocks,
 			))
 	}
 

@@ -70,18 +70,9 @@ func (m *MockEVMClient) RetryFilterLogs(q ethereum.FilterQuery) ([]types.Log, er
 	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil && args.Get(1) == nil {
-		return nil, nil
-	}
-	if args.Get(0) == nil {
-		return nil, args.Get(1).(error)
-	}
-	if args.Get(1) == nil {
-		return args.Get(0).(*big.Int), nil
-	}
-	return args.Get(0).(*big.Int), args.Get(1).(error)
+func (m *MockEVMClient) ChainID() uint64 {
+	args := m.Called()
+	return args.Get(0).(uint64)
 }
 
 func (m *MockEVMClient) GetClient() client.Core {

@@ -17,7 +17,6 @@
 package evm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -319,15 +318,10 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 		return
 	}
 
-	var chain *big.Int
-	chain, e := ew.evmClient.ChainID(context.Background())
-	if e != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
-		return
-	}
+	targetChainId := ew.evmClient.ChainID()
+
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
-	targetChainId := chain.Uint64()
 	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
@@ -346,20 +340,15 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	var chain *big.Int
-	chain, e := ew.evmClient.ChainID(context.Background())
-	if e != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
-		return
-	}
+	chain := ew.evmClient.ChainID()
 
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Uint64())
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain)
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
-	sourceChainId := chain.Uint64()
+	sourceChainId := chain
 	targetChainId := eventLog.TargetChain.Uint64()
 	transactionId := fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index)
 	token := eventLog.Token.String()
@@ -463,13 +452,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
 		return
 	}
-	var chain *big.Int
-	chain, e := ew.evmClient.ChainID(context.Background())
-	sourceChainId := chain.Uint64()
-	if e != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
-		return
-	}
+	sourceChainId := ew.evmClient.ChainID()
 
 	if targetChainId != constants.HederaNetworkId {
 		metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, token, transactionId, ew.prometheusService, ew.logger)
@@ -565,13 +548,8 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		return
 	}
 
-	var chain *big.Int
-	chain, e := ew.evmClient.ChainID(context.Background())
-	if e != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
-		return
-	}
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.WrappedToken.String(), chain.Uint64())
+	chain := ew.evmClient.ChainID()
+	nativeAsset := ew.mappings.WrappedToNative(eventLog.WrappedToken.String(), chain)
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken)
 		return
@@ -598,7 +576,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 
 	transfer := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: chain.Uint64(),
+		SourceChainId: chain,
 		TargetChainId: eventLog.TargetChain.Uint64(),
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   eventLog.WrappedToken.String(),
@@ -644,15 +622,10 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 		return
 	}
 
-	chain, e := ew.evmClient.ChainID(context.Background())
-	if e != nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
-		return
-	}
+	targetChainId := ew.evmClient.ChainID()
 
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
-	targetChainId := chain.Uint64()
 	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)

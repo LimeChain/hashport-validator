@@ -100,7 +100,7 @@ func Test_CreateSuccessRateGaugeIfNotExists(t *testing.T) {
 		gaugeSuffix,
 		gaugeOpts.Help)
 
-	fullGaugeName, err2 := service.ConstructMetricName(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
+	fullGaugeName, err2 := service.ConstructMetricName(sourceChainId, targetChainId, asset, transactionId, gaugeSuffix)
 
 	defer service.DeleteGauge(fullGaugeName)
 

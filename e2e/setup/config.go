@@ -17,7 +17,6 @@
 package setup
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -36,6 +35,7 @@ import (
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
+	"math/big"
 )
 
 const (
@@ -187,11 +187,11 @@ func newClients(config Config) (*clients, error) {
 
 	EVM := make(map[uint64]EVMUtils)
 	for chainId, conf := range config.EVM {
-		evmClient := evm.NewClient(conf)
+		evmClient := evm.NewClient(conf, chainId)
 		routerContractAddress := common.HexToAddress(config.Bridge.Networks[chainId].RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-		chain, err := evmClient.ChainID(context.Background())
+		chain := new(big.Int).SetInt64(int64(chainId))
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(chain)
 		if err != nil {

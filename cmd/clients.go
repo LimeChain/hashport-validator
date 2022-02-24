@@ -35,7 +35,7 @@ type Clients struct {
 func PrepareClients(config config.Clients) *Clients {
 	EVMClients := make(map[uint64]client.EVM)
 	for chainId, ec := range config.Evm {
-		EVMClients[chainId] = evm.NewClient(ec)
+		EVMClients[chainId] = evm.NewClient(ec, chainId)
 	}
 
 	return &Clients{
