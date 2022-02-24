@@ -18,8 +18,8 @@ jobs:
 #TODO: mainnet '*-alpha-*' tag name convention && branch names mainnet and testnet
 #     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
     if: |
-      (contains(github.event.release.tag_name, '-rc-') &&
-      endsWith(github.event.release.target_commitish, 'workflows'))
+      contains(github.event.release.tag_name, '-rc-') &&
+      endsWith(github.event.release.target_commitish, 'workflows')
     steps:
       - uses: actions/checkout@v2
       
