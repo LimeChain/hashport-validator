@@ -12,7 +12,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
+#     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
     steps:
       - uses: actions/checkout@v2
       
