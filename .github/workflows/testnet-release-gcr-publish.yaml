@@ -25,6 +25,11 @@ jobs:
       
       - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
       
+      - run: echo "FALSE TEST 2 conditions 1 ${{ (contains(github.event.release.tag_name, 'test') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
+      - run: echo "FALSE TEST 2 conditions 2 ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'test')) }} "
+      - run: echo "FALSE TEST 2 conditions 3 ${{ (contains(github.event.release.tag_name, 'test') && endsWith(github.event.release.target_commitish, 'test')) }} "
+      
+      
 #ON RELEASE PUBLISHED
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
       - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
