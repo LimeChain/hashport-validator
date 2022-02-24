@@ -15,22 +15,23 @@ jobs:
 #ON PUSH
 #     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
 # ON RELEASE PUBLISHED
-#TODO: mainnet '*-alpha-*' tag name convention
-#TODO: branch names mainnet and testnet
+#TODO: mainnet '*-alpha-*' tag name convention && branch names mainnet and testnet
 #     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
+    if: |
+      ${{ (contains(github.event.release.tag_name, '-rc-') &&
+      endsWith(github.event.release.target_commitish, 'workflows')) }}
     steps:
       - uses: actions/checkout@v2
       
       - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
-      
-      - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
-      
-      - run: echo "FALSE TEST 2 conditions 1 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
-      - run: echo "FALSE TEST 2 conditions 2 ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
-      - run: echo "FALSE TEST 2 conditions 3 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
-      
-      
+            
 #ON RELEASE PUBLISHED
+
+#       - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
+#       - run: echo "FALSE TEST 2 conditions 1 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
+#       - run: echo "FALSE TEST 2 conditions 2 ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
+#       - run: echo "FALSE TEST 2 conditions 3 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
+
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
       - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
       - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
