@@ -17,8 +17,8 @@ jobs:
       - uses: actions/checkout@v2
       
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
-      - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, "-rc-") }}"
-      - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, "-rc-") }}"
+      - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
+      - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
       
       - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
       
