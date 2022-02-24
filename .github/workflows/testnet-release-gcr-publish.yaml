@@ -27,6 +27,12 @@ jobs:
             
 #ON RELEASE PUBLISHED
 
+      - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
+      - run: echo "if EQUAL == target commitish workflows ${{ (github.event.release.target_commitish == 'test/workflows') }}"
+      
+      - run: echo "if target commitish workflows ${{ endsWith(github.event.release.target_commitish, 'workflows') }}"
+      - run: echo "if ! target commitish workflows ${{ !endsWith(github.event.release.target_commitish, 'workflows') }}"
+
 #       - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
 #       - run: echo "FALSE TEST 2 conditions 1 ${{ (contains(github.event.release.tag_name, 'wrong') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
 #       - run: echo "FALSE TEST 2 conditions 2 ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'wrong')) }} "
@@ -36,9 +42,7 @@ jobs:
       - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
       - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
       
-      - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
-      - run: echo "if target commitish workflows ${{ endsWith(github.event.release.target_commitish, 'workflows') }}"
-      - run: echo "if ! target commitish workflows ${{ !endsWith(github.event.release.target_commitish, 'workflows') }}"
+
 
 #ON PUSH
 #       - run: echo "github base ref ${{ github.event.base_ref }}"
