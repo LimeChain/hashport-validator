@@ -15,11 +15,15 @@ jobs:
 #ON PUSH
 #     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
 # ON RELEASE PUBLISHED
-    if: ${{ contains(github.event.release.tag_name, '-rc-') }} #TODO: mainnet '*-alpha-*' tag name convention
+#TODO: mainnet '*-alpha-*' tag name convention
+#TODO: branch names mainnet and testnet
+#     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
     steps:
       - uses: actions/checkout@v2
       
       - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
+      
+      - run: echo "TEST 2 conditions ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }} "
       
 #ON RELEASE PUBLISHED
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
@@ -27,8 +31,8 @@ jobs:
       - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
       
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
-      - run: echo "if target commitish workflows ${{ contains(github.event.release.target_commitish, 'workflows') }}"
-      - run: echo "if ! target commitish workflows ${{ !contains(github.event.release.target_commitish, 'workflows') }}"
+      - run: echo "if target commitish workflows ${{ endsWith(github.event.release.target_commitish, 'workflows') }}"
+      - run: echo "if ! target commitish workflows ${{ !endsWith(github.event.release.target_commitish, 'workflows') }}"
 
 #ON PUSH
 #       - run: echo "github base ref ${{ github.event.base_ref }}"
