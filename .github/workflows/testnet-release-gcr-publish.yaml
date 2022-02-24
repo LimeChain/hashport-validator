@@ -2,19 +2,20 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
 on:
   push:
-    tags:
-      - '*-rc-*' #TODO: mainnet '*-alpha-*'
+#     tags:
+#       - '*-rc-*' #TODO: mainnet '*-alpha-*'
   
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ !endsWith(github.head_ref, 'workflows') }}
+#     if: ${{ !endsWith(github.head_ref, 'workflows') }}
     steps:
       - uses: actions/checkout@v2
       
       - run: echo "github base ref ${{ github.event.base_ref }}"
       
-      - run: echo " if ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
+      - run: echo " if ! ends with workflows ${{ !endsWith(github.head_ref, 'workflows') }}"
+      - run: echo " if ends with workflows ${{ endsWith(github.head_ref, 'workflows') }}"
       
 #       - run: echo "github head ref ${{ github.head_ref }}"      
 #       - run: echo "github event name ${{ github.event_name }}"
