@@ -12,28 +12,37 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+#ON PUSH
 #     if: ${{ endsWith(github.event.base_ref, 'workflows') }} #TODO: mainnet or testnet branch name
+# ON RELEASE PUBLISHED
+    if: ${{ contains(github.event.release.tag_name, '-rc-') }} #TODO: mainnet '*-alpha-*' tag name convention
     steps:
       - uses: actions/checkout@v2
       
+      - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
+      
+#ON RELEASE PUBLISHED
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
       - run: echo "if tag containts -rc- ${{ contains(github.event.release.tag_name, '-rc-') }}"
       - run: echo "if ! tag containts -rc- ${{ !contains(github.event.release.tag_name, '-rc-') }}"
       
-      - run: echo "TAG NAME ${GITHUB_REF/refs\/tags\//}"
+      - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
+      - run: echo "if target commitish workflows ${{ contains(github.event.release.target_commitish, 'workflows') }}"
+      - run: echo "if ! target commitish workflows ${{ !contains(github.event.release.target_commitish, 'workflows') }}"
+
+#ON PUSH
+#       - run: echo "github base ref ${{ github.event.base_ref }}"
+#       - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
+#       - run: echo " if ends with workflows ${{ endsWith(github.event.base_ref, 'workflows') }}"
       
-      - run: echo "github base ref ${{ github.event.base_ref }}"
-      - run: echo " if ! ends with workflows ${{ !endsWith(github.event.base_ref, 'workflows') }}"
-      - run: echo " if ends with workflows ${{ endsWith(github.event.base_ref, 'workflows') }}"
-      
-      - name: Exit if not on workflows branch
-        if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
-        run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
+#       - name: Exit if not on workflows branch
+#         if: ${{ !endsWith(github.event.base_ref, 'workflows') }}
+#         run:  echo "Branch is WRONG-SKIP. IF endsWith workflows FALSE"
         
     
-      - name: DO stuff on workflows branch
-        if: ${{ endsWith(github.event.base_ref, 'workflows') }}
-        run:  echo "Branch is workflows. OK."
+#       - name: DO stuff on workflows branch
+#         if: ${{ endsWith(github.event.base_ref, 'workflows') }}
+#         run:  echo "Branch is workflows. OK."
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
    
