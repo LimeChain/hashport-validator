@@ -1,4 +1,4 @@
-name: Build and Publish Image to GCR
+name: Mainnet Build and Publish Image to GCR
 
 on:
   release:
@@ -7,6 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: |
+      contains(github.event.release.tag_name, '-alpha-') &&
+      github.event.release.target_commitish == 'mainnet'
     steps:
       - uses: actions/checkout@v2
 
