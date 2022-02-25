@@ -30,6 +30,15 @@ type MockEVMClient struct {
 	mock.Mock
 }
 
+func (m *MockEVMClient) SetChainID(chainId uint64) {
+	m.Called(chainId)
+}
+
+func (m *MockEVMClient) GetChainID() uint64 {
+	args := m.Called()
+	return args.Get(0).(uint64)
+}
+
 func (m *MockEVMClient) BlockNumber(ctx context.Context) (uint64, error) {
 	args := m.Called(ctx)
 

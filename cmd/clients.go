@@ -17,11 +17,13 @@
 package main
 
 import (
+	"context"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"log"
 )
 
 // Clients struct used to initialise and store all available external clients for a validator node
@@ -34,8 +36,19 @@ type Clients struct {
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(config config.Clients) *Clients {
 	EVMClients := make(map[uint64]client.EVM)
-	for chainId, ec := range config.Evm {
-		EVMClients[chainId] = evm.NewClient(ec)
+	for configChainId, ec := range config.Evm {
+		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
+		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
+		if e != nil {
+			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare.", configChainId)
+			return nil
+		}
+		if configChainId == clientChainId.Uint64() {
+			EVMClients[configChainId].SetChainID(clientChainId.Uint64())
+		} else {
+			log.Fatalf("Chain IDs mismatch [%d] config, [%d] actual.", configChainId, clientChainId)
+			return nil
+		}
 	}
 
 	return &Clients{
