@@ -41,14 +41,11 @@ func PrepareClients(config config.Clients) *Clients {
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
 			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare.", configChainId)
-			return nil
 		}
-		if configChainId == clientChainId.Uint64() {
-			EVMClients[configChainId].SetChainID(clientChainId.Uint64())
-		} else {
+		if configChainId != clientChainId.Uint64() {
 			log.Fatalf("Chain IDs mismatch [%d] config, [%d] actual.", configChainId, clientChainId)
-			return nil
 		}
+		EVMClients[configChainId].SetChainID(clientChainId.Uint64())
 	}
 
 	return &Clients{
