@@ -25,6 +25,8 @@ import (
 )
 
 type EVM interface {
+	GetChainID() uint64
+	SetChainID(chainId uint64)
 	ChainID(ctx context.Context) (*big.Int, error)
 	GetClient() Core
 	BlockNumber(ctx context.Context) (uint64, error)

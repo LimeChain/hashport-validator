@@ -36,6 +36,7 @@ import (
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
+	"math/big"
 )
 
 const (
@@ -186,19 +187,28 @@ func newClients(config Config) (*clients, error) {
 	}
 
 	EVM := make(map[uint64]EVMUtils)
-	for chainId, conf := range config.EVM {
-		evmClient := evm.NewClient(conf)
-		routerContractAddress := common.HexToAddress(config.Bridge.Networks[chainId].RouterContractAddress)
+	for configChainId, conf := range config.EVM {
+		evmClient := evm.NewClient(conf, configChainId)
+		clientChainId, e := evmClient.ChainID(context.Background())
+		if e != nil {
+			return nil, errors.New("failed to retrieve chain ID on new client")
+		}
+		if configChainId == clientChainId.Uint64() {
+			evmClient.SetChainID(clientChainId.Uint64())
+		} else {
+			return nil, errors.New("chain IDs mismatch config and actual")
+		}
+		routerContractAddress := common.HexToAddress(config.Bridge.Networks[configChainId].RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
-		chain, err := evmClient.ChainID(context.Background())
+		chain := new(big.Int).SetInt64(int64(evmClient.GetChainID()))
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(chain)
 		if err != nil {
 			return nil, err
 		}
 
-		EVM[chainId] = EVMUtils{
+		EVM[configChainId] = EVMUtils{
 			EVMClient:             evmClient,
 			RouterContract:        routerInstance,
 			KeyTransactor:         keyTransactor,
