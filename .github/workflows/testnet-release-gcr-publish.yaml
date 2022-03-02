@@ -1,21 +1,35 @@
 name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
-on:
-  release:
-    types: [published]
-  
+# on:
+#   release:
+#     types: [published]
+on: push
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-# ON RELEASE PUBLISHED
-#TODO: mainnet '*-alpha-*' tag name convention && branch names mainnet and testnet
-#     if: ${{ (contains(github.event.release.tag_name, '-rc-') && endsWith(github.event.release.target_commitish, 'workflows')) }}
-    if: |
-      contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'test/workflows'
+#     if: |
+#       contains(github.event.release.tag_name, '-rc-') &&
+#       github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
       
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      
+      - name: Test with environment variables
+        run: echo $TAG_NAME - $RELEASE_NAME
+        env:
+          TAG_NAME: nightly-tag-${{ steps.date.outputs.date }}
+          RELEASE_NAME: nightly-release-${{ steps.date.outputs.date }}
+          
+      - name: Get current date2
+        run: echo "MY_DATE=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+     
+      - name: Test with environment variables2
+        run: echo ${{ env.MY_DATE }}
+  
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
       - run: echo "🍏 This job's status is ${{ job.status }}."
