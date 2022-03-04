@@ -27,11 +27,13 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"math/big"
@@ -40,17 +42,21 @@ import (
 )
 
 var (
-	w       = &Watcher{}
-	lockLog = &router.RouterLock{
-		TargetChain: big.NewInt(0),
-		Token:       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+	tokenAddressString  = "0x0000000000000000000000000000000000000000"
+	tokenAddress        = common.HexToAddress(tokenAddressString)
+	targetChainId       = uint64(0)
+	targetChainIdBigInt = big.NewInt(0).SetUint64(targetChainId)
+	w                   = &Watcher{}
+	lockLog             = &router.RouterLock{
+		TargetChain: targetChainIdBigInt,
+		Token:       tokenAddress,
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
 		ServiceFee:  big.NewInt(0),
 	}
 	burnLog = &router.RouterBurn{
-		TargetChain: big.NewInt(0),
-		Token:       common.HexToAddress("0x0000000000000000000000000000000000000001"),
+		TargetChain: targetChainIdBigInt,
+		Token:       tokenAddress,
 		Receiver:    hederaAcc.ToBytes(),
 		Amount:      big.NewInt(1),
 	}
@@ -78,7 +84,7 @@ var (
 		abi:    abi.ABI{},
 		topics: topics,
 		addresses: []common.Address{
-			common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			tokenAddress,
 		},
 		mintHash:          mintHash,
 		burnHash:          burnHash,
@@ -86,6 +92,11 @@ var (
 		unlockHash:        unlockHash,
 		memberUpdatedHash: membersHash,
 	}
+
+	nilNativeAsset    *asset.NativeAsset
+	hbarNativeAsset   = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
+	fungibleAssetInfo = asset.FungibleAssetInfo{Decimals: 8}
+	tokenPriceInfo    = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -123,6 +134,7 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(2), nil)
 
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(2), targetChainId).Return("")
 	w.handleLockLog(lockLog, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
@@ -133,6 +145,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
@@ -158,13 +171,14 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	mocks.MEVMClient.On("GetBlockTimestamp", big.NewInt(0)).Return(uint64(1))
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 
 	w = &Watcher{
 		repository:        mocks.MStatusRepository,
 		contracts:         mocks.MBridgeContractService,
 		evmClient:         mocks.MEVMClient,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          config.LoadAssets(testConstants.Networks),
+		assetsService:     mocks.MAssetsService,
 		validator:         false,
 		prometheusService: mocks.MPrometheusService,
 	}
@@ -202,10 +216,11 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 		prometheusService: mocks.MPrometheusService,
 		evmClient:         mocks.MEVMClient,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          config.LoadAssets(testConstants.Networks),
+		assetsService:     mocks.MAssetsService,
 		validator:         false,
 	}
 
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
@@ -231,6 +246,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 
 	lockLog.TargetChain = big.NewInt(1)
 	parsedLockLog := &transfer.Transfer{
@@ -244,6 +260,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 		Receiver:      common.BytesToAddress(hederaAcc.ToBytes()).String(),
 		Amount:        lockLog.Amount.String(),
 	}
+	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedLockLog, Topic: constants.TopicMessageSubmission}).Return()
@@ -270,6 +287,10 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 		Amount:        burnLog.Amount.String(),
 	}
 
+	mocks.MAssetsService.On("WrappedToNative", tokenAddressString, uint64(33)).Return(hbarNativeAsset)
+	mocks.MPricingService.On("GetTokenPriceInfo", targetChainId, constants.Hbar).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", targetChainId, constants.Hbar).Return(fungibleAssetInfo, true)
+
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.HederaFeeTransfer}).Return()
 
@@ -281,6 +302,7 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 	defaultReceiver := burnLog.Receiver
 	burnLog.Receiver = []byte{1, 2, 3, 4}
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MAssetsService.On("WrappedToNative", tokenAddressString, uint64(33)).Return(hbarNativeAsset)
 	w.handleBurnLog(burnLog, mocks.MQueue)
 	burnLog.Receiver = defaultReceiver
 }
@@ -294,18 +316,23 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	defaultToken := burnLog.Token
 	burnLog.Token = common.HexToAddress("0x123")
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
+	nativeChainId := uint64(1)
+	nativeAssetAddress := "0xb083879B1e10C8476802016CB12cd2F25a896691"
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: 33,
-		TargetChainId: 1,
-		NativeChainId: 1,
+		TargetChainId: nativeChainId,
+		NativeChainId: nativeChainId,
 		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
-		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		TargetAsset:   nativeAssetAddress,
+		NativeAsset:   nativeAssetAddress,
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
 	}
 
+	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(&asset.NativeAsset{ChainId: nativeChainId, Asset: nativeAssetAddress})
+	mocks.MPricingService.On("GetTokenPriceInfo", nativeChainId, nativeAssetAddress).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.TopicMessageSubmission}).Return()
 
@@ -327,7 +354,8 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		prometheusService: mocks.MPrometheusService,
 		evmClient:         mocks.MEVMClient,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          config.LoadAssets(testConstants.Networks),
+		assetsService:     mocks.MAssetsService,
+		pricingService:    mocks.MPricingService,
 		validator:         false,
 	}
 
@@ -337,19 +365,24 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	defaultToken := burnLog.Token
 	burnLog.Token = common.HexToAddress("0x123")
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
+	nativeChainId := uint64(1)
+	nativeAssetAddress := "0xb083879B1e10C8476802016CB12cd2F25a896691"
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: 33,
-		TargetChainId: 1,
-		NativeChainId: 1,
+		TargetChainId: nativeChainId,
+		NativeChainId: nativeChainId,
 		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
-		NativeAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		TargetAsset:   nativeAssetAddress,
+		NativeAsset:   nativeAssetAddress,
 		Receiver:      receiver,
 		Amount:        burnLog.Amount.String(),
 		Timestamp:     "1",
 	}
 
+	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(&asset.NativeAsset{ChainId: nativeChainId, Asset: nativeAssetAddress})
+	mocks.MPricingService.On("GetTokenPriceInfo", nativeChainId, nativeAssetAddress).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.ReadOnlyTransferSave}).Return()
 
@@ -371,7 +404,8 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		prometheusService: mocks.MPrometheusService,
 		evmClient:         mocks.MEVMClient,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          config.LoadAssets(testConstants.Networks),
+		assetsService:     mocks.MAssetsService,
+		pricingService:    mocks.MPricingService,
 		validator:         false,
 	}
 
@@ -389,6 +423,9 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		Timestamp:     "1",
 	}
 
+	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(hbarNativeAsset)
+	mocks.MPricingService.On("GetTokenPriceInfo", constants.HederaNetworkId, constants.Hbar).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", constants.HederaNetworkId, constants.Hbar).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.ReadOnlyHederaTransfer}).Return()
 
@@ -401,7 +438,9 @@ func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
 
 	defaultToken := burnLog.Token
 	burnLog.Token = common.HexToAddress("0x0123123")
+	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(nilNativeAsset)
 	w.handleBurnLog(burnLog, mocks.MQueue)
+
 	mocks.MStatusRepository.AssertNotCalled(t, "Update", mocks.MBridgeContractService.Address().String(), int64(0))
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 	burnLog.Token = defaultToken
@@ -412,6 +451,7 @@ func Test_HandleBurnLog_WrappedToWrapped_Not_Supported(t *testing.T) {
 	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
 
 	defaultTargetChain := burnLog.TargetChain
+	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(nilNativeAsset)
 	burnLog.TargetChain = big.NewInt(1)
 	w.handleBurnLog(burnLog, mocks.MQueue)
 	mocks.MStatusRepository.AssertNotCalled(t, "Update", mocks.MBridgeContractService.Address().String(), int64(0))
@@ -478,22 +518,23 @@ func TestNewWatcher(t *testing.T) {
 		maxLogsBlocks:     220,
 	}
 
-	assets := config.LoadAssets(testConstants.Networks)
+	assets := mocks.MAssetsService
 	w = &Watcher{
 		repository:        mocks.MStatusRepository,
 		contracts:         mocks.MBridgeContractService,
 		prometheusService: mocks.MPrometheusService,
+		pricingService:    mocks.MPricingService,
 		evmClient:         mocks.MEVMClient,
 		dbIdentifier:      dbIdentifier,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          assets,
+		assetsService:     mocks.MAssetsService,
 		validator:         true,
 		targetBlock:       5,
 		sleepDuration:     defaultSleepDuration,
 		filterConfig:      filterCfg,
 	}
 
-	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
+	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MPricingService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
 	assert.Equal(t, w, actual)
 }
 
@@ -610,10 +651,11 @@ func setup() {
 		repository:        mocks.MStatusRepository,
 		contracts:         mocks.MBridgeContractService,
 		prometheusService: mocks.MPrometheusService,
+		pricingService:    mocks.MPricingService,
 		evmClient:         mocks.MEVMClient,
 		dbIdentifier:      dbIdentifier,
 		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          config.LoadAssets(testConstants.Networks),
+		assetsService:     mocks.MAssetsService,
 		validator:         true,
 		sleepDuration:     defaultSleepDuration,
 		filterConfig:      filterConfig,

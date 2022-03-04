@@ -30,7 +30,8 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	helper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -53,9 +54,10 @@ type Watcher struct {
 	dbIdentifier      string
 	contracts         service.Contracts
 	prometheusService service.Prometheus
+	pricingService    service.Pricing
 	evmClient         client.EVM
 	logger            *log.Entry
-	mappings          c.Assets
+	assetsService     service.Assets
 	targetBlock       uint64
 	sleepDuration     time.Duration
 	validator         bool
@@ -89,8 +91,9 @@ func NewWatcher(
 	repository repository.Status,
 	contracts service.Contracts,
 	prometheusService service.Prometheus,
+	pricingService service.Pricing,
 	evmClient client.EVM,
-	mappings c.Assets,
+	assetsService service.Assets,
 	dbIdentifier string,
 	startBlock int64,
 	validator bool,
@@ -100,7 +103,7 @@ func NewWatcher(
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
-	targetBlock := helper.Max(0, currentBlock-evmClient.BlockConfirmations())
+	targetBlock := bigNumbersHelper.Max(0, currentBlock-evmClient.BlockConfirmations())
 
 	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
@@ -178,9 +181,10 @@ func NewWatcher(
 		dbIdentifier:      dbIdentifier,
 		contracts:         contracts,
 		prometheusService: prometheusService,
+		pricingService:    pricingService,
 		evmClient:         evmClient,
 		logger:            c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		mappings:          mappings,
+		assetsService:     assetsService,
 		targetBlock:       targetBlock,
 		validator:         validator,
 		sleepDuration:     pollingInterval,
@@ -328,7 +332,7 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
 	targetChainId := chain.Uint64()
-	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
+	oppositeToken := ew.assetsService.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }
@@ -353,7 +357,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.Token.String(), chain.Uint64())
+	nativeAsset := ew.assetsService.WrappedToNative(eventLog.Token.String(), chain.Uint64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
@@ -401,12 +405,21 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			return
 		}
 	}
+
 	if properAmount.Cmp(big.NewInt(0)) == 0 {
 		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
 		return
 	}
-	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
-		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinAmount)
+
+	tokenPriceInfo, exist := ew.pricingService.GetTokenPriceInfo(targetChainId, nativeAsset.Asset)
+	if !exist {
+		ew.logger.Errorf("[%s] - Couldn't get price info in USD for asset [%s].", eventLog.Raw.TxHash, nativeAsset.Asset)
+		return
+	}
+
+	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ew.assetsService, nativeAsset)
+	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, amountInUsd, nativeAsset.MinFeeAmountInUsd)
 		return
 	}
 
@@ -489,14 +502,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	wrappedAsset := ew.mappings.NativeToWrapped(token, sourceChainId, targetChainId)
+	wrappedAsset := ew.assetsService.NativeToWrapped(token, sourceChainId, targetChainId)
 	if wrappedAsset == "" {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
-		return
-	}
-	nativeAsset := ew.mappings.FungibleNativeAsset(sourceChainId, token)
-	if eventLog.Amount.Cmp(nativeAsset.MinAmount) < 0 {
-		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, nativeAsset.MinAmount)
 		return
 	}
 
@@ -508,8 +516,17 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			return
 		}
 	}
-	if properAmount.Cmp(big.NewInt(0)) == 0 {
-		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+
+	nativeAsset := ew.assetsService.FungibleNativeAsset(sourceChainId, token)
+	tokenPriceInfo, exist := ew.pricingService.GetTokenPriceInfo(sourceChainId, nativeAsset.Asset)
+	if !exist {
+		ew.logger.Errorf("[%s] - Couldn't get price info in USD for asset [%s].", eventLog.Raw.TxHash, nativeAsset.Asset)
+		return
+	}
+
+	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ew.assetsService, nativeAsset)
+	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, amountInUsd, nativeAsset.MinFeeAmountInUsd)
 		return
 	}
 
@@ -571,7 +588,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
-	nativeAsset := ew.mappings.WrappedToNative(eventLog.WrappedToken.String(), chain.Uint64())
+	nativeAsset := ew.assetsService.WrappedToNative(eventLog.WrappedToken.String(), chain.Uint64())
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken)
 		return
@@ -653,7 +670,7 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
 	targetChainId := chain.Uint64()
-	oppositeToken := ew.mappings.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
+	oppositeToken := ew.assetsService.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }

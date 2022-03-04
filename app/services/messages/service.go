@@ -49,7 +49,7 @@ type Service struct {
 	mirrorClient       client.MirrorNode
 	ethClients         map[uint64]client.EVM
 	logger             *log.Entry
-	mappings           config.Assets
+	assetsService      service.Assets
 }
 
 func NewService(
@@ -60,7 +60,7 @@ func NewService(
 	mirrorClient client.MirrorNode,
 	ethClients map[uint64]client.EVM,
 	topicID string,
-	mappings config.Assets,
+	assetsService service.Assets,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -76,7 +76,7 @@ func NewService(
 		topicID:            tID,
 		mirrorClient:       mirrorClient,
 		ethClients:         ethClients,
-		mappings:           mappings,
+		assetsService:      assetsService,
 	}
 }
 
@@ -113,6 +113,7 @@ func (ss *Service) SanityCheckFungibleSignature(topicMessage *proto_models.Topic
 			topicMessage.TargetChainId == t.TargetChainID &&
 			topicMessage.SourceChainId == t.SourceChainID &&
 			topicMessage.TransferID == t.TransactionID
+
 	return match, nil
 }
 
@@ -185,8 +186,8 @@ func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
 	signature := hex.EncodeToString(signatureBytes)
 
 	topicMessage := &proto_models.TopicEthNftSignatureMessage{
-		SourceChainId: uint64(tm.SourceChainId),
-		TargetChainId: uint64(tm.TargetChainId),
+		SourceChainId: tm.SourceChainId,
+		TargetChainId: tm.TargetChainId,
 		TransferID:    tm.TransactionId,
 		Asset:         tm.TargetAsset,
 		TokenId:       uint64(tm.SerialNum),

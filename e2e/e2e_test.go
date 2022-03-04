@@ -35,7 +35,6 @@ import (
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
 	"math"
@@ -481,7 +480,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
+	unlockAmount := int64(20) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
@@ -579,7 +578,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	targetChainID := uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	targetChainID := uint64(3) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
@@ -654,8 +653,8 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001)     // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
-	sourceChain := uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	sourceChain := uint64(3) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
 	wrappedEvm := setupEnv.Clients.EVM[sourceChain]
 	now = time.Now()
 	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, sourceChain, setupEnv.NativeEvmToken)
@@ -1507,8 +1506,8 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 	return expectedTransfers
 }
 
-func sendBurnEthTransaction(assetMappings config.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64, t *testing.T) (*types.Receipt, *router.RouterBurn) {
-	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, asset)
+func sendBurnEthTransaction(assetsService service.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64, t *testing.T) (*types.Receipt, *router.RouterBurn) {
+	wrappedAsset, err := setup.NativeToWrappedAsset(assetsService, sourceChainId, targetChainId, asset)
 	if err != nil {
 		t.Fatal(err)
 	}

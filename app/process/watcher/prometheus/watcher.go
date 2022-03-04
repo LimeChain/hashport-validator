@@ -48,6 +48,7 @@ type Watcher struct {
 	operatorBalanceGauge      prometheus.Gauge
 	// A mapping, storing all network ID - asset address - metric name
 	assetsMetrics map[uint64]map[string]string
+	assetsService service.Assets
 }
 
 func NewWatcher(
@@ -56,6 +57,7 @@ func NewWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) *Watcher {
 
 	var (
@@ -101,6 +103,7 @@ func NewWatcher(
 		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
 		operatorBalanceGauge:      operatorBalanceGauge,
 		assetsMetrics:             assetsMetrics,
+		assetsService:             assetsService,
 	}
 }
 
@@ -120,7 +123,7 @@ func (pw Watcher) registerAssetsMetrics() {
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
-				// register native assets balance
+				// register native assetsService balance
 				pw.registerAssetMetric(
 					networkId,
 					networkId,
@@ -130,7 +133,7 @@ func (pw Watcher) registerAssetsMetrics() {
 				)
 				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//register wrapped assets total supply
+					//register wrapped assetsService total supply
 					pw.registerAssetMetric(
 						networkId,
 						wrappedNetworkId,
@@ -152,15 +155,17 @@ func (pw Watcher) registerAssetMetric(
 	metricHelpCnt string,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		assetName, assetSymbol, e := pw.getAssetData(wrappedNetworkId, assetAddress)
-		if e != nil {
+		assetInfo, exist := pw.assetsService.GetFungibleAssetInfo(wrappedNetworkId, assetAddress)
+
+		if !exist {
 			return
 		}
+
 		metricName, metricHelp := getMetricData(
 			nativeNetworkId,
 			wrappedNetworkId,
 			assetAddress,
-			assetName,
+			assetInfo.Name,
 			metricNameCnt,
 			metricHelpCnt,
 		)
@@ -172,42 +177,10 @@ func (pw Watcher) registerAssetMetric(
 			Name: metricName,
 			Help: metricHelp,
 			ConstLabels: prometheus.Labels{
-				constants.AssetMetricLabelKey: assetSymbol,
+				constants.AssetMetricLabelKey: assetInfo.Symbol,
 			},
 		})
 	}
-}
-
-func (pw Watcher) getAssetData(networkId uint64, assetAddress string) (name string, symbol string, err error) {
-	if networkId == constants.HederaNetworkId { // Hedera
-		asset, e := pw.mirrorNode.GetToken(assetAddress)
-		if e != nil {
-			pw.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetAddress, e)
-			return "", "", e
-		}
-		name = asset.Name
-		symbol = asset.Symbol
-	} else { // EVM
-		evm := pw.EVMClients[networkId].GetClient()
-		evmAssetInstance, e := wtoken.NewWtoken(common.HexToAddress(assetAddress), evm)
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method NewWtoken - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		resName, e := evmAssetInstance.Name(&bind.CallOpts{})
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Name - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		name = resName
-		resSymbol, e := evmAssetInstance.Symbol(&bind.CallOpts{})
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Symbol - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		symbol = resSymbol
-	}
-	return name, symbol, nil
 }
 
 func getMetricData(
@@ -284,12 +257,12 @@ func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
 	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
-			// set native assets balance
+			// set native assetsService balance
 			pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
 			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
 				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//set wrapped assets total supply
+					//set wrapped assetsService total supply
 					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
 				}
 			}
@@ -319,7 +292,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 		}
 
 		assetMetric.Set(value)
-		pw.logger.Infof("The Asset with ID [%s] has %s = %f", assetAddress, logString, value)
+		pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
 	}
 }
 
@@ -355,7 +328,7 @@ func (pw Watcher) getAssetMetricValue(
 		} else { // Hedera wrapped total supply
 			value, err = pw.getHederaTokenSupply(assetAddress)
 		}
-	} else { // EVM
+	} else {          // EVM
 		if isNative { // EVM native balance
 			value, err = pw.getEVMBalance(networkId, evmAssetInstance, decimal, assetAddress)
 		} else { // EVM wrapped total supply

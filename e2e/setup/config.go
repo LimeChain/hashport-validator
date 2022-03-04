@@ -27,12 +27,16 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	evm_signer "github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
 	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
@@ -64,7 +68,6 @@ func Load() *Setup {
 		Tokens:         e2eConfig.Tokens,
 		ValidatorUrl:   e2eConfig.ValidatorUrl,
 		Bridge:         e2eConfig.Bridge,
-		AssetMappings:  config.LoadAssets(e2eConfig.Bridge.Networks),
 		FeePercentages: map[string]int64{},
 		NftFees:        map[string]int64{},
 	}
@@ -86,7 +89,12 @@ func Load() *Setup {
 	if err != nil {
 		panic(err)
 	}
+
+	routerClients, evmClients := getRouterAndEVMClientsFromEVMUtils(setup.Clients.EVM)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmClients)
+
 	return setup
+
 }
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
@@ -102,7 +110,7 @@ type Setup struct {
 	Members         []hederaSDK.AccountID
 	Clients         *clients
 	DbValidator     *db_validation.Service
-	AssetMappings   config.Assets
+	AssetMappings   service.Assets
 }
 
 // newSetup instantiates new Setup struct
@@ -127,7 +135,7 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	for token, fp := range config.FeePercentages {
-		if fp < fee.MinPercentage || fp > fee.MaxPercentage {
+		if fp < constants.FeeMinPercentage || fp > constants.FeeMaxPercentage {
 			return nil, errors.New(fmt.Sprintf("[%s] - invalid fee percentage [%d]", token, fp))
 		}
 	}
@@ -178,6 +186,17 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
+func getRouterAndEVMClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmClients map[uint64]client.EVM) {
+	routerClients = make(map[uint64]*router.Router)
+	evmClients = make(map[uint64]client.EVM)
+	for networkId, evmUtil := range evmUtils {
+		routerClients[networkId] = evmUtil.RouterContract
+		evmClients[networkId] = evmUtil.EVMClient
+	}
+
+	return routerClients, evmClients
+}
+
 // newClients instantiates the clients for the e2e tests
 func newClients(config Config) (*clients, error) {
 	hederaClient, err := initHederaClient(config.Hedera.Sender, config.Hedera.NetworkType)
@@ -223,8 +242,8 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
-func InitWrappedAssetContract(nativeAsset string, nativeAssets config.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := NativeToWrappedAsset(nativeAssets, sourceChain, targetChain, nativeAsset)
+func InitWrappedAssetContract(nativeAsset string, assetsService service.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
+	wTokenContractAddress, err := NativeToWrappedAsset(assetsService, sourceChain, targetChain, nativeAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -236,8 +255,8 @@ func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, err
 	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.GetClient())
 }
 
-func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain uint64, nativeAsset string) (string, error) {
-	wrappedAsset := assetMappings.NativeToWrapped(nativeAsset, sourceChain, targetChain)
+func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain uint64, nativeAsset string) (string, error) {
+	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
 		return "", errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
@@ -246,8 +265,8 @@ func NativeToWrappedAsset(assetMappings config.Assets, sourceChain, targetChain 
 	return wrappedAsset, nil
 }
 
-func WrappedToNativeAsset(assetMappings config.Assets, sourceChainId uint64, asset string) (*config.NativeAsset, error) {
-	targetAsset := assetMappings.WrappedToNative(asset, sourceChainId)
+func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
+	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
 		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
 	}
@@ -287,7 +306,7 @@ type Config struct {
 	Tokens         e2eParser.Tokens
 	ValidatorUrl   string
 	Bridge         parser.Bridge
-	AssetMappings  config.Assets
+	AssetMappings  service.Assets
 	FeePercentages map[string]int64
 	NftFees        map[string]int64
 }

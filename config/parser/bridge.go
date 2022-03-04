@@ -39,8 +39,10 @@ type Tokens struct {
 }
 
 type Token struct {
-	Fee           int64             `yaml:"fee" json:"fee,omitempty"`                      // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
-	FeePercentage int64             `yaml:"fee_percentage" json:"feePercentage,omitempty"` // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
-	MinAmount     string            `yaml:"min_amount" json:"minAmount,omitempty"`         // Represents a constant minimum amount for each Native token.
-	Networks      map[uint64]string `yaml:"networks" json:"networks,omitempty"`
+	Fee               int64             `yaml:"fee" json:"fee,omitempty"`                                 // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
+	FeePercentage     int64             `yaml:"fee_percentage" json:"feePercentage,omitempty"`            // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
+	MinFeeAmountInUsd string            `yaml:"min_fee_amount_in_usd" json:"minFeeAmountInUsd,omitempty"` // Represents a constant minimum fee amount in USD which is needed for the validator not to be on a loss
+	Networks          map[uint64]string `yaml:"networks" json:"networks,omitempty"`
+	CoinGeckoId       string            `yaml:"coin_gecko_id" json:"coinGeckoId,omitempty"`
+	CoinMarketCapId   string            `yaml:"coin_market_cap_id" json:"coinMarketCapId,omitempty"`
 }

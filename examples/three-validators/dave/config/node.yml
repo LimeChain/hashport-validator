@@ -1,7 +1,27 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
-node:
-  validator: false
+#node:
+#  db:
+#    host:
+#    name:
+#    password:
+#    port:
+#    username:
+#  port:
 #  monitoring:
-#    enable: false
-#    dashboard_polling: 15 #in minutes
+#    enable:
+#    dashboard_polling:
+#  web_api:
+#    coingecko:
+#      base_url:
+#      endpoints:
+#        get_simple_price_in_usd:
+#    hedera:
+#      base_url:
+#      endpoints:
+#        get_hbar_price_in_usd:
+#    coin_market_cap:
+#      api_key:
+#      base_url:
+#      endpoints:
+#        get_latest_quotes:

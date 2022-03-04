@@ -18,6 +18,7 @@ package prometheus
 
 import (
 	"errors"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -33,17 +34,17 @@ type Service struct {
 	gauges              map[string]prometheus.Gauge
 	counters            map[string]prometheus.Counter
 	isMonitoringEnabled bool
-	assetsConfig        config.Assets
+	assetsService       service.Assets
 }
 
-func NewService(assetsConfig config.Assets, isMonitoringEnabled bool) *Service {
+func NewService(assetsService service.Assets, isMonitoringEnabled bool) *Service {
 
 	return &Service{
 		logger:              config.GetLoggerFor("Prometheus Service"),
 		gauges:              map[string]prometheus.Gauge{},
 		counters:            map[string]prometheus.Counter{},
 		isMonitoringEnabled: isMonitoringEnabled,
-		assetsConfig:        assetsConfig,
+		assetsService:       assetsService,
 	}
 }
 
@@ -156,7 +157,7 @@ func (s *Service) CreateCounterIfNotExists(opts prometheus.CounterOpts) promethe
 
 func (s *Service) ConstructMetricName(sourceNetworkId, targetNetworkId uint64, asset, transactionId, metricType string) (string, error) {
 	tokenType := constants.Wrapped
-	isNativeAsset := s.assetsConfig.IsNative(sourceNetworkId, asset)
+	isNativeAsset := s.assetsService.IsNative(sourceNetworkId, asset)
 	if isNativeAsset {
 		tokenType = constants.Native
 	}

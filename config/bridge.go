@@ -17,6 +17,7 @@
 package config
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -24,10 +25,12 @@ import (
 )
 
 type Bridge struct {
-	TopicId string
-	Hedera  *BridgeHedera
-	EVMs    map[uint64]BridgeEvm
-	Assets  Assets
+	TopicId          string
+	Hedera           *BridgeHedera
+	Assets           service.Assets
+	EVMs             map[uint64]BridgeEvm
+	CoinMarketCapIds map[uint64]map[string]string
+	CoinGeckoIds     map[uint64]map[string]string
 }
 
 type BridgeHedera struct {
@@ -40,15 +43,24 @@ type BridgeHedera struct {
 }
 
 type HederaToken struct {
-	Fee           int64
-	FeePercentage int64
-	MinAmount     string
-	Networks      map[uint64]string
+	Fee               int64
+	FeePercentage     int64
+	MinFeeAmountInUsd string
+	Networks          map[uint64]string
+}
+
+func NewHederaTokenFromToken(token parser.Token) HederaToken {
+	return HederaToken{
+		Fee:               token.Fee,
+		FeePercentage:     token.FeePercentage,
+		MinFeeAmountInUsd: token.MinFeeAmountInUsd,
+		Networks:          token.Networks,
+	}
 }
 
 type Token struct {
-	MinAmount *big.Int
-	Networks  map[uint64]string
+	MinFeeAmountInUsd *big.Int
+	Networks          map[uint64]string
 }
 
 type BridgeEvm struct {
@@ -61,39 +73,50 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		TopicId: bridge.TopicId,
 		Hedera:  nil,
 		EVMs:    make(map[uint64]BridgeEvm),
-		Assets:  LoadAssets(bridge.Networks),
 	}
-	for key, value := range bridge.Networks {
-		constants.NetworksByName[value.Name] = key
-		constants.NetworksById[key] = value.Name
 
-		if value.Name == "Hedera" {
+	config.CoinGeckoIds = make(map[uint64]map[string]string)
+	config.CoinMarketCapIds = make(map[uint64]map[string]string)
+	for networkId, networkInfo := range bridge.Networks {
+		constants.NetworksByName[networkInfo.Name] = networkId
+		constants.NetworksById[networkId] = networkInfo.Name
+		config.CoinGeckoIds[networkId] = make(map[string]string)
+		config.CoinMarketCapIds[networkId] = make(map[string]string)
+
+		if networkId == constants.HederaNetworkId { // Hedera
 			config.Hedera = &BridgeHedera{
-				BridgeAccount: value.BridgeAccount,
-				PayerAccount:  value.PayerAccount,
-				Members:       value.Members,
+				BridgeAccount: networkInfo.BridgeAccount,
+				PayerAccount:  networkInfo.PayerAccount,
+				Members:       networkInfo.Members,
 				Tokens:        make(map[string]HederaToken),
 			}
 
-			for name, value := range value.Tokens.Fungible {
-				config.Hedera.Tokens[name] = HederaToken(value)
+			for name, tokenInfo := range networkInfo.Tokens.Nft {
+				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
-			for name, value := range value.Tokens.Nft {
-				config.Hedera.Tokens[name] = HederaToken(value)
-			}
-			hederaFeePercentages, hederaNftFees := LoadHederaFees(value.Tokens)
+			hederaFeePercentages, hederaNftFees := LoadHederaFees(networkInfo.Tokens)
 			config.Hedera.FeePercentages = hederaFeePercentages
 			config.Hedera.NftFees = hederaNftFees
-			continue
+
+		} else {
+			config.EVMs[networkId] = BridgeEvm{
+				RouterContractAddress: networkInfo.RouterContractAddress,
+				Tokens:                make(map[string]Token),
+			}
+			// Currently, only EVM Fungible native tokens are supported
+			for name, tokenInfo := range networkInfo.Tokens.Fungible {
+				config.EVMs[networkId].Tokens[name] = Token{Networks: tokenInfo.Networks}
+			}
 		}
-		config.EVMs[key] = BridgeEvm{
-			RouterContractAddress: value.RouterContractAddress,
-			Tokens:                make(map[string]Token),
+
+		for name, tokenInfo := range networkInfo.Tokens.Fungible {
+			config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
+			config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
+			if networkId == constants.HederaNetworkId {
+				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
+			}
 		}
-		// Currently, only EVM Fungible native tokens are supported
-		for name, value := range value.Tokens.Fungible {
-			config.EVMs[key].Tokens[name] = Token{Networks: value.Networks}
-		}
+
 	}
 
 	return config

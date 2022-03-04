@@ -14,25 +14,33 @@
  * limitations under the License.
  */
 
-package config
+package assets
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
 
+var (
+	hederaFeePercentages = make(map[string]int64)
+	routerClients        = make(map[uint64]*router.Router)
+	evmClients           = make(map[uint64]client.EVM)
+	assets               = NewService(testConstants.Networks, hederaFeePercentages, routerClients, mocks.MHederaMirrorClient, evmClients)
+)
+
 func Test_LoadAssets(t *testing.T) {
-	assets := LoadAssets(testConstants.Networks)
-	if reflect.TypeOf(assets).String() != "config.Assets" {
-		t.Fatalf(`Expected to return assets type *config.Assets, but returned: [%s]`, reflect.TypeOf(assets).String())
+	if reflect.TypeOf(assets).String() != "assets.Service" {
+		t.Fatalf(`Expected to return assets type *assets.Service, but returned: [%s]`, reflect.TypeOf(assets).String())
 	}
 }
 
 func Test_IsNative(t *testing.T) {
-	assets := LoadAssets(testConstants.Networks)
 
 	actual := assets.IsNative(0, constants.Hbar)
 	assert.Equal(t, true, actual)
@@ -42,7 +50,6 @@ func Test_IsNative(t *testing.T) {
 }
 
 func Test_GetOppositeAsset(t *testing.T) {
-	assets := LoadAssets(testConstants.Networks)
 
 	actual := assets.GetOppositeAsset(33, 0, "0x0000000000000000000000000000000000000000")
 	expected := constants.Hbar
@@ -57,7 +64,6 @@ func Test_GetOppositeAsset(t *testing.T) {
 }
 
 func Test_NativeToWrapped(t *testing.T) {
-	assets := LoadAssets(testConstants.Networks)
 
 	actual := assets.NativeToWrapped(constants.Hbar, 0, 33)
 	expected := "0x0000000000000000000000000000000000000001"
@@ -66,7 +72,6 @@ func Test_NativeToWrapped(t *testing.T) {
 }
 
 func Test_WrappedToNative(t *testing.T) {
-	assets := LoadAssets(testConstants.Networks)
 
 	actual := assets.WrappedToNative("0x0000000000000000000000000000000000000001", 33)
 	expected := constants.Hbar

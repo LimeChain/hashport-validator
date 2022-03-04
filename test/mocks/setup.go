@@ -52,6 +52,8 @@ var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
 var MPrometheusService *service.MockPrometheusService
+var MAssetsService *service.MockAssetsService
+var MPricingService *service.MockPricingService
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -78,4 +80,6 @@ func Setup() {
 	MHTTPClient = &http_client.MockHttpClient{}
 	MQueue = &queue.MockQueue{}
 	MPrometheusService = &service.MockPrometheusService{}
+	MAssetsService = &service.MockAssetsService{}
+	MPricingService = &service.MockPricingService{}
 }

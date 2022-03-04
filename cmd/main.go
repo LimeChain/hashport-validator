@@ -42,12 +42,14 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/price"
 	pw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/prometheus"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
 	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
+	min_amounts "github.com/limechain/hedera-eth-bridge-validator/app/router/min-amounts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
@@ -63,7 +65,7 @@ func main() {
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
-	clients := PrepareClients(configuration.Node.Clients)
+	clients := PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs)
 
 	// Prepare Node
 	server := server.NewServer()
@@ -72,8 +74,12 @@ func main() {
 	db := persistence.NewDatabase(configuration.Node.Database)
 	// Prepare repositories
 	repositories := PrepareRepositories(db)
+
 	// Prepare Services
-	services = PrepareServices(configuration, *clients, *repositories)
+	services = PrepareServices(configuration, parsedBridge, *clients, *repositories)
+
+	// Set Assets Service
+	configuration.Bridge.Assets = services.assets
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
@@ -108,6 +114,7 @@ func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirou
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
 	apiRouter.AddV1Router("/metrics", promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
+	apiRouter.AddV1Router(min_amounts.Route, min_amounts.NewRouter(services.pricing))
 
 	return apiRouter
 }
@@ -125,7 +132,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		clients.MirrorNode,
 		&repositories.transferStatus,
 		services.contractServices,
-		services.prometheus))
+		services.prometheus,
+		services.pricing))
 
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -171,6 +179,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				repositories.transferStatus,
 				contractService,
 				services.prometheus,
+				services.pricing,
 				evmClient,
 				configuration.Bridge.Assets,
 				dbIdentifier,
@@ -245,6 +254,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.schedule,
 		services.readOnly,
 		services.transfers))
+
+	server.AddWatcher(price.NewWatcher(services.pricing))
 }
 
 func initializePrometheusWatcher(
@@ -270,6 +281,7 @@ func addTransferWatcher(configuration *config.Config,
 	repository *repository.Status,
 	contractServices map[uint64]service.Contracts,
 	prometheusService service.Prometheus,
+	pricingService service.Pricing,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
 
@@ -286,6 +298,7 @@ func addTransferWatcher(configuration *config.Config,
 		configuration.Bridge.Hedera.NftFees,
 		configuration.Node.Validator,
 		prometheusService,
+		pricingService,
 	)
 }
 
@@ -315,5 +328,6 @@ func addPrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		EVMClients)
+		EVMClients,
+		configuration.Bridge.Assets)
 }

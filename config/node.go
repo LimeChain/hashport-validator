@@ -44,6 +44,7 @@ type Clients struct {
 	Evm        map[uint64]Evm
 	Hedera     Hedera
 	MirrorNode MirrorNode
+	WebAPIs    WebAPIs
 }
 
 type Evm struct {
@@ -83,6 +84,50 @@ type Recovery struct {
 	StartBlock     int64
 }
 
+type WebAPIs struct {
+	CoinGecko     CoinGeckoWebApi
+	Hedera        HederaWebApi
+	CoinMarketCap CoinMarketCapWebApi
+}
+
+//////////////
+// Web Apis //
+//////////////
+
+// CoinGecko //
+
+type CoinGeckoWebApi struct {
+	BaseUrl   string
+	Endpoints CoinGeckoEndpoints
+}
+
+type CoinGeckoEndpoints struct {
+	GetSimplePriceInUsd string
+}
+
+// CoinMarketCap //
+
+type CoinMarketCapWebApi struct {
+	ApiKey    string
+	BaseUrl   string
+	Endpoints CoinMarketCapEndpoints
+}
+
+type CoinMarketCapEndpoints struct {
+	GetLatestQuotes string
+}
+
+// Hedera //
+
+type HederaWebApi struct {
+	BaseUrl   string
+	Endpoints HederaEndpoints
+}
+
+type HederaEndpoints struct {
+	GetHbarPriceInUsd string
+}
+
 func New(node parser.Node) Node {
 	rpc := make(map[string]hedera.AccountID)
 	for key, value := range node.Clients.Hedera.Rpc {
@@ -92,6 +137,10 @@ func New(node parser.Node) Node {
 		}
 		rpc[key] = nodeAccoundID
 	}
+
+	coinGeckoWebApi := node.WebAPIs.CoinGecko
+	coinMarketCapWebApi := node.WebAPIs.CoinMarketCap
+	hederaWebApi := node.WebAPIs.Hedera
 
 	config := Node{
 		Database: Database(node.Database),
@@ -104,6 +153,27 @@ func New(node parser.Node) Node {
 			},
 			MirrorNode: MirrorNode(node.Clients.MirrorNode),
 			Evm:        make(map[uint64]Evm),
+			WebAPIs: WebAPIs{
+				CoinGecko: CoinGeckoWebApi{
+					coinGeckoWebApi.BaseUrl,
+					CoinGeckoEndpoints{
+						coinGeckoWebApi.Endpoints.GetSimplePriceInUsd,
+					},
+				},
+				CoinMarketCap: CoinMarketCapWebApi{
+					coinMarketCapWebApi.ApiKey,
+					coinMarketCapWebApi.BaseUrl,
+					CoinMarketCapEndpoints{
+						coinMarketCapWebApi.Endpoints.GetLatestQuotes,
+					},
+				},
+				Hedera: HederaWebApi{
+					hederaWebApi.BaseUrl,
+					HederaEndpoints{
+						hederaWebApi.Endpoints.GetHbarPriceInUsd,
+					},
+				},
+			},
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,

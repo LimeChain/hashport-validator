@@ -43,7 +43,7 @@ type Handler struct {
 	logger                 *log.Entry
 	participationRateGauge prometheus.Gauge
 	prometheusService      service.Prometheus
-	assetsConfig           config.Assets
+	assetsService          service.Assets
 }
 
 func NewHandler(
@@ -53,7 +53,7 @@ func NewHandler(
 	contractServices map[uint64]service.Contracts,
 	messages service.Messages,
 	prometheusService service.Prometheus,
-	assetsConfig config.Assets,
+	assetsService service.Assets,
 ) *Handler {
 	topicID, err := hedera.TopicIDFromString(topicId)
 	if err != nil {
@@ -78,7 +78,7 @@ func NewHandler(
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicID.String())),
 		prometheusService:      prometheusService,
 		participationRateGauge: participationRate,
-		assetsConfig:           assetsConfig,
+		assetsService:          assetsService,
 	}
 }
 
@@ -167,7 +167,7 @@ func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChai
 
 	if majorityReached {
 		if !isNFT { // metrics for fungible only
-			oppositeAsset := cmh.assetsConfig.GetOppositeAsset(sourceChainId, targetChainId, asset)
+			oppositeAsset := cmh.assetsService.GetOppositeAsset(sourceChainId, targetChainId, asset)
 			metrics.SetMajorityReached(
 				sourceChainId,
 				targetChainId,

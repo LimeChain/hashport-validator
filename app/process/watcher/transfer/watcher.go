@@ -27,8 +27,10 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -47,10 +49,11 @@ type Watcher struct {
 	targetTimestamp   int64
 	logger            *log.Entry
 	contractServices  map[uint64]service.Contracts
-	mappings          config.Assets
+	assetsService     service.Assets
 	hederaNftFees     map[string]int64
 	validator         bool
 	prometheusService service.Prometheus
+	pricingService    service.Pricing
 }
 
 func NewWatcher(
@@ -61,10 +64,11 @@ func NewWatcher(
 	repository repository.Status,
 	startTimestamp int64,
 	contractServices map[uint64]service.Contracts,
-	mappings config.Assets,
+	assetsService service.Assets,
 	hederaNftFees map[string]int64,
 	validator bool,
 	prometheusService service.Prometheus,
+	pricingService service.Pricing,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -104,9 +108,10 @@ func NewWatcher(
 		targetTimestamp:   targetTimestamp,
 		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractServices:  contractServices,
-		mappings:          mappings,
+		assetsService:     assetsService,
 		hederaNftFees:     hederaNftFees,
 		validator:         validator,
+		pricingService:    pricingService,
 		prometheusService: prometheusService,
 	}
 }
@@ -177,6 +182,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 
 	targetChainId, receiverAddress, err := ctw.transfers.SanityCheckTransfer(tx)
+
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, err)
 		return
@@ -186,13 +192,14 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, parsedTransfer.Asset)
 	}
 
-	nativeAsset := &config.NativeAsset{
+	nativeAsset := &asset.NativeAsset{
 		ChainId: constants.HederaNetworkId,
 		Asset:   parsedTransfer.Asset,
 	}
-	targetChainAsset := ctw.mappings.NativeToWrapped(parsedTransfer.Asset, constants.HederaNetworkId, targetChainId)
+
+	targetChainAsset := ctw.assetsService.NativeToWrapped(parsedTransfer.Asset, constants.HederaNetworkId, targetChainId)
 	if targetChainAsset == "" {
-		nativeAsset = ctw.mappings.WrappedToNative(parsedTransfer.Asset, constants.HederaNetworkId)
+		nativeAsset = ctw.assetsService.WrappedToNative(parsedTransfer.Asset, constants.HederaNetworkId)
 		if nativeAsset == nil {
 			ctw.logger.Errorf("[%s] - Could not parse asset [%s] to its target chain correlation", tx.TransactionID, parsedTransfer.Asset)
 			return
@@ -267,8 +274,8 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
 }
 
-func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset config.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*transfer.Transfer, error) {
-	nativeAsset := ctw.mappings.FungibleNativeAsset(asset.ChainId, asset.Asset)
+func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset asset.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*transfer.Transfer, error) {
+	nativeAsset := ctw.assetsService.FungibleNativeAsset(asset.ChainId, asset.Asset)
 	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(amount), targetChainAsset)
 	if err != nil {
 		ctw.logger.Errorf(
@@ -279,8 +286,18 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 			err)
 		return nil, err
 	}
-	if properAmount.Cmp(nativeAsset.MinAmount) < 0 {
-		return nil, errors.New(fmt.Sprintf("Transfer Amount [%s] is less than Minimum Amount [%s].", properAmount, nativeAsset.MinAmount))
+
+	tokenPriceInfo, exist := ctw.pricingService.GetTokenPriceInfo(asset.ChainId, nativeAsset.Asset)
+	if !exist {
+		errMsg := fmt.Sprintf("[%s] - Couldn't get price info in USD for asset [%s].", transactionID, nativeAsset.Asset)
+		ctw.logger.Errorf(errMsg)
+		return nil, errors.New(errMsg)
+	}
+
+	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ctw.assetsService, nativeAsset)
+	cmpResult := amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee)
+	if cmpResult < 0 {
+		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s] [%s].", transactionID, amountInUsd, nativeAsset.MinFeeAmountInUsd, cmpResult))
 	}
 
 	return transfer.New(
@@ -299,7 +316,7 @@ func (ctw Watcher) createNonFungiblePayload(
 	transactionID string,
 	receiver string,
 	sourceAsset string,
-	nativeAsset config.NativeAsset,
+	nativeAsset asset.NativeAsset,
 	serialNum int64,
 	targetChainId uint64,
 	targetChainAsset string) (*transfer.Transfer, error) {
@@ -331,7 +348,7 @@ func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, source
 	}
 
 	metrics.CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
-	if ctw.mappings.IsNative(constants.HederaNetworkId, asset) && targetChainId != constants.HederaNetworkId {
+	if ctw.assetsService.IsNative(constants.HederaNetworkId, asset) && targetChainId != constants.HederaNetworkId {
 		metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
 	}
 	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)

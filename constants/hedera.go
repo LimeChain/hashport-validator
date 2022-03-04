@@ -17,8 +17,9 @@
 package constants
 
 const (
-	Hbar            = "HBAR"
-	HederaNetworkId = uint64(0)
+	Hbar                  = "HBAR"
+	HederaNetworkId       = uint64(0)
+	HederaDefaultDecimals = uint8(8)
 )
 
 // Handler topics

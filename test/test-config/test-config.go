@@ -16,7 +16,10 @@
 
 package test_config
 
-import "github.com/limechain/hedera-eth-bridge-validator/config"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
+)
 
 var (
 	TestConfig = config.Config{
@@ -75,7 +78,7 @@ var (
 					RouterContractAddress: "B5762f4159e7bFE24B5E7E9a2e829F535744d30e",
 				},
 			},
-			Assets: config.Assets{},
+			Assets: &assets.Service{},
 		},
 	}
 )

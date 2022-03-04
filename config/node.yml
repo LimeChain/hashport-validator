@@ -1,3 +1,5 @@
+# This file contains application defaults
+# Check docs/configuration.md for more information
 node:
   database:
     host: 127.0.0.1
@@ -7,20 +9,40 @@ node:
     username: validator
   clients:
     evm:
+      80001:
+        block_confirmations: 5
+        node_url: https://rpc-mumbai.matic.today
+        private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
+      3:
+        block_confirmations: 5
+        node_url: https://eth-ropsten.alchemyapi.io/v2/rQLyle52SoRmgNZ56ZqXBE4dUui3vRVy
+        private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
     hedera:
       operator:
-        account_id:
-        private_key:
+        account_id: 0.0.26306401
+        private_key: 302e020100300506032b65700422042012bf602c02a6a06b24de518fa934341e433d7ac8c4b06e464e5be9f269d29d66
       network: testnet
-      rpc:
-#        "127.0.0.1": "0.0.1"
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600
       polling_interval: 5
   monitoring:
-    enable: false
-    dashboard_polling: 15 #in minutes
-  log_level: info
+    enable: true
+    dashboard_polling: 1 # in minutes
+  web_api:
+    coingecko:
+      base_url: "https://api.coingecko.com/api/v3"
+      endpoints:
+        get_simple_price_in_usd: "simple/price?vs_currencies=usd&ids=%v"
+    hedera:
+      base_url: "https://testnet.mirrornode.hedera.com/api/v1"
+      endpoints:
+        get_hbar_price_in_usd: "transactions?account.id=0.0.57&transactiontype=fileupdate&limit=1"
+    coin_market_cap:
+      #      api_key: "0f56c8c8-4cde-4432-80f2-11f1623e5149"
+      base_url: "https://pro-api.coinmarketcap.com/v2/cryptocurrency"
+      endpoints:
+        get_latest_quotes: "quotes/latest?id=%v"
+  log_level: debug
   port: 5200
   validator: true

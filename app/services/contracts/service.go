@@ -141,15 +141,10 @@ func (bsc *Service) getMembers() ([]string, error) {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM, address string, assets []string) *Service {
+func NewService(client client.EVM, address string, contractInstance *router.Router, assets []string) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	contractInstance, err := router.NewRouter(*contractAddress, client.GetClient())
-	if err != nil {
-		log.Fatalf("Failed to initialize Router Contract Instance at [%s]. Error [%s]", address, err)
 	}
 
 	assetsDecimals := make(map[string]uint8)
@@ -161,7 +156,7 @@ func NewService(client client.EVM, address string, assets []string) *Service {
 
 		decimals, err := evmAsset.Decimals(nil)
 		if err != nil {
-			log.Fatalf("Could not get asset decimals for [%s]. Error [%s].", asset, err)
+			log.Fatalf("Could not get asset decimals for [%s - contractAddress: %v]. Error [%s].", asset, contractAddress.String(), err)
 		}
 
 		assetsDecimals[asset] = decimals
@@ -202,4 +197,13 @@ func (bsc *Service) RemoveDecimals(amount *big.Int, asset string) (*big.Int, err
 		return proper, nil
 	}
 	return amount, nil
+}
+
+func (bsc *Service) TokenFeeData() (struct {
+	ServiceFeePercentage *big.Int
+	FeesAccrued          *big.Int
+	PreviousAccrued      *big.Int
+	Accumulator          *big.Int
+}, error) {
+	return bsc.contract.TokenFeeData(nil, common.Address{})
 }
