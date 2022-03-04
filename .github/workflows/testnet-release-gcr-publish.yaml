@@ -6,6 +6,15 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 on: push
 
 jobs:
+
+  set_date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Get current date2
+        run: echo "MY_DATE=$(date +%d-%m-%Y_%H:%M:%S)" >> $GITHUB_ENV
+  
   deploy:
     runs-on: ubuntu-latest
 #     if: |
@@ -24,8 +33,6 @@ jobs:
           TAG_NAME: nightly-tag-${{ steps.date.outputs.date }}
           RELEASE_NAME: nightly-release-${{ steps.date.outputs.date }}
           
-      - name: Get current date2
-        run: echo "MY_DATE=$(date +%d-%m-%Y_%H:%M:%S)" >> $GITHUB_ENV
      
       - name: Test with environment variables2
         run: echo ${{ env.MY_DATE }}
