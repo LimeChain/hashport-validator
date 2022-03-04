@@ -295,9 +295,8 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 	}
 
 	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ctw.assetsService, nativeAsset)
-	cmpResult := amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee)
-	if cmpResult < 0 {
-		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s] [%s].", transactionID, amountInUsd, nativeAsset.MinFeeAmountInUsd, cmpResult))
+	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
+		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, amountInUsd, nativeAsset.MinFeeAmountInUsd))
 	}
 
 	return transfer.New(

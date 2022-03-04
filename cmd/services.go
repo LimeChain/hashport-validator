@@ -53,10 +53,10 @@ type Services struct {
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c config.Config, parsedBridgeCfg parser.Bridge, clients Clients, repositories Repositories) *Services {
+func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
-	assetsService := assets.NewService(parsedBridgeCfg.Networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
 
 	for _, client := range clients.EVMClients {
 		chain, err := client.ChainID(context.Background())
@@ -141,10 +141,10 @@ func PrepareServices(c config.Config, parsedBridgeCfg parser.Bridge, clients Cli
 
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
-func PrepareApiOnlyServices(c config.Config, parsedBridgeCfg parser.Bridge, clients Clients) *Services {
+func PrepareApiOnlyServices(c config.Config, networks map[uint64]*parser.Network, clients Clients) *Services {
 	contractServices := make(map[uint64]service.Contracts)
 
-	assetsService := assets.NewService(parsedBridgeCfg.Networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
 	for _, client := range clients.EVMClients {
 		chain, err := client.ChainID(context.Background())
 		if err != nil {

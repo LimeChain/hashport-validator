@@ -19,6 +19,7 @@ package test_config
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 )
 
 var (
@@ -79,6 +80,18 @@ var (
 				},
 			},
 			Assets: &assets.Service{},
+		},
+	}
+
+	ParsedBridge = parser.Bridge{
+		Networks: map[uint64]*parser.Network{
+			0: {
+				Tokens: parser.Tokens{
+					Fungible: map[string]parser.Token{
+						"HBAR": parser.Token{},
+					},
+				},
+			},
 		},
 	}
 )

@@ -76,7 +76,7 @@ func main() {
 	repositories := PrepareRepositories(db)
 
 	// Prepare Services
-	services = PrepareServices(configuration, parsedBridge, *clients, *repositories)
+	services = PrepareServices(configuration, parsedBridge.Networks, *clients, *repositories)
 
 	// Set Assets Service
 	configuration.Bridge.Assets = services.assets

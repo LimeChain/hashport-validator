@@ -26,7 +26,7 @@ import (
 )
 
 func TestPrepareClients(t *testing.T) {
-	clients := PrepareClients(tc.TestConfig.Node.Clients)
+	clients := PrepareClients(tc.TestConfig.Node.Clients, tc.TestConfig.Bridge.EVMs)
 	assert.NotEmpty(t, clients)
 
 	assert.IsType(t, map[uint64]client.EVM{}, clients.EVMClients)

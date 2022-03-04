@@ -35,7 +35,7 @@ var (
 )
 
 func Test_LoadAssets(t *testing.T) {
-	if reflect.TypeOf(assets).String() != "assets.Service" {
+	if reflect.TypeOf(assets).String() != "*assets.Service" {
 		t.Fatalf(`Expected to return assets type *assets.Service, but returned: [%s]`, reflect.TypeOf(assets).String())
 	}
 }
