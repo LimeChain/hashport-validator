@@ -6,76 +6,9 @@ on:
 
 env:
   refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
+  copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
 
 jobs:
-  deploy_previewnet_alice:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
-
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_PREVIEW_ALICE_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
-
-      - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }}:~
-
-      - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }} --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
-
-  deploy_previewnet_bob:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
-
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_PREVIEW_BOB_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
-
-      - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_BOB_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_BOB_INSTANCE }}:~
-
-      - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_PREVIEW_BOB_INSTANCE }} --zone=${{ secrets.APP_PREVIEW_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
-
-  deploy_previewnet_carol:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
-
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_PREVIEW_CAROL_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
-
-      - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_CAROL_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_CAROL_INSTANCE }}:~
-
-      - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_PREVIEW_CAROL_INSTANCE }} --zone=${{ secrets.APP_PREVIEW_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
   deploy_testnet_alice:
     runs-on: ubuntu-latest
     steps:
@@ -95,6 +28,9 @@ jobs:
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
 
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
@@ -119,6 +55,9 @@ jobs:
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~
 
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
 
@@ -142,5 +81,34 @@ jobs:
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~
 
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
+
+  deploy_testnet_dave:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_DAVE_CONFIG }}" > ./node.yml && \
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
+
+      - name: Copy files
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+
+      - name: Refresh images and containers
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.refresh_containers_command }}"
