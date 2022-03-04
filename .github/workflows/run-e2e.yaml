@@ -12,6 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        name: Setup GO Env
+        with:
+          go-version: '1.13'
+      - name: Cache Go E2E Test modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-e2e-test-
       - name: Export bridge configuration
         shell: bash
         run: |
@@ -50,17 +61,6 @@ jobs:
             done ;
             end=`date +%s` ;
             echo "Total: $((end-start)) seconds"
-      - uses: actions/setup-go@v2
-        name: Setup GO Env
-        with:
-          go-version: '1.13'
-      - name: Cache Go E2E Test modules
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-e2e-test-
       - name: Create e2e run test config
         shell: bash
         run: |
