@@ -23,7 +23,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="docker logs runner_validator_1 > logsTest-$(date +"%d-%m-%Y_%H:%M:%S")".log"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="docker logs runner_validator_1 > logsTest-$(date +'%d-%m-%Y_%H:%M:%S').log"
 
 
       - name: Get current date
