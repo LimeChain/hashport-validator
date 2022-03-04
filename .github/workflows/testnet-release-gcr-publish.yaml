@@ -5,6 +5,12 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 #     types: [published]
 on: push
 
+env:
+  TEST_TIME: echo "$(date +%d-%m-%Y_%H:%M:%S)"
+  TEST_TIME2: echo "(date +%d-%m-%Y_%H:%M:%S)"
+  TEST_TIME3: "(date +%d-%m-%Y_%H:%M:%S)"
+  TEST_TIME4: (date +%d-%m-%Y_%H:%M:%S)
+
 jobs:
 
   set_date:
@@ -14,6 +20,18 @@ jobs:
       
       - name: Get current date2
         run: echo "MY_DATE=$(date +%d-%m-%Y_%H:%M:%S)" >> $GITHUB_ENV
+  
+      - name: Get current date3
+        run: echo "datetiem is $TEST_TIME"
+
+      - name: Get current TEST_TIME2
+        run: echo "datetiem is $TEST_TIME2"
+  
+      - name: Get current TEST_TIME3
+        run: echo "datetiem is $TEST_TIME3"
+    
+      - name: Get current TEST_TIME4
+        run: echo "datetiem is $TEST_TIME4"
   
   deploy:
     runs-on: ubuntu-latest
@@ -26,7 +44,7 @@ jobs:
       - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%d_%H:%M:%S')"
-      
+  
       - name: Test with environment variables
         run: echo $TAG_NAME - $RELEASE_NAME
         env:
@@ -36,6 +54,18 @@ jobs:
      
       - name: Test with environment variables2
         run: echo ${{ env.MY_DATE }}
+  
+      - name: Get current date3
+        run: echo "datetiem is $TEST_TIME"
+
+      - name: Get current TEST_TIME2
+        run: echo "datetiem is $TEST_TIME2"
+  
+      - name: Get current TEST_TIME3
+        run: echo "datetiem is $TEST_TIME3"
+    
+      - name: Get current TEST_TIME4
+        run: echo "datetiem is $TEST_TIME4"
   
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
