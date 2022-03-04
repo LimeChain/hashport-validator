@@ -41,11 +41,12 @@ const executionRetries = 10
 type Client struct {
 	config config.Evm
 	client.Core
-	logger *log.Entry
+	logger  *log.Entry
+	chainId uint64
 }
 
 // NewClient creates new instance of an EVM client
-func NewClient(c config.Evm) *Client {
+func NewClient(c config.Evm, chainId uint64) *Client {
 	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client"))
 	if c.BlockConfirmations < 1 {
 		logger.Fatalf("BlockConfirmations should be a positive number")
@@ -61,7 +62,15 @@ func NewClient(c config.Evm) *Client {
 		c,
 		client,
 		logger,
+		chainId,
 	}
+}
+func (ec *Client) GetChainID() uint64 {
+	return ec.chainId
+}
+
+func (ec *Client) SetChainID(chainId uint64) {
+	ec.chainId = chainId
 }
 
 func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {

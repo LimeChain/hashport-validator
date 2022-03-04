@@ -123,7 +123,7 @@ func (pw Watcher) registerAssetsMetrics() {
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
-				// register native assetsService balance
+				// register native assets balance
 				pw.registerAssetMetric(
 					networkId,
 					networkId,
@@ -133,7 +133,7 @@ func (pw Watcher) registerAssetsMetrics() {
 				)
 				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//register wrapped assetsService total supply
+					//register wrapped assets total supply
 					pw.registerAssetMetric(
 						networkId,
 						wrappedNetworkId,
@@ -257,12 +257,12 @@ func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
 	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
-			// set native assetsService balance
+			// set native assets balance
 			pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
 			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
 				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//set wrapped assetsService total supply
+					//set wrapped assets total supply
 					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
 				}
 			}
@@ -328,7 +328,7 @@ func (pw Watcher) getAssetMetricValue(
 		} else { // Hedera wrapped total supply
 			value, err = pw.getHederaTokenSupply(assetAddress)
 		}
-	} else {          // EVM
+	} else { // EVM
 		if isNative { // EVM native balance
 			value, err = pw.getEVMBalance(networkId, evmAssetInstance, decimal, assetAddress)
 		} else { // EVM wrapped total supply

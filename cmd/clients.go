@@ -46,7 +46,7 @@ type Clients struct {
 func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.BridgeEvm) *Clients {
 	EVMClients := make(map[uint64]client.EVM)
 	for chainId, ec := range clientsCfg.Evm {
-		EVMClients[chainId] = evm.NewClient(ec)
+		EVMClients[chainId] = evm.NewClient(ec, chainId)
 	}
 
 	logger := config.GetLoggerFor("Clients")

@@ -35,6 +35,7 @@ import (
 var (
 	c       *Client
 	address = "0x0000000000000000000000000000000000000001"
+	chainId = uint64(1)
 )
 
 func setup() {
@@ -43,6 +44,18 @@ func setup() {
 		Core:   mocks.MEVMCoreClient,
 		logger: config.GetLoggerFor("EVM Client"),
 	}
+}
+
+func TestClient_SetChainID(t *testing.T) {
+	setup()
+	c.SetChainID(chainId)
+	assert.Equal(t, chainId, c.GetChainID())
+}
+
+func TestClient_GetChainID(t *testing.T) {
+	setup()
+	c.SetChainID(chainId)
+	assert.Equal(t, chainId, c.GetChainID())
 }
 
 func Test_ChainID(t *testing.T) {

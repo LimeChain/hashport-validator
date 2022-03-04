@@ -584,11 +584,13 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 
 	var chain *big.Int
 	chain, e := ew.evmClient.ChainID(context.Background())
+
 	if e != nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve chain ID.", eventLog.Raw.TxHash)
 		return
 	}
-	nativeAsset := ew.assetsService.WrappedToNative(eventLog.WrappedToken.String(), chain.Uint64())
+	sourceChainId := chain.Uint64()
+	nativeAsset := ew.assetsService.WrappedToNative(eventLog.WrappedToken.String(), sourceChainId)
 	if nativeAsset == nil {
 		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken)
 		return
@@ -615,7 +617,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 
 	transfer := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: chain.Uint64(),
+		SourceChainId: sourceChainId,
 		TargetChainId: eventLog.TargetChain.Uint64(),
 		NativeChainId: nativeAsset.ChainId,
 		SourceAsset:   eventLog.WrappedToken.String(),

@@ -83,7 +83,7 @@ func main() {
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode, clients.EVMClients)
+	initializeMonitoring(services.prometheus, services.assets, server, configuration, clients.MirrorNode, clients.EVMClients)
 
 	apiRouter := initializeAPIRouter(services, parsedBridge)
 
@@ -95,13 +95,14 @@ func main() {
 
 func initializeMonitoring(
 	prometheusService service.Prometheus,
+	assetsService service.Assets,
 	s *server.Server,
 	configuration config.Config,
 	mirrorNode client.MirrorNode,
 	EVMClients map[uint64]client.EVM,
 ) {
 	if configuration.Node.Monitoring.Enable {
-		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
+		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients, assetsService)
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
 	}
@@ -129,6 +130,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddWatcher(addTransferWatcher(
 		&configuration,
 		services.transfers,
+		services.assets,
 		clients.MirrorNode,
 		&repositories.transferStatus,
 		services.contractServices,
@@ -161,7 +163,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.contractServices,
 		services.messages,
 		services.prometheus,
-		configuration.Bridge.Assets))
+		services.assets))
 
 	for _, evmClient := range clients.EVMClients {
 		chain, err := evmClient.ChainID(context.Background())
@@ -181,7 +183,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				services.prometheus,
 				services.pricing,
 				evmClient,
-				configuration.Bridge.Assets,
+				services.assets,
 				dbIdentifier,
 				configuration.Node.Clients.Evm[chain.Uint64()].StartBlock,
 				configuration.Node.Validator,
@@ -264,6 +266,7 @@ func initializePrometheusWatcher(
 	mirrorNode client.MirrorNode,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) {
 	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
@@ -272,11 +275,13 @@ func initializePrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		EVMClients))
+		EVMClients,
+		assetsService))
 }
 
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
+	assetsService service.Assets,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	contractServices map[uint64]service.Contracts,
@@ -294,7 +299,7 @@ func addTransferWatcher(configuration *config.Config,
 		*repository,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
-		configuration.Bridge.Assets,
+		assetsService,
 		configuration.Bridge.Hedera.NftFees,
 		configuration.Node.Validator,
 		prometheusService,
@@ -321,6 +326,7 @@ func addPrometheusWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
@@ -329,5 +335,5 @@ func addPrometheusWatcher(
 		configuration,
 		prometheusService,
 		EVMClients,
-		configuration.Bridge.Assets)
+		assetsService)
 }

@@ -1,27 +1,37 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
 #node:
-#  db:
-#    host:
-#    name:
-#    password:
-#    port:
-#    username:
-#  port:
+#  database:
+#    host: 127.0.0.1
+#    name: hedera_validator
+#    password: validator_pass
+#    port: 5432
+#    username: validator
+#  clients:
+#    evm:
+#    hedera:
+#      operator:
+#        account_id:
+#        private_key:
+#      network: testnet
+#    mirror_node:
+#      api_address: https://testnet.mirrornode.hedera.com/api/v1/
+#      client_address: hcs.testnet.mirrornode.hedera.com:5600
+#      polling_interval: 5
 #  monitoring:
-#    enable:
-#    dashboard_polling:
+#    enable: false
+#    dashboard_polling: 15 # in minutes
 #  web_api:
 #    coingecko:
-#      base_url:
+#      base_url: "https://api.coingecko.com/api/v3"
 #      endpoints:
-#        get_simple_price_in_usd:
+#        get_simple_price_in_usd: "simple/price?vs_currencies=usd&ids=%v"
 #    hedera:
-#      base_url:
+#      base_url: "https://testnet.mirrornode.hedera.com/api/v1"
 #      endpoints:
-#        get_hbar_price_in_usd:
+#        get_hbar_price_in_usd: "transactions?account.id=0.0.57&transactiontype=fileupdate&limit=1"
 #    coin_market_cap:
 #      api_key:
-#      base_url:
+#      base_url: "https://pro-api.coinmarketcap.com/v2/cryptocurrency"
 #      endpoints:
-#        get_latest_quotes:
+#        get_latest_quotes: "quotes/latest?id=%v"
