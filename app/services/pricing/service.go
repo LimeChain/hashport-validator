@@ -120,7 +120,7 @@ func (s *Service) FetchAndUpdateUsdPrices(initialFetch bool) {
 
 func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]*big.Int {
 	s.minAmountsForApiMutex.RLock()
-	defer s.minAmountsForApiMutex.Unlock()
+	defer s.minAmountsForApiMutex.RUnlock()
 
 	return s.minAmountsForApi
 }
