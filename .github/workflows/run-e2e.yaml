@@ -20,7 +20,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('./go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-e2e-test-
       - name: Export bridge configuration
