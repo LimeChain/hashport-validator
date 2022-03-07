@@ -23,9 +23,10 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
+	mirrorNodeHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/mirror-node"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	mirrorNodeModel "github.com/limechain/hedera-eth-bridge-validator/app/model/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
@@ -59,12 +60,13 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 }
 
 func (c *Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
-	responseBody, err := httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, c.logger)
+	var parsedResponse mirrorNodeModel.TransactionsResponse
+	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger)
 	if err != nil {
 		return decimal.Decimal{}, err
 	}
 
-	hederaFileRate, err := hederaHelper.GetHederaFileRateFromResponseBody(responseBody, c.logger)
+	hederaFileRate, err := mirrorNodeHelper.GetUpdatedFileRateFromParsedResponseForHBARPrice(parsedResponse, c.logger)
 	if err == nil {
 		price = hederaFileRate.CurrentRate
 	}

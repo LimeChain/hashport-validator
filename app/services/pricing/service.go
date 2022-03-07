@@ -17,6 +17,7 @@
 package pricing
 
 import (
+	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
@@ -128,6 +129,7 @@ func (s *Service) updateHbarPrice(results fetchResults) {
 
 	var priceInUsd decimal.Decimal
 	if results.HbarErr != nil {
+		s.logger.Errorf("Failed to get HBAR price. Error [%s]", results.HbarErr)
 		if results.AllPricesErr != nil {
 			return
 		}
@@ -172,7 +174,6 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 
 		tokenPriceInfo.MinAmountInUsdWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
-
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee
 	}
 }
@@ -217,9 +218,9 @@ func (s *Service) fetchUsdPricesFromAPIs(initialFetch bool) (fetchResults fetchR
 	if fetchResults.AllPricesErr != nil { // Fetch from CoinMarketCap if CoinGecko fetch fails
 		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapClient.GetUsdPrices(s.coinMarketCapIds)
 		if fetchResults.AllPricesErr != nil { // If CoinMarketCap fetch fails this means the whole update failed
-			msg := "Couldn't fetch prices from any of the Web APIs."
+			msg := fmt.Sprintf("Couldn't fetch prices from any of the Web APIs. Error: [%s]", fetchResults.AllPricesErr)
 			if initialFetch {
-				s.logger.Fatalf("Couldn't fetch prices from any of the Web APIs.")
+				s.logger.Fatalf(msg)
 			}
 			s.logger.Error(msg)
 		}

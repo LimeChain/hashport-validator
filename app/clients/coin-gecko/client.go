@@ -19,8 +19,8 @@ package coin_gecko
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	coinGeckoHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/coin-gecko"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
+	coinGeckoModel "github.com/limechain/hedera-eth-bridge-validator/app/model/coin-gecko"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
@@ -60,23 +60,21 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 	}
 
 	urlWithIds := fmt.Sprintf(c.fullGetSimplePriceUrl, strings.Join(ids, ","))
-	responseBodyBytes, err := httpHelper.Get(c.httpClient, urlWithIds, GetSimplePriceHeaders, c.logger)
+	var parsedResponse coinGeckoModel.SimplePriceResponse
+	err = httpHelper.Get(c.httpClient, urlWithIds, GetSimplePriceHeaders, &parsedResponse, c.logger)
 	if err != nil {
 		return pricesByNetworkAndAddress, err
 	}
 
-	parsedResponse, err := coinGeckoHelper.ParseGetSimplePriceResponse(responseBodyBytes)
-	if err == nil {
-		for networkId, addressesWithIds := range idsByNetworkAndAddress {
-			pricesForCurrNetwork := make(map[string]decimal.Decimal)
+	for networkId, addressesWithIds := range idsByNetworkAndAddress {
+		pricesForCurrNetwork := make(map[string]decimal.Decimal)
 
-			for address, id := range addressesWithIds {
-				currPrice := decimal.NewFromFloat(parsedResponse[id].Usd)
-				pricesForCurrNetwork[address] = currPrice
-			}
-
-			pricesByNetworkAndAddress[networkId] = pricesForCurrNetwork
+		for address, id := range addressesWithIds {
+			currPrice := decimal.NewFromFloat(parsedResponse[id].Usd)
+			pricesForCurrNetwork[address] = currPrice
 		}
+
+		pricesByNetworkAndAddress[networkId] = pricesForCurrNetwork
 	}
 
 	return pricesByNetworkAndAddress, err

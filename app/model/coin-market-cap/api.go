@@ -17,18 +17,12 @@
 package coin_market_cap
 
 import (
-	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 
-func ParseGetLatestQuotesResponse(responseBody []byte) (result CoinMarketCapResponse, err error) {
-	err = json.Unmarshal(responseBody, &result)
-	if err != nil {
-		log.Errorf("Error while parsing CoinMarketCap Latest Quotes response Body. Error: [%v]", err)
-	}
-
-	return result, err
+type CoinMarketCapResponse struct {
+	Status Status               `json:"Status"`
+	Data   map[string]TokenInfo `json:"data"`
 }
 
 type Status struct {
@@ -39,6 +33,28 @@ type Status struct {
 	CreditCount  int         `json:"credit_count"`
 	Notice       interface{} `json:"notice"`
 }
+
+type TokenInfo struct {
+	Id                            int         `json:"id"`
+	Name                          string      `json:"name"`
+	Symbol                        string      `json:"symbol"`
+	Slug                          string      `json:"slug"`
+	NumMarketPairs                int         `json:"num_market_pairs"`
+	DateAdded                     time.Time   `json:"date_added"`
+	Tags                          []Tag       `json:"tags"`
+	MaxSupply                     int         `json:"max_supply"`
+	CirculatingSupply             int         `json:"circulating_supply"`
+	TotalSupply                   int         `json:"total_supply"`
+	IsActive                      int         `json:"is_active"`
+	Platform                      interface{} `json:"platform"`
+	CmcRank                       int         `json:"cmc_rank"`
+	IsFiat                        int         `json:"is_fiat"`
+	SelfReportedCirculatingSupply interface{} `json:"self_reported_circulating_supply"`
+	SelfReportedMarketCap         interface{} `json:"self_reported_market_cap"`
+	LastUpdated                   time.Time   `json:"last_updated"`
+	Quote                         Quote       `json:"Quote"`
+}
+
 type Tag struct {
 	Slug     string `json:"slug"`
 	Name     string `json:"name"`
@@ -63,30 +79,4 @@ type Usd struct {
 
 type Quote struct {
 	USD Usd `json:"Usd"`
-}
-
-type TokenInfo struct {
-	Id                            int         `json:"id"`
-	Name                          string      `json:"name"`
-	Symbol                        string      `json:"symbol"`
-	Slug                          string      `json:"slug"`
-	NumMarketPairs                int         `json:"num_market_pairs"`
-	DateAdded                     time.Time   `json:"date_added"`
-	Tags                          []Tag       `json:"tags"`
-	MaxSupply                     int         `json:"max_supply"`
-	CirculatingSupply             int         `json:"circulating_supply"`
-	TotalSupply                   int         `json:"total_supply"`
-	IsActive                      int         `json:"is_active"`
-	Platform                      interface{} `json:"platform"`
-	CmcRank                       int         `json:"cmc_rank"`
-	IsFiat                        int         `json:"is_fiat"`
-	SelfReportedCirculatingSupply interface{} `json:"self_reported_circulating_supply"`
-	SelfReportedMarketCap         interface{} `json:"self_reported_market_cap"`
-	LastUpdated                   time.Time   `json:"last_updated"`
-	Quote                         Quote       `json:"Quote"`
-}
-
-type CoinMarketCapResponse struct {
-	Status Status               `json:"Status"`
-	Data   map[string]TokenInfo `json:"data"`
 }

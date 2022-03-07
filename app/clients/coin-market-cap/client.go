@@ -19,8 +19,8 @@ package coin_market_cap
 import (
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	coinMarketCapHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/coin-market-cap"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
+	coinMarketCapModel "github.com/limechain/hedera-eth-bridge-validator/app/model/coin-market-cap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
@@ -63,22 +63,20 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 
 	urlWithIds := fmt.Sprintf(c.fullGetLatestQuotesUrl, strings.Join(ids, ","))
 	getLatestQuotesHeaders[apiKeyHeaderName] = c.apiCfg.ApiKey
-	responseBodyBytes, err := httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, c.logger)
+	var parsedResponse coinMarketCapModel.CoinMarketCapResponse
+	err = httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, &parsedResponse, c.logger)
 	if err != nil {
 		return pricesByNetworkAndAddress, err
 	}
 
-	parsedResponse, err := coinMarketCapHelper.ParseGetLatestQuotesResponse(responseBodyBytes)
-	if err == nil {
-		for networkId, addressesWithIds := range idsByNetworkAndAddress {
-			pricesForCurrNetwork := make(map[string]decimal.Decimal)
+	for networkId, addressesWithIds := range idsByNetworkAndAddress {
+		pricesForCurrNetwork := make(map[string]decimal.Decimal)
 
-			for address, id := range addressesWithIds {
-				currPrice := decimal.NewFromFloat(parsedResponse.Data[id].Quote.USD.Price)
-				pricesForCurrNetwork[address] = currPrice
-			}
-			pricesByNetworkAndAddress[networkId] = pricesForCurrNetwork
+		for address, id := range addressesWithIds {
+			currPrice := decimal.NewFromFloat(parsedResponse.Data[id].Quote.USD.Price)
+			pricesForCurrNetwork[address] = currPrice
 		}
+		pricesByNetworkAndAddress[networkId] = pricesForCurrNetwork
 	}
 
 	return pricesByNetworkAndAddress, err
