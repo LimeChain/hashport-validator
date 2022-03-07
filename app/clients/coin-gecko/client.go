@@ -1,7 +1,24 @@
-package web_api
+/*
+* Copyright 2022 LimeChain Ltd.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+ */
+
+package coin_gecko
 
 import (
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	coinGeckoHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/coin-gecko"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -12,22 +29,23 @@ import (
 )
 
 var (
-	getSimplePriceHeaders = map[string]string{"Accepts": "application/json"}
+	GetSimplePriceHeaders       = map[string]string{"Accepts": "application/json"}
+	GetSimplePriceInUsdEndpoint = "simple/price?vs_currencies=usd&ids=%v"
 )
 
 type Client struct {
-	apiCfg                config.CoinGeckoWebApi
+	apiCfg                config.CoinGecko
 	fullGetSimplePriceUrl string
-	httpClient            *http.Client
+	httpClient            client.HttpClient
 	logger                *log.Entry
 }
 
-func NewClient(apiCfg config.CoinGeckoWebApi) *Client {
+func NewClient(apiCfg config.CoinGecko) *Client {
 	return &Client{
 		apiCfg:                apiCfg,
 		httpClient:            new(http.Client),
-		fullGetSimplePriceUrl: strings.Join([]string{apiCfg.BaseUrl, apiCfg.Endpoints.GetSimplePriceInUsd}, "/"),
-		logger:                config.GetLoggerFor("CoinGecko Web API Client"),
+		fullGetSimplePriceUrl: strings.Join([]string{apiCfg.ApiAddress, GetSimplePriceInUsdEndpoint}, ""),
+		logger:                config.GetLoggerFor("CoinGecko Client"),
 	}
 }
 
@@ -42,7 +60,7 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 	}
 
 	urlWithIds := fmt.Sprintf(c.fullGetSimplePriceUrl, strings.Join(ids, ","))
-	responseBodyBytes, err := httpHelper.Get(c.httpClient, urlWithIds, getSimplePriceHeaders, c.logger)
+	responseBodyBytes, err := httpHelper.Get(c.httpClient, urlWithIds, GetSimplePriceHeaders, c.logger)
 	if err != nil {
 		return pricesByNetworkAndAddress, err
 	}

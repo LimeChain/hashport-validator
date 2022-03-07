@@ -11,17 +11,3 @@
 #  monitoring:
 #    enable:
 #    dashboard_polling:
-#  web_api:
-#    coingecko:
-#      base_url:
-#      endpoints:
-#        get_simple_price_in_usd:
-#    hedera:
-#      base_url:
-#      endpoints:
-#        get_hbar_price_in_usd:
-#    coin_market_cap:
-#      api_key:
-#      base_url:
-#      endpoints:
-#        get_latest_quotes:

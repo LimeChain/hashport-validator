@@ -14,32 +14,18 @@
  * limitations under the License.
  */
 
-package http_client
+package coin_gecko_client
 
 import (
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
-	"net/http"
 )
 
-type MockHttpClient struct {
+type MockCoinGeckoClient struct {
 	mock.Mock
 }
 
-func (m *MockHttpClient) Get(url string) (resp *http.Response, err error) {
-	args := m.Called(url)
-	if args[0] == nil && args[1] == nil {
-		return nil, nil
-	}
-	if args[0] == nil {
-		return nil, args[1].(error)
-	}
-	if args[1] == nil {
-		return args[0].(*http.Response), nil
-	}
-	return args[0].(*http.Response), args[1].(error)
-}
-
-func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
-	args := m.Called(req)
-	return args[0].(*http.Response), args[1].(error)
+func (m *MockCoinGeckoClient) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
+	args := m.Called(idsByNetworkAndAddress)
+	return args.Get(0).(map[uint64]map[string]decimal.Decimal), args.Error(1)
 }

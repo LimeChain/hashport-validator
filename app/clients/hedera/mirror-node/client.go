@@ -23,29 +23,53 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
+var (
+	GetHbarPriceHeaders         = map[string]string{"Accepts": "application/json"}
+	TransactionsGetHBARUsdPrice = "transactions?account.id=0.0.57&transactiontype=fileupdate&limit=1"
+)
+
 type Client struct {
-	mirrorAPIAddress string
-	httpClient       client.HttpClient
-	pollingInterval  time.Duration
-	logger           *log.Entry
+	mirrorAPIAddress             string
+	httpClient                   client.HttpClient
+	pollingInterval              time.Duration
+	fullHederaGetHbarUsdPriceUrl string
+	logger                       *log.Entry
 }
 
-func NewClient(mirrorNodeAPIAddress string, pollingInterval time.Duration) *Client {
-	httpC := &http.Client{}
+func NewClient(mirrorNode config.MirrorNode) *Client {
 	return &Client{
-		mirrorAPIAddress: mirrorNodeAPIAddress,
-		pollingInterval:  pollingInterval,
-		httpClient:       httpC,
-		logger:           config.GetLoggerFor("Mirror Node Client"),
+		mirrorAPIAddress:             mirrorNode.ApiAddress,
+		pollingInterval:              mirrorNode.PollingInterval,
+		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
+		httpClient:                   new(http.Client),
+		logger:                       config.GetLoggerFor("Mirror Node Client"),
 	}
+}
+
+func (c *Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
+	responseBody, err := httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, c.logger)
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+
+	hederaFileRate, err := hederaHelper.GetHederaFileRateFromResponseBody(responseBody, c.logger)
+	if err == nil {
+		price = hederaFileRate.CurrentRate
+	}
+
+	return price, err
 }
 
 func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {

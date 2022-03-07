@@ -41,10 +41,11 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[uint64]Evm
-	Hedera     Hedera
-	MirrorNode MirrorNode
-	WebAPIs    WebAPIs
+	Evm           map[uint64]Evm
+	Hedera        Hedera
+	MirrorNode    MirrorNode
+	CoinGecko     CoinGecko
+	CoinMarketCap CoinMarketCap
 }
 
 type Evm struct {
@@ -68,6 +69,21 @@ type Operator struct {
 	PrivateKey string
 }
 
+// CoinGecko //
+
+type CoinGecko struct {
+	ApiAddress string
+}
+
+// CoinMarketCap //
+
+type CoinMarketCap struct {
+	ApiKey     string
+	ApiAddress string
+}
+
+// MirrorNode //
+
 type MirrorNode struct {
 	ClientAddress   string
 	ApiAddress      string
@@ -84,49 +100,9 @@ type Recovery struct {
 	StartBlock     int64
 }
 
-type WebAPIs struct {
-	CoinGecko     CoinGeckoWebApi
-	Hedera        HederaWebApi
-	CoinMarketCap CoinMarketCapWebApi
-}
-
 //////////////
 // Web Apis //
 //////////////
-
-// CoinGecko //
-
-type CoinGeckoWebApi struct {
-	BaseUrl   string
-	Endpoints CoinGeckoEndpoints
-}
-
-type CoinGeckoEndpoints struct {
-	GetSimplePriceInUsd string
-}
-
-// CoinMarketCap //
-
-type CoinMarketCapWebApi struct {
-	ApiKey    string
-	BaseUrl   string
-	Endpoints CoinMarketCapEndpoints
-}
-
-type CoinMarketCapEndpoints struct {
-	GetLatestQuotes string
-}
-
-// Hedera //
-
-type HederaWebApi struct {
-	BaseUrl   string
-	Endpoints HederaEndpoints
-}
-
-type HederaEndpoints struct {
-	GetHbarPriceInUsd string
-}
 
 func New(node parser.Node) Node {
 	rpc := make(map[string]hedera.AccountID)
@@ -138,10 +114,6 @@ func New(node parser.Node) Node {
 		rpc[key] = nodeAccoundID
 	}
 
-	coinGeckoWebApi := node.WebAPIs.CoinGecko
-	coinMarketCapWebApi := node.WebAPIs.CoinMarketCap
-	hederaWebApi := node.WebAPIs.Hedera
-
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
@@ -151,28 +123,18 @@ func New(node parser.Node) Node {
 				StartTimestamp: node.Clients.Hedera.StartTimestamp,
 				Rpc:            rpc,
 			},
-			MirrorNode: MirrorNode(node.Clients.MirrorNode),
-			Evm:        make(map[uint64]Evm),
-			WebAPIs: WebAPIs{
-				CoinGecko: CoinGeckoWebApi{
-					coinGeckoWebApi.BaseUrl,
-					CoinGeckoEndpoints{
-						coinGeckoWebApi.Endpoints.GetSimplePriceInUsd,
-					},
-				},
-				CoinMarketCap: CoinMarketCapWebApi{
-					coinMarketCapWebApi.ApiKey,
-					coinMarketCapWebApi.BaseUrl,
-					CoinMarketCapEndpoints{
-						coinMarketCapWebApi.Endpoints.GetLatestQuotes,
-					},
-				},
-				Hedera: HederaWebApi{
-					hederaWebApi.BaseUrl,
-					HederaEndpoints{
-						hederaWebApi.Endpoints.GetHbarPriceInUsd,
-					},
-				},
+			MirrorNode: MirrorNode{
+				ClientAddress:   node.Clients.MirrorNode.ClientAddress,
+				ApiAddress:      node.Clients.MirrorNode.ApiAddress,
+				PollingInterval: node.Clients.MirrorNode.PollingInterval,
+			},
+			Evm: make(map[uint64]Evm),
+			CoinGecko: CoinGecko{
+				ApiAddress: node.Clients.CoinGecko.ApiAddress,
+			},
+			CoinMarketCap: CoinMarketCap{
+				ApiKey:     node.Clients.CoinMarketCap.ApiKey,
+				ApiAddress: node.Clients.CoinMarketCap.ApiAddress,
 			},
 		},
 		LogLevel:  node.LogLevel,

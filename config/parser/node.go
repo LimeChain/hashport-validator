@@ -28,7 +28,6 @@ type Node struct {
 	Port       string     `yaml:"port"`
 	Validator  bool       `yaml:"validator"`
 	Monitoring Monitoring `yaml:"monitoring"`
-	WebAPIs    WebAPIs    `yaml:"web_api" json:"webApi,omitempty"`
 }
 
 type Database struct {
@@ -40,10 +39,14 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[uint64]Evm `yaml:"evm"`
-	Hedera     Hedera         `yaml:"hedera"`
-	MirrorNode MirrorNode     `yaml:"mirror_node"`
+	Evm           map[uint64]Evm `yaml:"evm"`
+	Hedera        Hedera         `yaml:"hedera"`
+	MirrorNode    MirrorNode     `yaml:"mirror_node"`
+	CoinGecko     CoinGecko      `yaml:"coingecko"`
+	CoinMarketCap CoinMarketCap  `yaml:"coin_market_cap"`
 }
+
+// Evm //
 
 type Evm struct {
 	BlockConfirmations uint64        `yaml:"block_confirmations"`
@@ -53,6 +56,8 @@ type Evm struct {
 	PollingInterval    time.Duration `yaml:"polling_interval"`
 	MaxLogsBlocks      int64         `yaml:"max_logs_blocks"`
 }
+
+// Hedera //
 
 type Hedera struct {
 	Operator       Operator          `yaml:"operator"`
@@ -66,57 +71,28 @@ type Operator struct {
 	PrivateKey string `yaml:"private_key"`
 }
 
+// MirrorNode //
+
 type MirrorNode struct {
 	ClientAddress   string        `yaml:"client_address"`
 	ApiAddress      string        `yaml:"api_address"`
 	PollingInterval time.Duration `yaml:"polling_interval"`
 }
 
-type Monitoring struct {
-	Enable           bool          `yaml:"enable"`
-	DashboardPolling time.Duration `yaml:"dashboard_polling"`
-}
-
-//////////////
-// Web Apis //
-//////////////
-
-type WebAPIs struct {
-	CoinGecko     CoinGeckoWebApi     `yaml:"coingecko" json:"coinGecko,omitempty"`
-	Hedera        HederaWebApi        `yaml:"hedera" json:"hedera,omitempty"`
-	CoinMarketCap CoinMarketCapWebApi `yaml:"coin_market_cap" json:"coin_market_cap,omitempty"`
-}
-
 // CoinGecko //
 
-type CoinGeckoWebApi struct {
-	BaseUrl   string             `yaml:"base_url" json:"baseUrl,omitempty"`
-	Endpoints CoinGeckoEndpoints `yaml:"endpoints" json:"endpoints,omitempty"`
-}
-
-type CoinGeckoEndpoints struct {
-	GetSimplePriceInUsd string `yaml:"get_simple_price_in_usd" json:"getSimplePriceInUsd,omitempty"`
+type CoinGecko struct {
+	ApiAddress string `yaml:"api_address" json:"apiAddress,omitempty"`
 }
 
 // CoinMarketCap //
 
-type CoinMarketCapWebApi struct {
-	ApiKey    string                 `yaml:"api_key" json:"apiKey,omitempty"`
-	BaseUrl   string                 `yaml:"base_url" json:"baseUrl,omitempty"`
-	Endpoints CoinMarketCapEndpoints `yaml:"endpoints" json:"endpoints,omitempty"`
+type CoinMarketCap struct {
+	ApiKey     string `yaml:"api_key" json:"apiKey,omitempty"`
+	ApiAddress string `yaml:"api_address" json:"apiAddress,omitempty"`
 }
 
-type CoinMarketCapEndpoints struct {
-	GetLatestQuotes string `yaml:"get_latest_quotes" json:"getLatestQuotes,omitempty"`
-}
-
-// Hedera //
-
-type HederaWebApi struct {
-	BaseUrl   string          `yaml:"base_url" json:"baseUrl,omitempty"`
-	Endpoints HederaEndpoints `yaml:"endpoints" json:"endpoints,omitempty"`
-}
-
-type HederaEndpoints struct {
-	GetHbarPriceInUsd string `yaml:"get_hbar_price_in_usd" json:"getHbarPriceInUsd,omitempty"`
+type Monitoring struct {
+	Enable           bool          `yaml:"enable"`
+	DashboardPolling time.Duration `yaml:"dashboard_polling"`
 }

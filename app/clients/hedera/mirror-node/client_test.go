@@ -34,7 +34,11 @@ import (
 var (
 	mirrorAPIAddress = "some-api-address"
 	pollingInterval  = 5 * time.Second
-	logger           = config.GetLoggerFor("Mirror Node Client")
+	mirrorNodeCfg    = config.MirrorNode{
+		ApiAddress:      mirrorAPIAddress,
+		PollingInterval: pollingInterval,
+	}
+	logger = config.GetLoggerFor("Mirror Node Client")
 
 	accountId = hedera.AccountID{
 		Shard:   0,
@@ -69,7 +73,7 @@ func setup() {
 
 func Test_NewClient(t *testing.T) {
 	setup()
-	newClient := NewClient(mirrorAPIAddress, pollingInterval)
+	newClient := NewClient(mirrorNodeCfg)
 	assert.Equal(t, c.mirrorAPIAddress, newClient.mirrorAPIAddress)
 	assert.Equal(t, c.pollingInterval, newClient.pollingInterval)
 	assert.Equal(t, c.logger, newClient.logger)

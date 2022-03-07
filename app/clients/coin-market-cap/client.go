@@ -1,7 +1,24 @@
-package web_api
+/*
+* Copyright 2022 LimeChain Ltd.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+ */
+
+package coin_market_cap
 
 import (
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	coinMarketCapHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/coin-market-cap"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -17,31 +34,30 @@ var (
 		"Accepts":        "application/json",
 		apiKeyHeaderName: "SET_API_KEY",
 	}
+	GetLatestQuotesEndpoint = "quotes/latest?id=%v"
 )
 
 type Client struct {
-	apiCfg                 config.CoinMarketCapWebApi
+	apiCfg                 config.CoinMarketCap
 	fullGetLatestQuotesUrl string
-	httpClient             *http.Client
+	httpClient             client.HttpClient
 	logger                 *log.Entry
 }
 
-func NewClient(apiCfg config.CoinMarketCapWebApi) *Client {
+func NewClient(apiCfg config.CoinMarketCap) *Client {
 	return &Client{
 		apiCfg:                 apiCfg,
 		httpClient:             new(http.Client),
-		fullGetLatestQuotesUrl: strings.Join([]string{apiCfg.BaseUrl, apiCfg.Endpoints.GetLatestQuotes}, "/"),
-		logger:                 config.GetLoggerFor("CoinMarketCap Web API Client"),
+		fullGetLatestQuotesUrl: strings.Join([]string{apiCfg.ApiAddress, GetLatestQuotesEndpoint}, ""),
+		logger:                 config.GetLoggerFor("CoinMarketCap Client"),
 	}
 }
 
 func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
-	index := 0
-	ids := make([]string, len(idsByNetworkAndAddress))
+	var ids []string
 	for _, addressesWithIds := range idsByNetworkAndAddress {
 		for _, id := range addressesWithIds {
-			ids[index] = id
-			index += 1
+			ids = append(ids, id)
 		}
 	}
 

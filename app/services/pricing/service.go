@@ -31,32 +31,31 @@ import (
 )
 
 var (
-	instance          *Service
-	initOnce          sync.Once
-	hundredPercentage = big.NewInt(100)
+	instance *Service
+	initOnce sync.Once
 )
 
 type Service struct {
-	assetsService             service.Assets
-	hederaWebApiClient        client.HederaWebAPI
-	coinGeckoWebApiClient     client.CoinGeckoWebAPI
-	coinMarketCapWebApiClient client.CoinMarketCapWebAPI
-	tokenPriceInfoMutex       *sync.RWMutex
-	minAmountsForApiMutex     *sync.RWMutex
-	coinMarketCapIds          map[uint64]map[string]string
-	coinGeckoIds              map[uint64]map[string]string
-	tokensPriceInfo           map[uint64]map[string]pricing.TokenPriceInfo
-	minAmountsForApi          map[uint64]map[string]*big.Int
-	hbarFungibleAssetInfo     asset.FungibleAssetInfo
-	hbarNativeAsset           *asset.NativeAsset
-	logger                    *log.Entry
+	assetsService         service.Assets
+	mirrorNodeClient      client.MirrorNode
+	coinGeckoClient       client.CoinGecko
+	coinMarketCapClient   client.CoinMarketCap
+	tokenPriceInfoMutex   *sync.RWMutex
+	minAmountsForApiMutex *sync.RWMutex
+	coinMarketCapIds      map[uint64]map[string]string
+	coinGeckoIds          map[uint64]map[string]string
+	tokensPriceInfo       map[uint64]map[string]pricing.TokenPriceInfo
+	minAmountsForApi      map[uint64]map[string]*big.Int
+	hbarFungibleAssetInfo asset.FungibleAssetInfo
+	hbarNativeAsset       *asset.NativeAsset
+	logger                *log.Entry
 }
 
 func NewService(bridgeConfig config.Bridge,
 	assetsService service.Assets,
-	hederaClient client.HederaWebAPI,
-	coinGeckoClient client.CoinGeckoWebAPI,
-	coinMarketCapClient client.CoinMarketCapWebAPI) *Service {
+	mirrorNodeClient client.MirrorNode,
+	coinGeckoClient client.CoinGecko,
+	coinMarketCapClient client.CoinMarketCap) *Service {
 	initOnce.Do(func() {
 		tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
 		minAmountsForApi := make(map[uint64]map[string]*big.Int)
@@ -68,19 +67,19 @@ func NewService(bridgeConfig config.Bridge,
 		hbarFungibleAssetInfo, _ := assetsService.GetFungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
 		hbarNativeAsset := assetsService.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
 		instance = &Service{
-			tokensPriceInfo:           tokensPriceInfo,
-			minAmountsForApi:          minAmountsForApi,
-			hederaWebApiClient:        hederaClient,
-			coinGeckoWebApiClient:     coinGeckoClient,
-			coinMarketCapWebApiClient: coinMarketCapClient,
-			tokenPriceInfoMutex:       new(sync.RWMutex),
-			minAmountsForApiMutex:     new(sync.RWMutex),
-			assetsService:             assetsService,
-			coinGeckoIds:              bridgeConfig.CoinGeckoIds,
-			coinMarketCapIds:          bridgeConfig.CoinMarketCapIds,
-			hbarFungibleAssetInfo:     hbarFungibleAssetInfo,
-			hbarNativeAsset:           hbarNativeAsset,
-			logger:                    config.GetLoggerFor("Pricing Service"),
+			tokensPriceInfo:       tokensPriceInfo,
+			minAmountsForApi:      minAmountsForApi,
+			mirrorNodeClient:      mirrorNodeClient,
+			coinGeckoClient:       coinGeckoClient,
+			coinMarketCapClient:   coinMarketCapClient,
+			tokenPriceInfoMutex:   new(sync.RWMutex),
+			minAmountsForApiMutex: new(sync.RWMutex),
+			assetsService:         assetsService,
+			coinGeckoIds:          bridgeConfig.CoinGeckoIds,
+			coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
+			hbarFungibleAssetInfo: hbarFungibleAssetInfo,
+			hbarNativeAsset:       hbarNativeAsset,
+			logger:                config.GetLoggerFor("Pricing Service"),
 		}
 
 		instance.FetchAndUpdateUsdPrices(true)
@@ -211,12 +210,12 @@ type fetchResults struct {
 }
 
 func (s *Service) fetchUsdPricesFromAPIs(initialFetch bool) (fetchResults fetchResults) {
-	fetchResults.HbarPrice, fetchResults.HbarErr = s.hederaWebApiClient.GetHBARUsdPrice()
+	fetchResults.HbarPrice, fetchResults.HbarErr = s.mirrorNodeClient.GetHBARUsdPrice()
 
-	fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinGeckoWebApiClient.GetUsdPrices(s.coinGeckoIds)
+	fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinGeckoClient.GetUsdPrices(s.coinGeckoIds)
 
 	if fetchResults.AllPricesErr != nil { // Fetch from CoinMarketCap if CoinGecko fetch fails
-		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapWebApiClient.GetUsdPrices(s.coinMarketCapIds)
+		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapClient.GetUsdPrices(s.coinMarketCapIds)
 		if fetchResults.AllPricesErr != nil { // If CoinMarketCap fetch fails this means the whole update failed
 			msg := "Couldn't fetch prices from any of the Web APIs."
 			if initialFetch {

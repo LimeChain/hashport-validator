@@ -238,7 +238,7 @@ func newClients(config Config) (*clients, error) {
 
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
-	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode.ApiAddress, config.Hedera.MirrorNode.PollingInterval)
+	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode)
 
 	return &clients{
 		Hedera:          hederaClient,

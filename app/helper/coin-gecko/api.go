@@ -14,32 +14,24 @@
  * limitations under the License.
  */
 
-package http_client
+package coin_gecko
 
 import (
-	"github.com/stretchr/testify/mock"
-	"net/http"
+	"encoding/json"
+	log "github.com/sirupsen/logrus"
 )
 
-type MockHttpClient struct {
-	mock.Mock
+type SimplePriceResponse map[string]PriceResult
+
+type PriceResult struct {
+	Usd float64 `json:"usd"`
 }
 
-func (m *MockHttpClient) Get(url string) (resp *http.Response, err error) {
-	args := m.Called(url)
-	if args[0] == nil && args[1] == nil {
-		return nil, nil
+func ParseGetSimplePriceResponse(responseBody []byte) (result SimplePriceResponse, err error) {
+	err = json.Unmarshal(responseBody, &result)
+	if err != nil {
+		log.Errorf("Error while parsing CoinGecko Simple Price response Body. Error: [%v]", err)
 	}
-	if args[0] == nil {
-		return nil, args[1].(error)
-	}
-	if args[1] == nil {
-		return args[0].(*http.Response), nil
-	}
-	return args[0].(*http.Response), args[1].(error)
-}
 
-func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
-	args := m.Called(req)
-	return args[0].(*http.Response), args[1].(error)
+	return result, err
 }

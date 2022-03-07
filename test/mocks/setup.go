@@ -17,6 +17,7 @@
 package mocks
 
 import (
+	coin_gecko_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/coin-gecko"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
 	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
@@ -54,6 +55,7 @@ var MQueue *queue.MockQueue
 var MPrometheusService *service.MockPrometheusService
 var MAssetsService *service.MockAssetsService
 var MPricingService *service.MockPricingService
+var MCoinGeckoClient *coin_gecko_client.MockCoinGeckoClient
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -82,4 +84,5 @@ func Setup() {
 	MPrometheusService = &service.MockPrometheusService{}
 	MAssetsService = &service.MockAssetsService{}
 	MPricingService = &service.MockPricingService{}
+	MCoinGeckoClient = &coin_gecko_client.MockCoinGeckoClient{}
 }

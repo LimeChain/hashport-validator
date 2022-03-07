@@ -120,7 +120,7 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
-	pricingService := pricing.NewService(c.Bridge, assetsService, clients.HederaWebApi, clients.CoinGeckoWebApi, clients.CoinMarketCapWebApi)
+	pricingService := pricing.NewService(c.Bridge, assetsService, clients.MirrorNode, clients.CoinGecko, clients.CoinMarketCap)
 
 	return &Services{
 		signers:          evmSigners,
