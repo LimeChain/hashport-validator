@@ -25,7 +25,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.copy_logs_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.copy_logs_command }}"
 
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
