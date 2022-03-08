@@ -5,6 +5,8 @@ name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 #     types: [published]
 on: push
 
+env:
+  copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
 
 jobs:
 
@@ -23,23 +25,8 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="docker logs runner_validator_1 > logsTest-$(date +'%d-%m-%Y_%H:%M:%S').log"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
 
-
-      - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d_%H:%M:%S')"
-  
-      - name: Test with environment variables
-        run: echo $TAG_NAME - $RELEASE_NAME
-        env:
-          TAG_NAME: nightly-tag-${{ steps.date.outputs.date }}
-          RELEASE_NAME: nightly-release-${{ steps.date.outputs.date }}
-          
-     
-      - name: Test with environment variables2
-        run: echo ${{ env.MY_DATE }}
-  
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
       - run: echo "🍏 This job's status is ${{ job.status }}."
