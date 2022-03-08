@@ -56,7 +56,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.copy_logs_command }}"
 
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
@@ -82,7 +82,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.copy_logs_command }}"
 
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
@@ -108,7 +108,7 @@ jobs:
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
 
       - name: Copy logs
-        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.copy_logs_command }}"
 
       - name: Refresh images and containers
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.refresh_containers_command }}"
