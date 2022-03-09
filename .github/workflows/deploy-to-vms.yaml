@@ -102,7 +102,10 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.APP_TESTNET_DAVE_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml && \
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
