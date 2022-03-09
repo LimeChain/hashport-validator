@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
@@ -59,11 +58,7 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
 
 	for _, client := range clients.EVMClients {
-		chain, err := client.ChainID(context.Background())
-		if err != nil {
-			panic(err)
-		}
-		chainId := chain.Uint64()
+		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
 		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
 	}
@@ -146,11 +141,7 @@ func PrepareApiOnlyServices(c config.Config, networks map[uint64]*parser.Network
 
 	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
 	for _, client := range clients.EVMClients {
-		chain, err := client.ChainID(context.Background())
-		if err != nil {
-			panic(err)
-		}
-		chainId := chain.Uint64()
+		chainId := client.GetChainID()
 		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
 		contractServices[chainId] = contractService
 	}

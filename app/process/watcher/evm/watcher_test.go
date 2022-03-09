@@ -17,7 +17,6 @@
 package evm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -121,7 +120,7 @@ func Test_HandleLockLog_EmptyReceiver_Fails(t *testing.T) {
 
 func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(1), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(1))
 
 	lockLog.Receiver = []byte{1}
 	w.handleLockLog(lockLog, mocks.MQueue)
@@ -132,7 +131,7 @@ func Test_HandleLockLog_InvalidReceiver_Fails(t *testing.T) {
 
 func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(2), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(2))
 
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(2), targetChainId).Return("")
 	w.handleLockLog(lockLog, mocks.MQueue)
@@ -142,7 +141,7 @@ func Test_HandleLockLog_EmptyWrappedAsset_Fails(t *testing.T) {
 
 func Test_HandleLockLog_HappyPath(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	mocks.MBridgeContractService.On("RemoveDecimals", lockLog.Amount, lockLog.Token.String()).Return(lockLog.Amount, nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
@@ -183,7 +182,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 		prometheusService: mocks.MPrometheusService,
 	}
 
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: 33,
@@ -221,7 +220,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	}
 
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	parsedLockLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: 33,
@@ -244,7 +243,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 
 func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, uint64(33), lockLog.TargetChain.Uint64()).Return("")
 
@@ -272,7 +271,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	setup()
 	mocks.MBridgeContractService.On("RemoveDecimals", burnLog.Amount, burnLog.Token.String()).Return(lockLog.Amount, nil)
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	parsedBurnLog := &transfer.Transfer{
@@ -301,7 +300,7 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 	setup()
 	defaultReceiver := burnLog.Receiver
 	burnLog.Receiver = []byte{1, 2, 3, 4}
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	mocks.MAssetsService.On("WrappedToNative", tokenAddressString, uint64(33)).Return(hbarNativeAsset)
 	w.handleBurnLog(burnLog, mocks.MQueue)
 	burnLog.Receiver = defaultReceiver
@@ -309,7 +308,7 @@ func Test_HandleBurnLog_InvalidHederaRecipient(t *testing.T) {
 
 func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	burnLog.TargetChain = big.NewInt(1)
@@ -359,7 +358,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 		validator:         false,
 	}
 
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 
 	burnLog.TargetChain = big.NewInt(1)
 	defaultToken := burnLog.Token
@@ -409,7 +408,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 		validator:         false,
 	}
 
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 	parsedBurnLog := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: 33,
@@ -434,7 +433,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 
 func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 
 	defaultToken := burnLog.Token
 	burnLog.Token = common.HexToAddress("0x0123123")
@@ -448,7 +447,7 @@ func Test_HandleBurnLog_Token_Not_Supported(t *testing.T) {
 
 func Test_HandleBurnLog_WrappedToWrapped_Not_Supported(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("ChainID", context.Background()).Return(big.NewInt(33), nil)
+	mocks.MEVMClient.On("GetChainID").Return(uint64(33))
 
 	defaultTargetChain := burnLog.TargetChain
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(nilNativeAsset)

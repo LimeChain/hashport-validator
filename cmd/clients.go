@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	coin_gecko "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-gecko"
 	coin_market_cap "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-market-cap"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
@@ -43,8 +44,16 @@ type Clients struct {
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.BridgeEvm) *Clients {
 	EVMClients := make(map[uint64]client.EVM)
-	for chainId, ec := range clientsCfg.Evm {
-		EVMClients[chainId] = evm.NewClient(ec, chainId)
+	for configChainId, ec := range clientsCfg.Evm {
+		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
+		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
+		if e != nil {
+			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare.", configChainId)
+		}
+		if configChainId != clientChainId.Uint64() {
+			log.Fatalf("Chain IDs mismatch [%d] config, [%d] actual.", configChainId, clientChainId)
+		}
+		EVMClients[configChainId].SetChainID(clientChainId.Uint64())
 	}
 
 	logger := config.GetLoggerFor("Clients")
