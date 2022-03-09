@@ -293,7 +293,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 	}
 
 	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
-		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, properAmount, nativeAsset.MinFeeAmountInUsd))
+		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, properAmount, tokenPriceInfo.MinAmountWithFee))
 	}
 
 	return transfer.New(

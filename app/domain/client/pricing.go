@@ -18,7 +18,7 @@ package client
 
 import "github.com/shopspring/decimal"
 
-type CoinGecko interface {
+type Pricing interface {
 	// GetUsdPrices Returns USD prices for requested tokens
 	GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error)
 }

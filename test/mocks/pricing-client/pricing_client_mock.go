@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package client
+package pricing_client
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/mock"
+)
 
-type CoinMarketCap interface {
-	// GetUsdPrices Returns USD prices for requested tokens
-	GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error)
+type MockPricingClient struct {
+	mock.Mock
+}
+
+func (m *MockPricingClient) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
+	args := m.Called(idsByNetworkAndAddress)
+	return args.Get(0).(map[uint64]map[string]decimal.Decimal), args.Error(1)
 }

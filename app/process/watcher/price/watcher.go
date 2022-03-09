@@ -30,7 +30,6 @@ type Watcher struct {
 }
 
 func NewWatcher(pricingService service.Pricing) *Watcher {
-
 	return &Watcher{
 		pricingService: pricingService,
 		logger:         config.GetLoggerFor("Price Watcher"),
@@ -40,7 +39,6 @@ func NewWatcher(pricingService service.Pricing) *Watcher {
 func (pw *Watcher) Watch(q qi.Queue) {
 	// there will be no handler, so the q is to implement the interface
 	go pw.beginWatching()
-
 }
 
 func (pw *Watcher) beginWatching() {

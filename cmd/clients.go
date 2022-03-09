@@ -35,8 +35,8 @@ type Clients struct {
 	HederaNode    client.HederaNode
 	MirrorNode    client.MirrorNode
 	EVMClients    map[uint64]client.EVM
-	CoinGecko     client.CoinGecko
-	CoinMarketCap client.CoinMarketCap
+	CoinGecko     client.Pricing
+	CoinMarketCap client.Pricing
 	Routers       map[uint64]*router.Router
 	logger        *log.Entry
 }

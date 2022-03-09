@@ -45,7 +45,7 @@ func NewClient(apiCfg config.CoinGecko) *Client {
 		apiCfg:                apiCfg,
 		httpClient:            new(http.Client),
 		fullGetSimplePriceUrl: strings.Join([]string{apiCfg.ApiAddress, GetSimplePriceInUsdEndpoint}, ""),
-		logger:                config.GetLoggerFor("CoinGecko Client"),
+		logger:                config.GetLoggerFor("Coin Gecko Client"),
 	}
 }
 

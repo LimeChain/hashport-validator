@@ -17,12 +17,12 @@
 package mocks
 
 import (
-	coin_gecko_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/coin-gecko"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
 	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	http_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/http-client"
+	pricing_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/pricing-client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
@@ -49,13 +49,13 @@ var MEVMCoreClient *evm_client.MockEVMCoreClient
 var MHTTPClient *http_client.MockHttpClient
 var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *evm_client.MockEVMClient
+var MPricingClient *pricing_client.MockPricingClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
 var MQueue *queue.MockQueue
 var MPrometheusService *service.MockPrometheusService
 var MAssetsService *service.MockAssetsService
 var MPricingService *service.MockPricingService
-var MCoinGeckoClient *coin_gecko_client.MockCoinGeckoClient
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -84,5 +84,5 @@ func Setup() {
 	MPrometheusService = &service.MockPrometheusService{}
 	MAssetsService = &service.MockAssetsService{}
 	MPricingService = &service.MockPricingService{}
-	MCoinGeckoClient = &coin_gecko_client.MockCoinGeckoClient{}
+	MPricingClient = &pricing_client.MockPricingClient{}
 }

@@ -177,11 +177,12 @@ func NewService(client client.EVM, address string, contractInstance *router.Rout
 
 func (bsc *Service) AddDecimals(amount *big.Int, asset string) (*big.Int, error) {
 	decimals := bsc.assetsDecimals[asset]
-
 	adaptation := int(decimals) - 8
+
 	if decimals > 0 {
 		return new(big.Int).Mul(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
 	}
+
 	return amount, nil
 }
 

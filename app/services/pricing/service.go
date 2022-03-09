@@ -40,8 +40,8 @@ var (
 type Service struct {
 	assetsService         service.Assets
 	mirrorNodeClient      client.MirrorNode
-	coinGeckoClient       client.CoinGecko
-	coinMarketCapClient   client.CoinMarketCap
+	coinGeckoClient       client.Pricing
+	coinMarketCapClient   client.Pricing
 	tokenPriceInfoMutex   *sync.RWMutex
 	minAmountsForApiMutex *sync.RWMutex
 	coinMarketCapIds      map[uint64]map[string]string
@@ -56,8 +56,8 @@ type Service struct {
 func NewService(bridgeConfig config.Bridge,
 	assetsService service.Assets,
 	mirrorNodeClient client.MirrorNode,
-	coinGeckoClient client.CoinGecko,
-	coinMarketCapClient client.CoinMarketCap) *Service {
+	coinGeckoClient client.Pricing,
+	coinMarketCapClient client.Pricing) *Service {
 	initOnce.Do(func() {
 		tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
 		minAmountsForApi := make(map[uint64]map[string]*big.Int)
@@ -170,6 +170,10 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 }
 
 func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) (minAmountWithFee *big.Int, err error) {
+	if nativeAsset.MinFeeAmountInUsd.Equal(decimal.NewFromFloat(0.0)) {
+		return big.NewInt(0), nil
+	}
+
 	feePercentageBigInt := big.NewInt(nativeAsset.FeePercentage)
 	minFeeAmountMultiplier, err := decimal.NewFromString(big.NewInt(0).Div(constants.FeeMaxPercentageBigInt, feePercentageBigInt).String())
 	if err != nil {
