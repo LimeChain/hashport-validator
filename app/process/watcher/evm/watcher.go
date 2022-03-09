@@ -502,7 +502,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+	if eventLog.Amount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
 		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinFeeAmountInUsd)
 		return
 	}
