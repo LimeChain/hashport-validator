@@ -44,7 +44,10 @@ func (pw *Watcher) Watch(q qi.Queue) {
 }
 
 func (pw *Watcher) beginWatching() {
-	pw.pricingService.FetchAndUpdateUsdPrices(false)
+	err := pw.pricingService.FetchAndUpdateUsdPrices(false)
+	if err != nil {
+		pw.logger.Errorf(err.Error())
+	}
 
 	time.Sleep(10 * time.Minute)
 }

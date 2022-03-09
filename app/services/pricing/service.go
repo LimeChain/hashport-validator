@@ -17,6 +17,7 @@
 package pricing
 
 import (
+	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -65,6 +66,7 @@ func NewService(bridgeConfig config.Bridge,
 			minAmountsForApi[networkId] = make(map[string]*big.Int)
 		}
 
+		logger := config.GetLoggerFor("Pricing Service")
 		hbarFungibleAssetInfo, _ := assetsService.GetFungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
 		hbarNativeAsset := assetsService.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
 		instance = &Service{
@@ -80,10 +82,13 @@ func NewService(bridgeConfig config.Bridge,
 			coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
 			hbarFungibleAssetInfo: hbarFungibleAssetInfo,
 			hbarNativeAsset:       hbarNativeAsset,
-			logger:                config.GetLoggerFor("Pricing Service"),
+			logger:                logger,
 		}
 
-		instance.FetchAndUpdateUsdPrices(true)
+		err := instance.FetchAndUpdateUsdPrices(true)
+		if err != nil {
+			logger.Fatalf(err.Error())
+		}
 	})
 
 	return instance
@@ -103,19 +108,28 @@ func (s *Service) GetTokenPriceInfo(networkId uint64, tokenAddressOrId string) (
 	return priceInfo, exist
 }
 
-func (s *Service) FetchAndUpdateUsdPrices(initialFetch bool) {
+func (s *Service) FetchAndUpdateUsdPrices(initialFetch bool) error {
 	s.minAmountsForApiMutex.Lock()
 	defer s.minAmountsForApiMutex.Unlock()
 	s.tokenPriceInfoMutex.Lock()
 	defer s.tokenPriceInfoMutex.Unlock()
 
 	results := s.fetchUsdPricesFromAPIs(initialFetch)
-
 	if results.AllPricesErr == nil {
-		s.updatePricesWithoutHbar(results.AllPrices)
+		err := s.updatePricesWithoutHbar(results.AllPrices)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("Failed to fetch prices for all tokens without HBAR. Error [%s]", err))
+			return err
+		}
 	}
 
-	s.updateHbarPrice(results)
+	err := s.updateHbarPrice(results)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to fetch price for HBAR. Error [%s]", err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]*big.Int {
@@ -125,42 +139,52 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]*big.Int {
 	return s.minAmountsForApi
 }
 
-func (s *Service) updateHbarPrice(results fetchResults) {
+func (s *Service) updateHbarPrice(results fetchResults) error {
 
 	var priceInUsd decimal.Decimal
 	if results.HbarErr != nil {
-		s.logger.Errorf("Failed to get HBAR price. Error [%s]", results.HbarErr)
 		if results.AllPricesErr != nil {
-			return
+			return results.HbarErr
 		}
 		priceInUsd = results.AllPrices[constants.HederaNetworkId][constants.Hbar]
 	} else {
 		priceInUsd = results.HbarPrice
 	}
 
-	minAmountWithFee := s.calculateMinAmountWithFee(s.hbarNativeAsset, s.hbarFungibleAssetInfo.Decimals, priceInUsd)
-
-	tokenPriceInfo := pricing.TokenPriceInfo{
-		UsdPrice:              priceInUsd,
-		MinAmountInUsdWithFee: minAmountWithFee,
+	minAmountWithFee, err := s.calculateMinAmountWithFee(s.hbarNativeAsset, s.hbarFungibleAssetInfo.Decimals, priceInUsd)
+	if err != nil {
+		return err
 	}
 
-	s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
+	tokenPriceInfo := pricing.TokenPriceInfo{
+		UsdPrice:         priceInUsd,
+		MinAmountWithFee: minAmountWithFee,
+	}
+
+	err = s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
+	}
+
+	return err
 }
 
-func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) *big.Int {
-
+func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) (minAmountWithFee *big.Int, err error) {
 	feePercentageBigInt := big.NewInt(nativeAsset.FeePercentage)
-	minAmountInUsd := nativeAsset.MinFeeAmountInUsd.Div(priceInUsd)
-	minAmountInUsdToSmallest := decimalHelper.ToLowestDenomination(minAmountInUsd, decimals)
-	amountMultiplier := big.NewInt(0).Div(constants.FeeMaxPercentageBigInt, feePercentageBigInt)
-	minAmountWithFee := big.NewInt(0).Mul(minAmountInUsdToSmallest, amountMultiplier)
-	return minAmountWithFee
+	minFeeAmountMultiplier, err := decimal.NewFromString(big.NewInt(0).Div(constants.FeeMaxPercentageBigInt, feePercentageBigInt).String())
+	if err != nil {
+		return nil, err
+	}
+
+	minAmountInUsdWithFee := nativeAsset.MinFeeAmountInUsd.Mul(minFeeAmountMultiplier)
+	minAmountWithFeeAsDecimal := minAmountInUsdWithFee.Div(priceInUsd)
+
+	return decimalHelper.ToLowestDenomination(minAmountWithFeeAsDecimal, decimals), nil
 }
 
-func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, tokenPriceInfo pricing.TokenPriceInfo) {
+func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, tokenPriceInfo pricing.TokenPriceInfo) error {
 	s.tokensPriceInfo[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo
-	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountInUsdWithFee
+	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee
 
 	for networkId := range constants.NetworksById {
 		if networkId == nativeAsset.ChainId {
@@ -170,37 +194,52 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		// Calculating Min Amount for wrapped tokens
 		wrappedToken := s.assetsService.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, networkId)
 		wrappedAssetInfo, _ := s.assetsService.GetFungibleAssetInfo(networkId, wrappedToken)
-		wrappedMinAmountWithFee := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
+		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
+		if err != nil {
+			return err
+		}
 
-		tokenPriceInfo.MinAmountInUsdWithFee = wrappedMinAmountWithFee
+		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee
 	}
+
+	return nil
 }
 
-func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal) {
+func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal) error {
 
 	for networkId, pricesByAddress := range pricesByNetworkAndAddress {
-		for address, price := range pricesByAddress {
-			if address == constants.Hbar {
+		for assetAddress, usdPrice := range pricesByAddress {
+			if assetAddress == constants.Hbar {
 				continue
 			}
 
-			fungibleAssetInfo, exist := s.assetsService.GetFungibleAssetInfo(networkId, address)
+			fungibleAssetInfo, exist := s.assetsService.GetFungibleAssetInfo(networkId, assetAddress)
 			if !exist {
 				continue
 			}
-			nativeAsset := s.assetsService.FungibleNativeAsset(networkId, address)
-			minAmountWithFee := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, price)
-
-			tokenPriceInfo := pricing.TokenPriceInfo{
-				UsdPrice:              price,
-				MinAmountInUsdWithFee: minAmountWithFee,
+			nativeAsset := s.assetsService.FungibleNativeAsset(networkId, assetAddress)
+			minAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, usdPrice)
+			if err != nil {
+				err = errors.New(fmt.Sprintf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err))
+				return err
 			}
 
-			s.updatePriceInfoContainers(nativeAsset, tokenPriceInfo)
+			tokenPriceInfo := pricing.TokenPriceInfo{
+				UsdPrice:         usdPrice,
+				MinAmountWithFee: minAmountWithFee,
+			}
+
+			err = s.updatePriceInfoContainers(nativeAsset, tokenPriceInfo)
+			if err != nil {
+				err = errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
 type fetchResults struct {

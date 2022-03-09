@@ -108,6 +108,11 @@ func NewWatcher(
 }
 
 func (pw Watcher) Watch(q qi.Queue) {
+	if !pw.prometheusService.GetIsMonitoringEnabled() {
+		pw.logger.Warnf("Tried to executed Prometheus watcher, when monitoring is not enabled.")
+		return
+	}
+
 	// there will be no handler, so the q is to implement the interface
 	go pw.beginWatching()
 }
@@ -328,7 +333,7 @@ func (pw Watcher) getAssetMetricValue(
 		} else { // Hedera wrapped total supply
 			value, err = pw.getHederaTokenSupply(assetAddress)
 		}
-	} else { // EVM
+	} else {          // EVM
 		if isNative { // EVM native balance
 			value, err = pw.getEVMBalance(networkId, evmAssetInstance, decimal, assetAddress)
 		} else { // EVM wrapped total supply

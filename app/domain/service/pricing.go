@@ -25,7 +25,7 @@ type Pricing interface {
 	// GetTokenPriceInfo gets price for token with the passed networkId and tokenAddressOrId
 	GetTokenPriceInfo(networkId uint64, tokenAddressOrId string) (priceInfo pricing.TokenPriceInfo, exist bool)
 	// FetchAndUpdateUsdPrices fetches all prices from the Web APIs and updates them in the mapping
-	FetchAndUpdateUsdPrices(initialFetch bool)
+	FetchAndUpdateUsdPrices(initialFetch bool) error
 	// GetMinAmountsForAPI getting all prices by networkId
 	GetMinAmountsForAPI() map[uint64]map[string]*big.Int
 }

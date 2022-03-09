@@ -6,6 +6,6 @@ import (
 )
 
 type TokenPriceInfo struct {
-	UsdPrice              decimal.Decimal
-	MinAmountInUsdWithFee *big.Int
+	UsdPrice         decimal.Decimal
+	MinAmountWithFee *big.Int
 }

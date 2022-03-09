@@ -31,7 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
-	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -417,9 +416,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ew.assetsService, nativeAsset)
-	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
-		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, amountInUsd, nativeAsset.MinFeeAmountInUsd)
+	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinFeeAmountInUsd)
 		return
 	}
 
@@ -524,9 +522,8 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ew.assetsService, nativeAsset)
-	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
-		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, amountInUsd, nativeAsset.MinFeeAmountInUsd)
+	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, nativeAsset.MinFeeAmountInUsd)
 		return
 	}
 

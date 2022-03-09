@@ -27,7 +27,6 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -290,13 +289,11 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 	tokenPriceInfo, exist := ctw.pricingService.GetTokenPriceInfo(asset.ChainId, nativeAsset.Asset)
 	if !exist {
 		errMsg := fmt.Sprintf("[%s] - Couldn't get price info in USD for asset [%s].", transactionID, nativeAsset.Asset)
-		ctw.logger.Errorf(errMsg)
 		return nil, errors.New(errMsg)
 	}
 
-	amountInUsd := decimalHelper.GetAmountInUsd(tokenPriceInfo.UsdPrice, properAmount, ctw.assetsService, nativeAsset)
-	if amountInUsd.Cmp(tokenPriceInfo.MinAmountInUsdWithFee) < 0 {
-		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, amountInUsd, nativeAsset.MinFeeAmountInUsd))
+	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, properAmount, nativeAsset.MinFeeAmountInUsd))
 	}
 
 	return transfer.New(
