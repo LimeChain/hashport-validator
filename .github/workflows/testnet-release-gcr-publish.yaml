@@ -18,13 +18,27 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
+#       - name: Setup GCloud SDK
+#         uses: google-github-actions/setup-gcloud@v0.2.0
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT }}
+#           service_account_key: ${{ secrets.GCP_CE_KEY }}
+    
+      - name: Dispatch image release event
+        uses: peter-evans/repository-dispatch@v1.1.3
         with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
-      - name: Copy files        
-        run: gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ./monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+          token: ${{ secrets.REPO_GHA_PAT }}
+          repository: ${{ github.repository }}
+          event-type: trigger-image-release
+
+      - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
+      - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+      
+#       - name: Copy files        
+#         run: gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ./monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+        
+#         run: gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
 
 #         run: gcloud compute scp --recurse ~/monitoring ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
 
@@ -39,9 +53,7 @@ jobs:
 #       - name: Copy logs
 #         run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.copy_logs_command }}"
 
-      - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
-      - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+
    
 
    
