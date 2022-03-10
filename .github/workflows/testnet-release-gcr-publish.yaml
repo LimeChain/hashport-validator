@@ -24,7 +24,7 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ~/monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager/email.html
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ~/monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring
         
 #       - name: Copy logs
 #         run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.copy_logs_command }}"
