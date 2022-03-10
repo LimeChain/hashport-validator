@@ -1,7 +1,7 @@
 name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
 # on:
-#   release:
+#   release: 
 #     types: [published]
 on: push
 
