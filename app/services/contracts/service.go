@@ -199,12 +199,3 @@ func (bsc *Service) RemoveDecimals(amount *big.Int, asset string) (*big.Int, err
 	}
 	return amount, nil
 }
-
-func (bsc *Service) TokenFeeData() (struct {
-	ServiceFeePercentage *big.Int
-	FeesAccrued          *big.Int
-	PreviousAccrued      *big.Int
-	Accumulator          *big.Int
-}, error) {
-	return bsc.contract.TokenFeeData(nil, common.Address{})
-}
