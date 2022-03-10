@@ -23,11 +23,12 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
-      - name: Copy files
-        run: gcloud compute scp --recurse ~/monitoring ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
-        
-#         run: gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
-          
+      - name: Copy files        
+        run: gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+
+#         run: gcloud compute scp --recurse ~/monitoring ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+
+
 #         run: |
 #           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
 #           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/dashboards/dashboards_provider.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards && \
