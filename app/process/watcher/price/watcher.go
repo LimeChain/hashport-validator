@@ -42,10 +42,16 @@ func (pw *Watcher) Watch(q qi.Queue) {
 }
 
 func (pw *Watcher) beginWatching() {
-	err := pw.pricingService.FetchAndUpdateUsdPrices(false)
-	if err != nil {
-		pw.logger.Errorf(err.Error())
-	}
+	for {
 
-	time.Sleep(10 * time.Minute)
+		pw.logger.Infof("Fetching and updating USD prices ...")
+		err := pw.pricingService.FetchAndUpdateUsdPrices(false)
+		if err != nil {
+			pw.logger.Errorf(err.Error())
+		} else {
+
+			pw.logger.Infof("Fetching and updating USD prices finished successfully!")
+		}
+		time.Sleep(10 * time.Minute)
+	}
 }

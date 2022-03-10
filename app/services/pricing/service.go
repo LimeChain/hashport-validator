@@ -190,6 +190,9 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 	s.tokensPriceInfo[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo
 	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee
 
+	msgTemplate := "Updating UsdPrice [%s] and MinAmountWithFee [%s] for %s asset [%s]"
+	s.logger.Infof(msgTemplate, "native", nativeAsset.Asset, tokenPriceInfo.UsdPrice, tokenPriceInfo.MinAmountWithFee)
+
 	for networkId := range constants.NetworksById {
 		if networkId == nativeAsset.ChainId {
 			continue
@@ -206,6 +209,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee
+		s.logger.Infof(msgTemplate, "wrapped", wrappedToken, tokenPriceInfo.UsdPrice, wrappedMinAmountWithFee)
 	}
 
 	return nil
