@@ -32,3 +32,13 @@ func ToLowestDenomination(amount decimal.Decimal, decimals uint8) *big.Int {
 
 	return toSmallestDenomination
 }
+
+func ParseAmount(amount string) (result *decimal.Decimal, err error) {
+	if amount == "" {
+		zeroAmount := decimal.NewFromFloat(0.0)
+		return &zeroAmount, nil
+	}
+	newResult, err := decimal.NewFromString(amount)
+
+	return &newResult, err
+}

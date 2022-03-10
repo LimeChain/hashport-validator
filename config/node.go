@@ -100,10 +100,6 @@ type Recovery struct {
 	StartBlock     int64
 }
 
-//////////////
-// Web Apis //
-//////////////
-
 func New(node parser.Node) Node {
 	rpc := make(map[string]hedera.AccountID)
 	for key, value := range node.Clients.Hedera.Rpc {

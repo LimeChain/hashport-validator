@@ -38,7 +38,6 @@ type Clients struct {
 	CoinGecko     client.Pricing
 	CoinMarketCap client.Pricing
 	Routers       map[uint64]*router.Router
-	logger        *log.Entry
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
@@ -56,15 +55,12 @@ func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.
 		EVMClients[configChainId].SetChainID(clientChainId.Uint64())
 	}
 
-	logger := config.GetLoggerFor("Clients")
-
 	return &Clients{
 		HederaNode:    hedera.NewNodeClient(clientsCfg.Hedera),
 		MirrorNode:    mirror_node.NewClient(clientsCfg.MirrorNode),
 		EVMClients:    EVMClients,
 		CoinGecko:     coin_gecko.NewClient(clientsCfg.CoinGecko),
 		CoinMarketCap: coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
-		Routers:       clientsHelper.InitRouterClients(bridgeEVMsCfgs, EVMClients, logger),
-		logger:        logger,
+		Routers:       clientsHelper.InitRouterClients(bridgeEVMsCfgs, EVMClients),
 	}
 }

@@ -122,10 +122,10 @@ func (pw Watcher) beginWatching() {
 }
 
 func (pw Watcher) registerAssetsMetrics() {
-	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
-			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
+			if pw.assetsService.IsNative(networkId, assetAddress) {
 				// register native assets balance
 				pw.registerAssetMetric(
 					networkId,
@@ -134,7 +134,7 @@ func (pw Watcher) registerAssetsMetrics() {
 					constants.BalanceAssetMetricNameSuffix,
 					constants.BalanceAssetMetricHelpPrefix,
 				)
-				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
 					//register wrapped assets total supply
 					pw.registerAssetMetric(
@@ -254,13 +254,13 @@ func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
 }
 
 func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
-	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			// set native assets balance
 			pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
-			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
-				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+			if pw.assetsService.IsNative(networkId, assetAddress) {
+				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
 					//set wrapped assets total supply
 					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)

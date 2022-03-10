@@ -77,9 +77,6 @@ func main() {
 	// Prepare Services
 	services = PrepareServices(configuration, parsedBridge.Networks, *clients, *repositories)
 
-	// Set Assets Service
-	configuration.Bridge.Assets = services.assets
-
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
 	initializeMonitoring(services.prometheus, services.assets, server, configuration, clients.MirrorNode, clients.EVMClients)

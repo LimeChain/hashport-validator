@@ -22,11 +22,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	assetModel "github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strconv"
@@ -249,7 +249,7 @@ func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[st
 				nativeToWrapped[nativeChainId][nativeAsset] = make(map[uint64]string)
 			}
 
-			minAmount, err := parseAmount(nativeAssetMapping.MinFeeAmountInUsd)
+			minAmount, err := decimalHelper.ParseAmount(nativeAssetMapping.MinFeeAmountInUsd)
 			if err != nil {
 				log.Fatalf("Failed to parse min amount [%s]. Error: [%s]", nativeAssetMapping.MinFeeAmountInUsd, err)
 			}
@@ -326,13 +326,4 @@ func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[st
 	instance.loadFungibleAssetInfos(networks, mirrorNode, EVMClients)
 
 	return instance
-}
-
-func parseAmount(amount string) (result *decimal.Decimal, err error) {
-	if amount == "" {
-		return result, nil
-	}
-	newResult, err := decimal.NewFromString(amount)
-
-	return &newResult, err
 }

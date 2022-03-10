@@ -26,3 +26,6 @@
 #  monitoring:
 #    enable: false
 #    dashboard_polling: 15 # in minutes
+#  log_level: info
+#  port: 5200
+#  validator: true

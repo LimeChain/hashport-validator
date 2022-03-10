@@ -17,7 +17,6 @@
 package config
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -27,7 +26,6 @@ import (
 type Bridge struct {
 	TopicId          string
 	Hedera           *BridgeHedera
-	Assets           service.Assets
 	EVMs             map[uint64]BridgeEvm
 	CoinMarketCapIds map[uint64]map[string]string
 	CoinGeckoIds     map[uint64]map[string]string
@@ -97,7 +95,6 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			hederaFeePercentages, hederaNftFees := LoadHederaFees(networkInfo.Tokens)
 			config.Hedera.FeePercentages = hederaFeePercentages
 			config.Hedera.NftFees = hederaNftFees
-
 		} else {
 			config.EVMs[networkId] = BridgeEvm{
 				RouterContractAddress: networkInfo.RouterContractAddress,
@@ -116,7 +113,6 @@ func NewBridge(bridge parser.Bridge) Bridge {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
 		}
-
 	}
 
 	return config
