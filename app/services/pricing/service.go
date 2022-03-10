@@ -200,6 +200,9 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 
 		// Calculating Min Amount for wrapped tokens
 		wrappedToken := s.assetsService.NativeToWrapped(nativeAsset.Asset, nativeAsset.ChainId, networkId)
+		if wrappedToken == "" {
+			continue
+		}
 		wrappedAssetInfo, _ := s.assetsService.GetFungibleAssetInfo(networkId, wrappedToken)
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
 		if err != nil {
