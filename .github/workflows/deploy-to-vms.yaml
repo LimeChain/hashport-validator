@@ -13,40 +13,42 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
+      - run: echo "🍏 This job's status is ${{ job.status }}."
 
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_PREVIEW_ALICE_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
+#       - name: Setup GCloud SDK
+#         uses: google-github-actions/setup-gcloud@v0.2.0
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT }}
+#           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
-      - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }}:~
+#       - name: Export application config
+#         shell: bash
+#         run: |
+#           echo "${{ secrets.APP_PREVIEW_ALICE_CONFIG }}" > ./node.yml && \
+#           echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
 
-      - name: Refresh images and containers
-        run: gcloud compute ssh ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }} --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
+#       - name: Copy files
+#         run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }}:~
 
-  deploy_previewnet_bob:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+#       - name: Refresh images and containers
+#         run: gcloud compute ssh ${{ secrets.APP_PREVIEW_ALICE_INSTANCE }} --zone=${{ secrets.APP_PREVIEW_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
 
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
+#   deploy_previewnet_bob:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v2
 
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_PREVIEW_BOB_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
+#       - name: Setup GCloud SDK
+#         uses: google-github-actions/setup-gcloud@v0.2.0
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT }}
+#           service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+#       - name: Export application config
+#         shell: bash
+#         run: |
+#           echo "${{ secrets.APP_PREVIEW_BOB_CONFIG }}" > ./node.yml && \
+#           echo "${{ secrets.APP_PREVIEW_BRIDGE_CONFIG }}" > ./bridge.yml
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_PREVIEW_BOB_ZONE }} ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_PREVIEW_BOB_INSTANCE }}:~
