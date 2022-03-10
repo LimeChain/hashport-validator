@@ -264,14 +264,11 @@ func (s *Service) fetchUsdPricesFromAPIs(initialFetch bool) (fetchResults fetchR
 	fetchResults.HbarPrice, fetchResults.HbarErr = s.mirrorNodeClient.GetHBARUsdPrice()
 
 	fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinGeckoClient.GetUsdPrices(s.coinGeckoIds)
-	msg := fmt.Sprintf("Couldn't fetch prices from CoinGecko Web API. Error: [%s]", fetchResults.AllPricesErr)
-	if initialFetch {
-		s.logger.Fatalf(msg)
+	if fetchResults.AllPricesErr != nil {
+		s.logger.Errorf("Couldn't fetch prices from CoinGecko Web API. Error: [%s]", fetchResults.AllPricesErr)
 	}
-	s.logger.Error(msg)
 
 	if fetchResults.AllPricesErr != nil { // Fetch from CoinMarketCap if CoinGecko fetch fails
-
 		s.logger.Infof("Fallback to fetching prices from Coin Market Cap ...")
 		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapClient.GetUsdPrices(s.coinMarketCapIds)
 		if fetchResults.AllPricesErr != nil { // If CoinMarketCap fetch fails this means the whole update failed
