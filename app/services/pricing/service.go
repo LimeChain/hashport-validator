@@ -191,7 +191,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee
 
 	msgTemplate := "Updating UsdPrice [%s] and MinAmountWithFee [%s] for %s asset [%s]"
-	s.logger.Infof(msgTemplate, "native", nativeAsset.Asset, tokenPriceInfo.UsdPrice, tokenPriceInfo.MinAmountWithFee)
+	s.logger.Infof(msgTemplate, nativeAsset.Asset, tokenPriceInfo.UsdPrice, "native", tokenPriceInfo.MinAmountWithFee)
 
 	for networkId := range constants.NetworksById {
 		if networkId == nativeAsset.ChainId {
@@ -209,7 +209,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee
-		s.logger.Infof(msgTemplate, "wrapped", wrappedToken, tokenPriceInfo.UsdPrice, wrappedMinAmountWithFee)
+		s.logger.Infof(msgTemplate, wrappedToken, tokenPriceInfo.UsdPrice, "wrapped", wrappedMinAmountWithFee)
 	}
 
 	return nil
@@ -261,11 +261,18 @@ func (s *Service) fetchUsdPricesFromAPIs(initialFetch bool) (fetchResults fetchR
 	fetchResults.HbarPrice, fetchResults.HbarErr = s.mirrorNodeClient.GetHBARUsdPrice()
 
 	fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinGeckoClient.GetUsdPrices(s.coinGeckoIds)
+	msg := fmt.Sprintf("Couldn't fetch prices from CoinGecko Web API. Error: [%s]", fetchResults.AllPricesErr)
+	if initialFetch {
+		s.logger.Fatalf(msg)
+	}
+	s.logger.Error(msg)
 
 	if fetchResults.AllPricesErr != nil { // Fetch from CoinMarketCap if CoinGecko fetch fails
+
+		s.logger.Infof("Fallback to fetching prices from Coin Market Cap ...")
 		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapClient.GetUsdPrices(s.coinMarketCapIds)
 		if fetchResults.AllPricesErr != nil { // If CoinMarketCap fetch fails this means the whole update failed
-			msg := fmt.Sprintf("Couldn't fetch prices from any of the Web APIs. Error: [%s]", fetchResults.AllPricesErr)
+			msg := fmt.Sprintf("Couldn't fetch prices from Coin Market Cap Web API. Error: [%s]", fetchResults.AllPricesErr)
 			if initialFetch {
 				s.logger.Fatalf(msg)
 			}
