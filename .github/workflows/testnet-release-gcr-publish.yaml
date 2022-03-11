@@ -24,10 +24,11 @@ jobs:
         run: |
           tag="v.0.0.1-rc-2" &&\
           echo $tag &&\
-          echo ${tag//./\\.} &&\
+          tag_escaped=${tag//./\\.}
+          echo $tag_escaped &&\
           cat ./docker-compose.yml &&\
           echo "Current image: ${{ env.original_image_name }}" &&\
-          sed -i "s/hedera-eth-bridge-validator:latest/hedera-eth-bridge-validator:v\.0\.0\.1-rc-2/g" ./docker-compose.yml &&\
+          sed -i "s/hedera-eth-bridge-validator:latest/$tag_escaped/g" ./docker-compose.yml &&\
           cat ./docker-compose.yml
         
           
