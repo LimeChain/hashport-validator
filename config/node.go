@@ -101,15 +101,7 @@ type Recovery struct {
 }
 
 func New(node parser.Node) Node {
-	rpc := make(map[string]hedera.AccountID)
-	for key, value := range node.Clients.Hedera.Rpc {
-		nodeAccoundID, err := hedera.AccountIDFromString(value)
-		if err != nil {
-			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
-		}
-		rpc[key] = nodeAccoundID
-	}
-
+	rpc := parseRpc(node.Clients.Hedera.Rpc)
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
@@ -147,4 +139,16 @@ func New(node parser.Node) Node {
 	}
 
 	return config
+}
+
+func parseRpc(rpcClients map[string]string) map[string]hedera.AccountID {
+	res := make(map[string]hedera.AccountID)
+	for key, value := range rpcClients {
+		nodeAccountID, err := hedera.AccountIDFromString(value)
+		if err != nil {
+			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
+		}
+		res[key] = nodeAccountID
+	}
+	return res
 }
