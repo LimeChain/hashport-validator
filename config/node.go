@@ -41,9 +41,11 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[uint64]Evm
-	Hedera     Hedera
-	MirrorNode MirrorNode
+	Evm           map[uint64]Evm
+	Hedera        Hedera
+	MirrorNode    MirrorNode
+	CoinGecko     CoinGecko
+	CoinMarketCap CoinMarketCap
 }
 
 type Evm struct {
@@ -66,6 +68,21 @@ type Operator struct {
 	AccountId  string
 	PrivateKey string
 }
+
+// CoinGecko //
+
+type CoinGecko struct {
+	ApiAddress string
+}
+
+// CoinMarketCap //
+
+type CoinMarketCap struct {
+	ApiKey     string
+	ApiAddress string
+}
+
+// MirrorNode //
 
 type MirrorNode struct {
 	ClientAddress   string
@@ -102,8 +119,19 @@ func New(node parser.Node) Node {
 				StartTimestamp: node.Clients.Hedera.StartTimestamp,
 				Rpc:            rpc,
 			},
-			MirrorNode: MirrorNode(node.Clients.MirrorNode),
-			Evm:        make(map[uint64]Evm),
+			MirrorNode: MirrorNode{
+				ClientAddress:   node.Clients.MirrorNode.ClientAddress,
+				ApiAddress:      node.Clients.MirrorNode.ApiAddress,
+				PollingInterval: node.Clients.MirrorNode.PollingInterval,
+			},
+			Evm: make(map[uint64]Evm),
+			CoinGecko: CoinGecko{
+				ApiAddress: node.Clients.CoinGecko.ApiAddress,
+			},
+			CoinMarketCap: CoinMarketCap{
+				ApiKey:     node.Clients.CoinMarketCap.ApiKey,
+				ApiAddress: node.Clients.CoinMarketCap.ApiAddress,
+			},
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,

@@ -13,6 +13,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/cors v1.7.0
+	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210907225631-ff17edfbf26d

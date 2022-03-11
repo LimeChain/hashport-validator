@@ -38,3 +38,8 @@ func (m *MockHttpClient) Get(url string) (resp *http.Response, err error) {
 	}
 	return args[0].(*http.Response), args[1].(error)
 }
+
+func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
+	args := m.Called(req)
+	return args[0].(*http.Response), args[1].(error)
+}

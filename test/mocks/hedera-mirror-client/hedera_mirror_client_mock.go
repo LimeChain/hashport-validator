@@ -19,6 +19,7 @@ package hedera_mirror_client
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -175,4 +176,9 @@ func (m *MockHederaMirrorClient) GetTransaction(transactionID string) (*model.Re
 
 func (m *MockHederaMirrorClient) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {
 	m.Called(txId /*, onSuccess, onFailure*/)
+}
+
+func (m *MockHederaMirrorClient) GetHBARUsdPrice() (price decimal.Decimal, err error) {
+	args := m.Called()
+	return args.Get(0).(decimal.Decimal), args.Error(1)
 }

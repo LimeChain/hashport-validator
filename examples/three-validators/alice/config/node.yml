@@ -9,5 +9,5 @@
 #    username:
 #  port:
 #  monitoring:
-#    enable: false
-#    dashboard_polling: 15 #in minutes
+#    enable:
+#    dashboard_polling:

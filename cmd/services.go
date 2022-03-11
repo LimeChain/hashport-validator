@@ -18,18 +18,21 @@ package main
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	lock_event "github.com/limechain/hedera-eth-bridge-validator/app/services/lock-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/messages"
+	"github.com/limechain/hedera-eth-bridge-validator/app/services/pricing"
 	prometheusServices "github.com/limechain/hedera-eth-bridge-validator/app/services/prometheus"
 	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 )
 
 type Services struct {
@@ -44,23 +47,27 @@ type Services struct {
 	scheduled        service.Scheduled
 	readOnly         service.ReadOnly
 	prometheus       service.Prometheus
+	pricing          service.Pricing
+	assets           service.Assets
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c config.Config, clients Clients, repositories Repositories) *Services {
+func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
+
 	for _, client := range clients.EVMClients {
 		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
+		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
-	prometheus := prometheusServices.NewService(c.Bridge.Assets, c.Node.Monitoring.Enable)
+	prometheus := prometheusServices.NewService(assetsService, c.Node.Monitoring.Enable)
 	messages := messages.NewService(
 		evmSigners,
 		contractServices,
@@ -69,7 +76,7 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		clients.MirrorNode,
 		clients.EVMClients,
 		c.Bridge.TopicId,
-		c.Bridge.Assets)
+		assetsService)
 
 	transfers := transfers.NewService(
 		clients.HederaNode,
@@ -108,6 +115,8 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
+	pricingService := pricing.NewService(c.Bridge, assetsService, clients.MirrorNode, clients.CoinGecko, clients.CoinMarketCap)
+
 	return &Services{
 		signers:          evmSigners,
 		contractServices: contractServices,
@@ -120,16 +129,20 @@ func PrepareServices(c config.Config, clients Clients, repositories Repositories
 		scheduled:        scheduled,
 		readOnly:         readOnly,
 		prometheus:       prometheus,
+		pricing:          pricingService,
+		assets:           assetsService,
 	}
 }
 
 // PrepareApiOnlyServices instantiates all the necessary services with their
 // required context and parameters for running the Validator node in API Only mode
-func PrepareApiOnlyServices(c config.Config, clients Clients) *Services {
+func PrepareApiOnlyServices(c config.Config, networks map[uint64]*parser.Network, clients Clients) *Services {
 	contractServices := make(map[uint64]service.Contracts)
+
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
 	for _, client := range clients.EVMClients {
 		chainId := client.GetChainID()
-		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, c.Bridge.Assets.FungibleNetworkAssets(chainId))
+		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
 		contractServices[chainId] = contractService
 	}
 

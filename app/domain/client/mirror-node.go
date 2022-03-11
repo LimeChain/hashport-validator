@@ -19,6 +19,7 @@ package client
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/shopspring/decimal"
 )
 
 type MirrorNode interface {
@@ -71,4 +72,6 @@ type MirrorNode interface {
 	// WaitForScheduledTransaction Polls the transaction at intervals. Depending on the
 	// result, the corresponding `onSuccess` and `onFailure` functions are called
 	WaitForScheduledTransaction(txId string, onSuccess, onFailure func())
+	// GetHBARUsdPrice Returns USD price for HBAR
+	GetHBARUsdPrice() (price decimal.Decimal, err error)
 }

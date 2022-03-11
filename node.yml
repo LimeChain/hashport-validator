@@ -1,3 +1,5 @@
+# This file contains application defaults
+# Check docs/configuration.md for more information
 #node:
 #  database:
 #    host: 127.0.0.1
@@ -16,6 +18,11 @@
 #      api_address: https://testnet.mirrornode.hedera.com/api/v1/
 #      client_address: hcs.testnet.mirrornode.hedera.com:5600
 #      polling_interval: 5
+#    coingecko:
+#      api_address: "https://api.coingecko.com/api/v3/"
+#    coin_market_cap:
+#      api_key:
+#      api_address: "https://pro-api.coinmarketcap.com/v2/cryptocurrency/"
 #  monitoring:
 #    enable: false
 #    dashboard_polling: 15 # in minutes

@@ -18,25 +18,32 @@ package main
 
 import (
 	"context"
+	coin_gecko "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-gecko"
+	coin_market_cap "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-market-cap"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	clientsHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/clients"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 // Clients struct used to initialise and store all available external clients for a validator node
 type Clients struct {
-	HederaNode client.HederaNode
-	MirrorNode client.MirrorNode
-	EVMClients map[uint64]client.EVM
+	HederaNode    client.HederaNode
+	MirrorNode    client.MirrorNode
+	EVMClients    map[uint64]client.EVM
+	CoinGecko     client.Pricing
+	CoinMarketCap client.Pricing
+	Routers       map[uint64]*router.Router
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
-func PrepareClients(config config.Clients) *Clients {
+func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.BridgeEvm) *Clients {
 	EVMClients := make(map[uint64]client.EVM)
-	for configChainId, ec := range config.Evm {
+	for configChainId, ec := range clientsCfg.Evm {
 		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
@@ -49,8 +56,11 @@ func PrepareClients(config config.Clients) *Clients {
 	}
 
 	return &Clients{
-		HederaNode: hedera.NewNodeClient(config.Hedera),
-		MirrorNode: mirror_node.NewClient(config.MirrorNode.ApiAddress, config.MirrorNode.PollingInterval),
-		EVMClients: EVMClients,
+		HederaNode:    hedera.NewNodeClient(clientsCfg.Hedera),
+		MirrorNode:    mirror_node.NewClient(clientsCfg.MirrorNode),
+		EVMClients:    EVMClients,
+		CoinGecko:     coin_gecko.NewClient(clientsCfg.CoinGecko),
+		CoinMarketCap: coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
+		Routers:       clientsHelper.InitRouterClients(bridgeEVMsCfgs, EVMClients),
 	}
 }

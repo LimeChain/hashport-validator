@@ -22,9 +22,12 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 	"math/big"
@@ -33,36 +36,49 @@ import (
 )
 
 var (
+	nativeTokenAddressNetwork0  = "0.0.111111"
+	wrappedTokenAddressNetwork3 = "0x0000000000000000000000000000000000000001"
+	network0                    = constants.HederaNetworkId
+	network3                    = uint64(3)
+	emptyString                 = ""
+	nilNativeAsset              *asset.NativeAsset
+	nativeAssetNetwork0         = &asset.NativeAsset{ChainId: constants.HederaNetworkId, Asset: nativeTokenAddressNetwork0}
+	fungibleAssetInfoNetwork0   = asset.FungibleAssetInfo{Decimals: 8}
+	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
+
 	tx = model.Transaction{
 		TokenTransfers: []model.Transfer{
 			{
 				Account: "0.0.444444",
 				Amount:  10,
-				Token:   "0.0.111111",
+				Token:   nativeTokenAddressNetwork0,
 			},
 		},
 		ConsensusTimestamp: "1631092491.483966000",
 	}
+
 	networks = map[uint64]*parser.Network{
-		0: {
+		network0: {
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
-					"0.0.111111": {
+					nativeTokenAddressNetwork0: {
 						Networks: map[uint64]string{
-							3: "0x0000000000000000000000000000000000000001",
+							network3: wrappedTokenAddressNetwork3,
 						},
 					},
 				},
 			},
 		},
 	}
-	assets = config.LoadAssets(networks)
 )
 
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(uint64(0), "0xevmaddress", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(network3, emptyString, nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(emptyString)
+	mocks.MAssetsService.On("WrappedToNative", nativeTokenAddressNetwork0, network0).Return(nilNativeAsset)
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 	mocks.MTransferService.AssertCalled(t, "SanityCheckTransfer", tx)
@@ -82,10 +98,11 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		mocks.MStatusRepository,
 		0,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-		assets,
+		mocks.MAssetsService,
 		map[string]int64{},
 		true,
-		mocks.MPrometheusService)
+		mocks.MPrometheusService,
+		mocks.MPricingService)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
 }
@@ -102,10 +119,11 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		mocks.MStatusRepository,
 		1,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-		assets,
+		mocks.MAssetsService,
 		map[string]int64{},
 		true,
-		mocks.MPrometheusService)
+		mocks.MPrometheusService,
+		mocks.MPricingService)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
 }
@@ -126,7 +144,13 @@ func Test_ProcessTransaction(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(3), "0xaiskdjakdjakl", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 }
 
@@ -136,7 +160,13 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
@@ -175,8 +205,14 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	anotherTx.ConsensusTimestamp = "asd"
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), "0x0000000000000000000000000000000000000001").Return(big.NewInt(10), nil)
+	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
@@ -187,7 +223,7 @@ func setup() {
 
 func initializeWatcher() *Watcher {
 	setup()
-
+	mocks.Setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
 
 	return NewWatcher(
@@ -198,8 +234,9 @@ func initializeWatcher() *Watcher {
 		mocks.MStatusRepository,
 		0,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
-		assets,
+		mocks.MAssetsService,
 		map[string]int64{},
 		true,
-		mocks.MPrometheusService)
+		mocks.MPrometheusService,
+		mocks.MPricingService)
 }

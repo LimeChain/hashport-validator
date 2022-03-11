@@ -41,12 +41,14 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/price"
 	pw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/prometheus"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
 	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
+	min_amounts "github.com/limechain/hedera-eth-bridge-validator/app/router/min-amounts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
@@ -62,7 +64,7 @@ func main() {
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
-	clients := PrepareClients(configuration.Node.Clients)
+	clients := PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs)
 
 	// Prepare Node
 	server := server.NewServer()
@@ -71,12 +73,13 @@ func main() {
 	db := persistence.NewDatabase(configuration.Node.Database)
 	// Prepare repositories
 	repositories := PrepareRepositories(db)
+
 	// Prepare Services
-	services = PrepareServices(configuration, *clients, *repositories)
+	services = PrepareServices(configuration, parsedBridge.Networks, *clients, *repositories)
 
 	initializeServerPairs(server, services, repositories, clients, configuration)
 
-	initializeMonitoring(services.prometheus, server, configuration, clients.MirrorNode, clients.EVMClients)
+	initializeMonitoring(services.prometheus, services.assets, server, configuration, clients.MirrorNode, clients.EVMClients)
 
 	apiRouter := initializeAPIRouter(services, parsedBridge)
 
@@ -88,13 +91,14 @@ func main() {
 
 func initializeMonitoring(
 	prometheusService service.Prometheus,
+	assetsService service.Assets,
 	s *server.Server,
 	configuration config.Config,
 	mirrorNode client.MirrorNode,
 	EVMClients map[uint64]client.EVM,
 ) {
 	if configuration.Node.Monitoring.Enable {
-		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients)
+		initializePrometheusWatcher(s, configuration, mirrorNode, prometheusService, EVMClients, assetsService)
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
 	}
@@ -107,6 +111,7 @@ func initializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirou
 	apiRouter.AddV1Router(burn_event.Route, burn_event.NewRouter(services.burnEvents))
 	apiRouter.AddV1Router("/metrics", promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
+	apiRouter.AddV1Router(min_amounts.Route, min_amounts.NewRouter(services.pricing))
 
 	return apiRouter
 }
@@ -121,10 +126,12 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddWatcher(addTransferWatcher(
 		&configuration,
 		services.transfers,
+		services.assets,
 		clients.MirrorNode,
 		&repositories.transferStatus,
 		services.contractServices,
-		services.prometheus))
+		services.prometheus,
+		services.pricing))
 
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -152,7 +159,7 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		services.contractServices,
 		services.messages,
 		services.prometheus,
-		configuration.Bridge.Assets))
+		services.assets))
 
 	for _, evmClient := range clients.EVMClients {
 		chain := evmClient.GetChainID()
@@ -167,8 +174,9 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 				repositories.transferStatus,
 				contractService,
 				services.prometheus,
+				services.pricing,
 				evmClient,
-				configuration.Bridge.Assets,
+				services.assets,
 				dbIdentifier,
 				configuration.Node.Clients.Evm[chain].StartBlock,
 				configuration.Node.Validator,
@@ -241,6 +249,8 @@ func initializeServerPairs(server *server.Server, services *Services, repositori
 		repositories.schedule,
 		services.readOnly,
 		services.transfers))
+
+	server.AddWatcher(price.NewWatcher(services.pricing))
 }
 
 func initializePrometheusWatcher(
@@ -249,6 +259,7 @@ func initializePrometheusWatcher(
 	mirrorNode client.MirrorNode,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) {
 	dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 	log.Infoln("Dashboard Polling interval: ", dashboardPolling)
@@ -257,15 +268,18 @@ func initializePrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		EVMClients))
+		EVMClients,
+		assetsService))
 }
 
 func addTransferWatcher(configuration *config.Config,
 	bridgeService service.Transfers,
+	assetsService service.Assets,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
 	contractServices map[uint64]service.Contracts,
 	prometheusService service.Prometheus,
+	pricingService service.Pricing,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
 
@@ -278,10 +292,11 @@ func addTransferWatcher(configuration *config.Config,
 		*repository,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
-		configuration.Bridge.Assets,
+		assetsService,
 		configuration.Bridge.Hedera.NftFees,
 		configuration.Node.Validator,
 		prometheusService,
+		pricingService,
 	)
 }
 
@@ -304,6 +319,7 @@ func addPrometheusWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
@@ -311,5 +327,6 @@ func addPrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		EVMClients)
+		EVMClients,
+		assetsService)
 }

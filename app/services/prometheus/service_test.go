@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	service             *Service
+	serviceInstance     *Service
 	gauge               prometheus.Gauge
 	counter             prometheus.Counter
 	isMonitoringEnabled = true
@@ -36,22 +36,25 @@ var (
 	gaugeSuffix         = "gauge_suffix"
 	counterOpts         = prometheus.CounterOpts{Name: "CounterName", Help: "CounterHelp"}
 	counterSuffix       = "counter_suffix"
-	assets              = config.LoadAssets(testConstants.Networks)
+	sourceNetworkId     = constants.HederaNetworkId
+	targetNetworkId     = uint64(3)
+	assetAddress        = constants.Hbar
+	transactionId       = "0.0.1234-1234-1234"
 )
 
 func Test_New(t *testing.T) {
 	setup()
 
-	actualService := NewService(assets, isMonitoringEnabled)
+	actualService := NewService(mocks.MAssetsService, isMonitoringEnabled)
 
-	assert.Equal(t, service, actualService)
+	assert.Equal(t, serviceInstance, actualService)
 }
 
 func Test_CreateGaugeIfNotExists(t *testing.T) {
 	setup()
 
-	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
-	defer service.DeleteGauge(gaugeOpts.Name)
+	gauge = serviceInstance.CreateGaugeIfNotExists(gaugeOpts)
+	defer serviceInstance.DeleteGauge(gaugeOpts.Name)
 
 	assert.NotNil(t, gauge)
 }
@@ -59,8 +62,10 @@ func Test_CreateGaugeIfNotExists(t *testing.T) {
 func Test_ConstructMetricName_Native(t *testing.T) {
 	setup()
 
+	mocks.MAssetsService.On("IsNative", sourceNetworkId, assetAddress).Return(true)
+
 	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, "Hedera", "Network3", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructMetricName(0, 3, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	actual, err := serviceInstance.ConstructMetricName(sourceNetworkId, targetNetworkId, assetAddress, transactionId, constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, nil, err)
 	assert.Equal(t, expectedNative, actual)
@@ -69,8 +74,10 @@ func Test_ConstructMetricName_Native(t *testing.T) {
 func Test_ConstructMetricName_Wrapped(t *testing.T) {
 	setup()
 
+	mocks.MAssetsService.On("IsNative", targetNetworkId, assetAddress).Return(false)
+
 	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, "Network3", "Hedera", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
-	actual, err := service.ConstructMetricName(3, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	actual, err := serviceInstance.ConstructMetricName(targetNetworkId, sourceNetworkId, assetAddress, transactionId, constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, expectedNative, actual)
@@ -79,7 +86,9 @@ func Test_ConstructMetricName_Wrapped(t *testing.T) {
 func Test_ConstructMetricName_ShouldThrow(t *testing.T) {
 	setup()
 
-	_, err := service.ConstructMetricName(10, 0, constants.Hbar, "0.0.1234-1234-1234", constants.MajorityReachedNameSuffix)
+	mocks.MAssetsService.On("IsNative", uint64(10), assetAddress).Return(false)
+
+	_, err := serviceInstance.ConstructMetricName(10, sourceNetworkId, assetAddress, transactionId, constants.MajorityReachedNameSuffix)
 
 	expectedError := fmt.Sprintf("Network id %v is missing in id to name mapping.", 10)
 	assert.Errorf(t, err, expectedError)
@@ -88,21 +97,19 @@ func Test_ConstructMetricName_ShouldThrow(t *testing.T) {
 func Test_CreateSuccessRateGaugeIfNotExists(t *testing.T) {
 	setup()
 
-	transactionId := "0.0.1234"
-	sourceChainId := constants.HederaNetworkId
-	targetChainId := constants.NetworksByName["Ethereum"]
-	asset := constants.Hbar
-	gauge, err := service.CreateSuccessRateGaugeIfNotExists(
+	mocks.MAssetsService.On("IsNative", sourceNetworkId, assetAddress).Return(true)
+
+	gauge, err := serviceInstance.CreateSuccessRateGaugeIfNotExists(
 		transactionId,
-		sourceChainId,
-		targetChainId,
-		asset,
+		sourceNetworkId,
+		targetNetworkId,
+		assetAddress,
 		gaugeSuffix,
 		gaugeOpts.Help)
 
-	fullGaugeName, err2 := service.ConstructMetricName(uint64(sourceChainId), uint64(targetChainId), asset, transactionId, gaugeSuffix)
+	fullGaugeName, err2 := serviceInstance.ConstructMetricName(sourceNetworkId, targetNetworkId, assetAddress, transactionId, gaugeSuffix)
 
-	defer service.DeleteGauge(fullGaugeName)
+	defer serviceInstance.DeleteGauge(fullGaugeName)
 
 	assert.NotNil(t, gauge)
 	assert.Nil(t, err)
@@ -112,9 +119,9 @@ func Test_CreateSuccessRateGaugeIfNotExists(t *testing.T) {
 func Test_GetGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
-	defer service.DeleteGauge(gaugeOpts.Name)
-	gaugeInMapping := service.GetGauge(gaugeOpts.Name)
+	gauge = serviceInstance.CreateGaugeIfNotExists(gaugeOpts)
+	defer serviceInstance.DeleteGauge(gaugeOpts.Name)
+	gaugeInMapping := serviceInstance.GetGauge(gaugeOpts.Name)
 
 	assert.NotNil(t, gaugeInMapping)
 }
@@ -122,10 +129,10 @@ func Test_GetGauge(t *testing.T) {
 func Test_DeleteGauge(t *testing.T) {
 	setup()
 
-	gauge = service.CreateGaugeIfNotExists(gaugeOpts)
-	service.DeleteGauge(gaugeOpts.Name)
+	gauge = serviceInstance.CreateGaugeIfNotExists(gaugeOpts)
+	serviceInstance.DeleteGauge(gaugeOpts.Name)
 
-	gaugeInMapping := service.GetGauge(gaugeOpts.Name)
+	gaugeInMapping := serviceInstance.GetGauge(gaugeOpts.Name)
 
 	assert.Nil(t, gaugeInMapping)
 }
@@ -133,8 +140,8 @@ func Test_DeleteGauge(t *testing.T) {
 func Test_CreateCounterIfNotExists(t *testing.T) {
 	setup()
 
-	counter = service.CreateCounterIfNotExists(counterOpts)
-	defer service.DeleteCounter(counterOpts.Name)
+	counter = serviceInstance.CreateCounterIfNotExists(counterOpts)
+	defer serviceInstance.DeleteCounter(counterOpts.Name)
 
 	assert.NotNil(t, counter)
 }
@@ -142,9 +149,9 @@ func Test_CreateCounterIfNotExists(t *testing.T) {
 func Test_GetCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateCounterIfNotExists(counterOpts)
-	defer service.DeleteCounter(counterOpts.Name)
-	counterInMapping := service.GetCounter(counterOpts.Name)
+	counter = serviceInstance.CreateCounterIfNotExists(counterOpts)
+	defer serviceInstance.DeleteCounter(counterOpts.Name)
+	counterInMapping := serviceInstance.GetCounter(counterOpts.Name)
 
 	assert.NotNil(t, counterInMapping)
 }
@@ -152,10 +159,10 @@ func Test_GetCounter(t *testing.T) {
 func Test_DeleteCounter(t *testing.T) {
 	setup()
 
-	counter = service.CreateCounterIfNotExists(counterOpts)
-	service.DeleteCounter(counterOpts.Name)
+	counter = serviceInstance.CreateCounterIfNotExists(counterOpts)
+	serviceInstance.DeleteCounter(counterOpts.Name)
 
-	counterInMapping := service.GetCounter(counterOpts.Name)
+	counterInMapping := serviceInstance.GetCounter(counterOpts.Name)
 
 	assert.Nil(t, counterInMapping)
 }
@@ -164,15 +171,15 @@ func setup() {
 	mocks.Setup()
 
 	for key, value := range testConstants.Networks {
-		constants.NetworksById[uint64(key)] = value.Name
-		constants.NetworksByName[value.Name] = uint64(key)
+		constants.NetworksById[key] = value.Name
+		constants.NetworksByName[value.Name] = key
 	}
 
-	service = &Service{
+	serviceInstance = &Service{
 		logger:              config.GetLoggerFor("Prometheus Service"),
 		gauges:              map[string]prometheus.Gauge{},
 		counters:            map[string]prometheus.Counter{},
-		assetsConfig:        assets,
+		assetsService:       mocks.MAssetsService,
 		isMonitoringEnabled: isMonitoringEnabled,
 	}
 }
