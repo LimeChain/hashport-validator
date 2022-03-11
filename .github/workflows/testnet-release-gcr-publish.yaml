@@ -7,6 +7,7 @@ on: push
 
 env:
   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
+  repo_name: hedera-eth-bridge-validator
   original_image_name: hedera-eth-bridge-validator:latest
 
 jobs:
@@ -22,13 +23,14 @@ jobs:
       - name: Replace lates with image tag
         shell: bash
         run: |
+          current_version=""${{ env.repo_name }}:latest"
+          echo "Current image: $current_version" &&\
           tag="v.0.0.1-rc-2" &&\
           echo $tag &&\
-          tag_escaped=${tag//./\\.}
+          tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
           echo $tag_escaped &&\
           cat ./docker-compose.yml &&\
-          echo "Current image: ${{ env.original_image_name }}" &&\
-          sed -i "s/hedera-eth-bridge-validator:latest/$tag_escaped/g" ./docker-compose.yml &&\
+          sed -i "s/$current_version/$tag_escaped/g" ./docker-compose.yml &&\
           cat ./docker-compose.yml
         
           
