@@ -7,6 +7,7 @@ on: push
 
 env:
   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
+  original_image_name: hedera-eth-bridge-validator:latest
 
 jobs:
 
@@ -21,6 +22,9 @@ jobs:
       - name: Export application config
         shell: bash
         run: |
+          cat ./docker-compose.yml \
+          echo "${{ env.original_image_name }}" \
+          sed -i '' "s/hedera-eth-bridge-validator:latest/hedera-eth-bridge-validator:v\.0\.0\.1-rc-2/g" ./docker-compose.yml \
           cat ./docker-compose.yml
           
 #       - name: Setup GCloud SDK
