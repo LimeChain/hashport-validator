@@ -22,15 +22,14 @@ jobs:
       
       - name: Replace lates with image tag
         shell: bash
-        run: |
-          echo "Repository name ${{ github.event.repository.name }}"
-          
+#         tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
+        run: |          
           current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
           
           tag="v0.0.1-rc-2" &&\
           echo $tag &&\
-          tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
+          tag_escaped="${{ github.event.repository.name }}:${tag//./\\.}"
           echo $tag_escaped &&\
           
           cat ./docker-compose.yml &&\
