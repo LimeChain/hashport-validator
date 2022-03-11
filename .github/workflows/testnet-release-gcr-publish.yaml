@@ -1,4 +1,4 @@
-name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
+name: Test workflows
 
 on:
   release: 
@@ -32,7 +32,7 @@ jobs:
           current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
           
-          tag="v0.0.1-rc-2" &&\
+          tag=${{ github.event.release.tag_name }} &&\
           echo $tag &&\
           tag_escaped="${{ github.event.repository.name }}:${tag//./\\.}"
           echo $tag_escaped &&\
