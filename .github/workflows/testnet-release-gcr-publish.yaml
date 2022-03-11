@@ -23,6 +23,8 @@ jobs:
       - name: Replace lates with image tag
         shell: bash
         run: |
+          echo "Repository name ${{ github.event.repository.name }}"
+          
           current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
           
