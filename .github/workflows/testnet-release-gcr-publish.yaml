@@ -19,10 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Export application config
+      - name: Replace lates with image tag
         shell: bash
         run: |
-          cat ./docker-compose.yml
+          cat ./docker-compose.yml \
+          echo "test"
         
 #         run: |
 #           cat ./docker-compose.yml \
