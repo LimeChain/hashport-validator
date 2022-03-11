@@ -495,6 +495,11 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		}
 	}
 
+	if properAmount.Cmp(big.NewInt(0)) == 0 {
+		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+		return
+	}
+
 	nativeAsset := ew.assetsService.FungibleNativeAsset(sourceChainId, token)
 	tokenPriceInfo, exist := ew.pricingService.GetTokenPriceInfo(sourceChainId, nativeAsset.Asset)
 	if !exist {
