@@ -963,6 +963,30 @@ func (_Router *RouterCaller) TokenFeeData(opts *bind.CallOpts, _token common.Add
 
 }
 
+// TokenFeeData is a free data retrieval call binding the contract method 0xeb6fc3b1.
+//
+// Solidity: function tokenFeeData(address _token) view returns(uint256 serviceFeePercentage, uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
+func (_Router *RouterSession) TokenFeeData(_token common.Address) (struct {
+	ServiceFeePercentage *big.Int
+	FeesAccrued          *big.Int
+	PreviousAccrued      *big.Int
+	Accumulator          *big.Int
+}, error) {
+	return _Router.Contract.TokenFeeData(&_Router.CallOpts, _token)
+}
+
+// TokenFeeData is a free data retrieval call binding the contract method 0xeb6fc3b1.
+//
+// Solidity: function tokenFeeData(address _token) view returns(uint256 serviceFeePercentage, uint256 feesAccrued, uint256 previousAccrued, uint256 accumulator)
+func (_Router *RouterCallerSession) TokenFeeData(_token common.Address) (struct {
+	ServiceFeePercentage *big.Int
+	FeesAccrued          *big.Int
+	PreviousAccrued      *big.Int
+	Accumulator          *big.Int
+}, error) {
+	return _Router.Contract.TokenFeeData(&_Router.CallOpts, _token)
+}
+
 // TotalPaymentTokens is a free data retrieval call binding the contract method 0xb6707500.
 //
 // Solidity: function totalPaymentTokens() view returns(uint256)
