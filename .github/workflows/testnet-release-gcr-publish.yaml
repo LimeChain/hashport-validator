@@ -25,10 +25,12 @@ jobs:
         run: |
           current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
-          tag="v.0.0.1-rc-2" &&\
+          
+          tag="v0.0.1-rc-2" &&\
           echo $tag &&\
           tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
           echo $tag_escaped &&\
+          
           cat ./docker-compose.yml &&\
           sed -i "s/$current_version/$tag_escaped/g" ./docker-compose.yml &&\
           cat ./docker-compose.yml
