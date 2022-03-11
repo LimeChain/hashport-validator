@@ -23,7 +23,7 @@ jobs:
       - name: Replace lates with image tag
         shell: bash
         run: |
-          current_version=""${{ env.repo_name }}:latest"
+          current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
           tag="v.0.0.1-rc-2" &&\
           echo $tag &&\
