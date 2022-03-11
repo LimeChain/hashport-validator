@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           cat ./docker-compose.yml &&\
-          echo "test"
+          echo "Current image: ${{ env.original_image_name }}"
         
 #         run: |
 #           cat ./docker-compose.yml \
