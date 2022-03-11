@@ -1,12 +1,12 @@
 name: Testnet Build and Publish Image to GCR #TODO: different name for mainnet
 
-# on:
-#   release: 
-#     types: [published]
-on: push
+on:
+  release: 
+    types: [published]
+# on: push
 
 env:
-  copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
+#   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
   repo_name: hedera-eth-bridge-validator
   original_image_name: hedera-eth-bridge-validator:latest
 
@@ -14,16 +14,21 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-#     if: |
-#       contains(github.event.release.tag_name, '-rc-') &&
-#       github.event.release.target_commitish == 'test/workflows'
+    if: |
+      contains(github.event.release.tag_name, '-rc-') &&
+      github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
+      
+      
+      
       
       - name: Replace lates with image tag
         shell: bash
 #         tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
-        run: |          
+        run: |  
+          echo "TAG version ${{ github.event.release.tag_name }}"
+          
           current_version="${{ env.repo_name }}:latest"
           echo "Current image: $current_version" &&\
           
@@ -36,7 +41,13 @@ jobs:
           sed -i "s/$current_version/$tag_escaped/g" ./docker-compose.yml &&\
           cat ./docker-compose.yml
         
-          
+         
+         
+         
+         
+         
+         
+         
 #       - name: Setup GCloud SDK
 #         uses: google-github-actions/setup-gcloud@v0.2.0
 #         with:
