@@ -17,19 +17,18 @@ jobs:
 #       github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
-
+      
+      - name: Export application config
+        shell: bash
+        run: |
+          cat ./docker-compose.yml
+          
 #       - name: Setup GCloud SDK
 #         uses: google-github-actions/setup-gcloud@v0.2.0
 #         with:
 #           project_id: ${{ secrets.GCP_PROJECT }}
 #           service_account_key: ${{ secrets.GCP_CE_KEY }}
-    
-      - name: Dispatch image release event
-        uses: peter-evans/repository-dispatch@v1.1.3
-        with:
-          token: ${{ secrets.REPO_GHA_PAT }}
-          repository: ${{ github.repository }}
-          event-type: TEST-trigger-image-release
+
 
       - run: echo "release.target_commitish ${{ github.event.release.target_commitish }}"
       - run: echo "release.tag_name ${{ github.event.release.tag_name }}"
@@ -42,6 +41,13 @@ jobs:
 
 #         run: gcloud compute scp --recurse ~/monitoring ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
 
+    
+#       - name: Dispatch image release event
+#         uses: peter-evans/repository-dispatch@v1.1.3
+#         with:
+#           token: ${{ secrets.REPO_GHA_PAT }}
+#           repository: ${{ github.repository }}
+#           event-type: TEST-trigger-image-release
 
 #         run: |
 #           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
