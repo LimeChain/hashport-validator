@@ -22,10 +22,13 @@ jobs:
       - name: Export application config
         shell: bash
         run: |
-          cat ./docker-compose.yml \
-          echo "${{ env.original_image_name }}" \
-          sed -i '' "s/hedera-eth-bridge-validator:latest/hedera-eth-bridge-validator:v\.0\.0\.1-rc-2/g" ./docker-compose.yml \
           cat ./docker-compose.yml
+        
+#         run: |
+#           cat ./docker-compose.yml \
+#           echo "${{ env.original_image_name }}" \
+#           sed -i '' "s/hedera-eth-bridge-validator:latest/hedera-eth-bridge-validator:v\.0\.0\.1-rc-2/g" ./docker-compose.yml \
+#           cat ./docker-compose.yml
           
 #       - name: Setup GCloud SDK
 #         uses: google-github-actions/setup-gcloud@v0.2.0
