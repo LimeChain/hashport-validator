@@ -47,7 +47,7 @@ type Service struct {
 	coinMarketCapIds      map[uint64]map[string]string
 	coinGeckoIds          map[uint64]map[string]string
 	tokensPriceInfo       map[uint64]map[string]pricing.TokenPriceInfo
-	minAmountsForApi      map[uint64]map[string]*big.Int
+	minAmountsForApi      map[uint64]map[string]string
 	hbarFungibleAssetInfo asset.FungibleAssetInfo
 	hbarNativeAsset       *asset.NativeAsset
 	logger                *log.Entry
@@ -60,10 +60,10 @@ func NewService(bridgeConfig config.Bridge,
 	coinMarketCapClient client.Pricing) *Service {
 	initOnce.Do(func() {
 		tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
-		minAmountsForApi := make(map[uint64]map[string]*big.Int)
+		minAmountsForApi := make(map[uint64]map[string]string)
 		for networkId := range constants.NetworksById {
 			tokensPriceInfo[networkId] = make(map[string]pricing.TokenPriceInfo)
-			minAmountsForApi[networkId] = make(map[string]*big.Int)
+			minAmountsForApi[networkId] = make(map[string]string)
 		}
 
 		logger := config.GetLoggerFor("Pricing Service")
@@ -132,7 +132,7 @@ func (s *Service) FetchAndUpdateUsdPrices(initialFetch bool) error {
 	return nil
 }
 
-func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]*big.Int {
+func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	s.minAmountsForApiMutex.RLock()
 	defer s.minAmountsForApiMutex.RUnlock()
 
@@ -188,7 +188,7 @@ func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, deci
 
 func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, tokenPriceInfo pricing.TokenPriceInfo) error {
 	s.tokensPriceInfo[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo
-	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee
+	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee.String()
 
 	msgTemplate := "Updating UsdPrice [%s] and MinAmountWithFee [%s] for %s asset [%s]"
 	s.logger.Infof(msgTemplate, tokenPriceInfo.UsdPrice.String(), tokenPriceInfo.MinAmountWithFee.String(), "native", nativeAsset.Asset)
@@ -211,7 +211,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
-		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee
+		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee.String()
 		s.logger.Infof(msgTemplate, tokenPriceInfo.UsdPrice.String(), wrappedMinAmountWithFee.String(), "wrapped", wrappedToken)
 	}
 

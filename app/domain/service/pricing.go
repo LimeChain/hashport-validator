@@ -18,7 +18,6 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
-	"math/big"
 )
 
 type Pricing interface {
@@ -27,5 +26,5 @@ type Pricing interface {
 	// FetchAndUpdateUsdPrices fetches all prices from the Web APIs and updates them in the mapping
 	FetchAndUpdateUsdPrices(initialFetch bool) error
 	// GetMinAmountsForAPI getting all prices by networkId
-	GetMinAmountsForAPI() map[uint64]map[string]*big.Int
+	GetMinAmountsForAPI() map[uint64]map[string]string
 }

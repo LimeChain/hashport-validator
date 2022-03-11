@@ -19,7 +19,6 @@ package service
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 	"github.com/stretchr/testify/mock"
-	"math/big"
 )
 
 type MockPricingService struct {
@@ -43,9 +42,9 @@ func (mas *MockPricingService) FetchAndUpdateUsdPrices(initialFetch bool) error 
 }
 
 // GetMinAmountsForAPI getting all prices by networkId
-func (mas *MockPricingService) GetMinAmountsForAPI() map[uint64]map[string]*big.Int {
+func (mas *MockPricingService) GetMinAmountsForAPI() map[uint64]map[string]string {
 	args := mas.Called()
-	result := args.Get(0).(map[uint64]map[string]*big.Int)
+	result := args.Get(0).(map[uint64]map[string]string)
 
 	return result
 }
