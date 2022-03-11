@@ -116,11 +116,11 @@ func New(node parser.Node) Node {
 func parseRpc(rpcClients map[string]string) map[string]hedera.AccountID {
 	res := make(map[string]hedera.AccountID)
 	for key, value := range rpcClients {
-		nodeAccoundID, err := hedera.AccountIDFromString(value)
+		nodeAccountID, err := hedera.AccountIDFromString(value)
 		if err != nil {
 			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
 		}
-		res[key] = nodeAccoundID
+		res[key] = nodeAccountID
 	}
 	return res
 }
