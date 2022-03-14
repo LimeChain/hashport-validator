@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package main
+package bootstrap
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/database"
@@ -28,23 +28,23 @@ import (
 
 // Repositories struct holding the referenced repositories
 type Repositories struct {
-	transferStatus repository.Status
-	messageStatus  repository.Status
-	transfer       repository.Transfer
-	message        repository.Message
-	fee            repository.Fee
-	schedule       repository.Schedule
+	TransferStatus repository.Status
+	MessageStatus  repository.Status
+	Transfer       repository.Transfer
+	Message        repository.Message
+	Fee            repository.Fee
+	Schedule       repository.Schedule
 }
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
 func PrepareRepositories(db database.Database) *Repositories {
 	connection := db.GetConnection()
 	return &Repositories{
-		transferStatus: status.NewRepositoryForStatus(connection, status.Transfer),
-		messageStatus:  status.NewRepositoryForStatus(connection, status.Message),
-		transfer:       transfer.NewRepository(connection),
-		message:        message.NewRepository(connection),
-		fee:            fee.NewRepository(connection),
-		schedule:       schedule.NewRepository(connection),
+		TransferStatus: status.NewRepositoryForStatus(connection, status.Transfer),
+		MessageStatus:  status.NewRepositoryForStatus(connection, status.Message),
+		Transfer:       transfer.NewRepository(connection),
+		Message:        message.NewRepository(connection),
+		Fee:            fee.NewRepository(connection),
+		Schedule:       schedule.NewRepository(connection),
 	}
 }
