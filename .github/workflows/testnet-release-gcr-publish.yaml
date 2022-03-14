@@ -25,5 +25,4 @@ jobs:
 
       - name: Copy files
         run: |
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/config.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager
