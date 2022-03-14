@@ -1,9 +1,9 @@
 name: Test workflows
 
-# on:
-#   release: 
-#     types: [published]
-on: push
+on:
+  release: 
+    types: [published]
+# on: push
 
 env:
 #   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
@@ -15,9 +15,9 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-#     if: |
-#       contains(github.event.release.tag_name, '-rc-') &&
-#       github.event.release.target_commitish == 'test/workflows'
+    if: |
+      contains(github.event.release.tag_name, '-rc-') &&
+      github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
       
@@ -26,12 +26,10 @@ jobs:
         run: |
           touch .env &&\
           echo "POSTGRES_VERSION=9.6-alpine" >> .env &&\
-          echo "VALIDATOR_VERSION=" >> .env &&\
+          echo "VALIDATOR_VERSION=${{ github.event.release.tag_name }}" >> .env &&\
           echo "PROMETHEUS_VERSION=v2.33.5" >> .env &&\
           echo "GRAFANA_VERSION=8.4.3" >> .env &&\
-          echo "****CAT ENV START ******" &&\
-          cat .env &&\
-          echo "*****CAT ENV END *****" &&\
+          echo "**********" &&\
           cat .env
 
 
