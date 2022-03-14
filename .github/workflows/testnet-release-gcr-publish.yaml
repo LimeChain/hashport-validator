@@ -29,10 +29,16 @@ jobs:
 
       - name: Copy folders
         run: |
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager ./monitoring/alertmanager --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards ./monitoring/grafana/provisioning/dashboards --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources ./monitoring/grafana/provisioning/datasources --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus ./monitoring/prometheus --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ./monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+        
+
+
+#       - name: Copy folders
+#         run: |
+#          gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager ./monitoring/alertmanager --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
+#          gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards ./monitoring/grafana/provisioning/dashboards --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
+#          gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources ./monitoring/grafana/provisioning/datasources --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} && \
+#          gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus ./monitoring/prometheus --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
         
 
 
