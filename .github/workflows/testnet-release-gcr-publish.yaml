@@ -1,9 +1,9 @@
 name: Test workflows
 
-on:
-  release: 
-    types: [published]
-# on: push
+# on:
+#   release: 
+#     types: [published]
+on: push
 
 env:
 #   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
@@ -15,23 +15,31 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    if: |
-      contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'test/workflows'
+#     if: |
+#       contains(github.event.release.tag_name, '-rc-') &&
+#       github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
       
-      - name: Replace lates with image tag
+      - name: Create .env file with versions
         shell: bash
-        run: |  
-          echo "TAG version ${{ github.event.release.tag_name }}" &&\
-          TAG=${{ github.event.release.tag_name }} &&\
-          echo "TAG version ${TAG}" &&\
-          echo "TEST TAG version ${{ env.TEST_TAG }}" &&\
-          cat ./docker-compose.yml
+        run: |
+          touch .env &&\
+          echo "POSTGRES_VERSION=9.6-alpine" >> .env &&\
+          echo "VALIDATOR_VERSION=" >> .env &&\
+          echo "PROMETHEUS_VERSION=v2.33.5" >> .env &&\
+          echo "GRAFANA_VERSION=8.4.3" >> .env &&\
+          cat .env
 
-      
-      
+
+#         run: |  
+#           echo "TAG version ${{ github.event.release.tag_name }}" &&\
+#           TAG=${{ github.event.release.tag_name }} &&\
+#           echo "TAG version ${TAG}" &&\
+#           echo "TEST TAG version ${{ env.TEST_TAG }}" &&\
+#           cat ./docker-compose.yml
+          
+          
 #       - name: Replace lates with image tag
 #         shell: bash
 # #         tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
