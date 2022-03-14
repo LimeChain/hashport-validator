@@ -28,6 +28,8 @@ jobs:
       - name: Copy files
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/dashboards/dashboards_provider.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/datasources/datasources.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/config.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/prometheus.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
