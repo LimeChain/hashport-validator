@@ -21,8 +21,10 @@ jobs:
       - name: Export application config
         shell: bash
         run: |
-          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml
 
       - name: Copy files
         run: |
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ~/monitoring/alertmanager ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/config.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager
