@@ -9,6 +9,7 @@ env:
 #   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
   repo_name: hedera-eth-bridge-validator
   original_image_name: hedera-eth-bridge-validator:latest
+  TEST_TAG: ${{ github.event.release.tag_name }}
 
 jobs:
 
@@ -26,6 +27,7 @@ jobs:
           echo "TAG version ${{ github.event.release.tag_name }}" &&\
           TAG=${{ github.event.release.tag_name }} &&\
           echo "TAG version ${TAG}" &&\
+          echo "TEST TAG version ${TAG}" &&\
           cat ./docker-compose.yml
 
       
