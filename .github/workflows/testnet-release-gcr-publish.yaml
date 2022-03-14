@@ -21,8 +21,7 @@ jobs:
       - name: Export application config
         shell: bash
         run: |
-          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
-          echo "${{ secrets.APP_TESTNET_DASHBOARD }}" > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml
 
       - name: Copy files
         run: |
