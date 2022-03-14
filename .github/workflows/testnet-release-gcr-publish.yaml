@@ -27,7 +27,7 @@ jobs:
           echo "TAG version ${{ github.event.release.tag_name }}" &&\
           TAG=${{ github.event.release.tag_name }} &&\
           echo "TAG version ${TAG}" &&\
-          echo "TEST TAG version ${TAG}" &&\
+          echo "TEST TAG version ${{ env.TAG }}" &&\
           cat ./docker-compose.yml
 
       
