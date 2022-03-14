@@ -29,7 +29,7 @@ jobs:
 
       - name: Copy folders
         run: |
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager ~/monitoring/alertmanager
+         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager ~/monitoring/alertmanager --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
         
 
 #       - name: Copy files
