@@ -1,9 +1,9 @@
 name: Test workflows
 
-on:
-  release: 
-    types: [published]
-# on: push
+# on:
+#   release: 
+#     types: [published]
+on: push
 
 env:
 #   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
@@ -15,22 +15,42 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    if: |
-      contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'test/workflows'
+#     if: |
+#       contains(github.event.release.tag_name, '-rc-') &&
+#       github.event.release.target_commitish == 'test/workflows'
     steps:
       - uses: actions/checkout@v2
       
-      - name: Create .env file with versions
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export application config
         shell: bash
         run: |
-          touch .env &&\
-          echo "POSTGRES_VERSION=9.6-alpine" >> .env &&\
-          echo "VALIDATOR_VERSION=${{ github.event.release.tag_name }}" >> .env &&\
-          echo "PROMETHEUS_VERSION=v2.33.5" >> .env &&\
-          echo "GRAFANA_VERSION=8.4.3" >> .env &&\
-          echo "**********" &&\
-          cat .env
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+          echo "${{ secrets.APP_TESTNET_DASHBOARD }}" > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
+
+      - name: Copy files
+        run: |
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/dashboards/dashboards_provider.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/datasources/datasources.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources
+
+#       - name: Create .env file with versions
+#         shell: bash
+#         run: |
+#           touch .env &&\
+#           echo "POSTGRES_VERSION=9.6-alpine" >> .env &&\
+#           echo "VALIDATOR_VERSION=${{ github.event.release.tag_name }}" >> .env &&\
+#           echo "PROMETHEUS_VERSION=v2.33.5" >> .env &&\
+#           echo "GRAFANA_VERSION=8.4.3" >> .env &&\
+#           echo "**********" &&\
+#           cat .env
 
 
 #         run: |  
