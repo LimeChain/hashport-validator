@@ -20,26 +20,33 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      
-      
-      
       - name: Replace lates with image tag
         shell: bash
-#         tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
         run: |  
-          echo "TAG version ${{ github.event.release.tag_name }}"
-          
-          current_version="${{ env.repo_name }}:latest"
-          echo "Current image: $current_version" &&\
-          
-          tag=${{ github.event.release.tag_name }} &&\
-          echo $tag &&\
-          tag_escaped="${{ github.event.repository.name }}:${tag//./\\.}"
-          echo $tag_escaped &&\
-          
-          cat ./docker-compose.yml &&\
-          sed -i "s/$current_version/$tag_escaped/g" ./docker-compose.yml &&\
+          echo "TAG version ${{ github.event.release.tag_name }}" &&\
+          TAG=${{ github.event.release.tag_name }} &&\
+          echo "TAG version ${TAG}" &&\
           cat ./docker-compose.yml
+
+      
+      
+#       - name: Replace lates with image tag
+#         shell: bash
+# #         tag_escaped="${{ env.repo_name }}:${tag//./\\.}"
+#         run: |  
+#           echo "TAG version ${{ github.event.release.tag_name }}"
+          
+#           current_version="${{ env.repo_name }}:latest"
+#           echo "Current image: $current_version" &&\
+          
+#           tag=${{ github.event.release.tag_name }} &&\
+#           echo $tag &&\
+#           tag_escaped="${{ github.event.repository.name }}:${tag//./\\.}"
+#           echo $tag_escaped &&\
+          
+#           cat ./docker-compose.yml &&\
+#           sed -i "s/$current_version/$tag_escaped/g" ./docker-compose.yml &&\
+#           cat ./docker-compose.yml
         
          
          
