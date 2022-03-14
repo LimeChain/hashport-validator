@@ -16,7 +16,7 @@ services:
       - 5432:5432
 
   validator:
-    image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:latest
+    image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:${TAG}
     environment:
       VALIDATOR_DATABASE_HOST: db
     restart: always

@@ -40,7 +40,7 @@ After you have run the database and compiled the node, you need to have the nece
 ```shell
 ./node
 ```
-
+Also replace the `${TAG}` in the `docker-compose.yml` > `image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:${TAG}` with `latest` or with the version that you want to build.
 ### Unit Tests
 In order to run the unit tests, one must execute the following command:
 ```shell
