@@ -29,10 +29,10 @@ jobs:
           echo "VALIDATOR_VERSION=" >> .env &&\
           echo "PROMETHEUS_VERSION=v2.33.5" >> .env &&\
           echo "GRAFANA_VERSION=8.4.3" >> .env &&\
-          echo "**********" &&\
+          echo "****CAT ENV START ******" &&\
           cat .env &&\
-          echo "**********" &&\
-          echo .env
+          echo "*****CAT ENV END *****" &&\
+          cat .env
 
 
 #         run: |  
