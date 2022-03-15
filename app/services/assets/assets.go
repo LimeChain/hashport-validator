@@ -20,7 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	assetModel "github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -39,7 +38,7 @@ type Service struct {
 	wrappedToNative map[uint64]map[string]*assetModel.NativeAsset
 	// A mapping, storing all fungible tokens per network
 	fungibleNetworkAssets map[uint64][]string
-	// A mapping, storing all fungible native assets per network
+	// A mapping, storing all fungible native serviceInstance per network
 	fungibleNativeAssets map[uint64]map[string]*assetModel.NativeAsset
 	// A mapping, storing name and symbol for asset per network
 	fungibleAssetInfos map[uint64]map[string]assetModel.FungibleAssetInfo
@@ -67,12 +66,12 @@ func (a *Service) WrappedToNative(wrappedAsset string, wrappedChainId uint64) *a
 	return a.wrappedToNative[wrappedChainId][wrappedAsset]
 }
 
-func (a *Service) FungibleNetworkAssets(id uint64) []string {
-	return a.fungibleNetworkAssets[id]
+func (a *Service) FungibleNetworkAssets(chainId uint64) []string {
+	return a.fungibleNetworkAssets[chainId]
 }
 
-func (a *Service) FungibleNativeAsset(id uint64, asset string) *assetModel.NativeAsset {
-	return a.fungibleNativeAssets[id][asset]
+func (a *Service) FungibleNativeAsset(nativeChainId uint64, nativeAssetAddress string) *assetModel.NativeAsset {
+	return a.fungibleNativeAssets[nativeChainId][nativeAssetAddress]
 }
 
 func (a *Service) IsNative(networkId uint64, asset string) bool {
@@ -80,22 +79,22 @@ func (a *Service) IsNative(networkId uint64, asset string) bool {
 	return isNative
 }
 
-func (a *Service) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, asset string) string {
-	nativeAssetForTargetChain := a.WrappedToNative(asset, sourceChainId)
+func (a *Service) GetOppositeAsset(chainOne uint64, chainTwo uint64, asset string) string {
+	nativeAssetForTargetChain := a.WrappedToNative(asset, chainOne)
 	if nativeAssetForTargetChain != nil {
 		return nativeAssetForTargetChain.Asset
 	}
 
-	nativeAssetForSourceChain := a.WrappedToNative(asset, targetChainId)
+	nativeAssetForSourceChain := a.WrappedToNative(asset, chainTwo)
 	if nativeAssetForSourceChain != nil {
 		return nativeAssetForSourceChain.Asset
 	}
 
-	if a.IsNative(sourceChainId, asset) {
-		return a.NativeToWrapped(asset, sourceChainId, targetChainId)
+	if a.IsNative(chainOne, asset) {
+		return a.NativeToWrapped(asset, chainOne, chainTwo)
 	}
 
-	return a.NativeToWrapped(asset, targetChainId, sourceChainId)
+	return a.NativeToWrapped(asset, chainTwo, chainOne)
 }
 
 func (a *Service) GetFungibleAssetInfo(networkId uint64, assetAddressOrId string) (assetInfo assetModel.FungibleAssetInfo, exist bool) {
@@ -104,30 +103,24 @@ func (a *Service) GetFungibleAssetInfo(networkId uint64, assetAddressOrId string
 	return assetInfo, exist
 }
 
-func (a *Service) getEVMFungibleAssetInfo(networkId uint64, assetAddress string, EVMClients map[uint64]client.EVM) (assetInfo assetModel.FungibleAssetInfo, err error) {
-	evm := EVMClients[networkId].GetClient()
+func (a *Service) getEVMFungibleAssetInfo(networkId uint64, assetAddress string, evmTokenClients map[uint64]map[string]client.EVMToken) (assetInfo assetModel.FungibleAssetInfo, err error) {
 
-	evmAssetInstance, err := wtoken.NewWtoken(common.HexToAddress(assetAddress), evm)
+	evmTokenClient := evmTokenClients[networkId][assetAddress]
+	name, err := evmTokenClient.Name(&bind.CallOpts{})
 	if err != nil {
-		a.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method NewWtoken - Error: [%s]", networkId, assetAddress, err)
-		return assetInfo, err
-	}
-
-	name, err := evmAssetInstance.Name(&bind.CallOpts{})
-	if err != nil {
-		a.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Name - Error: [%s]", networkId, assetAddress, err)
+		a.logger.Errorf("Failed to get Name for Asset [%s] for EVM with networkId [%d]  - Error: [%s]", assetAddress, networkId, err)
 		return assetInfo, err
 	}
 	assetInfo.Name = name
 
-	symbol, err := evmAssetInstance.Symbol(&bind.CallOpts{})
+	symbol, err := evmTokenClient.Symbol(&bind.CallOpts{})
 	if err != nil {
 		a.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Symbol - Error: [%s]", networkId, assetAddress, err)
 		return assetInfo, err
 	}
 	assetInfo.Symbol = symbol
 
-	decimals, err := evmAssetInstance.Decimals(&bind.CallOpts{})
+	decimals, err := evmTokenClient.Decimals(&bind.CallOpts{})
 	if err != nil {
 		a.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Decimals - Error: [%s]", networkId, assetAddress, err)
 		return assetInfo, err
@@ -157,12 +150,8 @@ func (a *Service) getHederaFungibleAssetInfo(assetId string, mirrorNode client.M
 	return assetInfo, err
 }
 
-func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, EVMClients map[uint64]client.EVM) {
+func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EVMToken) {
 	a.fungibleAssetInfos = make(map[uint64]map[string]assetModel.FungibleAssetInfo)
-
-	if len(EVMClients) == 0 {
-		return
-	}
 
 	re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
 
@@ -189,7 +178,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 				}
 			} else { // EVM
 				nativeAsset = common.HexToAddress(nativeAsset).String()
-				assetInfo, err = a.getEVMFungibleAssetInfo(nativeChainId, nativeAsset, EVMClients)
+				assetInfo, err = a.getEVMFungibleAssetInfo(nativeChainId, nativeAsset, evmTokenClients)
 				if err != nil {
 					a.logger.Fatalf("Failed to load EVM NetworkId [%v] Fungible Asset Info. Error [%v]", nativeChainId, err)
 				}
@@ -212,7 +201,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 					}
 				} else { // EVM
 					wrappedAsset = common.HexToAddress(wrappedAsset).String()
-					assetInfo, err = a.getEVMFungibleAssetInfo(wrappedChainId, wrappedAsset, EVMClients)
+					assetInfo, err = a.getEVMFungibleAssetInfo(wrappedChainId, wrappedAsset, evmTokenClients)
 					if err != nil {
 						a.logger.Fatalf("Failed to load EVM NetworkId [%v] Fungible Asset Info. Error [%v]", wrappedChainId, err)
 					}
@@ -224,7 +213,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 	}
 }
 
-func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[string]int64, routerClients map[uint64]*router.Router, mirrorNode client.MirrorNode, EVMClients map[uint64]client.EVM) *Service {
+func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[string]int64, routerClients map[uint64]*router.Router, mirrorNode client.MirrorNode, EVMTokenClients map[uint64]map[string]client.EVMToken) *Service {
 	nativeToWrapped := make(map[uint64]map[string]map[uint64]string)
 	wrappedToNative := make(map[uint64]map[string]*assetModel.NativeAsset)
 	fungibleNetworkAssets := make(map[uint64][]string)
@@ -321,9 +310,9 @@ func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[st
 		wrappedToNative:       wrappedToNative,
 		fungibleNativeAssets:  fungibleNativeAssets,
 		fungibleNetworkAssets: fungibleNetworkAssets,
-		logger:                config.GetLoggerFor("Service"),
+		logger:                config.GetLoggerFor("Assets Service"),
 	}
-	instance.loadFungibleAssetInfos(networks, mirrorNode, EVMClients)
+	instance.loadFungibleAssetInfos(networks, mirrorNode, EVMTokenClients)
 
 	return instance
 }

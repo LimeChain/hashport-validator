@@ -136,3 +136,53 @@ func (m *MockEVMClient) BlockConfirmations() uint64 {
 
 	return args.Get(0).(uint64)
 }
+
+func (m *MockEVMClient) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
+	args := m.Called(ctx, contract, blockNumber)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockEVMClient) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
+	args := m.Called(ctx, call, blockNumber)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockEVMClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	args := m.Called(ctx, number)
+	return args.Get(0).(*types.Header), args.Error(1)
+}
+
+func (m *MockEVMClient) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+	args := m.Called(ctx, account)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockEVMClient) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	args := m.Called(ctx, account)
+	return args.Get(0).(uint64), args.Error(1)
+}
+
+func (m *MockEVMClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+func (m *MockEVMClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+func (m *MockEVMClient) EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error) {
+	args := m.Called(ctx, call)
+	return args.Get(0).(uint64), args.Error(1)
+}
+
+func (m *MockEVMClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+	args := m.Called(ctx, tx)
+	return args.Error(0)
+}
+
+func (m *MockEVMClient) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+	args := m.Called(ctx, query, ch)
+	return args.Get(0).(ethereum.Subscription), args.Error(1)
+}
