@@ -146,6 +146,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    env_file: ./monitoring/grafana/config-overrides.env
     ports:
       - 3000:3000
     volumes:

@@ -40,7 +40,7 @@ After you have run the database and compiled the node, you need to have the nece
 ```shell
 ./node
 ```
-
+Also replace the `${TAG}` in the `docker-compose.yml` > `image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:${TAG}` with `latest` or with the version that you want to build.
 ### Unit Tests
 In order to run the unit tests, one must execute the following command:
 ```shell
@@ -99,4 +99,4 @@ By default, the Prometheus service is on port `9090`. The Grafana one is on port
 - The default metrics path is set on `:9090/metrics`. The Prometheus UI is available on `:9090/graph`.
 - The validator's metrics are on `:<VALIDATORS_HOST_PORT>/api/v1/metrics`.
 For the `validator` example `:80/api/v1/metrics` and for the `alice` example `:6200/api/v1/metrics`
-   
+- The default credentials for Grafana are configurable through the `config-overrides.env` files in `./monitoring/grafana/` in the respective deployments folders.
