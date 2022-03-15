@@ -19,6 +19,13 @@ scrape_configs:
     - targets:
       - validator:5200 #inside port of the validator
 
+#  - job_name: health-check
+#    scrape_interval: 15s
+#    metrics_path: /api/v1/metrics
+#    static_configs:
+#      - targets:
+#          - 0.0.0.0:80 # IP:PORT of the health-check service
+
 # Rules and alerts are read from the specified file(s)
 rule_files:
   - rules.yml

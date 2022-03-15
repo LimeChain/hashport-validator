@@ -1,0 +1,140 @@
+name: Testnet - Deploy three validators network
+
+on:
+  repository_dispatch:
+    types: [trigger-testnet-image-release]
+
+env:
+  refresh_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d db validator
+  refresh_metrics_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
+  copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
+
+jobs:
+  deploy_testnet_alice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export docker .env
+        shell: bash
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_ALICE_CONFIG }}" > ./node.yml && \
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
+
+      - name: Copy files
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
+
+      - name: Refresh images and containers
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.refresh_containers_command }}"
+
+  deploy_testnet_bob:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export docker .env
+        shell: bash
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_BOB_CONFIG }}" > ./node.yml && \
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
+
+      - name: Copy files
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.copy_logs_command }}"
+
+      - name: Refresh images and containers
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.refresh_containers_command }}"
+
+  deploy_testnet_carol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export docker .env
+        shell: bash
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_CAROL_CONFIG }}" > ./node.yml && \
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
+
+      - name: Copy files
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.copy_logs_command }}"
+
+      - name: Refresh images and containers
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.refresh_containers_command }}"
+
+  deploy_testnet_dave:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_CE_KEY }}
+
+      - name: Export docker .env
+        shell: bash
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_DAVE_CONFIG }}" > ./node.yml && \
+          echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml && \
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+          echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
+
+      - name: Copy files
+        run: |
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~ && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/config.yml ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/dashboards/dashboards_provider.yml ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/datasources/datasources.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/prometheus.yml ./monitoring/prometheus/rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
+
+      - name: Copy logs
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.copy_logs_command }}"
+
+      - name: Refresh images and containers
+        run: gcloud compute ssh ${{ secrets.APP_TESTNET_DAVE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} --command="${{ env.refresh_metrics_containers_command }}"
