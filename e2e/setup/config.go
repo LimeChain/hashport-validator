@@ -34,6 +34,7 @@ import (
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	evm_signer "github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
+	"github.com/limechain/hedera-eth-bridge-validator/bootstrap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -90,11 +91,10 @@ func Load() *Setup {
 		panic(err)
 	}
 
-	routerClients, evmClients := getRouterAndEVMClientsFromEVMUtils(setup.Clients.EVM)
-	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmClients)
+	routerClients, evmTokenClients := getRouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmTokenClients)
 
 	return setup
-
 }
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
@@ -186,15 +186,19 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func getRouterAndEVMClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmClients map[uint64]client.EVM) {
+func getRouterAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmTokenClients map[uint64]map[string]client.EVMToken) {
 	routerClients = make(map[uint64]*router.Router)
-	evmClients = make(map[uint64]client.EVM)
+	evmTokenClients = make(map[uint64]map[string]client.EVMToken)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract
-		evmClients[networkId] = evmUtil.EVMClient
+
+		evmTokenClients[networkId] = make(map[string]client.EVMToken)
+		for tokenAddress, evmTokenClient := range evmUtil.EVMTokenClients {
+			evmTokenClients[networkId][tokenAddress] = evmTokenClient
+		}
 	}
 
-	return routerClients, evmClients
+	return routerClients, evmTokenClients
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -205,8 +209,10 @@ func newClients(config Config) (*clients, error) {
 	}
 
 	EVM := make(map[uint64]EVMUtils)
+	evmClients := make(map[uint64]client.EVM)
 	for configChainId, conf := range config.EVM {
 		evmClient := evm.NewClient(conf, configChainId)
+		evmClients[configChainId] = evmClient
 		clientChainId, e := evmClient.ChainID(context.Background())
 		if e != nil {
 			return nil, errors.New("failed to retrieve chain ID on new client")
@@ -233,6 +239,14 @@ func newClients(config Config) (*clients, error) {
 			Receiver:              common.HexToAddress(signer.Address()),
 			RouterAddress:         routerContractAddress,
 			WTokenContractAddress: config.Tokens.WToken,
+			EVMTokenClients:       make(map[string]client.EVMToken),
+		}
+	}
+
+	evmTokenClients := bootstrap.InitEVMTokenClients(config.Bridge.Networks, evmClients)
+	for networkId := range config.EVM {
+		for tokenAddress, tokenClient := range evmTokenClients[networkId] {
+			EVM[networkId].EVMTokenClients[tokenAddress] = tokenClient
 		}
 	}
 
@@ -267,7 +281,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("Token [%s] is not supported", nativeAsset))
+		return "", errors.New(fmt.Sprintf("EVMToken [%s] is not supported", nativeAsset))
 	}
 
 	return wrappedAsset, nil
@@ -321,6 +335,7 @@ type Config struct {
 
 type EVMUtils struct {
 	EVMClient             *evm.Client
+	EVMTokenClients       map[string]client.EVMToken
 	RouterContract        *router.Router
 	KeyTransactor         *bind.TransactOpts
 	Signer                *evm_signer.Signer

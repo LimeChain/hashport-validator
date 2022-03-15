@@ -33,13 +33,14 @@ func main() {
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients
-	clients := bootstrap.PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs)
+	clients := bootstrap.PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs, parsedBridge.Networks)
 
 	// Prepare Node
 	server := server.NewServer()
 
 	var services *bootstrap.Services = nil
 	db := persistence.NewDatabase(configuration.Node.Database)
+
 	// Prepare repositories
 	repositories := bootstrap.PrepareRepositories(db)
 

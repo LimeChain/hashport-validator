@@ -17,46 +17,113 @@
 package assets
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
+	evm_token_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-token-client"
 	"github.com/stretchr/testify/assert"
-	"reflect"
+	"math/big"
+	"sort"
+	"strconv"
 	"testing"
 )
 
 var (
 	hederaFeePercentages = make(map[string]int64)
+	nilBigInt            *big.Int
 	routerClients        = make(map[uint64]*router.Router)
 	evmClients           = make(map[uint64]client.EVM)
-	assets               = NewService(testConstants.Networks, hederaFeePercentages, routerClients, mocks.MHederaMirrorClient, evmClients)
+	evmCoreClients       = make(map[uint64]client.Core)
+	evmTokenClients      = make(map[uint64]map[string]client.EVMToken)
+	serviceInstance      *Service
+	nullAddress          = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	hederaPercentage     = int64(0)
+	hederaPercentages    = make(map[string]int64)
 )
 
-func Test_LoadAssets(t *testing.T) {
-	if reflect.TypeOf(assets).String() != "*assets.Service" {
-		t.Fatalf(`Expected to return assets type *assets.Service, but returned: [%s]`, reflect.TypeOf(assets).String())
+func Test_New(t *testing.T) {
+	setup()
+
+	for networkId := range testConstants.Networks {
+		if networkId != constants.HederaNetworkId {
+			evmTokenClients[networkId] = make(map[string]client.EVMToken)
+			evmClients[networkId] = &evm_client.MockEVMClient{}
+			evmCoreClients[networkId] = &evm_client.MockEVMCoreClient{}
+			evmClients[networkId].(*evm_client.MockEVMClient).On("GetClient").Return(evmCoreClients[networkId])
+		}
+
+		fungibleNetworkAssets := testConstants.FungibleNetworkAssets[networkId]
+
+		for _, asset := range fungibleNetworkAssets {
+			hederaPercentages[asset] = hederaPercentage
+			if networkId == constants.HederaNetworkId {
+				tokenResponse := model.TokenResponse{
+					TokenID:     asset,
+					Name:        asset,
+					Symbol:      asset,
+					TotalSupply: "100",
+					Decimals:    strconv.Itoa(int(constants.HederaDefaultDecimals)),
+				}
+				mocks.MHederaMirrorClient.On("GetToken", asset).Return(&tokenResponse, nil)
+				continue
+			}
+
+			evmTokenClients[networkId][asset] = new(evm_token_client.MockEVMTokenClient)
+			evmTokenClients[networkId][asset].(*evm_token_client.MockEVMTokenClient).On("Name", &bind.CallOpts{}).Return(asset, nil)
+			evmTokenClients[networkId][asset].(*evm_token_client.MockEVMTokenClient).On("Symbol", &bind.CallOpts{}).Return(asset, nil)
+			evmTokenClients[networkId][asset].(*evm_token_client.MockEVMTokenClient).On("Decimals", &bind.CallOpts{}).Return(constants.EvmDefaultDecimals, nil)
+		}
 	}
+
+	actualService := NewService(testConstants.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmTokenClients)
+	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
+	assert.Equal(t, serviceInstance.wrappedToNative, actualService.wrappedToNative)
+	assert.Equal(t, serviceInstance.fungibleNativeAssets, actualService.fungibleNativeAssets)
+	assert.Equal(t, serviceInstance.fungibleAssetInfos, actualService.fungibleAssetInfos)
+	for networkId := range testConstants.Networks {
+		sort.Strings(serviceInstance.fungibleNetworkAssets[networkId])
+		sort.Strings(actualService.fungibleNetworkAssets[networkId])
+		assert.Equal(t, serviceInstance.fungibleNetworkAssets[networkId], actualService.fungibleNetworkAssets[networkId])
+	}
+
 }
 
 func Test_IsNative(t *testing.T) {
+	setup()
 
-	actual := assets.IsNative(0, constants.Hbar)
+	actual := serviceInstance.IsNative(0, constants.Hbar)
 	assert.Equal(t, true, actual)
 
-	actual = assets.IsNative(0, "0x0000000000000000000000000000000000000000")
+	actual = serviceInstance.IsNative(0, nullAddress.String())
 	assert.Equal(t, false, actual)
 }
 
 func Test_GetOppositeAsset(t *testing.T) {
+	setup()
 
-	actual := assets.GetOppositeAsset(33, 0, "0x0000000000000000000000000000000000000000")
+	actual := serviceInstance.GetOppositeAsset(33, 0, testConstants.Network33FungibleWrappedTokenForNetwork0)
 	expected := constants.Hbar
 
 	assert.Equal(t, expected, actual)
 
-	actual = assets.GetOppositeAsset(0, 33, "0x0000000000000000000000000000000000000001")
+	actual = serviceInstance.GetOppositeAsset(0, 33, constants.Hbar)
+	expected = testConstants.Network33FungibleWrappedTokenForNetwork0
+
+	assert.Equal(t, expected, actual)
+
+	actual = serviceInstance.GetOppositeAsset(33, 0, constants.Hbar)
+	expected = testConstants.Network33FungibleWrappedTokenForNetwork0
+
+	assert.Equal(t, expected, actual)
+
+	actual = serviceInstance.GetOppositeAsset(0, 33, testConstants.Network33FungibleWrappedTokenForNetwork0)
 	expected = constants.Hbar
 
 	assert.Equal(t, expected, actual)
@@ -64,18 +131,99 @@ func Test_GetOppositeAsset(t *testing.T) {
 }
 
 func Test_NativeToWrapped(t *testing.T) {
+	setup()
 
-	actual := assets.NativeToWrapped(constants.Hbar, 0, 33)
-	expected := "0x0000000000000000000000000000000000000001"
+	actual := serviceInstance.NativeToWrapped(constants.Hbar, 0, 33)
+	expected := testConstants.Network33FungibleWrappedTokenForNetwork0
 
 	assert.Equal(t, expected, actual)
 }
 
 func Test_WrappedToNative(t *testing.T) {
+	setup()
 
-	actual := assets.WrappedToNative("0x0000000000000000000000000000000000000001", 33)
+	actual := serviceInstance.WrappedToNative(testConstants.Network33FungibleWrappedTokenForNetwork0, 33)
 	expected := constants.Hbar
 
 	assert.NotNil(t, actual)
 	assert.Equal(t, expected, actual.Asset)
+}
+
+func Test_GetFungibleNetworkAssets(t *testing.T) {
+	setup()
+
+	actual := serviceInstance.GetFungibleNetworkAssets()
+	expected := testConstants.FungibleNetworkAssets
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_GetNativeToWrappedAssets(t *testing.T) {
+	setup()
+
+	actual := serviceInstance.GetNativeToWrappedAssets()
+	expected := testConstants.NativeToWrapped
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_WrappedFromNative(t *testing.T) {
+	setup()
+
+	actual := serviceInstance.WrappedFromNative(constants.HederaNetworkId, testConstants.Network0FungibleNativeToken)
+	expected := testConstants.NativeToWrapped[constants.HederaNetworkId][testConstants.Network0FungibleNativeToken]
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_FungibleNetworkAssets(t *testing.T) {
+	setup()
+
+	actual := serviceInstance.FungibleNetworkAssets(constants.HederaNetworkId)
+	expected := testConstants.FungibleNetworkAssets[constants.HederaNetworkId]
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_FungibleNativeAsset(t *testing.T) {
+	setup()
+
+	actual := serviceInstance.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
+	expected := testConstants.Network0FungibleNativeAsset
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_GetFungibleAssetInfo(t *testing.T) {
+	setup()
+
+	actual, exists := serviceInstance.GetFungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
+	expected := testConstants.Network0FungibleNativeTokenFungibleAssetInfo
+
+	assert.NotNil(t, actual)
+	assert.True(t, exists)
+	assert.Equal(t, expected, actual)
+}
+
+func setup() {
+	mocks.Setup()
+
+	for networkId, networkInfo := range testConstants.Networks {
+		constants.NetworksById[networkId] = networkInfo.Name
+		constants.NetworksByName[networkInfo.Name] = networkId
+	}
+
+	serviceInstance = &Service{
+		nativeToWrapped:       testConstants.NativeToWrapped,
+		wrappedToNative:       testConstants.WrappedToNative,
+		fungibleNativeAssets:  testConstants.FungibleNativeAssets,
+		fungibleNetworkAssets: testConstants.FungibleNetworkAssets,
+		fungibleAssetInfos:    testConstants.FungibleAssetInfos,
+		logger:                config.GetLoggerFor("Assets Service"),
+	}
 }

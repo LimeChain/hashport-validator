@@ -75,7 +75,9 @@ func createPrometheusWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	EVMTokenClients map[uint64]map[string]client.EVMToken,
 	assetsService service.Assets,
+
 ) *pw.Watcher {
 	log.Debugf("Added Prometheus Watcher for dashboard metrics")
 	return pw.NewWatcher(
@@ -84,5 +86,6 @@ func createPrometheusWatcher(
 		configuration,
 		prometheusService,
 		EVMClients,
+		EVMTokenClients,
 		assetsService)
 }
