@@ -69,7 +69,6 @@ func (smh Handler) Handle(payload interface{}) {
 		smh.logger.Errorf("Could not cast payload [%s]", payload)
 		return
 	}
-
 	transactionRecord, err := smh.transfersService.InitiateNewTransfer(*transferMsg)
 	if err != nil {
 		smh.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", transferMsg.TransactionId, err)

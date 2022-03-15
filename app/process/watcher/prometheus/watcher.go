@@ -48,6 +48,7 @@ type Watcher struct {
 	operatorBalanceGauge      prometheus.Gauge
 	// A mapping, storing all network ID - asset address - metric name
 	assetsMetrics map[uint64]map[string]string
+	assetsService service.Assets
 }
 
 func NewWatcher(
@@ -56,6 +57,7 @@ func NewWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	assetsService service.Assets,
 ) *Watcher {
 
 	var (
@@ -99,6 +101,7 @@ func NewWatcher(
 		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
 		operatorBalanceGauge:      operatorBalanceGauge,
 		assetsMetrics:             assetsMetrics,
+		assetsService:             assetsService,
 	}
 }
 
@@ -107,6 +110,7 @@ func (pw Watcher) Watch(q qi.Queue) {
 		pw.logger.Warnf("Tried to executed Prometheus watcher, when monitoring is not enabled.")
 		return
 	}
+
 	// there will be no handler, so the q is to implement the interface
 	go pw.beginWatching()
 }
@@ -118,10 +122,10 @@ func (pw Watcher) beginWatching() {
 }
 
 func (pw Watcher) registerAssetsMetrics() {
-	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
-			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
+			if pw.assetsService.IsNative(networkId, assetAddress) {
 				// register native assets balance
 				pw.registerAssetMetric(
 					networkId,
@@ -130,7 +134,7 @@ func (pw Watcher) registerAssetsMetrics() {
 					constants.BalanceAssetMetricNameSuffix,
 					constants.BalanceAssetMetricHelpPrefix,
 				)
-				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
 					//register wrapped assets total supply
 					pw.registerAssetMetric(
@@ -154,15 +158,17 @@ func (pw Watcher) registerAssetMetric(
 	metricHelpCnt string,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		assetName, assetSymbol, e := pw.getAssetData(wrappedNetworkId, assetAddress)
-		if e != nil {
+		assetInfo, exist := pw.assetsService.GetFungibleAssetInfo(wrappedNetworkId, assetAddress)
+
+		if !exist {
 			return
 		}
+
 		metricName, metricHelp := getMetricData(
 			nativeNetworkId,
 			wrappedNetworkId,
 			assetAddress,
-			assetName,
+			assetInfo.Name,
 			metricNameCnt,
 			metricHelpCnt,
 		)
@@ -174,42 +180,10 @@ func (pw Watcher) registerAssetMetric(
 			Name: metricName,
 			Help: metricHelp,
 			ConstLabels: prometheus.Labels{
-				constants.AssetMetricLabelKey: assetSymbol,
+				constants.AssetMetricLabelKey: assetInfo.Symbol,
 			},
 		})
 	}
-}
-
-func (pw Watcher) getAssetData(networkId uint64, assetAddress string) (name string, symbol string, err error) {
-	if networkId == constants.HederaNetworkId { // Hedera
-		asset, e := pw.mirrorNode.GetToken(assetAddress)
-		if e != nil {
-			pw.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetAddress, e)
-			return "", "", e
-		}
-		name = asset.Name
-		symbol = asset.Symbol
-	} else { // EVM
-		evm := pw.EVMClients[networkId].GetClient()
-		evmAssetInstance, e := wtoken.NewWtoken(common.HexToAddress(assetAddress), evm)
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method NewWtoken - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		resName, e := evmAssetInstance.Name(&bind.CallOpts{})
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Name - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		name = resName
-		resSymbol, e := evmAssetInstance.Symbol(&bind.CallOpts{})
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Symbol - Error: [%s]", networkId, assetAddress, e)
-			return "", "", e
-		}
-		symbol = resSymbol
-	}
-	return name, symbol, nil
 }
 
 func getMetricData(
@@ -241,6 +215,7 @@ func getMetricData(
 }
 
 func (pw Watcher) setMetrics() {
+
 	for {
 		payerAccount, errPayerAcc := pw.getAccount(pw.configuration.Bridge.Hedera.PayerAccount)
 		bridgeAccount, errBridgeAcc := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
@@ -279,13 +254,13 @@ func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
 }
 
 func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
-	fungibleAssets := pw.configuration.Bridge.Assets.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			// set native assets balance
 			pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
-			if pw.configuration.Bridge.Assets.IsNative(networkId, assetAddress) {
-				wrappedFromNative := pw.configuration.Bridge.Assets.WrappedFromNative(networkId, assetAddress)
+			if pw.assetsService.IsNative(networkId, assetAddress) {
+				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
 					//set wrapped assets total supply
 					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
@@ -300,6 +275,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 	bridgeAccount *model.AccountsResponse,
 	isNative bool,
 ) {
+
 	if assetAddress != constants.Hbar { // skip HBAR
 		assetMetric := pw.prometheusService.GetGauge(pw.assetsMetrics[networkId][assetAddress])
 		value, e := pw.getAssetMetricValue(networkId, assetAddress, bridgeAccount, isNative)
@@ -313,7 +289,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 		}
 
 		assetMetric.Set(value)
-		pw.logger.Infof("The Asset with ID [%s] has %s = %f", assetAddress, logString, value)
+		pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
 	}
 }
 

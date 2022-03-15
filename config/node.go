@@ -41,9 +41,11 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm        map[uint64]Evm
-	Hedera     Hedera
-	MirrorNode MirrorNode
+	Evm           map[uint64]Evm
+	Hedera        Hedera
+	MirrorNode    MirrorNode
+	CoinGecko     CoinGecko
+	CoinMarketCap CoinMarketCap
 }
 
 type Evm struct {
@@ -67,6 +69,21 @@ type Operator struct {
 	PrivateKey string
 }
 
+// CoinGecko //
+
+type CoinGecko struct {
+	ApiAddress string
+}
+
+// CoinMarketCap //
+
+type CoinMarketCap struct {
+	ApiKey     string
+	ApiAddress string
+}
+
+// MirrorNode //
+
 type MirrorNode struct {
 	ClientAddress   string
 	ApiAddress      string
@@ -84,15 +101,7 @@ type Recovery struct {
 }
 
 func New(node parser.Node) Node {
-	rpc := make(map[string]hedera.AccountID)
-	for key, value := range node.Clients.Hedera.Rpc {
-		nodeAccoundID, err := hedera.AccountIDFromString(value)
-		if err != nil {
-			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
-		}
-		rpc[key] = nodeAccoundID
-	}
-
+	rpc := parseRpc(node.Clients.Hedera.Rpc)
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
@@ -102,8 +111,19 @@ func New(node parser.Node) Node {
 				StartTimestamp: node.Clients.Hedera.StartTimestamp,
 				Rpc:            rpc,
 			},
-			MirrorNode: MirrorNode(node.Clients.MirrorNode),
-			Evm:        make(map[uint64]Evm),
+			MirrorNode: MirrorNode{
+				ClientAddress:   node.Clients.MirrorNode.ClientAddress,
+				ApiAddress:      node.Clients.MirrorNode.ApiAddress,
+				PollingInterval: node.Clients.MirrorNode.PollingInterval,
+			},
+			Evm: make(map[uint64]Evm),
+			CoinGecko: CoinGecko{
+				ApiAddress: node.Clients.CoinGecko.ApiAddress,
+			},
+			CoinMarketCap: CoinMarketCap{
+				ApiKey:     node.Clients.CoinMarketCap.ApiKey,
+				ApiAddress: node.Clients.CoinMarketCap.ApiAddress,
+			},
 		},
 		LogLevel:  node.LogLevel,
 		Port:      node.Port,
@@ -119,4 +139,16 @@ func New(node parser.Node) Node {
 	}
 
 	return config
+}
+
+func parseRpc(rpcClients map[string]string) map[string]hedera.AccountID {
+	res := make(map[string]hedera.AccountID)
+	for key, value := range rpcClients {
+		nodeAccountID, err := hedera.AccountIDFromString(value)
+		if err != nil {
+			log.Fatalf("Hedera RPC [%s] failed to parse Node Account ID [%s]. Error: [%s]", key, value, err)
+		}
+		res[key] = nodeAccountID
+	}
+	return res
 }

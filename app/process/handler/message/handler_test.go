@@ -26,7 +26,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
-	"github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,12 +40,14 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-
-	tesm = &proto.TopicEthSignatureMessage{
-		SourceChainId: 0,
-		TargetChainId: 1,
+	SourceChainId = uint64(0)
+	TargetChainId = uint64(1)
+	Asset         = "0.0.1"
+	tesm          = &proto.TopicEthSignatureMessage{
+		SourceChainId: SourceChainId,
+		TargetChainId: TargetChainId,
 		TransferID:    "some-transfer-id",
-		Asset:         "0.0.1",
+		Asset:         Asset,
 		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Amount:        "100",
 		Signature:     "custom-signature",
@@ -58,14 +59,13 @@ var (
 			},
 		},
 	}
-	assets               config.Assets
 	transactionTimestamp = int64(0)
 	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(tesm.SourceChainId, tesm.TargetChainId, tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
 )
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[uint64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, assets))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[uint64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, mocks.MAssetsService))
 }
 
 func Test_Handle_Fails(t *testing.T) {
@@ -108,6 +108,7 @@ func Test_HandleSignatureMessage_MajorityReached(t *testing.T) {
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(nil)
+	mocks.MAssetsService.On("GetOppositeAsset", SourceChainId, TargetChainId, Asset).Return("0.0.2")
 	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
 	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID)
@@ -121,6 +122,7 @@ func Test_Handle(t *testing.T) {
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(nil)
+	mocks.MAssetsService.On("GetOppositeAsset", SourceChainId, TargetChainId, Asset).Return("0.0.2")
 	h.Handle(&tsm)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
 	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID)
@@ -134,6 +136,7 @@ func Test_HandleSignatureMessage_UpdateStatusCompleted_Fails(t *testing.T) {
 	mocks.MBridgeContractService.On("GetMembers").Return([]string{"", "", ""})
 	mocks.MBridgeContractService.On("HasValidSignaturesLength", big.NewInt(3)).Return(true, nil)
 	mocks.MTransferRepository.On("UpdateStatusCompleted", tsm.GetFungibleSignatureMessage().TransferID).Return(errors.New("some-error"))
+	mocks.MAssetsService.On("GetOppositeAsset", SourceChainId, TargetChainId, Asset).Return("0.0.2")
 	h.handleFungibleSignatureMessage(tsm.GetFungibleSignatureMessage(), transactionTimestamp)
 	mocks.MBridgeContractService.AssertCalled(t, "HasValidSignaturesLength", big.NewInt(3))
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateStatusCompleted")
@@ -153,7 +156,6 @@ func setup() {
 	mocks.Setup()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	assets = config.LoadAssets(constants.Networks)
 	h = &Handler{
 		transferRepository:     mocks.MTransferRepository,
 		messageRepository:      mocks.MMessageRepository,
@@ -161,7 +163,7 @@ func setup() {
 		messages:               mocks.MMessageService,
 		logger:                 config.GetLoggerFor(fmt.Sprintf("Topic [%s] Handler", topicId.String())),
 		prometheusService:      mocks.MPrometheusService,
-		assetsConfig:           assets,
+		assetsService:          mocks.MAssetsService,
 		participationRateGauge: nil,
 	}
 }

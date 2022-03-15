@@ -35,7 +35,6 @@ import (
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
 	"math"
@@ -1507,8 +1506,8 @@ func generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup,
 	return expectedTransfers
 }
 
-func sendBurnEthTransaction(assetMappings config.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64, t *testing.T) (*types.Receipt, *router.RouterBurn) {
-	wrappedAsset, err := setup.NativeToWrappedAsset(assetMappings, sourceChainId, targetChainId, asset)
+func sendBurnEthTransaction(assetsService service.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64, t *testing.T) (*types.Receipt, *router.RouterBurn) {
+	wrappedAsset, err := setup.NativeToWrappedAsset(assetsService, sourceChainId, targetChainId, asset)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,11 +18,9 @@ package calculator
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 )
-
-const MaxPercentage = 100000
-const MinPercentage = 0
 
 type Service struct {
 	feePercentages map[string]int64
@@ -31,7 +29,7 @@ type Service struct {
 
 func New(feePercentages map[string]int64) *Service {
 	for token, fee := range feePercentages {
-		if fee < MinPercentage || fee > MaxPercentage {
+		if fee < constants.FeeMinPercentage || fee > constants.FeeMaxPercentage {
 			log.Fatalf("[%s] Invalid fee percentage: [%d]", token, fee)
 		}
 	}
@@ -43,7 +41,7 @@ func New(feePercentages map[string]int64) *Service {
 
 // CalculateFee calculates the fee and remainder of a given token and amount
 func (s Service) CalculateFee(token string, amount int64) (fee, remainder int64) {
-	fee = amount * s.feePercentages[token] / MaxPercentage
+	fee = amount * s.feePercentages[token] / constants.FeeMaxPercentage
 	remainder = amount - fee
 
 	totalAmount := remainder + fee

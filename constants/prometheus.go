@@ -47,6 +47,10 @@ const (
 	CreateDecimalPrefix = "1"
 	CreateDecimalRepeat = "0"
 
+	// API
+
+	PrometheusMetricsEndpoint = "/metrics"
+
 	// Success Rate Metrics //
 
 	MajorityReachedNameSuffix  = "majority_reached"
