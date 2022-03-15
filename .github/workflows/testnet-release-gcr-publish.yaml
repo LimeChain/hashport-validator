@@ -19,17 +19,22 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
      # echo "${{ secrets.APP_TESTNET_DASHBOARD }}" > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
+     
       - name: Export application config
         shell: bash
-        run: |
-          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
-          echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
-          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
+        run: echo "${{ secrets.APP_TESTNET_DASHBOARD }}" > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
+          
+#       - name: Export application config
+#         shell: bash
+#         run: |
+#           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+#           echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
+#           echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
 
 
-      - name: Copy folders
-        run: |
-         gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ./monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
+#       - name: Copy folders
+#         run: |
+#          gcloud compute scp --recurse ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring ./monitoring --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }}
         
 
 
