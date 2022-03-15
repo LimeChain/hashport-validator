@@ -22,7 +22,7 @@ jobs:
      
       - name: Export application config
         shell: bash
-        run: cat <<-END"${{ secrets.APP_TESTNET_DASHBOARD }}"END > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
+        run: echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
           
 #       - name: Export application config
 #         shell: bash
