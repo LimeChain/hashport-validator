@@ -34,7 +34,7 @@ jobs:
       - name: Copy files
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~ && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -66,7 +66,7 @@ jobs:
       - name: Copy files
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~ && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -98,7 +98,7 @@ jobs:
       - name: Copy files
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~ && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -127,7 +127,7 @@ jobs:
           echo "${{ secrets.APP_TESTNET_DAVE_CONFIG }}" > ./node.yml && \
           echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml && \
           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
-          echo '${{ secrets.APP_TESTNET_GRAFANA_CONFIG_ENV }}' > ./monitoring/grafana/config-overrides.env && \
+          echo "${{ secrets.APP_TESTNET_GRAFANA_CONFIG_ENV }}" > ./monitoring/grafana/config-overrides.env && \
           echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
           echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
           echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
