@@ -105,7 +105,7 @@ func Test_IsNative(t *testing.T) {
 	assert.Equal(t, false, actual)
 }
 
-func Test_GetOppositeAsset(t *testing.T) {
+func Test_OppositeAsset(t *testing.T) {
 	setup()
 
 	actual := serviceInstance.OppositeAsset(33, 0, testConstants.Network33FungibleWrappedTokenForNetwork0)
@@ -149,7 +149,7 @@ func Test_WrappedToNative(t *testing.T) {
 	assert.Equal(t, expected, actual.Asset)
 }
 
-func Test_GetFungibleNetworkAssets(t *testing.T) {
+func Test_FungibleNetworkAssets(t *testing.T) {
 	setup()
 
 	actual := serviceInstance.FungibleNetworkAssets()
@@ -159,7 +159,7 @@ func Test_GetFungibleNetworkAssets(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func Test_GetNativeToWrappedAssets(t *testing.T) {
+func Test_NativeToWrappedAssets(t *testing.T) {
 	setup()
 
 	actual := serviceInstance.NativeToWrappedAssets()
@@ -179,7 +179,7 @@ func Test_WrappedFromNative(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func Test_FungibleNetworkAssets(t *testing.T) {
+func Test_FungibleNetworkAssetsByChainId(t *testing.T) {
 	setup()
 
 	actual := serviceInstance.FungibleNetworkAssetsByChainId(constants.HederaNetworkId)
@@ -199,7 +199,7 @@ func Test_FungibleNativeAsset(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func Test_GetFungibleAssetInfo(t *testing.T) {
+func Test_FungibleAssetInfo(t *testing.T) {
 	setup()
 
 	actual, exists := serviceInstance.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
