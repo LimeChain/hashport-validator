@@ -20,14 +20,18 @@ jobs:
 
      # echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
      
-#       - name: Export application config
-#         shell: bash
-#         run: echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
+      - name: Export application config
+        shell: bash
+        run: |
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/test_rules.yml && \
+          echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./monitoring/prometheus/test2_rules.yml
           
 
       - name: Copy files
         run: |
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~/monitoring/grafana
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules2.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
+
    
 #       - name: Copy files
 #         run: |
