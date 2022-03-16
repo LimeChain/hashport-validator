@@ -30,7 +30,7 @@ jobs:
       - name: Copy files
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules2.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test2_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
 
    
 #       - name: Copy files
