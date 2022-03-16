@@ -32,7 +32,9 @@ jobs:
           echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
 
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~
+        run: |
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~ && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_ALICE_INSTANCE }} --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -62,7 +64,9 @@ jobs:
           echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
 
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~
+        run: |
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_BOB_INSTANCE }}:~ && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_BOB_INSTANCE }} --zone=${{ secrets.APP_TESTNET_BOB_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -92,7 +96,9 @@ jobs:
           echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml
 
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~
+        run: |
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_CAROL_INSTANCE }}:~ && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
 
       - name: Copy logs
         run: gcloud compute ssh ${{ secrets.APP_TESTNET_CAROL_INSTANCE }} --zone=${{ secrets.APP_TESTNET_CAROL_ZONE }} --command="${{ env.copy_logs_command }}"
@@ -121,6 +127,7 @@ jobs:
           echo "${{ secrets.APP_TESTNET_DAVE_CONFIG }}" > ./node.yml && \
           echo "${{ secrets.APP_TESTNET_BRIDGE_CONFIG }}" > ./bridge.yml && \
           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
+          echo '${{ secrets.APP_TESTNET_GRAFANA_CONFIG_ENV }}' > ./monitoring/grafana/config-overrides.env && \
           echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
           echo "${{ secrets.APP_TESTNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
           echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
@@ -129,6 +136,7 @@ jobs:
         run: |
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./.env ./docker-compose.yml ./node.yml ./bridge.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~ && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/alertmanager/config.yml ./monitoring/alertmanager/email.html ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/alertmanager && \
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/dashboards/dashboards_provider.yml ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/dashboards && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/provisioning/datasources/datasources.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana/provisioning/datasources && \
           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/prometheus.yml ./monitoring/prometheus/rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
