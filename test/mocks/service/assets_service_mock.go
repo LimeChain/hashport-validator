@@ -25,15 +25,15 @@ type MockAssetsService struct {
 	mock.Mock
 }
 
-// GetFungibleNetworkAssets Gets all Fungible Assets by Network ID
-func (mas *MockAssetsService) GetFungibleNetworkAssets() map[uint64][]string {
+// FungibleNetworkAssets Gets all Fungible Assets by Network ID
+func (mas *MockAssetsService) FungibleNetworkAssets() map[uint64][]string {
 	args := mas.Called()
 	result := args.Get(0).(map[uint64][]string)
 	return result
 }
 
-// GetNativeToWrappedAssets Gets all Native assets with their Wrapped assets by Network ID
-func (mas *MockAssetsService) GetNativeToWrappedAssets() map[uint64]map[string]map[uint64]string {
+// NativeToWrappedAssets Gets all Native assets with their Wrapped assets by Network ID
+func (mas *MockAssetsService) NativeToWrappedAssets() map[uint64]map[string]map[uint64]string {
 	args := mas.Called()
 	result := args.Get(0).(map[uint64]map[string]map[uint64]string)
 	return result
@@ -60,8 +60,8 @@ func (mas *MockAssetsService) WrappedToNative(wrappedAssetAddress string, wrappe
 	return result
 }
 
-// FungibleNetworkAssets Gets all Fungible assets for passed Chain ID
-func (mas *MockAssetsService) FungibleNetworkAssets(chainId uint64) []string {
+// FungibleNetworkAssetsByChainId Gets all Fungible assets for passed Chain ID
+func (mas *MockAssetsService) FungibleNetworkAssetsByChainId(chainId uint64) []string {
 	args := mas.Called(chainId)
 	result := args.Get(0).([]string)
 	return result
@@ -81,15 +81,15 @@ func (mas *MockAssetsService) IsNative(chainId uint64, assetAddress string) bool
 	return result
 }
 
-// GetOppositeAsset Gets Opposite asset for passed chain IDs and assetAddress
-func (mas *MockAssetsService) GetOppositeAsset(sourceChainId uint64, targetChainId uint64, assetAddress string) string {
+// OppositeAsset Gets Opposite asset for passed chain IDs and assetAddress
+func (mas *MockAssetsService) OppositeAsset(sourceChainId uint64, targetChainId uint64, assetAddress string) string {
 	args := mas.Called(sourceChainId, targetChainId, assetAddress)
 	result := args.Get(0).(string)
 	return result
 }
 
-// GetFungibleAssetInfo Gets FungibleAssetInfo
-func (mas *MockAssetsService) GetFungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool) {
+// FungibleAssetInfo Gets FungibleAssetInfo
+func (mas *MockAssetsService) FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool) {
 	args := mas.Called(networkId, assetAddress)
 	assetInfo = args.Get(0).(assetModel.FungibleAssetInfo)
 	exist = args.Get(1).(bool)

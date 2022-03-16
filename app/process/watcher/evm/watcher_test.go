@@ -288,7 +288,7 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 
 	mocks.MAssetsService.On("WrappedToNative", tokenAddressString, uint64(33)).Return(hbarNativeAsset)
 	mocks.MPricingService.On("GetTokenPriceInfo", targetChainId, constants.Hbar).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", targetChainId, constants.Hbar).Return(fungibleAssetInfo, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", targetChainId, constants.Hbar).Return(fungibleAssetInfo, true)
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.HederaFeeTransfer}).Return()
@@ -331,7 +331,7 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(&asset.NativeAsset{ChainId: nativeChainId, Asset: nativeAssetAddress})
 	mocks.MPricingService.On("GetTokenPriceInfo", nativeChainId, nativeAssetAddress).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.TopicMessageSubmission}).Return()
 
@@ -381,7 +381,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(&asset.NativeAsset{ChainId: nativeChainId, Asset: nativeAssetAddress})
 	mocks.MPricingService.On("GetTokenPriceInfo", nativeChainId, nativeAssetAddress).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", nativeChainId, nativeAssetAddress).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.ReadOnlyTransferSave}).Return()
 
@@ -424,7 +424,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), uint64(33)).Return(hbarNativeAsset)
 	mocks.MPricingService.On("GetTokenPriceInfo", constants.HederaNetworkId, constants.Hbar).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", constants.HederaNetworkId, constants.Hbar).Return(fungibleAssetInfo, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", constants.HederaNetworkId, constants.Hbar).Return(fungibleAssetInfo, true)
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
 	mocks.MQueue.On("Push", &queue.Message{Payload: parsedBurnLog, Topic: constants.ReadOnlyHederaTransfer}).Return()
 

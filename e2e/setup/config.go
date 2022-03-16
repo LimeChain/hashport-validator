@@ -91,7 +91,7 @@ func Load() *Setup {
 		panic(err)
 	}
 
-	routerClients, evmTokenClients := getRouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	routerClients, evmTokenClients := routerAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
 	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmTokenClients)
 
 	return setup
@@ -186,7 +186,7 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func getRouterAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmTokenClients map[uint64]map[string]client.EVMToken) {
+func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmTokenClients map[uint64]map[string]client.EVMToken) {
 	routerClients = make(map[uint64]*router.Router)
 	evmTokenClients = make(map[uint64]map[string]client.EVMToken)
 	for networkId, evmUtil := range evmUtils {

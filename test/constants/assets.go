@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	MinFeeAmountInUsd = decimal.NewFromFloat(0.0)
+	minFeeAmountInUsd = decimal.NewFromFloat(0.0)
 
 	////////////////////////
 	// Network 0 (Hedera) //
@@ -34,7 +34,7 @@ var (
 
 	Network0FungibleNativeToken = constants.Hbar
 	Network0FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           0,
 		Asset:             Network0FungibleNativeToken,
 		FeePercentage:     0,
@@ -84,7 +84,7 @@ var (
 
 	Network1FungibleNativeToken = "0xb083879B1e10C8476802016CB12cd2F25a896691"
 	Network1FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           1,
 		Asset:             Network1FungibleNativeToken,
 		FeePercentage:     0,
@@ -113,7 +113,7 @@ var (
 
 	Network2FungibleNativeToken = "0x0000000000000000000000000000000000000002"
 	Network2FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           2,
 		Asset:             Network2FungibleNativeToken,
 		FeePercentage:     0,
@@ -132,7 +132,7 @@ var (
 
 	Network3FungibleNativeToken = "0x0000000000000000000000000000000000000003"
 	Network3FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           3,
 		Asset:             Network3FungibleNativeToken,
 		FeePercentage:     0,
@@ -151,7 +151,7 @@ var (
 
 	Network32FungibleNativeToken = "0x0000000000000000000000000000000000000032"
 	Network32FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           32,
 		Asset:             Network32FungibleNativeToken,
 		FeePercentage:     0,
@@ -170,7 +170,7 @@ var (
 
 	Network33FungibleNativeToken = "0x0000000000000000000000000000000000000033"
 	Network33FungibleNativeAsset = &asset.NativeAsset{
-		MinFeeAmountInUsd: &MinFeeAmountInUsd,
+		MinFeeAmountInUsd: &minFeeAmountInUsd,
 		ChainId:           33,
 		Asset:             Network33FungibleNativeToken,
 		FeePercentage:     0,

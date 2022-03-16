@@ -124,7 +124,7 @@ func (pw Watcher) beginWatching() {
 }
 
 func (pw Watcher) registerAssetsMetrics() {
-	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			if pw.assetsService.IsNative(networkId, assetAddress) {
@@ -160,7 +160,7 @@ func (pw Watcher) registerAssetMetric(
 	metricHelpCnt string,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		assetInfo, exist := pw.assetsService.GetFungibleAssetInfo(wrappedNetworkId, assetAddress)
+		assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
 
 		if !exist {
 			return
@@ -256,7 +256,7 @@ func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
 }
 
 func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
-	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			// set native assets balance

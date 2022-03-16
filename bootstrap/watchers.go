@@ -74,8 +74,8 @@ func createPrometheusWatcher(
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
 	prometheusService service.Prometheus,
-	EVMClients map[uint64]client.EVM,
-	EVMTokenClients map[uint64]map[string]client.EVMToken,
+	evmClients map[uint64]client.EVM,
+	evmTokenClients map[uint64]map[string]client.EVMToken,
 	assetsService service.Assets,
 
 ) *pw.Watcher {
@@ -85,7 +85,7 @@ func createPrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		EVMClients,
-		EVMTokenClients,
+		evmClients,
+		evmTokenClients,
 		assetsService)
 }

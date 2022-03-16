@@ -167,7 +167,7 @@ func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChai
 
 	if majorityReached {
 		if !isNFT { // metrics for fungible only
-			oppositeAsset := cmh.assetsService.GetOppositeAsset(sourceChainId, targetChainId, asset)
+			oppositeAsset := cmh.assetsService.OppositeAsset(sourceChainId, targetChainId, asset)
 			metrics.SetMajorityReached(
 				sourceChainId,
 				targetChainId,
