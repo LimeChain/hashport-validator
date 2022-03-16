@@ -24,15 +24,12 @@ jobs:
 #         shell: bash
 #         run: echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json
           
-      - name: Export application config
-        shell: bash
-        run: |
-          echo "${{ secrets.APP_TESTNET_GRAFANA_CONFIG_ENV }}" > ./monitoring/grafana/config-overrides.env && \
-          cat ./monitoring/grafana/config-overrides.env
 
       - name: Copy files
         run: |
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana
+          cat ./monitoring/grafana/config-overrides.env
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/grafana && \
+          cat ./monitoring/grafana/config-overrides.env
 
       
           
