@@ -7,7 +7,7 @@ on: push
 
 jobs:
 
-  deploy_testnet_dave:
+  deploy_testnet:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
 
       - name: Copy files
         run: |
-          cat ./monitoring/grafana/config-overrides.env
+          gcloud compute scp --zone=${{ secrets.APP_TESTNET_ALICE_ZONE }} ./monitoring/grafana/config-overrides.env ${{ secrets.APP_TESTNET_ALICE_INSTANCE }}:~/monitoring/grafana
    
 #       - name: Copy files
 #         run: |
