@@ -55,12 +55,12 @@ type Services struct {
 func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
-	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
 
 	for _, client := range clients.EVMClients {
 		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
+		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId], assetsService.FungibleNetworkAssetsByChainId(chainId))
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
@@ -139,10 +139,10 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 func PrepareApiOnlyServices(c config.Config, networks map[uint64]*parser.Network, clients Clients) *Services {
 	contractServices := make(map[uint64]service.Contracts)
 
-	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.Routers, clients.MirrorNode, clients.EVMClients)
+	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
 	for _, client := range clients.EVMClients {
 		chainId := client.GetChainID()
-		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.Routers[chainId], assetsService.FungibleNetworkAssets(chainId))
+		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId], assetsService.FungibleNetworkAssetsByChainId(chainId))
 		contractServices[chainId] = contractService
 	}
 

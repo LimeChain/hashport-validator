@@ -19,6 +19,7 @@ package mocks
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
 	evm_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-client"
+	evm_token_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/evm-token-client"
 	hedera_mirror_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-mirror-client"
 	hedera_node_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/hedera-node-client"
 	http_client "github.com/limechain/hedera-eth-bridge-validator/test/mocks/http-client"
@@ -49,6 +50,7 @@ var MEVMCoreClient *evm_client.MockEVMCoreClient
 var MHTTPClient *http_client.MockHttpClient
 var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *evm_client.MockEVMClient
+var MEVMTokenClient *evm_token_client.MockEVMTokenClient
 var MPricingClient *pricing_client.MockPricingClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
@@ -79,10 +81,12 @@ func Setup() {
 	MHederaNodeClient = &hedera_node_client.MockHederaNodeClient{}
 	MEVMClient = &evm_client.MockEVMClient{}
 	MEVMCoreClient = &evm_client.MockEVMCoreClient{}
+	MEVMTokenClient = &evm_token_client.MockEVMTokenClient{}
 	MHTTPClient = &http_client.MockHttpClient{}
 	MQueue = &queue.MockQueue{}
 	MPrometheusService = &service.MockPrometheusService{}
 	MAssetsService = &service.MockAssetsService{}
 	MPricingService = &service.MockPricingService{}
 	MPricingClient = &pricing_client.MockPricingClient{}
+
 }

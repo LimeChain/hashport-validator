@@ -149,7 +149,7 @@ func Test_ProcessTransaction(t *testing.T) {
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 }
@@ -165,7 +165,7 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
 
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
@@ -211,7 +211,7 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
-	mocks.MAssetsService.On("GetFungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
 
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }

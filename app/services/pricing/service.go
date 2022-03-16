@@ -67,7 +67,7 @@ func NewService(bridgeConfig config.Bridge,
 		}
 
 		logger := config.GetLoggerFor("Pricing Service")
-		hbarFungibleAssetInfo, _ := assetsService.GetFungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
+		hbarFungibleAssetInfo, _ := assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
 		hbarNativeAsset := assetsService.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
 		instance = &Service{
 			tokensPriceInfo:       tokensPriceInfo,
@@ -203,7 +203,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		if wrappedToken == "" {
 			continue
 		}
-		wrappedAssetInfo, _ := s.assetsService.GetFungibleAssetInfo(networkId, wrappedToken)
+		wrappedAssetInfo, _ := s.assetsService.FungibleAssetInfo(networkId, wrappedToken)
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
 		if err != nil {
 			return err
@@ -226,7 +226,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 				continue
 			}
 
-			fungibleAssetInfo, exist := s.assetsService.GetFungibleAssetInfo(networkId, assetAddress)
+			fungibleAssetInfo, exist := s.assetsService.FungibleAssetInfo(networkId, assetAddress)
 			if !exist {
 				continue
 			}

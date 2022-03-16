@@ -324,7 +324,7 @@ func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
 	targetChainId := ew.evmClient.GetChainID()
-	oppositeToken := ew.assetsService.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
+	oppositeToken := ew.assetsService.OppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }
@@ -641,7 +641,7 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	transactionId := string(eventLog.TransactionId)
 	sourceChainId := eventLog.SourceChain.Uint64()
 	targetChainId := ew.evmClient.GetChainID()
-	oppositeToken := ew.assetsService.GetOppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
+	oppositeToken := ew.assetsService.OppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
 }

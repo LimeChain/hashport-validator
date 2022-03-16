@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -40,6 +39,7 @@ type Watcher struct {
 	dashboardPolling          time.Duration
 	mirrorNode                client.MirrorNode
 	EVMClients                map[uint64]client.EVM
+	EVMTokenClients           map[uint64]map[string]client.EVMToken
 	configuration             config.Config
 	prometheusService         service.Prometheus
 	logger                    *log.Entry
@@ -57,6 +57,7 @@ func NewWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
+	EVMTokenClients map[uint64]map[string]client.EVMToken,
 	assetsService service.Assets,
 ) *Watcher {
 
@@ -94,6 +95,7 @@ func NewWatcher(
 		dashboardPolling:          dashboardPolling,
 		mirrorNode:                mirrorNode,
 		EVMClients:                EVMClients,
+		EVMTokenClients:           EVMTokenClients,
 		configuration:             configuration,
 		prometheusService:         prometheusService,
 		logger:                    config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
@@ -122,7 +124,7 @@ func (pw Watcher) beginWatching() {
 }
 
 func (pw Watcher) registerAssetsMetrics() {
-	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			if pw.assetsService.IsNative(networkId, assetAddress) {
@@ -158,7 +160,7 @@ func (pw Watcher) registerAssetMetric(
 	metricHelpCnt string,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		assetInfo, exist := pw.assetsService.GetFungibleAssetInfo(wrappedNetworkId, assetAddress)
+		assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
 
 		if !exist {
 			return
@@ -254,7 +256,7 @@ func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
 }
 
 func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
-	fungibleAssets := pw.assetsService.GetFungibleNetworkAssets()
+	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets { // native
 			// set native assets balance
@@ -300,18 +302,10 @@ func (pw Watcher) getAssetMetricValue(
 	isNative bool,
 ) (value float64, err error) {
 	var (
-		evmAssetInstance *wtoken.Wtoken
-		decimal          uint8
+		decimal uint8
 	)
 	if networkId != constants.HederaNetworkId { // EVM
-		evm := pw.EVMClients[networkId].GetClient()
-		wrappedTokenInstance, e := wtoken.NewWtoken(common.HexToAddress(assetAddress), evm)
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for asset [%s], and method NewWtoken - Error: [%s]", networkId, assetAddress, e)
-			return 0, e
-		}
-		evmAssetInstance = wrappedTokenInstance
-		dec, e := evmAssetInstance.Decimals(&bind.CallOpts{})
+		dec, e := pw.EVMTokenClients[networkId][assetAddress].Decimals(&bind.CallOpts{})
 		if e != nil {
 			pw.logger.Errorf("EVM with networkId [%d] for asset [%s], and method Decimals - Error: [%s]", networkId, assetAddress, e)
 			return 0, e
@@ -327,9 +321,9 @@ func (pw Watcher) getAssetMetricValue(
 		}
 	} else { // EVM
 		if isNative { // EVM native balance
-			value, err = pw.getEVMBalance(networkId, evmAssetInstance, decimal, assetAddress)
+			value, err = pw.getEVMBalance(networkId, decimal, assetAddress)
 		} else { // EVM wrapped total supply
-			value, err = pw.getEVMSupply(evmAssetInstance, decimal, networkId, assetAddress)
+			value, err = pw.getEVMSupply(decimal, networkId, assetAddress)
 		}
 	}
 	return value, err
@@ -391,15 +385,10 @@ func (pw Watcher) getHederaTokenSupply(assetAddress string) (float64, error) {
 	return *totalSupply, nil
 }
 
-func (pw Watcher) getEVMBalance(
-	networkId uint64,
-	evmAssetInstance *wtoken.Wtoken,
-	decimal uint8,
-	assetAddress string,
-) (float64, error) {
+func (pw Watcher) getEVMBalance(networkId uint64, decimal uint8, assetAddress string) (float64, error) {
 	address := common.HexToAddress(pw.configuration.Bridge.EVMs[networkId].RouterContractAddress)
 
-	b, e := evmAssetInstance.BalanceOf(&bind.CallOpts{}, address)
+	b, e := pw.EVMTokenClients[networkId][assetAddress].BalanceOf(&bind.CallOpts{}, address)
 	if e != nil {
 		pw.logger.Errorf("EVM with networkId [%d] for asset [%s], and method BalanceOf - Error: [%s]", networkId, assetAddress, e)
 		return 0, e
@@ -412,12 +401,8 @@ func (pw Watcher) getEVMBalance(
 	return *balance, nil
 }
 
-func (pw Watcher) getEVMSupply(evmAssetInstance *wtoken.Wtoken,
-	decimal uint8,
-	networkId uint64,
-	assetAddress string,
-) (float64, error) {
-	ts, e := evmAssetInstance.TotalSupply(&bind.CallOpts{})
+func (pw Watcher) getEVMSupply(decimal uint8, networkId uint64, assetAddress string) (float64, error) {
+	ts, e := pw.EVMTokenClients[networkId][assetAddress].TotalSupply(&bind.CallOpts{})
 	if e != nil {
 		pw.logger.Errorf("EVM networkId [%d] asset [%s] for method TotalSupply - Error: [%s]", networkId, assetAddress, e)
 		return 0, e

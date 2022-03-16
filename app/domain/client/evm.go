@@ -19,18 +19,19 @@ package client
 import (
 	"context"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 )
 
 type EVM interface {
+	bind.ContractBackend
 	GetChainID() uint64
 	SetChainID(chainId uint64)
 	ChainID(ctx context.Context) (*big.Int, error)
 	GetClient() Core
 	BlockNumber(ctx context.Context) (uint64, error)
-	FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
 	GetBlockTimestamp(blockNumber *big.Int) uint64
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
 	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
