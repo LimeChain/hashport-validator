@@ -10,22 +10,32 @@ route:
   group_wait: 5s
   repeat_interval: 30s
   routes:
+    #########
     # Slack #
-    - matchers: [ repeat_interval = "default" ]
+    #########
+
+    # - Repeat Interval: DEFAULT - #
+    - matchers: [ repeat_interval = "", repeat_interval = "default" ]
       continue: true
       receiver: slack-notifications
 
-    - matchers: [ repeat_interval = "big" ]
+    # - Repeat Interval: LONG - #
+    - matchers: [ repeat_interval = "long" ]
       continue: true
       repeat_interval: 6h
       receiver: slack-notifications
 
+    #########
     # Email #
+    #########
+
+    # - Repeat Interval: DEFAULT - #
     - matchers: [ repeat_interval = "default" ]
       continue: true
       receiver: email
 
-    - matchers: [ repeat_interval = "big" ]
+    # - Repeat Interval: LONG - #
+    - matchers: [ repeat_interval = "long" ]
       continue: true
       repeat_interval: 6h
       receiver: email
