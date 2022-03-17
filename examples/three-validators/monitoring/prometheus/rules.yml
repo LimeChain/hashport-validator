@@ -33,5 +33,6 @@
 #        labels:
 #          severity: 'critical'
 #          group: 'validators'
+#          repeat_interval: 'long'
 #        annotations:
 #          description: "Participation Rate: {{ $value }} %"

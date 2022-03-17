@@ -1,21 +1,43 @@
 global:
-  resolve_timeout: 800h
+  resolve_timeout: 2h
 
 templates:
   - '/etc/alertmanager/email.html'
 
 route:
   receiver: 'slack-notifications'
-  group_interval: 30s
-  group_wait: 30s
+  group_interval: 5s
+  group_wait: 5s
   repeat_interval: 30s
   routes:
-    - match:
-        severity: critical
+    #########
+    # Slack #
+    #########
+
+    # - Repeat Interval: DEFAULT - #
+    - matchers: [ repeat_interval = "", repeat_interval = "default" ]
       continue: true
       receiver: slack-notifications
-    - match:
-        severity: critical
+
+    # - Repeat Interval: LONG - #
+    - matchers: [ repeat_interval = "long" ]
+      continue: true
+      repeat_interval: 7d
+      receiver: slack-notifications
+
+    #########
+    # Email #
+    #########
+
+    # - Repeat Interval: DEFAULT - #
+    - matchers: [ repeat_interval = "default" ]
+      continue: true
+      receiver: email
+
+    # - Repeat Interval: LONG - #
+    - matchers: [ repeat_interval = "long" ]
+      continue: true
+      repeat_interval: 7d
       receiver: email
 
 receivers:
