@@ -22,7 +22,7 @@ route:
     # - Repeat Interval: LONG - #
     - matchers: [ repeat_interval = "long" ]
       continue: true
-      repeat_interval: 6h
+      repeat_interval: 7d
       receiver: slack-notifications
 
     #########
@@ -37,7 +37,7 @@ route:
     # - Repeat Interval: LONG - #
     - matchers: [ repeat_interval = "long" ]
       continue: true
-      repeat_interval: 6h
+      repeat_interval: 7d
       receiver: email
 
 receivers:
