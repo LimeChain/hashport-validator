@@ -31,8 +31,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"math/big"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
+)
+
+var (
+	whiteSpacesPattern = regexp.MustCompile(constants.WhiteSpacesPattern)
 )
 
 type Watcher struct {
@@ -43,12 +49,18 @@ type Watcher struct {
 	configuration             config.Config
 	prometheusService         service.Prometheus
 	logger                    *log.Entry
-	payerAccountBalanceGauge  prometheus.Gauge
 	bridgeAccountBalanceGauge prometheus.Gauge
-	operatorBalanceGauge      prometheus.Gauge
+	payerAccountBalanceGauge  prometheus.Gauge
+	// A mapping, storing all Prometheus Gauges by AccountId
+	monitoredAccountsGauges map[string]monitoredAccountsInfo
 	// A mapping, storing all network ID - asset address - metric name
 	assetsMetrics map[uint64]map[string]string
 	assetsService service.Assets
+}
+
+type monitoredAccountsInfo struct {
+	AccountId string
+	Gauge     prometheus.Gauge
 }
 
 func NewWatcher(
@@ -61,36 +73,6 @@ func NewWatcher(
 	assetsService service.Assets,
 ) *Watcher {
 
-	var (
-		payerAccountBalanceGauge  prometheus.Gauge
-		bridgeAccountBalanceGauge prometheus.Gauge
-		operatorBalanceGauge      prometheus.Gauge
-		// A mapping, storing all network ID - asset address - metric name
-		assetsMetrics = make(map[uint64]map[string]string)
-	)
-
-	payerAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
-		Name: constants.FeeAccountAmountGaugeName,
-		Help: constants.FeeAccountAmountGaugeHelp,
-		ConstLabels: prometheus.Labels{
-			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.PayerAccount,
-		},
-	})
-	bridgeAccountBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
-		Name: constants.BridgeAccountAmountGaugeName,
-		Help: constants.BridgeAccountAmountGaugeHelp,
-		ConstLabels: prometheus.Labels{
-			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.BridgeAccount,
-		},
-	})
-	operatorBalanceGauge = prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
-		Name: constants.OperatorAccountAmountName,
-		Help: constants.OperatorAccountAmountHelp,
-		ConstLabels: prometheus.Labels{
-			constants.AccountMetricLabelKey: configuration.Node.Clients.Hedera.Operator.AccountId,
-		},
-	})
-
 	return &Watcher{
 		dashboardPolling:          dashboardPolling,
 		mirrorNode:                mirrorNode,
@@ -99,12 +81,60 @@ func NewWatcher(
 		configuration:             configuration,
 		prometheusService:         prometheusService,
 		logger:                    config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
-		payerAccountBalanceGauge:  payerAccountBalanceGauge,
-		bridgeAccountBalanceGauge: bridgeAccountBalanceGauge,
-		operatorBalanceGauge:      operatorBalanceGauge,
-		assetsMetrics:             assetsMetrics,
+		payerAccountBalanceGauge:  initPayerAccountBalanceGauge(prometheusService, configuration),
+		bridgeAccountBalanceGauge: initBridgeAccountBalanceGauge(prometheusService, configuration),
+		monitoredAccountsGauges:   initMonitoredAccountsGauges(configuration, prometheusService),
+		assetsMetrics:             make(map[uint64]map[string]string),
 		assetsService:             assetsService,
 	}
+}
+
+func initBridgeAccountBalanceGauge(prometheusService service.Prometheus, configuration config.Config) prometheus.Gauge {
+	bridgeAccountBalanceGauge := prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+		Name: constants.BridgeAccountAmountGaugeName,
+		Help: constants.BridgeAccountAmountGaugeHelp,
+		ConstLabels: prometheus.Labels{
+			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.BridgeAccount,
+		},
+	})
+	return bridgeAccountBalanceGauge
+}
+
+func initPayerAccountBalanceGauge(prometheusService service.Prometheus, configuration config.Config) prometheus.Gauge {
+	payerAccountBalanceGauge := prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+		Name: constants.FeeAccountAmountGaugeName,
+		Help: constants.FeeAccountAmountGaugeHelp,
+		ConstLabels: prometheus.Labels{
+			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.PayerAccount,
+		},
+	})
+	return payerAccountBalanceGauge
+}
+
+func initMonitoredAccountsGauges(configuration config.Config, prometheusService service.Prometheus) map[string]monitoredAccountsInfo {
+	monitoredAccountsGauges := make(map[string]monitoredAccountsInfo)
+	if len(configuration.Bridge.MonitoredAccounts) == 0 {
+		return monitoredAccountsGauges
+	}
+
+	for name, accountId := range configuration.Bridge.MonitoredAccounts {
+		preparedGaugeName := whiteSpacesPattern.ReplaceAllString(strings.ToLower(name), constants.NotAllowedSymbolsReplacement)
+		preparedGaugeName = constants.AccountBalanceGaugeNamePrefix + metrics.PrepareValueForPrometheusMetricName(preparedGaugeName)
+		gaugeHelp := constants.AccountBalanceGaugeNamePrefix + accountId
+		monitoredAccountInfo := monitoredAccountsInfo{
+			AccountId: accountId,
+			Gauge: prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
+				Name: preparedGaugeName,
+				Help: gaugeHelp,
+				ConstLabels: prometheus.Labels{
+					constants.NameMetricLabelKey:    name,
+					constants.AccountMetricLabelKey: accountId,
+				},
+			}),
+		}
+		monitoredAccountsGauges[name] = monitoredAccountInfo
+	}
+	return monitoredAccountsGauges
 }
 
 func (pw Watcher) Watch(q qi.Queue) {
@@ -221,7 +251,6 @@ func (pw Watcher) setMetrics() {
 	for {
 		payerAccount, errPayerAcc := pw.getAccount(pw.configuration.Bridge.Hedera.PayerAccount)
 		bridgeAccount, errBridgeAcc := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
-		operatorAccount, errOperatorAcc := pw.getAccount(pw.configuration.Node.Clients.Hedera.Operator.AccountId)
 
 		if errPayerAcc == nil {
 			pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(payerAccount))
@@ -229,8 +258,14 @@ func (pw Watcher) setMetrics() {
 		if errBridgeAcc == nil {
 			pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(bridgeAccount))
 		}
-		if errOperatorAcc == nil {
-			pw.operatorBalanceGauge.Set(pw.getAccountBalance(operatorAccount))
+
+		if len(pw.monitoredAccountsGauges) > 0 {
+			for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
+				monitoredAccount, monitoredAccErr := pw.getAccount(monitoredAccountInfo.AccountId)
+				if monitoredAccErr == nil {
+					monitoredAccountInfo.Gauge.Set(pw.getAccountBalance(monitoredAccount))
+				}
+			}
 		}
 
 		pw.setAssetsMetrics(bridgeAccount)

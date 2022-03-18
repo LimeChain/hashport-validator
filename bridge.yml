@@ -2,6 +2,7 @@
 # Check docs/configuration.md for more information
 #bridge:
 #  topic_id:
+#  monitored_accounts:
 #  networks:
 #    0: # Hedera
 #      name: Hedera

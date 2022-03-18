@@ -67,7 +67,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 10,
+        "w": 24,
         "x": 0,
         "y": 1
       },
@@ -87,7 +87,7 @@
         "text": {},
         "textMode": "value_and_name"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -97,7 +97,7 @@
           "exemplar": true,
           "expr": "({__name__=~\"fee_account_amount\"})",
           "interval": "",
-          "legendFormat": "Fee account ID [{{account_id}}]",
+          "legendFormat": "Fee Account [{{account_id}}]",
           "refId": "A"
         },
         {
@@ -106,10 +106,10 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "({__name__=~\"operator_account_amount\"})",
+          "expr": "({__name__=~\"account_balance_for_.*\"})",
           "hide": false,
           "interval": "",
-          "legendFormat": "Operator account ID [{{account_id}}]",
+          "legendFormat": "{{name}} Account [{{account_id}}]",
           "refId": "B"
         }
       ],
@@ -162,7 +162,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -273,7 +273,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
@@ -385,7 +386,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
@@ -485,7 +487,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
@@ -524,6 +527,84 @@
         "x": 0,
         "y": 31
       },
+      "id": 63,
+      "panels": [],
+      "title": "Health Check",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 65,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "count_validators_alive",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Health Check",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
       "id": 31,
       "panels": [],
       "title": "All networks",
@@ -560,7 +641,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 40
       },
       "id": 2,
       "options": {
@@ -577,7 +658,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -626,7 +707,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 45
       },
       "id": 43,
       "options": {
@@ -643,7 +724,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -720,7 +801,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 45
       },
       "id": 28,
       "options": {
@@ -730,7 +811,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -782,7 +864,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 43
+        "y": 51
       },
       "id": 44,
       "options": {
@@ -799,7 +881,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -876,7 +958,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 43
+        "y": 51
       },
       "id": 45,
       "options": {
@@ -886,7 +968,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -912,7 +995,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 57
       },
       "id": 21,
       "panels": [],
@@ -951,7 +1034,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 50
+        "y": 58
       },
       "id": 23,
       "options": {
@@ -968,7 +1051,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1045,7 +1128,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 50
+        "y": 58
       },
       "id": 33,
       "options": {
@@ -1055,7 +1138,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1107,7 +1191,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 58
+        "y": 66
       },
       "id": 14,
       "options": {
@@ -1124,7 +1208,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1201,7 +1285,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 58
+        "y": 66
       },
       "id": 22,
       "options": {
@@ -1211,7 +1295,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1237,7 +1322,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 74
       },
       "id": 35,
       "panels": [],
@@ -1276,7 +1361,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 67
+        "y": 75
       },
       "id": 36,
       "options": {
@@ -1293,7 +1378,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1370,7 +1455,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 67
+        "y": 75
       },
       "id": 4,
       "options": {
@@ -1380,7 +1465,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1432,7 +1518,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 75
+        "y": 83
       },
       "id": 37,
       "options": {
@@ -1449,7 +1535,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1526,7 +1612,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 75
+        "y": 83
       },
       "id": 38,
       "options": {
@@ -1536,7 +1622,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1562,7 +1649,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 83
+        "y": 91
       },
       "id": 25,
       "panels": [],
@@ -1601,7 +1688,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 84
+        "y": 92
       },
       "id": 39,
       "options": {
@@ -1618,7 +1705,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1695,7 +1782,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 84
+        "y": 92
       },
       "id": 40,
       "options": {
@@ -1705,7 +1792,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1757,7 +1845,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 92
+        "y": 100
       },
       "id": 41,
       "options": {
@@ -1774,7 +1862,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.4",
+      "pluginVersion": "8.4.3",
       "targets": [
         {
           "datasource": {
@@ -1851,7 +1939,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 92
+        "y": 100
       },
       "id": 42,
       "options": {
@@ -1861,7 +1949,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -1883,14 +1972,14 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 34,
+  "schemaVersion": 35,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-15s",
     "to": "now"
   },
   "timepicker": {},
