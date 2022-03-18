@@ -120,7 +120,7 @@ func initMonitoredAccountsGauges(configuration config.Config, prometheusService 
 	for name, accountId := range configuration.Bridge.MonitoredAccounts {
 		preparedGaugeName := whiteSpacesPattern.ReplaceAllString(strings.ToLower(name), constants.NotAllowedSymbolsReplacement)
 		preparedGaugeName = constants.AccountBalanceGaugeNamePrefix + metrics.PrepareValueForPrometheusMetricName(preparedGaugeName)
-		gaugeHelp := constants.AccountBalanceGaugeNamePrefix + accountId
+		gaugeHelp := constants.AccountBalanceGaugeHelpPrefix + accountId
 		monitoredAccountInfo := monitoredAccountsInfo{
 			AccountId: accountId,
 			Gauge: prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
