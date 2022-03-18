@@ -113,9 +113,6 @@ func initPayerAccountBalanceGauge(prometheusService service.Prometheus, configur
 
 func initMonitoredAccountsGauges(configuration config.Config, prometheusService service.Prometheus) map[string]monitoredAccountsInfo {
 	monitoredAccountsGauges := make(map[string]monitoredAccountsInfo)
-	if len(configuration.Bridge.MonitoredAccounts) == 0 {
-		return monitoredAccountsGauges
-	}
 
 	for name, accountId := range configuration.Bridge.MonitoredAccounts {
 		preparedGaugeName := whiteSpacesPattern.ReplaceAllString(strings.ToLower(name), constants.NotAllowedSymbolsReplacement)
@@ -134,6 +131,7 @@ func initMonitoredAccountsGauges(configuration config.Config, prometheusService 
 		}
 		monitoredAccountsGauges[name] = monitoredAccountInfo
 	}
+
 	return monitoredAccountsGauges
 }
 
@@ -259,12 +257,10 @@ func (pw Watcher) setMetrics() {
 			pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(bridgeAccount))
 		}
 
-		if len(pw.monitoredAccountsGauges) > 0 {
-			for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
-				monitoredAccount, monitoredAccErr := pw.getAccount(monitoredAccountInfo.AccountId)
-				if monitoredAccErr == nil {
-					monitoredAccountInfo.Gauge.Set(pw.getAccountBalance(monitoredAccount))
-				}
+		for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
+			monitoredAccount, monitoredAccErr := pw.getAccount(monitoredAccountInfo.AccountId)
+			if monitoredAccErr == nil {
+				monitoredAccountInfo.Gauge.Set(pw.getAccountBalance(monitoredAccount))
 			}
 		}
 
