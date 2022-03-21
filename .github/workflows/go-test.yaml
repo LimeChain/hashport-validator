@@ -20,7 +20,7 @@ jobs:
             ${{ runner.os }}-go-test-
       - name: Run Unit Tests
         run: go test $(go list ./... | grep -v e2e)
-       - name: Run Unit Tests with Coverage
+      - name: Run Unit Tests with Coverage
         run: sh ./scripts/codecav.sh
       - name: Upload Coverage report to CodeCov
         run: bash <(curl -s https://codecov.io/bash)
