@@ -20,3 +20,6 @@ testscenario/
 
 # Mac
 .DS_Store
+
+# CodeCav
+coverage.txt
