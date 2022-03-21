@@ -25,8 +25,8 @@ const (
 	FeeAccountAmountGaugeHelp               = "Fee account amount."
 	BridgeAccountAmountGaugeName            = "bridge_account_amount"
 	BridgeAccountAmountGaugeHelp            = "Bridge account amount."
-	OperatorAccountAmountName               = "operator_account_amount"
-	OperatorAccountAmountHelp               = "Operator account amount."
+	AccountBalanceGaugeNamePrefix           = "account_balance_for_"
+	AccountBalanceGaugeHelpPrefix           = "Account balance for "
 	DotSymbol                               = "." // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
 	DashSymbol                              = "-" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
 	OpenSquareBracket                       = "[" // not fit prometheus validation https://github.com/prometheus/common/blob/main/model/metric.go#L97
@@ -43,6 +43,7 @@ const (
 	BalanceAssetMetricHelpPrefix            = "balance"
 	AssetMetricLabelKey                     = "symbol"
 	AccountMetricLabelKey                   = "account_id"
+	NameMetricLabelKey                      = "name"
 
 	CreateDecimalPrefix = "1"
 	CreateDecimalRepeat = "0"

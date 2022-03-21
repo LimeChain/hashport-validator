@@ -24,11 +24,12 @@ import (
 )
 
 type Bridge struct {
-	TopicId          string
-	Hedera           *BridgeHedera
-	EVMs             map[uint64]BridgeEvm
-	CoinMarketCapIds map[uint64]map[string]string
-	CoinGeckoIds     map[uint64]map[string]string
+	TopicId           string
+	Hedera            *BridgeHedera
+	EVMs              map[uint64]BridgeEvm
+	CoinMarketCapIds  map[uint64]map[string]string
+	CoinGeckoIds      map[uint64]map[string]string
+	MonitoredAccounts map[string]string
 }
 
 type BridgeHedera struct {
@@ -68,9 +69,10 @@ type BridgeEvm struct {
 
 func NewBridge(bridge parser.Bridge) Bridge {
 	config := Bridge{
-		TopicId: bridge.TopicId,
-		Hedera:  nil,
-		EVMs:    make(map[uint64]BridgeEvm),
+		TopicId:           bridge.TopicId,
+		Hedera:            nil,
+		EVMs:              make(map[uint64]BridgeEvm),
+		MonitoredAccounts: bridge.MonitoredAccounts,
 	}
 
 	config.CoinGeckoIds = make(map[uint64]map[string]string)

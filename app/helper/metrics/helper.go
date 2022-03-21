@@ -29,12 +29,12 @@ import (
 	"strings"
 )
 
-func PrepareIdForPrometheus(id string) string {
+func PrepareValueForPrometheusMetricName(value string) string {
 	for symbolToReplace, repetitions := range constants.PrometheusNotAllowedSymbolsWithRepetitions {
-		id = strings.Replace(id, symbolToReplace, constants.NotAllowedSymbolsReplacement, repetitions)
+		value = strings.Replace(value, symbolToReplace, constants.NotAllowedSymbolsReplacement, repetitions)
 	}
 
-	return id
+	return value
 }
 
 func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, transactionId, metricTarget string) (string, error) {
@@ -48,7 +48,7 @@ func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, 
 		return "", errors.New(fmt.Sprintf(errMsg, targetNetworkId))
 	}
 
-	transactionId = PrepareIdForPrometheus(transactionId)
+	transactionId = PrepareValueForPrometheusMetricName(transactionId)
 
 	return fmt.Sprintf("%s_%s_to_%s_%s_%s", tokenType, sourceNetworkName, targetNetworkName, transactionId, metricTarget), nil
 }
@@ -144,7 +144,7 @@ func SetMajorityReached(sourceChainId, targetChainId uint64, asset string, trans
 }
 
 func AssetAddressToMetricName(assetAddress string) string {
-	replace := PrepareIdForPrometheus(assetAddress)
+	replace := PrepareValueForPrometheusMetricName(assetAddress)
 	result := fmt.Sprintf("%s%s", constants.AssetMetricsNamePrefix, replace)
 	return result
 }

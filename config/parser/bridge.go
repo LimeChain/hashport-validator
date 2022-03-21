@@ -20,8 +20,9 @@ package parser
 	Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
-	TopicId  string              `yaml:"topic_id" json:"topicId,omitempty"`
-	Networks map[uint64]*Network `yaml:"networks" json:"networks,omitempty"`
+	TopicId           string              `yaml:"topic_id" json:"topicId,omitempty"`
+	Networks          map[uint64]*Network `yaml:"networks" json:"networks,omitempty"`
+	MonitoredAccounts map[string]string   `yaml:"monitored_accounts" json:"monitoredAccounts,omitempty"`
 }
 
 type Network struct {
