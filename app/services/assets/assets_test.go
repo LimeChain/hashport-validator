@@ -19,7 +19,6 @@ package assets
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -38,13 +37,12 @@ import (
 var (
 	hederaFeePercentages = make(map[string]int64)
 	nilBigInt            *big.Int
-	routerClients        = make(map[uint64]*router.Router)
+	routerClients        = make(map[uint64]client.DiamondRouter)
 	evmClients           = make(map[uint64]client.EVM)
 	evmCoreClients       = make(map[uint64]client.Core)
 	evmTokenClients      = make(map[uint64]map[string]client.EVMToken)
 	serviceInstance      *Service
 	nullAddress          = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	hederaPercentage     = int64(0)
 	hederaPercentages    = make(map[string]int64)
 )
 
@@ -57,12 +55,13 @@ func Test_New(t *testing.T) {
 			evmClients[networkId] = &testClient.MockEVM{}
 			evmCoreClients[networkId] = &testClient.MockEVMCore{}
 			evmClients[networkId].(*testClient.MockEVM).On("GetClient").Return(evmCoreClients[networkId])
+			routerClients[networkId] = new(testClient.MockDiamondRouter)
 		}
 
 		fungibleNetworkAssets := testConstants.FungibleNetworkAssets[networkId]
 
 		for _, asset := range fungibleNetworkAssets {
-			hederaPercentages[asset] = hederaPercentage
+			hederaPercentages[asset] = testConstants.FeePercentage
 			if networkId == constants.HederaNetworkId {
 				tokenResponse := model.TokenResponse{
 					TokenID:     asset,
@@ -79,10 +78,18 @@ func Test_New(t *testing.T) {
 			evmTokenClients[networkId][asset].(*testClient.MockEVMToken).On("Name", &bind.CallOpts{}).Return(asset, nil)
 			evmTokenClients[networkId][asset].(*testClient.MockEVMToken).On("Symbol", &bind.CallOpts{}).Return(asset, nil)
 			evmTokenClients[networkId][asset].(*testClient.MockEVMToken).On("Decimals", &bind.CallOpts{}).Return(constants.EvmDefaultDecimals, nil)
+			tokenFeeDataResult := struct {
+				ServiceFeePercentage *big.Int
+				FeesAccrued          *big.Int
+				PreviousAccrued      *big.Int
+				Accumulator          *big.Int
+			}{big.NewInt(testConstants.FeePercentage), big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+			routerClients[networkId].(*testClient.MockDiamondRouter).On("TokenFeeData", &bind.CallOpts{}, common.HexToAddress(asset)).Return(tokenFeeDataResult, nil)
 		}
 	}
 
 	actualService := NewService(testConstants.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmTokenClients)
+
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
 	assert.Equal(t, serviceInstance.wrappedToNative, actualService.wrappedToNative)
 	assert.Equal(t, serviceInstance.fungibleNativeAssets, actualService.fungibleNativeAssets)
@@ -108,22 +115,22 @@ func Test_IsNative(t *testing.T) {
 func Test_OppositeAsset(t *testing.T) {
 	setup()
 
-	actual := serviceInstance.OppositeAsset(33, 0, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
+	actual := serviceInstance.OppositeAsset(testConstants.PolygonNetworkId, constants.HederaNetworkId, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
 	expected := constants.Hbar
 
 	assert.Equal(t, expected, actual)
 
-	actual = serviceInstance.OppositeAsset(0, 33, constants.Hbar)
+	actual = serviceInstance.OppositeAsset(constants.HederaNetworkId, testConstants.PolygonNetworkId, constants.Hbar)
 	expected = testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera
 
 	assert.Equal(t, expected, actual)
 
-	actual = serviceInstance.OppositeAsset(33, 0, constants.Hbar)
+	actual = serviceInstance.OppositeAsset(testConstants.PolygonNetworkId, constants.HederaNetworkId, constants.Hbar)
 	expected = testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera
 
 	assert.Equal(t, expected, actual)
 
-	actual = serviceInstance.OppositeAsset(0, 33, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
+	actual = serviceInstance.OppositeAsset(constants.HederaNetworkId, testConstants.PolygonNetworkId, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
 	expected = constants.Hbar
 
 	assert.Equal(t, expected, actual)
@@ -133,7 +140,7 @@ func Test_OppositeAsset(t *testing.T) {
 func Test_NativeToWrapped(t *testing.T) {
 	setup()
 
-	actual := serviceInstance.NativeToWrapped(constants.Hbar, 0, 33)
+	actual := serviceInstance.NativeToWrapped(constants.Hbar, constants.HederaNetworkId, testConstants.PolygonNetworkId)
 	expected := testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera
 
 	assert.Equal(t, expected, actual)
@@ -142,7 +149,7 @@ func Test_NativeToWrapped(t *testing.T) {
 func Test_WrappedToNative(t *testing.T) {
 	setup()
 
-	actual := serviceInstance.WrappedToNative(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera, 33)
+	actual := serviceInstance.WrappedToNative(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera, testConstants.PolygonNetworkId)
 	expected := constants.Hbar
 
 	assert.NotNil(t, actual)

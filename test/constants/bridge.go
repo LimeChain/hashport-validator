@@ -33,6 +33,7 @@ var (
 	PolygonNetworkId  = uint64(137)
 	FeePercentage     = int64(10000)
 	MinFeeAmountInUsd = decimal.NewFromFloat(1)
+	TopicId           = "0.0.1234567"
 
 	////////////////////////
 	// Network 0 (Hedera) //
@@ -135,7 +136,10 @@ var (
 
 	Networks = map[uint64]*parser.Network{
 		constants.HederaNetworkId: {
-			Name: "Hedera",
+			Name:          "Hedera",
+			BridgeAccount: "0.0.476139",
+			PayerAccount:  "0.0.476139",
+			Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					NetworkHederaFungibleNativeToken: {
@@ -143,6 +147,9 @@ var (
 							PolygonNetworkId:  NetworkPolygonFungibleWrappedTokenForNetworkHedera,
 							EthereumNetworkId: NetworkEthereumFungibleWrappedTokenForNetworkHedera,
 						},
+						CoinGeckoId:       HbarCoinGeckoId,
+						CoinMarketCapId:   HbarCoinMarketCapId,
+						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
 				Nft: nil,
@@ -156,6 +163,9 @@ var (
 						Networks: map[uint64]string{
 							PolygonNetworkId: NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
 						},
+						CoinGeckoId:       EthereumCoinGeckoId,
+						CoinMarketCapId:   EthereumCoinMarketCapId,
+						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
 				Nft: nil,
@@ -170,6 +180,7 @@ var (
 							constants.HederaNetworkId: NetworkHederaFungibleWrappedTokenForNetworkPolygon,
 							EthereumNetworkId:         NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
 						},
+						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
 				Nft: nil,
@@ -244,5 +255,11 @@ var (
 			NetworkPolygonFungibleWrappedTokenForNetworkHedera:   NetworkPolygonFungibleWrappedTokenForNetworkHederaFungibleAssetInfo,
 			NetworkPolygonFungibleWrappedTokenForNetworkEthereum: NetworkPolygonFungibleWrappedTokenForNetworkEthereumFungibleAssetInfo,
 		},
+	}
+
+	ParserBridge = parser.Bridge{
+		TopicId:           TopicId,
+		Networks:          Networks,
+		MonitoredAccounts: make(map[string]string),
 	}
 )

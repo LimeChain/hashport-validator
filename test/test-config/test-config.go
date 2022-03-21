@@ -64,25 +64,10 @@ var (
 			},
 		},
 
-		Bridge: config.Bridge{
-			TopicId: "0.0.12389",
-			Hedera: &config.BridgeHedera{
-				BridgeAccount: "0.0.476139",
-				PayerAccount:  "0.0.476139",
-				Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
-				Tokens: map[string]config.HederaToken{
-					"HBAR": {
-						FeePercentage: 10,
-					},
-				},
-			},
-			EVMs: map[uint64]config.BridgeEvm{
-				3: {
-					RouterContractAddress: "B5762f4159e7bFE24B5E7E9a2e829F535744d30e",
-				},
-			},
-			CoinGeckoIds:     testConstants.CoinGeckoIds,
-			CoinMarketCapIds: testConstants.CoinMarketCapIds,
-		},
+		Bridge: config.Bridge{},
 	}
 )
+
+func init() {
+	TestConfig.Bridge = config.NewBridge(testConstants.ParserBridge)
+}

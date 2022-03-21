@@ -43,6 +43,7 @@ var MHederaMirrorClient *client.MockHederaMirror
 var MHederaNodeClient *client.MockHederaNode
 var MEVMCoreClient *client.MockEVMCore
 var MHTTPClient *client.MockHttp
+var MDiamondRouter *client.MockDiamondRouter
 var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *client.MockEVM
 var MEVMTokenClient *client.MockEVMToken
@@ -78,6 +79,7 @@ func Setup() {
 	MEVMCoreClient = &client.MockEVMCore{}
 	MEVMTokenClient = &client.MockEVMToken{}
 	MHTTPClient = &client.MockHttp{}
+	MDiamondRouter = &client.MockDiamondRouter{}
 	MQueue = &queue.MockQueue{}
 	MPrometheusService = &service.MockPrometheusService{}
 	MAssetsService = &service.MockAssetsService{}

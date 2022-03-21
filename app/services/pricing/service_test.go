@@ -60,8 +60,8 @@ func Test_New_ShouldPanic(t *testing.T) {
 	mocks.MAssetsService.On("FungibleAssetInfo", testConstants.EthereumNetworkId, testConstants.NetworkEthereumFungibleNativeToken).Return(testConstants.NetworkEthereumFungibleNativeTokenFungibleAssetInfo, false)
 	mocks.MAssetsService.On("FungibleNativeAsset", testConstants.EthereumNetworkId, testConstants.NetworkEthereumFungibleNativeToken).Return(testConstants.NetworkEthereumFungibleNativeAsset)
 	mocks.MHederaMirrorClient.On("GetHBARUsdPrice").Return(decimal.Decimal{}, errors.New("failed to get HBAR USD price"))
-	coinGeckoClient.On("GetUsdPrices", testConstants.CoinGeckoIds).Return(make(map[uint64]map[string]decimal.Decimal), errors.New("failed to get USD prices"))
-	coinMarketCapClient.On("GetUsdPrices", testConstants.CoinMarketCapIds).Return(make(map[uint64]map[string]decimal.Decimal), errors.New("failed to get USD prices"))
+	coinGeckoClient.On("GetUsdPrices", test_config.TestConfig.Bridge.CoinGeckoIds).Return(make(map[uint64]map[string]decimal.Decimal), errors.New("failed to get USD prices"))
+	coinMarketCapClient.On("GetUsdPrices", test_config.TestConfig.Bridge.CoinMarketCapIds).Return(make(map[uint64]map[string]decimal.Decimal), errors.New("failed to get USD prices"))
 
 	assert.Panics(t, func() {
 		NewService(test_config.TestConfig.Bridge, mocks.MAssetsService, mocks.MHederaMirrorClient, coinGeckoClient, coinMarketCapClient)
@@ -159,7 +159,7 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		mocks.MAssetsService.On("FungibleAssetInfo", testConstants.EthereumNetworkId, testConstants.NetworkEthereumFungibleNativeToken).Return(testConstants.NetworkEthereumFungibleNativeTokenFungibleAssetInfo, true)
 		mocks.MAssetsService.On("FungibleNativeAsset", testConstants.EthereumNetworkId, testConstants.NetworkEthereumFungibleNativeToken).Return(testConstants.NetworkEthereumFungibleNativeAsset)
 		mocks.MHederaMirrorClient.On("GetHBARUsdPrice").Return(testConstants.HbarPriceInUsd, nil)
-		coinGeckoClient.On("GetUsdPrices", testConstants.CoinGeckoIds).Return(testConstants.UsdPrices, nil)
+		coinGeckoClient.On("GetUsdPrices", test_config.TestConfig.Bridge.CoinGeckoIds).Return(testConstants.UsdPrices, nil)
 		mocks.MAssetsService.On("NativeToWrapped", testConstants.NetworkEthereumFungibleNativeToken, testConstants.EthereumNetworkId, constants.HederaNetworkId).Return("")
 		mocks.MAssetsService.On("NativeToWrapped", testConstants.NetworkHederaFungibleNativeToken, constants.HederaNetworkId, testConstants.EthereumNetworkId).Return(testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHedera)
 		mocks.MAssetsService.On("NativeToWrapped", testConstants.NetworkEthereumFungibleNativeToken, testConstants.EthereumNetworkId, testConstants.PolygonNetworkId).Return(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkEthereum)
@@ -193,8 +193,8 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		coinMarketCapClient:   coinMarketCapClient,
 		tokenPriceInfoMutex:   tokenPriceInfoMutex,
 		minAmountsForApiMutex: minAmountsForApiMutex,
-		coinMarketCapIds:      testConstants.CoinMarketCapIds,
-		coinGeckoIds:          testConstants.CoinGeckoIds,
+		coinMarketCapIds:      test_config.TestConfig.Bridge.CoinMarketCapIds,
+		coinGeckoIds:          test_config.TestConfig.Bridge.CoinGeckoIds,
 		tokensPriceInfo:       tokensPriceInfo,
 		minAmountsForApi:      minAmountsForApi,
 		hbarFungibleAssetInfo: testConstants.NetworkHederaFungibleNativeTokenFungibleAssetInfo,
