@@ -14,18 +14,32 @@
  * limitations under the License.
  */
 
-package pricing_client
+package client
 
 import (
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
+	"net/http"
 )
 
-type MockPricingClient struct {
+type MockHttp struct {
 	mock.Mock
 }
 
-func (m *MockPricingClient) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
-	args := m.Called(idsByNetworkAndAddress)
-	return args.Get(0).(map[uint64]map[string]decimal.Decimal), args.Error(1)
+func (m *MockHttp) Get(url string) (resp *http.Response, err error) {
+	args := m.Called(url)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(*http.Response), nil
+	}
+	return args[0].(*http.Response), args[1].(error)
+}
+
+func (m *MockHttp) Do(req *http.Request) (*http.Response, error) {
+	args := m.Called(req)
+	return args[0].(*http.Response), args[1].(error)
 }

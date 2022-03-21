@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hedera_node_client
+package client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -22,11 +22,11 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockHederaNodeClient struct {
+type MockHederaNode struct {
 	mock.Mock
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledNftTransferTransaction(nftID hedera.NftID, payerAccount hedera.AccountID, sender hedera.AccountID, receiving hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+func (m *MockHederaNode) SubmitScheduledNftTransferTransaction(nftID hedera.NftID, payerAccount hedera.AccountID, sender hedera.AccountID, receiving hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	args := m.Called(nftID, payerAccount, sender, receiving, memo)
 	if args.Get(1) == nil {
 		return args.Get(0).(*hedera.TransactionResponse), nil
@@ -34,13 +34,13 @@ func (m *MockHederaNodeClient) SubmitScheduledNftTransferTransaction(nftID heder
 	return nil, args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) GetClient() *hedera.Client {
+func (m *MockHederaNode) GetClient() *hedera.Client {
 	args := m.Called()
 
 	return args.Get(0).(*hedera.Client)
 }
 
-func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
+func (m *MockHederaNode) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
 	args := m.Called(topicId, message)
 
 	if args.Get(1) == nil {
@@ -49,7 +49,7 @@ func (m *MockHederaNodeClient) SubmitTopicConsensusMessage(topicId hedera.TopicI
 	return args.Get(0).(*hedera.TransactionID), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledTokenTransferTransaction(
+func (m *MockHederaNode) SubmitScheduledTokenTransferTransaction(
 	tokenID hedera.TokenID,
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
@@ -63,7 +63,7 @@ func (m *MockHederaNodeClient) SubmitScheduledTokenTransferTransaction(
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
+func (m *MockHederaNode) SubmitScheduledHbarTransferTransaction(
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
@@ -76,7 +76,7 @@ func (m *MockHederaNodeClient) SubmitScheduledHbarTransferTransaction(
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
+func (m *MockHederaNode) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
 	args := m.Called(scheduleID)
 	if args.Get(1) == nil {
 		return args.Get(0).(*hedera.TransactionResponse), nil
@@ -84,7 +84,7 @@ func (m *MockHederaNodeClient) SubmitScheduleSign(scheduleID hedera.ScheduleID) 
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+func (m *MockHederaNode) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	args := m.Called(tokenID, amount, payerAccountID, memo)
 	if args.Get(1) == nil {
 		return args.Get(0).(*hedera.TransactionResponse), nil
@@ -92,7 +92,7 @@ func (m *MockHederaNodeClient) SubmitScheduledTokenMintTransaction(tokenID heder
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
 
-func (m *MockHederaNodeClient) SubmitScheduledTokenBurnTransaction(id hedera.TokenID, amount int64, account hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+func (m *MockHederaNode) SubmitScheduledTokenBurnTransaction(id hedera.TokenID, amount int64, account hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
 	args := m.Called(id, amount, account, memo)
 	if args.Get(1) == nil {
 		return args.Get(0).(*hedera.TransactionResponse), nil

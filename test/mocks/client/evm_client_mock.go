@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package evm_client
+package client
 
 import (
 	"context"
@@ -26,20 +26,20 @@ import (
 	"math/big"
 )
 
-type MockEVMClient struct {
+type MockEVM struct {
 	mock.Mock
 }
 
-func (m *MockEVMClient) SetChainID(chainId uint64) {
+func (m *MockEVM) SetChainID(chainId uint64) {
 	m.Called(chainId)
 }
 
-func (m *MockEVMClient) GetChainID() uint64 {
+func (m *MockEVM) GetChainID() uint64 {
 	args := m.Called()
 	return args.Get(0).(uint64)
 }
 
-func (m *MockEVMClient) BlockNumber(ctx context.Context) (uint64, error) {
+func (m *MockEVM) BlockNumber(ctx context.Context) (uint64, error) {
 	args := m.Called(ctx)
 
 	if args.Get(1) == nil {
@@ -49,7 +49,7 @@ func (m *MockEVMClient) BlockNumber(ctx context.Context) (uint64, error) {
 	return args.Get(0).(uint64), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+func (m *MockEVM) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
 	args := m.Called(ctx, q)
 
 	if args.Get(1) == nil {
@@ -59,7 +59,7 @@ func (m *MockEVMClient) FilterLogs(ctx context.Context, q ethereum.FilterQuery) 
 	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) RetryBlockNumber() (uint64, error) {
+func (m *MockEVM) RetryBlockNumber() (uint64, error) {
 	args := m.Called()
 
 	if args.Get(1) == nil {
@@ -69,7 +69,7 @@ func (m *MockEVMClient) RetryBlockNumber() (uint64, error) {
 	return args.Get(0).(uint64), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) RetryFilterLogs(q ethereum.FilterQuery) ([]types.Log, error) {
+func (m *MockEVM) RetryFilterLogs(q ethereum.FilterQuery) ([]types.Log, error) {
 	args := m.Called(q)
 
 	if args.Get(1) == nil {
@@ -79,7 +79,7 @@ func (m *MockEVMClient) RetryFilterLogs(q ethereum.FilterQuery) ([]types.Log, er
 	return args.Get(0).([]types.Log), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
+func (m *MockEVM) ChainID(ctx context.Context) (*big.Int, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil && args.Get(1) == nil {
 		return nil, nil
@@ -93,18 +93,18 @@ func (m *MockEVMClient) ChainID(ctx context.Context) (*big.Int, error) {
 	return args.Get(0).(*big.Int), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) GetClient() client.Core {
+func (m *MockEVM) GetClient() client.Core {
 	args := m.Called()
 	return args.Get(0).(client.Core)
 }
 
-func (m *MockEVMClient) GetBlockTimestamp(blockNumber *big.Int) uint64 {
+func (m *MockEVM) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	args := m.Called(blockNumber)
 
 	return args.Get(0).(uint64)
 }
 
-func (m *MockEVMClient) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
+func (m *MockEVM) ValidateContractDeployedAt(contractAddress string) (*common.Address, error) {
 	args := m.Called(contractAddress)
 
 	if args.Get(1) == nil {
@@ -113,11 +113,11 @@ func (m *MockEVMClient) ValidateContractDeployedAt(contractAddress string) (*com
 	return args.Get(0).(*common.Address), args.Get(1).(error)
 }
 
-func (m *MockEVMClient) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
+func (m *MockEVM) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	m.Called(hex, onSuccess, onRevert, onError)
 }
 
-func (m *MockEVMClient) WaitForConfirmations(raw types.Log) error {
+func (m *MockEVM) WaitForConfirmations(raw types.Log) error {
 	args := m.Called(raw)
 
 	if args.Get(0) == nil {
@@ -126,63 +126,63 @@ func (m *MockEVMClient) WaitForConfirmations(raw types.Log) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockEVMClient) GetPrivateKey() string {
+func (m *MockEVM) GetPrivateKey() string {
 	args := m.Called()
 	return args.Get(0).(string)
 }
 
-func (m *MockEVMClient) BlockConfirmations() uint64 {
+func (m *MockEVM) BlockConfirmations() uint64 {
 	args := m.Called()
 
 	return args.Get(0).(uint64)
 }
 
-func (m *MockEVMClient) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
+func (m *MockEVM) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
 	args := m.Called(ctx, contract, blockNumber)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockEVMClient) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
+func (m *MockEVM) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	args := m.Called(ctx, call, blockNumber)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockEVMClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+func (m *MockEVM) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
 	args := m.Called(ctx, number)
 	return args.Get(0).(*types.Header), args.Error(1)
 }
 
-func (m *MockEVMClient) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+func (m *MockEVM) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
 	args := m.Called(ctx, account)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockEVMClient) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+func (m *MockEVM) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
 	args := m.Called(ctx, account)
 	return args.Get(0).(uint64), args.Error(1)
 }
 
-func (m *MockEVMClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+func (m *MockEVM) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	args := m.Called(ctx)
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
-func (m *MockEVMClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+func (m *MockEVM) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	args := m.Called(ctx)
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
-func (m *MockEVMClient) EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error) {
+func (m *MockEVM) EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error) {
 	args := m.Called(ctx, call)
 	return args.Get(0).(uint64), args.Error(1)
 }
 
-func (m *MockEVMClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+func (m *MockEVM) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	args := m.Called(ctx, tx)
 	return args.Error(0)
 }
 
-func (m *MockEVMClient) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+func (m *MockEVM) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
 	args := m.Called(ctx, query, ch)
 	return args.Get(0).(ethereum.Subscription), args.Error(1)
 }
