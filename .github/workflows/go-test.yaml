@@ -18,8 +18,6 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-test-
-      - name: Run Unit Tests
-        run: go test $(go list ./... | grep -v e2e)
       - name: Run Unit Tests with Coverage
         run: >-
           for d in $(go list ./... | grep -v e2e); do

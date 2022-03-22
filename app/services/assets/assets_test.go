@@ -109,7 +109,7 @@ func Test_IsNative(t *testing.T) {
 	assert.Equal(t, true, actual)
 
 	actual = serviceInstance.IsNative(0, nullAddress.String())
-	assert.Equal(t, false, actual)
+	assert.Equal(t, true, actual) // Fail on purpose
 }
 
 func Test_OppositeAsset(t *testing.T) {
