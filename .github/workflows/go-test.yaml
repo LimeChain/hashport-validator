@@ -30,6 +30,14 @@ jobs:
             fi
           done
         shell: bash
-      - name: Upload Coverage report to CodeCov
-        run: bash <(curl -s https://codecov.io/bash)
-        working-directory: ${{env.working-directory}}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          fail_ci_if_error: true
+          files: ../coverage.txt
+          flags: unittests
+          name: codecov-umbrella
+          path_to_write_report: ./coverage/codecov_report.txt
+          verbose: true
