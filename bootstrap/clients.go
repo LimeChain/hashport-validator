@@ -40,7 +40,7 @@ type Clients struct {
 	EVMClients      map[uint64]client.EVM
 	CoinGecko       client.Pricing
 	CoinMarketCap   client.Pricing
-	RouterClients   map[uint64]*router.Router
+	RouterClients   map[uint64]client.DiamondRouter
 	EVMTokenClients map[uint64]map[string]client.EVMToken
 }
 
@@ -75,8 +75,8 @@ func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
 	return EVMClients
 }
 
-func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients map[uint64]client.EVM) map[uint64]*router.Router {
-	routers := make(map[uint64]*router.Router)
+func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients map[uint64]client.EVM) map[uint64]client.DiamondRouter {
+	routers := make(map[uint64]client.DiamondRouter)
 	for networkId, bridgeEVMsCfg := range bridgeEVMsCfgs {
 		contractAddress, err := evmClients[networkId].ValidateContractDeployedAt(bridgeEVMsCfg.RouterContractAddress)
 		additionalMsg := "Failed to initialize Router Contract Instance at [%s]. Error [%s]"

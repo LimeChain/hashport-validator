@@ -45,7 +45,7 @@ func (pw *Watcher) beginWatching() {
 	for {
 
 		pw.logger.Infof("Fetching and updating USD prices ...")
-		err := pw.pricingService.FetchAndUpdateUsdPrices(false)
+		err := pw.pricingService.FetchAndUpdateUsdPrices()
 		if err != nil {
 			pw.logger.Errorf(err.Error())
 		} else {

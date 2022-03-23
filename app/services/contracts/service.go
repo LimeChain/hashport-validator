@@ -37,7 +37,7 @@ import (
 
 type Service struct {
 	address        common.Address
-	contract       *router.Router
+	contract       client.DiamondRouter
 	Client         client.EVM
 	mutex          sync.Mutex
 	members        Members
@@ -141,7 +141,7 @@ func (bsc *Service) getMembers() ([]string, error) {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM, address string, contractInstance *router.Router, assets []string) *Service {
+func NewService(client client.EVM, address string, contractInstance client.DiamondRouter, assets []string) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)

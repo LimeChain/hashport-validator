@@ -35,8 +35,8 @@ func (mas *MockPricingService) GetTokenPriceInfo(networkId uint64, tokenAddressO
 }
 
 // FetchAndUpdateUsdPrices fetches all prices from the Web APIs and updates them in the mapping
-func (mas *MockPricingService) FetchAndUpdateUsdPrices(initialFetch bool) error {
-	args := mas.Called(initialFetch)
+func (mas *MockPricingService) FetchAndUpdateUsdPrices() error {
+	args := mas.Called()
 
 	return args.Error(0)
 }
