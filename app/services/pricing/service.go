@@ -81,7 +81,7 @@ func NewService(bridgeConfig config.Bridge,
 
 	err := instance.FetchAndUpdateUsdPrices()
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
 	}
 
 	return instance
