@@ -293,12 +293,10 @@ func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
 			if pw.assetsService.IsNative(networkId, assetAddress) { // native
 				// set native assets balance
 				pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
-				if pw.assetsService.IsNative(networkId, assetAddress) {
-					wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
-					for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-						//set wrapped assets total supply
-						pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
-					}
+				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
+				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
+					//set wrapped assets total supply
+					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
 				}
 			}
 		}
