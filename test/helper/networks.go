@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package pricing_client
+package helper
 
 import (
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/mock"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 )
 
-type MockPricingClient struct {
-	mock.Mock
-}
-
-func (m *MockPricingClient) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
-	args := m.Called(idsByNetworkAndAddress)
-	return args.Get(0).(map[uint64]map[string]decimal.Decimal), args.Error(1)
+func SetupNetworks() {
+	for networkId, networkInfo := range testConstants.Networks {
+		constants.NetworksById[networkId] = networkInfo.Name
+		constants.NetworksByName[networkInfo.Name] = networkId
+	}
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"github.com/limechain/hedera-eth-bridge-validator/test/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -28,18 +29,21 @@ import (
 )
 
 var (
-	serviceInstance     *Service
-	gauge               prometheus.Gauge
-	counter             prometheus.Counter
-	isMonitoringEnabled = true
-	gaugeOpts           = prometheus.GaugeOpts{Name: "GaugeName", Help: "GaugeHelp"}
-	gaugeSuffix         = "gauge_suffix"
-	counterOpts         = prometheus.CounterOpts{Name: "CounterName", Help: "CounterHelp"}
-	counterSuffix       = "counter_suffix"
-	sourceNetworkId     = constants.HederaNetworkId
-	targetNetworkId     = uint64(3)
-	assetAddress        = constants.Hbar
-	transactionId       = "0.0.1234-1234-1234"
+	serviceInstance              *Service
+	gauge                        prometheus.Gauge
+	counter                      prometheus.Counter
+	isMonitoringEnabled          = true
+	gaugeOpts                    = prometheus.GaugeOpts{Name: "GaugeName", Help: "GaugeHelp"}
+	gaugeSuffix                  = "gauge_suffix"
+	counterOpts                  = prometheus.CounterOpts{Name: "CounterName", Help: "CounterHelp"}
+	counterSuffix                = "counter_suffix"
+	sourceNetworkId              = constants.HederaNetworkId
+	sourceNetworkName            = testConstants.Networks[constants.HederaNetworkId].Name
+	targetNetworkId              = testConstants.EthereumNetworkId
+	targetNetworkName            = testConstants.Networks[testConstants.EthereumNetworkId].Name
+	assetAddress                 = constants.Hbar
+	transactionId                = "0.0.1234-1234-1234"
+	transactionIdWithUnderscores = "0_0_1234_1234_1234"
 )
 
 func Test_New(t *testing.T) {
@@ -64,7 +68,7 @@ func Test_ConstructMetricName_Native(t *testing.T) {
 
 	mocks.MAssetsService.On("IsNative", sourceNetworkId, assetAddress).Return(true)
 
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, "Hedera", "Network3", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Native, sourceNetworkName, targetNetworkName, transactionIdWithUnderscores, constants.MajorityReachedNameSuffix)
 	actual, err := serviceInstance.ConstructMetricName(sourceNetworkId, targetNetworkId, assetAddress, transactionId, constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, nil, err)
@@ -76,7 +80,7 @@ func Test_ConstructMetricName_Wrapped(t *testing.T) {
 
 	mocks.MAssetsService.On("IsNative", targetNetworkId, assetAddress).Return(false)
 
-	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, "Network3", "Hedera", "0_0_1234_1234_1234", constants.MajorityReachedNameSuffix)
+	expectedNative := fmt.Sprintf("%v_%v_to_%v_%v_%v", constants.Wrapped, targetNetworkName, sourceNetworkName, transactionIdWithUnderscores, constants.MajorityReachedNameSuffix)
 	actual, err := serviceInstance.ConstructMetricName(targetNetworkId, sourceNetworkId, assetAddress, transactionId, constants.MajorityReachedNameSuffix)
 
 	assert.Equal(t, err, nil)
@@ -169,11 +173,7 @@ func Test_DeleteCounter(t *testing.T) {
 
 func setup() {
 	mocks.Setup()
-
-	for key, value := range testConstants.Networks {
-		constants.NetworksById[key] = value.Name
-		constants.NetworksByName[value.Name] = key
-	}
+	helper.SetupNetworks()
 
 	serviceInstance = &Service{
 		logger:              config.GetLoggerFor("Prometheus Service"),

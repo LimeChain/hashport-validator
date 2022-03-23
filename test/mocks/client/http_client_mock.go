@@ -14,17 +14,32 @@
  * limitations under the License.
  */
 
-package service
+package client
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
+	"github.com/stretchr/testify/mock"
+	"net/http"
 )
 
-type Pricing interface {
-	// GetTokenPriceInfo gets price for token with the passed networkId and tokenAddressOrId
-	GetTokenPriceInfo(networkId uint64, tokenAddressOrId string) (priceInfo pricing.TokenPriceInfo, exist bool)
-	// FetchAndUpdateUsdPrices fetches all prices from the Web APIs and updates them in the mapping
-	FetchAndUpdateUsdPrices() error
-	// GetMinAmountsForAPI getting all prices by networkId
-	GetMinAmountsForAPI() map[uint64]map[string]string
+type MockHttp struct {
+	mock.Mock
+}
+
+func (m *MockHttp) Get(url string) (resp *http.Response, err error) {
+	args := m.Called(url)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(*http.Response), nil
+	}
+	return args[0].(*http.Response), args[1].(error)
+}
+
+func (m *MockHttp) Do(req *http.Request) (*http.Response, error) {
+	args := m.Called(req)
+	return args[0].(*http.Response), args[1].(error)
 }
