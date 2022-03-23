@@ -9,6 +9,7 @@
 ![Go Test](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/Go%20Test/badge.svg)
 ![E2E Tests](https://github.com/LimeChain/hedera-eth-bridge-validator/workflows/E2E%20Tests/badge.svg?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LimeChain/hedera-eth-bridge-validator)](https://goreportcard.com/report/github.com/LimeChain/hedera-eth-bridge-validator)
+[![codecov](https://codecov.io/gh/codecov/example-go/branch/master/graph/badge.svg)](https://codecov.io/gh/LimeChain/hashport-validator)
 
 </div>
 
