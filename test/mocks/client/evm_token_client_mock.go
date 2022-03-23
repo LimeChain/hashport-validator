@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package evm_token_client
+package client
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -23,31 +23,31 @@ import (
 	"math/big"
 )
 
-type MockEVMTokenClient struct {
+type MockEVMToken struct {
 	mock.Mock
 }
 
-func (m *MockEVMTokenClient) Decimals(opts *bind.CallOpts) (uint8, error) {
+func (m *MockEVMToken) Decimals(opts *bind.CallOpts) (uint8, error) {
 	args := m.Called(opts)
 	return args.Get(0).(uint8), args.Error(1)
 }
 
-func (m *MockEVMTokenClient) Name(opts *bind.CallOpts) (string, error) {
+func (m *MockEVMToken) Name(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m *MockEVMTokenClient) Symbol(opts *bind.CallOpts) (string, error) {
+func (m *MockEVMToken) Symbol(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m *MockEVMTokenClient) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
+func (m *MockEVMToken) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
 	args := m.Called(opts)
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
-func (m *MockEVMTokenClient) BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error) {
+func (m *MockEVMToken) BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error) {
 	args := m.Called(opts, account)
 	return args.Get(0).(*big.Int), args.Error(1)
 }

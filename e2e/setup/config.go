@@ -186,8 +186,8 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]*router.Router, evmTokenClients map[uint64]map[string]client.EVMToken) {
-	routerClients = make(map[uint64]*router.Router)
+func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]client.DiamondRouter, evmTokenClients map[uint64]map[string]client.EVMToken) {
+	routerClients = make(map[uint64]client.DiamondRouter)
 	evmTokenClients = make(map[uint64]map[string]client.EVMToken)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract

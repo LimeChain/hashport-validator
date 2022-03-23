@@ -19,7 +19,6 @@ package assets
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	assetModel "github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -213,7 +212,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 	}
 }
 
-func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[string]int64, routerClients map[uint64]*router.Router, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EVMToken) *Service {
+func NewService(networks map[uint64]*parser.Network, HederaFeePercentages map[string]int64, routerClients map[uint64]client.DiamondRouter, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EVMToken) *Service {
 	nativeToWrapped := make(map[uint64]map[string]map[uint64]string)
 	wrappedToNative := make(map[uint64]map[string]*assetModel.NativeAsset)
 	fungibleNetworkAssets := make(map[uint64][]string)
