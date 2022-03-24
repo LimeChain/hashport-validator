@@ -23,7 +23,9 @@ jobs:
 
       - name: Export docker .env
         shell: bash
-        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+        run: |
+          echo "TAG=${{ github.event.client_payload.tag }}" >> .env && \
+          echo "${{ secrets.ENV_TESTNET }}" >> .env
 
       - name: Export application config
         shell: bash
@@ -55,7 +57,8 @@ jobs:
 
       - name: Export docker .env
         shell: bash
-        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env && \
+          echo "${{ secrets.ENV_TESTNET }}" >> .env
 
       - name: Export application config
         shell: bash
@@ -87,7 +90,8 @@ jobs:
 
       - name: Export docker .env
         shell: bash
-        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env && \
+          echo "${{ secrets.ENV_TESTNET }}" >> .env
 
       - name: Export application config
         shell: bash
@@ -119,7 +123,8 @@ jobs:
 
       - name: Export docker .env
         shell: bash
-        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .env && \
+          echo "${{ secrets.ENV_TESTNET }}" >> .env
 
       - name: Export application config
         shell: bash
