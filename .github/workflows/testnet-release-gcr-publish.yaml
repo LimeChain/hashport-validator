@@ -19,7 +19,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_CE_KEY }}
      
      
-      - name: Export docker .test
+      - name: Export docker .test 
         shell: bash
         run: |
           echo "TAG=${{ github.event.client_payload.tag }}" >> .test
