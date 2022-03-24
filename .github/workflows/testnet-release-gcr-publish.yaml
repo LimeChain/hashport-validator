@@ -22,7 +22,7 @@ jobs:
       - name: Export docker .test 
         shell: bash
         run: |
-          echo "TAG=${{ github.event.client_payload.tag }}" >> .test
+          echo "TAG=${{ github.event.client_payload.tag }}" > .test
           echo "${{ secrets.ENV_TESTNET }}" >> .test 
 
       - name: Copy files
