@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  deploy:
+  deploy_mainnet:
     runs-on: ubuntu-latest
     if: |
       contains(github.event.release.tag_name, '-alpha-') &&
@@ -31,9 +31,10 @@ jobs:
           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:${{ github.event.release.tag_name }}
           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.SERVICE }}:latest
 
-#      - name: Dispatch image release event
-#        uses: peter-evans/repository-dispatch@v1.1.3
-#        with:
-#          token: ${{ secrets.REPO_GHA_PAT }}
-#          repository: ${{ github.repository }}
-#          event-type: trigger-image-release
+      - name: Dispatch image release event
+        uses: peter-evans/repository-dispatch@v1.1.3
+        with:
+          token: ${{ secrets.REPO_GHA_PAT }}
+          repository: ${{ github.repository }}
+          event-type: trigger-mainnet-image-release
+          client-payload: '{"tag": "${{ github.event.release.tag_name }}"}'

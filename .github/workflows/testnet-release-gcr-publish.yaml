@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  deploy:
+  deploy_testnet:
     runs-on: ubuntu-latest
     if: |
       contains(github.event.release.tag_name, '-rc-') &&
