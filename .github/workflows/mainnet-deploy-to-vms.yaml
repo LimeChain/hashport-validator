@@ -24,7 +24,7 @@ jobs:
       - name: Export docker .env
         shell: bash
         run: |
-          echo "TAG=${{ github.event.client_payload.tag }}" >> .env && \
+          echo "TAG=${{ github.event.client_payload.tag }}" > .env && \
           echo "${{ secrets.ENV_READ_ONLY }}" >> .env
 
       - name: Export application config
