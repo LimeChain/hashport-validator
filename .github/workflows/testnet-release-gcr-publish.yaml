@@ -17,20 +17,26 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
-
-     # echo '${{ secrets.APP_TESTNET_DASHBOARD }}' > ./monitoring/grafana/provisioning/dashboards/validator_transfers_dashboard.json && \
      
-      - name: Export application config
+     
+      - name: Export docker .env
         shell: bash
-        run: |
-          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/test_rules.yml && \
-          echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./monitoring/prometheus/test2_rules.yml
-          
+        run: echo "TAG=${{ github.event.client_payload.tag }}" >> .test     
 
       - name: Copy files
-        run: |
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus && \
-          gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test2_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./.test ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
+     
+#       - name: Export application config
+#         shell: bash
+#         run: |
+#           echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/test_rules.yml && \
+#           echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./monitoring/prometheus/test2_rules.yml
+          
+
+#       - name: Copy files
+#         run: |
+#           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus && \
+#           gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./monitoring/prometheus/test2_rules.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~/monitoring/prometheus
 
    
 #       - name: Copy files
