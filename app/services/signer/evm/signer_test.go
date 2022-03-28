@@ -26,15 +26,15 @@ import (
 	"testing"
 )
 
-func mockSigner() (service.Signer, *ecdsa.PrivateKey, []byte) {
+func mockSigner() (service.Signer, *ecdsa.PrivateKey) {
 	pk, _ := crypto.GenerateKey()
 	pkBytes := crypto.FromECDSA(pk)
 	s := NewEVMSigner(hexutil.Encode(pkBytes)[2:])
-	return s, pk, pkBytes
+	return s, pk
 }
 
 func Test_Sign(t *testing.T) {
-	s, _, _ := mockSigner()
+	s, _ := mockSigner()
 
 	msg := []byte("12345678123456781234567812345678")
 	res, err := s.Sign(msg)
@@ -43,7 +43,7 @@ func Test_Sign(t *testing.T) {
 }
 
 func TestSigner_NewKeyTransactor(t *testing.T) {
-	s, _, _ := mockSigner()
+	s, _ := mockSigner()
 
 	res, err := s.NewKeyTransactor(big.NewInt(80001))
 	assert.Empty(t, err)
@@ -51,7 +51,7 @@ func TestSigner_NewKeyTransactor(t *testing.T) {
 }
 
 func Test_Address(t *testing.T) {
-	s, pk, _ := mockSigner()
+	s, pk := mockSigner()
 
 	addr := crypto.PubkeyToAddress(pk.PublicKey).String()
 	assert.Equal(t, s.Address(), addr)
