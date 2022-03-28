@@ -17,16 +17,24 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
-     
-     
-      - name: Export docker .test 
+
+      - name: Export application config
         shell: bash
         run: |
-          echo "TAG=${{ github.event.client_payload.tag }}" > .test
-          echo "${{ secrets.ENV_TESTNET }}" >> .test 
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./test.yml && \
+          echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./test2.yml
 
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./.test ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
+        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./test.yml ./test2.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
+     
+#       - name: Export docker .test 
+#         shell: bash
+#         run: |
+#           echo "TAG=${{ github.event.client_payload.tag }}" > .test
+#           echo "${{ secrets.ENV_TESTNET }}" >> .test 
+
+#       - name: Copy files
+#         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./.test ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
      
 #       - name: Export application config
 #         shell: bash
