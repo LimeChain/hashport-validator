@@ -36,10 +36,10 @@ func (m *MockHttp) Get(url string) (resp *http.Response, err error) {
 	if args[1] == nil {
 		return args[0].(*http.Response), nil
 	}
-	return args[0].(*http.Response), args[1].(error)
+	return args.Get(0).(*http.Response), args.Error(1)
 }
 
 func (m *MockHttp) Do(req *http.Request) (*http.Response, error) {
 	args := m.Called(req)
-	return args[0].(*http.Response), args[1].(error)
+	return args.Get(0).(*http.Response), args.Error(1)
 }

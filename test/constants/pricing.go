@@ -26,18 +26,20 @@ import (
 var (
 	// Hedera //
 
-	HbarCoinGeckoId              = "hedera-hashgraph"
-	HbarCoinMarketCapId          = "4642"
-	HbarPriceInUsd               = decimal.NewFromFloat(0.2)
-	HbarMinAmountWithFee         = big.NewInt(5000000000)
-	HbarMinAmountWithFeeInEVM, _ = big.NewInt(0).SetString("50000000000000000000", 10)
+	HbarCoinGeckoId                     = "hedera-hashgraph"
+	HbarCoinMarketCapId                 = "4642"
+	HbarPriceInUsd                      = decimal.NewFromFloat(0.2)
+	HbarNativeTokenPriceInUsdFloat64, _ = HbarPriceInUsd.Float64()
+	HbarMinAmountWithFee                = big.NewInt(5000000000)
+	HbarMinAmountWithFeeInEVM, _        = big.NewInt(0).SetString("50000000000000000000", 10)
 
 	// Ethereum //
 
-	EthereumCoinGeckoId                 = "ethereum"
-	EthereumCoinMarketCapId             = "1027"
-	EthereumNativeTokenPriceInUsd       = decimal.NewFromFloat(8000.0)
-	EthereumNativeTokenMinAmountWithFee = big.NewInt(1250000000000000)
+	EthereumCoinGeckoId                     = "ethereum"
+	EthereumCoinMarketCapId                 = "1027"
+	EthereumNativeTokenPriceInUsd           = decimal.NewFromFloat(8000.0)
+	EthereumNativeTokenPriceInUsdFloat64, _ = EthereumNativeTokenPriceInUsd.Float64()
+	EthereumNativeTokenMinAmountWithFee     = big.NewInt(1250000000000000)
 
 	UsdPrices = map[uint64]map[string]decimal.Decimal{
 		constants.HederaNetworkId: {
