@@ -54,6 +54,8 @@ func NewClient(apiCfg config.CoinMarketCap) *Client {
 }
 
 func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]string) (pricesByNetworkAndAddress map[uint64]map[string]decimal.Decimal, err error) {
+	pricesByNetworkAndAddress = make(map[uint64]map[string]decimal.Decimal)
+
 	var ids []string
 	for _, addressesWithIds := range idsByNetworkAndAddress {
 		for _, id := range addressesWithIds {
