@@ -3,7 +3,7 @@ module github.com/limechain/hedera-eth-bridge-validator
 go 1.13
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/caarlos0/env/v6 v6.4.0
 	github.com/dariubs/percent v1.0.0
 	github.com/ethereum/go-ethereum v1.10.8
