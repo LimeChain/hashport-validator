@@ -15,12 +15,12 @@ route:
     #########
 
     # - Repeat Interval: DEFAULT - #
-    - matchers: [ repeat_interval = "", repeat_interval = "default" ]
+    - matchers: [ repeat_interval = '', repeat_interval = 'default' ]
       continue: true
       receiver: slack-notifications
 
     # - Repeat Interval: LONG - #
-    - matchers: [ repeat_interval = "long" ]
+    - matchers: [ repeat_interval = 'long' ]
       continue: true
       repeat_interval: 7d
       receiver: slack-notifications
@@ -30,12 +30,12 @@ route:
     #########
 
     # - Repeat Interval: DEFAULT - #
-    - matchers: [ repeat_interval = "default" ]
+    - matchers: [ repeat_interval = 'default' ]
       continue: true
       receiver: email
 
     # - Repeat Interval: LONG - #
-    - matchers: [ repeat_interval = "long" ]
+    - matchers: [ repeat_interval = 'long' ]
       continue: true
       repeat_interval: 7d
       receiver: email
