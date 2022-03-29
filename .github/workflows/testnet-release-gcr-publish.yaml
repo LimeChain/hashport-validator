@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./test.yml && \
-          echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./test2.yml
+          echo "${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}" > ./test2.yml
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./test.yml ./test2.yml ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
