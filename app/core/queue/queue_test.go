@@ -22,12 +22,26 @@ import (
 	"testing"
 )
 
-func Test_Push(t *testing.T) {
-	q := NewQueue()
-	msg := &Message{
+var (
+	q   *Queue   = nil
+	msg *Message = nil
+)
+
+func setup() {
+	q = NewQueue()
+	msg = &Message{
 		Payload: nil,
 		Topic:   "topic",
 	}
+}
+
+func Test_NewQueue(t *testing.T) {
+	setup()
+	assert.NotNil(t, q)
+}
+
+func Test_Push(t *testing.T) {
+	setup()
 
 	received := 0
 	var wg sync.WaitGroup
@@ -46,6 +60,7 @@ func Test_Push(t *testing.T) {
 }
 
 func Test_Channel(t *testing.T) {
-	q := NewQueue()
+	setup()
+
 	assert.NotNil(t, q.Channel())
 }
