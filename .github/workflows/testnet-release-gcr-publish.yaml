@@ -18,7 +18,7 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_CE_KEY }}
 
-      - name: Export application config
+      - name: Export application config 
         shell: bash
         run: |
           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./test.yml && \
