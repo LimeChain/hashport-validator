@@ -2,7 +2,7 @@ name: Test workflows
 
 # on:
 #   release: 
-#     types: [published]
+#     types: [published] 
 on: push
 
 jobs:
