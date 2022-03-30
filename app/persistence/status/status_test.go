@@ -35,6 +35,9 @@ var (
 	dbConnection        *gorm.DB
 	sqlMock             sqlmock.Sqlmock
 	db                  *sql.DB
+	insertQuery         = regexp.QuoteMeta(`INSERT INTO "statuses" ("entity_id","last") VALUES ($1,$2)`)
+	updateQuery         = regexp.QuoteMeta(`UPDATE "statuses" SET "entity_id"=$1,"last"=$2 WHERE entity_id = $3`)
+	selectQuery         = regexp.QuoteMeta(`SELECT * FROM "statuses" WHERE entity_id = $1 ORDER BY "statuses"."entity_id" LIMIT 1`)
 	entityColumns       = []string{"entity_id", "last"}
 	entityArgs          = []driver.Value{entityId, entityLastTimestamp}
 	entityId            = "1"
@@ -81,8 +84,7 @@ func Test_NewRepositoryForStatus(t *testing.T) {
 func Test_Create(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`INSERT INTO "statuses" ("entity_id","last") VALUES ($1,$2)`)
-	helper.SqlMockPrepareExec(sqlMock, query, entityId, entityLastTimestamp)
+	helper.SqlMockPrepareExec(sqlMock, insertQuery, entityId, entityLastTimestamp)
 
 	err := repository.Create(entityId, entityLastTimestamp)
 
@@ -92,8 +94,7 @@ func Test_Create(t *testing.T) {
 func Test_Create_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`INSERT INTO "statuses" ("entity_id","last") VALUES ($1,$2)`)
-	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, query, entityId, entityLastTimestamp)
+	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, insertQuery, entityId, entityLastTimestamp)
 
 	err := repository.Create(entityId, entityLastTimestamp)
 
@@ -104,8 +105,7 @@ func Test_Update(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	updatedLast := int64(5)
-	query := regexp.QuoteMeta(`UPDATE "statuses" SET "entity_id"=$1,"last"=$2 WHERE entity_id = $3`)
-	helper.SqlMockPrepareExec(sqlMock, query, entityId, updatedLast, entityId)
+	helper.SqlMockPrepareExec(sqlMock, updateQuery, entityId, updatedLast, entityId)
 
 	err := repository.Update(entityId, updatedLast)
 
@@ -116,8 +116,7 @@ func Test_Update_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	updatedLast := int64(5)
-	query := regexp.QuoteMeta(`UPDATE "statuses" SET "entity_id"=$1,"last"=$2 WHERE entity_id = $3`)
-	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, query, entityId, updatedLast, entityId)
+	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, updateQuery, entityId, updatedLast, entityId)
 
 	err := repository.Update(entityId, updatedLast)
 
@@ -127,8 +126,7 @@ func Test_Update_Err(t *testing.T) {
 func Test_Get(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "statuses" WHERE entity_id = $1 ORDER BY "statuses"."entity_id" LIMIT 1`)
-	helper.SqlMockPrepareQuery(sqlMock, entityColumns, entityArgs, query, entityId)
+	helper.SqlMockPrepareQuery(sqlMock, entityColumns, entityArgs, selectQuery, entityId)
 
 	lastTimestamp, err := repository.Get(entityId)
 
@@ -139,8 +137,7 @@ func Test_Get(t *testing.T) {
 func Test_Get_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "statuses" WHERE entity_id = $1 ORDER BY "statuses"."entity_id" LIMIT 1`)
-	expectedErr := helper.SqlMockPrepareQueryWithErr(sqlMock, query, entityId)
+	expectedErr := helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectQuery, entityId)
 
 	lastTimestamp, err := repository.Get(entityId)
 

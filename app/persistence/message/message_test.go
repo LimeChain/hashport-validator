@@ -31,10 +31,16 @@ import (
 )
 
 var (
-	repository           *Repository
-	dbConnection         *gorm.DB
-	sqlMock              sqlmock.Sqlmock
-	db                   *sql.DB
+	repository   *Repository
+	dbConnection *gorm.DB
+	sqlMock      sqlmock.Sqlmock
+	db           *sql.DB
+
+	insertQuery                   = regexp.QuoteMeta(`INSERT INTO "messages" ("transfer_id","hash","signature","signer","transaction_timestamp") VALUES ($1,$2,$3,$4,$5)`)
+	selectQuery                   = regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 and signature = $2 and hash = $3 ORDER BY "messages"."transfer_id" LIMIT 1`)
+	selectByTransferIdQuery       = regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 ORDER BY transaction_timestamp`)
+	selectTransferForeignKeyQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE "transfers"."transaction_id" = $1`)
+
 	transferId           = "someTransferId"
 	transfer             = entity.Transfer{}
 	signature            = "someSignature"
@@ -64,8 +70,7 @@ func Test_NewRepository(t *testing.T) {
 func Test_Create(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`INSERT INTO "messages" ("transfer_id","hash","signature","signer","transaction_timestamp") VALUES ($1,$2,$3,$4,$5)`)
-	helper.SqlMockPrepareExec(sqlMock, query, transferId, hash, signature, signer, transactionTimestamp)
+	helper.SqlMockPrepareExec(sqlMock, insertQuery, transferId, hash, signature, signer, transactionTimestamp)
 
 	err := repository.Create(expectedMsg)
 
@@ -75,8 +80,7 @@ func Test_Create(t *testing.T) {
 func Test_Create_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`INSERT INTO "messages" ("transfer_id","hash","signature","signer","transaction_timestamp") VALUES ($1,$2,$3,$4,$5)`)
-	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, query, transferId, hash, signature, signer, transactionTimestamp)
+	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, insertQuery, transferId, hash, signature, signer, transactionTimestamp)
 
 	err := repository.Create(expectedMsg)
 
@@ -86,9 +90,7 @@ func Test_Create_Err(t *testing.T) {
 func Test_GetMessageWith(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 and signature = $2 and hash = $3 ORDER BY "messages"."transfer_id" LIMIT 1`)
-	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, query, transferId, signature, hash)
+	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, selectQuery, transferId, signature, hash)
 
 	fetchedMsg, err := repository.GetMessageWith(transferId, signature, hash)
 
@@ -99,8 +101,7 @@ func Test_GetMessageWith(t *testing.T) {
 func Test_GetMessageWith_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 and signature = $2 and hash = $3 ORDER BY "messages"."transfer_id" LIMIT 1`)
-	expectedErr := helper.SqlMockPrepareQueryWithErr(sqlMock, query, transferId, signature, hash)
+	expectedErr := helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectQuery, transferId, signature, hash)
 
 	fetchedMsg, err := repository.GetMessageWith(transferId, signature, hash)
 
@@ -111,8 +112,7 @@ func Test_GetMessageWith_Err(t *testing.T) {
 func Test_Exist(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 and signature = $2 and hash = $3 ORDER BY "messages"."transfer_id" LIMIT 1`)
-	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, query, transferId, signature, hash)
+	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, selectQuery, transferId, signature, hash)
 
 	exist, err := repository.Exist(transferId, signature, hash)
 
@@ -123,11 +123,8 @@ func Test_Exist(t *testing.T) {
 func Test_Exist_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 and signature = $2 and hash = $3 ORDER BY "messages"."transfer_id" LIMIT 1`)
-	returnErr1 := gorm.ErrRecordNotFound
-	expectedErr2 := gorm.ErrInvalidData
-	sqlMock.ExpectQuery(query).WithArgs(transferId, signature, hash).WillReturnError(returnErr1)
-	sqlMock.ExpectQuery(query).WithArgs(transferId, signature, hash).WillReturnError(expectedErr2)
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectQuery, transferId, signature, hash)
+	expectedErr2 := helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, selectQuery, transferId, signature, hash)
 
 	exist1, err1 := repository.Exist(transferId, signature, hash)
 	exist2, err2 := repository.Exist(transferId, signature, hash)
@@ -142,10 +139,8 @@ func Test_Exist_Err(t *testing.T) {
 func Test_Get(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 ORDER BY transaction_timestamp`)
-	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, query, transferId)
-	transferForeignKeyQuery := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE "transfers"."transaction_id" = $1`)
-	sqlMock.ExpectQuery(transferForeignKeyQuery).WithArgs(transferId).WillReturnRows(&sqlmock.Rows{})
+	helper.SqlMockPrepareQuery(sqlMock, columns, rowArgs, selectByTransferIdQuery, transferId)
+	sqlMock.ExpectQuery(selectTransferForeignKeyQuery).WithArgs(transferId).WillReturnRows(&sqlmock.Rows{})
 
 	fetchedMessages, err := repository.Get(transferId)
 
@@ -157,8 +152,7 @@ func Test_Get(t *testing.T) {
 func Test_Get_Err(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	query := regexp.QuoteMeta(`SELECT * FROM "messages" WHERE transfer_id = $1 ORDER BY transaction_timestamp`)
-	expectedErr := helper.SqlMockPrepareQueryWithErr(sqlMock, query, transferId)
+	expectedErr := helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectByTransferIdQuery, transferId)
 
 	fetchedMessages, err := repository.Get(transferId)
 
