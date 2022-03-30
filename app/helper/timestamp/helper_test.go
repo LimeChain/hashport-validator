@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	validTimestamp        = "1598924675.82525000"
+	validTimestamp        = "1598924675.082525000"
 	timestampInt64  int64 = 1598924675082525000
 	nonValidNanos         = "1598924675.82525000423423541521512"
 	nonValidSeconds       = "1598924675423423541521512.82525000"
