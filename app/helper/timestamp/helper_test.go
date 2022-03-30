@@ -49,6 +49,15 @@ func Test_String(t *testing.T) {
 	assert.Equal(t, validTimestamp, res)
 }
 
+func Test_ReverseStringReturnsInitialValue(t *testing.T) {
+	expected := "1648558453.046349000"
+	timestamp, err := FromString(expected)
+
+	result := String(timestamp)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, result)
+}
+
 func Test_ToHumanReadable(t *testing.T) {
 	res := ToHumanReadable(timestampInt64)
 	expectedDate := "2020-09-01T01:44:35.008554496Z"
