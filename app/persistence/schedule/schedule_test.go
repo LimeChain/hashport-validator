@@ -95,8 +95,7 @@ func Test_Create_Error(t *testing.T) {
 func Test_UpdateStatusCompleted(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	updatedStatus := status.Completed
-	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery, updatedStatus, transactionId)
+	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery, status.Completed, transactionId)
 
 	err := repository.UpdateStatusCompleted(transactionId)
 
@@ -202,7 +201,7 @@ func Test_GetAllSubmittedIds(t *testing.T) {
 func Test_GetAllSubmittedIds_Error(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	expectedErr := helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectIdsByStatusQuery, status.Submitted)
+	expectedErr := helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectIdsByStatusQuery, expectedStatus)
 
 	fetchedSchedule, err := repository.GetAllSubmittedIds()
 
