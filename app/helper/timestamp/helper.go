@@ -53,7 +53,7 @@ func FromString(timestamp string) (int64, error) {
 func String(timestamp int64) string {
 	seconds := timestamp / nanosInSecond
 	nano := timestamp % nanosInSecond
-	return fmt.Sprintf("%d.%d", seconds, nano)
+	return fmt.Sprintf("%d.%09d", seconds, nano)
 }
 
 // ToHumanReadable converts the timestamp into human readable string
