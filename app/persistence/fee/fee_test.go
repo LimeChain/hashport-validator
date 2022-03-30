@@ -83,7 +83,7 @@ func Test_Get(t *testing.T) {
 
 func Test_Get_NotFound(t *testing.T) {
 	setup()
-	_ = helper.SqlMockPrepareQueryWithErr(sqlMock, feeQuery, transactionId)
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, feeQuery, transactionId)
 
 	actual, err := repository.Get(transactionId)
 	assert.Nil(t, err)
@@ -168,7 +168,7 @@ func Test_GetAllSubmittedIds(t *testing.T) {
 
 func Test_GetAllSubmittedIds_Err(t *testing.T) {
 	setup()
-	_ = helper.SqlMockPrepareQueryWithErr(sqlMock, getAllSubmittedIdsQuery,
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getAllSubmittedIdsQuery,
 		entityStatus.Submitted)
 
 	actual, err := repository.GetAllSubmittedIds()
