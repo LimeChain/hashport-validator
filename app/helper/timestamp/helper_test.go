@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	validTimestamp        = "1598924675.82525000"
+	validTimestamp        = "1598924675.082525000"
 	timestampInt64  int64 = 1598924675082525000
 	nonValidNanos         = "1598924675.82525000423423541521512"
 	nonValidSeconds       = "1598924675423423541521512.82525000"
@@ -47,6 +47,15 @@ func Test_NonValidSeconds(t *testing.T) {
 func Test_String(t *testing.T) {
 	res := String(timestampInt64)
 	assert.Equal(t, validTimestamp, res)
+}
+
+func Test_ReverseStringReturnsInitialValue(t *testing.T) {
+	expected := "1648558453.046349000"
+	timestamp, err := FromString(expected)
+
+	result := String(timestamp)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, result)
 }
 
 func Test_ToHumanReadable(t *testing.T) {

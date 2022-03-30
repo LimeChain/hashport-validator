@@ -18,15 +18,16 @@ package status
 
 import (
 	"database/sql"
-	"errors"
+	"database/sql/driver"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/limechain/hedera-eth-bridge-validator/test/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"regexp"
 	"testing"
+	"time"
 )
 
 var (
@@ -34,8 +35,10 @@ var (
 	dbConnection        *gorm.DB
 	sqlMock             sqlmock.Sqlmock
 	db                  *sql.DB
+	entityColumns       = []string{"entity_id", "last"}
+	entityArgs          = []driver.Value{entityId, entityLastTimestamp}
 	entityId            = "1"
-	entityLastTimestamp = int64(10)
+	entityLastTimestamp = time.Now().UnixNano()
 )
 
 func Test_NewRepositoryForStatus(t *testing.T) {
@@ -77,10 +80,9 @@ func Test_NewRepositoryForStatus(t *testing.T) {
 
 func Test_Create(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	query := regexp.QuoteMeta(`INSERT INTO "statuses" ("entity_id","last") VALUES ($1,$2)`)
-	result := sqlmock.NewResult(1, 1)
-	sqlMock.ExpectExec(query).WithArgs(entityId, entityLastTimestamp).WillReturnResult(result)
+	helper.SqlMockPrepareExec(sqlMock, query, entityId, entityLastTimestamp)
 
 	err := repository.Create(entityId, entityLastTimestamp)
 
@@ -89,24 +91,21 @@ func Test_Create(t *testing.T) {
 
 func Test_Create_Err(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	query := regexp.QuoteMeta(`INSERT INTO "statuses" ("entity_id","last") VALUES ($1,$2)`)
-	result := sqlmock.NewResult(0, 0)
-	returnErr := errors.New("failed to update record")
-	sqlMock.ExpectExec(query).WithArgs(entityId, entityLastTimestamp).WillReturnResult(result).WillReturnError(returnErr)
+	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, query, entityId, entityLastTimestamp)
 
 	err := repository.Create(entityId, entityLastTimestamp)
 
-	assert.Error(t, err, returnErr)
+	assert.Error(t, err, expectedErr)
 }
 
 func Test_Update(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	updatedLast := int64(5)
 	query := regexp.QuoteMeta(`UPDATE "statuses" SET "entity_id"=$1,"last"=$2 WHERE entity_id = $3`)
-	result := sqlmock.NewResult(1, 1)
-	sqlMock.ExpectExec(query).WithArgs(entityId, updatedLast, entityId).WillReturnResult(result)
+	helper.SqlMockPrepareExec(sqlMock, query, entityId, updatedLast, entityId)
 
 	err := repository.Update(entityId, updatedLast)
 
@@ -115,24 +114,21 @@ func Test_Update(t *testing.T) {
 
 func Test_Update_Err(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	updatedLast := int64(5)
 	query := regexp.QuoteMeta(`UPDATE "statuses" SET "entity_id"=$1,"last"=$2 WHERE entity_id = $3`)
-	result := sqlmock.NewResult(0, 0)
-	returnErr := errors.New("failed to update record")
-	sqlMock.ExpectExec(query).WithArgs(entityId, updatedLast, entityId).WillReturnResult(result).WillReturnError(returnErr)
+	expectedErr := helper.SqlMockPrepareExecWithErr(sqlMock, query, entityId, updatedLast, entityId)
 
 	err := repository.Update(entityId, updatedLast)
 
-	assert.Error(t, err, returnErr)
+	assert.Error(t, err, expectedErr)
 }
 
 func Test_Get(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
-	rows := sqlmock.NewRows([]string{"entity_id", "last"}).AddRow(entityId, entityLastTimestamp)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	query := regexp.QuoteMeta(`SELECT * FROM "statuses" WHERE entity_id = $1 ORDER BY "statuses"."entity_id" LIMIT 1`)
-	sqlMock.ExpectQuery(query).WithArgs(entityId).WillReturnRows(rows)
+	helper.SqlMockPrepareQuery(sqlMock, entityColumns, entityArgs, query, entityId)
 
 	lastTimestamp, err := repository.Get(entityId)
 
@@ -142,40 +138,19 @@ func Test_Get(t *testing.T) {
 
 func Test_Get_Err(t *testing.T) {
 	setup()
-	defer checkSqlMockExpectationsMet(t)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	query := regexp.QuoteMeta(`SELECT * FROM "statuses" WHERE entity_id = $1 ORDER BY "statuses"."entity_id" LIMIT 1`)
-	returnErr := errors.New("no record found")
-	sqlMock.ExpectQuery(query).WithArgs(entityId).WillReturnError(returnErr)
+	expectedErr := helper.SqlMockPrepareQueryWithErr(sqlMock, query, entityId)
 
 	lastTimestamp, err := repository.Get(entityId)
 
-	assert.Error(t, err, returnErr)
+	assert.Error(t, err, expectedErr)
 	assert.Equal(t, int64(0), lastTimestamp)
-}
-
-func checkSqlMockExpectationsMet(t *testing.T) {
-	// we make sure that all expectations were met
-	if err := sqlMock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
 }
 
 func setup() {
 	mocks.Setup()
-	var err error
-
-	db, sqlMock, err = sqlmock.New()
-	if err != nil {
-		panic("failed to initialize 'sqlmock'")
-	}
-
-	dbConnection, err = gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
-	if err != nil {
-		panic("failed to open 'gorm.Db' connection")
-	}
-
-	mocks.MDatabase.On("GetConnection").Return(dbConnection)
-	dbConnection = mocks.MDatabase.GetConnection()
+	dbConnection, sqlMock, db = helper.SetupSqlMock()
 
 	repository = &Repository{
 		dbClient: dbConnection,
