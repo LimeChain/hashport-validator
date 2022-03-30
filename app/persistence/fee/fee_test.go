@@ -35,7 +35,6 @@ var (
 	repository    *Repository
 	dbConn        *gorm.DB
 	sqlMock       sqlmock.Sqlmock
-	db            *sql.DB
 	transactionId = "transactionId"
 	scheduleId    = "scheduleId"
 	amount        = "1"
@@ -59,12 +58,18 @@ var (
 
 func setup() {
 	mocks.Setup()
-	dbConn, sqlMock, db = helper.SetupSqlMock()
+	dbConn, sqlMock, _ = helper.SetupSqlMock()
 
 	repository = &Repository{
 		dbClient: dbConn,
 		logger:   config.GetLoggerFor("Fee Repository"),
 	}
+}
+
+func Test_NewRepository(t *testing.T) {
+	setup()
+	actual := NewRepository(dbConn)
+	assert.Equal(t, repository, actual)
 }
 
 func Test_Get(t *testing.T) {
@@ -169,4 +174,24 @@ func Test_GetAllSubmittedIds_Err(t *testing.T) {
 	actual, err := repository.GetAllSubmittedIds()
 	assert.NotNil(t, err)
 	assert.Nil(t, actual)
+}
+
+func Test_UpdateStatus(t *testing.T) {
+	setup()
+	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery,
+		entityStatus.Completed,
+		expectedFee.TransactionID)
+
+	err := repository.updateStatus(transactionId, entityStatus.Completed)
+	assert.Nil(t, err)
+}
+
+func Test_UpdateStatus_Err(t *testing.T) {
+	setup()
+	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateStatusQuery,
+		entityStatus.Completed,
+		expectedFee.TransactionID)
+
+	err := repository.updateStatus(transactionId, entityStatus.Completed)
+	assert.NotNil(t, err)
 }
