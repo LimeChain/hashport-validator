@@ -52,6 +52,8 @@ func SetupSqlMock() (dbConnection *gorm.DB, sqlMock sqlmock.Sqlmock, db *sql.DB)
 	return dbConnection, sqlMock, db
 }
 
+// Exec //
+
 func SqlMockPrepareExec(sqlMock sqlmock.Sqlmock, query string, queryArgs ...driver.Value) {
 	result := sqlmock.NewResult(1, 1)
 	sqlMock.ExpectExec(query).WithArgs(queryArgs...).WillReturnResult(result)
@@ -65,13 +67,22 @@ func SqlMockPrepareExecWithErr(sqlMock sqlmock.Sqlmock, query string, queryArgs 
 	return err
 }
 
+// Query //
+
 func SqlMockPrepareQuery(sqlMock sqlmock.Sqlmock, columns []string, rowArgs []driver.Value, query string, queryArgs ...driver.Value) {
 	msgRow := sqlmock.NewRows(columns).AddRow(rowArgs...)
 	sqlMock.ExpectQuery(query).WithArgs(queryArgs...).WillReturnRows(msgRow)
 }
 
-func SqlMockPrepareQueryWithErr(sqlMock sqlmock.Sqlmock, query string, queryArgs ...driver.Value) error {
+func SqlMockPrepareQueryWithErrNotFound(sqlMock sqlmock.Sqlmock, query string, queryArgs ...driver.Value) error {
 	err := gorm.ErrRecordNotFound
+	sqlMock.ExpectQuery(query).WithArgs(queryArgs...).WillReturnError(err)
+
+	return err
+}
+
+func SqlMockPrepareQueryWithErrInvalidData(sqlMock sqlmock.Sqlmock, query string, queryArgs ...driver.Value) error {
+	err := gorm.ErrInvalidData
 	sqlMock.ExpectQuery(query).WithArgs(queryArgs...).WillReturnError(err)
 
 	return err
