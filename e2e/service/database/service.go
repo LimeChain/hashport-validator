@@ -45,7 +45,7 @@ type Service struct {
 func NewService(dbConfigs []config.Database) *Service {
 	var verifiers []dbVerifier
 	for _, db := range dbConfigs {
-		connection := persistence.Connect(db)
+		connection := persistence.NewPgConnector(db).Connect()
 		newVerifier := dbVerifier{
 			transactions: transfer.NewRepository(connection),
 			messages:     message.NewRepository(connection),

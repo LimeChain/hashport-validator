@@ -39,7 +39,9 @@ func main() {
 	server := server.NewServer()
 
 	var services *bootstrap.Services = nil
-	db := persistence.NewDatabase(configuration.Node.Database)
+	conn := persistence.NewPgConnector(configuration.Node.Database)
+	db := persistence.NewDatabase(conn)
+	db.Migrate()
 
 	// Prepare repositories
 	repositories := bootstrap.PrepareRepositories(db)

@@ -21,5 +21,9 @@ import (
 )
 
 type Database interface {
-	GetConnection() *gorm.DB
+	Connection() *gorm.DB
+}
+
+type Connector interface {
+	Connect() *gorm.DB
 }
