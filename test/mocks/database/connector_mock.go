@@ -21,11 +21,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type MockDatabase struct {
+type MockConnector struct {
 	mock.Mock
 }
 
-func (m *MockDatabase) Connection() *gorm.DB {
-	args := m.Called()
+func (c *MockConnector) Connect() *gorm.DB {
+	args := c.Called()
 	return args.Get(0).(*gorm.DB)
 }

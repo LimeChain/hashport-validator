@@ -53,6 +53,7 @@ var MEVMTokenClient *client.MockEVMToken
 var MPricingClient *client.MockPricingClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
+var MConnector *database.MockConnector
 var MQueue *queue.MockQueue
 var MPrometheusService *service.MockPrometheusService
 var MAssetsService *service.MockAssetsService
@@ -63,6 +64,7 @@ var MHandler *handlers.MockHandler
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
+	MConnector = &database.MockConnector{}
 	MBridgeContractService = &MockBridgeContract{}
 	MExchangeRateProvider = &rate_provider.MockExchangeRateProvider{}
 	MTransferService = &service.MockTransferService{}
