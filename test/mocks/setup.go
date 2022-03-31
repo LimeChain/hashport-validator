@@ -19,11 +19,13 @@ package mocks
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/client"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/database"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/handlers"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/http"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/watchers"
 )
 
 var MExchangeRateProvider *rate_provider.MockExchangeRateProvider
@@ -56,6 +58,8 @@ var MPrometheusService *service.MockPrometheusService
 var MAssetsService *service.MockAssetsService
 var MPricingService *service.MockPricingService
 var MResponseWriter *http.MockResponseWriter
+var MWatcher *watchers.MockWatcher
+var MHandler *handlers.MockHandler
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -88,4 +92,6 @@ func Setup() {
 	MPricingService = &service.MockPricingService{}
 	MPricingClient = &client.MockPricingClient{}
 	MResponseWriter = &http.MockResponseWriter{}
+	MWatcher = &watchers.MockWatcher{}
+	MHandler = &handlers.MockHandler{}
 }
