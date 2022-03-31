@@ -97,6 +97,7 @@ var (
 		IsNft:         isNft,
 		Timestamp:     time.Now().String(),
 	}
+
 	expectedEntityFee = entity.Fee{
 		TransactionID: transactionId,
 		ScheduleID:    "scheduleId",
@@ -107,6 +108,14 @@ var (
 			Valid:  true,
 		},
 	}
+	expectedEntityMessage = entity.Message{
+		TransferID:           transactionId,
+		Hash:                 "hash",
+		Signature:            "signature",
+		Signer:               "signer",
+		TransactionTimestamp: 1,
+	}
+
 	expectedEntityTransferWithFee = &entity.Transfer{
 		TransactionID: transactionId,
 		SourceChainID: sourceChainId,
@@ -124,6 +133,28 @@ var (
 		IsNft:         isNft,
 		Fees: []entity.Fee{
 			expectedEntityFee,
+		},
+	}
+	expectedEntityTransferWithPreloads = &entity.Transfer{
+		TransactionID: transactionId,
+		SourceChainID: sourceChainId,
+		TargetChainID: targetChainId,
+		NativeChainID: nativeChainId,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
+		Receiver:      receiver,
+		Amount:        amount,
+		Fee:           fee,
+		Status:        someStatus,
+		SerialNumber:  serialNumber,
+		Metadata:      metadata,
+		IsNft:         isNft,
+		Fees: []entity.Fee{
+			expectedEntityFee,
+		},
+		Messages: []entity.Message{
+			expectedEntityMessage,
 		},
 	}
 
@@ -189,7 +220,8 @@ func Test_GetWithPreloads(t *testing.T) {
 
 	actual, err := repository.GetWithPreloads(transactionId)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, actual)
+	assert.NotNil(t, actual)
+	assert.Equal(t, expectedEntityTransferWithPreloads, actual)
 }
 
 func Test_GetWithPreloads_NotFound(t *testing.T) {
