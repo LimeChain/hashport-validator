@@ -29,3 +29,7 @@ func (m *MockDatabase) Connection() *gorm.DB {
 	args := m.Called()
 	return args.Get(0).(*gorm.DB)
 }
+
+func (m *MockDatabase) Migrate() {
+	return
+}

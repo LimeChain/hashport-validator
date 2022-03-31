@@ -46,11 +46,21 @@ func Test_NewDatabase(t *testing.T) {
 	assert.Equal(t, db, actual)
 }
 
-func Test_GetConnection(t *testing.T) {
+func Test_GetConnectionInitial(t *testing.T) {
 	setupDatabase()
 
 	mocks.MConnector.On("Connect").Return(dbConn)
 
 	actual := db.Connection()
 	assert.Equal(t, dbConn, actual)
+}
+
+func Test_GetConnectionAfterInit(t *testing.T) {
+	setupDatabase()
+
+	db.connection = dbConn
+	actual := db.Connection()
+
+	assert.Equal(t, dbConn, actual)
+	mocks.MConnector.AssertNotCalled(t, "Connect")
 }
