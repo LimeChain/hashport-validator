@@ -161,28 +161,3 @@ func (tr Repository) updateStatus(txId string, s string) error {
 	}
 	return err
 }
-
-func (tr Repository) baseUpdateStatus(statusColumn, txId, status string, possibleStatuses []string) error {
-	if !isValidStatus(status, possibleStatuses) {
-		return errors.New("invalid status")
-	}
-
-	err := tr.dbClient.
-		Model(entity.Transfer{}).
-		Where("transaction_id = ?", txId).
-		UpdateColumn(statusColumn, status).
-		Error
-	if err == nil {
-		tr.logger.Debugf("[%s] - Column [%s] status to [%s]", txId, statusColumn, status)
-	}
-	return err
-}
-
-func isValidStatus(status string, possibleStatuses []string) bool {
-	for _, option := range possibleStatuses {
-		if status == option {
-			return true
-		}
-	}
-	return false
-}
