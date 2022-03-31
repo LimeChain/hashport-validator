@@ -31,7 +31,7 @@ var (
 	server        *Server
 	queueInstance queue.Queue
 	handlerTopic  = constants.TopicMessageSubmission
-	port          = ":80"
+	port          = ":8000"
 )
 
 func Test_NewServer(t *testing.T) {
