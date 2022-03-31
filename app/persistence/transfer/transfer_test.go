@@ -400,6 +400,9 @@ func Test_UpdateStatusCompleted_Err(t *testing.T) {
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateStatusQuery,
 		status.Completed,
 		transactionId)
+
+	err := repository.UpdateStatusCompleted(transactionId)
+	assert.NotNil(t, err)
 }
 
 func Test_UpdateStatusFailed(t *testing.T) {
