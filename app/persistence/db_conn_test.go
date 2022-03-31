@@ -17,40 +17,36 @@
 package persistence
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/test/helper"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
 	"testing"
 )
 
 var (
-	db     *Database
-	dbConn *gorm.DB
+	connector *pgConnector
+	cfg       config.Database
 )
 
-func setupDatabase() {
+func setupConnector() {
 	mocks.Setup()
-	dbConn, _, _ = helper.SetupSqlMock()
 
-	db = &Database{
-		connector: mocks.MConnector,
+	cfg = config.Database{
+		Host:     "host",
+		Name:     "name",
+		Password: "password",
+		Port:     "4200",
+		Username: "username",
 	}
+
+	connector = NewPgConnector(cfg)
 }
 
-func Test_NewDatabase(t *testing.T) {
-	setupDatabase()
+func Test_NewPgConnector(t *testing.T) {
+	setupConnector()
 
-	actual := NewDatabase(mocks.MConnector)
-	assert.NotNil(t, actual)
-	assert.Equal(t, db, actual)
+	actual := NewPgConnector(cfg)
+	assert.Equal(t, connector, actual)
 }
 
-func Test_GetConnection(t *testing.T) {
-	setupDatabase()
 
-	mocks.MConnector.On("Connect").Return(dbConn)
-
-	actual := db.Connection()
-	assert.Equal(t, dbConn, actual)
-}
