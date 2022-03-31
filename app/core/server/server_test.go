@@ -17,7 +17,6 @@
 package server
 
 import (
-	"github.com/go-chi/chi"
 	q "github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -60,19 +59,6 @@ func Test_AddHandler(t *testing.T) {
 
 	assert.Len(t, server.handlers, 1)
 	assert.Equal(t, server.handlers[handlerTopic], mocks.MHandler)
-}
-
-func Test_Run(t *testing.T) {
-	setup()
-	router := chi.NewRouter()
-	mocks.MWatcher.On("Watch", queueInstance).Return()
-	mocks.MHandler.On("Handler").Return()
-	server.AddWatcher(mocks.MWatcher)
-	server.AddHandler(handlerTopic, mocks.MHandler)
-
-	go server.Run(router, port)
-
-	assert.Equal(t, true, true)
 }
 
 func setup() {
