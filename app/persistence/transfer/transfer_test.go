@@ -17,6 +17,7 @@
 package transfer
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -55,8 +56,14 @@ var (
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
 	messageColumns  = []string{"transfer_id", "hash", "signature", "signer", "transaction_timestamp"}
 
-	rowArgs        = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft}
-	feesRowArgs    = []driver.Value{transactionId, "scheduleId", "amount", "status", "transfer_id"}
+	transferRowArgs = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft}
+	feesRowArgs     = []driver.Value{
+		transactionId,
+		expectedEntityFee.ScheduleID,
+		expectedEntityFee.Amount,
+		expectedEntityFee.Status,
+		expectedEntityFee.TransferID,
+	}
 	messageRowArgs = []driver.Value{transactionId, "hash", "signature", "signer", uint8(1)}
 
 	expectedEntityTransfer = &entity.Transfer{
@@ -75,7 +82,6 @@ var (
 		Metadata:      metadata,
 		IsNft:         isNft,
 	}
-
 	expectedModelTransfer = &model.Transfer{
 		TransactionId: transactionId,
 		SourceChainId: sourceChainId,
@@ -91,12 +97,40 @@ var (
 		IsNft:         isNft,
 		Timestamp:     time.Now().String(),
 	}
+	expectedEntityFee = entity.Fee{
+		TransactionID: transactionId,
+		ScheduleID:    "scheduleId",
+		Amount:        "amount",
+		Status:        "status",
+		TransferID: sql.NullString{
+			String: transactionId,
+			Valid:  true,
+		},
+	}
+	expectedEntityTransferWithFee = &entity.Transfer{
+		TransactionID: transactionId,
+		SourceChainID: sourceChainId,
+		TargetChainID: targetChainId,
+		NativeChainID: nativeChainId,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
+		Receiver:      receiver,
+		Amount:        amount,
+		Fee:           fee,
+		Status:        someStatus,
+		SerialNumber:  serialNumber,
+		Metadata:      metadata,
+		IsNft:         isNft,
+		Fees: []entity.Fee{
+			expectedEntityFee,
+		},
+	}
 
-	getByTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1`)
-
-	getWithPreloadsQuery         = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1`)
-	getWithPreloadsFeesQuery     = regexp.QuoteMeta(`SELECT * FROM "fees" WHERE "fees"."transfer_id" = $1`)
-	getWithPreloadsMessagesQuery = regexp.QuoteMeta(`SELECT * FROM "messages" WHERE "messages"."transfer_id" = $1`)
+	getByTransactionIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1`)
+	getWithPreloadsTransfersQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1`)
+	getWithPreloadsFeesQuery      = regexp.QuoteMeta(`SELECT * FROM "fees" WHERE "fees"."transfer_id" = $1`)
+	getWithPreloadsMessagesQuery  = regexp.QuoteMeta(`SELECT * FROM "messages" WHERE "messages"."transfer_id" = $1`)
 
 	createQuery       = regexp.QuoteMeta(`INSERT INTO "transfers" ("transaction_id","source_chain_id","target_chain_id","native_chain_id","source_asset","target_asset","native_asset","receiver","amount","fee","status","serial_number","metadata","is_nft") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`)
 	saveQuery         = regexp.QuoteMeta(`UPDATE "transfers" SET "source_chain_id"=$1,"target_chain_id"=$2,"native_chain_id"=$3,"source_asset"=$4,"target_asset"=$5,"native_asset"=$6,"receiver"=$7,"amount"=$8,"fee"=$9,"status"=$10,"serial_number"=$11,"metadata"=$12,"is_nft"=$13 WHERE "transaction_id" = $14`)
@@ -122,7 +156,7 @@ func Test_NewRepository(t *testing.T) {
 
 func Test_GetByTransactionId(t *testing.T) {
 	setup()
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, rowArgs, getByTransactionIdQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getByTransactionIdQuery, transactionId)
 
 	actual, err := repository.GetByTransactionId(transactionId)
 	assert.Nil(t, err)
@@ -149,25 +183,66 @@ func Test_GetByTransactionId_InvalidData(t *testing.T) {
 
 func Test_GetWithPreloads(t *testing.T) {
 	setup()
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getWithPreloadsTransfersQuery, transactionId)
 	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
 	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, rowArgs, getWithPreloadsQuery, transactionId)
 
 	actual, err := repository.GetWithPreloads(transactionId)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
 }
 
-func Test_GetWithPreloads_Err(t *testing.T) {
+func Test_GetWithPreloads_NotFound(t *testing.T) {
+	setup()
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsTransfersQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
 
+	actual, err := repository.GetWithPreloads(transactionId)
+	assert.Nil(t, err)
+	assert.Nil(t, actual)
+}
+
+func Test_GetWithPreloads_InvalidData(t *testing.T) {
+	setup()
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsTransfersQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
+
+	actual, err := repository.GetWithPreloads(transactionId)
+	assert.NotNil(t, err)
+	assert.Nil(t, actual)
 }
 
 func Test_GetWithFee(t *testing.T) {
+	setup()
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getWithPreloadsTransfersQuery, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
 
+	actual, err := repository.GetWithFee(transactionId)
+	assert.Nil(t, err)
+	assert.NotNil(t, actual)
+	assert.Equal(t, expectedEntityTransferWithFee, actual)
 }
 
-func Test_GetWithFee_Err(t *testing.T) {
+func Test_GetWithFee_NotFound(t *testing.T) {
+	setup()
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsTransfersQuery, transactionId)
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsFeesQuery, transactionId)
 
+	actual, err := repository.GetWithFee(transactionId)
+	assert.Nil(t, err)
+	assert.Nil(t, actual)
+}
+
+func Test_GetWithFee_InvalidData(t *testing.T) {
+	setup()
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsTransfersQuery, transactionId)
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsFeesQuery, transactionId)
+
+	actual, err := repository.GetWithFee(transactionId)
+	assert.NotNil(t, err)
+	assert.Nil(t, actual)
 }
 
 func Test_Create(t *testing.T) {
