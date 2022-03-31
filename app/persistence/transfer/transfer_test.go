@@ -187,6 +187,7 @@ func Test_NewRepository(t *testing.T) {
 
 func Test_GetByTransactionId(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getByTransactionIdQuery, transactionId)
 
 	actual, err := repository.GetByTransactionId(transactionId)
@@ -196,6 +197,7 @@ func Test_GetByTransactionId(t *testing.T) {
 
 func Test_GetByTransactionId_NotFound(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getByTransactionIdQuery, transactionId)
 
 	actual, err := repository.GetByTransactionId(transactionId)
@@ -205,6 +207,7 @@ func Test_GetByTransactionId_NotFound(t *testing.T) {
 
 func Test_GetByTransactionId_InvalidData(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getByTransactionIdQuery, transactionId)
 
 	actual, err := repository.GetByTransactionId(transactionId)
@@ -214,6 +217,7 @@ func Test_GetByTransactionId_InvalidData(t *testing.T) {
 
 func Test_GetWithPreloads(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getWithPreloadsTransfersQuery, transactionId)
 	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
 	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
@@ -226,9 +230,8 @@ func Test_GetWithPreloads(t *testing.T) {
 
 func Test_GetWithPreloads_NotFound(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsTransfersQuery, transactionId)
-	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
-	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
 
 	actual, err := repository.GetWithPreloads(transactionId)
 	assert.Nil(t, err)
@@ -237,9 +240,8 @@ func Test_GetWithPreloads_NotFound(t *testing.T) {
 
 func Test_GetWithPreloads_InvalidData(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsTransfersQuery, transactionId)
-	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
-	helper.SqlMockPrepareQuery(sqlMock, messageColumns, messageRowArgs, getWithPreloadsMessagesQuery, transactionId)
 
 	actual, err := repository.GetWithPreloads(transactionId)
 	assert.NotNil(t, err)
@@ -248,6 +250,7 @@ func Test_GetWithPreloads_InvalidData(t *testing.T) {
 
 func Test_GetWithFee(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, getWithPreloadsTransfersQuery, transactionId)
 	helper.SqlMockPrepareQuery(sqlMock, feeColumns, feesRowArgs, getWithPreloadsFeesQuery, transactionId)
 
@@ -259,8 +262,8 @@ func Test_GetWithFee(t *testing.T) {
 
 func Test_GetWithFee_NotFound(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsTransfersQuery, transactionId)
-	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, getWithPreloadsFeesQuery, transactionId)
 
 	actual, err := repository.GetWithFee(transactionId)
 	assert.Nil(t, err)
@@ -269,8 +272,8 @@ func Test_GetWithFee_NotFound(t *testing.T) {
 
 func Test_GetWithFee_InvalidData(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsTransfersQuery, transactionId)
-	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, getWithPreloadsFeesQuery, transactionId)
 
 	actual, err := repository.GetWithFee(transactionId)
 	assert.NotNil(t, err)
@@ -279,6 +282,7 @@ func Test_GetWithFee_InvalidData(t *testing.T) {
 
 func Test_Create(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, createQuery,
 		transactionId,
 		sourceChainId,
@@ -302,6 +306,7 @@ func Test_Create(t *testing.T) {
 
 func Test_Create_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, createQuery,
 		transactionId,
 		sourceChainId,
@@ -325,6 +330,7 @@ func Test_Create_Err(t *testing.T) {
 
 func Test_Save(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, saveQuery,
 		sourceChainId,
 		targetChainId,
@@ -347,6 +353,7 @@ func Test_Save(t *testing.T) {
 
 func Test_Save_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, saveQuery,
 		sourceChainId,
 		targetChainId,
@@ -369,6 +376,7 @@ func Test_Save_Err(t *testing.T) {
 
 func Test_UpdateFee(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, updateFeeQuery,
 		fee, transactionId)
 
@@ -378,6 +386,7 @@ func Test_UpdateFee(t *testing.T) {
 
 func Test_UpdateFee_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateFeeQuery,
 		fee, transactionId)
 
@@ -387,6 +396,7 @@ func Test_UpdateFee_Err(t *testing.T) {
 
 func Test_UpdateStatusCompleted(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery,
 		status.Completed,
 		transactionId)
@@ -397,6 +407,7 @@ func Test_UpdateStatusCompleted(t *testing.T) {
 
 func Test_UpdateStatusCompleted_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateStatusQuery,
 		status.Completed,
 		transactionId)
@@ -407,6 +418,7 @@ func Test_UpdateStatusCompleted_Err(t *testing.T) {
 
 func Test_UpdateStatusFailed(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery,
 		status.Failed,
 		transactionId)
@@ -417,6 +429,7 @@ func Test_UpdateStatusFailed(t *testing.T) {
 
 func Test_UpdateStatusFailed_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateStatusQuery,
 		status.Failed,
 		transactionId)
@@ -427,6 +440,7 @@ func Test_UpdateStatusFailed_Err(t *testing.T) {
 
 func Test_create(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, createQuery,
 		transactionId,
 		sourceChainId,
@@ -450,6 +464,7 @@ func Test_create(t *testing.T) {
 
 func Test_create_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, createQuery,
 		transactionId,
 		sourceChainId,
@@ -473,6 +488,7 @@ func Test_create_Err(t *testing.T) {
 
 func Test_updateStatus(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	helper.SqlMockPrepareExec(sqlMock, updateStatusQuery,
 		status.Initial,
 		transactionId)
@@ -483,6 +499,7 @@ func Test_updateStatus(t *testing.T) {
 
 func Test_updateStatus_Err(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	_ = helper.SqlMockPrepareExecWithErr(sqlMock, updateStatusQuery,
 		status.Initial,
 		transactionId)
