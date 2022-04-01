@@ -38,7 +38,7 @@ type Repositories struct {
 
 // PrepareRepositories initialises connection to the Database and instantiates the repositories
 func PrepareRepositories(db database.Database) *Repositories {
-	connection := db.GetConnection()
+	connection := db.Connection()
 	return &Repositories{
 		TransferStatus: status.NewRepositoryForStatus(connection, status.Transfer),
 		MessageStatus:  status.NewRepositoryForStatus(connection, status.Message),
