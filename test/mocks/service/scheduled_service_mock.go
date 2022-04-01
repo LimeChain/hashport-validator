@@ -27,7 +27,7 @@ type MockScheduledService struct {
 }
 
 func (mss *MockScheduledService) ExecuteScheduledNftTransferTransaction(id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	panic("implement me")
+	mss.Called(id, nftID, sender, receiving)
 }
 
 func (mss *MockScheduledService) ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {

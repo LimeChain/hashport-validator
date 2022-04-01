@@ -41,6 +41,8 @@ var (
 
 	// Native Tokens //
 
+	// Fungible
+
 	NetworkHederaFungibleNativeToken = constants.Hbar
 	NetworkHederaFungibleNativeAsset = &asset.NativeAsset{
 		MinFeeAmountInUsd: &MinFeeAmountInUsd,
@@ -48,6 +50,10 @@ var (
 		Asset:             NetworkHederaFungibleNativeToken,
 		FeePercentage:     FeePercentage,
 	}
+
+	// Non-Fungible
+
+	NetworkHederaNFTNativeToken = "0.0.111122"
 
 	NetworkHederaFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
 		NetworkHederaFungibleNativeToken,
@@ -70,6 +76,8 @@ var (
 
 	// Native Tokens //
 
+	// Fungible
+
 	NetworkEthereumFungibleNativeToken = "0xb083879B1e10C8476802016CB12cd2F25a896691"
 	NetworkEthereumFungibleNativeAsset = &asset.NativeAsset{
 		MinFeeAmountInUsd: &MinFeeAmountInUsd,
@@ -77,6 +85,10 @@ var (
 		Asset:             NetworkEthereumFungibleNativeToken,
 		FeePercentage:     FeePercentage,
 	}
+
+	// Non-Fungible
+
+	NetworkEthereumNFTWrappedTokenForNetworkHedera = "0x0000000000000000000000000000000000009999"
 
 	NetworkEthereumFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
 		NetworkEthereumFungibleNativeToken,
