@@ -46,8 +46,8 @@ func SetupSqlMock() (dbConnection *gorm.DB, sqlMock sqlmock.Sqlmock, db *sql.DB)
 		panic("failed to open 'gorm.Db' connection")
 	}
 
-	mocks.MDatabase.On("GetConnection").Return(dbConnection)
-	dbConnection = mocks.MDatabase.GetConnection()
+	mocks.MDatabase.On("Connection").Return(dbConnection)
+	dbConnection = mocks.MDatabase.Connection()
 
 	return dbConnection, sqlMock, db
 }

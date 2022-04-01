@@ -17,76 +17,45 @@
 package persistence
 
 import (
-	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/database"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"time"
 )
 
 type Database struct {
 	connection *gorm.DB
+	connector  database.Connector
 }
 
-func (db *Database) GetConnection() *gorm.DB {
+func NewDatabase(connector database.Connector) *Database {
+	return &Database{
+		connector: connector,
+	}
+}
+
+// Connection establishes a connection or returns an existing one
+func (db *Database) Connection() *gorm.DB {
+	if db.connection != nil {
+		return db.connection
+	}
+
+	pgdb := db.connector.Connect()
+	db.connection = pgdb
 	return db.connection
 }
 
-func NewDatabase(config config.Database) *Database {
-	return &Database{
-		connection: ConnectWithMigration(config),
-	}
-}
-
-// Establish connection to the Postgres Database
-func Connect(dbConfig config.Database) *gorm.DB {
-	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Name, dbConfig.Password)
-
-	db := tryConnection(connectionStr)
-	log.Infoln("Successfully connected to Database")
-
-	return db
-}
-
-// TryConnection, tries to connect to the database associated to the validator node. If it fails, it retries after 10 seconds.
-// This function will try to reconnect until it succeeds or the validator node gets stopped manually
-func tryConnection(connectionStr string) *gorm.DB {
-	db, err := gorm.Open(
-		postgres.Open(connectionStr),
-		&gorm.Config{
-			Logger: logger.Default.LogMode(logger.Silent),
-		},
-	)
-
-	if err != nil {
-		log.Error(err)
-		time.Sleep(10 * time.Second)
-		log.Infof("Retrying to connect to DB with connection string [%s]", connectionStr)
-		return tryConnection(connectionStr)
-	}
-	return db
-}
-
-// Migrate tables
-func migrateDb(db *gorm.DB) {
-	err := db.AutoMigrate(
-		entity.Transfer{},
-		entity.Fee{},
-		entity.Message{},
-		entity.Schedule{},
-		entity.Status{})
+// Migrate auto-migrates the database
+func (db *Database) Migrate() {
+	err := db.Connection().
+		AutoMigrate(
+			entity.Transfer{},
+			entity.Fee{},
+			entity.Message{},
+			entity.Schedule{},
+			entity.Status{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Migrations passed successfully")
-}
-
-// Connect and Migrate
-func ConnectWithMigration(config config.Database) *gorm.DB {
-	gorm := Connect(config)
-	migrateDb(gorm)
-	return gorm
 }

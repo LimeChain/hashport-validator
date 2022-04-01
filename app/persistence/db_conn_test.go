@@ -14,22 +14,37 @@
  * limitations under the License.
  */
 
-package database
+package persistence
 
 import (
-	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type MockDatabase struct {
-	mock.Mock
+var (
+	connector *pgConnector
+	cfg       config.Database
+)
+
+func setupConnector() {
+	mocks.Setup()
+
+	cfg = config.Database{
+		Host:     "host",
+		Name:     "name",
+		Password: "password",
+		Port:     "4200",
+		Username: "username",
+	}
+
+	connector = NewPgConnector(cfg)
 }
 
-func (m *MockDatabase) Connection() *gorm.DB {
-	args := m.Called()
-	return args.Get(0).(*gorm.DB)
-}
+func Test_NewPgConnector(t *testing.T) {
+	setupConnector()
 
-func (m *MockDatabase) Migrate() {
-	return
+	actual := NewPgConnector(cfg)
+	assert.Equal(t, connector, actual)
 }
