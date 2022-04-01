@@ -85,6 +85,5 @@ func Test_Migrate(t *testing.T) {
 
 	mocks.MConnector.On("Connect").Return(dbConn)
 
-	err := db.Migrate()
-	assert.Nil(t, err)
+	db.Migrate()
 }

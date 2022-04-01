@@ -25,7 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/bootstrap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -42,10 +41,7 @@ func main() {
 	var services *bootstrap.Services = nil
 	conn := persistence.NewPgConnector(configuration.Node.Database)
 	db := persistence.NewDatabase(conn)
-	err := db.Migrate()
-	if err != nil {
-		log.Fatal(err)
-	}
+	db.Migrate()
 
 	// Prepare repositories
 	repositories := bootstrap.PrepareRepositories(db)

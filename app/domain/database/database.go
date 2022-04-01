@@ -22,7 +22,7 @@ import (
 
 type Database interface {
 	Connection() *gorm.DB
-	Migrate() error
+	Migrate()
 }
 
 type Connector interface {

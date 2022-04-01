@@ -46,7 +46,7 @@ func (db *Database) Connection() *gorm.DB {
 }
 
 // Migrate auto-migrates the database
-func (db *Database) Migrate() error {
+func (db *Database) Migrate() {
 	err := db.Connection().
 		AutoMigrate(
 			entity.Transfer{},
@@ -55,8 +55,7 @@ func (db *Database) Migrate() error {
 			entity.Schedule{},
 			entity.Status{})
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	log.Println("Migrations passed successfully")
-	return nil
 }
