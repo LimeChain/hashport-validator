@@ -48,5 +48,3 @@ func Test_NewPgConnector(t *testing.T) {
 	actual := NewPgConnector(cfg)
 	assert.Equal(t, connector, actual)
 }
-
-
