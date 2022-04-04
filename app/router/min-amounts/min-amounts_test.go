@@ -39,13 +39,11 @@ func Test_minAmountsResponse(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(true)
 
 	minAmountsResponseContent := testConstants.MinAmountsForApi
 	var err error
 	if err := enc.Encode(minAmountsResponseContent); err != nil {
 		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
-		return
 	}
 	minAmountsResponseAsBytes := buf.Bytes()
 
@@ -66,7 +64,6 @@ func Test_minAmountsResponse_NoAmounts(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(true)
 
 	err := errors.New("Router resolved with an error. Error [No min amount records].")
 	minAmountsResponseContent := response.ErrorResponse(err)
