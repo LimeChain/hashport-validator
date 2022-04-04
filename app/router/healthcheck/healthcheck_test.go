@@ -37,7 +37,6 @@ func Test_configBridgeResponse(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(true)
 
 	healthCheckResponse := &response.HealthResponse{
 		Status: "OK",
