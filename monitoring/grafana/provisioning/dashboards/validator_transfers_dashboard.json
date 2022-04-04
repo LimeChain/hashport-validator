@@ -181,6 +181,18 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
+          "expr": "{__name__=~\"Native_Hedera_.*_balance.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
           "expr": "{__name__=~\"Wrapped_Hedera_.*_total_supply.*\"}",
           "hide": false,
           "interval": "",
