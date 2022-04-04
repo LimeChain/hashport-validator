@@ -104,5 +104,5 @@ func (mts *MockTransferService) TransferData(txId string) (interface{}, error) {
 		return service.TransferData{}, args.Get(1).(error)
 	}
 
-	return args.Get(0).(service.TransferData), args.Get(0).(error)
+	return args.Get(0).(service.TransferData), args.Error(1)
 }

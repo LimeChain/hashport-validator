@@ -30,6 +30,22 @@ const (
 	apiV1 = "/api/v1"
 )
 
+var (
+	c = cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+	})
+
+	middlewares = chi.Middlewares{
+		render.SetContentType(render.ContentTypeJSON),
+		middleware.AllowContentType("application/json"),
+		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.StandardLogger()}),
+		middleware.RedirectSlashes,
+		middleware.Recoverer,
+		middleware.NoCache,
+		c.Handler,
+	}
+)
+
 type APIRouter struct {
 	Router *chi.Mux
 }
@@ -37,18 +53,7 @@ type APIRouter struct {
 func NewAPIRouter() *APIRouter {
 	router := chi.NewRouter()
 
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-	})
-
-	router.Use(
-		render.SetContentType(render.ContentTypeJSON),
-		middleware.AllowContentType("application/json"),
-		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.StandardLogger()}),
-		middleware.RedirectSlashes,
-		middleware.Recoverer,
-		middleware.NoCache,
-		c.Handler)
+	router.Use(middlewares...)
 
 	return &APIRouter{
 		Router: router,
