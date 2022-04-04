@@ -44,8 +44,7 @@ func Test_configBridgeResponse(t *testing.T) {
 
 	var err error
 	if err := enc.Encode(healthCheckResponse); err != nil {
-		http.Error(mocks.MResponseWriter, err.Error(), http.StatusInternalServerError)
-		return
+		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
 	}
 
 	healthCheckResponseAsBytes := buf.Bytes()
