@@ -44,12 +44,12 @@ func ParseAmount(amount string) (result *decimal.Decimal, err error) {
 	return &newResult, err
 }
 
-// ToTargetAmount converts the provided amount to a target amount,
+// TargetAmount converts the provided amount to a target amount,
 // depending on the decimals provided
 // Examples: sourceDecimals 8, targetDecimals 8, amount 1 000 => result 1 000
 // Examples: sourceDecimals 9, targetDecimals 8, amount 1 000 => result 100
 // Examples: sourceDecimals 8, targetDecimals 9, amount 1 000 => result 10 000
-func ToTargetAmount(sourceDecimals uint8, targetDecimals uint8, amount *big.Int) *big.Int {
+func TargetAmount(sourceDecimals uint8, targetDecimals uint8, amount *big.Int) *big.Int {
 	if sourceDecimals == targetDecimals {
 		return amount
 	} else if sourceDecimals > targetDecimals {

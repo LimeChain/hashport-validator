@@ -287,7 +287,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetChainAsset))
 	}
 
-	targetAmount := decimal.ToTargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
+	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
 		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount))
 	}

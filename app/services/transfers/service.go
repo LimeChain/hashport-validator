@@ -213,7 +213,7 @@ func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
 	}
 
 	// Convert the amount to the initial, so that the correct amount is being burned.
-	targetAmount := decimal.ToTargetAmount(targetAssetInfo.Decimals, sourceAssetInfo.Decimals, amount)
+	targetAmount := decimal.TargetAmount(targetAssetInfo.Decimals, sourceAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
 		return errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%s] and Target Amount [%s].", amount, targetAmount))
 	}

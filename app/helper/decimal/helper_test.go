@@ -64,33 +64,33 @@ func Test_ParseAmount_EmptyString(t *testing.T) {
 	assert.Equal(t, &zeroDecimalAmount, result)
 }
 
-func Test_ToTargetAmount_SourceMoreThanTargetDecimals(t *testing.T) {
+func Test_TargetAmount_SourceMoreThanTargetDecimals(t *testing.T) {
 	amount := big.NewInt(1_000_000_000)
 	divider := big.NewInt(int64(math.Pow10(int(targetDecimals - sourceDecimals))))
 	expectedAmount := new(big.Int).Div(amount, divider)
 
-	result := ToTargetAmount(targetDecimals, sourceDecimals, amount)
+	result := TargetAmount(targetDecimals, sourceDecimals, amount)
 
 	assert.Equal(t, expectedAmount, result)
 }
 
-func Test_ToTargetAmount_SourceMoreThanTargetDecimals_EqualsZero(t *testing.T) {
-	result := ToTargetAmount(targetDecimals, sourceDecimals, amount)
+func Test_TargetAmount_SourceMoreThanTargetDecimals_EqualsZero(t *testing.T) {
+	result := TargetAmount(targetDecimals, sourceDecimals, amount)
 
 	assert.Equal(t, big.NewInt(0), result)
 }
 
-func Test_ToTargetAmount_EqualDecimals(t *testing.T) {
-	result := ToTargetAmount(targetDecimals, targetDecimals, amount)
+func Test_TargetAmount_EqualDecimals(t *testing.T) {
+	result := TargetAmount(targetDecimals, targetDecimals, amount)
 
 	assert.Equal(t, amount, result)
 }
 
-func Test_ToTargetAmount_SourceLessThanTargetDecimals(t *testing.T) {
+func Test_TargetAmount_SourceLessThanTargetDecimals(t *testing.T) {
 	multiplier := big.NewInt(int64(math.Pow10(int(targetDecimals - sourceDecimals))))
 	expected := new(big.Int).Mul(amount, multiplier)
 
-	result := ToTargetAmount(sourceDecimals, targetDecimals, amount)
+	result := TargetAmount(sourceDecimals, targetDecimals, amount)
 
 	assert.Equal(t, expected, result)
 }

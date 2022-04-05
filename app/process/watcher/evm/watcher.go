@@ -643,7 +643,7 @@ func (ew *Watcher) convertTargetAmount(sourceChainId, targetChainId uint64, sour
 		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetAsset))
 	}
 
-	targetAmount := decimal.ToTargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
+	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
 		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount))
 	}
