@@ -34,6 +34,7 @@ var (
 	urlPath = "http://localhost:80"
 	nilErr  error
 	headers = map[string]string{"Accepts": "application/json"}
+	respData = &responseData{Name: "some name"}
 )
 
 type responseData struct {
@@ -41,7 +42,7 @@ type responseData struct {
 }
 
 func Test_Get(t *testing.T) {
-	request, respData, response := setup(t)
+	request, response := setup(t)
 
 	mocks.MHTTPClient.On("Do", request).Return(response, nilErr)
 	err := Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"))
@@ -50,7 +51,7 @@ func Test_Get(t *testing.T) {
 }
 
 func Test_Get_ErrorOnSendingRequest(t *testing.T) {
-	request, respData, response := setup(t)
+	request, response := setup(t)
 	expectedErr := errors.New("something failed")
 	mocks.MHTTPClient.On("Do", request).Return(response, expectedErr)
 
@@ -62,22 +63,19 @@ func Test_Get_ErrorOnSendingRequest(t *testing.T) {
 
 func Test_Get_RequestErr(t *testing.T) {
 	mocks.Setup()
-	emptyUrlPath := "#%"
-	request, _ := http.NewRequest("GET", emptyUrlPath, nil)
-
-	respData := &responseData{Name: "some name"}
+	brokenUrlPath := "#%"
+	request, _ := http.NewRequest("GET", brokenUrlPath, nil)
 	expectedErr := &url.Error{Op: "parse", URL: "#%", Err: url.EscapeError("%")}
 
-	err := Get(mocks.MHTTPClient, emptyUrlPath, headers, respData, config.GetLoggerFor("Http"))
+	err := Get(mocks.MHTTPClient, brokenUrlPath, headers, respData, config.GetLoggerFor("Http"))
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MHTTPClient.AssertNotCalled(t, "Do", request)
 }
 
-func setup(t *testing.T) (*http.Request, *responseData, *http.Response) {
+func setup(t *testing.T) (*http.Request, *http.Response) {
 	mocks.Setup()
 	request, _ := http.NewRequest("GET", urlPath, nil)
-	respData := &responseData{Name: "some name"}
 	for key, value := range headers {
 		request.Header.Set(key, value)
 	}
@@ -87,11 +85,13 @@ func setup(t *testing.T) (*http.Request, *responseData, *http.Response) {
 	if encodeErr != nil {
 		t.Fatal(encodeErr)
 	}
+
 	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
 	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
 	response := &http.Response{
 		StatusCode: 200,
 		Body:       encodedResponseReaderCloser,
 	}
-	return request, respData, response
+
+	return request, response
 }
