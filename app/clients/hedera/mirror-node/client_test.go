@@ -17,10 +17,13 @@
 package mirror_node
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -244,4 +247,27 @@ func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
 	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
 	assert.Error(t, errors.New("some-error"), err)
 	assert.Nil(t, response)
+}
+
+func Test_GetHBARUsdPrice(t *testing.T) {
+	setup()
+
+	encodedResponseBuffer := new(bytes.Buffer)
+	encodeErr := json.NewEncoder(encodedResponseBuffer).Encode(testConstants.ParsedTransactionResponse)
+	if encodeErr != nil {
+		t.Fatal(encodeErr)
+	}
+	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
+	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
+	response := &http.Response{
+		StatusCode: 200,
+		Body:       encodedResponseReaderCloser,
+	}
+
+	mocks.MHTTPClient.On("Do", mock.Anything).Return(response, error(nil))
+
+	price, err := c.GetHBARUsdPrice()
+
+	assert.Equal(t, testConstants.ParsedTransactionResponseCurrentRate, price)
+	assert.Nil(t, err)
 }
