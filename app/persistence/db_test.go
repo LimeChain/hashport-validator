@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"regexp"
 	"testing"
 )
 
@@ -30,12 +29,6 @@ var (
 	db      *Database
 	dbConn  *gorm.DB
 	sqlMock sqlmock.Sqlmock
-
-	createTransfers = regexp.QuoteMeta(`CREATE TABLE "transfers" ("transaction_id" text,"source_chain_id" bigint,"target_chain_id" bigint,"native_chain_id" bigint,"source_asset" text,"target_asset" text,"native_asset" text,"receiver" text,"amount" text,"fee" text,"status" text,"serial_number" bigint,"metadata" text,"is_nft" boolean DEFAULT false,PRIMARY KEY ("transaction_id"))`)
-	createFees      = regexp.QuoteMeta(`CREATE TABLE "fees" ("transaction_id" text,"schedule_id" text,"amount" text,"status" text,"transfer_id" text,PRIMARY KEY ("transaction_id"),CONSTRAINT "fk_transfers_fees" FOREIGN KEY ("transfer_id") REFERENCES "transfers"("transaction_id"))`)
-	createMessages  = regexp.QuoteMeta(`CREATE TABLE "messages" ("transfer_id" text,"hash" text,"signature" text UNIQUE,"signer" text,"transaction_timestamp" bigint,CONSTRAINT "fk_messages_transfer" FOREIGN KEY ("transfer_id") REFERENCES "transfers"("transaction_id"),CONSTRAINT "fk_transfers_messages" FOREIGN KEY ("transfer_id") REFERENCES "transfers"("transaction_id"))`)
-	createSchedules = regexp.QuoteMeta(`CREATE TABLE "schedules" ("transaction_id" text,"schedule_id" text,"has_receiver" boolean,"operation" text,"status" text,"transfer_id" text,PRIMARY KEY ("transaction_id"),CONSTRAINT "fk_transfers_schedules" FOREIGN KEY ("transfer_id") REFERENCES "transfers"("transaction_id"))`)
-	createStatuses  = regexp.QuoteMeta(`CREATE TABLE "statuses" ("entity_id" text,"last" bigint)`)
 )
 
 func setupDatabase() {
@@ -72,18 +65,4 @@ func Test_GetConnectionAfterInit(t *testing.T) {
 
 	assert.Equal(t, dbConn, actual)
 	mocks.MConnector.AssertNotCalled(t, "Connect")
-}
-
-func Test_Migrate(t *testing.T) {
-	setupDatabase()
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareExec(sqlMock, createTransfers)
-	helper.SqlMockPrepareExec(sqlMock, createFees)
-	helper.SqlMockPrepareExec(sqlMock, createMessages)
-	helper.SqlMockPrepareExec(sqlMock, createSchedules)
-	helper.SqlMockPrepareExec(sqlMock, createStatuses)
-
-	mocks.MConnector.On("Connect").Return(dbConn)
-
-	db.Migrate()
 }
