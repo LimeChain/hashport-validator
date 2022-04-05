@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	urlPath = "http://localhost:80"
-	nilErr  error
-	headers = map[string]string{"Accepts": "application/json"}
+	urlPath  = "http://localhost:80"
+	nilErr   error
+	headers  = map[string]string{"Accepts": "application/json"}
 	respData = &responseData{Name: "some name"}
 )
 
