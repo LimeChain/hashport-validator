@@ -27,29 +27,33 @@ var (
 	transfers []model.Hedera
 )
 
-func accountIds() (hedera.AccountID, hedera.AccountID, hedera.AccountID, hedera.AccountID) {
-	accId1, _ := hedera.AccountIDFromString("0.0.1")
-	accId2, _ := hedera.AccountIDFromString("0.0.2")
-	accId3, _ := hedera.AccountIDFromString("0.0.3")
-	accId4, _ := hedera.AccountIDFromString("0.0.4")
-	return accId1, accId2, accId3, accId4
-}
-
-func Test_TotalFeeFromTransfers(t *testing.T) {
-	sender, receiver, _, _ := accountIds()
-
-	expectedReceiverFound := true
-	expectedFee := "0"
+func setup() {
+	acc1, acc2, _ := accountIds()
 	transfers = []model.Hedera{
 		{
-			AccountID: sender,
+			AccountID: acc1,
 			Amount:    -5000,
 		},
 		{
-			AccountID: receiver,
+			AccountID: acc2,
 			Amount:    5000,
 		},
 	}
+}
+
+func accountIds() (hedera.AccountID, hedera.AccountID, hedera.AccountID) {
+	accId1, _ := hedera.AccountIDFromString("0.0.1")
+	accId2, _ := hedera.AccountIDFromString("0.0.2")
+	accId3, _ := hedera.AccountIDFromString("0.0.3")
+	return accId1, accId2, accId3
+}
+
+func Test_TotalFeeFromTransfers(t *testing.T) {
+	setup()
+	_, receiver, _ := accountIds()
+
+	expectedReceiverFound := true
+	expectedFee := "0"
 
 	actualFee, actualReceiverFound := TotalFeeFromTransfers(transfers, receiver)
 	assert.Equal(t, expectedFee, actualFee)
@@ -57,20 +61,11 @@ func Test_TotalFeeFromTransfers(t *testing.T) {
 }
 
 func Test_TotalFeeFromTransfers_ReceiverNotFound(t *testing.T) {
-	sender, receiver1, receiver2, _ := accountIds()
+	setup()
+	_, _, receiver2 := accountIds()
 
 	expectedReceiverFound := false
-	expectedFee := "2500"
-	transfers = []model.Hedera{
-		{
-			AccountID: sender,
-			Amount:    -2500,
-		},
-		{
-			AccountID: receiver1,
-			Amount:    2500,
-		},
-	}
+	expectedFee := "5000"
 
 	actualFee, actualReceiverFound := TotalFeeFromTransfers(transfers, receiver2)
 	assert.Equal(t, expectedFee, actualFee)
