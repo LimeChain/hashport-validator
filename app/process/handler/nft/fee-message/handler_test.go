@@ -151,7 +151,7 @@ func Test_Handle_NotInitial(t *testing.T) {
 	resultEntityTransfer.Status = entityStatus
 
 	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *payload)
 
 }
 
