@@ -65,7 +65,16 @@ func Test_ParseAmount_EmptyString(t *testing.T) {
 }
 
 func Test_ToTargetAmount_SourceMoreThanTargetDecimals(t *testing.T) {
+	amount := big.NewInt(1_000_000_000)
+	divider := big.NewInt(int64(math.Pow10(int(targetDecimals - sourceDecimals))))
+	expectedAmount := new(big.Int).Div(amount, divider)
 
+	result := ToTargetAmount(targetDecimals, sourceDecimals, amount)
+
+	assert.Equal(t, expectedAmount, result)
+}
+
+func Test_ToTargetAmount_SourceMoreThanTargetDecimals_EqualsZero(t *testing.T) {
 	result := ToTargetAmount(targetDecimals, sourceDecimals, amount)
 
 	assert.Equal(t, big.NewInt(0), result)
