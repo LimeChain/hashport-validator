@@ -31,24 +31,6 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) AddDecimals(amount *big.Int, asset string) (*big.Int, error) {
-	args := m.Called(amount, asset)
-
-	if args[1] == nil {
-		return args[0].(*big.Int), nil
-	}
-	return args[0].(*big.Int), args[1].(error)
-}
-
-func (m *MockBridgeContract) RemoveDecimals(amount *big.Int, asset string) (*big.Int, error) {
-	args := m.Called(amount, asset)
-
-	if args[1] == nil {
-		return args[0].(*big.Int), nil
-	}
-	return args[0].(*big.Int), args[1].(error)
-}
-
 func (m *MockBridgeContract) GetClient() client.Core {
 	panic("implement me")
 }
