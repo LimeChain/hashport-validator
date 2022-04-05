@@ -20,6 +20,14 @@ import (
 	"fmt"
 )
 
+var (
+	errMsgTemplate     = "message: %s"
+	notFoundMsg        = "Not found"
+	statusStartSymbol  = "["
+	statusEndSymbol    = "]"
+	statusMsgSeparator = ", "
+)
+
 type (
 	ErrorMessage struct {
 		Message string `json:"message"`
@@ -31,23 +39,23 @@ type (
 
 // String converts ErrorMessage struct to human readable string
 func (m *ErrorMessage) String() string {
-	return fmt.Sprintf("message: %s", m.Message)
+	return fmt.Sprintf(errMsgTemplate, m.Message)
 }
 
 // IsNotFound returns true/false whether the message is equal to "not found" or not
 func (m *ErrorMessage) IsNotFound() bool {
-	return m.Message == "Not found"
+	return m.Message == notFoundMsg
 }
 
 // String converts the Status struct to human readable string
 func (s *Status) String() string {
-	r := "["
+	r := statusStartSymbol
 	for i, m := range s.Messages {
 		r += m.String()
 		if i != len(s.Messages)-1 {
-			r += ", "
+			r += statusMsgSeparator
 		}
 	}
-	r += "]"
+	r += statusEndSymbol
 	return r
 }
