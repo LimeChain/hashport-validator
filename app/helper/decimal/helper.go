@@ -57,10 +57,10 @@ func ToTargetAmount(sourceDecimals uint8, targetDecimals uint8, amount *big.Int)
 		divider := big.NewInt(int64(math.Pow10(power)))
 
 		return new(big.Int).Div(amount, divider)
-	} else {
-		power := int(targetDecimals - sourceDecimals)
-		multiplier := big.NewInt(int64(math.Pow10(power)))
-
-		return new(big.Int).Mul(amount, multiplier)
 	}
+
+	power := int(targetDecimals - sourceDecimals)
+	multiplier := big.NewInt(int64(math.Pow10(power)))
+
+	return new(big.Int).Mul(amount, multiplier)
 }
