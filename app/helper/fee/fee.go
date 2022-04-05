@@ -22,9 +22,9 @@ import (
 	"strconv"
 )
 
-// GetTotalFeeFromTransfers sums the positive amounts of transfers, excluding the receiver transfer
+// TotalFeeFromTransfers sums the positive amounts of transfers, excluding the receiver transfer
 // Returns the sum and whether the receiver transfer has been found
-func GetTotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) (totalFee string, hasReceiver bool) {
+func TotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) (totalFee string, hasReceiver bool) {
 	result := int64(0)
 	for _, transfer := range transfers {
 		if transfer.Amount < 0 {
