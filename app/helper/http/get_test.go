@@ -65,7 +65,7 @@ func Test_Get_RequestErr(t *testing.T) {
 	mocks.Setup()
 	brokenUrlPath := "#%"
 	request, _ := http.NewRequest("GET", brokenUrlPath, nil)
-	expectedErr := &url.Error{Op: "parse", URL: "#%", Err: url.EscapeError("%")}
+	expectedErr := &url.Error{Op: "parse", URL: brokenUrlPath, Err: url.EscapeError("%")}
 
 	err := Get(mocks.MHTTPClient, brokenUrlPath, headers, respData, config.GetLoggerFor("Http"))
 
