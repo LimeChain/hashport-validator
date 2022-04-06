@@ -113,22 +113,25 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			}
 		}
 
-		for name, tokenInfo := range networkInfo.Tokens.Fungible {
+		for tokenAddress, tokenInfo := range networkInfo.Tokens.Fungible {
 			if tokenInfo.CoinGeckoId != "" {
-				config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
+				config.CoinGeckoIds[networkId][tokenAddress] = tokenInfo.CoinGeckoId
 			}
 
 			if tokenInfo.CoinMarketCapId != "" {
-				config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
+				config.CoinMarketCapIds[networkId][tokenAddress] = tokenInfo.CoinMarketCapId
 			}
 
-			config.MinAmounts[networkId][name] = big.NewInt(0)
+			config.MinAmounts[networkId][tokenAddress] = big.NewInt(0)
 			if tokenInfo.MinAmount != nil {
-				config.MinAmounts[networkId][name] = tokenInfo.MinAmount
+				config.MinAmounts[networkId][tokenAddress] = tokenInfo.MinAmount
+			}
+			for wrappedNetworkId, wrappedAddress := range tokenInfo.Networks {
+				config.MinAmounts[wrappedNetworkId][wrappedAddress] = big.NewInt(0)
 			}
 
 			if networkId == constants.HederaNetworkId {
-				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
+				config.Hedera.Tokens[tokenAddress] = NewHederaTokenFromToken(tokenInfo)
 			}
 		}
 	}
