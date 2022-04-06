@@ -79,14 +79,7 @@ func NewService(bridgeConfig config.Bridge,
 		logger:                logger,
 	}
 
-	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
-		for tokenAddress, minAmount := range minAmountsByTokenAddress {
-			tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
-				MinAmountWithFee: minAmount,
-			}
-			minAmountsForApi[networkId][tokenAddress] = minAmount.String()
-		}
-	}
+	instance.loadStaticMinAmounts(bridgeConfig, tokensPriceInfo, minAmountsForApi)
 
 	err := instance.FetchAndUpdateUsdPrices()
 	if err != nil {
@@ -139,6 +132,17 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	defer s.minAmountsForApiMutex.RUnlock()
 
 	return s.minAmountsForApi
+}
+
+func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge, tokensPriceInfo map[uint64]map[string]pricing.TokenPriceInfo, minAmountsForApi map[uint64]map[string]string) {
+	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
+		for tokenAddress, minAmount := range minAmountsByTokenAddress {
+			tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
+				MinAmountWithFee: minAmount,
+			}
+			minAmountsForApi[networkId][tokenAddress] = minAmount.String()
+		}
+	}
 }
 
 func (s *Service) updateHbarPrice(results fetchResults) error {

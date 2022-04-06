@@ -41,6 +41,10 @@ var (
 	EthereumNativeTokenPriceInUsdFloat64, _ = EthereumNativeTokenPriceInUsd.Float64()
 	EthereumNativeTokenMinAmountWithFee     = big.NewInt(1250000000000000)
 
+	// Polygon //
+
+	PolygonNativeTokenMinAmountWithFee = big.NewInt(1250000000000000)
+
 	UsdPrices = map[uint64]map[string]decimal.Decimal{
 		constants.HederaNetworkId: {
 			constants.Hbar: HbarPriceInUsd,
@@ -87,6 +91,9 @@ var (
 		},
 
 		PolygonNetworkId: {
+			NetworkPolygonFungibleNativeToken: pricing.TokenPriceInfo{
+				MinAmountWithFee: PolygonNativeTokenMinAmountWithFee,
+			},
 			NetworkPolygonFungibleWrappedTokenForNetworkHedera: pricing.TokenPriceInfo{
 				UsdPrice:         HbarPriceInUsd,
 				MinAmountWithFee: HbarMinAmountWithFeeInEVM,
@@ -107,6 +114,7 @@ var (
 			NetworkEthereumFungibleWrappedTokenForNetworkHedera: HbarMinAmountWithFeeInEVM.String(),
 		},
 		PolygonNetworkId: {
+			NetworkPolygonFungibleNativeToken:                    PolygonNativeTokenMinAmountWithFee.String(),
 			NetworkPolygonFungibleWrappedTokenForNetworkEthereum: EthereumNativeTokenMinAmountWithFee.String(),
 			NetworkPolygonFungibleWrappedTokenForNetworkHedera:   HbarMinAmountWithFeeInEVM.String(),
 		},

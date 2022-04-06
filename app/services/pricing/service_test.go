@@ -202,4 +202,5 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		logger:                config.GetLoggerFor("Pricing Service"),
 	}
 
+	serviceInstance.loadStaticMinAmounts(test_config.TestConfig.Bridge, tokensPriceInfo, minAmountsForApi)
 }
