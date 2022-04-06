@@ -47,7 +47,7 @@ func main() {
 	repositories := bootstrap.PrepareRepositories(db)
 
 	// Prepare Services
-	services = bootstrap.PrepareServices(configuration, parsedBridge.Networks, *clients, *repositories, parsedBridge)
+	services = bootstrap.PrepareServices(configuration, parsedBridge, *clients, *repositories)
 
 	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration)
 

@@ -52,10 +52,10 @@ type Services struct {
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clients Clients, repositories Repositories, parsedBridge parser.Bridge) *Services {
+func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
-	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
+	assetsService := assets.NewService(parsedBridge.Networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
 	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge, assetsService)
 
 	for _, client := range clients.EVMClients {
