@@ -44,6 +44,7 @@ var (
 	nilNativeAsset              *asset.NativeAsset
 	nativeAssetNetwork0         = &asset.NativeAsset{ChainId: constants.HederaNetworkId, Asset: nativeTokenAddressNetwork0}
 	fungibleAssetInfoNetwork0   = asset.FungibleAssetInfo{Decimals: 8}
+	fungibleAssetInfoNetwork3   = asset.FungibleAssetInfo{Decimals: 18}
 	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
 
 	tx = model.Transaction{
@@ -144,12 +145,12 @@ func Test_ProcessTransaction(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(3), "0xaiskdjakdjakl", nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
 	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 }
@@ -160,12 +161,12 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
 	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
 
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
@@ -205,13 +206,13 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	anotherTx.ConsensusTimestamp = "asd"
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
-	mocks.MBridgeContractService.On("AddDecimals", big.NewInt(10), wrappedTokenAddressNetwork3).Return(big.NewInt(10), nil)
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
 	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
 	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
 
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }

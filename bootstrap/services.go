@@ -60,7 +60,7 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 	for _, client := range clients.EVMClients {
 		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId], assetsService.FungibleNetworkAssetsByChainId(chainId))
+		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId])
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
@@ -92,7 +92,8 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 		c.Bridge.Hedera.NftFees,
 		scheduled,
 		messages,
-		prometheus)
+		prometheus,
+		assetsService)
 
 	burnEvent := burn_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,
@@ -131,22 +132,5 @@ func PrepareServices(c config.Config, networks map[uint64]*parser.Network, clien
 		Prometheus:       prometheus,
 		Pricing:          pricingService,
 		Assets:           assetsService,
-	}
-}
-
-// PrepareApiOnlyServices instantiates all the necessary services with their
-// required context and parameters for running the Validator node in API Only mode
-func PrepareApiOnlyServices(c config.Config, networks map[uint64]*parser.Network, clients Clients) *Services {
-	contractServices := make(map[uint64]service.Contracts)
-
-	assetsService := assets.NewService(networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
-	for _, client := range clients.EVMClients {
-		chainId := client.GetChainID()
-		contractService := contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId], assetsService.FungibleNetworkAssetsByChainId(chainId))
-		contractServices[chainId] = contractService
-	}
-
-	return &Services{
-		contractServices: contractServices,
 	}
 }

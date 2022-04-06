@@ -30,6 +30,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -382,17 +383,9 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
-	properAmount := eventLog.Amount
-	if targetChainId == constants.HederaNetworkId {
-		properAmount, err = ew.contracts.RemoveDecimals(properAmount, token)
-		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
-			return
-		}
-	}
-
-	if properAmount.Cmp(big.NewInt(0)) == 0 {
-		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+	targetAmount, err := ew.convertTargetAmount(sourceChainId, targetChainId, token, nativeAsset.Asset, eventLog.Amount)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to convert to target amount. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
 	}
 
@@ -402,8 +395,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
-		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, properAmount, tokenPriceInfo.MinAmountWithFee)
+	if targetAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+		ew.logger.Errorf("[%s] - Transfer Amount [%s] less than Minimum Amount [%s].", eventLog.Raw.TxHash, targetAmount, tokenPriceInfo.MinAmountWithFee)
 		return
 	}
 
@@ -416,7 +409,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		TargetAsset:   nativeAsset.Asset,
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
-		Amount:        properAmount.String(),
+		Amount:        targetAmount.String(),
 	}
 
 	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
@@ -482,21 +475,14 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 
 	wrappedAsset := ew.assetsService.NativeToWrapped(token, sourceChainId, targetChainId)
 	if wrappedAsset == "" {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
+		ew.logger.Errorf("[%s] - Failed to retrieve wrapped asset of [%s].", eventLog.Raw.TxHash, eventLog.Token)
 		return
 	}
 
-	properAmount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
-	if targetChainId == constants.HederaNetworkId {
-		properAmount, err = ew.contracts.RemoveDecimals(properAmount, token)
-		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to adjust [%s] amount [%s] decimals between chains.", eventLog.Raw.TxHash, eventLog.Token, properAmount)
-			return
-		}
-	}
-
-	if properAmount.Cmp(big.NewInt(0)) == 0 {
-		ew.logger.Errorf("[%s] - Insufficient amount provided: Event Amount [%s] and Proper Amount [%s].", eventLog.Raw.TxHash, eventLog.Amount, properAmount)
+	amount := new(big.Int).Sub(eventLog.Amount, eventLog.ServiceFee)
+	targetAmount, err := ew.convertTargetAmount(sourceChainId, targetChainId, token, wrappedAsset, amount)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to convert to target amount. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
 	}
 
@@ -521,12 +507,12 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		TargetAsset:   wrappedAsset,
 		NativeAsset:   token,
 		Receiver:      recipientAccount,
-		Amount:        properAmount.String(),
+		Amount:        targetAmount.String(),
 	}
 
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
 		eventLog.Raw.TxHash.String(),
-		properAmount,
+		targetAmount,
 		recipientAccount,
 		sourceChainId,
 		eventLog.TargetChain.Int64())
@@ -644,4 +630,23 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 	oppositeToken := ew.assetsService.OppositeAsset(sourceChainId, targetChainId, eventLog.Token.String())
 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, ew.prometheusService, ew.logger)
+}
+
+func (ew *Watcher) convertTargetAmount(sourceChainId, targetChainId uint64, sourceAsset, targetAsset string, amount *big.Int) (*big.Int, error) {
+	sourceAssetInfo, exists := ew.assetsService.FungibleAssetInfo(sourceChainId, sourceAsset)
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", sourceAsset))
+	}
+
+	targetAssetInfo, exists := ew.assetsService.FungibleAssetInfo(targetChainId, targetAsset)
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetAsset))
+	}
+
+	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
+	if targetAmount.Cmp(big.NewInt(0)) == 0 {
+		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount))
+	}
+
+	return targetAmount, nil
 }
