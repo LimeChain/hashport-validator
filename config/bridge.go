@@ -122,6 +122,8 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			}
 			if tokenInfo.MinAmount != nil {
 				config.MinAmounts[networkId][name] = tokenInfo.MinAmount
+			} else {
+				config.MinAmounts[networkId][name] = big.NewInt(0)
 			}
 			if networkId == constants.HederaNetworkId {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
