@@ -29,6 +29,7 @@ type Bridge struct {
 	EVMs              map[uint64]BridgeEvm
 	CoinMarketCapIds  map[uint64]map[string]string
 	CoinGeckoIds      map[uint64]map[string]string
+	MinAmounts        map[uint64]map[string]*big.Int
 	MonitoredAccounts map[string]string
 }
 
@@ -45,6 +46,7 @@ type HederaToken struct {
 	Fee               int64
 	FeePercentage     int64
 	MinFeeAmountInUsd string
+	MinAmount         *big.Int
 	Networks          map[uint64]string
 }
 
@@ -53,6 +55,7 @@ func NewHederaTokenFromToken(token parser.Token) HederaToken {
 		Fee:               token.Fee,
 		FeePercentage:     token.FeePercentage,
 		MinFeeAmountInUsd: token.MinFeeAmountInUsd,
+		MinAmount:         token.MinAmount,
 		Networks:          token.Networks,
 	}
 }
@@ -77,11 +80,13 @@ func NewBridge(bridge parser.Bridge) Bridge {
 
 	config.CoinGeckoIds = make(map[uint64]map[string]string)
 	config.CoinMarketCapIds = make(map[uint64]map[string]string)
+	config.MinAmounts = make(map[uint64]map[string]*big.Int)
 	for networkId, networkInfo := range bridge.Networks {
 		constants.NetworksByName[networkInfo.Name] = networkId
 		constants.NetworksById[networkId] = networkInfo.Name
 		config.CoinGeckoIds[networkId] = make(map[string]string)
 		config.CoinMarketCapIds[networkId] = make(map[string]string)
+		config.MinAmounts[networkId] = make(map[string]*big.Int)
 
 		if networkId == constants.HederaNetworkId { // Hedera
 			config.Hedera = &BridgeHedera{
@@ -109,8 +114,15 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		}
 
 		for name, tokenInfo := range networkInfo.Tokens.Fungible {
-			config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
-			config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
+			if tokenInfo.CoinGeckoId != "" {
+				config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
+			}
+			if tokenInfo.CoinMarketCapId != "" {
+				config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
+			}
+			if tokenInfo.MinAmount != nil {
+				config.MinAmounts[networkId][name] = tokenInfo.MinAmount
+			}
 			if networkId == constants.HederaNetworkId {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}

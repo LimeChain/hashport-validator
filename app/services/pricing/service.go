@@ -79,6 +79,15 @@ func NewService(bridgeConfig config.Bridge,
 		logger:                logger,
 	}
 
+	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
+		for tokenAddress, minAmount := range minAmountsByTokenAddress {
+			tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
+				MinAmountWithFee: minAmount,
+			}
+			minAmountsForApi[networkId][tokenAddress] = minAmount.String()
+		}
+	}
+
 	err := instance.FetchAndUpdateUsdPrices()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
