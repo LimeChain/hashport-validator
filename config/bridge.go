@@ -117,14 +117,16 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			if tokenInfo.CoinGeckoId != "" {
 				config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
 			}
+
 			if tokenInfo.CoinMarketCapId != "" {
 				config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
 			}
+
+			config.MinAmounts[networkId][name] = big.NewInt(0)
 			if tokenInfo.MinAmount != nil {
 				config.MinAmounts[networkId][name] = tokenInfo.MinAmount
-			} else {
-				config.MinAmounts[networkId][name] = big.NewInt(0)
 			}
+
 			if networkId == constants.HederaNetworkId {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
