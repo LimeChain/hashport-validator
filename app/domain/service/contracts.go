@@ -54,8 +54,4 @@ type Contracts interface {
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
 	WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterLock) (event.Subscription, error)
-	// AddDecimals adjusts the decimals in the native and wrapped tokens when their decimals do not match and one of them is over 8
-	AddDecimals(amount *big.Int, asset string) (*big.Int, error)
-	// RemoveDecimals adjusts the decimals in the native and wrapped tokens when their decimals do not match and one of them is over 8
-	RemoveDecimals(amount *big.Int, asset string) (*big.Int, error)
 }

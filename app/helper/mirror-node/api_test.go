@@ -19,56 +19,26 @@ package mirror_node
 import (
 	mirrorNodeModel "github.com/limechain/hedera-eth-bridge-validator/app/model/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/shopspring/decimal"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 var (
-	parsedTransactionResponse = mirrorNodeModel.TransactionsResponse{
-		Transactions: []mirrorNodeModel.Transaction{
-			{
-				Bytes:                    nil,
-				ChargedTxFee:             0,
-				ConsensusTimestamp:       "1648206035.257921608",
-				EntityId:                 "0.0.112",
-				MaxFee:                   "200000000",
-				MemoBase64:               "Y3VycmVudFJhdGUgOiAwLjIyNTksIG5leHRSYXRlIDogMC4yMjY0LCBtaWRuaWdodC1jdXJyZW50UmF0ZSA6IDAuMjIwNSBtaWRuaWdodC1uZXh0UmF0ZSA6IDAuMjIwMA==",
-				Name:                     "FILEUPDATE",
-				Node:                     "0.0.4",
-				Nonce:                    0,
-				ParentConsensusTimestamp: "",
-				Result:                   "SUCCESS",
-				Scheduled:                false,
-				TransactionHash:          "zSMXPzZVq1czqAoNmpXjvBybW5K9RHdgGSDoBAI+nmAV/viN7tCCBp7gmbe+vuki",
-				TransactionId:            "0.0.57-1648206026-390263003",
-				Transfers:                make([]interface{}, 0),
-				ValidDurationSeconds:     "120",
-				ValidStartTimestamp:      "1648206026.390263003",
-			},
-		},
-		Links: map[string]string{
-			"next": "/api/v1/transactions?account.id=0.0.57&transactiontype=fileupdate&limit=1&timestamp=lt:1648206035.257921608",
-		},
-	}
-
-	expectedCurrentRate = decimal.NewFromFloat(0.2259)
-	expectedNextRate    = decimal.NewFromFloat(0.2264)
-
 	logger = config.GetLoggerFor("Test")
 )
 
 func Test_GetUpdatedFileRateFromParsedResponseForHBARPrice(t *testing.T) {
-	response, err := GetUpdatedFileRateFromParsedResponseForHBARPrice(parsedTransactionResponse, logger)
+	response, err := GetUpdatedFileRateFromParsedResponseForHBARPrice(testConstants.ParsedTransactionResponse, logger)
 
-	assert.Equal(t, expectedCurrentRate, response.CurrentRate)
-	assert.Equal(t, expectedNextRate, response.NextRate)
+	assert.Equal(t, testConstants.ParsedTransactionResponseCurrentRate, response.CurrentRate)
+	assert.Equal(t, testConstants.ParsedTransactionResponseNextRate, response.NextRate)
 	assert.Nil(t, err)
 }
 
 func Test_GetUpdatedFileRateFromParsedResponseForHBARPrice_ErrorEmptyTransactions(t *testing.T) {
 
-	parsedTransactionResponseWithBrokenMemo := parsedTransactionResponse
+	parsedTransactionResponseWithBrokenMemo := testConstants.ParsedTransactionResponse
 	parsedTransactionResponseWithBrokenMemo.Transactions = make([]mirrorNodeModel.Transaction, 0)
 	_, err := GetUpdatedFileRateFromParsedResponseForHBARPrice(parsedTransactionResponseWithBrokenMemo, logger)
 
@@ -77,7 +47,7 @@ func Test_GetUpdatedFileRateFromParsedResponseForHBARPrice_ErrorEmptyTransaction
 
 func Test_GetUpdatedFileRateFromParsedResponseForHBARPrice_ErrorWithBrokenMemoBase64(t *testing.T) {
 
-	parsedTransactionResponseWithBrokenMemo := parsedTransactionResponse
+	parsedTransactionResponseWithBrokenMemo := testConstants.ParsedTransactionResponse
 	parsedTransactionResponseWithBrokenMemo.Transactions[0].MemoBase64 = "..."
 	_, err := GetUpdatedFileRateFromParsedResponseForHBARPrice(parsedTransactionResponseWithBrokenMemo, logger)
 
