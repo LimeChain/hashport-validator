@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
@@ -56,6 +57,7 @@ type Service struct {
 	scheduledService   service.Scheduled
 	messageService     service.Messages
 	prometheusService  service.Prometheus
+	assetsService      service.Assets
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
 	hederaNftFees      map[string]int64
@@ -76,6 +78,7 @@ func NewService(
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 	prometheusService service.Prometheus,
+	assetsService service.Assets,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -102,6 +105,7 @@ func NewService(
 		messageService:     messageService,
 		hederaNftFees:      hederaNftFees,
 		prometheusService:  prometheusService,
+		assetsService:      assetsService,
 	}
 }
 
@@ -198,14 +202,26 @@ func (ts *Service) ProcessWrappedTransfer(tm model.Transfer) error {
 		return err
 	}
 
-	properAmount, err := ts.contractServices[tm.TargetChainId].RemoveDecimals(amount, tm.TargetAsset)
-	if properAmount.Cmp(big.NewInt(0)) == 0 {
-		return errors.New(fmt.Sprintf("removed decimals resolves to 0, initial value [%s]", amount))
+	sourceAssetInfo, exists := ts.assetsService.FungibleAssetInfo(tm.SourceChainId, tm.SourceAsset)
+	if !exists {
+		return errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", tm.SourceAsset))
 	}
+
+	targetAssetInfo, exists := ts.assetsService.FungibleAssetInfo(tm.TargetChainId, tm.TargetAsset)
+	if !exists {
+		return errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", tm.TargetAsset))
+	}
+
+	// Convert the amount to the initial, so that the correct amount is being burned.
+	targetAmount := decimal.TargetAmount(targetAssetInfo.Decimals, sourceAssetInfo.Decimals, amount)
+	if targetAmount.Cmp(big.NewInt(0)) == 0 {
+		return errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%s] and Target Amount [%s].", amount, targetAmount))
+	}
+
 	status := make(chan string)
 	onExecutionBurnSuccess, onExecutionBurnFail := ts.scheduledBurnTxExecutionCallbacks(tm.TransactionId, &status)
 	onTokenBurnSuccess, onTokenBurnFail := ts.scheduledBurnTxMinedCallbacks(&status)
-	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.SourceAsset, properAmount.Int64(), &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
+	ts.scheduledService.ExecuteScheduledBurnTransaction(tm.TransactionId, tm.SourceAsset, targetAmount.Int64(), &status, onExecutionBurnSuccess, onExecutionBurnFail, onTokenBurnSuccess, onTokenBurnFail)
 
 statusBlocker:
 	for {

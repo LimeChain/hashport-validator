@@ -27,6 +27,7 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -275,15 +276,20 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 
 func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset asset.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*transfer.Transfer, error) {
 	nativeAsset := ctw.assetsService.FungibleNativeAsset(asset.ChainId, asset.Asset)
-	properAmount, err := ctw.contractServices[targetChainId].AddDecimals(big.NewInt(amount), targetChainAsset)
-	if err != nil {
-		ctw.logger.Errorf(
-			"[%s] - Failed to adjust [%v] amount [%d] decimals between chains. Error: [%s]",
-			transactionID,
-			nativeAsset,
-			amount,
-			err)
-		return nil, err
+
+	sourceAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", sourceAsset))
+	}
+
+	targetAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(targetChainId, targetChainAsset)
+	if !exists {
+		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetChainAsset))
+	}
+
+	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
+	if targetAmount.Cmp(big.NewInt(0)) == 0 {
+		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount))
 	}
 
 	tokenPriceInfo, exist := ctw.pricingService.GetTokenPriceInfo(asset.ChainId, nativeAsset.Asset)
@@ -292,8 +298,8 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		return nil, errors.New(errMsg)
 	}
 
-	if properAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
-		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, properAmount, tokenPriceInfo.MinAmountWithFee))
+	if targetAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
+		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee))
 	}
 
 	return transfer.New(
@@ -305,7 +311,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		sourceAsset,
 		targetChainAsset,
 		nativeAsset.Asset,
-		properAmount.String()), nil
+		targetAmount.String()), nil
 }
 
 func (ctw Watcher) createNonFungiblePayload(

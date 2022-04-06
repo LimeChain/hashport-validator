@@ -17,18 +17,15 @@
 package contracts
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -36,13 +33,12 @@ import (
 )
 
 type Service struct {
-	address        common.Address
-	contract       client.DiamondRouter
-	Client         client.EVM
-	mutex          sync.Mutex
-	members        Members
-	logger         *log.Entry
-	assetsDecimals map[string]uint8
+	address  common.Address
+	contract client.DiamondRouter
+	Client   client.EVM
+	mutex    sync.Mutex
+	members  Members
+	logger   *log.Entry
 }
 
 func (bsc *Service) GetClient() client.Core {
@@ -141,61 +137,20 @@ func (bsc *Service) getMembers() ([]string, error) {
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration
-func NewService(client client.EVM, address string, contractInstance client.DiamondRouter, assets []string) *Service {
+func NewService(client client.EVM, address string, contractInstance client.DiamondRouter) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	assetsDecimals := make(map[string]uint8)
-	for _, asset := range assets {
-		evmAsset, err := wtoken.NewWtoken(common.HexToAddress(asset), client.GetClient())
-		if err != nil {
-			log.Fatalf("Could not instantiate wtoken for [%s]. Error [%s].", asset, err)
-		}
-
-		decimals, err := evmAsset.Decimals(nil)
-		if err != nil {
-			log.Fatalf("Could not get asset decimals for [%s - contractAddress: %v]. Error [%s].", asset, contractAddress.String(), err)
-		}
-
-		assetsDecimals[asset] = decimals
-	}
-
 	contractService := &Service{
-		address:        *contractAddress,
-		assetsDecimals: assetsDecimals,
-		Client:         client,
-		contract:       contractInstance,
-		logger:         config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
+		address:  *contractAddress,
+		Client:   client,
+		contract: contractInstance,
+		logger:   config.GetLoggerFor(fmt.Sprintf("Contract Service [%s]", contractAddress.String())),
 	}
 
 	contractService.ReloadMembers()
 
 	return contractService
-}
-
-func (bsc *Service) AddDecimals(amount *big.Int, asset string) (*big.Int, error) {
-	decimals := bsc.assetsDecimals[asset]
-	adaptation := int(decimals) - 8
-
-	if decimals > 0 {
-		return new(big.Int).Mul(amount, big.NewInt(int64(math.Pow10(adaptation)))), nil
-	}
-
-	return amount, nil
-}
-
-func (bsc *Service) RemoveDecimals(amount *big.Int, asset string) (*big.Int, error) {
-	decimals := bsc.assetsDecimals[asset]
-
-	adaptation := int(decimals) - 8
-	if decimals > 0 {
-		proper := new(big.Int).Div(amount, big.NewInt(int64(math.Pow10(adaptation))))
-		if proper == big.NewInt(0) {
-			return nil, errors.New("amount-too-small")
-		}
-		return proper, nil
-	}
-	return amount, nil
 }
