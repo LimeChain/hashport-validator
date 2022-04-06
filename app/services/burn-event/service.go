@@ -127,7 +127,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	}
 
 	for _, splitTransfer := range splitTransfers {
-		feeAmount, hasReceiver := util.GetTotalFeeFromTransfers(splitTransfer, receiver)
+		feeAmount, hasReceiver := util.TotalFeeFromTransfers(splitTransfer, receiver)
 		onExecutionSuccess, onExecutionFail := s.scheduledTxExecutionCallbacks(event.TransactionId, feeAmount, hasReceiver)
 
 		onSuccess, onFail := s.scheduledTxMinedCallbacks(
