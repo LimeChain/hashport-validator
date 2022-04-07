@@ -30,7 +30,7 @@ services:
       - "db"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.34.0
     container_name: prometheus
     restart: unless-stopped
     ports:
@@ -45,7 +45,7 @@ services:
       - alertmanager:alertmanager
 
   alertmanager:
-    image: prom/alertmanager
+    image: prom/alertmanager:v0.24.0
     ports:
       - 9093:9093
     volumes:
@@ -56,7 +56,7 @@ services:
       - '--storage.path=/alertmanager'
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:8.4.5
     container_name: grafana
     restart: unless-stopped
     env_file: ./monitoring/grafana/config-overrides.env
