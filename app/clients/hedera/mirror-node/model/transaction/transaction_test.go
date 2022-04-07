@@ -17,7 +17,7 @@
 package transaction
 
 import (
-	error2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
+	mirrorNodeErr "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/stretchr/testify/assert"
@@ -110,11 +110,11 @@ func Test_IsNotFound(t *testing.T) {
 
 func Test_IsNotFound_False(t *testing.T) {
 	setup()
-	response.Status.Messages[0] = error2.ErrorMessage{}
+	response.Status.Messages[0] = mirrorNodeErr.ErrorMessage{}
 
 	isNotFound := response.IsNotFound()
 
-	response.Status.Messages[0] = error2.ErrorMessage{Message: error2.NotFoundMsg}
+	response.Status.Messages[0] = mirrorNodeErr.ErrorMessage{Message: mirrorNodeErr.NotFoundMsg}
 
 	assert.False(t, isNotFound)
 }
@@ -185,9 +185,9 @@ func setup() {
 			latestTransaction,
 			transaction,
 		},
-		Status: error2.Status{
-			Messages: []error2.ErrorMessage{
-				{Message: error2.NotFoundMsg},
+		Status: mirrorNodeErr.Status{
+			Messages: []mirrorNodeErr.ErrorMessage{
+				{Message: mirrorNodeErr.NotFoundMsg},
 			},
 		},
 	}
