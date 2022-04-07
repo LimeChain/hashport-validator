@@ -45,7 +45,7 @@ type (
 	}
 	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
-		Account string `json:"transferAccountId"`
+		Account string `json:"account"`
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
 		Token string `json:"token_id"`
@@ -77,7 +77,7 @@ type (
 	// Nft struct used by Hedera Mirror node REST API to return information
 	// for a given Nft entity
 	Nft struct {
-		AccountID         string `json:"account_id"`         // The transferAccountId ID of the transferAccountId associated with the NFT
+		AccountID         string `json:"account_id"`         // The account ID of the account associated with the NFT
 		CreatedTimestamp  string `json:"created_timestamp"`  // The timestamp of when the NFT was created
 		Deleted           bool   `json:"deleted"`            // Whether the token was deleted or not
 		Metadata          string `json:"metadata"`           // The metadata of the NFT, in base64
@@ -94,8 +94,8 @@ type (
 	NftTransaction struct {
 		TransactionID     string `json:"transaction_id"`      // The transaction ID of the transaction
 		Type              string `json:"type"`                // The type of transaction TOKENBURN, TOKEMINT, CRYPTOTRANSFER
-		SenderAccountID   string `json:"sender_account_id"`   // The transferAccountId that sent the NFT
-		ReceiverAccountID string `json:"receiver_account_id"` // The transferAccountId that received the NFT
+		SenderAccountID   string `json:"sender_account_id"`   // The account that sent the NFT
+		ReceiverAccountID string `json:"receiver_account_id"` // The account that received the NFT
 	}
 	Pagination struct {
 		Next string `json:"next"` // Hyperlink to the next page of results
@@ -109,7 +109,7 @@ type (
 )
 
 // getIncomingAmountFor returns the amount that is credited to the specified
-// transferAccountId for the given transaction
+// account for the given transaction
 func (t Transaction) getIncomingAmountFor(account string) (int64, string, error) {
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
@@ -120,7 +120,7 @@ func (t Transaction) getIncomingAmountFor(account string) (int64, string, error)
 }
 
 // getIncomingTokenAmountFor returns the token amount that is credited to the specified
-// transferAccountId for the given transaction
+// account for the given transaction
 func (t Transaction) getIncomingTokenAmountFor(account string) (int64, string, error) {
 	for _, tr := range t.TokenTransfers {
 		if tr.Account == account {
