@@ -19,7 +19,7 @@ package fee_transfer
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
+	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -151,7 +151,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 	for _, splitTransfer := range splitTransfers {
 		feeAmount, hasReceiver := util.TotalFeeFromTransfers(splitTransfer, receiver)
 
-		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.TargetAsset, splitTransfer, func() (*mirror_node.Response, error) {
+		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.TargetAsset, splitTransfer, func() (*mirrorNodeTransaction.Response, error) {
 			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 		}, func(transactionID, scheduleID, status string) error {
 			result := false
