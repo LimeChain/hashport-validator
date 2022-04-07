@@ -144,6 +144,20 @@ func Test_calculateMinAmountWithFee_WithZeroMinFeeAmount(t *testing.T) {
 	assert.Equal(t, expectedMinAmountFee, minAmountWithFee)
 }
 
+func Test_updatePricesWithoutHbar_NonExistingAddress(t *testing.T) {
+	setup(true, true)
+	var nilFungibleAssetInfo asset.FungibleAssetInfo
+	mocks.MAssetsService.On("FungibleAssetInfo", constants.HederaNetworkId, "nonExistingAddress").Return(nilFungibleAssetInfo, false)
+	pricesByNetworkIdAndAddress := testConstants.UsdPrices
+	pricesByNetworkIdAndAddress[constants.HederaNetworkId] = map[string]decimal.Decimal{
+		"nonExistingAddress": {},
+	}
+
+	err := serviceInstance.updatePricesWithoutHbar(pricesByNetworkIdAndAddress)
+
+	assert.Nil(t, err)
+}
+
 func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 	mocks.Setup()
 	helper.SetupNetworks()
@@ -202,4 +216,5 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		logger:                config.GetLoggerFor("Pricing Service"),
 	}
 
+	serviceInstance.loadStaticMinAmounts(test_config.TestConfig.Bridge)
 }

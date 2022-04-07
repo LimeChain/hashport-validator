@@ -79,6 +79,8 @@ func NewService(bridgeConfig config.Bridge,
 		logger:                logger,
 	}
 
+	instance.loadStaticMinAmounts(bridgeConfig)
+
 	err := instance.FetchAndUpdateUsdPrices()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
@@ -111,7 +113,7 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 	if results.AllPricesErr == nil {
 		err := s.updatePricesWithoutHbar(results.AllPrices)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to fetch prices for all tokens without HBAR. Error [%s]", err))
+			err = errors.New(fmt.Sprintf("Failed to update prices for all tokens without HBAR. Error [%s]", err))
 			return err
 		}
 	}
@@ -130,6 +132,17 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	defer s.minAmountsForApiMutex.RUnlock()
 
 	return s.minAmountsForApi
+}
+
+func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
+	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
+		for tokenAddress, minAmount := range minAmountsByTokenAddress {
+			s.tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
+				MinAmountWithFee: minAmount,
+			}
+			s.minAmountsForApi[networkId][tokenAddress] = minAmount.String()
+		}
+	}
 }
 
 func (s *Service) updateHbarPrice(results fetchResults) error {

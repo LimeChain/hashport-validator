@@ -19,6 +19,7 @@ package test_config
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"math/big"
 )
 
 var (
@@ -68,10 +69,11 @@ var (
 			Hedera: &config.BridgeHedera{
 				BridgeAccount: "0.0.578300",
 			},
+			MinAmounts: map[uint64]map[string]*big.Int{
+				testConstants.PolygonNetworkId: {
+					testConstants.NetworkPolygonFungibleNativeToken: testConstants.PolygonNativeTokenMinAmountWithFee,
+				},
+			},
 		},
 	}
 )
-
-func init() {
-	TestConfig.Bridge = config.NewBridge(testConstants.ParserBridge)
-}

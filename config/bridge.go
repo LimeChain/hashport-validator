@@ -17,6 +17,8 @@
 package config
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -29,6 +31,7 @@ type Bridge struct {
 	EVMs              map[uint64]BridgeEvm
 	CoinMarketCapIds  map[uint64]map[string]string
 	CoinGeckoIds      map[uint64]map[string]string
+	MinAmounts        map[uint64]map[string]*big.Int
 	MonitoredAccounts map[string]string
 }
 
@@ -45,6 +48,7 @@ type HederaToken struct {
 	Fee               int64
 	FeePercentage     int64
 	MinFeeAmountInUsd string
+	MinAmount         *big.Int
 	Networks          map[uint64]string
 }
 
@@ -53,6 +57,7 @@ func NewHederaTokenFromToken(token parser.Token) HederaToken {
 		Fee:               token.Fee,
 		FeePercentage:     token.FeePercentage,
 		MinFeeAmountInUsd: token.MinFeeAmountInUsd,
+		MinAmount:         token.MinAmount,
 		Networks:          token.Networks,
 	}
 }
@@ -77,11 +82,13 @@ func NewBridge(bridge parser.Bridge) Bridge {
 
 	config.CoinGeckoIds = make(map[uint64]map[string]string)
 	config.CoinMarketCapIds = make(map[uint64]map[string]string)
+	config.MinAmounts = make(map[uint64]map[string]*big.Int)
 	for networkId, networkInfo := range bridge.Networks {
 		constants.NetworksByName[networkInfo.Name] = networkId
 		constants.NetworksById[networkId] = networkInfo.Name
 		config.CoinGeckoIds[networkId] = make(map[string]string)
 		config.CoinMarketCapIds[networkId] = make(map[string]string)
+		config.MinAmounts[networkId] = make(map[string]*big.Int)
 
 		if networkId == constants.HederaNetworkId { // Hedera
 			config.Hedera = &BridgeHedera{
@@ -108,16 +115,50 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			}
 		}
 
-		for name, tokenInfo := range networkInfo.Tokens.Fungible {
-			config.CoinGeckoIds[networkId][name] = tokenInfo.CoinGeckoId
-			config.CoinMarketCapIds[networkId][name] = tokenInfo.CoinMarketCapId
+		for tokenAddress, tokenInfo := range networkInfo.Tokens.Fungible {
+			if tokenInfo.CoinGeckoId != "" {
+				config.CoinGeckoIds[networkId][tokenAddress] = tokenInfo.CoinGeckoId
+			}
+
+			if tokenInfo.CoinMarketCapId != "" {
+				config.CoinMarketCapIds[networkId][tokenAddress] = tokenInfo.CoinMarketCapId
+			}
+
+			config.MinAmounts[networkId][tokenAddress] = big.NewInt(0)
+			if tokenInfo.MinAmount != nil {
+				config.MinAmounts[networkId][tokenAddress] = tokenInfo.MinAmount
+			}
+			for wrappedNetworkId, wrappedAddress := range tokenInfo.Networks {
+				if config.MinAmounts[wrappedNetworkId] == nil {
+					config.MinAmounts[wrappedNetworkId] = make(map[string]*big.Int)
+				}
+				config.MinAmounts[wrappedNetworkId][wrappedAddress] = big.NewInt(0)
+			}
+
 			if networkId == constants.HederaNetworkId {
-				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
+				config.Hedera.Tokens[tokenAddress] = NewHederaTokenFromToken(tokenInfo)
 			}
 		}
 	}
 
 	return config
+}
+
+func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser.Bridge, assetsService service.Assets) {
+	for networkId, networkInfo := range parsedBridge.Networks {
+		for nativeAddress, tokenInfo := range networkInfo.Tokens.Fungible {
+			nativeFungibleAssetsInfo, _ := assetsService.FungibleAssetInfo(networkId, nativeAddress)
+			for wrappedNetworkId, wrappedAddress := range tokenInfo.Networks {
+				b.MinAmounts[wrappedNetworkId][wrappedAddress] = big.NewInt(0)
+				if tokenInfo.MinAmount != nil {
+					wrappedFungibleAssetsInfo, _ := assetsService.FungibleAssetInfo(wrappedNetworkId, wrappedAddress)
+					targetAmount := decimal.TargetAmount(nativeFungibleAssetsInfo.Decimals, wrappedFungibleAssetsInfo.Decimals, tokenInfo.MinAmount)
+					b.MinAmounts[wrappedNetworkId][wrappedAddress] = targetAmount
+				}
+			}
+		}
+	}
+
 }
 
 func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, nftFees map[string]int64) {
