@@ -19,7 +19,7 @@ package assets
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -63,7 +63,7 @@ func Test_New(t *testing.T) {
 		for _, asset := range fungibleNetworkAssets {
 			hederaPercentages[asset] = testConstants.FeePercentage
 			if networkId == constants.HederaNetworkId {
-				tokenResponse := model.TokenResponse{
+				tokenResponse := token.TokenResponse{
 					TokenID:     asset,
 					Name:        asset,
 					Symbol:      asset,

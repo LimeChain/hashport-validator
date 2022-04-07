@@ -18,7 +18,10 @@ package client
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 )
@@ -27,104 +30,104 @@ type MockHederaMirror struct {
 	mock.Mock
 }
 
-func (m *MockHederaMirror) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
+func (m *MockHederaMirror) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetScheduledTransaction(transactionID string) (*model.Response, error) {
+func (m *MockHederaMirror) GetScheduledTransaction(transactionID string) (*transaction.Response, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetSchedule(scheduleID string) (*model.Schedule, error) {
+func (m *MockHederaMirror) GetSchedule(scheduleID string) (*transaction.Schedule, error) {
 	panic("implement me")
 }
 
 // GetSuccessfulTransaction gets the success transaction by transaction id or returns an error
-func (m *MockHederaMirror) GetSuccessfulTransaction(transactionID string) (model.Transaction, error) {
+func (m *MockHederaMirror) GetSuccessfulTransaction(transactionID string) (transaction.Transaction, error) {
 	args := m.Called(transactionID)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(model.Transaction), nil
+		return args.Get(0).(transaction.Transaction), nil
 	}
-	return model.Transaction{}, args.Get(1).(error)
+	return transaction.Transaction{}, args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error) {
+func (m *MockHederaMirror) GetNftTransactions(tokenID string, serialNum int64) (transaction.NftTransactionsResponse, error) {
 	panic("implement me")
 }
 
-func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {
 	args := m.Called(accountId, from)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.Response), nil
+		return args.Get(0).(*transaction.Response), nil
 	}
-	return args.Get(0).(*model.Response), args.Get(1).(error)
+	return args.Get(0).(*transaction.Response), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {
 	args := m.Called(accountId, from)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.Response), nil
+		return args.Get(0).(*transaction.Response), nil
 	}
-	return args.Get(0).(*model.Response), args.Get(1).(error)
+	return args.Get(0).(*transaction.Response), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]model.Transaction, error) {
+func (m *MockHederaMirror) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]transaction.Transaction, error) {
 	args := m.Called(accountId, from, to)
 
 	if args.Get(1) == nil {
-		return args.Get(0).([]model.Transaction), nil
+		return args.Get(0).([]transaction.Transaction), nil
 	}
-	return args.Get(0).([]model.Transaction), args.Get(1).(error)
+	return args.Get(0).([]transaction.Transaction), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]model.Message, error) {
+func (m *MockHederaMirror) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]message.Message, error) {
 	args := m.Called(topicId, from, to)
 
 	if args.Get(1) == nil {
-		return args.Get(0).([]model.Message), nil
+		return args.Get(0).([]message.Message), nil
 	}
-	return args.Get(0).([]model.Message), args.Get(1).(error)
+	return args.Get(0).([]message.Message), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]model.Message, error) {
+func (m *MockHederaMirror) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]message.Message, error) {
 	args := m.Called(topicId, from)
 
 	if args.Get(1) == nil {
-		return args.Get(0).([]model.Message), nil
+		return args.Get(0).([]message.Message), nil
 	}
-	return args.Get(0).([]model.Message), args.Get(1).(error)
+	return args.Get(0).([]message.Message), args.Get(1).(error)
 }
 
 func (m *MockHederaMirror) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 	m.Called(txId, onSuccess, onFailure)
 }
 
-func (m *MockHederaMirror) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*model.Response, error) {
+func (m *MockHederaMirror) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, milestoneTimestamp int64) (*transaction.Response, error) {
 	args := m.Called(accountId, milestoneTimestamp)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.Response), nil
+		return args.Get(0).(*transaction.Response), nil
 	}
-	return args.Get(0).(*model.Response), args.Get(1).(error)
+	return args.Get(0).(*transaction.Response), args.Get(1).(error)
 }
 
 func (m *MockHederaMirror) GetStateProof(transactionID string) ([]byte, error) {
@@ -142,22 +145,22 @@ func (m *MockHederaMirror) AccountExists(accountID hedera.AccountID) bool {
 	return args.Get(0).(bool)
 }
 
-func (m *MockHederaMirror) GetAccount(accountID string) (*model.AccountsResponse, error) {
+func (m *MockHederaMirror) GetAccount(accountID string) (*account.AccountsResponse, error) {
 	args := m.Called(accountID)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.AccountsResponse), nil
+		return args.Get(0).(*account.AccountsResponse), nil
 	}
-	return args.Get(0).(*model.AccountsResponse), args.Get(1).(error)
+	return args.Get(0).(*account.AccountsResponse), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetToken(tokenID string) (*model.TokenResponse, error) {
+func (m *MockHederaMirror) GetToken(tokenID string) (*token.TokenResponse, error) {
 	args := m.Called(tokenID)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.TokenResponse), nil
+		return args.Get(0).(*token.TokenResponse), nil
 	}
-	return args.Get(0).(*model.TokenResponse), args.Get(1).(error)
+	return args.Get(0).(*token.TokenResponse), args.Get(1).(error)
 }
 
 func (m *MockHederaMirror) TopicExists(topicID hedera.TopicID) bool {
@@ -165,13 +168,13 @@ func (m *MockHederaMirror) TopicExists(topicID hedera.TopicID) bool {
 	return args.Get(0).(bool)
 }
 
-func (m *MockHederaMirror) GetTransaction(transactionID string) (*model.Response, error) {
+func (m *MockHederaMirror) GetTransaction(transactionID string) (*transaction.Response, error) {
 	args := m.Called(transactionID)
 
 	if args.Get(1) == nil {
-		return args.Get(0).(*model.Response), nil
+		return args.Get(0).(*transaction.Response), nil
 	}
-	return args.Get(0).(*model.Response), args.Get(1).(error)
+	return args.Get(0).(*transaction.Response), args.Get(1).(error)
 }
 
 func (m *MockHederaMirror) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {

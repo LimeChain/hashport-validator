@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package model
+package error
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ import (
 
 var (
 	errMsgTemplate     = "message: %s"
-	notFoundMsg        = "Not found"
+	NotFoundMsg        = "Not found"
 	statusStartSymbol  = "["
 	statusEndSymbol    = "]"
 	statusMsgSeparator = ", "
@@ -44,7 +44,7 @@ func (m *ErrorMessage) String() string {
 
 // IsNotFound returns true/false whether the message is equal to "not found" or not
 func (m *ErrorMessage) IsNotFound() bool {
-	return m.Message == notFoundMsg
+	return m.Message == NotFoundMsg
 }
 
 // String converts the Status struct to human readable string

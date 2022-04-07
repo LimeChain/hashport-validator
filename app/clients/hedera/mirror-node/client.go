@@ -21,7 +21,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	mirrorNodeHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/mirror-node"
@@ -74,54 +77,54 @@ func (c *Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 	return price, err
 }
 
-func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
+func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {
 	return c.GetAccountTokenMintTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
-func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
+func (c Client) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {
 	return c.GetAccountTokenBurnTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
-func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (c Client) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=debit&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*model.Response, error) {
+func (c Client) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&result=success&timestamp=gt:%s&order=asc&transactiontype=cryptotransfer",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*model.Response, error) {
+func (c Client) GetAccountCreditTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {
 	return c.GetAccountCreditTransactionsAfterTimestampString(accountId, timestampHelper.String(from))
 }
 
 // GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
-func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]model.Transaction, error) {
+func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]transaction.Transaction, error) {
 	transactions, err := c.GetAccountCreditTransactionsAfterTimestamp(accountId, from)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []model.Transaction
+	var res []transaction.Transaction
 	for _, t := range transactions.Transactions {
 		ts, err := timestampHelper.FromString(t.ConsensusTimestamp)
 		if err != nil {
@@ -135,7 +138,7 @@ func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, 
 }
 
 // GetMessagesAfterTimestamp returns all Topic messages after the given timestamp
-func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]model.Message, error) {
+func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]message.Message, error) {
 	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.String(from))
@@ -144,7 +147,7 @@ func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
-func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]model.Message, error) {
+func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]message.Message, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
 		topicId.String(),
 		timestampHelper.String(from))
@@ -154,7 +157,7 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	}
 
 	// TODO refactor into 1 function (reuse code above)
-	var res []model.Message
+	var res []message.Message
 	for _, m := range msgs {
 		ts, err := timestampHelper.FromString(m.ConsensusTimestamp)
 		if err != nil {
@@ -168,44 +171,44 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 }
 
 // GetNftTransactions returns the nft transactions for tokenID and serialNum
-func (c Client) GetNftTransactions(tokenID string, serialNum int64) (model.NftTransactionsResponse, error) {
+func (c Client) GetNftTransactions(tokenID string, serialNum int64) (transaction.NftTransactionsResponse, error) {
 	query := fmt.Sprintf("%stokens/%s/nfts/%d/transactions", c.mirrorAPIAddress, tokenID, serialNum)
 
 	httpResponse, err := c.get(query)
 	if err != nil {
-		return model.NftTransactionsResponse{}, err
+		return transaction.NftTransactionsResponse{}, err
 	}
 
 	bodyBytes, err := readResponseBody(httpResponse)
 	if err != nil {
-		return model.NftTransactionsResponse{}, err
+		return transaction.NftTransactionsResponse{}, err
 	}
 
 	if httpResponse.StatusCode != http.StatusOK {
-		return model.NftTransactionsResponse{}, errors.New(fmt.Sprintf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes))
+		return transaction.NftTransactionsResponse{}, errors.New(fmt.Sprintf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes))
 	}
 
-	var response *model.NftTransactionsResponse
+	var response *transaction.NftTransactionsResponse
 	err = json.Unmarshal(bodyBytes, &response)
 	if err != nil {
-		return model.NftTransactionsResponse{}, err
+		return transaction.NftTransactionsResponse{}, err
 	}
 
 	return *response, nil
 }
 
-func (c Client) GetTransaction(transactionID string) (*model.Response, error) {
+func (c Client) GetTransaction(transactionID string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
 }
 
-func (c Client) GetSuccessfulTransaction(transactionID string) (model.Transaction, error) {
+func (c Client) GetSuccessfulTransaction(transactionID string) (transaction.Transaction, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
 	response, err := c.getTransactionsByQuery(transactionsDownloadQuery)
 	if err != nil {
-		return model.Transaction{}, err
+		return transaction.Transaction{}, err
 	}
 	txs := response.Transactions
 	for _, tx := range txs {
@@ -214,16 +217,16 @@ func (c Client) GetSuccessfulTransaction(transactionID string) (model.Transactio
 		}
 	}
 
-	return model.Transaction{}, errors.New(fmt.Sprintf("[%s] - No SUCCESS transaction found", transactionID))
+	return transaction.Transaction{}, errors.New(fmt.Sprintf("[%s] - No SUCCESS transaction found", transactionID))
 }
 
 // GetScheduledTransaction gets the Scheduled transaction of an executed transaction
-func (c Client) GetScheduledTransaction(transactionID string) (*model.Response, error) {
+func (c Client) GetScheduledTransaction(transactionID string) (*transaction.Response, error) {
 	return c.GetTransaction(fmt.Sprintf("%s?scheduled=false", transactionID))
 }
 
 // GetSchedule retrieves a schedule entity by its id
-func (c Client) GetSchedule(scheduleID string) (*model.Schedule, error) {
+func (c Client) GetSchedule(scheduleID string) (*transaction.Schedule, error) {
 	query := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "schedules/", scheduleID)
 
 	httpResponse, e := c.get(query)
@@ -239,7 +242,7 @@ func (c Client) GetSchedule(scheduleID string) (*model.Schedule, error) {
 		return nil, e
 	}
 
-	var response *model.Schedule
+	var response *transaction.Schedule
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -264,7 +267,7 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	return readResponseBody(response)
 }
 
-func (c Client) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
+func (c Client) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error) {
 	nftQuery := fmt.Sprintf("%s%d", "/nfts/", serialNum)
 	query := fmt.Sprintf("%s%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID, nftQuery)
 
@@ -281,7 +284,7 @@ func (c Client) GetNft(tokenID string, serialNum int64) (*model.Nft, error) {
 		return nil, e
 	}
 
-	var response *model.Nft
+	var response *transaction.Nft
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -300,7 +303,7 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 }
 
 // GetAccount retrieves an account entity by its id
-func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
+func (c Client) GetAccount(accountID string) (*account.AccountsResponse, error) {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 	query := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,
@@ -319,7 +322,7 @@ func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
 		return nil, e
 	}
 
-	var response *model.AccountsResponse
+	var response *account.AccountsResponse
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -329,7 +332,7 @@ func (c Client) GetAccount(accountID string) (*model.AccountsResponse, error) {
 }
 
 // GetToken retrieves a token entity by its id
-func (c Client) GetToken(tokenID string) (*model.TokenResponse, error) {
+func (c Client) GetToken(tokenID string) (*token.TokenResponse, error) {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "tokens")
 	query := fmt.Sprintf("%s/%s",
 		mirrorNodeApiTransactionAddress,
@@ -348,7 +351,7 @@ func (c Client) GetToken(tokenID string) (*model.TokenResponse, error) {
 		return nil, e
 	}
 
-	var response *model.TokenResponse
+	var response *token.TokenResponse
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -467,13 +470,13 @@ func (c Client) get(query string) (*http.Response, error) {
 	return c.httpClient.Get(query)
 }
 
-func (c Client) getTransactionsByQuery(query string) (*model.Response, error) {
+func (c Client) getTransactionsByQuery(query string) (*transaction.Response, error) {
 	transactionsQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "transactions", query)
 
 	return c.getAndParse(transactionsQuery)
 }
 
-func (c Client) getAndParse(query string) (*model.Response, error) {
+func (c Client) getAndParse(query string) (*transaction.Response, error) {
 	httpResponse, e := c.get(query)
 	if e != nil {
 		return nil, e
@@ -484,7 +487,7 @@ func (c Client) getAndParse(query string) (*model.Response, error) {
 		return nil, e
 	}
 
-	var response *model.Response
+	var response *transaction.Response
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
 		return nil, e
@@ -496,7 +499,7 @@ func (c Client) getAndParse(query string) (*model.Response, error) {
 	return response, nil
 }
 
-func (c Client) getTopicMessagesByQuery(query string) ([]model.Message, error) {
+func (c Client) getTopicMessagesByQuery(query string) ([]message.Message, error) {
 	messagesQuery := fmt.Sprintf("%s%s%s", c.mirrorAPIAddress, "topics", query)
 	response, e := c.get(messagesQuery)
 	if e != nil {
@@ -508,7 +511,7 @@ func (c Client) getTopicMessagesByQuery(query string) ([]model.Message, error) {
 		return nil, e
 	}
 
-	var messages *model.Messages
+	var messages *message.Messages
 	e = json.Unmarshal(bodyBytes, &messages)
 	if e != nil {
 		return nil, e

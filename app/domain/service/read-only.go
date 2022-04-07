@@ -17,7 +17,7 @@
 package service
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 

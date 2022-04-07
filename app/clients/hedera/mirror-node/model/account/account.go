@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package model
+package account
 
 type (
 	// AccountsResponse struct used by the Hedera Mirror node REST API to return information

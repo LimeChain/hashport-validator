@@ -17,7 +17,7 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -76,7 +76,7 @@ func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) err
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) SanityCheckTransfer(tx model.Transaction) (uint64, string, error) {
+func (mts *MockTransferService) SanityCheckTransfer(tx transaction.Transaction) (uint64, string, error) {
 	args := mts.Called(tx)
 	if args.Get(2) == nil {
 		return args.Get(0).(uint64), args.Get(1).(string), nil

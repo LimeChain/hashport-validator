@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package model
+package token
 
 type (
-	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
-	Message struct {
-		ConsensusTimestamp string `json:"consensus_timestamp"`
-		TopicId            string `json:"topic_id"`
-		Contents           string `json:"message"`
-		RunningHash        string `json:"running_hash"`
-		SequenceNumber     int    `json:"sequence_number"`
+	TokenResponse struct {
+		TokenID     string `json:"token_id"`
+		Name        string `json:"name"`
+		Symbol      string `json:"symbol"`
+		TotalSupply string `json:"total_supply"`
+		Decimals    string `json:"decimals"`
 	}
-	// Messages struct used by the Hedera Mirror node REST API and returned once
-	// Topic Messages are queried
-	Messages struct {
-		Messages []Message
+
+	NetworkSupplyResponse struct {
+		ReleasedSupply string `json:"released_supply"`
+		Timestamp      string `json:"timestamp"`
+		TotalSupply    string `json:"total_supply"`
 	}
 )

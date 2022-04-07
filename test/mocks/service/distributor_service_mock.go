@@ -17,7 +17,7 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
@@ -26,10 +26,10 @@ type MockDistrubutorService struct {
 	mock.Mock
 }
 
-func (mds *MockDistrubutorService) PrepareTransfers(amount int64, token string) ([]model.Transfer, error) {
+func (mds *MockDistrubutorService) PrepareTransfers(amount int64, token string) ([]transaction.Transfer, error) {
 	args := mds.Called(amount, token)
 	if args.Get(1) == nil {
-		return args.Get(0).([]model.Transfer), nil
+		return args.Get(0).([]transaction.Transfer), nil
 	}
 	return nil, args.Get(1).(error)
 }
