@@ -19,7 +19,7 @@ package mint_hts
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirrorNode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirrorNode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"

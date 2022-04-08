@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -271,7 +271,7 @@ func (pw Watcher) setMetrics() {
 	}
 }
 
-func (pw Watcher) getAccount(accountId string) (*model.AccountsResponse, error) {
+func (pw Watcher) getAccount(accountId string) (*account.AccountsResponse, error) {
 	account, e := pw.mirrorNode.GetAccount(accountId)
 	if e != nil {
 		pw.logger.Errorf("Hedera Mirror Node for Account ID [%s] method GetAccount - Error: [%s]", accountId, e)
@@ -280,13 +280,13 @@ func (pw Watcher) getAccount(accountId string) (*model.AccountsResponse, error) 
 	return account, nil
 }
 
-func (pw Watcher) getAccountBalance(account *model.AccountsResponse) float64 {
+func (pw Watcher) getAccountBalance(account *account.AccountsResponse) float64 {
 	balance := metrics.ConvertToHbar(account.Balance.Balance)
 	pw.logger.Infof("The Account with ID [%s] has balance = %f", account.Account, balance)
 	return balance
 }
 
-func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
+func (pw Watcher) setAssetsMetrics(bridgeAccount *account.AccountsResponse) {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	for networkId, networkAssets := range fungibleAssets {
 		for _, assetAddress := range networkAssets {
@@ -305,7 +305,7 @@ func (pw Watcher) setAssetsMetrics(bridgeAccount *model.AccountsResponse) {
 
 func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
-	bridgeAccount *model.AccountsResponse,
+	bridgeAccount *account.AccountsResponse,
 	isNative bool,
 ) {
 
@@ -329,7 +329,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 func (pw Watcher) getAssetMetricValue(
 	networkId uint64,
 	assetAddress string,
-	bridgeAccount *model.AccountsResponse,
+	bridgeAccount *account.AccountsResponse,
 	isNative bool,
 ) (value float64, err error) {
 	var (
@@ -360,7 +360,7 @@ func (pw Watcher) getAssetMetricValue(
 	return value, err
 }
 
-func (pw Watcher) getHederaTokenBalance(assetAddress string, bridgeAccount *model.AccountsResponse) (value float64, err error) {
+func (pw Watcher) getHederaTokenBalance(assetAddress string, bridgeAccount *account.AccountsResponse) (value float64, err error) {
 	if bridgeAccount == nil {
 		return 0, errors.New(fmt.Sprintf("Bridge account cannot be nil"))
 	}

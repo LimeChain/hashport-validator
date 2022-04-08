@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
@@ -47,8 +47,8 @@ var (
 	fungibleAssetInfoNetwork3   = asset.FungibleAssetInfo{Decimals: 18}
 	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
 
-	tx = model.Transaction{
-		TokenTransfers: []model.Transfer{
+	tx = transaction.Transaction{
+		TokenTransfers: []transaction.Transfer{
 			{
 				Account: "0.0.444444",
 				Amount:  10,
@@ -191,8 +191,8 @@ func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
-	anotherTx.Transfers = []model.Transfer{}
-	anotherTx.TokenTransfers = []model.Transfer{}
+	anotherTx.Transfers = []transaction.Transfer{}
+	anotherTx.TokenTransfers = []transaction.Transfer{}
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 

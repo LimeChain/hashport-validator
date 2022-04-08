@@ -18,7 +18,7 @@ package read_only
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -54,7 +54,7 @@ func (s Service) FindAssetTransfer(
 	transferID string,
 	asset string,
 	expectedTransfers []model.Hedera,
-	fetch func() (*mirror_node.Response, error),
+	fetch func() (*mirrorNodeTransaction.Response, error),
 	save func(transactionID, scheduleID, status string) error) {
 	for {
 		response, err := fetch()
@@ -174,7 +174,7 @@ func (s Service) FindNftTransfer(
 
 func (s Service) FindTransfer(
 	transferID string,
-	fetch func() (*mirror_node.Response, error),
+	fetch func() (*mirrorNodeTransaction.Response, error),
 	save func(transactionID, scheduleID, status string) error) {
 	for {
 		response, err := fetch()
@@ -239,7 +239,7 @@ func (s Service) FindTransfer(
 	}
 }
 
-func transfersAreFound(expectedTransfers []model.Hedera, asset string, transaction mirror_node.Transaction) bool {
+func transfersAreFound(expectedTransfers []model.Hedera, asset string, transaction mirrorNodeTransaction.Transaction) bool {
 	for _, expectedTransfer := range expectedTransfers {
 		found := false
 		if asset == constants.Hbar {

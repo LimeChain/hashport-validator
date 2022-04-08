@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirrorNodeMsg "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
@@ -51,7 +51,7 @@ func Test_UpdateStatusTimestamp(t *testing.T) {
 
 func Test_ProcessMessage_FromString_Fails(t *testing.T) {
 	setup()
-	w.processMessage(model.Message{Contents: "invalid-data"}, mocks.MQueue)
+	w.processMessage(mirrorNodeMsg.Message{Contents: "invalid-data"}, mocks.MQueue)
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
@@ -78,7 +78,7 @@ func Test_NewWatcher_WithTS(t *testing.T) {
 func Test_BeginWatch_FailsMessagesRetrieval(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(5), nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(5)).Return([]model.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(5)).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
 	w.beginWatching(mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
@@ -86,7 +86,7 @@ func Test_BeginWatch_FailsMessagesRetrieval(t *testing.T) {
 }
 
 func Test_BeginWatch_SuccessfulExecution(t *testing.T) {
-	m := model.Message{
+	m := mirrorNodeMsg.Message{
 		ConsensusTimestamp: consensusTimestamp,
 		TopicId:            "0.0.4321",
 		Contents: "EIHxBBodMC4wLjE4OTMtMTYzMTI2MDg5MC05NDgyMDg5NDkiKjB4MDg3MkI5RjY1OUYwYjQ" +
@@ -105,8 +105,8 @@ func Test_BeginWatch_SuccessfulExecution(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(2), nil).Once()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(milestoneTimestamp, nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(2)).Return([]model.Message{m}, nil).Once()
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, milestoneTimestamp).Return([]model.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(2)).Return([]mirrorNodeMsg.Message{m}, nil).Once()
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, milestoneTimestamp).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
 	mocks.MQueue.On("Push", queueMessage)
 	mocks.MStatusRepository.On("Update", topicID.String(), milestoneTimestamp).Return(nil)
 

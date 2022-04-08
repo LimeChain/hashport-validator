@@ -19,7 +19,7 @@ package burn
 import (
 	"database/sql"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -79,7 +79,7 @@ func (mhh Handler) Handle(payload interface{}) {
 	}
 
 	mhh.readOnlyService.FindTransfer(transferMsg.TransactionId,
-		func() (*mirror_node.Response, error) {
+		func() (*mirrorNodeTransaction.Response, error) {
 			return mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.Timestamp)
 		},
 		func(transactionID, scheduleID, status string) error {

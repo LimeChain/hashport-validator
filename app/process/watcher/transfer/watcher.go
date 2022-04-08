@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -344,7 +344,7 @@ func (ctw Watcher) createNonFungiblePayload(
 		string(decodedMetadata)), nil
 }
 
-func (ctw Watcher) initSuccessRatePrometheusMetrics(tx model.Transaction, sourceChainId, targetChainId uint64, asset string) {
+func (ctw Watcher) initSuccessRatePrometheusMetrics(tx transaction.Transaction, sourceChainId, targetChainId uint64, asset string) {
 	if !ctw.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

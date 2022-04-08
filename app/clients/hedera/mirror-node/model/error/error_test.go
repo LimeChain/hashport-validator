@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package model
+package error
 
 import (
 	"fmt"
@@ -60,13 +60,13 @@ func setup() {
 	}
 
 	notFoundErrMsg = &ErrorMessage{
-		Message: notFoundMsg,
+		Message: NotFoundMsg,
 	}
 
 	status = &Status{
 		Messages: []ErrorMessage{
 			{Message: msg},
-			{Message: notFoundMsg},
+			{Message: NotFoundMsg},
 		},
 	}
 }
