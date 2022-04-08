@@ -151,7 +151,7 @@ func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool
 	return 0, false
 }
 
-// GetIncomingTransfer returns the transfer to an transferAccountId in the following order:
+// GetIncomingTransfer returns the transfer to an account in the following order:
 // 1. Checks if there is an NFT transfer
 // 2. Checks if there is a Fungible Token transfer
 // 3. Checks if there is an HBAR transfer
