@@ -274,4 +274,8 @@ var (
 		Networks:          Networks,
 		MonitoredAccounts: make(map[string]string),
 	}
+
+	HederaNftFees = map[string]int64{
+		NetworkHederaNFTNativeToken: 1000,
+	}
 )

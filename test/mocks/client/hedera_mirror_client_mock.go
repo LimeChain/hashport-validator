@@ -31,31 +31,38 @@ type MockHederaMirror struct {
 }
 
 func (m *MockHederaMirror) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error) {
-	panic("implement me")
+	args := m.Called(tokenID, serialNum)
+	return args.Get(0).(*transaction.Nft), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	panic("implement me")
+	args := m.Called(accountId, from)
+	return args.Get(0).(*transaction.Response), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	panic("implement me")
+	args := m.Called(accountId, from)
+	return args.Get(0).(*transaction.Response), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountDebitTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	panic("implement me")
+	args := m.Called(accountId, from)
+	return args.Get(0).(*transaction.Response), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountCreditTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	panic("implement me")
+	args := m.Called(accountId, from)
+	return args.Get(0).(*transaction.Response), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetScheduledTransaction(transactionID string) (*transaction.Response, error) {
-	panic("implement me")
+	args := m.Called(transactionID)
+	return args.Get(0).(*transaction.Response), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetSchedule(scheduleID string) (*transaction.Schedule, error) {
-	panic("implement me")
+	args := m.Called(scheduleID)
+	return args.Get(0).(*transaction.Schedule), args.Error(1)
 }
 
 // GetSuccessfulTransaction gets the success transaction by transaction id or returns an error
@@ -69,7 +76,8 @@ func (m *MockHederaMirror) GetSuccessfulTransaction(transactionID string) (trans
 }
 
 func (m *MockHederaMirror) GetNftTransactions(tokenID string, serialNum int64) (transaction.NftTransactionsResponse, error) {
-	panic("implement me")
+	args := m.Called(tokenID, serialNum)
+	return args.Get(0).(transaction.NftTransactionsResponse), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {

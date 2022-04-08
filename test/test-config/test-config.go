@@ -68,6 +68,7 @@ var (
 		Bridge: config.Bridge{
 			Hedera: &config.BridgeHedera{
 				BridgeAccount: "0.0.578300",
+				NftFees:       testConstants.HederaNftFees,
 			},
 			MinAmounts: map[uint64]map[string]*big.Int{
 				testConstants.PolygonNetworkId: {
