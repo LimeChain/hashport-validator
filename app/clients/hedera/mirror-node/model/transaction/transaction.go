@@ -58,7 +58,7 @@ type (
 		Token             string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
-	// transferAccountId transactions are queried
+	// account transactions are queried
 	Response struct {
 		Transactions         []Transaction
 		mirrorNodeErr.Status `json:"_status"`
