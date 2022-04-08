@@ -239,7 +239,7 @@ func Test_Handle_ErrOnUpdateFee(t *testing.T) {
 	mocks.MReadOnlyService.AssertNotCalled(t, "FindAssetTransfer", transactionId, constants.Hbar, splitTransfers[0], mock.Anything, mock.Anything)
 }
 
-func Test_fetchHandler(t *testing.T) {
+func Test_fetch(t *testing.T) {
 	setup(t, false)
 	expectedResponse := &transaction.Response{
 		Transactions: []transaction.Transaction{},
@@ -251,44 +251,44 @@ func Test_fetchHandler(t *testing.T) {
 		payload.Timestamp,
 	).Return(expectedResponse, nilErr)
 
-	actualResponse, err := handler.fetchHandler(payload)
+	actualResponse, err := handler.fetch(payload)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResponse, actualResponse)
 	mocks.MHederaMirrorClient.AssertCalled(t, "GetAccountDebitTransactionsAfterTimestampString", bridgeAccount, payload.Timestamp)
 }
 
-func Test_saveHandler(t *testing.T) {
+func Test_save(t *testing.T) {
 	setup(t, false)
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(nilErr)
 
-	err := handler.saveHandler(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
 
 	assert.Nil(t, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
 	mocks.MFeeRepository.AssertCalled(t, "Create", feeEntity)
 }
 
-func Test_saveHandler_ErrOnCreateScheduleEntity(t *testing.T) {
+func Test_save_ErrOnCreateScheduleEntity(t *testing.T) {
 	setup(t, false)
 	expectedErr := errors.New("failed to create schedule record")
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(expectedErr)
 
-	err := handler.saveHandler(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
 	mocks.MFeeRepository.AssertNotCalled(t, "Create", feeEntity)
 }
 
-func Test_saveHandler_ErrOnCreateFeeEntity(t *testing.T) {
+func Test_save_ErrOnCreateFeeEntity(t *testing.T) {
 	setup(t, false)
 	expectedErr := errors.New("failed to create fee record")
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(expectedErr)
 
-	err := handler.saveHandler(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)

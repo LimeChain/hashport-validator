@@ -114,19 +114,19 @@ func (fmh Handler) Handle(payload interface{}) {
 		feeAmount := -splitTransfer[len(splitTransfer)-1].Amount
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, constants.Hbar, splitTransfer,
 			func() (*mirror_node.Response, error) {
-				return fmh.fetchHandler(transferMsg)
+				return fmh.fetch(transferMsg)
 			},
 			func(transactionID, scheduleID, status string) error {
-				return fmh.saveHandler(transactionID, scheduleID, status, transferMsg, feeAmount)
+				return fmh.save(transactionID, scheduleID, status, transferMsg, feeAmount)
 			})
 	}
 }
 
-func (fmh Handler) fetchHandler(transferMsg *model.Transfer) (*mirror_node.Response, error) {
+func (fmh Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
 	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
 }
 
-func (fmh Handler) saveHandler(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
+func (fmh Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
 	err := fmh.scheduleRepository.Create(&entity.Schedule{
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,
