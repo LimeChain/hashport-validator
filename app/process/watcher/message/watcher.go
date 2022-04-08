@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	message2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	mirrorNodeMsg "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -133,7 +133,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 	}
 }
 
-func (cmw Watcher) processMessage(topicMsg message2.Message, q qi.Queue) {
+func (cmw Watcher) processMessage(topicMsg mirrorNodeMsg.Message, q qi.Queue) {
 	cmw.logger.Info("New Message Received")
 
 	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)

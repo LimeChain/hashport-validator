@@ -17,7 +17,7 @@
 package service
 
 import (
-	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
+	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/mock"
 )
@@ -30,10 +30,10 @@ func (m *MockReadOnlyService) FindNftTransfer(transferID string, tokenID string,
 	panic("implement me")
 }
 
-func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error) {
+func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirrorNodeTransaction.Response, error), save func(transactionID, scheduleID, status string) error) {
 	m.Called(transferID, fetch, save)
 }
 
-func (m *MockReadOnlyService) FindAssetTransfer(transferID string, asset string, transfers []transfer.Hedera, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error) {
+func (m *MockReadOnlyService) FindAssetTransfer(transferID string, asset string, transfers []transfer.Hedera, fetch func() (*mirrorNodeTransaction.Response, error), save func(transactionID, scheduleID, status string) error) {
 	m.Called(transferID, asset, transfers, fetch, save)
 }

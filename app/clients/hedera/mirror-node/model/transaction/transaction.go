@@ -18,7 +18,7 @@ package transaction
 
 import (
 	"errors"
-	error2 "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
+	mirrorNodeErr "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 )
@@ -60,8 +60,8 @@ type (
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// transferAccountId transactions are queried
 	Response struct {
-		Transactions  []Transaction
-		error2.Status `json:"_status"`
+		Transactions         []Transaction
+		mirrorNodeErr.Status `json:"_status"`
 	}
 	// Schedule struct used by the Hedera Mirror node REST API to return information
 	// regarding a given Schedule entity
