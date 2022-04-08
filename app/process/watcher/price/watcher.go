@@ -24,6 +24,10 @@ import (
 	"time"
 )
 
+var (
+	sleepTime = 10 * time.Minute
+)
+
 type Watcher struct {
 	pricingService service.Pricing
 	logger         *log.Entry
@@ -38,20 +42,20 @@ func NewWatcher(pricingService service.Pricing) *Watcher {
 
 func (pw *Watcher) Watch(q qi.Queue) {
 	// there will be no handler, so the q is to implement the interface
-	go pw.beginWatching()
+	go func() {
+		for {
+			pw.watchIteration()
+			time.Sleep(sleepTime)
+		}
+	}()
 }
 
-func (pw *Watcher) beginWatching() {
-	for {
-
-		pw.logger.Infof("Fetching and updating USD prices ...")
-		err := pw.pricingService.FetchAndUpdateUsdPrices()
-		if err != nil {
-			pw.logger.Errorf(err.Error())
-		} else {
-
-			pw.logger.Infof("Fetching and updating USD prices finished successfully!")
-		}
-		time.Sleep(10 * time.Minute)
+func (pw *Watcher) watchIteration() {
+	pw.logger.Infof("Fetching and updating USD prices ...")
+	err := pw.pricingService.FetchAndUpdateUsdPrices()
+	if err != nil {
+		pw.logger.Errorf(err.Error())
+	} else {
+		pw.logger.Infof("Fetching and updating USD prices finished successfully!")
 	}
 }
