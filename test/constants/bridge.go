@@ -25,9 +25,9 @@ import (
 
 var (
 
-	////////////
+	// //////////
 	// Common //
-	////////////
+	// //////////
 
 	EthereumNetworkId = uint64(1)
 	PolygonNetworkId  = uint64(137)
@@ -35,9 +35,9 @@ var (
 	MinFeeAmountInUsd = decimal.NewFromFloat(1)
 	TopicId           = "0.0.1234567"
 
-	////////////////////////
+	// //////////////////////
 	// Network 0 (Hedera) //
-	////////////////////////
+	// //////////////////////
 
 	// Native Tokens //
 
@@ -70,9 +70,9 @@ var (
 		constants.HederaDefaultDecimals,
 	}
 
-	//////////////////////
+	// ////////////////////
 	// Ethereum Network //
-	//////////////////////
+	// ////////////////////
 
 	// Native Tokens //
 
@@ -112,9 +112,9 @@ var (
 		constants.EvmDefaultDecimals,
 	}
 
-	/////////////////////
+	// ///////////////////
 	// Polygon Network //
-	/////////////////////
+	// ///////////////////
 
 	// Native Tokens //
 
@@ -273,5 +273,9 @@ var (
 		TopicId:           TopicId,
 		Networks:          Networks,
 		MonitoredAccounts: make(map[string]string),
+	}
+
+	HederaNftFees = map[string]int64{
+		NetworkHederaNFTNativeToken: 1000,
 	}
 )
