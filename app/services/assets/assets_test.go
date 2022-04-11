@@ -47,7 +47,7 @@ var (
 func Test_New(t *testing.T) {
 	setup(true)
 
-	actualService := NewService(testConstants.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNFTClients)
+	actualService := NewService(&testConstants.ParserBridge, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNFTClients)
 
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
 	assert.Equal(t, serviceInstance.wrappedToNative, actualService.wrappedToNative)
@@ -60,6 +60,7 @@ func Test_New(t *testing.T) {
 		sort.Strings(serviceInstance.fungibleNetworkAssets[networkId])
 		sort.Strings(actualService.fungibleNetworkAssets[networkId])
 		assert.Equal(t, serviceInstance.fungibleNetworkAssets[networkId], actualService.fungibleNetworkAssets[networkId])
+
 		// Non-Fungible
 		sort.Strings(serviceInstance.nonFungibleNetworkAssets[networkId])
 		sort.Strings(actualService.nonFungibleNetworkAssets[networkId])
