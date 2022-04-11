@@ -16,7 +16,9 @@
 
 package parser
 
-import "math/big"
+import (
+	"math/big"
+)
 
 /*
 	Structs used to parse the bridge YAML configuration
@@ -49,4 +51,6 @@ type Token struct {
 	Networks          map[uint64]string `yaml:"networks" json:"networks,omitempty"`
 	CoinGeckoId       string            `yaml:"coin_gecko_id" json:"coinGeckoId,omitempty"`
 	CoinMarketCapId   string            `yaml:"coin_market_cap_id" json:"coinMarketCapId,omitempty"`
+	Name              string            `json:"name,omitempty"`
+	Symbol            string            `json:"symbol,omitempty"`
 }

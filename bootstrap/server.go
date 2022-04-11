@@ -162,7 +162,7 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 			configuration,
 			services.Prometheus,
 			clients.EVMClients,
-			clients.EVMTokenClients,
+			clients.EvmFungibleTokenClients,
 			services.Assets))
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")

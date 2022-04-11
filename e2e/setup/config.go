@@ -186,13 +186,13 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]client.DiamondRouter, evmTokenClients map[uint64]map[string]client.EVMToken) {
+func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]client.DiamondRouter, evmTokenClients map[uint64]map[string]client.EvmFungibleToken) {
 	routerClients = make(map[uint64]client.DiamondRouter)
-	evmTokenClients = make(map[uint64]map[string]client.EVMToken)
+	evmTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract
 
-		evmTokenClients[networkId] = make(map[string]client.EVMToken)
+		evmTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
 		for tokenAddress, evmTokenClient := range evmUtil.EVMTokenClients {
 			evmTokenClients[networkId][tokenAddress] = evmTokenClient
 		}
@@ -239,11 +239,11 @@ func newClients(config Config) (*clients, error) {
 			Receiver:              common.HexToAddress(signer.Address()),
 			RouterAddress:         routerContractAddress,
 			WTokenContractAddress: config.Tokens.WToken,
-			EVMTokenClients:       make(map[string]client.EVMToken),
+			EVMTokenClients:       make(map[string]client.EvmFungibleToken),
 		}
 	}
 
-	evmTokenClients := bootstrap.InitEVMTokenClients(config.Bridge.Networks, evmClients)
+	evmTokenClients := bootstrap.InitEvmTokenClients(config.Bridge.Networks, evmClients)
 	for networkId := range config.EVM {
 		for tokenAddress, tokenClient := range evmTokenClients[networkId] {
 			EVM[networkId].EVMTokenClients[tokenAddress] = tokenClient
@@ -281,7 +281,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("EVMToken [%s] is not supported", nativeAsset))
+		return "", errors.New(fmt.Sprintf("EvmFungibleToken [%s] is not supported", nativeAsset))
 	}
 
 	return wrappedAsset, nil
@@ -335,7 +335,7 @@ type Config struct {
 
 type EVMUtils struct {
 	EVMClient             *evm.Client
-	EVMTokenClients       map[string]client.EVMToken
+	EVMTokenClients       map[string]client.EvmFungibleToken
 	RouterContract        *router.Router
 	KeyTransactor         *bind.TransactOpts
 	Signer                *evm_signer.Signer

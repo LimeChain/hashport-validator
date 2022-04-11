@@ -45,7 +45,7 @@ type Watcher struct {
 	dashboardPolling          time.Duration
 	mirrorNode                client.MirrorNode
 	EVMClients                map[uint64]client.EVM
-	EVMTokenClients           map[uint64]map[string]client.EVMToken
+	EVMTokenClients           map[uint64]map[string]client.EvmFungibleToken
 	configuration             config.Config
 	prometheusService         service.Prometheus
 	logger                    *log.Entry
@@ -69,7 +69,7 @@ func NewWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	EVMClients map[uint64]client.EVM,
-	EVMTokenClients map[uint64]map[string]client.EVMToken,
+	EVMTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	assetsService service.Assets,
 ) *Watcher {
 

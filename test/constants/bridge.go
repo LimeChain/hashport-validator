@@ -50,15 +50,22 @@ var (
 		Asset:             NetworkHederaFungibleNativeToken,
 		FeePercentage:     FeePercentage,
 	}
-
-	// Non-Fungible
-
-	NetworkHederaNFTNativeToken = "0.0.111122"
-
 	NetworkHederaFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
 		NetworkHederaFungibleNativeToken,
 		NetworkHederaFungibleNativeToken,
 		constants.HederaDefaultDecimals,
+	}
+
+	// Non-Fungible
+
+	NetworkHederaNonFungibleNativeToken = "0.0.111122"
+	NetworkHederaNonFungibleNativeAsset = &asset.NativeAsset{
+		ChainId: constants.HederaNetworkId,
+		Asset:   NetworkHederaNonFungibleNativeToken,
+	}
+	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
+		NetworkHederaNonFungibleNativeToken,
+		NetworkHederaNonFungibleNativeToken,
 	}
 
 	// Wrapped Tokens //
@@ -118,6 +125,8 @@ var (
 
 	// Native Tokens //
 
+	// Fungible
+
 	NetworkPolygonFungibleNativeToken = "0x0000000000000000000000000000000000000033"
 	NetworkPolygonFungibleNativeAsset = &asset.NativeAsset{
 		MinFeeAmountInUsd: &MinFeeAmountInUsd,
@@ -133,6 +142,8 @@ var (
 
 	// Wrapped Tokens //
 
+	// Fungible
+
 	NetworkPolygonFungibleWrappedTokenForNetworkHedera                  = "0x0000000000000000000000000000000000000001"
 	NetworkPolygonFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = asset.FungibleAssetInfo{
 		NetworkPolygonFungibleWrappedTokenForNetworkHedera,
@@ -144,6 +155,16 @@ var (
 		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
 		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
 		constants.EvmDefaultDecimals,
+	}
+
+	// Non-Fungible
+
+	// Non-Fungible
+
+	NetworkPolygonWrappedNonFungibleTokenForHedera                     = "0x0000000000000000000000000000000011111122"
+	NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
+		NetworkPolygonWrappedNonFungibleTokenForHedera,
+		NetworkPolygonWrappedNonFungibleTokenForHedera,
 	}
 
 	Networks = map[uint64]*parser.Network{
@@ -164,7 +185,11 @@ var (
 						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
-				Nft: nil,
+				Nft: map[string]parser.Token{
+					NetworkHederaNonFungibleNativeToken: {
+						Networks: map[uint64]string{PolygonNetworkId: NetworkPolygonWrappedNonFungibleTokenForHedera},
+					},
+				},
 			},
 		},
 		EthereumNetworkId: {
@@ -206,6 +231,9 @@ var (
 				PolygonNetworkId:  NetworkPolygonFungibleWrappedTokenForNetworkHedera,
 				EthereumNetworkId: NetworkEthereumFungibleWrappedTokenForNetworkHedera,
 			},
+			NetworkHederaNonFungibleNativeToken: {
+				PolygonNetworkId: NetworkPolygonWrappedNonFungibleTokenForHedera,
+			},
 		},
 		EthereumNetworkId: {
 			NetworkEthereumFungibleNativeToken: {
@@ -231,8 +259,11 @@ var (
 		PolygonNetworkId: {
 			NetworkPolygonFungibleWrappedTokenForNetworkHedera:   NetworkHederaFungibleNativeAsset,
 			NetworkPolygonFungibleWrappedTokenForNetworkEthereum: NetworkEthereumFungibleNativeAsset,
+			NetworkPolygonWrappedNonFungibleTokenForHedera:       NetworkHederaNonFungibleNativeAsset,
 		},
 	}
+
+	// Fungible Assets //
 
 	FungibleNetworkAssets = map[uint64][]string{
 		constants.HederaNetworkId: {NetworkHederaFungibleNativeToken, NetworkHederaFungibleWrappedTokenForNetworkPolygon},
@@ -269,6 +300,22 @@ var (
 		},
 	}
 
+	// Non-Fungible Assets //
+
+	NonFungibleNetworkAssets = map[uint64][]string{
+		constants.HederaNetworkId: {NetworkHederaNonFungibleNativeToken},
+		PolygonNetworkId:          {NetworkPolygonWrappedNonFungibleTokenForHedera},
+	}
+
+	NonFungibleAssetInfos = map[uint64]map[string]asset.NonFungibleAssetInfo{
+		constants.HederaNetworkId: {
+			NetworkHederaNonFungibleNativeToken: NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo,
+		},
+		PolygonNetworkId: {
+			NetworkPolygonWrappedNonFungibleTokenForHedera: NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo,
+		},
+	}
+
 	ParserBridge = parser.Bridge{
 		TopicId:           TopicId,
 		Networks:          Networks,
@@ -276,6 +323,6 @@ var (
 	}
 
 	HederaNftFees = map[string]int64{
-		NetworkHederaNFTNativeToken: 1000,
+		NetworkHederaNonFungibleNativeToken: 1000,
 	}
 )

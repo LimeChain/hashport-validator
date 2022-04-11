@@ -23,6 +23,7 @@ import (
 	coin_market_cap "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-market-cap"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
@@ -35,27 +36,29 @@ import (
 
 // Clients struct used to initialise and store all available external clients for a validator node
 type Clients struct {
-	HederaNode      client.HederaNode
-	MirrorNode      client.MirrorNode
-	EVMClients      map[uint64]client.EVM
-	CoinGecko       client.Pricing
-	CoinMarketCap   client.Pricing
-	RouterClients   map[uint64]client.DiamondRouter
-	EVMTokenClients map[uint64]map[string]client.EVMToken
+	HederaNode              client.HederaNode
+	MirrorNode              client.MirrorNode
+	EVMClients              map[uint64]client.EVM
+	CoinGecko               client.Pricing
+	CoinMarketCap           client.Pricing
+	RouterClients           map[uint64]client.DiamondRouter
+	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
+	EvmNFTClients           map[uint64]map[string]client.EvmNFT
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.BridgeEvm, networks map[uint64]*parser.Network) *Clients {
-	EVMClients := InitEVMClients(clientsCfg)
+	EvmClients := InitEVMClients(clientsCfg)
 
 	return &Clients{
-		HederaNode:      hedera.NewNodeClient(clientsCfg.Hedera),
-		MirrorNode:      mirror_node.NewClient(clientsCfg.MirrorNode),
-		EVMClients:      EVMClients,
-		CoinGecko:       coin_gecko.NewClient(clientsCfg.CoinGecko),
-		CoinMarketCap:   coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
-		RouterClients:   InitRouterClients(bridgeEVMsCfgs, EVMClients),
-		EVMTokenClients: InitEVMTokenClients(networks, EVMClients),
+		HederaNode:              hedera.NewNodeClient(clientsCfg.Hedera),
+		MirrorNode:              mirror_node.NewClient(clientsCfg.MirrorNode),
+		EVMClients:              EvmClients,
+		CoinGecko:               coin_gecko.NewClient(clientsCfg.CoinGecko),
+		CoinMarketCap:           coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
+		RouterClients:           InitRouterClients(bridgeEVMsCfgs, EvmClients),
+		EvmFungibleTokenClients: InitEvmTokenClients(networks, EvmClients),
+		EvmNFTClients:           InitEvmNFTClients(networks, EvmClients),
 	}
 }
 
@@ -94,13 +97,13 @@ func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients ma
 	return routers
 }
 
-func InitEVMTokenClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EVMToken {
-	tokenClients := make(map[uint64]map[string]client.EVMToken)
+func InitEvmTokenClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmFungibleToken {
+	tokenClients := make(map[uint64]map[string]client.EvmFungibleToken)
 	for networkId, network := range networks {
 
 		if networkId != constants.HederaNetworkId {
 			if _, exist := tokenClients[networkId]; !exist {
-				tokenClients[networkId] = make(map[string]client.EVMToken)
+				tokenClients[networkId] = make(map[string]client.EvmFungibleToken)
 			}
 		}
 
@@ -110,7 +113,7 @@ func InitEVMTokenClients(networks map[uint64]*parser.Network, evmClients map[uin
 			if networkId != constants.HederaNetworkId {
 				tokenInstance, err := wtoken.NewWtoken(common.HexToAddress(fungibleTokenAddress), evmClients[networkId])
 				if err != nil {
-					log.Fatalf("Failed to initialize Native EVMToken Contract Instance at token address [%s]. Error [%s]", fungibleTokenAddress, err)
+					log.Fatalf("Failed to initialize Native EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", fungibleTokenAddress, err)
 				}
 				tokenClients[networkId][fungibleTokenAddress] = tokenInstance
 			}
@@ -122,12 +125,56 @@ func InitEVMTokenClients(networks map[uint64]*parser.Network, evmClients map[uin
 				}
 
 				if _, exist := tokenClients[wrappedNetworkId]; !exist {
-					tokenClients[wrappedNetworkId] = make(map[string]client.EVMToken)
+					tokenClients[wrappedNetworkId] = make(map[string]client.EvmFungibleToken)
 				}
 
 				wrappedTokenInstance, err := wtoken.NewWtoken(common.HexToAddress(wrappedTokenAddress), evmClients[wrappedNetworkId])
 				if err != nil {
-					log.Fatalf("Failed to initialize Wrapped EVMToken Contract Instance at token address [%s]. Error [%s]", wrappedTokenAddress, err)
+					log.Fatalf("Failed to initialize Wrapped EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", wrappedTokenAddress, err)
+				}
+				tokenClients[wrappedNetworkId][wrappedTokenAddress] = wrappedTokenInstance
+			}
+		}
+
+	}
+
+	return tokenClients
+}
+
+func InitEvmNFTClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmNFT {
+	tokenClients := make(map[uint64]map[string]client.EvmNFT)
+	for networkId, network := range networks {
+
+		if networkId != constants.HederaNetworkId {
+			if _, exist := tokenClients[networkId]; !exist {
+				tokenClients[networkId] = make(map[string]client.EvmNFT)
+			}
+		}
+
+		// Native Tokens
+		for fungibleTokenAddress, tokenInfo := range network.Tokens.Nft {
+
+			if networkId != constants.HederaNetworkId {
+				tokenInstance, err := werc721.NewWerc721(common.HexToAddress(fungibleTokenAddress), evmClients[networkId])
+				if err != nil {
+					log.Fatalf("Failed to initialize Native EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", fungibleTokenAddress, err)
+				}
+				tokenClients[networkId][fungibleTokenAddress] = tokenInstance
+			}
+
+			// Wrapped tokens
+			for wrappedNetworkId, wrappedTokenAddress := range tokenInfo.Networks {
+				if wrappedNetworkId == constants.HederaNetworkId {
+					continue
+				}
+
+				if _, exist := tokenClients[wrappedNetworkId]; !exist {
+					tokenClients[wrappedNetworkId] = make(map[string]client.EvmNFT)
+				}
+
+				wrappedTokenInstance, err := werc721.NewWerc721(common.HexToAddress(wrappedTokenAddress), evmClients[wrappedNetworkId])
+				if err != nil {
+					log.Fatalf("Failed to initialize Wrapped EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", wrappedTokenAddress, err)
 				}
 				tokenClients[wrappedNetworkId][wrappedTokenAddress] = wrappedTokenInstance
 			}

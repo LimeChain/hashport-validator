@@ -75,7 +75,7 @@ func createPrometheusWatcher(
 	configuration config.Config,
 	prometheusService service.Prometheus,
 	evmClients map[uint64]client.EVM,
-	evmTokenClients map[uint64]map[string]client.EVMToken,
+	evmTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	assetsService service.Assets,
 
 ) *pw.Watcher {

@@ -14,24 +14,13 @@
  * limitations under the License.
  */
 
-package asset
+package client
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+)
 
-type NativeAsset struct {
-	MinFeeAmountInUsd *decimal.Decimal
-	ChainId           uint64
-	Asset             string
-	FeePercentage     int64
-}
-
-type FungibleAssetInfo struct {
-	Name     string
-	Symbol   string
-	Decimals uint8
-}
-
-type NonFungibleAssetInfo struct {
-	Name   string
-	Symbol string
+type EvmNFT interface {
+	Name(opts *bind.CallOpts) (string, error)
+	Symbol(opts *bind.CallOpts) (string, error)
 }
