@@ -57,8 +57,8 @@ func PrepareClients(clientsCfg config.Clients, bridgeEVMsCfgs map[uint64]config.
 		CoinGecko:               coin_gecko.NewClient(clientsCfg.CoinGecko),
 		CoinMarketCap:           coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
 		RouterClients:           InitRouterClients(bridgeEVMsCfgs, EvmClients),
-		EvmFungibleTokenClients: InitEvmTokenClients(networks, EvmClients),
-		EvmNFTClients:           InitEvmNFTClients(networks, EvmClients),
+		EvmFungibleTokenClients: InitEvmFungibleTokenClients(networks, EvmClients),
+		EvmNFTClients:           InitEvmNftClients(networks, EvmClients),
 	}
 }
 
@@ -97,7 +97,7 @@ func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients ma
 	return routers
 }
 
-func InitEvmTokenClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmFungibleToken {
+func InitEvmFungibleTokenClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmFungibleToken {
 	tokenClients := make(map[uint64]map[string]client.EvmFungibleToken)
 	for networkId, network := range networks {
 
@@ -141,7 +141,7 @@ func InitEvmTokenClients(networks map[uint64]*parser.Network, evmClients map[uin
 	return tokenClients
 }
 
-func InitEvmNFTClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmNFT {
+func InitEvmNftClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmNFT {
 	tokenClients := make(map[uint64]map[string]client.EvmNFT)
 	for networkId, network := range networks {
 
