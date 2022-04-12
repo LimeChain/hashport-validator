@@ -45,8 +45,9 @@ var (
 )
 
 func Test_New(t *testing.T) {
-	setup(true)
-
+	setup()
+	setupClientMocks()
+	
 	actualService := NewService(testConstants.ParserBridge.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNFTClients)
 
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
@@ -70,7 +71,7 @@ func Test_New(t *testing.T) {
 }
 
 func Test_IsNative(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.IsNative(0, constants.Hbar)
 	assert.Equal(t, true, actual)
@@ -80,7 +81,7 @@ func Test_IsNative(t *testing.T) {
 }
 
 func Test_OppositeAsset(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.OppositeAsset(testConstants.PolygonNetworkId, constants.HederaNetworkId, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
 	expected := constants.Hbar
@@ -105,7 +106,7 @@ func Test_OppositeAsset(t *testing.T) {
 }
 
 func Test_NativeToWrapped(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.NativeToWrapped(constants.Hbar, constants.HederaNetworkId, testConstants.PolygonNetworkId)
 	expected := testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera
@@ -114,7 +115,7 @@ func Test_NativeToWrapped(t *testing.T) {
 }
 
 func Test_WrappedToNative(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.WrappedToNative(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera, testConstants.PolygonNetworkId)
 	expected := constants.Hbar
@@ -124,7 +125,7 @@ func Test_WrappedToNative(t *testing.T) {
 }
 
 func Test_FungibleNetworkAssets(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.FungibleNetworkAssets()
 	expected := testConstants.FungibleNetworkAssets
@@ -134,7 +135,7 @@ func Test_FungibleNetworkAssets(t *testing.T) {
 }
 
 func Test_NonFungibleNetworkAssets(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.NonFungibleNetworkAssets()
 	expected := testConstants.NonFungibleNetworkAssets
@@ -144,7 +145,7 @@ func Test_NonFungibleNetworkAssets(t *testing.T) {
 }
 
 func Test_NativeToWrappedAssets(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.NativeToWrappedAssets()
 	expected := testConstants.NativeToWrapped
@@ -154,7 +155,7 @@ func Test_NativeToWrappedAssets(t *testing.T) {
 }
 
 func Test_WrappedFromNative(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.WrappedFromNative(constants.HederaNetworkId, testConstants.NetworkHederaFungibleNativeToken)
 	expected := testConstants.NativeToWrapped[constants.HederaNetworkId][testConstants.NetworkHederaFungibleNativeToken]
@@ -164,7 +165,7 @@ func Test_WrappedFromNative(t *testing.T) {
 }
 
 func Test_FungibleNetworkAssetsByChainId(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.FungibleNetworkAssetsByChainId(constants.HederaNetworkId)
 	expected := testConstants.FungibleNetworkAssets[constants.HederaNetworkId]
@@ -174,7 +175,7 @@ func Test_FungibleNetworkAssetsByChainId(t *testing.T) {
 }
 
 func Test_FungibleNativeAsset(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual := serviceInstance.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
 	expected := testConstants.NetworkHederaFungibleNativeAsset
@@ -184,7 +185,7 @@ func Test_FungibleNativeAsset(t *testing.T) {
 }
 
 func Test_FungibleAssetInfo(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual, exists := serviceInstance.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
 	expected := testConstants.NetworkHederaFungibleNativeTokenFungibleAssetInfo
@@ -195,7 +196,7 @@ func Test_FungibleAssetInfo(t *testing.T) {
 }
 
 func Test_NonFungibleAssetInfo(t *testing.T) {
-	setup(false)
+	setup()
 
 	actual, exists := serviceInstance.NonFungibleAssetInfo(constants.HederaNetworkId, testConstants.NetworkHederaNonFungibleNativeToken)
 	expected := testConstants.NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo
@@ -205,14 +206,10 @@ func Test_NonFungibleAssetInfo(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func setup(withClientMocks bool) {
+func setup() {
 	mocks.Setup()
 	helper.SetupNetworks()
-
-	if withClientMocks {
-		setupClientMocks()
-	}
-
+	
 	serviceInstance = &Service{
 		nativeToWrapped:          testConstants.NativeToWrapped,
 		wrappedToNative:          testConstants.WrappedToNative,
