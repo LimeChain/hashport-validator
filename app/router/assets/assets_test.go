@@ -72,33 +72,3 @@ func Test_assetsResponse(t *testing.T) {
 	assert.NotNil(t, assetsResponseHandler)
 	assert.NotNil(t, assetsResponseAsBytes)
 }
-
-//
-//func Test_minAmountsResponse_NoAmounts(t *testing.T) {
-//	mocks.Setup()
-//
-//	buf := &bytes.Buffer{}
-//	enc := json.NewEncoder(buf)
-//
-//	err := errors.New("Router resolved with an error. Error [No min amount records].")
-//	minAmountsResponseContent := response.ErrorResponse(err)
-//	if err := enc.Encode(minAmountsResponseContent); err != nil {
-//		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
-//	}
-//	minAmountsResponseAsBytes := buf.Bytes()
-//
-//	mocks.MPricingService.On("GetMinAmountsForAPI").Return(make(map[uint64]map[string]string))
-//	mocks.MResponseWriter.On("Header").Return(http.Header{})
-//	mocks.MResponseWriter.On("Write", minAmountsResponseAsBytes).Return(len(minAmountsResponseAsBytes), nil)
-//	mocks.MResponseWriter.On("WriteHeader", http.StatusInternalServerError).Return()
-//
-//	minAmountsResponseHandler := assetsResponse(mocks.MPricingService)
-//	minAmountsResponseHandler(mocks.MResponseWriter, new(http.Request))
-//
-//	assert.NotNil(t, minAmountsResponseHandler)
-//	assert.NotNil(t, minAmountsResponseAsBytes)
-//	mocks.MResponseWriter.AssertCalled(t, "Header")
-//	mocks.MResponseWriter.AssertCalled(t, "Write", minAmountsResponseAsBytes)
-//	mocks.MResponseWriter.AssertCalled(t, "WriteHeader", http.StatusInternalServerError)
-//	mocks.MPricingService.AssertCalled(t, "GetMinAmountsForAPI")
-//}

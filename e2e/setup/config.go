@@ -189,11 +189,11 @@ type clients struct {
 func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (
 	routerClients map[uint64]client.DiamondRouter,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNftClients map[uint64]map[string]client.EvmNFT,
+	evmNftClients map[uint64]map[string]client.EvmNft,
 ) {
 	routerClients = make(map[uint64]client.DiamondRouter)
 	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
-	evmNftClients = make(map[uint64]map[string]client.EvmNFT)
+	evmNftClients = make(map[uint64]map[string]client.EvmNft)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract
 
@@ -202,7 +202,7 @@ func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (
 			evmFungibleTokenClients[networkId][tokenAddress] = evmTokenClient
 		}
 
-		evmNftClients[networkId] = make(map[string]client.EvmNFT)
+		evmNftClients[networkId] = make(map[string]client.EvmNft)
 		for tokenAddress, evmTokenClient := range evmUtil.EVMNftClients {
 			evmNftClients[networkId][tokenAddress] = evmTokenClient
 		}
@@ -250,7 +250,7 @@ func newClients(config Config) (*clients, error) {
 			RouterAddress:           routerContractAddress,
 			WTokenContractAddress:   config.Tokens.WToken,
 			EVMFungibleTokenClients: make(map[string]client.EvmFungibleToken),
-			EVMNftClients:           make(map[string]client.EvmNFT),
+			EVMNftClients:           make(map[string]client.EvmNft),
 		}
 	}
 
@@ -353,7 +353,7 @@ type Config struct {
 type EVMUtils struct {
 	EVMClient               *evm.Client
 	EVMFungibleTokenClients map[string]client.EvmFungibleToken
-	EVMNftClients           map[string]client.EvmNFT
+	EVMNftClients           map[string]client.EvmNft
 	RouterContract          *router.Router
 	KeyTransactor           *bind.TransactOpts
 	Signer                  *evm_signer.Signer

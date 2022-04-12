@@ -145,7 +145,7 @@ func (a *Service) fetchEvmFungibleAssetInfo(networkId uint64, assetAddress strin
 	return assetInfo, err
 }
 
-func (a *Service) fetchEvmNonFungibleAssetInfo(networkId uint64, assetAddress string, evmTokenClients map[uint64]map[string]client.EvmNFT) (assetInfo assetModel.NonFungibleAssetInfo, err error) {
+func (a *Service) fetchEvmNonFungibleAssetInfo(networkId uint64, assetAddress string, evmTokenClients map[uint64]map[string]client.EvmNft) (assetInfo assetModel.NonFungibleAssetInfo, err error) {
 
 	evmTokenClient := evmTokenClients[networkId][assetAddress]
 	name, err := evmTokenClient.Name(&bind.CallOpts{})
@@ -189,7 +189,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 	a.fungibleAssetInfos = make(map[uint64]map[string]assetModel.FungibleAssetInfo)
 
 	for nativeChainId, networkInfo := range networks {
-		if _, exist := a.fungibleAssetInfos[nativeChainId]; !exist {
+		if _, ok := a.fungibleAssetInfos[nativeChainId]; !ok {
 			a.fungibleAssetInfos[nativeChainId] = make(map[string]assetModel.FungibleAssetInfo)
 		}
 
@@ -202,7 +202,7 @@ func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mi
 			a.fungibleAssetInfos[nativeChainId][nativeAsset] = assetInfo
 
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
-				if _, exist := a.fungibleAssetInfos[wrappedChainId]; !exist {
+				if _, ok := a.fungibleAssetInfos[wrappedChainId]; !ok {
 					a.fungibleAssetInfos[wrappedChainId] = make(map[string]assetModel.FungibleAssetInfo)
 				}
 				assetInfo, wrappedAsset, err := a.fetchFungibleAssetInfo(wrappedChainId, wrappedAsset, mirrorNode, evmTokenClients)
@@ -244,7 +244,7 @@ func (a *Service) fetchFungibleAssetInfo(chainId uint64, assetAddress string, mi
 			return assetInfo, assetAddress, err
 		}
 	} else { // EVM
-		re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
+		re := regexp.MustCompile(constants.EvmCompatibleAddressPattern)
 		if isMatch := re.MatchString(assetAddress); isMatch {
 			assetAddress = common.HexToAddress(assetAddress).String()
 		}
@@ -259,7 +259,7 @@ func (a *Service) fetchFungibleAssetInfo(chainId uint64, assetAddress string, mi
 	return assetInfo, assetAddress, err
 }
 
-func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNFT) {
+func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNft) {
 	a.nonFungibleAssetInfos = make(map[uint64]map[string]assetModel.NonFungibleAssetInfo)
 
 	for nativeChainId, networkInfo := range networks {
@@ -267,7 +267,7 @@ func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network,
 			continue
 		}
 
-		if _, exist := a.nonFungibleAssetInfos[nativeChainId]; !exist {
+		if _, ok := a.nonFungibleAssetInfos[nativeChainId]; !ok {
 			a.nonFungibleAssetInfos[nativeChainId] = make(map[string]assetModel.NonFungibleAssetInfo)
 		}
 
@@ -280,7 +280,7 @@ func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network,
 			a.nonFungibleAssetInfos[nativeChainId][nativeAsset] = assetInfo
 
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
-				if _, exist := a.nonFungibleAssetInfos[wrappedChainId]; !exist {
+				if _, ok := a.nonFungibleAssetInfos[wrappedChainId]; !ok {
 					a.nonFungibleAssetInfos[wrappedChainId] = make(map[string]assetModel.NonFungibleAssetInfo)
 				}
 				assetInfo, wrappedAsset, err := a.fetchNonFungibleAssetInfo(wrappedChainId, wrappedAsset, mirrorNode, evmTokenClients)
@@ -294,7 +294,7 @@ func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network,
 	}
 }
 
-func (a *Service) fetchNonFungibleAssetInfo(chainId uint64, assetAddress string, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNFT) (assetModel.NonFungibleAssetInfo, string, error) {
+func (a *Service) fetchNonFungibleAssetInfo(chainId uint64, assetAddress string, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNft) (assetModel.NonFungibleAssetInfo, string, error) {
 	var (
 		err       error
 		assetInfo assetModel.NonFungibleAssetInfo
@@ -307,7 +307,7 @@ func (a *Service) fetchNonFungibleAssetInfo(chainId uint64, assetAddress string,
 			return assetInfo, assetAddress, err
 		}
 	} else { // EVM
-		re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
+		re := regexp.MustCompile(constants.EvmCompatibleAddressPattern)
 		if isMatch := re.MatchString(assetAddress); isMatch {
 			assetAddress = common.HexToAddress(assetAddress).String()
 		}
@@ -328,7 +328,7 @@ func NewService(
 	routerClients map[uint64]client.DiamondRouter,
 	mirrorNode client.MirrorNode,
 	evmTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNftClients map[uint64]map[string]client.EvmNFT,
+	evmNftClients map[uint64]map[string]client.EvmNft,
 ) *Service {
 	nativeToWrapped := make(map[uint64]map[string]map[uint64]string)
 	wrappedToNative := make(map[uint64]map[string]*assetModel.NativeAsset)
@@ -336,7 +336,7 @@ func NewService(
 	nonFungibleNetworkAssets := make(map[uint64][]string)
 	fungibleNativeAssets := make(map[uint64]map[string]*assetModel.NativeAsset)
 
-	re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
+	re := regexp.MustCompile(constants.EvmCompatibleAddressPattern)
 
 	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {

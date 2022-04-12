@@ -20,7 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
-type EvmNFT interface {
+type EvmNft interface {
 	Name(opts *bind.CallOpts) (string, error)
 	Symbol(opts *bind.CallOpts) (string, error)
 }

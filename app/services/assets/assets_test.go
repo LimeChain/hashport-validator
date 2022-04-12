@@ -40,7 +40,7 @@ var (
 	evmClients              = make(map[uint64]client.EVM)
 	evmCoreClients          = make(map[uint64]client.Core)
 	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
-	evmNFTClients           = make(map[uint64]map[string]client.EvmNFT)
+	evmNFTClients           = make(map[uint64]map[string]client.EvmNft)
 	hederaPercentages       = make(map[string]int64)
 )
 
@@ -229,7 +229,7 @@ func setupClientMocks() {
 	for networkId := range testConstants.Networks {
 		if networkId != constants.HederaNetworkId {
 			evmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
-			evmNFTClients[networkId] = make(map[string]client.EvmNFT)
+			evmNFTClients[networkId] = make(map[string]client.EvmNft)
 			evmClients[networkId] = &testClient.MockEVM{}
 			evmCoreClients[networkId] = &testClient.MockEVMCore{}
 			evmClients[networkId].(*testClient.MockEVM).On("GetClient").Return(evmCoreClients[networkId])
