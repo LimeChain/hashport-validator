@@ -160,23 +160,6 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 	}
 }
 
-func (b Bridge) LoadNameAndSymbolForTokens(parsedBridge parser.Bridge, assetsService service.Assets) {
-	for networkId, networkInfo := range parsedBridge.Networks {
-		for nativeAddress, tokenInfo := range networkInfo.Tokens.Fungible {
-			nativeFungibleAssetsInfo, _ := assetsService.FungibleAssetInfo(networkId, nativeAddress)
-			for wrappedNetworkId, wrappedAddress := range tokenInfo.Networks {
-				b.MinAmounts[wrappedNetworkId][wrappedAddress] = big.NewInt(0)
-				if tokenInfo.MinAmount != nil {
-					wrappedFungibleAssetsInfo, _ := assetsService.FungibleAssetInfo(wrappedNetworkId, wrappedAddress)
-					targetAmount := decimal.TargetAmount(nativeFungibleAssetsInfo.Decimals, wrappedFungibleAssetsInfo.Decimals, tokenInfo.MinAmount)
-					b.MinAmounts[wrappedNetworkId][wrappedAddress] = targetAmount
-				}
-			}
-		}
-	}
-
-}
-
 func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, nftFees map[string]int64) {
 	feePercentages := map[string]int64{}
 	fees := map[string]int64{}

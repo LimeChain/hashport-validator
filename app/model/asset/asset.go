@@ -26,12 +26,14 @@ type NativeAsset struct {
 }
 
 type FungibleAssetInfo struct {
-	Name     string
-	Symbol   string
-	Decimals uint8
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol"`
+	Decimals uint8  `json:"decimals"`
+	IsNative bool   `json:"isNative"`
 }
 
 type NonFungibleAssetInfo struct {
-	Name   string
-	Symbol string
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol"`
+	IsNative bool   `json:"isNative"`
 }

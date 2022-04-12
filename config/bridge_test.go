@@ -57,6 +57,7 @@ var (
 		networkHederaFungibleNativeToken,
 		networkHederaFungibleNativeToken,
 		constants.HederaDefaultDecimals,
+		true,
 	}
 
 	//////////////////////
@@ -84,6 +85,7 @@ var (
 		networkEthereumFungibleWrappedTokenForNetworkHedera,
 		networkEthereumFungibleWrappedTokenForNetworkHedera,
 		constants.EvmDefaultDecimals,
+		false,
 	}
 
 	networks = map[uint64]*parser.Network{

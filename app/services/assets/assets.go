@@ -185,10 +185,10 @@ func (a *Service) fetchHederaFungibleAssetInfo(assetId string, mirrorNode client
 	return assetInfo, err
 }
 
-func (a *Service) loadFungibleAssetInfos(parsedBridge *parser.Bridge, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmFungibleToken) {
+func (a *Service) loadFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmFungibleToken) {
 	a.fungibleAssetInfos = make(map[uint64]map[string]assetModel.FungibleAssetInfo)
 
-	for nativeChainId, networkInfo := range parsedBridge.Networks {
+	for nativeChainId, networkInfo := range networks {
 		if _, exist := a.fungibleAssetInfos[nativeChainId]; !exist {
 			a.fungibleAssetInfos[nativeChainId] = make(map[string]assetModel.FungibleAssetInfo)
 		}
@@ -198,11 +198,8 @@ func (a *Service) loadFungibleAssetInfos(parsedBridge *parser.Bridge, mirrorNode
 			if err != nil {
 				a.logger.Fatal(err)
 			}
+			assetInfo.IsNative = true
 			a.fungibleAssetInfos[nativeChainId][nativeAsset] = assetInfo
-			newToken := parsedBridge.Networks[nativeChainId].Tokens.Fungible[nativeAsset]
-			newToken.Name = assetInfo.Name
-			newToken.Symbol = assetInfo.Symbol
-			parsedBridge.Networks[nativeChainId].Tokens.Fungible[nativeAsset] = newToken
 
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				if _, exist := a.fungibleAssetInfos[wrappedChainId]; !exist {
@@ -212,6 +209,7 @@ func (a *Service) loadFungibleAssetInfos(parsedBridge *parser.Bridge, mirrorNode
 				if err != nil {
 					a.logger.Fatal(err)
 				}
+				assetInfo.IsNative = false
 				a.fungibleAssetInfos[wrappedChainId][wrappedAsset] = assetInfo
 			}
 		}
@@ -261,10 +259,10 @@ func (a *Service) fetchFungibleAssetInfo(chainId uint64, assetAddress string, mi
 	return assetInfo, assetAddress, err
 }
 
-func (a *Service) loadNonFungibleAssetInfos(parsedBridge *parser.Bridge, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNFT) {
+func (a *Service) loadNonFungibleAssetInfos(networks map[uint64]*parser.Network, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmNFT) {
 	a.nonFungibleAssetInfos = make(map[uint64]map[string]assetModel.NonFungibleAssetInfo)
 
-	for nativeChainId, networkInfo := range parsedBridge.Networks {
+	for nativeChainId, networkInfo := range networks {
 		if len(networkInfo.Tokens.Nft) == 0 {
 			continue
 		}
@@ -278,17 +276,15 @@ func (a *Service) loadNonFungibleAssetInfos(parsedBridge *parser.Bridge, mirrorN
 			if err != nil {
 				a.logger.Fatal(err)
 			}
+			assetInfo.IsNative = true
 			a.nonFungibleAssetInfos[nativeChainId][nativeAsset] = assetInfo
-			newToken := parsedBridge.Networks[nativeChainId].Tokens.Nft[nativeAsset]
-			newToken.Name = assetInfo.Name
-			newToken.Symbol = assetInfo.Symbol
-			parsedBridge.Networks[nativeChainId].Tokens.Nft[nativeAsset] = newToken
 
 			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
 				if _, exist := a.nonFungibleAssetInfos[wrappedChainId]; !exist {
 					a.nonFungibleAssetInfos[wrappedChainId] = make(map[string]assetModel.NonFungibleAssetInfo)
 				}
 				assetInfo, wrappedAsset, err := a.fetchNonFungibleAssetInfo(wrappedChainId, wrappedAsset, mirrorNode, evmTokenClients)
+				assetInfo.IsNative = false
 				if err != nil {
 					a.logger.Fatal(err)
 				}
@@ -327,7 +323,7 @@ func (a *Service) fetchNonFungibleAssetInfo(chainId uint64, assetAddress string,
 }
 
 func NewService(
-	parsedBridge *parser.Bridge,
+	networks map[uint64]*parser.Network,
 	HederaFeePercentages map[string]int64,
 	routerClients map[uint64]client.DiamondRouter,
 	mirrorNode client.MirrorNode,
@@ -342,7 +338,7 @@ func NewService(
 
 	re, _ := regexp.Compile(constants.EvmCompatibleAddressPattern)
 
-	for nativeChainId, network := range parsedBridge.Networks {
+	for nativeChainId, network := range networks {
 		if nativeToWrapped[nativeChainId] == nil {
 			nativeToWrapped[nativeChainId] = make(map[string]map[uint64]string)
 		}
@@ -439,8 +435,8 @@ func NewService(
 		nonFungibleNetworkAssets: nonFungibleNetworkAssets,
 		logger:                   config.GetLoggerFor("Assets Service"),
 	}
-	instance.loadFungibleAssetInfos(parsedBridge, mirrorNode, evmTokenClients)
-	instance.loadNonFungibleAssetInfos(parsedBridge, mirrorNode, evmNftClients)
+	instance.loadFungibleAssetInfos(networks, mirrorNode, evmTokenClients)
+	instance.loadNonFungibleAssetInfos(networks, mirrorNode, evmNftClients)
 
 	return instance
 }

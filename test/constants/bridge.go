@@ -54,6 +54,7 @@ var (
 		NetworkHederaFungibleNativeToken,
 		NetworkHederaFungibleNativeToken,
 		constants.HederaDefaultDecimals,
+		true,
 	}
 
 	// Non-Fungible
@@ -66,6 +67,7 @@ var (
 	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
 		NetworkHederaNonFungibleNativeToken,
 		NetworkHederaNonFungibleNativeToken,
+		true,
 	}
 
 	// Wrapped Tokens //
@@ -75,6 +77,7 @@ var (
 		NetworkHederaFungibleWrappedTokenForNetworkPolygon,
 		NetworkHederaFungibleWrappedTokenForNetworkPolygon,
 		constants.HederaDefaultDecimals,
+		false,
 	}
 
 	//////////////////////
@@ -101,6 +104,7 @@ var (
 		NetworkEthereumFungibleNativeToken,
 		NetworkEthereumFungibleNativeToken,
 		constants.EvmDefaultDecimals,
+		true,
 	}
 
 	// Wrapped Tokens //
@@ -110,6 +114,7 @@ var (
 		NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
 		NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
 		constants.EvmDefaultDecimals,
+		false,
 	}
 
 	NetworkEthereumFungibleWrappedTokenForNetworkHedera                  = "0x0000000000000000000000000000000000000555"
@@ -117,6 +122,7 @@ var (
 		NetworkEthereumFungibleWrappedTokenForNetworkHedera,
 		NetworkEthereumFungibleWrappedTokenForNetworkHedera,
 		constants.EvmDefaultDecimals,
+		false,
 	}
 
 	/////////////////////
@@ -138,6 +144,7 @@ var (
 		NetworkPolygonFungibleNativeToken,
 		NetworkPolygonFungibleNativeToken,
 		constants.EvmDefaultDecimals,
+		true,
 	}
 
 	// Wrapped Tokens //
@@ -149,15 +156,15 @@ var (
 		NetworkPolygonFungibleWrappedTokenForNetworkHedera,
 		NetworkPolygonFungibleWrappedTokenForNetworkHedera,
 		constants.EvmDefaultDecimals,
+		false,
 	}
 	NetworkPolygonFungibleWrappedTokenForNetworkEthereum                  = "0x0000000000000000000000000000000000000123"
 	NetworkPolygonFungibleWrappedTokenForNetworkEthereumFungibleAssetInfo = asset.FungibleAssetInfo{
 		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
 		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
 		constants.EvmDefaultDecimals,
+		false,
 	}
-
-	// Non-Fungible
 
 	// Non-Fungible
 
@@ -165,6 +172,7 @@ var (
 	NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
 		NetworkPolygonWrappedNonFungibleTokenForHedera,
 		NetworkPolygonWrappedNonFungibleTokenForHedera,
+		false,
 	}
 
 	Networks = map[uint64]*parser.Network{
