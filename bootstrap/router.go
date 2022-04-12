@@ -37,7 +37,7 @@ func InitializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirou
 	apiRouter.AddV1Router(constants.PrometheusMetricsEndpoint, promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
 	apiRouter.AddV1Router(min_amounts.Route, min_amounts.NewRouter(services.Pricing))
-	apiRouter.AddV1Router(assets.Route, assets.NewRouter(services.Assets))
+	apiRouter.AddV1Router(assets.Route, assets.NewRouter(bridgeConfig, services.Assets, services.Pricing))
 
 	return apiRouter
 }

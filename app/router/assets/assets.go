@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"net/http"
 )
@@ -29,43 +30,59 @@ var (
 	Route = "/assets"
 )
 
-type NetworkAssets struct {
-	Fungible    map[string]asset.FungibleAssetInfo    `json:"fungible"`
-	NonFungible map[string]asset.NonFungibleAssetInfo `json:"nonFungible"`
+type fungibleBridgeDetails struct {
+	*asset.FungibleAssetInfo
+	MinAmount string            `json:"minAmount"`
+	Networks  map[uint64]string `json:"networks"`
+}
+
+type nonFungibleBridgeDetails struct {
+	*asset.NonFungibleAssetInfo
+	Networks map[uint64]string `json:"networks"`
+}
+
+type networkAssets struct {
+	Fungible    map[string]fungibleBridgeDetails    `json:"fungible"`
+	NonFungible map[string]nonFungibleBridgeDetails `json:"nonFungible"`
 }
 
 // Router for assets
-func NewRouter(assetsService service.Assets) http.Handler {
+func NewRouter(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", assetsResponse(assetsService))
+	r.Get("/", assetsResponse(bridgeConfig, assetsService, pricingService))
 	return r
 }
 
 // GET: .../assets
-func assetsResponse(assetsService service.Assets) func(w http.ResponseWriter, r *http.Request) {
+func assetsResponse(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		responseContent := generateResponseContent(assetsService)
-
+		responseContent := generateResponseContent(bridgeConfig, assetsService, pricingService)
 		render.JSON(w, r, responseContent)
 	}
 }
 
-func generateResponseContent(assetsService service.Assets) map[uint64]NetworkAssets {
-	response := make(map[uint64]NetworkAssets)
+func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) map[uint64]networkAssets {
+	response := make(map[uint64]networkAssets)
 
 	fungibleNetworkAssets := assetsService.FungibleNetworkAssets()
 	nonFungibleNetworkAssets := assetsService.NonFungibleNetworkAssets()
 	for networkId := range constants.NetworksById {
-		response[networkId] = NetworkAssets{
-			Fungible:    map[string]asset.FungibleAssetInfo{},
-			NonFungible: map[string]asset.NonFungibleAssetInfo{},
+		response[networkId] = networkAssets{
+			Fungible:    map[string]fungibleBridgeDetails{},
+			NonFungible: map[string]nonFungibleBridgeDetails{},
 		}
 
 		// Fungible
 		for _, assetAddress := range fungibleNetworkAssets[networkId] {
-			fungibleAssetInfo, exist := assetsService.FungibleAssetInfo(networkId, assetAddress)
-			if exist {
-				response[networkId].Fungible[assetAddress] = fungibleAssetInfo
+			fungibleAssetInfo, existInfo := assetsService.FungibleAssetInfo(networkId, assetAddress)
+			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
+			if existInfo && existMinAmount {
+				fungibleAssetDetails := fungibleBridgeDetails{
+					FungibleAssetInfo: &fungibleAssetInfo,
+					MinAmount:         minAmount.MinAmountWithFee.String(),
+					Networks:          bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress].Networks,
+				}
+				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
 			}
 		}
 
@@ -73,9 +90,14 @@ func generateResponseContent(assetsService service.Assets) map[uint64]NetworkAss
 		for _, assetAddress := range nonFungibleNetworkAssets[networkId] {
 			nonFungibleAssetInfo, exist := assetsService.NonFungibleAssetInfo(networkId, assetAddress)
 			if exist {
-				response[networkId].NonFungible[assetAddress] = nonFungibleAssetInfo
+				fungibleAssetDetails := nonFungibleBridgeDetails{
+					NonFungibleAssetInfo: &nonFungibleAssetInfo,
+					Networks:             bridgeConfig.Networks[networkId].Tokens.Nft[assetAddress].Networks,
+				}
+				response[networkId].NonFungible[assetAddress] = fungibleAssetDetails
 			}
 		}
 	}
+
 	return response
 }

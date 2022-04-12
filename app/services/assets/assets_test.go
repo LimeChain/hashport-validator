@@ -47,7 +47,7 @@ var (
 func Test_New(t *testing.T) {
 	setup()
 	setupClientMocks()
-	
+
 	actualService := NewService(testConstants.ParserBridge.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNFTClients)
 
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
@@ -209,7 +209,7 @@ func Test_NonFungibleAssetInfo(t *testing.T) {
 func setup() {
 	mocks.Setup()
 	helper.SetupNetworks()
-	
+
 	serviceInstance = &Service{
 		nativeToWrapped:          testConstants.NativeToWrapped,
 		wrappedToNative:          testConstants.WrappedToNative,

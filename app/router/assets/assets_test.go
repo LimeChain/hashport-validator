@@ -28,7 +28,7 @@ import (
 )
 
 func Test_NewRouter(t *testing.T) {
-	router := NewRouter(mocks.MAssetsService)
+	router := NewRouter(testConstants.ParserBridge, mocks.MAssetsService, mocks.MPricingService)
 
 	assert.NotNil(t, router)
 }
@@ -46,6 +46,8 @@ func Test_assetsResponse(t *testing.T) {
 		for _, networkAsset := range networkAssets {
 			mocks.MAssetsService.On("FungibleAssetInfo", networkId, networkAsset).
 				Return(testConstants.FungibleAssetInfos[networkId][networkAsset], true)
+			mocks.MPricingService.On("GetTokenPriceInfo", networkId, networkAsset).
+				Return(testConstants.TokenPriceInfos[networkId][networkAsset], true)
 		}
 	}
 	for networkId, networkAssets := range testConstants.NonFungibleNetworkAssets {
@@ -55,7 +57,7 @@ func Test_assetsResponse(t *testing.T) {
 		}
 	}
 
-	assetsResponseContent := generateResponseContent(mocks.MAssetsService)
+	assetsResponseContent := generateResponseContent(testConstants.ParserBridge, mocks.MAssetsService, mocks.MPricingService)
 	var err error
 	if err := enc.Encode(assetsResponseContent); err != nil {
 		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
@@ -65,7 +67,7 @@ func Test_assetsResponse(t *testing.T) {
 	mocks.MResponseWriter.On("Header").Return(http.Header{})
 	mocks.MResponseWriter.On("Write", assetsResponseAsBytes).Return(len(assetsResponseAsBytes), nil)
 
-	assetsResponseHandler := assetsResponse(mocks.MAssetsService)
+	assetsResponseHandler := assetsResponse(testConstants.ParserBridge, mocks.MAssetsService, mocks.MPricingService)
 	assetsResponseHandler(mocks.MResponseWriter, new(http.Request))
 
 	assert.Nil(t, err)
