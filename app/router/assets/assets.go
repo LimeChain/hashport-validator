@@ -32,12 +32,14 @@ var (
 
 type fungibleBridgeDetails struct {
 	*asset.FungibleAssetInfo
-	MinAmount string            `json:"minAmount"`
-	Networks  map[uint64]string `json:"networks"`
+	FeePercentage int64             `json:"feePercentage"`
+	MinAmount     string            `json:"minAmount"`
+	Networks      map[uint64]string `json:"networks"`
 }
 
 type nonFungibleBridgeDetails struct {
 	*asset.NonFungibleAssetInfo
+	Fee      int64             `json:"fee"`
 	Networks map[uint64]string `json:"networks"`
 }
 
@@ -76,11 +78,13 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 		for _, assetAddress := range fungibleNetworkAssets[networkId] {
 			fungibleAssetInfo, existInfo := assetsService.FungibleAssetInfo(networkId, assetAddress)
 			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
+			bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
 			if existInfo && existMinAmount {
 				fungibleAssetDetails := fungibleBridgeDetails{
 					FungibleAssetInfo: &fungibleAssetInfo,
+					FeePercentage:     bridgeTokenInfo.FeePercentage,
 					MinAmount:         minAmount.MinAmountWithFee.String(),
-					Networks:          bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress].Networks,
+					Networks:          bridgeTokenInfo.Networks,
 				}
 				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
 			}
@@ -90,9 +94,11 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 		for _, assetAddress := range nonFungibleNetworkAssets[networkId] {
 			nonFungibleAssetInfo, exist := assetsService.NonFungibleAssetInfo(networkId, assetAddress)
 			if exist {
+				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Nft[assetAddress]
 				fungibleAssetDetails := nonFungibleBridgeDetails{
 					NonFungibleAssetInfo: &nonFungibleAssetInfo,
-					Networks:             bridgeConfig.Networks[networkId].Tokens.Nft[assetAddress].Networks,
+					Fee:                  bridgeTokenInfo.Fee,
+					Networks:             bridgeTokenInfo.Networks,
 				}
 				response[networkId].NonFungible[assetAddress] = fungibleAssetDetails
 			}
