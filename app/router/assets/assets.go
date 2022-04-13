@@ -85,16 +85,13 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
 			if existInfo && existMinAmount {
 				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
-				feePercentage := bridgeTokenInfo.FeePercentage
-				if networkId != constants.HederaNetworkId {
-					var nativeAsset *asset.NativeAsset
-					if !fungibleAssetInfo.IsNative {
-						nativeAsset = assetsService.WrappedToNative(assetAddress, networkId)
-					} else {
-						nativeAsset = assetsService.FungibleNativeAsset(networkId, assetAddress)
-					}
-					feePercentage = nativeAsset.FeePercentage
+				var nativeAsset *asset.NativeAsset
+				if !fungibleAssetInfo.IsNative {
+					nativeAsset = assetsService.WrappedToNative(assetAddress, networkId)
+				} else {
+					nativeAsset = assetsService.FungibleNativeAsset(networkId, assetAddress)
 				}
+				feePercentage := nativeAsset.FeePercentage
 
 				fungibleAssetDetails := fungibleBridgeDetails{
 					FungibleAssetInfo: &fungibleAssetInfo,
