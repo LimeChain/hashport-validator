@@ -23,6 +23,8 @@ import (
 type Assets interface {
 	// FungibleNetworkAssets Gets all Fungible Assets by Network ID
 	FungibleNetworkAssets() map[uint64][]string
+	// NonFungibleNetworkAssets Gets all Non-Fungible Assets by Network ID
+	NonFungibleNetworkAssets() map[uint64][]string
 	// NativeToWrappedAssets Gets all Native assets with their Wrapped assets by Network ID
 	NativeToWrappedAssets() map[uint64]map[string]map[uint64]string
 	// WrappedFromNative Gets All Wrapped Assets for passed Native Asset's address
@@ -41,4 +43,6 @@ type Assets interface {
 	OppositeAsset(sourceChainId uint64, targetChainId uint64, assetAddress string) string
 	// FungibleAssetInfo Gets FungibleAssetInfo
 	FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool)
+	// NonFungibleAssetInfo Gets NonFungibleAssetInfo
+	NonFungibleAssetInfo(networkId uint64, assetAddressOrId string) (assetInfo assetModel.NonFungibleAssetInfo, exist bool)
 }

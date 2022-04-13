@@ -18,36 +18,19 @@ package client
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/mock"
-	"math/big"
 )
 
-type MockEVMToken struct {
+type MockEvmNonFungibleToken struct {
 	mock.Mock
 }
 
-func (m *MockEVMToken) Decimals(opts *bind.CallOpts) (uint8, error) {
-	args := m.Called(opts)
-	return args.Get(0).(uint8), args.Error(1)
-}
-
-func (m *MockEVMToken) Name(opts *bind.CallOpts) (string, error) {
+func (m *MockEvmNonFungibleToken) Name(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m *MockEVMToken) Symbol(opts *bind.CallOpts) (string, error) {
+func (m *MockEvmNonFungibleToken) Symbol(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
-}
-
-func (m *MockEVMToken) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
-	args := m.Called(opts)
-	return args.Get(0).(*big.Int), args.Error(1)
-}
-
-func (m *MockEVMToken) BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error) {
-	args := m.Called(opts, account)
-	return args.Get(0).(*big.Int), args.Error(1)
 }

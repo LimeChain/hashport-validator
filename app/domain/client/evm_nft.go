@@ -18,14 +18,9 @@ package client
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
 
-type EVMToken interface {
-	Decimals(opts *bind.CallOpts) (uint8, error)
+type EvmNft interface {
 	Name(opts *bind.CallOpts) (string, error)
 	Symbol(opts *bind.CallOpts) (string, error)
-	TotalSupply(opts *bind.CallOpts) (*big.Int, error)
-	BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error)
 }

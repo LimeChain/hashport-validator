@@ -127,7 +127,7 @@ func registerTransferMessageHandlers(server *server.Server, services *Services, 
 }
 
 func registerEvmClients(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
-	for _, evmClient := range clients.EVMClients {
+	for _, evmClient := range clients.EvmClients {
 		chain := evmClient.GetChainID()
 		contractService := services.contractServices[chain]
 		// Given that addresses between different
@@ -161,8 +161,8 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 			clients.MirrorNode,
 			configuration,
 			services.Prometheus,
-			clients.EVMClients,
-			clients.EVMTokenClients,
+			clients.EvmClients,
+			clients.EvmFungibleTokenClients,
 			services.Assets))
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")

@@ -32,6 +32,13 @@ func (mas *MockAssetsService) FungibleNetworkAssets() map[uint64][]string {
 	return result
 }
 
+// NonFungibleNetworkAssets Gets all Non-Fungible Assets by Network ID
+func (mas *MockAssetsService) NonFungibleNetworkAssets() map[uint64][]string {
+	args := mas.Called()
+	result := args.Get(0).(map[uint64][]string)
+	return result
+}
+
 // NativeToWrappedAssets Gets all Native assets with their Wrapped assets by Network ID
 func (mas *MockAssetsService) NativeToWrappedAssets() map[uint64]map[string]map[uint64]string {
 	args := mas.Called()
@@ -92,6 +99,15 @@ func (mas *MockAssetsService) OppositeAsset(sourceChainId uint64, targetChainId 
 func (mas *MockAssetsService) FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool) {
 	args := mas.Called(networkId, assetAddress)
 	assetInfo = args.Get(0).(assetModel.FungibleAssetInfo)
+	exist = args.Get(1).(bool)
+
+	return assetInfo, exist
+}
+
+// NonFungibleAssetInfo Gets NonFungibleAssetInfo
+func (mas *MockAssetsService) NonFungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.NonFungibleAssetInfo, exist bool) {
+	args := mas.Called(networkId, assetAddress)
+	assetInfo = args.Get(0).(assetModel.NonFungibleAssetInfo)
 	exist = args.Get(1).(bool)
 
 	return assetInfo, exist

@@ -46,9 +46,9 @@ var (
 	sourceChainId      = constants.HederaNetworkId
 	targetChainId      = testConstants.EthereumNetworkId
 	nativeChainId      = constants.HederaNetworkId
-	sourceAsset        = testConstants.NetworkHederaNFTNativeToken
+	sourceAsset        = testConstants.NetworkHederaNonFungibleNativeToken
 	targetAsset        = testConstants.NetworkEthereumNFTWrappedTokenForNetworkHedera
-	nativeAsset        = testConstants.NetworkHederaNFTNativeToken
+	nativeAsset        = testConstants.NetworkHederaNonFungibleNativeToken
 	receiver           = "0.0.455300"
 	amount             = "1000000000000000000"
 	serialNum          = int64(123)

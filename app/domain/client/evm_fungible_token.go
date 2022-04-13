@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-package asset
+package client
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
+)
 
-type NativeAsset struct {
-	MinFeeAmountInUsd *decimal.Decimal
-	ChainId           uint64
-	Asset             string
-	FeePercentage     int64
-}
-
-type FungibleAssetInfo struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	Decimals uint8  `json:"decimals"`
-	IsNative bool   `json:"isNative"`
-}
-
-type NonFungibleAssetInfo struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	IsNative bool   `json:"isNative"`
+type EvmFungibleToken interface {
+	Decimals(opts *bind.CallOpts) (uint8, error)
+	Name(opts *bind.CallOpts) (string, error)
+	Symbol(opts *bind.CallOpts) (string, error)
+	TotalSupply(opts *bind.CallOpts) (*big.Int, error)
+	BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error)
 }

@@ -16,7 +16,9 @@
 
 package parser
 
-import "math/big"
+import (
+	"math/big"
+)
 
 /*
 	Structs used to parse the bridge YAML configuration

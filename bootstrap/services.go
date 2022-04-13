@@ -55,10 +55,10 @@ type Services struct {
 func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
-	assetsService := assets.NewService(parsedBridge.Networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EVMTokenClients)
+	assetsService := assets.NewService(parsedBridge.Networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EvmFungibleTokenClients, clients.EvmNFTClients)
 	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge, assetsService)
 
-	for _, client := range clients.EVMClients {
+	for _, client := range clients.EvmClients {
 		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
 		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId])
@@ -75,7 +75,7 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 		repositories.Transfer,
 		repositories.Message,
 		clients.MirrorNode,
-		clients.EVMClients,
+		clients.EvmClients,
 		c.Bridge.TopicId,
 		assetsService)
 

@@ -91,8 +91,8 @@ func Load() *Setup {
 		panic(err)
 	}
 
-	routerClients, evmTokenClients := routerAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
-	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmTokenClients)
+	routerClients, evmFungibleTokenClients, evmNftClients := routerAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients, evmNftClients)
 
 	return setup
 }
@@ -186,19 +186,29 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (routerClients map[uint64]client.DiamondRouter, evmTokenClients map[uint64]map[string]client.EVMToken) {
+func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (
+	routerClients map[uint64]client.DiamondRouter,
+	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmNftClients map[uint64]map[string]client.EvmNft,
+) {
 	routerClients = make(map[uint64]client.DiamondRouter)
-	evmTokenClients = make(map[uint64]map[string]client.EVMToken)
+	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
+	evmNftClients = make(map[uint64]map[string]client.EvmNft)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract
 
-		evmTokenClients[networkId] = make(map[string]client.EVMToken)
-		for tokenAddress, evmTokenClient := range evmUtil.EVMTokenClients {
-			evmTokenClients[networkId][tokenAddress] = evmTokenClient
+		evmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
+		for tokenAddress, evmTokenClient := range evmUtil.EVMFungibleTokenClients {
+			evmFungibleTokenClients[networkId][tokenAddress] = evmTokenClient
+		}
+
+		evmNftClients[networkId] = make(map[string]client.EvmNft)
+		for tokenAddress, evmTokenClient := range evmUtil.EVMNftClients {
+			evmNftClients[networkId][tokenAddress] = evmTokenClient
 		}
 	}
 
-	return routerClients, evmTokenClients
+	return routerClients, evmFungibleTokenClients, evmNftClients
 }
 
 // newClients instantiates the clients for the e2e tests
@@ -232,24 +242,31 @@ func newClients(config Config) (*clients, error) {
 		}
 
 		EVM[configChainId] = EVMUtils{
-			EVMClient:             evmClient,
-			RouterContract:        routerInstance,
-			KeyTransactor:         keyTransactor,
-			Signer:                signer,
-			Receiver:              common.HexToAddress(signer.Address()),
-			RouterAddress:         routerContractAddress,
-			WTokenContractAddress: config.Tokens.WToken,
-			EVMTokenClients:       make(map[string]client.EVMToken),
+			EVMClient:               evmClient,
+			RouterContract:          routerInstance,
+			KeyTransactor:           keyTransactor,
+			Signer:                  signer,
+			Receiver:                common.HexToAddress(signer.Address()),
+			RouterAddress:           routerContractAddress,
+			WTokenContractAddress:   config.Tokens.WToken,
+			EVMFungibleTokenClients: make(map[string]client.EvmFungibleToken),
+			EVMNftClients:           make(map[string]client.EvmNft),
 		}
 	}
 
-	evmTokenClients := bootstrap.InitEVMTokenClients(config.Bridge.Networks, evmClients)
+	evmFungibleTokenClients := bootstrap.InitEvmFungibleTokenClients(config.Bridge.Networks, evmClients)
 	for networkId := range config.EVM {
-		for tokenAddress, tokenClient := range evmTokenClients[networkId] {
-			EVM[networkId].EVMTokenClients[tokenAddress] = tokenClient
+		for tokenAddress, tokenClient := range evmFungibleTokenClients[networkId] {
+			EVM[networkId].EVMFungibleTokenClients[tokenAddress] = tokenClient
 		}
 	}
 
+	evmNftClients := bootstrap.InitEvmNftClients(config.Bridge.Networks, evmClients)
+	for networkId := range config.EVM {
+		for tokenAddress, tokenClient := range evmNftClients[networkId] {
+			EVM[networkId].EVMNftClients[tokenAddress] = tokenClient
+		}
+	}
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode)
@@ -281,7 +298,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("EVMToken [%s] is not supported", nativeAsset))
+		return "", errors.New(fmt.Sprintf("EvmFungibleToken [%s] is not supported", nativeAsset))
 	}
 
 	return wrappedAsset, nil
@@ -334,14 +351,15 @@ type Config struct {
 }
 
 type EVMUtils struct {
-	EVMClient             *evm.Client
-	EVMTokenClients       map[string]client.EVMToken
-	RouterContract        *router.Router
-	KeyTransactor         *bind.TransactOpts
-	Signer                *evm_signer.Signer
-	Receiver              common.Address
-	RouterAddress         common.Address
-	WTokenContractAddress string
+	EVMClient               *evm.Client
+	EVMFungibleTokenClients map[string]client.EvmFungibleToken
+	EVMNftClients           map[string]client.EvmNft
+	RouterContract          *router.Router
+	KeyTransactor           *bind.TransactOpts
+	Signer                  *evm_signer.Signer
+	Receiver                common.Address
+	RouterAddress           common.Address
+	WTokenContractAddress   string
 }
 
 // Hedera props from the application.yml

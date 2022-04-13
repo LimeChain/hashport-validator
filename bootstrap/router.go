@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	apirouter "github.com/limechain/hedera-eth-bridge-validator/app/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/assets"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
 	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
@@ -36,6 +37,7 @@ func InitializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirou
 	apiRouter.AddV1Router(constants.PrometheusMetricsEndpoint, promhttp.Handler())
 	apiRouter.AddV1Router(config_bridge.Route, config_bridge.NewRouter(bridgeConfig))
 	apiRouter.AddV1Router(min_amounts.Route, min_amounts.NewRouter(services.Pricing))
+	apiRouter.AddV1Router(assets.Route, assets.NewRouter(bridgeConfig, services.Assets, services.Pricing))
 
 	return apiRouter
 }
