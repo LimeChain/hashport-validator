@@ -32,9 +32,14 @@ var (
 
 type fungibleBridgeDetails struct {
 	*asset.FungibleAssetInfo
-	FeePercentage int64             `json:"feePercentage"`
+	FeePercentage feePercentageInfo `json:"feePercentage"`
 	MinAmount     string            `json:"minAmount"`
 	Networks      map[uint64]string `json:"networks"`
+}
+
+type feePercentageInfo struct {
+	Amount        int64 `json:"amount"`
+	MaxPercentage int64 `json:"maxPercentage"`
 }
 
 type nonFungibleBridgeDetails struct {
@@ -78,11 +83,22 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 		for _, assetAddress := range fungibleNetworkAssets[networkId] {
 			fungibleAssetInfo, existInfo := assetsService.FungibleAssetInfo(networkId, assetAddress)
 			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
-			bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
 			if existInfo && existMinAmount {
+				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
+				feePercentage := bridgeTokenInfo.FeePercentage
+				if networkId != constants.HederaNetworkId {
+					var nativeAsset *asset.NativeAsset
+					if !fungibleAssetInfo.IsNative {
+						nativeAsset = assetsService.WrappedToNative(assetAddress, networkId)
+					} else {
+						nativeAsset = assetsService.FungibleNativeAsset(networkId, assetAddress)
+					}
+					feePercentage = nativeAsset.FeePercentage
+				}
+
 				fungibleAssetDetails := fungibleBridgeDetails{
 					FungibleAssetInfo: &fungibleAssetInfo,
-					FeePercentage:     bridgeTokenInfo.FeePercentage,
+					FeePercentage:     feePercentageInfo{feePercentage, constants.FeeMaxPercentage},
 					MinAmount:         minAmount.MinAmountWithFee.String(),
 					Networks:          bridgeTokenInfo.Networks,
 				}
@@ -94,7 +110,15 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 		for _, assetAddress := range nonFungibleNetworkAssets[networkId] {
 			nonFungibleAssetInfo, exist := assetsService.NonFungibleAssetInfo(networkId, assetAddress)
 			if exist {
-				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Nft[assetAddress]
+				var nativeAddress string
+				if nonFungibleAssetInfo.IsNative {
+					nativeAddress = assetAddress
+				} else {
+					nativeAsset := assetsService.WrappedToNative(assetAddress, networkId)
+					nativeAddress = nativeAsset.Asset
+				}
+
+				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Nft[nativeAddress]
 				fungibleAssetDetails := nonFungibleBridgeDetails{
 					NonFungibleAssetInfo: &nonFungibleAssetInfo,
 					Fee:                  bridgeTokenInfo.Fee,
