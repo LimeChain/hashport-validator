@@ -39,7 +39,7 @@ func New(evmClients map[uint64]client.EVM, burnEvt service.BurnEvent) *utilsServ
 	}
 }
 
-func (s *utilsService) ConvertEvmTxIdToHederaTxId(txId string, chainId uint64) (*service.HederaTxId, error) {
+func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.HederaTxId, error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		return nil, err
@@ -69,10 +69,10 @@ func (s *utilsService) ConvertEvmTxIdToHederaTxId(txId string, chainId uint64) (
 			logIdx = i
 		case burnERC721Hash:
 			logIdx = i
-			fallthrough
-		default:
-
 		}
+	}
+	if logIdx == 0 {
+		return nil, service.ErrNotFound
 	}
 
 	txIdWithLogIndex := fmt.Sprintf("%s-%d", txId, logIdx)

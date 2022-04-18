@@ -121,7 +121,7 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 
 	pricingService := pricing.NewService(c.Bridge, assetsService, clients.MirrorNode, clients.CoinGecko, clients.CoinMarketCap)
 
-	utilsService := utilsSvc.New(clients.EVMClients, burnEvent)
+	utilsService := utilsSvc.New(clients.EvmClients, burnEvent)
 
 	return &Services{
 		signers:          evmSigners,

@@ -17,8 +17,8 @@
 package service
 
 type Utils interface {
-	// ConvertEvmTxIdToHederaTxId finds the log index of the Burn, BurnErc72, or Lock event from the transaction receipt
-	ConvertEvmTxIdToHederaTxId(txId string, chainId uint64) (*HederaTxId, error)
+	// ConvertEvmHashToBridgeTxId finds the log index of the Burn, BurnErc72, or Lock event from the transaction receipt
+	ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*HederaTxId, error)
 }
 
 type HederaTxId struct {

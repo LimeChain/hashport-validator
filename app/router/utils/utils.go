@@ -34,11 +34,11 @@ var (
 
 func NewRouter(utilsSvc service.Utils) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/convert-evm-tx-id-to-hedera-tx-id/{evmTxId}/{chainId}", convertEvmTxToHederaTx(utilsSvc))
+	r.Get("/convert-evm-hash-to-bridge-tx-id/{evmTxId}/{chainId}", convertEvmTxHashToBridgeTxId(utilsSvc))
 	return r
 }
 
-func convertEvmTxToHederaTx(utilsSvc service.Utils) func(http.ResponseWriter, *http.Request) {
+func convertEvmTxHashToBridgeTxId(utilsSvc service.Utils) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		evmTxId := chi.URLParam(r, "evmTxId")
 		chainIdStr := chi.URLParam(r, "chainId")
@@ -48,7 +48,7 @@ func convertEvmTxToHederaTx(utilsSvc service.Utils) func(http.ResponseWriter, *h
 			return
 		}
 
-		res, err := utilsSvc.ConvertEvmTxIdToHederaTxId(evmTxId, chainId)
+		res, err := utilsSvc.ConvertEvmHashToBridgeTxId(evmTxId, chainId)
 		if err != nil {
 			logger.Errorf("Router resolved with an error. Error [%s].", err)
 			switch err {

@@ -35,7 +35,7 @@ func Test_ConvertEvmTxIdToHederaTxId(t *testing.T) {
 	in := "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026"
 	expected := "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026-4"
 
-	actual, err := svc.ConvertEvmTxIdToHederaTxId(in, 80001)
+	actual, err := svc.ConvertEvmHashToBridgeTxId(in, 80001)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, actual)
