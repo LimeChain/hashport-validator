@@ -186,3 +186,8 @@ func (m *MockEVM) SubscribeFilterLogs(ctx context.Context, query ethereum.Filter
 	args := m.Called(ctx, query, ch)
 	return args.Get(0).(ethereum.Subscription), args.Error(1)
 }
+
+func (m *MockEVM) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error) {
+	args := m.Called(hash)
+	return args.Get(0).(*types.Receipt), nil
+}

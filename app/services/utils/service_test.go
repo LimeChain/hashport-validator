@@ -17,26 +17,171 @@
 package utils
 
 import (
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
 var (
-	svc *utilsService
+	svc              *utilsService
+	lockHash         common.Hash
+	burnHash         common.Hash
+	burnErc721       common.Hash
+	someHash         common.Hash
+	evmTx            = "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026"
+	evmTxHash        = common.HexToHash(evmTx)
+	expectedBridgeTx = "0.0.1-123-123"
+	expectedResult   = &service.BridgeTxId{
+		BridgeTxId: expectedBridgeTx,
+	}
 )
 
 func setup() {
 	mocks.Setup()
+
+	svc = &utilsService{
+		evmClients: map[uint64]client.EVM{
+			80001: mocks.MEVMClient,
+		},
+		burnEvt: mocks.MBurnService,
+		log:     config.GetLoggerFor("Utils Service"),
+	}
+
+	routerAbi, _ := abi.JSON(strings.NewReader(router.RouterABI))
+	burnHash = routerAbi.Events["Burn"].ID
+	lockHash = routerAbi.Events["Lock"].ID
+	burnErc721 = routerAbi.Events["BurnERC721"].ID
 }
 
-func Test_ConvertEvmTxIdToHederaTxId(t *testing.T) {
+func Test_New(t *testing.T) {
 	setup()
-	in := "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026"
-	expected := "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026-4"
 
-	actual, err := svc.ConvertEvmHashToBridgeTxId(in, 80001)
+	actual := New(map[uint64]client.EVM{
+		80001: mocks.MEVMClient,
+	}, mocks.MBurnService)
+
+	assert.Equal(t, svc, actual)
+}
+
+func Test_ConvertEvmTxIdToHederaTxId_LockEvent(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
+		Logs: []*types.Log{
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 1,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 2,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 3,
+			},
+			{
+				Topics: []common.Hash{
+					lockHash,
+				},
+				Index: 4,
+			},
+		},
+	}, nil)
+	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expected, actual)
+	assert.Equal(t, expectedResult, actual)
+}
+
+func Test_ConvertEvmTxIdToHederaTxId_BurnEvent(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
+		Logs: []*types.Log{
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 1,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 2,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 3,
+			},
+			{
+				Topics: []common.Hash{
+					burnHash,
+				},
+				Index: 4,
+			},
+		},
+	}, nil)
+	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, actual)
+}
+
+func Test_ConvertEvmTxIdToHederaTxId_BurnErc721Event(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
+		Logs: []*types.Log{
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 1,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 2,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 3,
+			},
+			{
+				Topics: []common.Hash{
+					burnErc721,
+				},
+				Index: 4,
+			},
+		},
+	}, nil)
+	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, actual)
 }

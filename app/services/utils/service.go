@@ -43,7 +43,7 @@ func New(evmClients map[uint64]client.EVM, burnEvt service.BurnEvent) *utilsServ
 	}
 }
 
-func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.HederaTxId, error) {
+func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.BridgeTxId, error) {
 	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ finish:
 		return nil, err
 	}
 
-	return &service.HederaTxId{
-		HederaTxId: hederaTx,
+	return &service.BridgeTxId{
+		BridgeTxId: hederaTx,
 	}, nil
 }

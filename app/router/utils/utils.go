@@ -34,13 +34,13 @@ var (
 
 func NewRouter(utilsSvc service.Utils) chi.Router {
 	r := chi.NewRouter()
-	r.Get("/convert-evm-hash-to-bridge-tx-id/{evmTxId}/{chainId}", convertEvmTxHashToBridgeTxId(utilsSvc))
+	r.Get("/convert-evm-hash-to-bridge-tx-id/{evmHash}/{chainId}", convertEvmTxHashToBridgeTxId(utilsSvc))
 	return r
 }
 
 func convertEvmTxHashToBridgeTxId(utilsSvc service.Utils) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		evmTxId := chi.URLParam(r, "evmTxId")
+		evmTxId := chi.URLParam(r, "evmHash")
 		chainIdStr := chi.URLParam(r, "chainId")
 		chainId, err := strconv.ParseUint(chainIdStr, 10, 64)
 		if err != nil {

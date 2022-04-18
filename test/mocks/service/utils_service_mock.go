@@ -16,11 +16,16 @@
 
 package service
 
-type Utils interface {
-	// ConvertEvmHashToBridgeTxId finds the log index of the Burn, BurnErc72, or Lock event from the transaction receipt
-	ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*BridgeTxId, error)
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/stretchr/testify/mock"
+)
+
+type MockUtilsService struct {
+	mock.Mock
 }
 
-type BridgeTxId struct {
-	BridgeTxId string `json:"hederaTxId"`
+func (m *MockUtilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.BridgeTxId, error) {
+	args := m.Called(txId, chainId)
+	return args.Get(0).(*service.BridgeTxId), args.Get(1).(error)
 }
