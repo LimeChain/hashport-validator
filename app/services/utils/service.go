@@ -23,19 +23,23 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 type utilsService struct {
 	evmClients map[uint64]client.EVM
 	burnEvt    service.BurnEvent
+	log        log.FieldLogger
 }
 
 func New(evmClients map[uint64]client.EVM, burnEvt service.BurnEvent) *utilsService {
 	return &utilsService{
 		evmClients: evmClients,
 		burnEvt:    burnEvt,
+		log:        config.GetLoggerFor("Utils Service"),
 	}
 }
 
@@ -59,23 +63,27 @@ func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (
 	if err != nil {
 		return nil, errors.Wrap(err, "error while waiting for receipt")
 	}
-
-	logIdx := 0
-	for i, log := range receipt.Logs {
-		switch log.Topics[0] {
+	s.log.Debugf("%#v", receipt)
+	var txIdWithLogIndex string
+	for _, l := range receipt.Logs {
+		switch l.Topics[0] {
 		case burnHash:
-			logIdx = i
-		case lockHash:
-			logIdx = i
+			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
+			goto finish
 		case burnERC721Hash:
-			logIdx = i
+			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
+			goto finish
+		case lockHash:
+			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
+			goto finish
 		}
 	}
-	if logIdx == 0 {
+
+finish:
+	if txIdWithLogIndex == "" {
 		return nil, service.ErrNotFound
 	}
 
-	txIdWithLogIndex := fmt.Sprintf("%s-%d", txId, logIdx)
 	hederaTx, err := s.burnEvt.TransactionID(txIdWithLogIndex)
 	if err != nil {
 		return nil, err
