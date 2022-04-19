@@ -30,50 +30,47 @@ import (
 )
 
 type utilsService struct {
-	evmClients map[uint64]client.EVM
-	burnEvt    service.BurnEvent
-	log        log.FieldLogger
+	evmClients     map[uint64]client.EVM
+	burnEvt        service.BurnEvent
+	burnHash       common.Hash
+	burnErc721Hash common.Hash
+	lockHash       common.Hash
+	log            log.FieldLogger
 }
 
 func New(evmClients map[uint64]client.EVM, burnEvt service.BurnEvent) *utilsService {
+	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
+	if err != nil {
+		log.Fatalf("failed to parse router abi")
+		return nil
+	}
+
 	return &utilsService{
-		evmClients: evmClients,
-		burnEvt:    burnEvt,
-		log:        config.GetLoggerFor("Utils Service"),
+		evmClients:     evmClients,
+		burnEvt:        burnEvt,
+		burnHash:       bridgeAbi.Events["Burn"].ID,
+		burnErc721Hash: bridgeAbi.Events["BurnERC721"].ID,
+		lockHash:       bridgeAbi.Events["Lock"].ID,
+		log:            config.GetLoggerFor("Utils Service"),
 	}
 }
 
 func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.BridgeTxId, error) {
-	bridgeAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
-	if err != nil {
-		return nil, err
-	}
-
-	burnHash := bridgeAbi.Events["Burn"].ID
-	lockHash := bridgeAbi.Events["Lock"].ID
-	burnERC721Hash := bridgeAbi.Events["BurnERC721"].ID
-
-	client, ok := s.evmClients[chainId]
+	evmClient, ok := s.evmClients[chainId]
 	if !ok {
 		return nil, errors.New("invalid chain id")
 	}
 
 	txHash := common.HexToHash(txId)
-	receipt, err := client.WaitForTransactionReceipt(txHash)
+	receipt, err := evmClient.WaitForTransactionReceipt(txHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "error while waiting for receipt")
 	}
-	s.log.Debugf("%#v", receipt)
+
 	var txIdWithLogIndex string
 	for _, l := range receipt.Logs {
 		switch l.Topics[0] {
-		case burnHash:
-			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
-			goto finish
-		case burnERC721Hash:
-			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
-			goto finish
-		case lockHash:
+		case s.burnHash, s.burnErc721Hash, s.lockHash:
 			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
 			goto finish
 		}

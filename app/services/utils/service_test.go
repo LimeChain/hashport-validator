@@ -43,23 +43,54 @@ var (
 	expectedResult   = &service.BridgeTxId{
 		BridgeTxId: expectedBridgeTx,
 	}
+	mockReceipt = &types.Receipt{
+		Logs: []*types.Log{
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 1,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 2,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 3,
+			},
+			{
+				Topics: []common.Hash{
+					someHash,
+				},
+				Index: 4,
+			},
+		},
+	}
 )
 
 func setup() {
 	mocks.Setup()
 
-	svc = &utilsService{
-		evmClients: map[uint64]client.EVM{
-			80001: mocks.MEVMClient,
-		},
-		burnEvt: mocks.MBurnService,
-		log:     config.GetLoggerFor("Utils Service"),
-	}
-
 	routerAbi, _ := abi.JSON(strings.NewReader(router.RouterABI))
 	burnHash = routerAbi.Events["Burn"].ID
 	lockHash = routerAbi.Events["Lock"].ID
 	burnErc721 = routerAbi.Events["BurnERC721"].ID
+
+	svc = &utilsService{
+		evmClients: map[uint64]client.EVM{
+			80001: mocks.MEVMClient,
+		},
+		burnEvt:        mocks.MBurnService,
+		burnHash:       burnHash,
+		burnErc721Hash: burnErc721,
+		lockHash:       lockHash,
+		log:            config.GetLoggerFor("Utils Service"),
+	}
 }
 
 func Test_New(t *testing.T) {
@@ -74,34 +105,8 @@ func Test_New(t *testing.T) {
 
 func Test_ConvertEvmTxIdToHederaTxId_LockEvent(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
-		Logs: []*types.Log{
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 1,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 2,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 3,
-			},
-			{
-				Topics: []common.Hash{
-					lockHash,
-				},
-				Index: 4,
-			},
-		},
-	}, nil)
+	mockReceipt.Logs[3].Topics[0] = lockHash
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
 	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
 
 	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
@@ -112,34 +117,8 @@ func Test_ConvertEvmTxIdToHederaTxId_LockEvent(t *testing.T) {
 
 func Test_ConvertEvmTxIdToHederaTxId_BurnEvent(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
-		Logs: []*types.Log{
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 1,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 2,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 3,
-			},
-			{
-				Topics: []common.Hash{
-					burnHash,
-				},
-				Index: 4,
-			},
-		},
-	}, nil)
+	mockReceipt.Logs[3].Topics[0] = burnHash
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
 	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
 
 	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
@@ -150,34 +129,8 @@ func Test_ConvertEvmTxIdToHederaTxId_BurnEvent(t *testing.T) {
 
 func Test_ConvertEvmTxIdToHederaTxId_BurnErc721Event(t *testing.T) {
 	setup()
-	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(&types.Receipt{
-		Logs: []*types.Log{
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 1,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 2,
-			},
-			{
-				Topics: []common.Hash{
-					someHash,
-				},
-				Index: 3,
-			},
-			{
-				Topics: []common.Hash{
-					burnErc721,
-				},
-				Index: 4,
-			},
-		},
-	}, nil)
+	mockReceipt.Logs[3].Topics[0] = burnErc721
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
 	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
 
 	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
