@@ -27,5 +27,8 @@ type MockUtilsService struct {
 
 func (m *MockUtilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.BridgeTxId, error) {
 	args := m.Called(txId, chainId)
-	return args.Get(0).(*service.BridgeTxId), args.Get(1).(error)
+	if err, ok := args.Get(1).(error); ok {
+		return nil, err
+	}
+	return args.Get(0).(*service.BridgeTxId), nil
 }
