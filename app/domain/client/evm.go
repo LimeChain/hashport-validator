@@ -50,4 +50,6 @@ type EVM interface {
 	// RetryFilterLogs returns the logs from the input query
 	// Uses a retry mechanism in case the filter query is stuck
 	RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error)
+	// WaitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
+	WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error)
 }

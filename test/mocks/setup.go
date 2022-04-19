@@ -63,6 +63,7 @@ var MResponseWriter *http.MockResponseWriter
 var MWatcher *watchers.MockWatcher
 var MHandler *handlers.MockHandler
 var MHttpHandler *http.MockHandler
+var MUtilsService *service.MockUtilsService
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -100,4 +101,5 @@ func Setup() {
 	MWatcher = &watchers.MockWatcher{}
 	MHandler = &handlers.MockHandler{}
 	MHttpHandler = &http.MockHandler{}
+	MUtilsService = &service.MockUtilsService{}
 }

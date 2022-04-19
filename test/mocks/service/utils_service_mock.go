@@ -17,25 +17,18 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockBurnService struct {
+type MockUtilsService struct {
 	mock.Mock
 }
 
-func (m *MockBurnService) TransactionID(id string) (string, error) {
-	args := m.Called(id)
+func (m *MockUtilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (*service.BridgeTxId, error) {
+	args := m.Called(txId, chainId)
 	if err, ok := args.Get(1).(error); ok {
-		return "", err
+		return nil, err
 	}
-	if args[1] == nil {
-		return args[0].(string), nil
-	}
-	return args[0].(string), args[1].(error)
-}
-
-func (m *MockBurnService) ProcessEvent(event transfer.Transfer) {
-	m.Called(event)
+	return args.Get(0).(*service.BridgeTxId), nil
 }

@@ -31,6 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/scheduled"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/transfers"
+	utilsSvc "github.com/limechain/hedera-eth-bridge-validator/app/services/utils"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 )
@@ -49,6 +50,7 @@ type Services struct {
 	Prometheus       service.Prometheus
 	Pricing          service.Pricing
 	Assets           service.Assets
+	Utils            service.Utils
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
@@ -119,6 +121,8 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 
 	pricingService := pricing.NewService(c.Bridge, assetsService, clients.MirrorNode, clients.CoinGecko, clients.CoinMarketCap)
 
+	utilsService := utilsSvc.New(clients.EvmClients, burnEvent)
+
 	return &Services{
 		signers:          evmSigners,
 		contractServices: contractServices,
@@ -133,5 +137,6 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 		Prometheus:       prometheus,
 		Pricing:          pricingService,
 		Assets:           assetsService,
+		Utils:            utilsService,
 	}
 }
