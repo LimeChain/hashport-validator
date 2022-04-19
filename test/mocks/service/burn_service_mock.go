@@ -27,7 +27,9 @@ type MockBurnService struct {
 
 func (m *MockBurnService) TransactionID(id string) (string, error) {
 	args := m.Called(id)
-
+	if err, ok := args.Get(1).(error); ok {
+		return "", err
+	}
 	if args[1] == nil {
 		return args[0].(string), nil
 	}
