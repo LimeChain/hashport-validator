@@ -17,6 +17,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -71,6 +72,7 @@ var (
 			},
 		},
 	}
+	mockErr = errors.New("some error")
 )
 
 func setup() {
@@ -103,7 +105,7 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, svc, actual)
 }
 
-func Test_ConvertEvmTxIdToHederaTxId_LockEvent(t *testing.T) {
+func Test_ConvertEvmHashToBridgeTxId_LockEvent(t *testing.T) {
 	setup()
 	mockReceipt.Logs[3].Topics[0] = lockHash
 	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
@@ -115,7 +117,7 @@ func Test_ConvertEvmTxIdToHederaTxId_LockEvent(t *testing.T) {
 	assert.Equal(t, expectedResult, actual)
 }
 
-func Test_ConvertEvmTxIdToHederaTxId_BurnEvent(t *testing.T) {
+func Test_ConvertEvmHashToBridgeTxId_BurnEvent(t *testing.T) {
 	setup()
 	mockReceipt.Logs[3].Topics[0] = burnHash
 	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
@@ -127,7 +129,7 @@ func Test_ConvertEvmTxIdToHederaTxId_BurnEvent(t *testing.T) {
 	assert.Equal(t, expectedResult, actual)
 }
 
-func Test_ConvertEvmTxIdToHederaTxId_BurnErc721Event(t *testing.T) {
+func Test_ConvertEvmHashToBridgeTxId_BurnErc721Event(t *testing.T) {
 	setup()
 	mockReceipt.Logs[3].Topics[0] = burnErc721
 	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
@@ -137,4 +139,47 @@ func Test_ConvertEvmTxIdToHederaTxId_BurnErc721Event(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, actual)
+}
+
+func Test_ConvertEvmHashToBridgeTxId_WithErrorFromWaitForTransactionReceipt(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(nil, mockErr)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, actual)
+}
+
+func Test_ConvertEvmHashToBridgeTxId_WithErrorFromTransactionID(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
+	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(nil, mockErr)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, actual)
+}
+
+func Test_ConvertEvmHashToBridgeTxId_WithNotFoundEventLog(t *testing.T) {
+	setup()
+	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
+	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, service.ErrNotFound, err)
+	assert.Nil(t, actual)
+}
+
+func Test_ConvertEvmHashToBridgeTxId_WithInvalidChainId(t *testing.T) {
+	setup()
+	delete(svc.evmClients, 80001)
+
+	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, actual)
 }
