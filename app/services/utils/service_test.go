@@ -98,9 +98,11 @@ func setup() {
 func Test_New(t *testing.T) {
 	setup()
 
-	actual := New(map[uint64]client.EVM{
-		80001: mocks.MEVMClient,
-	}, mocks.MBurnService)
+	actual := New(
+		map[uint64]client.EVM{
+			80001: mocks.MEVMClient,
+		},
+		mocks.MBurnService)
 
 	assert.Equal(t, svc, actual)
 }
@@ -164,8 +166,8 @@ func Test_ConvertEvmHashToBridgeTxId_WithErrorFromTransactionID(t *testing.T) {
 
 func Test_ConvertEvmHashToBridgeTxId_WithNotFoundEventLog(t *testing.T) {
 	setup()
+	mockReceipt.Logs[3].Topics[0] = someHash
 	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
-	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
 
 	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
 
