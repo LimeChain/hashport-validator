@@ -3,8 +3,8 @@ List of supported endpoints by the application:
 
 
 
-- `GET {validator_host}:{validator_port}/api/v1/config/bridge`: Returns as JSON object the full configuration of the [bridge.yml](configuration.md) where the keys are in `camelCase` format.
-- `GET {validator_host}:{validator_port}/api/v1/min-amounts`: Returns as JSON object the current min-amounts per asset per network in the following format:
+- `GET /api/v1/config/bridge`: Returns as JSON object the full configuration of the [bridge.yml](configuration.md) where the keys are in `camelCase` format.
+- `GET /api/v1/min-amounts`: Returns as JSON object the current min-amounts per asset per network in the following format:
 ```json
 {
   "networkId": {
