@@ -22,11 +22,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -243,9 +247,79 @@ func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
 	setup()
 	now := time.Now()
 	then := now.Add(time.Hour * 2)
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	readCloser := constructTransactionsHttpResponseBody(timestamp.String(then.UnixNano()))
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{Body: readCloser}, nil)
 	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
-	assert.Error(t, errors.New("some-error"), err)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+}
+
+func Test_GetAccountCreditTransactionsBetween_HttpError(t *testing.T) {
+	setup()
+	now := time.Now()
+	then := now.Add(time.Hour * 2)
+	expectedErr := errors.New("some-error")
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, expectedErr)
+	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
+
+	assert.Error(t, expectedErr, err)
+	assert.Nil(t, response)
+}
+
+func Test_GetAccountCreditTransactionsBetween_TimestampError(t *testing.T) {
+	setup()
+	now := time.Now()
+	then := now.Add(time.Hour * 2)
+	expectedErr := errors.New("invalid timestamp provided")
+	readCloser := constructTransactionsHttpResponseBody("invalid-timestamp")
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{Body: readCloser}, nil)
+	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
+
+	assert.Error(t, expectedErr, err)
+	assert.Nil(t, response)
+}
+
+func Test_GetMessagesForTopicBetween(t *testing.T) {
+	setup()
+	now := time.Now()
+	then := now.Add(time.Hour * 2)
+	readCloser := constructMessagesHttpResponseBody(timestamp.String(now.UnixNano()), topicId.String())
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{Body: readCloser}, nil)
+	response, err := c.GetMessagesForTopicBetween(topicId, now.UnixNano(), then.UnixNano())
+
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+}
+
+func Test_GetMessagesForTopicBetween_HttpErr(t *testing.T) {
+	setup()
+	now := time.Now()
+	then := now.Add(time.Hour * 2)
+	expectedErr := errors.New("some-error")
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, expectedErr)
+	response, err := c.GetMessagesForTopicBetween(topicId, now.UnixNano(), then.UnixNano())
+
+	assert.Error(t, expectedErr, err)
+	assert.Nil(t, response)
+}
+
+func Test_GetMessagesForTopicBetween_TimestampErr(t *testing.T) {
+	setup()
+	now := time.Now()
+	then := now.Add(time.Hour * 2)
+	expectedErr := errors.New("invalid timestamp provided")
+	readCloser := constructMessagesHttpResponseBody("invalid-timestamp", topicId.String())
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{Body: readCloser}, nil)
+	response, err := c.GetMessagesForTopicBetween(topicId, now.UnixNano(), then.UnixNano())
+
+	assert.Error(t, expectedErr, err)
 	assert.Nil(t, response)
 }
 
@@ -270,4 +344,35 @@ func Test_GetHBARUsdPrice(t *testing.T) {
 
 	assert.Equal(t, testConstants.ParsedTransactionResponseCurrentRate, price)
 	assert.Nil(t, err)
+}
+
+func constructMessagesHttpResponseBody(consensusTimestamp, topicId string) io.ReadCloser {
+	httpResponseBody := &message.Messages{
+		Messages: []message.Message{
+			{
+				ConsensusTimestamp: consensusTimestamp,
+				TopicId:            topicId,
+			},
+		},
+	}
+	serialized, _ := json.Marshal(httpResponseBody)
+	reader := bytes.NewReader(serialized)
+	readCloser := ioutil.NopCloser(reader)
+
+	return readCloser
+}
+
+func constructTransactionsHttpResponseBody(consensusTimestamp string) io.ReadCloser {
+	httpResponseBody := &transaction.Response{
+		Transactions: []transaction.Transaction{
+			{
+				ConsensusTimestamp: consensusTimestamp,
+			},
+		},
+	}
+	serialized, _ := json.Marshal(httpResponseBody)
+	reader := bytes.NewReader(serialized)
+	readCloser := ioutil.NopCloser(reader)
+
+	return readCloser
 }
