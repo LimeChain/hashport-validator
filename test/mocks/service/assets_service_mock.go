@@ -17,8 +17,10 @@
 package service
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	assetModel "github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/stretchr/testify/mock"
+	"math/big"
 )
 
 type MockAssetsService struct {
@@ -96,19 +98,37 @@ func (mas *MockAssetsService) OppositeAsset(sourceChainId uint64, targetChainId 
 }
 
 // FungibleAssetInfo Gets FungibleAssetInfo
-func (mas *MockAssetsService) FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool) {
+func (mas *MockAssetsService) FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo *assetModel.FungibleAssetInfo, exist bool) {
 	args := mas.Called(networkId, assetAddress)
-	assetInfo = args.Get(0).(assetModel.FungibleAssetInfo)
+	assetInfo = args.Get(0).(*assetModel.FungibleAssetInfo)
 	exist = args.Get(1).(bool)
 
 	return assetInfo, exist
 }
 
 // NonFungibleAssetInfo Gets NonFungibleAssetInfo
-func (mas *MockAssetsService) NonFungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.NonFungibleAssetInfo, exist bool) {
+func (mas *MockAssetsService) NonFungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo *assetModel.NonFungibleAssetInfo, exist bool) {
 	args := mas.Called(networkId, assetAddress)
-	assetInfo = args.Get(0).(assetModel.NonFungibleAssetInfo)
+	assetInfo = args.Get(0).(*assetModel.NonFungibleAssetInfo)
 	exist = args.Get(1).(bool)
 
 	return assetInfo, exist
+}
+
+// FetchHederaTokenReserveAmount Gets Hedera's Token Reserve Amount
+func (mas *MockAssetsService) FetchHederaTokenReserveAmount(assetId string, mirrorNode client.MirrorNode, isNative bool, hederaTokenBalances map[string]int) (reserveAmount *big.Int, err error) {
+	args := mas.Called(assetId, mirrorNode, isNative, hederaTokenBalances)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+// FetchEvmFungibleReserveAmount Gets EVM's Fungible Token Reserve Amount
+func (mas *MockAssetsService) FetchEvmFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmFungibleToken, routerContractAddress string) (inLowestDenomination *big.Int, err error) {
+	args := mas.Called(networkId, assetAddress, isNative, evmTokenClient, routerContractAddress)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+// FetchEvmNonFungibleReserveAmount Gets EVM's Non-Fungible Token Reserve Amount
+func (mas *MockAssetsService) FetchEvmNonFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmNft, routerContractAddress string) (inLowestDenomination *big.Int, err error) {
+	args := mas.Called(networkId, assetAddress, isNative, evmTokenClient, routerContractAddress)
+	return args.Get(0).(*big.Int), args.Error(1)
 }

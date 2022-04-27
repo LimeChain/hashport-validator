@@ -152,14 +152,14 @@ func InitEvmNftClients(networks map[uint64]*parser.Network, evmClients map[uint6
 		}
 
 		// Native Tokens
-		for fungibleTokenAddress, tokenInfo := range network.Tokens.Nft {
+		for nonFungibleTokenAddress, tokenInfo := range network.Tokens.Nft {
 
 			if networkId != constants.HederaNetworkId {
-				tokenInstance, err := werc721.NewWerc721(common.HexToAddress(fungibleTokenAddress), evmClients[networkId])
+				tokenInstance, err := werc721.NewWerc721(common.HexToAddress(nonFungibleTokenAddress), evmClients[networkId])
 				if err != nil {
-					log.Fatalf("Failed to initialize Native EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", fungibleTokenAddress, err)
+					log.Fatalf("Failed to initialize Native EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", nonFungibleTokenAddress, err)
 				}
-				tokenClients[networkId][fungibleTokenAddress] = tokenInstance
+				tokenClients[networkId][nonFungibleTokenAddress] = tokenInstance
 			}
 
 			// Wrapped tokens

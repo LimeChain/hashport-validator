@@ -92,7 +92,7 @@ func Load() *Setup {
 	}
 
 	routerClients, evmFungibleTokenClients, evmNftClients := routerAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
-	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients, evmNftClients)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients, evmNftClients)
 
 	return setup
 }

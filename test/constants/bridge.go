@@ -19,8 +19,10 @@ package constants
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	constants "github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/shopspring/decimal"
+	"math/big"
+	"strconv"
 )
 
 var (
@@ -29,11 +31,14 @@ var (
 	// Common //
 	////////////
 
-	EthereumNetworkId = uint64(1)
-	PolygonNetworkId  = uint64(137)
-	FeePercentage     = int64(10000)
-	MinFeeAmountInUsd = decimal.NewFromFloat(1)
-	TopicId           = "0.0.1234567"
+	FeePercentage                 = int64(10000)
+	MinFeeAmountInUsd             = decimal.NewFromFloat(1)
+	TopicId                       = "0.0.1234567"
+	BridgeAccountId               = "0.0.476139"
+	ReserveAmount                 = int64(100)
+	ReserveAmountStr              = strconv.FormatInt(ReserveAmount, 10)
+	ReserveAmountBigInt           = big.NewInt(ReserveAmount)
+	ReserveAmountWrappedNFTBigInt = big.NewInt(0)
 
 	////////////////////////
 	// Network 0 (Hedera) //
@@ -50,11 +55,12 @@ var (
 		Asset:             NetworkHederaFungibleNativeToken,
 		FeePercentage:     FeePercentage,
 	}
-	NetworkHederaFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkHederaFungibleNativeToken,
-		NetworkHederaFungibleNativeToken,
-		constants.HederaDefaultDecimals,
-		true,
+	NetworkHederaFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkHederaFungibleNativeToken,
+		Symbol:        NetworkHederaFungibleNativeToken,
+		Decimals:      constants.HederaDefaultDecimals,
+		IsNative:      true,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	// Non-Fungible
@@ -64,25 +70,29 @@ var (
 		ChainId: constants.HederaNetworkId,
 		Asset:   NetworkHederaNonFungibleNativeToken,
 	}
-	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
-		NetworkHederaNonFungibleNativeToken,
-		NetworkHederaNonFungibleNativeToken,
-		true,
+	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
+		Name:          NetworkHederaNonFungibleNativeToken,
+		Symbol:        NetworkHederaNonFungibleNativeToken,
+		IsNative:      true,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	// Wrapped Tokens //
 
 	NetworkHederaFungibleWrappedTokenForNetworkPolygon                  = "0.0.000033"
-	NetworkHederaFungibleWrappedTokenForNetworkPolygonFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkHederaFungibleWrappedTokenForNetworkPolygon,
-		NetworkHederaFungibleWrappedTokenForNetworkPolygon,
-		constants.HederaDefaultDecimals,
-		false,
+	NetworkHederaFungibleWrappedTokenForNetworkPolygonFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkHederaFungibleWrappedTokenForNetworkPolygon,
+		Symbol:        NetworkHederaFungibleWrappedTokenForNetworkPolygon,
+		Decimals:      constants.HederaDefaultDecimals,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	//////////////////////
 	// Ethereum Network //
 	//////////////////////
+
+	EthereumNetworkId             = uint64(1)
+	EthereumRouterContractAddress = "0xb083879B1e10C8476802016CB12cd2F25a000000"
 
 	// Native Tokens //
 
@@ -96,38 +106,42 @@ var (
 		FeePercentage:     FeePercentage,
 	}
 
+	NetworkEthereumFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkEthereumFungibleNativeToken,
+		Symbol:        NetworkEthereumFungibleNativeToken,
+		Decimals:      constants.EvmDefaultDecimals,
+		IsNative:      true,
+		ReserveAmount: ReserveAmountBigInt,
+	}
+
 	// Non-Fungible
 
 	NetworkEthereumNFTWrappedTokenForNetworkHedera = "0x0000000000000000000000000000000000009999"
 
-	NetworkEthereumFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkEthereumFungibleNativeToken,
-		NetworkEthereumFungibleNativeToken,
-		constants.EvmDefaultDecimals,
-		true,
-	}
-
 	// Wrapped Tokens //
 
 	NetworkEthereumFungibleWrappedTokenForNetworkPolygon                  = "0x0000000000000000000000000000000000000133"
-	NetworkEthereumFungibleWrappedTokenForNetworkPolygonFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
-		NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
-		constants.EvmDefaultDecimals,
-		false,
+	NetworkEthereumFungibleWrappedTokenForNetworkPolygonFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
+		Symbol:        NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
+		Decimals:      constants.EvmDefaultDecimals,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	NetworkEthereumFungibleWrappedTokenForNetworkHedera                  = "0x0000000000000000000000000000000000000555"
-	NetworkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkEthereumFungibleWrappedTokenForNetworkHedera,
-		NetworkEthereumFungibleWrappedTokenForNetworkHedera,
-		constants.EvmDefaultDecimals,
-		false,
+	NetworkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkEthereumFungibleWrappedTokenForNetworkHedera,
+		Symbol:        NetworkEthereumFungibleWrappedTokenForNetworkHedera,
+		Decimals:      constants.EvmDefaultDecimals,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	/////////////////////
 	// Polygon Network //
 	/////////////////////
+
+	PolygonNetworkId             = uint64(137)
+	PolygonRouterContractAddress = "0xb083879B1e10C8476802016CB12cd2F25a000001"
 
 	// Native Tokens //
 
@@ -140,11 +154,12 @@ var (
 		Asset:             NetworkPolygonFungibleNativeToken,
 		FeePercentage:     FeePercentage,
 	}
-	NetworkPolygonFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkPolygonFungibleNativeToken,
-		NetworkPolygonFungibleNativeToken,
-		constants.EvmDefaultDecimals,
-		true,
+	NetworkPolygonFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkPolygonFungibleNativeToken,
+		Symbol:        NetworkPolygonFungibleNativeToken,
+		Decimals:      constants.EvmDefaultDecimals,
+		IsNative:      true,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	// Wrapped Tokens //
@@ -152,33 +167,34 @@ var (
 	// Fungible
 
 	NetworkPolygonFungibleWrappedTokenForNetworkHedera                  = "0x0000000000000000000000000000000000000001"
-	NetworkPolygonFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkPolygonFungibleWrappedTokenForNetworkHedera,
-		NetworkPolygonFungibleWrappedTokenForNetworkHedera,
-		constants.EvmDefaultDecimals,
-		false,
+	NetworkPolygonFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkPolygonFungibleWrappedTokenForNetworkHedera,
+		Symbol:        NetworkPolygonFungibleWrappedTokenForNetworkHedera,
+		Decimals:      constants.EvmDefaultDecimals,
+		ReserveAmount: ReserveAmountBigInt,
 	}
+
 	NetworkPolygonFungibleWrappedTokenForNetworkEthereum                  = "0x0000000000000000000000000000000000000123"
-	NetworkPolygonFungibleWrappedTokenForNetworkEthereumFungibleAssetInfo = asset.FungibleAssetInfo{
-		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
-		NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
-		constants.EvmDefaultDecimals,
-		false,
+	NetworkPolygonFungibleWrappedTokenForNetworkEthereumFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
+		Symbol:        NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
+		Decimals:      constants.EvmDefaultDecimals,
+		ReserveAmount: ReserveAmountBigInt,
 	}
 
 	// Non-Fungible
 
 	NetworkPolygonWrappedNonFungibleTokenForHedera                     = "0x0000000000000000000000000000000011111122"
-	NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo = asset.NonFungibleAssetInfo{
-		NetworkPolygonWrappedNonFungibleTokenForHedera,
-		NetworkPolygonWrappedNonFungibleTokenForHedera,
-		false,
+	NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
+		Name:          NetworkPolygonWrappedNonFungibleTokenForHedera,
+		Symbol:        NetworkPolygonWrappedNonFungibleTokenForHedera,
+		ReserveAmount: ReserveAmountWrappedNFTBigInt,
 	}
 
 	Networks = map[uint64]*parser.Network{
 		constants.HederaNetworkId: {
 			Name:          "Hedera",
-			BridgeAccount: "0.0.476139",
+			BridgeAccount: BridgeAccountId,
 			PayerAccount:  "0.0.476139",
 			Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
 			Tokens: parser.Tokens{
@@ -201,7 +217,8 @@ var (
 			},
 		},
 		EthereumNetworkId: {
-			Name: "Ethereum",
+			Name:                  "Ethereum",
+			RouterContractAddress: EthereumRouterContractAddress,
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					NetworkEthereumFungibleNativeToken: {
@@ -217,7 +234,8 @@ var (
 			},
 		},
 		PolygonNetworkId: {
-			Name: "Polygon",
+			Name:                  "Polygon",
+			RouterContractAddress: PolygonRouterContractAddress,
 			Tokens: parser.Tokens{
 				Fungible: map[string]parser.Token{
 					NetworkPolygonFungibleNativeToken: {
@@ -291,7 +309,7 @@ var (
 		},
 	}
 
-	FungibleAssetInfos = map[uint64]map[string]asset.FungibleAssetInfo{
+	FungibleAssetInfos = map[uint64]map[string]*asset.FungibleAssetInfo{
 		constants.HederaNetworkId: {
 			NetworkHederaFungibleNativeToken:                   NetworkHederaFungibleNativeTokenFungibleAssetInfo,
 			NetworkHederaFungibleWrappedTokenForNetworkPolygon: NetworkHederaFungibleWrappedTokenForNetworkPolygonFungibleAssetInfo,
@@ -315,7 +333,7 @@ var (
 		PolygonNetworkId:          {NetworkPolygonWrappedNonFungibleTokenForHedera},
 	}
 
-	NonFungibleAssetInfos = map[uint64]map[string]asset.NonFungibleAssetInfo{
+	NonFungibleAssetInfos = map[uint64]map[string]*asset.NonFungibleAssetInfo{
 		constants.HederaNetworkId: {
 			NetworkHederaNonFungibleNativeToken: NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo,
 		},

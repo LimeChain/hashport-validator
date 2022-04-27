@@ -18,9 +18,14 @@ package client
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 type EvmNft interface {
 	Name(opts *bind.CallOpts) (string, error)
 	Symbol(opts *bind.CallOpts) (string, error)
+	BalanceOf(opts *bind.CallOpts, owner common.Address) (*big.Int, error)
+	// TODO: Uncomment when we update the NFTs to extend ERC721Enumerable
+	//TotalSupply(opts *bind.CallOpts) (*big.Int, error)
 }

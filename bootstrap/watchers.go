@@ -20,6 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	aw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/assets"
 	cmw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/message"
 	pw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/prometheus"
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
@@ -69,13 +70,30 @@ func createConsensusTopicWatcher(configuration *config.Config,
 		configuration.Node.Clients.Hedera.StartTimestamp)
 }
 
+func createAssetsWatcher(
+	mirrorNode client.MirrorNode,
+	configuration config.Config,
+	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
+	assetsService service.Assets,
+
+) *aw.Watcher {
+	log.Debugf("Added Prometheus Watcher for dashboard metrics")
+	return aw.NewWatcher(
+		mirrorNode,
+		configuration,
+		evmFungibleTokenClients,
+		evmNonFungibleTokenClients,
+		assetsService)
+}
+
 func createPrometheusWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
 	prometheusService service.Prometheus,
-	evmClients map[uint64]client.EVM,
-	evmTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 
 ) *pw.Watcher {
@@ -85,7 +103,7 @@ func createPrometheusWatcher(
 		mirrorNode,
 		configuration,
 		prometheusService,
-		evmClients,
-		evmTokenClients,
+		evmFungibleTokenClients,
+		evmNonFungibleTokenClients,
 		assetsService)
 }

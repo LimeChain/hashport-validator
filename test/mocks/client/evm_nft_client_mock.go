@@ -18,7 +18,9 @@ package client
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/mock"
+	"math/big"
 )
 
 type MockEvmNonFungibleToken struct {
@@ -33,4 +35,9 @@ func (m *MockEvmNonFungibleToken) Name(opts *bind.CallOpts) (string, error) {
 func (m *MockEvmNonFungibleToken) Symbol(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
+}
+
+func (m *MockEvmNonFungibleToken) BalanceOf(opts *bind.CallOpts, owner common.Address) (*big.Int, error) {
+	args := m.Called(opts, owner)
+	return args.Get(0).(*big.Int), args.Error(1)
 }
