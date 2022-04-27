@@ -146,7 +146,7 @@ func Test_calculateMinAmountWithFee_WithZeroMinFeeAmount(t *testing.T) {
 
 func Test_updatePricesWithoutHbar_NonExistingAddress(t *testing.T) {
 	setup(true, true)
-	var nilFungibleAssetInfo asset.FungibleAssetInfo
+	var nilFungibleAssetInfo *asset.FungibleAssetInfo
 	mocks.MAssetsService.On("FungibleAssetInfo", constants.HederaNetworkId, "nonExistingAddress").Return(nilFungibleAssetInfo, false)
 	pricesByNetworkIdAndAddress := testConstants.UsdPrices
 	pricesByNetworkIdAndAddress[constants.HederaNetworkId] = map[string]decimal.Decimal{
