@@ -35,7 +35,6 @@ type fungibleBridgeDetails struct {
 	FeePercentage feePercentageInfo `json:"feePercentage"`
 	MinAmount     string            `json:"minAmount"`
 	Networks      map[uint64]string `json:"networks"`
-	IsNative      bool              `json:"isNative"`
 	ReserveAmount string            `json:"reserveAmount"`
 }
 
@@ -48,7 +47,6 @@ type nonFungibleBridgeDetails struct {
 	*asset.NonFungibleAssetInfo
 	Fee           int64             `json:"fee"`
 	Networks      map[uint64]string `json:"networks"`
-	IsNative      bool              `json:"isNative"`
 	ReserveAmount string            `json:"reserveAmount"`
 }
 
