@@ -51,7 +51,8 @@ var (
 			Tokens:    []account.AccountToken{},
 		},
 	}
-	hederaTokenBalances = make(map[string]int)
+	hederaTokenBalances   = make(map[string]int)
+	routerContractAddress = "router"
 )
 
 func Test_New(t *testing.T) {
@@ -220,7 +221,6 @@ func Test_FetchEvmFungibleReserveAmount_Native(t *testing.T) {
 	setup()
 	setupClientMocks()
 
-	routerContractAddress := "router"
 	asset := testConstants.NetworkEthereumFungibleNativeToken
 	tokenClient := evmFungibleTokenClients[testConstants.EthereumNetworkId][asset]
 	expectedReserveAmount := testConstants.ReserveAmountBigInt
@@ -236,7 +236,6 @@ func Test_FetchEvmFungibleReserveAmount_Wrapped(t *testing.T) {
 	setup()
 	setupClientMocks()
 
-	routerContractAddress := "router"
 	asset := testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHedera
 	tokenClient := evmFungibleTokenClients[testConstants.EthereumNetworkId][asset]
 	expectedReserveAmount := testConstants.ReserveAmountBigInt
@@ -252,7 +251,6 @@ func Test_FetchEvmNonFungibleReserveAmount_Native(t *testing.T) {
 	setup()
 	setupClientMocks()
 
-	routerContractAddress := "router"
 	asset := testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera
 	tokenClient := evmNftClients[testConstants.PolygonNetworkId][asset]
 	expectedReserveAmount := testConstants.ReserveAmountBigInt
@@ -267,8 +265,6 @@ func Test_FetchEvmNonFungibleReserveAmount_Native(t *testing.T) {
 func Test_FetchEvmNonFungibleReserveAmount_Wrapped(t *testing.T) {
 	setup()
 	setupClientMocks()
-
-	routerContractAddress := "router"
 	asset := testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera
 	tokenClient := evmNftClients[testConstants.PolygonNetworkId][asset]
 	expectedReserveAmount := testConstants.ReserveAmountWrappedNFTBigInt

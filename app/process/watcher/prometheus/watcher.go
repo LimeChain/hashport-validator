@@ -204,7 +204,6 @@ func (pw Watcher) registerAssetMetric(
 			name = assetInfo.Name
 			symbol = assetInfo.Symbol
 		} else {
-
 			assetInfo, exist := pw.assetsService.NonFungibleAssetInfo(wrappedNetworkId, assetAddress)
 			if !exist {
 				return
@@ -347,7 +346,6 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
 			decimals = assetInfo.Decimals
 		}
-
 	} else {
 		decimals = 1
 		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetAddress)
