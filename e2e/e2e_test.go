@@ -78,7 +78,7 @@ func Test_HBAR(t *testing.T) {
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, constants.Hbar)
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, constants.Hbar)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
@@ -154,7 +154,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), amount)
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, setupEnv.TokenID.String())
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, setupEnv.TokenID.String())
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
@@ -226,7 +226,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, constants.Hbar)
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, constants.Hbar)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
@@ -235,7 +235,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedReceiveAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, constants.Hbar, amount)
 
 	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.AssetMappings, evm, constants.Hbar, 0, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
+	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.AssetMappings, evm, constants.Hbar, constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
 
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
@@ -433,7 +433,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 
 	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleTransferRecord, t)
 	// Step 9: Validate Treasury(BridgeAccount) Balance and Receiver Balance
-	validateAccountBalance(setupEnv, setupEnv.BridgeAccount, 0, bridgeAccountBalanceBefore, targetAsset, t)
+	validateAccountBalance(setupEnv, setupEnv.BridgeAccount, constants.HederaNetworkId, bridgeAccountBalanceBefore, targetAsset, t)
 	validateAccountBalance(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), uint64(expectedAmount), receiverAccountBalanceBefore, targetAsset, t)
 }
 

@@ -600,7 +600,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		if transfer.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.HederaNftTransfer})
 		} else {
-			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, 0)
+			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
 			return
 		}
 	} else {
@@ -610,7 +610,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		if transfer.TargetChainId == 0 {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.ReadOnlyHederaUnlockNftTransfer})
 		} else {
-			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, 0)
+			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
 			return
 		}
 	}
