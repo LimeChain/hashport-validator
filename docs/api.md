@@ -15,7 +15,7 @@ List of supported endpoints by the application:
 Example:
 ```json
 {
-  "0": {
+  "295": {
     "HBAR": "20736132711",
     "0.0.26056684": "144956212352"
   }, 

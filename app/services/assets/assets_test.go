@@ -59,7 +59,7 @@ func Test_New(t *testing.T) {
 	setup()
 	setupClientMocks()
 
-	actualService := NewService(testConstants.ParserBridge.Networks, testConstants.ParserBridge.Networks[0].BridgeAccount, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNftClients)
+	actualService := NewService(testConstants.ParserBridge.Networks, testConstants.ParserBridge.Networks[constants.HederaNetworkId].BridgeAccount, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNftClients)
 
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
 	assert.Equal(t, serviceInstance.wrappedToNative, actualService.wrappedToNative)
@@ -84,10 +84,10 @@ func Test_New(t *testing.T) {
 func Test_IsNative(t *testing.T) {
 	setup()
 
-	actual := serviceInstance.IsNative(0, constants.Hbar)
+	actual := serviceInstance.IsNative(constants.HederaNetworkId, constants.Hbar)
 	assert.Equal(t, true, actual)
 
-	actual = serviceInstance.IsNative(0, testConstants.NetworkHederaFungibleWrappedTokenForNetworkPolygon)
+	actual = serviceInstance.IsNative(constants.HederaNetworkId, testConstants.NetworkHederaFungibleWrappedTokenForNetworkPolygon)
 	assert.Equal(t, false, actual)
 }
 

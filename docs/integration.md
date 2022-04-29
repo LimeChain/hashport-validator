@@ -96,12 +96,12 @@ The straightforward way for burning the wrapped assets would be by executing 2 t
 The burn transaction has the following format:
 - `burn(uint256 targetChainId, address wrappedAsset, uint256 amount, bytes receiver)`
 
-| Argument          | Description                                                                                    |
-|-------------------|------------------------------------------------------------------------------------------------|
-| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0` |
-| **wrappedAsset**  | The corresponding wrapped asset to burn                                                        |
-| **amount**        | The amount of wrapped tokens to be burned and transferred in their native version on Hedera    |
-| **receiver**      | The Hedera Account to receive the native representation of the wrapped asset                   |
+| Argument          | Description                                                                                 |
+|-------------------|---------------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer.                                    |
+| **wrappedAsset**  | The corresponding wrapped asset to burn                                                     |
+| **amount**        | The amount of wrapped tokens to be burned and transferred in their native version on Hedera |
+| **receiver**      | The Hedera Account to receive the native representation of the wrapped asset                |
 
 >Note: The receiver [AccountId](https://hashgraph.github.io/hedera-sdk-java/index.html?com/hedera/hashgraph/sdk/account/AccountId.html) must be serialized by Hedera SDK as such:
 >`accountId._toProto().serializeBinary()`, before passing it as an argument to the _burn_ function.
@@ -157,7 +157,7 @@ Once the user signs the `permit`, the `burnWithPermit` transaction can be execut
 
 | Argument          | Description                                                                                                          |
 |-------------------|----------------------------------------------------------------------------------------------------------------------|
-| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0`                       |
+| **targetChainId** | The chain id to which you would like to bridge transfer.                                                             |
 | **wrappedAsset**  | The corresponding wrapped asset to burn. Must be the same as the `tokenContract` used in the `createPermit` function |
 | **amount**        | The amount of wrapped tokens to be burned and transferred                                                            |
 | **receiver**      | The Hedera account to receive the wrapped tokens                                                                     |
@@ -236,12 +236,12 @@ The straightforward way for locking the native assets would be by executing the 
 The lock transaction has the following format:
 - `lock(uint256 targetChainId, address nativeAsset, uint256 amount, bytes receiver)`
 
-| Argument          | Description                                                                                    |
-|-------------------|------------------------------------------------------------------------------------------------|
-| **targetChainId** | The chain id to which you would like to bridge transfer. In the case of Hedera, it must be `0` |
-| **nativeAsset**   | The corresponding native token to lock                                                         |
-| **amount**        | The amount of tokens to be locked and transferred in their wrapped version on Hedera           |
-| **receiver**      | The Hedera Account to receive the wrapped representation of the native asset                   |
+| Argument          | Description                                                                          |
+|-------------------|--------------------------------------------------------------------------------------|
+| **targetChainId** | The chain id to which you would like to bridge transfer.                             |
+| **nativeAsset**   | The corresponding native token to lock                                               |
+| **amount**        | The amount of tokens to be locked and transferred in their wrapped version on Hedera |
+| **receiver**      | The Hedera Account to receive the wrapped representation of the native asset         |
 
 >Note: The receiver [AccountId](https://hashgraph.github.io/hedera-sdk-java/index.html?com/hedera/hashgraph/sdk/account/AccountId.html) must be serialized by Hedera SDK as such:
 >`accountId._toProto().serializeBinary()`, before passing it as an argument to the _lock_ function.
@@ -747,7 +747,7 @@ Now that everything has been approved, users can execute a `burnERC721` transact
 
 | Argument                  | Description                                                                                                                                                                                        |
 |---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **targetChainId**         | The chain id of the Network to which the NFT is bridged. In the case of Hedera, it must be `0`.                                                                                                    |
+| **targetChainId**         | The chain id of the Network to which the NFT is bridged.                                                                                                                                           |
 | **erc721ContractAddress** | The address of the wrapped ERC-721 Contract.                                                                                                                                                       |
 | **tokenId**               | The token ID to be bridged.                                                                                                                                                                        |
 | **paymentToken**          | The address of the payment token.                                                                                                                                                                  |
