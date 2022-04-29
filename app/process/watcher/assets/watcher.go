@@ -121,14 +121,14 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 				networkId,
 				assetId,
 				isNative,
-				pw.EvmFungibleTokenClients[networkId][assetId],
+				pw.EvmNonFungibleTokenClients[networkId][assetId],
 				pw.configuration.Bridge.EVMs[networkId].RouterContractAddress,
 			)
 		}
 	}
 
 	if err != nil {
-		pw.logger.Infof("error while fetching reserve amount, skipping update ...")
+		pw.logger.Errorf("error while fetching reserve amount for token id: %s, skipping update ...", assetId)
 		return
 	}
 
