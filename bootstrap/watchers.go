@@ -78,7 +78,7 @@ func createAssetsWatcher(
 	assetsService service.Assets,
 
 ) *aw.Watcher {
-	log.Debugf("Added Prometheus Watcher for dashboard metrics")
+	log.Debugf("Added Assets Watcher")
 	return aw.NewWatcher(
 		mirrorNode,
 		configuration,

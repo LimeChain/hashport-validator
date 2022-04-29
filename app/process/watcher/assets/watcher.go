@@ -69,7 +69,6 @@ func (pw *Watcher) Watch(q qi.Queue) {
 }
 
 func (pw *Watcher) watchIteration() {
-	//The queue will be not used
 	bridgeAccount, err := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
 	if err != nil {
 		return

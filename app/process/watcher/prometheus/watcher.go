@@ -316,15 +316,8 @@ func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) 
 			if assetAddress == constants.Hbar { // skip HBAR
 				continue
 			}
-			if pw.assetsService.IsNative(networkId, assetAddress) { // native
-				// set native assets balance
-				pw.prepareAndSetAssetMetric(networkId, assetAddress, isFungible, true)
-				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
-				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//set wrapped assets total supply
-					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, isFungible, false)
-				}
-			}
+			isNative := pw.assetsService.IsNative(networkId, assetAddress)
+			pw.prepareAndSetAssetMetric(networkId, assetAddress, isFungible, isNative)
 		}
 	}
 }
@@ -347,7 +340,7 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 			decimals = assetInfo.Decimals
 		}
 	} else {
-		decimals = 1
+		decimals = 0
 		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetAddress)
 		if ok {
 			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount

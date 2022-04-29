@@ -160,18 +160,18 @@ func (a *Service) FetchEvmNonFungibleReserveAmount(networkId uint64, assetAddres
 func (a *Service) FetchHederaTokenReserveAmount(assetId string, mirrorNode client.MirrorNode, isNative bool, hederaTokenBalances map[string]int) (reserveAmount *big.Int, err error) {
 
 	if assetId == constants.Hbar {
-		bridgeAccount, e := mirrorNode.GetAccount(a.bridgeAccountId)
-		if e != nil {
-			a.logger.Errorf("Hedera Mirror Node for Account ID [%s] method GetAccount - Error: [%s]", a.bridgeAccountId, e)
-			return nil, e
+		bridgeAccount, err := mirrorNode.GetAccount(a.bridgeAccountId)
+		if err != nil {
+			a.logger.Errorf("Hedera Mirror Node for Account ID [%s] method GetAccount - Error: [%s]", a.bridgeAccountId, err)
+			return nil, err
 		}
 
 		return big.NewInt(int64(bridgeAccount.Balance.Balance)), nil
 	}
 
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
+	assetInfoResponse, err := mirrorNode.GetToken(assetId)
+	if err != nil {
+		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
 	} else {
 		reserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 	}
