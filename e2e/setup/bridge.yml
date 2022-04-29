@@ -3,7 +3,7 @@
 #bridge:
 #  topic_id:
 #  networks:
-#    0: # Hedera
+#    296: # Hedera Testnet
 #      name: Hedera
 #      bridge_account:
 #      payer_account:

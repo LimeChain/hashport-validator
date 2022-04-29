@@ -4,7 +4,7 @@
 #  topic_id:
 #   monitored_accounts:
 #  networks:
-#    0: # Hedera
+#    296: # Hedera Testnet
 #      name: Hedera
 #      bridge_account:
 #      payer_account:

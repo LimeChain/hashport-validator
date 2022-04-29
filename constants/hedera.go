@@ -18,8 +18,12 @@ package constants
 
 const (
 	Hbar                  = "HBAR"
-	HederaNetworkId       = uint64(0)
 	HederaDefaultDecimals = uint8(8)
+	HederaName            = "Hedera"
+)
+
+var (
+	HederaNetworkId = uint64(296) // Default Testnet
 )
 
 // Handler topics
