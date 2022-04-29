@@ -63,6 +63,8 @@ var (
 
 const (
 	expectedValidatorsCount = 3
+	firstEvmChainId         = uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	secondEvmChainId        = uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
 )
 
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
@@ -71,7 +73,7 @@ func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
@@ -106,9 +108,9 @@ func Test_HBAR(t *testing.T) {
 
 	// Step 8 - Prepare Comparable Expected Transfer Record
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		0,
+		constants.HederaNetworkId,
 		chainId,
-		0,
+		constants.HederaNetworkId,
 		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		constants.Hbar,
 		targetAsset,
@@ -147,7 +149,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), amount)
@@ -219,7 +221,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -250,8 +252,8 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	// 7. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedTransfer(
 		chainId,
-		0,
-		0,
+		constants.HederaNetworkId,
+		constants.HederaNetworkId,
 		expectedId,
 		targetAsset,
 		constants.Hbar,
@@ -276,12 +278,12 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, setupEnv.TokenID.String())
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, setupEnv.TokenID.String())
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
 	}
@@ -294,7 +296,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		setupEnv.AssetMappings,
 		evm,
 		setupEnv.TokenID.String(),
-		0,
+		constants.HederaNetworkId,
 		chainId,
 		setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(),
 		amount,
@@ -315,8 +317,8 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	// 7. Prepare Expected Database Records
 	expectedBurnEventRecord := util.PrepareExpectedTransfer(
 		chainId,
-		0,
-		0,
+		constants.HederaNetworkId,
+		constants.HederaNetworkId,
 		expectedId,
 		targetAsset,
 		setupEnv.TokenID.String(),
@@ -342,18 +344,18 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	bridgeAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, t)
 	receiverAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, constants.HederaNetworkId, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, 0, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
+	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
 
 	// Step 3: Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -381,7 +383,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 5: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
 		chainId,
-		0,
+		constants.HederaNetworkId,
 		chainId,
 		lockEventId,
 		setupEnv.NativeEvmToken,
@@ -477,13 +479,13 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, 0, setupEnv.NativeEvmToken)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, constants.HederaNetworkId, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,7 +530,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		0,
+		constants.HederaNetworkId,
 		chainId,
 		chainId,
 		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
@@ -575,10 +577,10 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	targetChainID := uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	targetChainID := secondEvmChainId
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
@@ -653,8 +655,8 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := uint64(80001)     // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
-	sourceChain := uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
+	sourceChain := secondEvmChainId
 	wrappedEvm := setupEnv.Clients.EVM[sourceChain]
 	now = time.Now()
 	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, sourceChain, setupEnv.NativeEvmToken)
@@ -732,12 +734,12 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, nftToken)
+	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
 	}
@@ -788,9 +790,9 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	// Step 8 - Verify Database records
 	expectedTxRecord := &entity.Transfer{
 		TransactionID: transactionID,
-		SourceChainID: 0,
+		SourceChainID: constants.HederaNetworkId,
 		TargetChainID: chainId,
-		NativeChainID: 0,
+		NativeChainID: constants.HederaNetworkId,
 		SourceAsset:   nftToken,
 		TargetAsset:   targetAsset,
 		NativeAsset:   nftToken,
@@ -848,10 +850,10 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
-	chainId := uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, 0, chainId, nftToken)
+	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nftToken, err)
 	}
@@ -860,7 +862,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.BridgeAccount, t)
 
 	// 2. Submit burnERC721 transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurnERC721 := sendBurnERC721Transaction(evm, wrappedAsset, 0, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), serialNumber, t)
+	burnTxReceipt, expectedRouterBurnERC721 := sendBurnERC721Transaction(evm, wrappedAsset, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), serialNumber, t)
 
 	// 3. Validate that the burn ERC-721 transaction went through and emitted the correct event
 	expectedTxId := validateBurnERC721Event(burnTxReceipt, expectedRouterBurnERC721, t)
