@@ -128,6 +128,7 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 	}
 
 	if err != nil {
+		pw.logger.Infof("error while fetching reserve amount, skipping update ...")
 		return
 	}
 
