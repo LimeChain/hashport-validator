@@ -84,15 +84,8 @@ func (pw *Watcher) watchIteration() {
 func (pw *Watcher) updateAssetInfos(hederaTokenBalances map[string]int, assets map[uint64][]string, isFungible bool) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
-			if pw.assetsService.IsNative(networkId, assetAddress) { // native
-				// set native assets balance
-				pw.updateAssetInfo(networkId, assetAddress, hederaTokenBalances, isFungible, true)
-				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
-				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//set wrapped assets total supply
-					pw.updateAssetInfo(wrappedNetworkId, wrappedAssetAddress, hederaTokenBalances, isFungible, false)
-				}
-			}
+			IsNative := pw.assetsService.IsNative(networkId, assetAddress)
+			pw.updateAssetInfo(networkId, assetAddress, hederaTokenBalances, isFungible, IsNative)
 		}
 	}
 }
@@ -111,11 +104,12 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 		reserveAmount *big.Int
 	)
 
+	var err error
 	if networkId == constants.HederaNetworkId {
-		reserveAmount, _ = pw.assetsService.FetchHederaTokenReserveAmount(assetId, pw.mirrorNode, isNative, hederaTokenBalances)
+		reserveAmount, err = pw.assetsService.FetchHederaTokenReserveAmount(assetId, pw.mirrorNode, isNative, hederaTokenBalances)
 	} else {
 		if isFungible { // Fungible
-			reserveAmount, _ = pw.assetsService.FetchEvmFungibleReserveAmount(
+			reserveAmount, err = pw.assetsService.FetchEvmFungibleReserveAmount(
 				networkId,
 				assetId,
 				isNative,
@@ -123,7 +117,7 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 				pw.configuration.Bridge.EVMs[networkId].RouterContractAddress,
 			)
 		} else { // Non-Fungible
-			reserveAmount, _ = pw.assetsService.FetchEvmNonFungibleReserveAmount(
+			reserveAmount, err = pw.assetsService.FetchEvmNonFungibleReserveAmount(
 				networkId,
 				assetId,
 				isNative,
@@ -131,6 +125,10 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 				pw.configuration.Bridge.EVMs[networkId].RouterContractAddress,
 			)
 		}
+	}
+
+	if err != nil {
+		return
 	}
 
 	if isFungible {
