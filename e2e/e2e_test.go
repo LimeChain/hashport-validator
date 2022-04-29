@@ -182,9 +182,9 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := util.PrepareExpectedTransfer(
-		0,
+		constants.HederaNetworkId,
 		chainId,
-		0,
+		constants.HederaNetworkId,
 		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		setupEnv.TokenID.String(),
 		targetAsset,
@@ -880,8 +880,8 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	expectedTxRecord := &entity.Transfer{
 		TransactionID: expectedTxId,
 		SourceChainID: chainId,
-		TargetChainID: 0,
-		NativeChainID: 0,
+		TargetChainID: constants.HederaNetworkId,
+		NativeChainID: constants.HederaNetworkId,
 		SourceAsset:   wrappedAsset,
 		TargetAsset:   nftToken,
 		NativeAsset:   nftToken,
