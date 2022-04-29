@@ -1610,7 +1610,7 @@ func sendLockEthTransaction(evm setup.EVMUtils, asset string, targetChainId uint
 	return lockTxReceipt, expectedRouterLock
 }
 
-func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetChainId int64, receiver []byte, serialNumber int64, t *testing.T) (*types.Receipt, *router.RouterBurnERC721) {
+func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetChainId uint64, receiver []byte, serialNumber int64, t *testing.T) (*types.Receipt, *router.RouterBurnERC721) {
 	wrappedAddress := common.HexToAddress(wrappedToken)
 
 	paymentToken, err := evm.RouterContract.Erc721Payment(nil, wrappedAddress)
@@ -1649,15 +1649,15 @@ func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetCh
 
 	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-721 Approval Transaction", approveERC721Tx.Hash()))
 	waitForTransaction(evm, approveERC721Tx.Hash(), t)
-
-	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, big.NewInt(targetChainId), wrappedAddress, tokenId, paymentToken, fee, receiver)
+	targetChainIdBigInt := new(big.Int).SetUint64(targetChainId)
+	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, targetChainIdBigInt, wrappedAddress, tokenId, paymentToken, fee, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
 
 	expectedRouterBurn := &router.RouterBurnERC721{
-		TargetChain:  big.NewInt(targetChainId),
+		TargetChain:  targetChainIdBigInt,
 		WrappedToken: common.HexToAddress(wrappedToken),
 		TokenId:      tokenId,
 		Receiver:     receiver,
