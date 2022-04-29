@@ -36,6 +36,8 @@ var (
 	feePercentage     = int64(10000)
 	minFeeAmountInUsd = decimal.NewFromFloat(1)
 	topicId           = "0.0.1234567"
+	bridgeAccountId   = "0.0.476139"
+	reserveAmount     = big.NewInt(100)
 
 	////////////////////////
 	// Network 0 (Hedera) //
@@ -53,11 +55,12 @@ var (
 
 	networkHederaNFTNativeToken = "0.0.111122"
 
-	networkHederaFungibleNativeTokenFungibleAssetInfo = asset.FungibleAssetInfo{
-		networkHederaFungibleNativeToken,
-		networkHederaFungibleNativeToken,
-		constants.HederaDefaultDecimals,
-		true,
+	networkHederaFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          networkHederaFungibleNativeToken,
+		Symbol:        networkHederaFungibleNativeToken,
+		Decimals:      constants.HederaDefaultDecimals,
+		IsNative:      true,
+		ReserveAmount: reserveAmount,
 	}
 
 	//////////////////////
@@ -81,17 +84,17 @@ var (
 	// Wrapped Tokens //
 
 	networkEthereumFungibleWrappedTokenForNetworkHedera                  = "0x0000000000000000000000000000000000000555"
-	networkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = asset.FungibleAssetInfo{
-		networkEthereumFungibleWrappedTokenForNetworkHedera,
-		networkEthereumFungibleWrappedTokenForNetworkHedera,
-		constants.EvmDefaultDecimals,
-		false,
+	networkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo = &asset.FungibleAssetInfo{
+		Name:          networkEthereumFungibleWrappedTokenForNetworkHedera,
+		Symbol:        networkEthereumFungibleWrappedTokenForNetworkHedera,
+		Decimals:      constants.EvmDefaultDecimals,
+		ReserveAmount: reserveAmount,
 	}
 
 	networks = map[uint64]*parser.Network{
 		constants.HederaNetworkId: {
 			Name:          "Hedera",
-			BridgeAccount: "0.0.476139",
+			BridgeAccount: bridgeAccountId,
 			PayerAccount:  "0.0.476139",
 			Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
 			Tokens: parser.Tokens{

@@ -64,6 +64,9 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 	// Hedera Native unlock Nft Handlers
 	registerHederaNativeUnlockNftHandlers(server, services, repositories, configuration)
 
+	// Assets Watcher
+	registerAssetsWatcher(server, services, configuration, clients)
+
 	// Prometheus Watcher
 	registerPrometheusWatcher(server, services, configuration, clients)
 
@@ -152,6 +155,15 @@ func registerEvmClients(server *server.Server, services *Services, repositories 
 	}
 }
 
+func registerAssetsWatcher(server *server.Server, services *Services, configuration config.Config, clients *Clients) {
+	server.AddWatcher(createAssetsWatcher(
+		clients.MirrorNode,
+		configuration,
+		clients.EvmFungibleTokenClients,
+		clients.EvmNFTClients,
+		services.Assets))
+}
+
 func registerPrometheusWatcher(server *server.Server, services *Services, configuration config.Config, clients *Clients) {
 	if configuration.Node.Monitoring.Enable {
 		dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
@@ -161,8 +173,8 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 			clients.MirrorNode,
 			configuration,
 			services.Prometheus,
-			clients.EvmClients,
 			clients.EvmFungibleTokenClients,
+			clients.EvmNFTClients,
 			services.Assets))
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")

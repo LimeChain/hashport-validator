@@ -34,6 +34,7 @@ import (
 	utilsSvc "github.com/limechain/hedera-eth-bridge-validator/app/services/utils"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 )
 
 type Services struct {
@@ -57,7 +58,15 @@ type Services struct {
 func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Clients, repositories Repositories) *Services {
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
-	assetsService := assets.NewService(parsedBridge.Networks, c.Bridge.Hedera.FeePercentages, clients.RouterClients, clients.MirrorNode, clients.EvmFungibleTokenClients, clients.EvmNFTClients)
+	assetsService := assets.NewService(
+		parsedBridge.Networks,
+		parsedBridge.Networks[constants.HederaNetworkId].BridgeAccount,
+		c.Bridge.Hedera.FeePercentages,
+		clients.RouterClients,
+		clients.MirrorNode,
+		clients.EvmFungibleTokenClients,
+		clients.EvmNFTClients,
+	)
 	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge, assetsService)
 
 	for _, client := range clients.EvmClients {

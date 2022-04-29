@@ -16,7 +16,10 @@
 
 package asset
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/shopspring/decimal"
+	"math/big"
+)
 
 type NativeAsset struct {
 	MinFeeAmountInUsd *decimal.Decimal
@@ -26,14 +29,16 @@ type NativeAsset struct {
 }
 
 type FungibleAssetInfo struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	Decimals uint8  `json:"decimals"`
-	IsNative bool   `json:"isNative"`
+	Name          string   `json:"name"`
+	Symbol        string   `json:"symbol"`
+	Decimals      uint8    `json:"decimals"`
+	IsNative      bool     `json:"isNative"`
+	ReserveAmount *big.Int `json:"-"`
 }
 
 type NonFungibleAssetInfo struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	IsNative bool   `json:"isNative"`
+	Name          string   `json:"name"`
+	Symbol        string   `json:"symbol"`
+	IsNative      bool     `json:"isNative"`
+	ReserveAmount *big.Int `json:"-"`
 }

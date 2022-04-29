@@ -35,6 +35,7 @@ type fungibleBridgeDetails struct {
 	FeePercentage feePercentageInfo `json:"feePercentage"`
 	MinAmount     string            `json:"minAmount"`
 	Networks      map[uint64]string `json:"networks"`
+	ReserveAmount string            `json:"reserveAmount"`
 }
 
 type feePercentageInfo struct {
@@ -44,8 +45,9 @@ type feePercentageInfo struct {
 
 type nonFungibleBridgeDetails struct {
 	*asset.NonFungibleAssetInfo
-	Fee      int64             `json:"fee"`
-	Networks map[uint64]string `json:"networks"`
+	Fee           int64             `json:"fee"`
+	Networks      map[uint64]string `json:"networks"`
+	ReserveAmount string            `json:"reserveAmount"`
 }
 
 type networkAssets struct {
@@ -94,10 +96,11 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 				feePercentage := nativeAsset.FeePercentage
 
 				fungibleAssetDetails := fungibleBridgeDetails{
-					FungibleAssetInfo: &fungibleAssetInfo,
+					FungibleAssetInfo: fungibleAssetInfo,
 					FeePercentage:     feePercentageInfo{feePercentage, constants.FeeMaxPercentage},
 					MinAmount:         minAmount.MinAmountWithFee.String(),
 					Networks:          bridgeTokenInfo.Networks,
+					ReserveAmount:     fungibleAssetInfo.ReserveAmount.String(),
 				}
 				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
 			}
@@ -116,12 +119,13 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 				}
 
 				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Nft[nativeAddress]
-				fungibleAssetDetails := nonFungibleBridgeDetails{
-					NonFungibleAssetInfo: &nonFungibleAssetInfo,
+				nonFungibleAssetDetails := nonFungibleBridgeDetails{
+					NonFungibleAssetInfo: nonFungibleAssetInfo,
 					Fee:                  bridgeTokenInfo.Fee,
 					Networks:             bridgeTokenInfo.Networks,
+					ReserveAmount:        nonFungibleAssetInfo.ReserveAmount.String(),
 				}
-				response[networkId].NonFungible[assetAddress] = fungibleAssetDetails
+				response[networkId].NonFungible[assetAddress] = nonFungibleAssetDetails
 			}
 		}
 	}

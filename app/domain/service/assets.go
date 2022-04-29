@@ -17,7 +17,9 @@
 package service
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	assetModel "github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
+	"math/big"
 )
 
 type Assets interface {
@@ -42,7 +44,13 @@ type Assets interface {
 	// OppositeAsset Gets Opposite asset for passed chain IDs and assetAddress
 	OppositeAsset(sourceChainId uint64, targetChainId uint64, assetAddress string) string
 	// FungibleAssetInfo Gets FungibleAssetInfo
-	FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo assetModel.FungibleAssetInfo, exist bool)
+	FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo *assetModel.FungibleAssetInfo, exist bool)
 	// NonFungibleAssetInfo Gets NonFungibleAssetInfo
-	NonFungibleAssetInfo(networkId uint64, assetAddressOrId string) (assetInfo assetModel.NonFungibleAssetInfo, exist bool)
+	NonFungibleAssetInfo(networkId uint64, assetAddressOrId string) (assetInfo *assetModel.NonFungibleAssetInfo, exist bool)
+	// FetchHederaTokenReserveAmount Gets Hedera's Token Reserve Amount
+	FetchHederaTokenReserveAmount(assetId string, mirrorNode client.MirrorNode, isNative bool, hederaTokenBalances map[string]int) (reserveAmount *big.Int, err error)
+	// FetchEvmFungibleReserveAmount Gets EVM's Fungible Token Reserve Amount
+	FetchEvmFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmFungibleToken, routerContractAddress string) (inLowestDenomination *big.Int, err error)
+	// FetchEvmNonFungibleReserveAmount Gets EVM's Non-Fungible Token Reserve Amount
+	FetchEvmNonFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmNft, routerContractAddress string) (inLowestDenomination *big.Int, err error)
 }

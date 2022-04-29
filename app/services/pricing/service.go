@@ -43,7 +43,7 @@ type Service struct {
 	coinGeckoIds          map[uint64]map[string]string
 	tokensPriceInfo       map[uint64]map[string]pricing.TokenPriceInfo
 	minAmountsForApi      map[uint64]map[string]string
-	hbarFungibleAssetInfo asset.FungibleAssetInfo
+	hbarFungibleAssetInfo *asset.FungibleAssetInfo
 	hbarNativeAsset       *asset.NativeAsset
 	logger                *log.Entry
 }

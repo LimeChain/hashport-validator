@@ -17,10 +17,7 @@
 package prometheus
 
 import (
-	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -32,7 +29,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -42,15 +38,15 @@ var (
 )
 
 type Watcher struct {
-	dashboardPolling          time.Duration
-	mirrorNode                client.MirrorNode
-	EVMClients                map[uint64]client.EVM
-	EVMTokenClients           map[uint64]map[string]client.EvmFungibleToken
-	configuration             config.Config
-	prometheusService         service.Prometheus
-	logger                    *log.Entry
-	bridgeAccountBalanceGauge prometheus.Gauge
-	payerAccountBalanceGauge  prometheus.Gauge
+	dashboardPolling           time.Duration
+	mirrorNode                 client.MirrorNode
+	EvmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
+	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
+	configuration              config.Config
+	prometheusService          service.Prometheus
+	logger                     *log.Entry
+	bridgeAccountBalanceGauge  prometheus.Gauge
+	payerAccountBalanceGauge   prometheus.Gauge
 	// A mapping, storing all Prometheus Gauges by AccountId
 	monitoredAccountsGauges map[string]monitoredAccountsInfo
 	// A mapping, storing all network ID - asset address - metric name
@@ -68,24 +64,24 @@ func NewWatcher(
 	mirrorNode client.MirrorNode,
 	configuration config.Config,
 	prometheusService service.Prometheus,
-	EVMClients map[uint64]client.EVM,
-	EVMTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
 
 	return &Watcher{
-		dashboardPolling:          dashboardPolling,
-		mirrorNode:                mirrorNode,
-		EVMClients:                EVMClients,
-		EVMTokenClients:           EVMTokenClients,
-		configuration:             configuration,
-		prometheusService:         prometheusService,
-		logger:                    config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
-		payerAccountBalanceGauge:  initPayerAccountBalanceGauge(prometheusService, configuration),
-		bridgeAccountBalanceGauge: initBridgeAccountBalanceGauge(prometheusService, configuration),
-		monitoredAccountsGauges:   initMonitoredAccountsGauges(configuration, prometheusService),
-		assetsMetrics:             make(map[uint64]map[string]string),
-		assetsService:             assetsService,
+		dashboardPolling:           dashboardPolling,
+		mirrorNode:                 mirrorNode,
+		EvmFungibleTokenClients:    EvmFungibleTokenClients,
+		EvmNonFungibleTokenClients: EvmNonFungibleTokenClients,
+		configuration:              configuration,
+		prometheusService:          prometheusService,
+		logger:                     config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
+		payerAccountBalanceGauge:   initPayerAccountBalanceGauge(prometheusService, configuration),
+		bridgeAccountBalanceGauge:  initBridgeAccountBalanceGauge(prometheusService, configuration),
+		monitoredAccountsGauges:    initMonitoredAccountsGauges(configuration, prometheusService),
+		assetsMetrics:              make(map[uint64]map[string]string),
+		assetsService:              assetsService,
 	}
 }
 
@@ -147,13 +143,19 @@ func (pw Watcher) Watch(q qi.Queue) {
 
 func (pw Watcher) beginWatching() {
 	//The queue will be not used
-	pw.registerAssetsMetrics()
+	pw.registerAllAssetsMetrics()
 	pw.setMetrics()
 }
 
-func (pw Watcher) registerAssetsMetrics() {
+func (pw Watcher) registerAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	for networkId, networkAssets := range fungibleAssets {
+	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
+	pw.registerAssetMetrics(fungibleAssets, true)
+	pw.registerAssetMetrics(nonFungibleAssets, false)
+}
+
+func (pw Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
+	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 			if pw.assetsService.IsNative(networkId, assetAddress) { // native
 				// register native assets balance
@@ -163,6 +165,7 @@ func (pw Watcher) registerAssetsMetrics() {
 					assetAddress,
 					constants.BalanceAssetMetricNameSuffix,
 					constants.BalanceAssetMetricHelpPrefix,
+					isFungible,
 				)
 				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
@@ -173,6 +176,7 @@ func (pw Watcher) registerAssetsMetrics() {
 						wrappedAssetAddress,
 						constants.SupplyAssetMetricNameSuffix,
 						constants.SupplyAssetMetricsHelpPrefix,
+						isFungible,
 					)
 				}
 			}
@@ -186,19 +190,33 @@ func (pw Watcher) registerAssetMetric(
 	assetAddress string,
 	metricNameCnt string,
 	metricHelpCnt string,
+	isFungible bool,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
-
-		if !exist {
-			return
+		var (
+			name, symbol string
+		)
+		if isFungible {
+			assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
+			if !exist {
+				return
+			}
+			name = assetInfo.Name
+			symbol = assetInfo.Symbol
+		} else {
+			assetInfo, exist := pw.assetsService.NonFungibleAssetInfo(wrappedNetworkId, assetAddress)
+			if !exist {
+				return
+			}
+			name = assetInfo.Name
+			symbol = assetInfo.Symbol
 		}
 
 		metricName, metricHelp := getMetricData(
 			nativeNetworkId,
 			wrappedNetworkId,
 			assetAddress,
-			assetInfo.Name,
+			name,
 			metricNameCnt,
 			metricHelpCnt,
 		)
@@ -210,7 +228,7 @@ func (pw Watcher) registerAssetMetric(
 			Name: metricName,
 			Help: metricHelp,
 			ConstLabels: prometheus.Labels{
-				constants.AssetMetricLabelKey: assetInfo.Symbol,
+				constants.AssetMetricLabelKey: symbol,
 			},
 		})
 	}
@@ -248,13 +266,12 @@ func (pw Watcher) setMetrics() {
 
 	for {
 		payerAccount, errPayerAcc := pw.getAccount(pw.configuration.Bridge.Hedera.PayerAccount)
-		bridgeAccount, errBridgeAcc := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
-
 		if errPayerAcc == nil {
 			pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(payerAccount))
 		}
-		if errBridgeAcc == nil {
-			pw.bridgeAccountBalanceGauge.Set(pw.getAccountBalance(bridgeAccount))
+		hbarAssetInfo, ok := pw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
+		if ok {
+			pw.bridgeAccountBalanceGauge.Set(metrics.ConvertToHbar(int(hbarAssetInfo.ReserveAmount.Int64())))
 		}
 
 		for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
@@ -264,7 +281,7 @@ func (pw Watcher) setMetrics() {
 			}
 		}
 
-		pw.setAssetsMetrics(bridgeAccount)
+		pw.setAllAssetsMetrics()
 
 		pw.logger.Infoln("Dashboard Polling interval: ", pw.dashboardPolling)
 		time.Sleep(pw.dashboardPolling)
@@ -286,162 +303,65 @@ func (pw Watcher) getAccountBalance(account *account.AccountsResponse) float64 {
 	return balance
 }
 
-func (pw Watcher) setAssetsMetrics(bridgeAccount *account.AccountsResponse) {
+func (pw Watcher) setAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	for networkId, networkAssets := range fungibleAssets {
+	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
+	pw.setAssetsMetrics(fungibleAssets, true)
+	pw.setAssetsMetrics(nonFungibleAssets, false)
+}
+
+func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) {
+	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
-			if pw.assetsService.IsNative(networkId, assetAddress) { // native
-				// set native assets balance
-				pw.prepareAndSetAssetMetric(networkId, assetAddress, bridgeAccount, true)
-				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
-				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//set wrapped assets total supply
-					pw.prepareAndSetAssetMetric(wrappedNetworkId, wrappedAssetAddress, bridgeAccount, false)
-				}
+			if assetAddress == constants.Hbar { // skip HBAR
+				continue
 			}
+			isNative := pw.assetsService.IsNative(networkId, assetAddress)
+			pw.prepareAndSetAssetMetric(networkId, assetAddress, isFungible, isNative)
 		}
 	}
 }
 
 func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
-	bridgeAccount *account.AccountsResponse,
+	isFungible,
 	isNative bool,
 ) {
+	var value float64
+	assetMetric := pw.prometheusService.GetGauge(pw.assetsMetrics[networkId][assetAddress])
+	var (
+		ReserveAmountInLowestDenomination *big.Int
+		decimals                          uint8
+	)
+	if isFungible {
+		assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetAddress)
+		if ok {
+			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
+			decimals = assetInfo.Decimals
+		}
+	} else {
+		decimals = 0
+		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetAddress)
+		if ok {
+			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
+		}
+	}
 
-	if assetAddress != constants.Hbar { // skip HBAR
-		assetMetric := pw.prometheusService.GetGauge(pw.assetsMetrics[networkId][assetAddress])
-		value, e := pw.getAssetMetricValue(networkId, assetAddress, bridgeAccount, isNative)
-		if e != nil {
-			pw.logger.Errorf("Network ID [%d] and asset [%s] for getAssetMetricValue Error: [%s]", networkId, assetAddress, e)
+	if decimals != 0 {
+		converted, err := metrics.ConvertBasedOnDecimal(ReserveAmountInLowestDenomination, decimals)
+		if err != nil {
+			pw.logger.Errorf("Failed to convert asset ReserveAmount to decimal. Error: %s", err)
 			return
 		}
-		logString := constants.SupplyAssetMetricsHelpPrefix
-		if isNative {
-			logString = constants.BalanceAssetMetricHelpPrefix
-		}
-
-		assetMetric.Set(value)
-		pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
-	}
-}
-
-func (pw Watcher) getAssetMetricValue(
-	networkId uint64,
-	assetAddress string,
-	bridgeAccount *account.AccountsResponse,
-	isNative bool,
-) (value float64, err error) {
-	var (
-		decimal uint8
-	)
-	if networkId != constants.HederaNetworkId { // EVM
-		dec, e := pw.EVMTokenClients[networkId][assetAddress].Decimals(&bind.CallOpts{})
-		if e != nil {
-			pw.logger.Errorf("EVM with networkId [%d] for asset [%s], and method Decimals - Error: [%s]", networkId, assetAddress, e)
-			return 0, e
-		}
-		decimal = dec
+		value = *converted
+	} else {
+		value, _ = new(big.Float).SetInt(ReserveAmountInLowestDenomination).Float64()
 	}
 
-	if networkId == constants.HederaNetworkId { //Hedera
-		if isNative { // Hedera native balance
-			value, err = pw.getHederaTokenBalance(assetAddress, bridgeAccount)
-		} else { // Hedera wrapped total supply
-			value, err = pw.getHederaTokenSupply(assetAddress)
-		}
-	} else { // EVM
-		if isNative { // EVM native balance
-			value, err = pw.getEVMBalance(networkId, decimal, assetAddress)
-		} else { // EVM wrapped total supply
-			value, err = pw.getEVMSupply(decimal, networkId, assetAddress)
-		}
+	logString := constants.SupplyAssetMetricsHelpPrefix
+	if isNative {
+		logString = constants.BalanceAssetMetricHelpPrefix
 	}
-	return value, err
-}
-
-func (pw Watcher) getHederaTokenBalance(assetAddress string, bridgeAccount *account.AccountsResponse) (value float64, err error) {
-	if bridgeAccount == nil {
-		return 0, errors.New(fmt.Sprintf("Bridge account cannot be nil"))
-	}
-	for _, token := range bridgeAccount.Balance.Tokens {
-		if assetAddress == token.TokenID {
-			asset, e := pw.mirrorNode.GetToken(assetAddress)
-			if e != nil {
-				pw.logger.Errorf("Hedera Mirror Node for asset [%s] method GetToken - Error: [%s]", assetAddress, e)
-				return 0, e
-			}
-			dec, e := strconv.Atoi(asset.Decimals)
-			if e != nil {
-				pw.logger.Errorf("Hedera asset [%s] convert decimals to string method Atio - Error: [%s]", assetAddress, e)
-				return 0, e
-			}
-			decimal := uint8(dec)
-
-			b := big.NewInt(int64(token.Balance))
-			balance, e := metrics.ConvertBasedOnDecimal(b, decimal)
-			if e != nil {
-				pw.logger.Errorf("Hedera asset [%s] balance ConvertBasedOnDecimal - Error: [%s]", assetAddress, e)
-				return 0, e
-			}
-			value = *balance
-		}
-	}
-	return value, nil
-}
-
-func (pw Watcher) getHederaTokenSupply(assetAddress string) (float64, error) {
-	asset, e := pw.mirrorNode.GetToken(assetAddress)
-	if e != nil {
-		pw.logger.Errorf("Hedera Mirror Node for asset [%s] method GetToken - Error: [%s]", assetAddress, e)
-		return 0, e
-	}
-	dec, e := strconv.Atoi(asset.Decimals)
-	if e != nil {
-		pw.logger.Errorf("Hedera asset [%s] convert decimals to string, method Atio - Error: [%s]", assetAddress, e)
-		return 0, e
-	}
-	decimal := uint8(dec)
-
-	ts, ok := new(big.Int).SetString(asset.TotalSupply, 10)
-	if !ok {
-		pw.logger.Errorf(`"Hedera assed [%s] total supply SetString - Error": [%s].`, assetAddress, asset.TotalSupply)
-		return 0, e
-	}
-	totalSupply, e := metrics.ConvertBasedOnDecimal(ts, decimal)
-	if e != nil {
-		pw.logger.Errorf("Hedera asset [%s] total supply ConvertBasedOnDecimal - Error: [%s]", assetAddress, e)
-		return 0, e
-	}
-	return *totalSupply, nil
-}
-
-func (pw Watcher) getEVMBalance(networkId uint64, decimal uint8, assetAddress string) (float64, error) {
-	address := common.HexToAddress(pw.configuration.Bridge.EVMs[networkId].RouterContractAddress)
-
-	b, e := pw.EVMTokenClients[networkId][assetAddress].BalanceOf(&bind.CallOpts{}, address)
-	if e != nil {
-		pw.logger.Errorf("EVM with networkId [%d] for asset [%s], and method BalanceOf - Error: [%s]", networkId, assetAddress, e)
-		return 0, e
-	}
-	balance, e := metrics.ConvertBasedOnDecimal(b, decimal)
-	if e != nil {
-		pw.logger.Errorf("EVM with networkId [%d] asset [%s] for balance, and method ConvertBasedOnDecimal - Error: [%s]", networkId, assetAddress, e)
-		return 0, e
-	}
-	return *balance, nil
-}
-
-func (pw Watcher) getEVMSupply(decimal uint8, networkId uint64, assetAddress string) (float64, error) {
-	ts, e := pw.EVMTokenClients[networkId][assetAddress].TotalSupply(&bind.CallOpts{})
-	if e != nil {
-		pw.logger.Errorf("EVM networkId [%d] asset [%s] for method TotalSupply - Error: [%s]", networkId, assetAddress, e)
-		return 0, e
-	}
-	totalSupply, e := metrics.ConvertBasedOnDecimal(ts, decimal)
-	if e != nil {
-		pw.logger.Errorf("EVM networkId [%d] asset [%s] for total supply method ConvertBasedOnDecimal - Error: [%s]", networkId, assetAddress, e)
-		return 0, e
-	}
-	return *totalSupply, nil
+	assetMetric.Set(value)
+	pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
 }

@@ -16,6 +16,8 @@
 
 package account
 
+import "github.com/limechain/hedera-eth-bridge-validator/constants"
+
 type (
 	// AccountsResponse struct used by the Hedera Mirror node REST API to return information
 	// regarding a given Account
@@ -37,3 +39,13 @@ type (
 		Balance int    `json:"balance"`
 	}
 )
+
+func (b *Balance) GetAccountTokenBalancesByAddress() map[string]int {
+	hederaTokenBalancesByAddress := make(map[string]int)
+	for _, token := range b.Tokens {
+		hederaTokenBalancesByAddress[token.TokenID] = token.Balance
+	}
+	hederaTokenBalancesByAddress[constants.Hbar] = b.Balance
+
+	return hederaTokenBalancesByAddress
+}

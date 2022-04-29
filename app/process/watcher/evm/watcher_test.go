@@ -95,8 +95,8 @@ var (
 
 	nilNativeAsset       *asset.NativeAsset
 	hbarNativeAsset      = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
-	fungibleAssetInfo    = asset.FungibleAssetInfo{Decimals: 8}
-	evmFungibleAssetInfo = asset.FungibleAssetInfo{Decimals: 18}
+	fungibleAssetInfo    = &asset.FungibleAssetInfo{Decimals: 8}
+	evmFungibleAssetInfo = &asset.FungibleAssetInfo{Decimals: 18}
 	tokenPriceInfo       = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
 )
 

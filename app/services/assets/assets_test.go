@@ -19,6 +19,7 @@ package assets
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -40,15 +41,25 @@ var (
 	evmClients              = make(map[uint64]client.EVM)
 	evmCoreClients          = make(map[uint64]client.Core)
 	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
-	evmNFTClients           = make(map[uint64]map[string]client.EvmNft)
+	evmNftClients           = make(map[uint64]map[string]client.EvmNft)
 	hederaPercentages       = make(map[string]int64)
+	hederaAccount           = account.AccountsResponse{
+		Account: testConstants.BridgeAccountId,
+		Balance: account.Balance{
+			Balance:   int(testConstants.ReserveAmount),
+			Timestamp: "",
+			Tokens:    []account.AccountToken{},
+		},
+	}
+	hederaTokenBalances   = make(map[string]int)
+	routerContractAddress = "router"
 )
 
 func Test_New(t *testing.T) {
 	setup()
 	setupClientMocks()
 
-	actualService := NewService(testConstants.ParserBridge.Networks, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNFTClients)
+	actualService := NewService(testConstants.ParserBridge.Networks, testConstants.ParserBridge.Networks[0].BridgeAccount, hederaPercentages, routerClients, mocks.MHederaMirrorClient, evmFungibleTokenClients, evmNftClients)
 
 	assert.Equal(t, serviceInstance.nativeToWrapped, actualService.nativeToWrapped)
 	assert.Equal(t, serviceInstance.wrappedToNative, actualService.wrappedToNative)
@@ -206,6 +217,91 @@ func Test_NonFungibleAssetInfo(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
+func Test_FetchEvmFungibleReserveAmount_Native(t *testing.T) {
+	setup()
+	setupClientMocks()
+
+	asset := testConstants.NetworkEthereumFungibleNativeToken
+	tokenClient := evmFungibleTokenClients[testConstants.EthereumNetworkId][asset]
+	expectedReserveAmount := testConstants.ReserveAmountBigInt
+	tokenClient.(*testClient.MockEvmFungibleToken).On("BalanceOf", &bind.CallOpts{}, common.HexToAddress(routerContractAddress)).Return(expectedReserveAmount, nil)
+
+	actual, err := serviceInstance.FetchEvmFungibleReserveAmount(testConstants.EthereumNetworkId, asset, true, tokenClient, routerContractAddress)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
+func Test_FetchEvmFungibleReserveAmount_Wrapped(t *testing.T) {
+	setup()
+	setupClientMocks()
+
+	asset := testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHedera
+	tokenClient := evmFungibleTokenClients[testConstants.EthereumNetworkId][asset]
+	expectedReserveAmount := testConstants.ReserveAmountBigInt
+	tokenClient.(*testClient.MockEvmFungibleToken).On("TotalSupply", &bind.CallOpts{}).Return(expectedReserveAmount, nil)
+
+	actual, err := serviceInstance.FetchEvmFungibleReserveAmount(testConstants.EthereumNetworkId, asset, false, tokenClient, routerContractAddress)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
+func Test_FetchEvmNonFungibleReserveAmount_Native(t *testing.T) {
+	setup()
+	setupClientMocks()
+
+	asset := testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera
+	tokenClient := evmNftClients[testConstants.PolygonNetworkId][asset]
+	expectedReserveAmount := testConstants.ReserveAmountBigInt
+	tokenClient.(*testClient.MockEvmNonFungibleToken).On("BalanceOf", &bind.CallOpts{}, common.HexToAddress(routerContractAddress)).Return(expectedReserveAmount, nil)
+
+	actual, err := serviceInstance.FetchEvmNonFungibleReserveAmount(testConstants.PolygonNetworkId, asset, true, tokenClient, routerContractAddress)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
+func Test_FetchEvmNonFungibleReserveAmount_Wrapped(t *testing.T) {
+	setup()
+	setupClientMocks()
+	asset := testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera
+	tokenClient := evmNftClients[testConstants.PolygonNetworkId][asset]
+	expectedReserveAmount := testConstants.ReserveAmountWrappedNFTBigInt
+
+	actual, err := serviceInstance.FetchEvmNonFungibleReserveAmount(testConstants.PolygonNetworkId, asset, false, tokenClient, routerContractAddress)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
+func Test_FetchHederaTokenReserveAmount_Native(t *testing.T) {
+	setup()
+	setupClientMocks()
+
+	asset := constants.Hbar
+	expectedReserveAmount := testConstants.ReserveAmountBigInt
+	actual, err := serviceInstance.FetchHederaTokenReserveAmount(asset, mocks.MHederaMirrorClient, true, hederaTokenBalances)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
+func Test_FetchHederaTokenReserveAmount_Wrapped(t *testing.T) {
+	setup()
+	setupClientMocks()
+
+	asset := constants.Hbar
+	expectedReserveAmount := testConstants.ReserveAmountBigInt
+	mocks.MHederaMirrorClient.On("GetToken", asset).Return(&token.TokenResponse{
+		TotalSupply: expectedReserveAmount.String(),
+	})
+	actual, err := serviceInstance.FetchHederaTokenReserveAmount(asset, mocks.MHederaMirrorClient, false, hederaTokenBalances)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedReserveAmount, actual)
+}
+
 func setup() {
 	mocks.Setup()
 	helper.SetupNetworks()
@@ -218,31 +314,40 @@ func setup() {
 		fungibleAssetInfos:       testConstants.FungibleAssetInfos,
 		nonFungibleNetworkAssets: testConstants.NonFungibleNetworkAssets,
 		nonFungibleAssetInfos:    testConstants.NonFungibleAssetInfos,
+		bridgeAccountId:          testConstants.BridgeAccountId,
 		logger:                   config.GetLoggerFor("Assets Service"),
 	}
 }
 
 func setupClientMocks() {
-	for networkId := range testConstants.Networks {
+	for networkId, networkInfo := range testConstants.Networks {
 		if networkId != constants.HederaNetworkId {
 			evmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
-			evmNFTClients[networkId] = make(map[string]client.EvmNft)
+			evmNftClients[networkId] = make(map[string]client.EvmNft)
 			evmClients[networkId] = &testClient.MockEVM{}
 			evmCoreClients[networkId] = &testClient.MockEVMCore{}
 			evmClients[networkId].(*testClient.MockEVM).On("GetClient").Return(evmCoreClients[networkId])
 			routerClients[networkId] = new(testClient.MockDiamondRouter)
 		}
 
+		// FUNGIBLE //
 		fungibleAssets := testConstants.FungibleNetworkAssets[networkId]
 		for _, asset := range fungibleAssets {
 			hederaPercentages[asset] = testConstants.FeePercentage
+			assetInfo := testConstants.FungibleAssetInfos[networkId][asset]
+			isNative := assetInfo.IsNative
 			if networkId == constants.HederaNetworkId {
+				hederaTokenBalances[asset] = int(testConstants.ReserveAmount)
+				hederaAccount.Balance.Tokens = append(hederaAccount.Balance.Tokens, account.AccountToken{
+					TokenID: asset,
+					Balance: int(testConstants.ReserveAmount),
+				})
 				// Hedera
 				tokenResponse := token.TokenResponse{
 					TokenID:     asset,
 					Name:        asset,
 					Symbol:      asset,
-					TotalSupply: "100",
+					TotalSupply: testConstants.ReserveAmountStr,
 					Decimals:    strconv.Itoa(int(constants.HederaDefaultDecimals)),
 				}
 				mocks.MHederaMirrorClient.On("GetToken", asset).Return(&tokenResponse, nil)
@@ -254,6 +359,11 @@ func setupClientMocks() {
 			evmFungibleTokenClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("Name", &bind.CallOpts{}).Return(asset, nil)
 			evmFungibleTokenClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("Symbol", &bind.CallOpts{}).Return(asset, nil)
 			evmFungibleTokenClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("Decimals", &bind.CallOpts{}).Return(constants.EvmDefaultDecimals, nil)
+			if isNative {
+				evmFungibleTokenClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("BalanceOf", &bind.CallOpts{}, common.HexToAddress(networkInfo.RouterContractAddress)).Return(testConstants.ReserveAmountBigInt, nil)
+			} else {
+				evmFungibleTokenClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("TotalSupply", &bind.CallOpts{}).Return(testConstants.ReserveAmountBigInt, nil)
+			}
 			tokenFeeDataResult := struct {
 				ServiceFeePercentage *big.Int
 				FeesAccrued          *big.Int
@@ -268,16 +378,25 @@ func setupClientMocks() {
 			routerClients[networkId].(*testClient.MockDiamondRouter).On("TokenFeeData", &bind.CallOpts{}, common.HexToAddress(asset)).Return(tokenFeeDataResult, nil)
 		}
 
+		// NON-FUNGIBLE //
 		nonFungibleAssets := testConstants.NonFungibleNetworkAssets[networkId]
 		for _, asset := range nonFungibleAssets {
+			assetInfo := testConstants.NonFungibleAssetInfos[networkId][asset]
+			isNative := assetInfo.IsNative
 			hederaPercentages[asset] = testConstants.FeePercentage
 			if networkId == constants.HederaNetworkId {
+				hederaTokenBalances[asset] = int(testConstants.ReserveAmount)
+				hederaAccount.Balance.Tokens = append(hederaAccount.Balance.Tokens, account.AccountToken{
+					TokenID: asset,
+					Balance: int(testConstants.ReserveAmount),
+				})
+
 				// Hedera
 				tokenResponse := token.TokenResponse{
 					TokenID:     asset,
 					Name:        asset,
 					Symbol:      asset,
-					TotalSupply: "100",
+					TotalSupply: testConstants.ReserveAmountStr,
 					Decimals:    "0",
 				}
 				mocks.MHederaMirrorClient.On("GetToken", asset).Return(&tokenResponse, nil)
@@ -285,9 +404,9 @@ func setupClientMocks() {
 			}
 
 			// EVM
-			evmNFTClients[networkId][asset] = new(testClient.MockEvmNonFungibleToken)
-			evmNFTClients[networkId][asset].(*testClient.MockEvmNonFungibleToken).On("Name", &bind.CallOpts{}).Return(asset, nil)
-			evmNFTClients[networkId][asset].(*testClient.MockEvmNonFungibleToken).On("Symbol", &bind.CallOpts{}).Return(asset, nil)
+			evmNftClients[networkId][asset] = new(testClient.MockEvmNonFungibleToken)
+			evmNftClients[networkId][asset].(*testClient.MockEvmNonFungibleToken).On("Name", &bind.CallOpts{}).Return(asset, nil)
+			evmNftClients[networkId][asset].(*testClient.MockEvmNonFungibleToken).On("Symbol", &bind.CallOpts{}).Return(asset, nil)
 			tokenFeeDataResult := struct {
 				ServiceFeePercentage *big.Int
 				FeesAccrued          *big.Int
@@ -295,7 +414,14 @@ func setupClientMocks() {
 				Accumulator          *big.Int
 			}{big.NewInt(testConstants.FeePercentage), big.NewInt(0), big.NewInt(0), big.NewInt(0)}
 			routerClients[networkId].(*testClient.MockDiamondRouter).On("TokenFeeData", &bind.CallOpts{}, common.HexToAddress(asset)).Return(tokenFeeDataResult, nil)
+			if isNative {
+				evmNftClients[networkId][asset].(*testClient.MockEvmNonFungibleToken).On("BalanceOf", &bind.CallOpts{}, common.HexToAddress(networkInfo.RouterContractAddress)).Return(testConstants.ReserveAmountBigInt, nil)
+			} /* else { // TODO: Uncomment the line below when we update the NFTs to extend ERC721Enumerable
+				evmNftClients[networkId][asset].(*testClient.MockEvmFungibleToken).On("TotalSupply", &bind.CallOpts{}).Return(testConstants.ReserveAmountBigInt, nil)
+			} */
 		}
 
 	}
+
+	mocks.MHederaMirrorClient.On("GetAccount", testConstants.BridgeAccountId).Return(&hederaAccount, nil)
 }
