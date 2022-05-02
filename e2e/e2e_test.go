@@ -433,7 +433,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 
 	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleTransferRecord, t)
 	// Step 9: Validate Treasury(BridgeAccount) Balance and Receiver Balance
-	validateAccountBalance(setupEnv, setupEnv.BridgeAccount, constants.HederaNetworkId, bridgeAccountBalanceBefore, targetAsset, t)
+	validateAccountBalance(setupEnv, setupEnv.BridgeAccount, 0, bridgeAccountBalanceBefore, targetAsset, t)
 	validateAccountBalance(setupEnv, setupEnv.Clients.Hedera.GetOperatorAccountID(), uint64(expectedAmount), receiverAccountBalanceBefore, targetAsset, t)
 }
 

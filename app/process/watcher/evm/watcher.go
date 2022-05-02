@@ -597,7 +597,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if transfer.TargetChainId == 0 {
+		if transfer.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.HederaNftTransfer})
 		} else {
 			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
@@ -607,7 +607,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		transfer.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if transfer.TargetChainId == 0 {
+		if transfer.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.ReadOnlyHederaUnlockNftTransfer})
 		} else {
 			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)

@@ -73,8 +73,8 @@ func Load() *Setup {
 		NftFees:        map[string]int64{},
 	}
 
-	if e2eConfig.Bridge.Networks[0] != nil {
-		feePercentages, nftFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[0].Tokens)
+	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
+		feePercentages, nftFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
 		configuration.FeePercentages = feePercentages
 		configuration.NftFees = nftFees
 	}
