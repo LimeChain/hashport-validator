@@ -565,7 +565,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	}
 
 	recipientAccount := ""
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Uint64() == constants.HederaNetworkId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
