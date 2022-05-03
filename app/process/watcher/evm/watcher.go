@@ -565,7 +565,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	}
 
 	recipientAccount := ""
-	if eventLog.TargetChain.Int64() == 0 {
+	if eventLog.TargetChain.Uint64() == constants.HederaNetworkId {
 		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
 		if err != nil {
 			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
@@ -597,20 +597,20 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	currentBlockNumber := eventLog.Raw.BlockNumber
 
 	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if transfer.TargetChainId == 0 {
+		if transfer.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.HederaNftTransfer})
 		} else {
-			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, 0)
+			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
 			return
 		}
 	} else {
 		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
 
 		transfer.Timestamp = strconv.FormatUint(blockTimestamp, 10)
-		if transfer.TargetChainId == 0 {
+		if transfer.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.ReadOnlyHederaUnlockNftTransfer})
 		} else {
-			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, 0)
+			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
 			return
 		}
 	}

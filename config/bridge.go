@@ -84,6 +84,9 @@ func NewBridge(bridge parser.Bridge) Bridge {
 	config.CoinMarketCapIds = make(map[uint64]map[string]string)
 	config.MinAmounts = make(map[uint64]map[string]*big.Int)
 	for networkId, networkInfo := range bridge.Networks {
+		if networkInfo.Name == constants.HederaName {
+			constants.HederaNetworkId = networkId
+		}
 		constants.NetworksByName[networkInfo.Name] = networkId
 		constants.NetworksById[networkId] = networkInfo.Name
 		config.CoinGeckoIds[networkId] = make(map[string]string)

@@ -43,7 +43,7 @@ import (
 var (
 	tokenAddressString  = "0x0000000000000000000000000000000000000000"
 	tokenAddress        = common.HexToAddress(tokenAddressString)
-	targetChainId       = uint64(0)
+	targetChainId       = constants.HederaNetworkId
 	targetChainIdBigInt = big.NewInt(0).SetUint64(targetChainId)
 	w                   = &Watcher{}
 	sourceChainId       = uint64(33)
