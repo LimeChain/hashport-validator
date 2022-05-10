@@ -239,6 +239,9 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
+	transferMessage.RealTimestamp = time.Unix(0, transactionTimestamp)
+	transferMessage.Originator = tx.Transfers[0].Account
+
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == constants.HederaNetworkId {

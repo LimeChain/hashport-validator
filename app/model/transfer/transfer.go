@@ -16,6 +16,8 @@
 
 package transfer
 
+import "time"
+
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
 	TransactionId string
@@ -32,6 +34,7 @@ type Transfer struct {
 	IsNft         bool
 	Timestamp     string
 	Originator    string
+	RealTimestamp time.Time
 }
 
 // New instantiates Transfer struct ready for submission to the handler

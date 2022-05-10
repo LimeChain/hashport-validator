@@ -423,7 +423,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
 		Originator:    originator,
-		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
+		RealTimestamp: time.Unix(0, int64(blockTimestamp)),
 	}
 
 	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
@@ -440,8 +440,6 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.TopicMessageSubmission})
 		}
 	} else {
-		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-
 		burnEvent.Timestamp = strconv.FormatUint(blockTimestamp, 10)
 		if burnEvent.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: burnEvent, Topic: constants.ReadOnlyHederaTransfer})
@@ -534,7 +532,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
 		Originator:    originator,
-		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
+		RealTimestamp: time.Unix(0, int64(blockTimestamp)),
 	}
 
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
@@ -553,8 +551,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.TopicMessageSubmission})
 		}
 	} else {
-		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-
 		tr.Timestamp = strconv.FormatUint(blockTimestamp, 10)
 		if tr.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})
@@ -626,7 +622,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		IsNft:         true,
 		SerialNum:     eventLog.TokenId.Int64(),
 		Originator:    originator,
-		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
+		RealTimestamp: time.Unix(0, int64(blockTimestamp)),
 	}
 
 	ew.logger.Infof("[%s] - New ERC-721Burn ERC-721 Event Log with TokenId [%d], Receiver Address [%s] has been found.",
@@ -644,8 +640,6 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 			return
 		}
 	} else {
-		blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-
 		transfer.Timestamp = strconv.FormatUint(blockTimestamp, 10)
 		if transfer.TargetChainId == constants.HederaNetworkId {
 			q.Push(&queue.Message{Payload: transfer, Topic: constants.ReadOnlyHederaUnlockNftTransfer})
