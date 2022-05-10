@@ -144,7 +144,7 @@ func (m *migrator) migrateNode(i int) error {
 	defer tx.Rollback()
 
 	page := 1
-	const perPage = 5
+	const perPage = 50
 	totalUpdated := 0
 	for {
 		if totalUpdated >= count {
