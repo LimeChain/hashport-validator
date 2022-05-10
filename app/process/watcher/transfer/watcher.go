@@ -240,8 +240,13 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	transferMessage.RealTimestamp = time.Unix(0, transactionTimestamp)
-	transferMessage.Originator = tx.Transfers[0].Account
+	originator, err := hederaHelper.OriginatorFromTx(tx)
+	if err != nil {
+		ctw.logger.Errorf("[%s] - Failed to get originator of tx. Error: [%s]", tx.TransactionID, err)
+	}
+
+	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
+	transferMessage.Originator = originator
 
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
