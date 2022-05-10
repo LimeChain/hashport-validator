@@ -34,8 +34,15 @@ const (
 
 func LoadConfig() (Config, parser.Bridge) {
 	var parsed parser.Config
-	GetConfig(&parsed, defaultBridgeFile)
-	GetConfig(&parsed, defaultNodeFile)
+	err := GetConfig(&parsed, defaultBridgeFile)
+	if err != nil {
+		panic(err)
+	}
+
+	err = GetConfig(&parsed, defaultNodeFile)
+	if err != nil {
+		panic(err)
+	}
 
 	if err := env.Parse(&parsed); err != nil {
 		panic(err)
