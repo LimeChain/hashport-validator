@@ -241,7 +241,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	originator := hederaHelper.OriginatorFromTx(tx.TransactionID)
+	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
 	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
 	transferMessage.Originator = originator
 

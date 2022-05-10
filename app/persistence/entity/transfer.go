@@ -36,7 +36,7 @@ type Transfer struct {
 	SerialNumber  int64
 	Metadata      string
 	IsNft         bool      `gorm:"default:false"`
-	Timestamp     time.Time `sql:"type:timestamp"`
+	Timestamp     time.Time `sql:"type:timestamp" gorm:"index:,sort:desc"`
 	Originator    string
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
 	Fees          []Fee      `gorm:"foreignKey:TransferID"`
