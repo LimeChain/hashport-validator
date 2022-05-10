@@ -20,6 +20,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -37,8 +40,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"time"
 )
 
 type Watcher struct {
@@ -240,11 +241,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	originator, err := hederaHelper.OriginatorFromTx(tx)
-	if err != nil {
-		ctw.logger.Errorf("[%s] - Failed to get originator of tx. Error: [%s]", tx.TransactionID, err)
-	}
-
+	originator := hederaHelper.OriginatorFromTx(tx.TransactionID)
 	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
 	transferMessage.Originator = originator
 
