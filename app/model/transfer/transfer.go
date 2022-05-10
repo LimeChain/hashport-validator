@@ -20,21 +20,21 @@ import "time"
 
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
-	TransactionId string
-	SourceChainId uint64
-	TargetChainId uint64
-	NativeChainId uint64
-	SourceAsset   string
-	TargetAsset   string
-	NativeAsset   string
-	Receiver      string
-	Amount        string
-	SerialNum     int64
-	Metadata      string
-	IsNft         bool
-	Timestamp     string
-	Originator    string
-	RealTimestamp time.Time
+	TransactionId    string
+	SourceChainId    uint64
+	TargetChainId    uint64
+	NativeChainId    uint64
+	SourceAsset      string
+	TargetAsset      string
+	NativeAsset      string
+	Receiver         string
+	Amount           string
+	SerialNum        int64
+	Metadata         string
+	IsNft            bool
+	Originator       string
+	Timestamp        time.Time
+	NetworkTimestamp string
 }
 
 // New instantiates Transfer struct ready for submission to the handler

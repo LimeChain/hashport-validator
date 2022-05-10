@@ -60,19 +60,19 @@ var (
 	nilErr             error
 
 	payload = &model.Transfer{
-		TransactionId: transactionId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		Amount:        amount,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         isNft,
-		Timestamp:     timestamp,
+		TransactionId:    transactionId,
+		SourceChainId:    sourceChainId,
+		TargetChainId:    targetChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      sourceAsset,
+		TargetAsset:      targetAsset,
+		NativeAsset:      nativeAsset,
+		Receiver:         receiver,
+		Amount:           amount,
+		SerialNum:        serialNum,
+		Metadata:         metadata,
+		IsNft:            isNft,
+		NetworkTimestamp: timestamp,
 	}
 
 	entityTransfer = &entity.Transfer{
@@ -248,14 +248,14 @@ func Test_fetch(t *testing.T) {
 	mocks.MHederaMirrorClient.On(
 		"GetAccountDebitTransactionsAfterTimestampString",
 		bridgeAccount,
-		payload.Timestamp,
+		payload.NetworkTimestamp,
 	).Return(expectedResponse, nilErr)
 
 	actualResponse, err := handler.fetch(payload)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResponse, actualResponse)
-	mocks.MHederaMirrorClient.AssertCalled(t, "GetAccountDebitTransactionsAfterTimestampString", bridgeAccount, payload.Timestamp)
+	mocks.MHederaMirrorClient.AssertCalled(t, "GetAccountDebitTransactionsAfterTimestampString", bridgeAccount, payload.NetworkTimestamp)
 }
 
 func Test_save(t *testing.T) {

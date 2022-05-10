@@ -33,16 +33,16 @@ import (
 var (
 	h  *Handler
 	tr = &model.Transfer{
-		TransactionId: "some-tx-id",
-		SourceChainId: 0,
-		TargetChainId: 1,
-		NativeChainId: 0,
-		SourceAsset:   constants.Hbar,
-		TargetAsset:   "0xb083879B1e10C8476802016CB12cd2F25a896691",
-		NativeAsset:   constants.Hbar,
-		Receiver:      "0xsomeotherethaddress",
-		Amount:        "100",
-		Timestamp:     "1",
+		TransactionId:    "some-tx-id",
+		SourceChainId:    0,
+		TargetChainId:    1,
+		NativeChainId:    0,
+		SourceAsset:      constants.Hbar,
+		TargetAsset:      "0xb083879B1e10C8476802016CB12cd2F25a896691",
+		NativeAsset:      constants.Hbar,
+		Receiver:         "0xsomeotherethaddress",
+		Amount:           "100",
+		NetworkTimestamp: "1",
 	}
 	accountId = hedera.AccountID{
 		Shard:   0,
