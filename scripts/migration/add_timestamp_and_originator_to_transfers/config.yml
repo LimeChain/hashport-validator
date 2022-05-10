@@ -1,26 +1,17 @@
 dbs:
-  - host: 127.0.0.1
+  - host: localhost
     name: hedera_validator
     password: validator_pass
-    port: 5432
+    port: 6432
     username: validator
-  - host: 127.0.0.1
-    name: hedera_validator
-    password: validator_pass
-    port: 5432
-    username: validator
-  - host: 127.0.0.1
-    name: hedera_validator
-    password: validator_pass
-    port: 5432
-    username: validator
-  - host: 127.0.0.1
-    name: hedera_validator
-    password: validator_pass
-    port: 5432
-    username: validator
+hedera:
+  env:
+  account_id:
+  private_key:
+  mirror_node:
+    api_address:
+    client_address:
+    polling_interval:
 evm:
   80001:
-    node_url:
   43113:
-    node_url: 
