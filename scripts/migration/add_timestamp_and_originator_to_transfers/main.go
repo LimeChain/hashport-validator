@@ -205,7 +205,7 @@ func (m *migrator) evmFields(transfer *entity.Transfer) error {
 		return err
 	}
 
-	uT := time.Unix(int64(block.Time()), 0)
+	uT := time.Unix(0, int64(block.Time()))
 	transfer.Timestamp = uT
 
 	t3, cancel3 := context.WithTimeout(context.Background(), time.Second*5)
