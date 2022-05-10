@@ -16,7 +16,10 @@
 
 package entity
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type Transfer struct {
 	TransactionID string `gorm:"primaryKey"`
@@ -32,7 +35,9 @@ type Transfer struct {
 	Status        string
 	SerialNumber  int64
 	Metadata      string
-	IsNft         bool       `gorm:"default:false"`
+	IsNft         bool      `gorm:"default:false"`
+	Timestamp     time.Time `sql:"type:timestamp"`
+	Originator    string
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
 	Fees          []Fee      `gorm:"foreignKey:TransferID"`
 	Schedules     []Schedule `gorm:"foreignKey:TransferID"`

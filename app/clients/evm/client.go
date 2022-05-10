@@ -262,7 +262,9 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	}
 }
 
-func (ec *Client) Transaction(ctx context.Context, hash common.Hash) (*types.Transaction, error) {
+func (ec *Client) Transaction(hash common.Hash) (*types.Transaction, error) {
+	ctx, c := context.WithTimeout(context.Background(), time.Second*5)
+	defer c()
 	tx, _, err := ec.TransactionByHash(ctx, hash)
 	return tx, err
 }
