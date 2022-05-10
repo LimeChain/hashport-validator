@@ -31,6 +31,7 @@ type Transfer struct {
 	Metadata      string
 	IsNft         bool
 	Timestamp     string
+	Originator    string
 }
 
 // New instantiates Transfer struct ready for submission to the handler
