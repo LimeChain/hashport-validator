@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"time"
 )
 
 type Transfer interface {
@@ -27,6 +28,9 @@ type Transfer interface {
 	// Returns Transfer with preloaded Fee table. Returns nil if not found
 	GetWithFee(txId string) (*entity.Transfer, error)
 	GetWithPreloads(txId string) (*entity.Transfer, error)
+	Paged(perPage int, startTimestamp time.Time) ([]*entity.Transfer, error)
+	// PagedOffset TODO: Temp for migration
+	PagedOffset(page int, perPage int) ([]*entity.Transfer, error)
 	UpdateFee(txId string, fee string) error
 
 	Create(ct *transfer.Transfer) (*entity.Transfer, error)

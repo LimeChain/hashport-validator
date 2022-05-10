@@ -24,6 +24,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Repository struct {
@@ -90,6 +91,35 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 		return nil, result.Error
 	}
 	return tx, nil
+}
+
+func (tr Repository) Paged(perPage int, startTimestamp time.Time) ([]*entity.Transfer, error) {
+	res := make([]*entity.Transfer, 0, perPage)
+	tx := tr.dbClient.
+		Model(entity.Transfer{}).
+		Where("timestamp > ?", startTimestamp).
+		Order("timestamp asc").
+		Limit(perPage).
+		Find(res)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return res, nil
+}
+
+func (tr Repository) PagedOffset(page int, perPage int) ([]*entity.Transfer, error) {
+	res := make([]*entity.Transfer, 0, perPage)
+	tx := tr.dbClient.
+		Model(entity.Transfer{}).
+		Offset((page - 1) * perPage).
+		Limit(perPage).
+		Find(res)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return res, nil
 }
 
 // Create creates new record of Transfer
