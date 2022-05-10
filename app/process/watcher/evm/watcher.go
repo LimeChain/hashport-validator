@@ -410,6 +410,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	originator, err := evm.OriginatorFromTx(tx)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
 	}
 
 	burnEvent := &transfer.Transfer{
@@ -519,6 +520,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	originator, err := evm.OriginatorFromTx(tx)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
 	}
 
 	tr := &transfer.Transfer{
@@ -608,6 +610,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	originator, err := evm.OriginatorFromTx(tx)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
 	}
 
 	transfer := &transfer.Transfer{

@@ -20,6 +20,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/stretchr/testify/mock"
+	"time"
 )
 
 type MockTransferRepository struct {
@@ -69,4 +70,14 @@ func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 		return nil
 	}
 	return args.Get(0).(error)
+}
+
+func (m *MockTransferRepository) Paged(perPage int, startTimestamp time.Time) ([]*entity.Transfer, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockTransferRepository) PagedOffset(page int, perPage int) ([]*entity.Transfer, error) {
+	//TODO implement me
+	panic("implement me")
 }
