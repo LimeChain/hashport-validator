@@ -31,6 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -400,6 +401,17 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
+	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
+	}
+	originator, err := evm.OriginatorFromTx(tx)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+	}
+
 	burnEvent := &transfer.Transfer{
 		TransactionId: transactionId,
 		SourceChainId: sourceChainId,
@@ -410,6 +422,8 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
+		Originator:    originator,
+		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
 	}
 
 	ew.logger.Infof("[%s] - New Burn Event Log with Amount [%s], Receiver Address [%s] has been found.",
@@ -498,6 +512,17 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
+	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
+	}
+	originator, err := evm.OriginatorFromTx(tx)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+	}
+
 	tr := &transfer.Transfer{
 		TransactionId: transactionId,
 		SourceChainId: sourceChainId,
@@ -508,6 +533,8 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		NativeAsset:   token,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
+		Originator:    originator,
+		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
 	}
 
 	ew.logger.Infof("[%s] - New Lock Event Log with Amount [%s], Receiver Address [%s], Source Chain [%d] and Target Chain [%d] has been found.",
@@ -576,6 +603,17 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
+	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
+	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
+		return
+	}
+	originator, err := evm.OriginatorFromTx(tx)
+	if err != nil {
+		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+	}
+
 	transfer := &transfer.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: sourceChainId,
@@ -587,6 +625,8 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		Receiver:      recipientAccount,
 		IsNft:         true,
 		SerialNum:     eventLog.TokenId.Int64(),
+		Originator:    originator,
+		Timestamp:     time.Unix(int64(blockTimestamp), 0).Format(time.RFC3339Nano),
 	}
 
 	ew.logger.Infof("[%s] - New ERC-721Burn ERC-721 Event Log with TokenId [%d], Receiver Address [%s] has been found.",
