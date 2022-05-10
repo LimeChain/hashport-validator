@@ -98,7 +98,7 @@ func (tr Repository) Paged(perPage int, startTimestamp time.Time) ([]*entity.Tra
 	tx := tr.dbClient.
 		Model(entity.Transfer{}).
 		Where("timestamp > ?", startTimestamp).
-		Order("timestamp asc").
+		Order("timestamp desc").
 		Limit(perPage).
 		Find(res)
 	if tx.Error != nil {
