@@ -18,13 +18,13 @@ package transfer
 
 import (
 	"errors"
+
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Repository struct {
@@ -93,35 +93,6 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	return tx, nil
 }
 
-func (tr Repository) Paged(perPage int, startTimestamp time.Time) ([]*entity.Transfer, error) {
-	res := make([]*entity.Transfer, 0, perPage)
-	tx := tr.dbClient.
-		Model(entity.Transfer{}).
-		Where("timestamp > ?", startTimestamp).
-		Order("timestamp desc").
-		Limit(perPage).
-		Find(res)
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-
-	return res, nil
-}
-
-func (tr Repository) PagedOffset(page int, perPage int) ([]*entity.Transfer, error) {
-	res := make([]*entity.Transfer, 0, perPage)
-	tx := tr.dbClient.
-		Model(entity.Transfer{}).
-		Offset((page - 1) * perPage).
-		Limit(perPage).
-		Find(res)
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-
-	return res, nil
-}
-
 // Create creates new record of Transfer
 func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
 	return tr.create(ct, status.Initial)
@@ -167,7 +138,7 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		SerialNumber:  ct.SerialNum,
 		Metadata:      ct.Metadata,
 		IsNft:         ct.IsNft,
-		Timestamp:     ct.Timestamp,
+		Timestamp:     ct.Timestamp.UTC(),
 		Originator:    ct.Originator,
 	}
 	err := tr.dbClient.Create(tx).Error
