@@ -261,3 +261,8 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 		time.Sleep(time.Second * 5)
 	}
 }
+
+func (ec *Client) Transaction(ctx context.Context, hash common.Hash) (*types.Transaction, error) {
+	tx, _, err := ec.TransactionByHash(ctx, hash)
+	return tx, err
+}
