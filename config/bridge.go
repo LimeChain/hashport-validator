@@ -17,12 +17,13 @@
 package config
 
 import (
+	"math/big"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 )
 
 type Bridge struct {
@@ -42,6 +43,7 @@ type BridgeHedera struct {
 	Tokens         map[string]HederaToken
 	FeePercentages map[string]int64
 	NftFees        map[string]int64
+	NftDynamicFees map[string]int64
 }
 
 type HederaToken struct {
@@ -104,9 +106,10 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			for name, tokenInfo := range networkInfo.Tokens.Nft {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
-			hederaFeePercentages, hederaNftFees := LoadHederaFees(networkInfo.Tokens)
+			hederaFeePercentages, constantHederaNftFees, dynamicHederaNftFees := LoadHederaFees(networkInfo.Tokens)
 			config.Hedera.FeePercentages = hederaFeePercentages
-			config.Hedera.NftFees = hederaNftFees
+			config.Hedera.NftFees = constantHederaNftFees
+			config.Hedera.NftDynamicFees = dynamicHederaNftFees
 		} else {
 			config.EVMs[networkId] = BridgeEvm{
 				RouterContractAddress: networkInfo.RouterContractAddress,
@@ -163,18 +166,21 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 	}
 }
 
-func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, nftFees map[string]int64) {
-	feePercentages := map[string]int64{}
-	fees := map[string]int64{}
+func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, constantNftFees map[string]int64, dynamicNftFees map[string]int64) {
 	for token, value := range tokens.Fungible {
-		feePercentages[token] = value.FeePercentage
+		fungiblePercentages[token] = value.FeePercentage
 	}
 	for token, value := range tokens.Nft {
 		if value.Fee == 0 {
-			log.Fatalf("NFT [%s] has zero fee", token)
+			if value.FeeAmountInUsd != 0 {
+				dynamicNftFees[token] = value.FeeAmountInUsd
+				continue
+			} else {
+				log.Fatalf("NFT [%s] has zero fee", token)
+			}
 		}
-		fees[token] = value.Fee
+		constantNftFees[token] = value.Fee
 	}
 
-	return feePercentages, fees
+	return fungiblePercentages, constantNftFees, dynamicNftFees
 }

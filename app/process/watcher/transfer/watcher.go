@@ -44,19 +44,20 @@ import (
 )
 
 type Watcher struct {
-	transfers         service.Transfers
-	client            client.MirrorNode
-	accountID         hedera.AccountID
-	pollingInterval   time.Duration
-	statusRepository  repository.Status
-	targetTimestamp   int64
-	logger            *log.Entry
-	contractServices  map[uint64]service.Contracts
-	assetsService     service.Assets
-	hederaNftFees     map[string]int64
-	validator         bool
-	prometheusService service.Prometheus
-	pricingService    service.Pricing
+	transfers             service.Transfers
+	client                client.MirrorNode
+	accountID             hedera.AccountID
+	pollingInterval       time.Duration
+	statusRepository      repository.Status
+	targetTimestamp       int64
+	logger                *log.Entry
+	contractServices      map[uint64]service.Contracts
+	assetsService         service.Assets
+	hederaConstantNftFees map[string]int64
+	hederaDynamicNftFees  map[string]int64
+	validator             bool
+	prometheusService     service.Prometheus
+	pricingService        service.Pricing
 }
 
 func NewWatcher(
@@ -68,7 +69,8 @@ func NewWatcher(
 	startTimestamp int64,
 	contractServices map[uint64]service.Contracts,
 	assetsService service.Assets,
-	hederaNftFees map[string]int64,
+	hederaConstantNftFees map[string]int64,
+	hederaDynamicNftFees map[string]int64,
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
@@ -103,19 +105,20 @@ func NewWatcher(
 	}
 
 	return &Watcher{
-		transfers:         transfers,
-		client:            client,
-		accountID:         id,
-		pollingInterval:   pollingInterval,
-		statusRepository:  repository,
-		targetTimestamp:   targetTimestamp,
-		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices:  contractServices,
-		assetsService:     assetsService,
-		hederaNftFees:     hederaNftFees,
-		validator:         validator,
-		pricingService:    pricingService,
-		prometheusService: prometheusService,
+		transfers:             transfers,
+		client:                client,
+		accountID:             id,
+		pollingInterval:       pollingInterval,
+		statusRepository:      repository,
+		targetTimestamp:       targetTimestamp,
+		logger:                config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:      contractServices,
+		assetsService:         assetsService,
+		hederaConstantNftFees: hederaConstantNftFees,
+		hederaDynamicNftFees:  hederaDynamicNftFees,
+		validator:             validator,
+		pricingService:        pricingService,
+		prometheusService:     prometheusService,
 	}
 }
 
@@ -223,17 +226,20 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		requiredUsdTotal, ok := ctw.hederaNftFees[parsedTransfer.Asset]
-		if !ok {
-			ctw.logger.Errorf("[%s] - No fee found for asset [%s]", tx.TransactionID, parsedTransfer.Asset)
-			return
+		if fee, ok := ctw.hederaConstantNftFees[parsedTransfer.Asset]; ok {
+			if amount != fee {
+				ctw.logger.Errorf("[%s] - Invalid provided NFT constant Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, fee)
+				return
+			}
 		}
 
-		sentUsdTotal := ctw.pricingService.HBARsUsdTotal(amount)
-		if sentUsdTotal.Round(2).
-			LessThan(decimal.NewFromInt(requiredUsdTotal)) {
-			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaNftFees[parsedTransfer.Asset])
-			return
+		if fee, ok := ctw.hederaDynamicNftFees[parsedTransfer.Asset]; ok {
+			sentUsdTotal := ctw.pricingService.HBARsUsdTotal(amount)
+			if sentUsdTotal.Round(2).
+				LessThan(decimal.NewFromInt(fee)) {
+				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaConstantNftFees[parsedTransfer.Asset])
+				return
+			}
 		}
 
 		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)

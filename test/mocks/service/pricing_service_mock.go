@@ -18,6 +18,7 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -47,4 +48,9 @@ func (mas *MockPricingService) GetMinAmountsForAPI() map[uint64]map[string]strin
 	result := args.Get(0).(map[uint64]map[string]string)
 
 	return result
+}
+
+func (mas *MockPricingService) HBARsUsdTotal(hbars int64) decimal.Decimal {
+	//TODO implement me
+	panic("implement me")
 }
