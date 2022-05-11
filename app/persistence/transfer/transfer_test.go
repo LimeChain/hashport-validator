@@ -19,6 +19,10 @@ package transfer
 import (
 	"database/sql"
 	"database/sql/driver"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -28,9 +32,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"regexp"
-	"testing"
-	"time"
 )
 
 var (
@@ -51,7 +52,7 @@ var (
 	serialNumber  = int64(0)
 	metadata      = "metadata"
 	isNft         = false
-	now           = time.Now()
+	now           = time.Now().UTC()
 	originator    = "originator"
 
 	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
