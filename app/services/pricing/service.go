@@ -287,7 +287,7 @@ func (s *Service) fetchUsdPricesFromAPIs() (fetchResults fetchResults) {
 	return fetchResults
 }
 
-func (s *Service) HBARsDollarAmount(hbars int64) decimal.Decimal {
+func (s *Service) HBARsUsdTotal(hbars int64) decimal.Decimal {
 	priceInfo, _ := s.GetTokenPriceInfo(constants.HederaNetworkId, constants.Hbar)
 	return priceInfo.UsdPrice.Mul(decimal.NewFromInt(hbars))
 }

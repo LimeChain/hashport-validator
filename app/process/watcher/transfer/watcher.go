@@ -223,15 +223,15 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		requiredDollarAmount, ok := ctw.hederaNftFees[parsedTransfer.Asset]
+		requiredUsdTotal, ok := ctw.hederaNftFees[parsedTransfer.Asset]
 		if !ok {
 			ctw.logger.Errorf("[%s] - No fee found for asset [%s]", tx.TransactionID, parsedTransfer.Asset)
 			return
 		}
 
-		sentDollarAmount := ctw.pricingService.HBARsDollarAmount(amount)
-		if sentDollarAmount.Round(2).
-			LessThan(decimal.NewFromInt(requiredDollarAmount)) {
+		sentUsdTotal := ctw.pricingService.HBARsUsdTotal(amount)
+		if sentUsdTotal.Round(2).
+			LessThan(decimal.NewFromInt(requiredUsdTotal)) {
 			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaNftFees[parsedTransfer.Asset])
 			return
 		}
