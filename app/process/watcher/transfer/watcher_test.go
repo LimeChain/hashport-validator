@@ -19,6 +19,10 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -30,9 +34,6 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
-	"math/big"
-	"testing"
-	"time"
 )
 
 var (
@@ -101,6 +102,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
 		map[string]int64{},
+		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
 		mocks.MPricingService)
@@ -121,6 +123,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		1,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
+		map[string]int64{},
 		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
@@ -236,6 +239,7 @@ func initializeWatcher() *Watcher {
 		0,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
+		map[string]int64{},
 		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
