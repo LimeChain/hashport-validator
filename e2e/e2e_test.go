@@ -22,6 +22,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/big"
+	"reflect"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -37,13 +45,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
-	"math"
-	"math/big"
-	"reflect"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -744,7 +745,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
 	}
 
-	transferFee := setupEnv.NftFees[nftToken]
+	transferFee := setupEnv.NftConstantFees[nftToken]
 	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
 
 	// Step 1 - Get Token Metadata
