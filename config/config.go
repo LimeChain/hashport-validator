@@ -17,11 +17,12 @@
 package config
 
 import (
-	"github.com/caarlos0/env/v6"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -32,16 +33,16 @@ const (
 	defaultNodeFile   = "config/node.yml"
 )
 
-func LoadConfig() (Config, parser.Bridge) {
+func LoadConfig() (Config, parser.Bridge, error) {
 	var parsed parser.Config
 	err := GetConfig(&parsed, defaultBridgeFile)
 	if err != nil {
-		panic(err)
+		return Config{}, parser.Bridge{}, err
 	}
 
 	err = GetConfig(&parsed, defaultNodeFile)
 	if err != nil {
-		panic(err)
+		return Config{}, parser.Bridge{}, err
 	}
 
 	if err := env.Parse(&parsed); err != nil {
@@ -50,7 +51,7 @@ func LoadConfig() (Config, parser.Bridge) {
 	return Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),
-	}, parsed.Bridge
+	}, parsed.Bridge, nil
 }
 
 func GetConfig(config interface{}, path string) error {
