@@ -21,6 +21,20 @@ import (
 )
 
 func Init(privateKey, accountID, network string) *hedera.Client {
+	client := GetClientForNetwork(network)
+	accID, err := hedera.AccountIDFromString(accountID)
+	if err != nil {
+		panic(err)
+	}
+	pK, err := hedera.PrivateKeyFromString(privateKey)
+	if err != nil {
+		panic(err)
+	}
+	client.SetOperator(accID, pK)
+	return client
+}
+
+func GetClientForNetwork(network string) *hedera.Client {
 	var client *hedera.Client
 
 	if network == "previewnet" {
@@ -32,14 +46,6 @@ func Init(privateKey, accountID, network string) *hedera.Client {
 	} else {
 		panic("Unknown Network Type!")
 	}
-	accID, err := hedera.AccountIDFromString(accountID)
-	if err != nil {
-		panic(err)
-	}
-	pK, err := hedera.PrivateKeyFromString(privateKey)
-	if err != nil {
-		panic(err)
-	}
-	client.SetOperator(accID, pK)
+
 	return client
 }
