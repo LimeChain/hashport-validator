@@ -19,11 +19,12 @@ package config
 import (
 	"math/big"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	log "github.com/sirupsen/logrus"
 )
 
 type Bridge struct {
@@ -171,15 +172,15 @@ func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64,
 		fungiblePercentages[token] = value.FeePercentage
 	}
 	for token, value := range tokens.Nft {
-		if value.Fee == 0 {
-			if value.FeeAmountInUsd != 0 {
-				dynamicNftFees[token] = value.FeeAmountInUsd
-				continue
-			} else {
-				log.Fatalf("NFT [%s] has zero fee", token)
-			}
+		if value.Fee != 0 {
+			constantNftFees[token] = value.Fee
+			continue
 		}
-		constantNftFees[token] = value.Fee
+		if value.FeeAmountInUsd != 0 {
+			dynamicNftFees[token] = value.FeeAmountInUsd
+			continue
+		}
+		log.Fatalf("NFT [%s] has no fee", token)
 	}
 
 	return fungiblePercentages, constantNftFees, dynamicNftFees
