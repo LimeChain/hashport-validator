@@ -168,6 +168,10 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 }
 
 func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, constantNftFees map[string]int64, dynamicNftFees map[string]int64) {
+	fungiblePercentages = make(map[string]int64)
+	constantNftFees = make(map[string]int64)
+	dynamicNftFees = make(map[string]int64)
+
 	for token, value := range tokens.Fungible {
 		fungiblePercentages[token] = value.FeePercentage
 	}
