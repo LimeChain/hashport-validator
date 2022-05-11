@@ -1,3 +1,4 @@
+
 # Configuration
 The application supports loading configuration from the following files:
 1. `node.yml` file, which stores the configuration for the node (private keys, database configuration, etc.)
@@ -67,7 +68,8 @@ Configuration for `config/bridge.yml`:
 | `bridge.networks[i].tokens.fungible[j].coin_market_cap_id`    | ""      | CoinMarketCap id used for getting token info from the CoinMarketCap Web API                                                                                                                                                                                          |
 | `bridge.networks[i].tokens.fungible[j].min_amount`            | ""      | The static minimum amount for token used when there is no 'coin_gecko_id' and 'coin_market_cap_id' supplied for the token.                                                                                                                                           |
 | `bridge.networks[i].tokens.nft[j]`                            | ""      | The Address/HBAR/Token ID of the native nft asset for the given network. Used as a key to for the following `bridge.networks[i].tokens.nft[j].*` configuration fields below.                                                                                         |
-| `bridge.networks[i].tokens.nft[j].fee`                        | 0       | The HBAR fee (in tinybars), which validators take for every nft bridge transfer. Applies **only** for assets from network with id `0`. Default fee is 0, which is not be supported.                                                                                  |
+| `bridge.networks[i].tokens.nft[j].fee`                        | 0       | The HBAR fee (in tinybars), which validators take for every nft bridge transfer. Applies **only** for assets from network with id `0`. Default fee is 0, which is not supported.                                                                                     |
+| `bridge.networks[i].tokens.nft[j].fee_amount_in_usd`          | 0       | The HBAR fee (in USD), which validators take for every nft bridge transfer. Applies **only** for assets from network with id `0`. Default fee is 0, which is not supported.                                                                                          |                                                                                             |
 | `bridge.networks[i].tokens.nft[j].networks[k]`                | ""      | A key-value pair representing the id and wrapped asset to which the token `j` has a wrapped representation. Example: TokenID `0.0.2473688` (`j`) on Network `0` (`i`) has a wrapped version on `80001` (`k`), which is `0x95341E9cf3Bc3f69fEBfFC0E33E2B2EC14a6F969`. |
 
 Configuration for `.env`:
