@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
@@ -74,9 +75,10 @@ func Load() *Setup {
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
-		feePercentages, nftFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
+		feePercentages, nftConstantFees, nftDynamicFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
 		configuration.FeePercentages = feePercentages
-		configuration.NftFees = nftFees
+		configuration.NftFees = nftConstantFees
+		configuration.NftFees = nftDynamicFees
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
@@ -348,6 +350,7 @@ type Config struct {
 	AssetMappings  service.Assets
 	FeePercentages map[string]int64
 	NftFees        map[string]int64
+	NftDynamicFees map[string]int64
 }
 
 type EVMUtils struct {
