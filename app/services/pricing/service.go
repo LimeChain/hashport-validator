@@ -19,6 +19,9 @@ package pricing
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
@@ -28,8 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"sync"
 )
 
 type Service struct {
@@ -284,4 +285,9 @@ func (s *Service) fetchUsdPricesFromAPIs() (fetchResults fetchResults) {
 	}
 
 	return fetchResults
+}
+
+func (s *Service) HBARsDollarAmount(hbars int64) decimal.Decimal {
+	priceInfo, _ := s.GetTokenPriceInfo(constants.HederaNetworkId, constants.Hbar)
+	return priceInfo.UsdPrice.Mul(decimal.NewFromInt(hbars))
 }
