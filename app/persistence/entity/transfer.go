@@ -78,7 +78,7 @@ type NanoTime struct {
 	time.Time
 }
 
-func (n *NanoTime) Value() (driver.Value, error) {
+func (n NanoTime) Value() (driver.Value, error) {
 	return n.UTC().UnixNano(), nil
 }
 
