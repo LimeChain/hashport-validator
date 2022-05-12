@@ -403,7 +403,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
@@ -513,7 +513,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
@@ -603,7 +603,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return

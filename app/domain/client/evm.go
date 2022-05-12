@@ -54,5 +54,5 @@ type EVM interface {
 	// WaitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
 	WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error)
 
-	RetryTransaction(hash common.Hash) (*types.Transaction, error)
+	RetryTransactionByHash(hash common.Hash) (*types.Transaction, error)
 }
