@@ -27,15 +27,38 @@ import (
 )
 
 func main() {
-	executorId := flag.String("executorID", "", "Hedera Account Id")
-	topicId := flag.String("topicId", "", "Hedera Topic Id")
+	executorID := flag.String("executorID", "", "Hedera Account Id")
+	topicID := flag.String("topicID", "", "Hedera Topic Id")
 	network := flag.String("network", "", "Hedera Network Type")
 	configPath := flag.String("configPath", "", "Path to the 'bridge.yaml' config file")
 	nodeAccountId := flag.String("nodeAccountID", "0.0.3", "Node account id on which to process the transaction.")
 	validStartMinutes := flag.Int("validStartMinutes", 2, "Valid Minutes for which the transaction needs to be signed and submitted.")
 	flag.Parse()
-	validatePrepareUpdateConfigParams(executorId, topicId, network, configPath, validStartMinutes)
+	validatePrepareUpdateConfigParams(executorID, topicID, network, configPath, validStartMinutes)
 
+	content, err, topicIdParsed, executor, nodeAccount := parseParams(configPath, topicID, executorID, nodeAccountId)
+
+	client := clientScript.GetClientForNetwork(*network)
+	additionTime := time.Minute * time.Duration(*validStartMinutes)
+	transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
+	frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
+		SetTopicID(topicIdParsed).
+		SetMessage(content).
+		SetTransactionID(transactionID).
+		SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).
+		FreezeWith(client)
+	if err != nil {
+		panic(err)
+	}
+
+	bytes, err := frozenTx.ToBytes()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(hex.EncodeToString(bytes))
+}
+
+func parseParams(configPath *string, topicId *string, executorId *string, nodeAccountId *string) ([]byte, error, hedera.TopicID, hedera.AccountID, hedera.AccountID) {
 	content, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		panic(err)
@@ -56,25 +79,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Invalid Node Account Id. Err: %s", err))
 	}
-
-	client := clientScript.GetClientForNetwork(*network)
-	additionTime := time.Minute * time.Duration(*validStartMinutes) // 1 minutes
-	transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
-	frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
-		SetTopicID(topicIdParsed).
-		SetMessage(content).
-		SetTransactionID(transactionID).
-		SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).
-		FreezeWith(client)
-	if err != nil {
-		panic(err)
-	}
-
-	bytes, err := frozenTx.ToBytes()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(hex.EncodeToString(bytes))
+	return content, err, topicIdParsed, executor, nodeAccount
 }
 
 func validatePrepareUpdateConfigParams(executorId *string, topicId *string, network *string, configPath *string, validStartMinutes *int) {

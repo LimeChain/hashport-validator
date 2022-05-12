@@ -30,7 +30,7 @@ func main() {
 	// Keys that are key to the bridge ID, which need to sign the transaction
 	privateKeys := flag.String("privateKeys", "", "The private keys")
 	flag.Parse()
-	validateSignParams(privateKeys, transaction)
+	validateParams(privateKeys, transaction)
 
 	prKeysSlice := strings.Split(*privateKeys, ",")
 	var keys []hedera.PrivateKey
@@ -149,7 +149,7 @@ func main() {
 	}
 }
 
-func validateSignParams(privateKeys *string, transaction *string) {
+func validateParams(privateKeys *string, transaction *string) {
 	if *privateKeys == "" {
 		panic("no private keys provided")
 	}

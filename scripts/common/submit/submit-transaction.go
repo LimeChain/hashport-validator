@@ -30,7 +30,7 @@ func main() {
 	network := flag.String("network", "", "Hedera Network Type")
 	transaction := flag.String("transaction", "", "Hedera to-be-submitted Transaction")
 	flag.Parse()
-	validateSubmitParams(transaction, privateKey, accountID)
+	validateParams(transaction, privateKey, accountID)
 
 	client := client.Init(*privateKey, *accountID, *network)
 	decoded, err := hex.DecodeString(*transaction)
@@ -97,7 +97,7 @@ func main() {
 	fmt.Println(receipt)
 }
 
-func validateSubmitParams(transaction *string, privateKey *string, accountID *string) {
+func validateParams(transaction *string, privateKey *string, accountID *string) {
 	if *transaction == "" {
 		panic("transaction has not been provided")
 	}
