@@ -58,6 +58,9 @@ func String(timestamp int64) string {
 
 // ToHumanReadable converts the timestamp into human readable string
 func ToHumanReadable(timestampNanos int64) string {
-	parsed := time.Unix(0, timestampNanos)
-	return parsed.UTC().Format(time.RFC3339Nano)
+	return FromNanos(timestampNanos).Format(time.RFC3339Nano)
+}
+
+func FromNanos(nanos int64) time.Time {
+	return time.Unix(nanos/nanosInSecond, nanos&nanosInSecond).UTC()
 }

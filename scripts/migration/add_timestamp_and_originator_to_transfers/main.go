@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -212,7 +214,7 @@ func (m *migrator) hederaFields(tr *tempTransfer) error {
 		return err
 	}
 
-	tr.Timestamp = sql.NullTime{Time: time.Unix(0, tNano).UTC(), Valid: true}
+	tr.Timestamp = sql.NullTime{Time: timestampHelper.FromNanos(tNano), Valid: true}
 	tr.Originator = sql.NullString{String: o, Valid: true}
 
 	return nil
