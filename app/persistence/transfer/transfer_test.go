@@ -53,13 +53,14 @@ var (
 	metadata      = "metadata"
 	isNft         = false
 	now           = time.Now().UTC()
+	nanoTime      = entity.NanoTime{Time: now}
 	originator    = "originator"
 
 	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
 	messageColumns  = []string{"transfer_id", "hash", "signature", "signer", "transaction_timestamp"}
 
-	transferRowArgs = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft, now, originator}
+	transferRowArgs = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft, nanoTime, originator}
 	feesRowArgs     = []driver.Value{
 		transactionId,
 		expectedEntityFee.ScheduleID,
@@ -84,7 +85,7 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
-		Timestamp:     now,
+		Timestamp:     nanoTime,
 		Originator:    originator,
 	}
 	expectedModelTransfer = &model.Transfer{
@@ -138,7 +139,7 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
-		Timestamp:     now,
+		Timestamp:     nanoTime,
 		Originator:    originator,
 		Fees: []entity.Fee{
 			expectedEntityFee,
@@ -159,7 +160,7 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
-		Timestamp:     now,
+		Timestamp:     nanoTime,
 		Originator:    originator,
 		Fees: []entity.Fee{
 			expectedEntityFee,
@@ -309,7 +310,7 @@ func Test_Create(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator)
 
 	actual, err := repository.Create(expectedModelTransfer)
@@ -335,7 +336,7 @@ func Test_Create_Err(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator)
 
 	actual, err := repository.Create(expectedModelTransfer)
@@ -360,7 +361,7 @@ func Test_Save(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator,
 		transactionId)
 
@@ -385,7 +386,7 @@ func Test_Save_Err(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator,
 		transactionId)
 
@@ -475,7 +476,7 @@ func Test_create(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator)
 
 	actual, err := repository.create(expectedModelTransfer, someStatus)
@@ -501,7 +502,7 @@ func Test_create_Err(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
-		now,
+		nanoTime,
 		originator)
 
 	actual, err := repository.create(expectedModelTransfer, someStatus)
