@@ -18,6 +18,8 @@ package entity
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"errors"
 	"time"
 )
 
@@ -35,8 +37,8 @@ type Transfer struct {
 	Status        string
 	SerialNumber  int64
 	Metadata      string
-	IsNft         bool      `gorm:"default:false"`
-	Timestamp     time.Time `sql:"type:timestamp" gorm:"index:,sort:desc"`
+	IsNft         bool     `gorm:"default:false"`
+	Timestamp     NanoTime `sql:"type:bigint" gorm:"index:,sort:desc"`
 	Originator    string
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
 	Fees          []Fee      `gorm:"foreignKey:TransferID"`
@@ -70,4 +72,21 @@ type Schedule struct {
 	Operation     string // type of scheduled transaction (TokenMint, TokenBurn, CryptoTransfer)
 	Status        string
 	TransferID    sql.NullString // foreign key to the transfer ID
+}
+
+type NanoTime struct {
+	time.Time
+}
+
+func (n *NanoTime) Value() (driver.Value, error) {
+	return n.UTC().UnixNano(), nil
+}
+
+func (n *NanoTime) Scan(value interface{}) error {
+	t, ok := value.(int64)
+	if !ok {
+		return errors.New("value was not int64")
+	}
+	n.Time = time.Unix(0, t).UTC()
+	return nil
 }

@@ -138,7 +138,7 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		SerialNumber:  ct.SerialNum,
 		Metadata:      ct.Metadata,
 		IsNft:         ct.IsNft,
-		Timestamp:     ct.Timestamp.UTC(),
+		Timestamp:     entity.NanoTime{Time: ct.Timestamp},
 		Originator:    ct.Originator,
 	}
 	err := tr.dbClient.Create(tx).Error
