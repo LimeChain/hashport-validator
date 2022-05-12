@@ -263,7 +263,7 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	}
 }
 
-func (ec *Client) WaitForTransaction(hash common.Hash) (*types.Transaction, error) {
+func (ec *Client) RetryTransaction(hash common.Hash) (*types.Transaction, error) {
 	res, err := service.Retry(func() <-chan retry.Result {
 		r := make(chan retry.Result)
 		go func() {
