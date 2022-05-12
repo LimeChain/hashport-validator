@@ -36,7 +36,7 @@ func main() {
 	flag.Parse()
 	validatePrepareUpdateConfigParams(executorAccountID, topicID, network, configPath, validStartMinutes)
 
-	content, err, topicIdParsed, executor, nodeAccount := parseParams(configPath, topicID, executorAccountID, nodeAccountID)
+	content, topicIdParsed, executor, nodeAccount := parseParams(configPath, topicID, executorAccountID, nodeAccountID)
 
 	client := clientScript.GetClientForNetwork(*network)
 	additionTime := time.Minute * time.Duration(*validStartMinutes)
@@ -58,7 +58,7 @@ func main() {
 	fmt.Println(hex.EncodeToString(bytes))
 }
 
-func parseParams(configPath *string, topicId *string, executorId *string, nodeAccountId *string) ([]byte, error, hedera.TopicID, hedera.AccountID, hedera.AccountID) {
+func parseParams(configPath *string, topicId *string, executorId *string, nodeAccountId *string) ([]byte, hedera.TopicID, hedera.AccountID, hedera.AccountID) {
 	content, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		panic(err)
@@ -79,7 +79,7 @@ func parseParams(configPath *string, topicId *string, executorId *string, nodeAc
 	if err != nil {
 		panic(fmt.Sprintf("Invalid Node Account Id. Err: %s", err))
 	}
-	return content, err, topicIdParsed, executor, nodeAccount
+	return content, topicIdParsed, executor, nodeAccount
 }
 
 func validatePrepareUpdateConfigParams(executorId *string, topicId *string, network *string, configPath *string, validStartMinutes *int) {
