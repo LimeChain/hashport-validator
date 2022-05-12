@@ -27,11 +27,11 @@ import (
 )
 
 func main() {
-	executorId := flag.String("executorId", "", "Hedera Account Id")
+	executorId := flag.String("executorID", "", "Hedera Account Id")
 	topicId := flag.String("topicId", "", "Hedera Topic Id")
 	network := flag.String("network", "", "Hedera Network Type")
 	configPath := flag.String("configPath", "", "Path to the 'bridge.yaml' config file")
-	nodeAccountId := flag.String("nodeAccountId", "0.0.3", "Node account id on which to process the transaction.")
+	nodeAccountId := flag.String("nodeAccountID", "0.0.3", "Node account id on which to process the transaction.")
 	validStartMinutes := flag.Int("validStartMinutes", 2, "Valid Minutes for which the transaction needs to be signed and submitted.")
 	flag.Parse()
 	validatePrepareUpdateConfigParams(executorId, topicId, network, configPath, validStartMinutes)
