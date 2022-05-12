@@ -20,6 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -29,8 +32,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/retry"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"time"
 )
 
 // Used as a maximum amount of retries that need to be done when executing
@@ -111,11 +112,11 @@ func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	return block.Time()
 }
 
-// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
+// WaitForTransactionCallback waits for transaction receipt and depending on receipt status calls one of the provided functions
 // onSuccess is called once the TX is successfully mined
 // onRevert is called once the TX is mined but it reverted
 // onError is called if an error occurs while waiting for TX to go into one of the other 2 states
-func (ec *Client) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
+func (ec *Client) WaitForTransactionCallback(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	go ec.checkTransactionReceipt(hex, onSuccess, onRevert, onError)
 	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hex)
 }
@@ -262,9 +263,31 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	}
 }
 
-func (ec *Client) Transaction(hash common.Hash) (*types.Transaction, error) {
-	ctx, c := context.WithTimeout(context.Background(), time.Second*5)
-	defer c()
-	tx, _, err := ec.TransactionByHash(ctx, hash)
-	return tx, err
+func (ec *Client) WaitForTransaction(hash common.Hash) (*types.Transaction, error) {
+	res, err := service.Retry(func() <-chan retry.Result {
+		r := make(chan retry.Result)
+		go func() {
+			defer close(r)
+
+			tx, _, err := ec.TransactionByHash(context.Background(), hash)
+			if err != nil {
+				r <- retry.Result{
+					Value: nil,
+					Error: err,
+				}
+				return
+			}
+
+			r <- retry.Result{
+				Value: tx,
+				Error: nil,
+			}
+		}()
+
+		return r
+	}, executionRetries)
+	if err != nil {
+		return nil, err
+	}
+	return res.(*types.Transaction), nil
 }

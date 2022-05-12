@@ -114,7 +114,7 @@ func (m *MockEVM) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	return args.Get(0).(*common.Address), args.Get(1).(error)
 }
 
-func (m *MockEVM) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
+func (m *MockEVM) WaitForTransactionCallback(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	m.Called(hex, onSuccess, onRevert, onError)
 }
 
@@ -196,7 +196,7 @@ func (m *MockEVM) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return args.Get(0).(*types.Receipt), nil
 }
 
-func (m *MockEVM) Transaction(hash common.Hash) (*types.Transaction, error) {
+func (m *MockEVM) WaitForTransaction(hash common.Hash) (*types.Transaction, error) {
 	//TODO implement me
 	panic("implement me")
 }

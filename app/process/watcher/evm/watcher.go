@@ -19,6 +19,11 @@ package evm
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -39,10 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Watcher struct {
@@ -402,7 +403,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.WaitForTransaction(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
@@ -512,7 +513,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.WaitForTransaction(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return
@@ -602,7 +603,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.Transaction(eventLog.Raw.TxHash)
+	tx, err := ew.evmClient.WaitForTransaction(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Errorf("[%s] - Failed to get transaction receipt. Error: [%s]", eventLog.Raw.TxHash, err)
 		return

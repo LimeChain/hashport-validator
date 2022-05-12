@@ -18,11 +18,12 @@ package client
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 type EVM interface {
@@ -34,11 +35,11 @@ type EVM interface {
 	BlockNumber(ctx context.Context) (uint64, error)
 	GetBlockTimestamp(blockNumber *big.Int) uint64
 	ValidateContractDeployedAt(contractAddress string) (*common.Address, error)
-	// WaitForTransaction waits for transaction receipt and depending on receipt status calls one of the provided functions
+	// WaitForTransactionCallback waits for transaction receipt and depending on receipt status calls one of the provided functions
 	// onSuccess is called once the TX is successfully mined
 	// onRevert is called once the TX is mined but it reverted
 	// onError is called if an error occurs while waiting for TX to go into one of the other 2 states
-	WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error))
+	WaitForTransactionCallback(hex string, onSuccess, onRevert func(), onError func(err error))
 	// WaitForConfirmations starts a loop which ends either when we reach the target block number or an error occurs with block number retrieval
 	WaitForConfirmations(raw types.Log) error
 	// GetPrivateKey retrieves private key used for the specific EVM Client
@@ -53,5 +54,5 @@ type EVM interface {
 	// WaitForTransactionReceipt Polls the provided hash every 5 seconds until the transaction mined (either successfully or reverted)
 	WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.Receipt, err error)
 
-	Transaction(hash common.Hash) (*types.Transaction, error)
+	WaitForTransaction(hash common.Hash) (*types.Transaction, error)
 }

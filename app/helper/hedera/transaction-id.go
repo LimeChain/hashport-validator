@@ -87,3 +87,19 @@ func TimestampFromTxId(txId string) (time.Time, error) {
 
 	return time.Unix(s, n), nil
 }
+
+func TimeFromConsensusTimestamp(ts string) (time.Time, error) {
+	parts := strings.Split(ts, ".")
+
+	s, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	n, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(s, n).UTC(), nil
+}
