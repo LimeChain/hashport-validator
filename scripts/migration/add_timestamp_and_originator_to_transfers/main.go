@@ -60,7 +60,7 @@ func main() {
 			db: db,
 		}
 	}
-	evmClients := make(map[uint64]client.Core)
+	evmClients := make(map[uint64]client.EVM)
 	for k, v := range cfg.Evm {
 		evmClients[k] = evm.NewClient(validatorCfg.Evm{
 			NodeUrl:            v,
@@ -68,7 +68,12 @@ func main() {
 		}, k)
 	}
 
-	migrator := newMigrator(nodes, evmClients)
+	hc, err := setupHederaClient(cfg.Hedera)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	migrator := newMigrator(nodes, evmClients, hc)
 
 	log.Infof("finna update %d nodes using %d evm clients", len(migrator.nodes), len(migrator.evmClients))
 	err = migrator.migrate()
@@ -102,12 +107,13 @@ type node struct {
 }
 
 type migrator struct {
-	nodes      []*node
-	evmClients map[uint64]client.Core
+	nodes        []*node
+	evmClients   map[uint64]client.EVM
+	hederaClient *hedera.Client
 }
 
-func newMigrator(nodes []*node, evmClients map[uint64]client.Core) *migrator {
-	return &migrator{nodes: nodes, evmClients: evmClients}
+func newMigrator(nodes []*node, evmClients map[uint64]client.EVM, hederaClient *hedera.Client) *migrator {
+	return &migrator{nodes: nodes, evmClients: evmClients, hederaClient: hederaClient}
 }
 
 func (m *migrator) migrate() error {
@@ -191,21 +197,30 @@ func (m *migrator) migrateNode(i int) error {
 }
 
 func (m *migrator) hederaFields(tr *tempTransfer) error {
-	o := hederahelper.OriginatorFromTxId(tr.TransactionID)
-	t, err := hederahelper.TimestampFromTxId(tr.TransactionID)
+	txId, err := hedera.TransactionIdFromString(tr.TransactionID)
 	if err != nil {
 		return err
 	}
 
-	tr.Timestamp = sql.NullTime{Time: t.UTC(), Valid: true}
+	tx, err := hedera.NewTransactionRecordQuery().
+		SetTransactionID(txId).
+		Execute(m.hederaClient)
+
+	o := hederahelper.OriginatorFromTxId(tr.TransactionID)
+
+	if err != nil {
+		return err
+	}
+
+	tr.Timestamp = sql.NullTime{Time: tx.ConsensusTimestamp.UTC(), Valid: true}
 	tr.Originator = sql.NullString{String: o, Valid: true}
 
 	return nil
 }
 
 func (m *migrator) evmFields(transfer *tempTransfer) error {
-	parts := strings.SplitN(transfer.TransactionID, "-", 2)
-	if len(parts) != 2 {
+	parts := strings.Split(transfer.TransactionID, "-")
+	if len(parts) < 1 {
 		return errors.New("transfer is not an evm transfer")
 	}
 
@@ -215,10 +230,7 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 		return err
 	}
 
-	t1, cancel1 := context.WithTimeout(context.Background(), evmCallTimeout)
-	defer cancel1()
-
-	rx, err := c.TransactionReceipt(t1, common.HexToHash(txHash))
+	rx, err := c.WaitForTransactionReceipt(common.HexToHash(txHash))
 	if err != nil {
 		return err
 	}
@@ -226,7 +238,7 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 	t2, cancel2 := context.WithTimeout(context.Background(), evmCallTimeout)
 	defer cancel2()
 
-	block, err := c.BlockByNumber(t2, rx.BlockNumber)
+	block, err := c.(client.Core).BlockByNumber(t2, rx.BlockNumber)
 	if err != nil {
 		return err
 	}
@@ -234,15 +246,9 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 	uT := time.Unix(int64(block.Time()), 0)
 	transfer.Timestamp = sql.NullTime{Time: uT.UTC()}
 
-	t3, cancel3 := context.WithTimeout(context.Background(), evmCallTimeout)
-	defer cancel3()
-
-	tx, pending, err := c.TransactionByHash(t3, common.HexToHash(txHash))
+	tx, err := c.WaitForTransaction(common.HexToHash(txHash))
 	if err != nil {
 		return err
-	}
-	if pending {
-		return errors.New("pending transaction")
 	}
 
 	msg, err := tx.AsMessage(types.LatestSignerForChainID(tx.ChainId()), nil)
@@ -262,7 +268,7 @@ func (m *migrator) fillTimestampAndOriginator(transfer *tempTransfer) error {
 	return m.hederaFields(transfer)
 }
 
-func (m *migrator) evmClientFor(networkId uint64) (client.Core, error) {
+func (m *migrator) evmClientFor(networkId uint64) (client.EVM, error) {
 	c, ok := m.evmClients[networkId]
 	if !ok {
 		return nil, errors.New("no evm client for network id " + strconv.FormatUint(networkId, 10))
@@ -274,8 +280,8 @@ func (m *migrator) prepareQuery(transfers []*tempTransfer) []string {
 	qs := make([]string, 0, len(transfers))
 	for _, t := range transfers {
 		q := fmt.Sprintf(
-			"update transfers set \"timestamp\" = '%s', \"originator\" = '%s' where \"transaction_id\" = '%s';\n",
-			t.Timestamp.Time.UTC().Format(time.RFC3339), t.Originator.String, t.TransactionID)
+			"update transfers set \"timestamp\" = %d, \"originator\" = '%s' where \"transaction_id\" = '%s';\n",
+			t.Timestamp.Time.UTC().UnixNano(), t.Originator.String, t.TransactionID)
 		qs = append(qs, q)
 	}
 
@@ -300,6 +306,25 @@ func (n *node) pagedTransfers(page, perPage int) ([]*tempTransfer, error) {
 		}
 		res = append(res, &t)
 	}
+
+	return res, nil
+}
+
+func setupHederaClient(cfg hederaCfg) (*hedera.Client, error) {
+	res := new(hedera.Client)
+	switch cfg.Env {
+	case "testnet":
+		res = hedera.ClientForTestnet()
+	case "mainnet":
+		res = hedera.ClientForMainnet()
+	default:
+		return nil, errors.New(string("unknown env: " + cfg.Env))
+	}
+
+	accId, _ := hedera.AccountIDFromString(cfg.AccountId)
+	pk, _ := hedera.PrivateKeyFromString(cfg.PrivateKey)
+
+	res.SetOperator(accId, pk)
 
 	return res, nil
 }
