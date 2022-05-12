@@ -38,13 +38,13 @@ type Bridge struct {
 }
 
 type BridgeHedera struct {
-	BridgeAccount  string
-	PayerAccount   string
-	Members        []string
-	Tokens         map[string]HederaToken
-	FeePercentages map[string]int64
-	NftFees        map[string]int64
-	NftDynamicFees map[string]int64
+	BridgeAccount   string
+	PayerAccount    string
+	Members         []string
+	Tokens          map[string]HederaToken
+	FeePercentages  map[string]int64
+	NftConstantFees map[string]int64
+	NftDynamicFees  map[string]int64
 }
 
 type HederaToken struct {
@@ -107,10 +107,10 @@ func NewBridge(bridge parser.Bridge) Bridge {
 			for name, tokenInfo := range networkInfo.Tokens.Nft {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
-			hederaFeePercentages, constantHederaNftFees, dynamicHederaNftFees := LoadHederaFees(networkInfo.Tokens)
-			config.Hedera.FeePercentages = hederaFeePercentages
-			config.Hedera.NftFees = constantHederaNftFees
-			config.Hedera.NftDynamicFees = dynamicHederaNftFees
+			fees := LoadHederaFees(networkInfo.Tokens)
+			config.Hedera.FeePercentages = fees.fungiblePercentages
+			config.Hedera.NftConstantFees = fees.constantNftFees
+			config.Hedera.NftDynamicFees = fees.dynamicNftFees
 		} else {
 			config.EVMs[networkId] = BridgeEvm{
 				RouterContractAddress: networkInfo.RouterContractAddress,
@@ -167,25 +167,29 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 	}
 }
 
-func LoadHederaFees(tokens parser.Tokens) (fungiblePercentages map[string]int64, constantNftFees map[string]int64, dynamicNftFees map[string]int64) {
-	fungiblePercentages = make(map[string]int64)
-	constantNftFees = make(map[string]int64)
-	dynamicNftFees = make(map[string]int64)
+func LoadHederaFees(tokens parser.Tokens) (res struct {
+	fungiblePercentages map[string]int64
+	constantNftFees     map[string]int64
+	dynamicNftFees      map[string]int64
+}) {
+	res.fungiblePercentages = make(map[string]int64)
+	res.constantNftFees = make(map[string]int64)
+	res.dynamicNftFees = make(map[string]int64)
 
 	for token, value := range tokens.Fungible {
-		fungiblePercentages[token] = value.FeePercentage
+		res.fungiblePercentages[token] = value.FeePercentage
 	}
 	for token, value := range tokens.Nft {
 		if value.Fee != 0 {
-			constantNftFees[token] = value.Fee
+			res.constantNftFees[token] = value.Fee
 			continue
 		}
 		if value.FeeAmountInUsd != 0 {
-			dynamicNftFees[token] = value.FeeAmountInUsd
+			res.dynamicNftFees[token] = value.FeeAmountInUsd
 			continue
 		}
 		log.Fatalf("NFT [%s] has no fee", token)
 	}
 
-	return fungiblePercentages, constantNftFees, dynamicNftFees
+	return res
 }

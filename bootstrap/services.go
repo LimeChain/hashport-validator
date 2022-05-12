@@ -101,7 +101,7 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 		distributor,
 		c.Bridge.TopicId,
 		c.Bridge.Hedera.BridgeAccount,
-		c.Bridge.Hedera.NftFees,
+		c.Bridge.Hedera.NftConstantFees,
 		scheduled,
 		messages,
 		prometheus,

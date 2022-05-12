@@ -28,6 +28,6 @@ type Pricing interface {
 	FetchAndUpdateUsdPrices() error
 	// GetMinAmountsForAPI getting all prices by networkId
 	GetMinAmountsForAPI() map[uint64]map[string]string
-	// HBARsUsdTotal converts HBAR amount to USD total
-	HBARsUsdTotal(hbars int64) decimal.Decimal
+	// HbarToUsd converts HBAR amount to USD total
+	HbarToUsd(hbars int64) decimal.Decimal
 }

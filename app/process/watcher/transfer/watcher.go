@@ -234,7 +234,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		}
 
 		if fee, ok := ctw.hederaDynamicNftFees[parsedTransfer.Asset]; ok {
-			sentUsdTotal := ctw.pricingService.HBARsUsdTotal(amount)
+			sentUsdTotal := ctw.pricingService.HbarToUsd(amount)
 			if sentUsdTotal.Round(2).LessThan(decimal.NewFromInt(fee)) {
 				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaConstantNftFees[parsedTransfer.Asset])
 				return

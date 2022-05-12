@@ -50,7 +50,7 @@ func (mas *MockPricingService) GetMinAmountsForAPI() map[uint64]map[string]strin
 	return result
 }
 
-func (mas *MockPricingService) HBARsUsdTotal(hbars int64) decimal.Decimal {
+func (mas *MockPricingService) HbarToUsd(hbars int64) decimal.Decimal {
 	//TODO implement me
 	panic("implement me")
 }

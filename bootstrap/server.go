@@ -18,6 +18,8 @@ package bootstrap
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	burn_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-message"
 	fee_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/fee-message"
@@ -39,7 +41,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
@@ -212,7 +213,7 @@ func registerHederaNativeNFTHandlers(server *server.Server, services *Services, 
 		configuration.Bridge.Hedera.BridgeAccount,
 		services.Distributor,
 		services.transfers,
-		configuration.Bridge.Hedera.NftFees,
+		configuration.Bridge.Hedera.NftConstantFees,
 		services.ReadOnly))
 }
 
