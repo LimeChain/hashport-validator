@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -68,12 +70,9 @@ func main() {
 		}, k)
 	}
 
-	hc, err := setupHederaClient(cfg.Hedera)
-	if err != nil {
-		log.Fatal(err)
-	}
+	mnc := mirror_node.NewClient(cfg.Hedera.MirrorNode)
 
-	migrator := newMigrator(nodes, evmClients, hc)
+	migrator := newMigrator(nodes, evmClients, mnc)
 
 	log.Infof("finna update %d nodes using %d evm clients", len(migrator.nodes), len(migrator.evmClients))
 	err = migrator.migrate()
@@ -109,10 +108,10 @@ type node struct {
 type migrator struct {
 	nodes        []*node
 	evmClients   map[uint64]client.EVM
-	hederaClient *hedera.Client
+	hederaClient client.MirrorNode
 }
 
-func newMigrator(nodes []*node, evmClients map[uint64]client.EVM, hederaClient *hedera.Client) *migrator {
+func newMigrator(nodes []*node, evmClients map[uint64]client.EVM, hederaClient client.MirrorNode) *migrator {
 	return &migrator{nodes: nodes, evmClients: evmClients, hederaClient: hederaClient}
 }
 
@@ -197,14 +196,15 @@ func (m *migrator) migrateNode(i int) error {
 }
 
 func (m *migrator) hederaFields(tr *tempTransfer) error {
-	txId, err := hedera.TransactionIdFromString(tr.TransactionID)
+	tx, err := m.hederaClient.GetTransaction(tr.TransactionID)
 	if err != nil {
 		return err
 	}
 
-	tx, err := hedera.NewTransactionRecordQuery().
-		SetTransactionID(txId).
-		Execute(m.hederaClient)
+	tNano, err := tx.GetLatestTxnConsensusTime()
+	if err != nil {
+		return err
+	}
 
 	o := hederahelper.OriginatorFromTxId(tr.TransactionID)
 
@@ -212,7 +212,7 @@ func (m *migrator) hederaFields(tr *tempTransfer) error {
 		return err
 	}
 
-	tr.Timestamp = sql.NullTime{Time: tx.ConsensusTimestamp.UTC(), Valid: true}
+	tr.Timestamp = sql.NullTime{Time: time.Unix(0, tNano).UTC(), Valid: true}
 	tr.Originator = sql.NullString{String: o, Valid: true}
 
 	return nil
@@ -246,7 +246,7 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 	uT := time.Unix(int64(block.Time()), 0)
 	transfer.Timestamp = sql.NullTime{Time: uT.UTC()}
 
-	tx, err := c.WaitForTransaction(common.HexToHash(txHash))
+	tx, err := c.RetryTransactionByHash(common.HexToHash(txHash))
 	if err != nil {
 		return err
 	}
@@ -306,25 +306,6 @@ func (n *node) pagedTransfers(page, perPage int) ([]*tempTransfer, error) {
 		}
 		res = append(res, &t)
 	}
-
-	return res, nil
-}
-
-func setupHederaClient(cfg hederaCfg) (*hedera.Client, error) {
-	res := new(hedera.Client)
-	switch cfg.Env {
-	case "testnet":
-		res = hedera.ClientForTestnet()
-	case "mainnet":
-		res = hedera.ClientForMainnet()
-	default:
-		return nil, errors.New(string("unknown env: " + cfg.Env))
-	}
-
-	accId, _ := hedera.AccountIDFromString(cfg.AccountId)
-	pk, _ := hedera.PrivateKeyFromString(cfg.PrivateKey)
-
-	res.SetOperator(accId, pk)
 
 	return res, nil
 }

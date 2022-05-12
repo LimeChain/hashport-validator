@@ -196,7 +196,7 @@ func (m *MockEVM) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 	return args.Get(0).(*types.Receipt), nil
 }
 
-func (m *MockEVM) WaitForTransaction(hash common.Hash) (*types.Transaction, error) {
+func (m *MockEVM) RetryTransactionByHash(hash common.Hash) (*types.Transaction, error) {
 	//TODO implement me
 	panic("implement me")
 }
