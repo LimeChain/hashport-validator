@@ -17,10 +17,11 @@
 package config
 
 import (
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Node struct {
@@ -85,9 +86,9 @@ type CoinMarketCap struct {
 // MirrorNode //
 
 type MirrorNode struct {
-	ClientAddress   string
-	ApiAddress      string
-	PollingInterval time.Duration
+	ClientAddress   string        `yaml:"client_address"`
+	ApiAddress      string        `yaml:"api_address"`
+	PollingInterval time.Duration `yaml:"polling_interval"`
 }
 
 type Monitoring struct {
