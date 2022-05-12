@@ -27,16 +27,16 @@ import (
 )
 
 func main() {
-	executorID := flag.String("executorID", "", "Hedera Account Id")
+	executorAccountID := flag.String("executorAccountID", "", "Hedera Account Id")
 	topicID := flag.String("topicID", "", "Hedera Topic Id")
 	network := flag.String("network", "", "Hedera Network Type")
 	configPath := flag.String("configPath", "", "Path to the 'bridge.yaml' config file")
-	nodeAccountId := flag.String("nodeAccountID", "0.0.3", "Node account id on which to process the transaction.")
-	validStartMinutes := flag.Int("validStartMinutes", 2, "Valid Minutes for which the transaction needs to be signed and submitted.")
+	nodeAccountID := flag.String("nodeAccountID", "0.0.3", "Node account id on which to process the transaction.")
+	validStartMinutes := flag.Int("validStartMinutes", 2, "Valid minutes for which the transaction needs to be signed and submitted after.")
 	flag.Parse()
-	validatePrepareUpdateConfigParams(executorID, topicID, network, configPath, validStartMinutes)
+	validatePrepareUpdateConfigParams(executorAccountID, topicID, network, configPath, validStartMinutes)
 
-	content, err, topicIdParsed, executor, nodeAccount := parseParams(configPath, topicID, executorID, nodeAccountId)
+	content, err, topicIdParsed, executor, nodeAccount := parseParams(configPath, topicID, executorAccountID, nodeAccountID)
 
 	client := clientScript.GetClientForNetwork(*network)
 	additionTime := time.Minute * time.Duration(*validStartMinutes)
