@@ -20,6 +20,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -39,28 +43,26 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 type Service struct {
-	logger             *log.Entry
-	hederaNode         client.HederaNode
-	mirrorNode         client.MirrorNode
-	contractServices   map[uint64]service.Contracts
-	transferRepository repository.Transfer
-	scheduleRepository repository.Schedule
-	feeRepository      repository.Fee
-	distributor        service.Distributor
-	feeService         service.Fee
-	scheduledService   service.Scheduled
-	messageService     service.Messages
-	prometheusService  service.Prometheus
-	assetsService      service.Assets
-	topicID            hedera.TopicID
-	bridgeAccountID    hedera.AccountID
-	hederaNftFees      map[string]int64
+	logger                *log.Entry
+	hederaNode            client.HederaNode
+	mirrorNode            client.MirrorNode
+	contractServices      map[uint64]service.Contracts
+	transferRepository    repository.Transfer
+	scheduleRepository    repository.Schedule
+	feeRepository         repository.Fee
+	distributor           service.Distributor
+	feeService            service.Fee
+	scheduledService      service.Scheduled
+	messageService        service.Messages
+	prometheusService     service.Prometheus
+	assetsService         service.Assets
+	topicID               hedera.TopicID
+	bridgeAccountID       hedera.AccountID
+	hederaConstantNftFees map[string]int64
+	hederaDynamicNftFees  map[string]int64
 }
 
 func NewService(
@@ -74,7 +76,8 @@ func NewService(
 	distributor service.Distributor,
 	topicID string,
 	bridgeAccount string,
-	hederaNftFees map[string]int64,
+	hederaConstantNftFees map[string]int64,
+	hederaDynamicNftFees map[string]int64,
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 	prometheusService service.Prometheus,
@@ -90,22 +93,23 @@ func NewService(
 	}
 
 	return &Service{
-		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
-		hederaNode:         hederaNode,
-		mirrorNode:         mirrorNode,
-		contractServices:   contractServices,
-		transferRepository: transferRepository,
-		scheduleRepository: scheduleRepository,
-		feeRepository:      feeRepository,
-		topicID:            tID,
-		feeService:         feeService,
-		distributor:        distributor,
-		bridgeAccountID:    bridgeAccountID,
-		scheduledService:   scheduledService,
-		messageService:     messageService,
-		hederaNftFees:      hederaNftFees,
-		prometheusService:  prometheusService,
-		assetsService:      assetsService,
+		logger:                config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
+		hederaNode:            hederaNode,
+		mirrorNode:            mirrorNode,
+		contractServices:      contractServices,
+		transferRepository:    transferRepository,
+		scheduleRepository:    scheduleRepository,
+		feeRepository:         feeRepository,
+		topicID:               tID,
+		feeService:            feeService,
+		distributor:           distributor,
+		bridgeAccountID:       bridgeAccountID,
+		scheduledService:      scheduledService,
+		messageService:        messageService,
+		hederaConstantNftFees: hederaConstantNftFees,
+		hederaDynamicNftFees:  hederaDynamicNftFees,
+		prometheusService:     prometheusService,
+		assetsService:         assetsService,
 	}
 }
 
@@ -183,10 +187,17 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
-	fee := ts.hederaNftFees[tm.SourceAsset]
-	validFee := ts.distributor.ValidAmount(fee)
+	fee, ok := ts.hederaConstantNftFees[tm.SourceAsset]
+	if !ok {
+		fee, ok = ts.hederaDynamicNftFees[tm.SourceAsset]
+		if !ok {
+			return fmt.Errorf("[%s] - Failed to find fee for NFT [%s]", tm.TransactionId, tm.SourceAsset)
+		}
+	}
 
-	go ts.processFeeTransfer(validFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
+	feePerValidator := ts.distributor.ValidAmount(fee)
+
+	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 
 	signatureMessage, err := ts.messageService.SignNftMessage(tm)
 	if err != nil {
