@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/fetch"
 
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/compat"
