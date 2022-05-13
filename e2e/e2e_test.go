@@ -271,7 +271,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
@@ -345,7 +345,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
@@ -409,7 +409,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// Step 3: Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -677,7 +677,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// Step 3 - Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -762,7 +762,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// Step 3 - Validate Burn Event was emitted with correct data
 	burnEventId := validateBurnEvent(receipt, expectedLockEventLog, t)
@@ -970,7 +970,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
-	blockTimestamp := time.Unix(int64(block.Time()), 0)
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// 3. Validate that the burn ERC-721 transaction went through and emitted the correct event
 	expectedTxId := validateBurnERC721Event(burnTxReceipt, expectedRouterBurnERC721, t)
