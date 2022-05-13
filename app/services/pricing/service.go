@@ -147,7 +147,6 @@ func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
 }
 
 func (s *Service) updateHbarPrice(results fetchResults) error {
-
 	var priceInUsd decimal.Decimal
 	if results.HbarErr != nil {
 		if results.AllPricesErr != nil {

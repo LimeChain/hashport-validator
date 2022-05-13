@@ -113,7 +113,7 @@ func NewService(
 	}
 }
 
-// SanityCheck performs validation on the memo and state proof for the transaction
+// SanityCheckTransfer performs validation on the memo and state proof for the transaction
 func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) (uint64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
@@ -189,10 +189,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
 	fee, ok := ts.hederaConstantNftFees[tm.SourceAsset]
 	if !ok {
-		fee, ok = ts.hederaDynamicNftFees[tm.SourceAsset]
-		if !ok {
-			return fmt.Errorf("[%s] - Failed to find fee for NFT [%s]", tm.TransactionId, tm.SourceAsset)
-		}
+		fee = tm.DynamicFee
 	}
 
 	feePerValidator := ts.distributor.ValidAmount(fee)
