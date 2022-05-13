@@ -20,6 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
@@ -39,7 +42,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
-	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
 )
 
@@ -113,7 +115,7 @@ type Setup struct {
 	FeePercentages  map[string]int64
 	Members         []hederaSDK.AccountID
 	Clients         *clients
-	DbValidator     *db_validation.Service
+	DbValidator     *verify.Service
 	AssetMappings   service.Assets
 }
 
@@ -162,7 +164,7 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
+	dbValidator := verify.NewService(config.Hedera.DbValidationProps)
 
 	return &Setup{
 		BridgeAccount:   bridgeAccount,
