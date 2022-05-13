@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package util
+package expected
 
 import (
 	"database/sql"
@@ -23,7 +23,7 @@ import (
 	"strconv"
 )
 
-func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, transferID string) *entity.Fee {
+func FeeRecord(transactionID, scheduleID string, amount int64, transferID string) *entity.Fee {
 	fee := &entity.Fee{
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,
@@ -41,7 +41,7 @@ func PrepareExpectedFeeRecord(transactionID, scheduleID string, amount int64, tr
 	return fee
 }
 
-func PrepareExpectedTransfer(
+func FungibleTransferRecord(
 	sourceChainId,
 	targetChainId,
 	nativeChainId uint64,
@@ -64,5 +64,50 @@ func PrepareExpectedTransfer(
 		NativeAsset:   nativeAsset,
 		Amount:        amount,
 		Status:        status,
+	}
+}
+
+func NonFungibleTransferRecord(
+	sourceChainId,
+	targetChainId,
+	nativeChainId uint64,
+	transactionID,
+	sourceAsset,
+	targetAsset,
+	nativeAsset,
+	receiver string,
+	status string,
+	fee string,
+	serialNumber int64,
+	metadata string,
+	originator string,
+	timestamp entity.NanoTime) *entity.Transfer {
+	return &entity.Transfer{
+		TransactionID: transactionID,
+		SourceChainID: sourceChainId,
+		TargetChainID: targetChainId,
+		NativeChainID: nativeChainId,
+		SourceAsset:   sourceAsset,
+		TargetAsset:   targetAsset,
+		NativeAsset:   nativeAsset,
+		Receiver:      receiver,
+		Fee:           fee,
+		Status:        status,
+		SerialNumber:  serialNumber,
+		Metadata:      metadata,
+		IsNft:         true,
+		Timestamp:     timestamp,
+		Originator:    originator,
+	}
+}
+
+func ScheduleRecord(txId, scheduleId, operation string, hasReceiver bool, status string, transferId sql.NullString) *entity.Schedule {
+	return &entity.Schedule{
+		TransactionID: txId,
+		ScheduleID:    scheduleId,
+		Operation:     operation,
+		HasReceiver:   hasReceiver,
+		Status:        status,
+		TransferID:    transferId,
 	}
 }

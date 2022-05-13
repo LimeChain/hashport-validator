@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-package util
+package expected
+
+import (
+	"reflect"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+)
 
 func AllSame(arr []string) bool {
 	for i := 1; i < len(arr); i++ {
@@ -24,4 +30,13 @@ func AllSame(arr []string) bool {
 	}
 
 	return true
+}
+
+func Contains(m entity.Message, array []entity.Message) bool {
+	for _, a := range array {
+		if reflect.DeepEqual(a, m) {
+			return true
+		}
+	}
+	return false
 }
