@@ -14,20 +14,26 @@
  * limitations under the License.
  */
 
-package database
+package verify
 
 import (
 	"encoding/hex"
+	"reflect"
+	"testing"
+
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
 
 type dbVerifier struct {
@@ -109,7 +115,7 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 		if err != nil {
 			return false, nil, err
 		}
-		if !transfersFieldsMatch(*expectedTransferRecord, *actualDbTx) {
+		if !reflect.DeepEqual(*expectedTransferRecord, *actualDbTx) {
 			return false, nil, nil
 		}
 	}
@@ -122,7 +128,7 @@ func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, er
 		if err != nil {
 			return false, err
 		}
-		if !scheduleFieldsMatch(*expectedRecord, *actualDbTx) {
+		if !reflect.DeepEqual(*expectedRecord, *actualDbTx) {
 			return false, nil
 		}
 	}
@@ -158,7 +164,7 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, authMsgBytes [
 		}
 
 		for _, m := range expectedMessageRecords {
-			if !contains(m, messages) {
+			if !expected.Contains(m, messages) {
 				return false, nil
 			}
 		}
@@ -175,18 +181,53 @@ func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !feeFieldsMatch(*actual, *expectedRecord) {
+		if !reflect.DeepEqual(*actual, *expectedRecord) {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-func contains(m entity.Message, array []entity.Message) bool {
-	for _, a := range array {
-		if messagesFieldsMatch(a, m) {
-			return true
-		}
+func FeeRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Fee) {
+	t.Helper()
+	ok, err := dbValidation.VerifyFeeRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
-	return false
+	if !ok {
+		t.Fatalf("[%s] - Database does not contain expected fee records", expectedRecord.TransactionID)
+	}
+}
+
+func TransferRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Transfer) {
+	t.Helper()
+	exist, err := dbValidation.VerifyTransferRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected transfer records", expectedRecord.TransactionID)
+	}
+}
+
+func ScheduleRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Schedule) {
+	t.Helper()
+	exist, err := dbValidation.VerifyScheduleRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected schedule records", expectedRecord.TransactionID)
+	}
+}
+
+func TransferRecordAndSignatures(t *testing.T, dbValidation *Service, expectedRecord *entity.Transfer, authMsgBytes []byte, signatures []string) {
+	t.Helper()
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, authMsgBytes, signatures)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
+	}
 }
