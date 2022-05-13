@@ -83,6 +83,10 @@ func (n NanoTime) Value() (driver.Value, error) {
 }
 
 func (n *NanoTime) Scan(value interface{}) error {
+	if value == nil {
+		*n = NanoTime{}
+		return nil
+	}
 	t, ok := value.(int64)
 	if !ok {
 		return errors.New("value was not int64")

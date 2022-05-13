@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -38,7 +40,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	validatorCfg "github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -56,13 +57,7 @@ func main() {
 	// Setup hedera, evm clients and nodes to be migrated
 	nodes := make([]*node, len(cfg.DBs))
 	for i, db := range cfg.DBs {
-		pgDb := persistence.NewPgConnector(validatorCfg.Database{
-			Host:     db.Host,
-			Name:     db.Name,
-			Password: db.Password,
-			Port:     db.Port,
-			Username: db.Username,
-		}).Connect()
+		pgDb := persistence.NewPgConnector(validatorCfg.Database(db)).Connect()
 		db, err := pgDb.DB()
 		if err != nil {
 			log.Fatal(err)
@@ -98,13 +93,12 @@ func main() {
 type tempTransfer struct {
 	TransactionID string
 	SourceChainID uint64
-	Timestamp     sql.NullTime
+	Timestamp     entity.NanoTime
 	Originator    sql.NullString
 }
 
 type hederaCfg struct {
-	Env        hedera.NetworkName `yaml:"env"`
-	MirrorNode parser.MirrorNode  `yaml:"mirror_node"`
+	MirrorNode parser.MirrorNode `yaml:"mirror_node"`
 }
 
 type config struct {
@@ -178,7 +172,7 @@ func (m *migrator) migrateNode(i int) error {
 		}
 
 		for _, t := range transfers {
-			if t.Originator.Valid && t.Timestamp.Valid {
+			if t.Originator.Valid && !t.Timestamp.IsZero() {
 				continue
 			}
 
@@ -226,7 +220,7 @@ func (m *migrator) hederaFields(tr *tempTransfer) error {
 		return err
 	}
 
-	tr.Timestamp = sql.NullTime{Time: timestampHelper.FromNanos(tNano), Valid: true}
+	tr.Timestamp = entity.NanoTime{Time: timestampHelper.FromNanos(tNano)}
 	tr.Originator = sql.NullString{String: o, Valid: true}
 
 	return nil
@@ -258,7 +252,7 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 	}
 
 	uT := time.Unix(int64(block.Time()), 0)
-	transfer.Timestamp = sql.NullTime{Time: uT.UTC()}
+	transfer.Timestamp = entity.NanoTime{Time: uT.UTC()}
 
 	tx, err := c.RetryTransactionByHash(common.HexToHash(txHash))
 	if err != nil {

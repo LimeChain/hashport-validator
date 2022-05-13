@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	nanosInSecond = 1000000000
+	nanosInSecond = int64(time.Second)
 )
 
 // FromString parses a string in the format `{seconds}.{nanos}` into int64 timestamp
@@ -62,5 +62,5 @@ func ToHumanReadable(timestampNanos int64) string {
 }
 
 func FromNanos(nanos int64) time.Time {
-	return time.Unix(nanos/nanosInSecond, nanos&nanosInSecond).UTC()
+	return time.Unix(0, nanos).UTC()
 }
