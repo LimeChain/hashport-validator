@@ -19,6 +19,10 @@ package transfer
 import (
 	"database/sql"
 	"database/sql/driver"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -28,9 +32,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"regexp"
-	"testing"
-	"time"
 )
 
 var (
@@ -51,12 +52,15 @@ var (
 	serialNumber  = int64(0)
 	metadata      = "metadata"
 	isNft         = false
+	now           = time.Now().UTC()
+	nanoTime      = entity.NanoTime{Time: now}
+	originator    = "originator"
 
-	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft"}
+	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
 	messageColumns  = []string{"transfer_id", "hash", "signature", "signer", "transaction_timestamp"}
 
-	transferRowArgs = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft}
+	transferRowArgs = []driver.Value{transactionId, sourceChainId, targetChainId, nativeChainId, sourceAsset, targetAsset, nativeAsset, receiver, amount, fee, someStatus, serialNumber, metadata, isNft, nanoTime, originator}
 	feesRowArgs     = []driver.Value{
 		transactionId,
 		expectedEntityFee.ScheduleID,
@@ -81,21 +85,25 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
+		Timestamp:     nanoTime,
+		Originator:    originator,
 	}
 	expectedModelTransfer = &model.Transfer{
-		TransactionId: transactionId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		Amount:        amount,
-		SerialNum:     serialNumber,
-		Metadata:      metadata,
-		IsNft:         isNft,
-		Timestamp:     time.Now().String(),
+		TransactionId:    transactionId,
+		SourceChainId:    sourceChainId,
+		TargetChainId:    targetChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      sourceAsset,
+		TargetAsset:      targetAsset,
+		NativeAsset:      nativeAsset,
+		Receiver:         receiver,
+		Amount:           amount,
+		SerialNum:        serialNumber,
+		Metadata:         metadata,
+		IsNft:            isNft,
+		NetworkTimestamp: time.Now().String(),
+		Timestamp:        now,
+		Originator:       originator,
 	}
 
 	expectedEntityFee = entity.Fee{
@@ -131,6 +139,8 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
+		Timestamp:     nanoTime,
+		Originator:    originator,
 		Fees: []entity.Fee{
 			expectedEntityFee,
 		},
@@ -150,6 +160,8 @@ var (
 		SerialNumber:  serialNumber,
 		Metadata:      metadata,
 		IsNft:         isNft,
+		Timestamp:     nanoTime,
+		Originator:    originator,
 		Fees: []entity.Fee{
 			expectedEntityFee,
 		},
@@ -163,8 +175,8 @@ var (
 	getWithPreloadsFeesQuery      = regexp.QuoteMeta(`SELECT * FROM "fees" WHERE "fees"."transfer_id" = $1`)
 	getWithPreloadsMessagesQuery  = regexp.QuoteMeta(`SELECT * FROM "messages" WHERE "messages"."transfer_id" = $1`)
 
-	createQuery       = regexp.QuoteMeta(`INSERT INTO "transfers" ("transaction_id","source_chain_id","target_chain_id","native_chain_id","source_asset","target_asset","native_asset","receiver","amount","fee","status","serial_number","metadata","is_nft") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`)
-	saveQuery         = regexp.QuoteMeta(`UPDATE "transfers" SET "source_chain_id"=$1,"target_chain_id"=$2,"native_chain_id"=$3,"source_asset"=$4,"target_asset"=$5,"native_asset"=$6,"receiver"=$7,"amount"=$8,"fee"=$9,"status"=$10,"serial_number"=$11,"metadata"=$12,"is_nft"=$13 WHERE "transaction_id" = $14`)
+	createQuery       = regexp.QuoteMeta(`INSERT INTO "transfers" ("transaction_id","source_chain_id","target_chain_id","native_chain_id","source_asset","target_asset","native_asset","receiver","amount","fee","status","serial_number","metadata","is_nft","timestamp","originator") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`)
+	saveQuery         = regexp.QuoteMeta(`UPDATE "transfers" SET "source_chain_id"=$1,"target_chain_id"=$2,"native_chain_id"=$3,"source_asset"=$4,"target_asset"=$5,"native_asset"=$6,"receiver"=$7,"amount"=$8,"fee"=$9,"status"=$10,"serial_number"=$11,"metadata"=$12,"is_nft"=$13,"timestamp"=$14,"originator"=$15 WHERE "transaction_id" = $16`)
 	updateFeeQuery    = regexp.QuoteMeta(`UPDATE "transfers" SET "fee"=$1 WHERE transaction_id = $2`)
 	updateStatusQuery = regexp.QuoteMeta(`UPDATE "transfers" SET "status"=$1 WHERE transaction_id = $2`)
 )
@@ -297,7 +309,9 @@ func Test_Create(t *testing.T) {
 		someStatus,
 		serialNumber,
 		metadata,
-		isNft)
+		isNft,
+		nanoTime,
+		originator)
 
 	actual, err := repository.Create(expectedModelTransfer)
 	assert.Nil(t, err)
@@ -321,7 +335,9 @@ func Test_Create_Err(t *testing.T) {
 		someStatus,
 		serialNumber,
 		metadata,
-		isNft)
+		isNft,
+		nanoTime,
+		originator)
 
 	actual, err := repository.Create(expectedModelTransfer)
 	assert.NotNil(t, err)
@@ -345,6 +361,8 @@ func Test_Save(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
+		nanoTime,
+		originator,
 		transactionId)
 
 	err := repository.Save(expectedEntityTransfer)
@@ -368,6 +386,8 @@ func Test_Save_Err(t *testing.T) {
 		serialNumber,
 		metadata,
 		isNft,
+		nanoTime,
+		originator,
 		transactionId)
 
 	err := repository.Save(expectedEntityTransfer)
@@ -455,7 +475,9 @@ func Test_create(t *testing.T) {
 		someStatus,
 		serialNumber,
 		metadata,
-		isNft)
+		isNft,
+		nanoTime,
+		originator)
 
 	actual, err := repository.create(expectedModelTransfer, someStatus)
 	assert.Nil(t, err)
@@ -479,7 +501,9 @@ func Test_create_Err(t *testing.T) {
 		someStatus,
 		serialNumber,
 		metadata,
-		isNft)
+		isNft,
+		nanoTime,
+		originator)
 
 	actual, err := repository.create(expectedModelTransfer, someStatus)
 	assert.NotNil(t, err)

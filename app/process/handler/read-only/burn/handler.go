@@ -80,7 +80,7 @@ func (mhh Handler) Handle(payload interface{}) {
 
 	mhh.readOnlyService.FindTransfer(transferMsg.TransactionId,
 		func() (*mirrorNodeTransaction.Response, error) {
-			return mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.Timestamp)
+			return mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.NetworkTimestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
 			return mhh.scheduleRepository.Create(&entity.Schedule{

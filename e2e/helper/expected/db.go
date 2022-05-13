@@ -18,9 +18,10 @@ package expected
 
 import (
 	"database/sql"
+	"strconv"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
-	"strconv"
 )
 
 func FeeRecord(transactionID, scheduleID string, amount int64, transferID string) *entity.Fee {
@@ -51,7 +52,9 @@ func FungibleTransferRecord(
 	nativeAsset,
 	amount,
 	receiver string,
-	status string) *entity.Transfer {
+	status string,
+	originator string,
+	timestamp entity.NanoTime) *entity.Transfer {
 
 	return &entity.Transfer{
 		TransactionID: transactionID,
@@ -64,6 +67,8 @@ func FungibleTransferRecord(
 		NativeAsset:   nativeAsset,
 		Amount:        amount,
 		Status:        status,
+		Originator:    originator,
+		Timestamp:     timestamp,
 	}
 }
 

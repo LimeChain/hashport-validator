@@ -18,6 +18,7 @@ package transfer
 
 import (
 	"errors"
+
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -133,10 +134,12 @@ func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer
 		NativeAsset:   ct.NativeAsset,
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
+		Status:        status,
 		SerialNumber:  ct.SerialNum,
 		Metadata:      ct.Metadata,
 		IsNft:         ct.IsNft,
-		Status:        status,
+		Timestamp:     entity.NanoTime{Time: ct.Timestamp},
+		Originator:    ct.Originator,
 	}
 	err := tr.dbClient.Create(tx).Error
 

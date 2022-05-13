@@ -50,19 +50,19 @@ var (
 	nilErr        error
 
 	payload = &model.Transfer{
-		TransactionId: transactionId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		Amount:        amount,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         isNft,
-		Timestamp:     timestamp,
+		TransactionId:    transactionId,
+		SourceChainId:    sourceChainId,
+		TargetChainId:    targetChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      sourceAsset,
+		TargetAsset:      targetAsset,
+		NativeAsset:      nativeAsset,
+		Receiver:         receiver,
+		Amount:           amount,
+		SerialNum:        serialNum,
+		Metadata:         metadata,
+		IsNft:            isNft,
+		NetworkTimestamp: timestamp,
 	}
 
 	resultEntityTransfer = &entity.Transfer{

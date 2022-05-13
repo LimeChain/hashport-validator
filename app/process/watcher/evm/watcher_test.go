@@ -184,16 +184,16 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
 	parsedLockLog := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: sourceChainId,
-		TargetChainId: lockLog.TargetChain.Uint64(),
-		NativeChainId: sourceChainId,
-		SourceAsset:   lockLog.Token.String(),
-		TargetAsset:   constants.Hbar,
-		NativeAsset:   lockLog.Token.String(),
-		Receiver:      hederaAcc.String(),
-		Amount:        lockLog.Amount.String(),
-		Timestamp:     "1",
+		TransactionId:    fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
+		SourceChainId:    sourceChainId,
+		TargetChainId:    lockLog.TargetChain.Uint64(),
+		NativeChainId:    sourceChainId,
+		SourceAsset:      lockLog.Token.String(),
+		TargetAsset:      constants.Hbar,
+		NativeAsset:      lockLog.Token.String(),
+		Receiver:         hederaAcc.String(),
+		Amount:           lockLog.Amount.String(),
+		NetworkTimestamp: "1",
 	}
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
@@ -222,16 +222,16 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, sourceChainId, lockLog.TargetChain.Uint64()).Return("")
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
 	parsedLockLog := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
-		SourceChainId: sourceChainId,
-		TargetChainId: lockLog.TargetChain.Uint64(),
-		NativeChainId: sourceChainId,
-		SourceAsset:   lockLog.Token.String(),
-		TargetAsset:   "0xsome-other-eth-address",
-		NativeAsset:   lockLog.Token.String(),
-		Receiver:      common.BytesToAddress(hederaAcc.ToBytes()).String(),
-		Amount:        lockLog.Amount.String(),
-		Timestamp:     "1",
+		TransactionId:    fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
+		SourceChainId:    sourceChainId,
+		TargetChainId:    lockLog.TargetChain.Uint64(),
+		NativeChainId:    sourceChainId,
+		SourceAsset:      lockLog.Token.String(),
+		TargetAsset:      "0xsome-other-eth-address",
+		NativeAsset:      lockLog.Token.String(),
+		Receiver:         common.BytesToAddress(hederaAcc.ToBytes()).String(),
+		Amount:           lockLog.Amount.String(),
+		NetworkTimestamp: "1",
 	}
 
 	mocks.MStatusRepository.On("Update", mocks.MBridgeContractService.Address().String(), int64(0)).Return(nil)
@@ -368,16 +368,16 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	nativeChainId := uint64(1)
 	nativeAssetAddress := "0xb083879B1e10C8476802016CB12cd2F25a896691"
 	parsedBurnLog := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: sourceChainId,
-		TargetChainId: nativeChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   nativeAssetAddress,
-		NativeAsset:   nativeAssetAddress,
-		Receiver:      receiver,
-		Amount:        burnLog.Amount.String(),
-		Timestamp:     "1",
+		TransactionId:    fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
+		SourceChainId:    sourceChainId,
+		TargetChainId:    nativeChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      burnLog.Token.String(),
+		TargetAsset:      nativeAssetAddress,
+		NativeAsset:      nativeAssetAddress,
+		Receiver:         receiver,
+		Amount:           burnLog.Amount.String(),
+		NetworkTimestamp: "1",
 	}
 
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), sourceChainId).Return(&asset.NativeAsset{ChainId: nativeChainId, Asset: nativeAssetAddress})
@@ -411,16 +411,16 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
 	parsedBurnLog := &transfer.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
-		SourceChainId: sourceChainId,
-		TargetChainId: 0,
-		NativeChainId: 0,
-		SourceAsset:   burnLog.Token.String(),
-		TargetAsset:   constants.Hbar,
-		NativeAsset:   constants.Hbar,
-		Receiver:      hederaAcc.String(),
-		Amount:        burnLog.Amount.String(),
-		Timestamp:     "1",
+		TransactionId:    fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
+		SourceChainId:    sourceChainId,
+		TargetChainId:    0,
+		NativeChainId:    0,
+		SourceAsset:      burnLog.Token.String(),
+		TargetAsset:      constants.Hbar,
+		NativeAsset:      constants.Hbar,
+		Receiver:         hederaAcc.String(),
+		Amount:           burnLog.Amount.String(),
+		NetworkTimestamp: "1",
 	}
 
 	mocks.MAssetsService.On("WrappedToNative", burnLog.Token.String(), sourceChainId).Return(hbarNativeAsset)

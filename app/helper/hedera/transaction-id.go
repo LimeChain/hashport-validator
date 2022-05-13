@@ -18,8 +18,9 @@ package hedera
 
 import (
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"strings"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 // ToMirrorNodeTransactionID parses TX with format `0.0.X@{seconds}.{nanos}?scheduled` to format `0.0.X-{seconds}-{nanos}`
@@ -63,4 +64,9 @@ func (txId HederaTransactionID) String() string {
 
 func (txId HederaTransactionID) Timestamp() string {
 	return fmt.Sprintf("%s.%s", txId.Seconds, txId.Nanos)
+}
+
+func OriginatorFromTxId(txId string) string {
+	parts := strings.Split(txId, "-")
+	return parts[0]
 }

@@ -18,6 +18,9 @@ package main
 
 import (
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -29,7 +32,11 @@ import (
 
 func main() {
 	// Config
-	configuration, parsedBridge := config.LoadConfig()
+	configuration, parsedBridge, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
 	config.InitLogger(configuration.Node.LogLevel)
 
 	// Prepare Clients

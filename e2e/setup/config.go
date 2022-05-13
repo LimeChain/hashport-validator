@@ -52,8 +52,12 @@ const (
 // Load loads the e2e application.yml from the ./e2e/setup folder and parses it to suitable working struct for the e2e tests
 func Load() *Setup {
 	var e2eConfig e2eParser.Config
-	config.GetConfig(&e2eConfig, e2eConfigPath)
-	config.GetConfig(&e2eConfig, e2eBridgeConfigPath)
+	if err := config.GetConfig(&e2eConfig, e2eConfigPath); err != nil {
+		panic(err)
+	}
+	if err := config.GetConfig(&e2eConfig, e2eBridgeConfigPath); err != nil {
+		panic(err)
+	}
 
 	configuration := Config{
 		Hedera: Hedera{
