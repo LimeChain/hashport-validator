@@ -758,7 +758,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, nativeEvm.Receiver.Bytes(), amount, t)
 
 	// Step 2.1 - Get the block timestamp of the burn event
-	block, err := nativeEvm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
+	block, err := wrappedEvm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
@@ -796,7 +796,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		strconv.FormatInt(amount, 10),
 		nativeEvm.Receiver.String(),
 		status.Completed,
-		nativeEvm.Signer.Address(),
+		wrappedEvm.Signer.Address(),
 		entity.NanoTime{Time: blockTimestamp})
 
 	authMsgBytes, err := auth_message.
