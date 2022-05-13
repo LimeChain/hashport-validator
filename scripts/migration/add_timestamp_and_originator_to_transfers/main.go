@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
@@ -54,7 +56,13 @@ func main() {
 	// Setup hedera, evm clients and nodes to be migrated
 	nodes := make([]*node, len(cfg.DBs))
 	for i, db := range cfg.DBs {
-		pgDb := persistence.NewPgConnector(db).Connect()
+		pgDb := persistence.NewPgConnector(validatorCfg.Database{
+			Host:     db.Host,
+			Name:     db.Name,
+			Password: db.Password,
+			Port:     db.Port,
+			Username: db.Username,
+		}).Connect()
 		db, err := pgDb.DB()
 		if err != nil {
 			log.Fatal(err)
@@ -72,11 +80,15 @@ func main() {
 		}, k)
 	}
 
-	mnc := mirror_node.NewClient(cfg.Hedera.MirrorNode)
+	mnc := mirror_node.NewClient(validatorCfg.MirrorNode{
+		ClientAddress:   cfg.Hedera.MirrorNode.ClientAddress,
+		ApiAddress:      cfg.Hedera.MirrorNode.ApiAddress,
+		PollingInterval: cfg.Hedera.MirrorNode.PollingInterval,
+	})
 
 	migrator := newMigrator(nodes, evmClients, mnc)
 
-	log.Infof("finna update %d nodes using %d evm clients", len(migrator.nodes), len(migrator.evmClients))
+	log.Infof("updating %d nodes using %d evm clients", len(migrator.nodes), len(migrator.evmClients))
 	err = migrator.migrate()
 	if err != nil {
 		log.Fatal(err)
@@ -91,16 +103,14 @@ type tempTransfer struct {
 }
 
 type hederaCfg struct {
-	Env        hedera.NetworkName      `yaml:"env"`
-	AccountId  string                  `yaml:"account_id"`
-	PrivateKey string                  `yaml:"private_key"`
-	MirrorNode validatorCfg.MirrorNode `yaml:"mirror_node"`
+	Env        hedera.NetworkName `yaml:"env"`
+	MirrorNode parser.MirrorNode  `yaml:"mirror_node"`
 }
 
 type config struct {
-	Hedera hederaCfg               `yaml:"hedera"`
-	DBs    []validatorCfg.Database `yaml:"dbs"`
-	Evm    map[uint64]string       `yaml:"evm"`
+	Hedera hederaCfg         `yaml:"hedera"`
+	DBs    []parser.Database `yaml:"dbs"`
+	Evm    map[uint64]string `yaml:"evm"`
 }
 
 type node struct {
@@ -176,6 +186,8 @@ func (m *migrator) migrateNode(i int) error {
 			if err != nil {
 				return err
 			}
+			log.Infof("[DB: %d]: updated transfer [%s] with timestamp [%d] and originator [%s]",
+				i, t.TransactionID, t.Timestamp.Time.UnixNano(), t.Originator.String)
 		}
 
 		qs := m.prepareQuery(transfers)

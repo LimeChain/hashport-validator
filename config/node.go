@@ -86,9 +86,9 @@ type CoinMarketCap struct {
 // MirrorNode //
 
 type MirrorNode struct {
-	ClientAddress   string        `yaml:"client_address"`
-	ApiAddress      string        `yaml:"api_address"`
-	PollingInterval time.Duration `yaml:"polling_interval"`
+	ClientAddress   string
+	ApiAddress      string
+	PollingInterval time.Duration
 }
 
 type Monitoring struct {
