@@ -20,13 +20,18 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/hashgraph/hedera-sdk-go/v2"
+
+	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
+
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
-func EventTransactionIDFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, eventID, expectedTxID string) {
+func EventTransactionIDFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, eventID, expectedTxID string) {
 	t.Helper()
-	actualTxID, err := setupEnv.Clients.ValidatorClient.GetEventTransactionID(eventID)
+	actualTxID, err := validatorClient.GetEventTransactionID(eventID)
 	if err != nil {
 		t.Fatalf("[%s] - Failed to get event transaction ID. Error: [%s]", eventID, err)
 	}
@@ -36,9 +41,9 @@ func EventTransactionIDFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, eve
 	}
 }
 
-func FungibleTransferFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string) *service.FungibleTransferData {
+func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId, tokenID, expectedSendAmount, targetAsset string) *service.FungibleTransferData {
 	t.Helper()
-	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
+	bytes, err := validatorClient.GetTransferData(txId)
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
@@ -55,7 +60,7 @@ func FungibleTransferFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, evm s
 		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", expectedSendAmount, transferDataResponse.Amount)
 	}
 	if transferDataResponse.NativeAsset != tokenID {
-		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transferDataResponse.NativeAsset)
+		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", tokenId.String(), transferDataResponse.NativeAsset)
 	}
 	if transferDataResponse.Recipient != evm.Receiver.String() {
 		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transferDataResponse.Recipient)
@@ -67,9 +72,9 @@ func FungibleTransferFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, evm s
 	return transferDataResponse
 }
 
-func NonFungibleTransferFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, evm setup.EVMUtils, txId string, tokenID string, metadata string, tokenIdOrSerialNum int64, targetAsset string) *service.NonFungibleTransferData {
+func NonFungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId string, tokenID string, metadata string, tokenIdOrSerialNum int64, targetAsset string) *service.NonFungibleTransferData {
 	t.Helper()
-	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
+	bytes, err := validatorClient.GetTransferData(txId)
 	if err != nil {
 		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
 	}
@@ -89,7 +94,7 @@ func NonFungibleTransferFromValidatorAPI(t *testing.T, setupEnv *setup.Setup, ev
 		t.Fatalf("Transaction tokenId/serialNum mismatch: Expected [%d], but was [%d]", tokenIdOrSerialNum, transferDataResponse.TokenId)
 	}
 	if transferDataResponse.NativeAsset != tokenID {
-		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", setupEnv.TokenID.String(), transferDataResponse.NativeAsset)
+		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", tokenId.String(), transferDataResponse.NativeAsset)
 	}
 	if transferDataResponse.Recipient != evm.Receiver.String() {
 		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transferDataResponse.Recipient)

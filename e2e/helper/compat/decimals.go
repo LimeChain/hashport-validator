@@ -19,12 +19,13 @@ package compat
 import (
 	"math"
 
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
-func RemoveDecimals(amount int64, asset common.Address, evm setup.EVMUtils) (int64, error) {
+func RemoveDecimals(amount int64, asset common.Address, evm evmSetup.Utils) (int64, error) {
 	evmAsset, err := wtoken.NewWtoken(asset, evm.EVMClient)
 	if err != nil {
 		return 0, err
@@ -43,7 +44,7 @@ func RemoveDecimals(amount int64, asset common.Address, evm setup.EVMUtils) (int
 	return amount, nil
 }
 
-func AddDecimals(amount int64, asset common.Address, evm setup.EVMUtils) (int64, error) {
+func AddDecimals(amount int64, asset common.Address, evm evmSetup.Utils) (int64, error) {
 	evmAsset, err := wtoken.NewWtoken(asset, evm.EVMClient)
 	if err != nil {
 		return 0, err

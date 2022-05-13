@@ -16,11 +16,13 @@
 
 package expected
 
-import "github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+)
 
-func ReceiverAndFeeAmounts(setup *setup.Setup, token string, amount int64) (receiverAmount, fee int64) {
-	fee, remainder := setup.Clients.FeeCalculator.CalculateFee(token, amount)
-	validFee := setup.Clients.Distributor.ValidAmount(fee)
+func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
+	fee, remainder := feeCalc.CalculateFee(token, amount)
+	validFee := distributor.ValidAmount(fee)
 	if validFee != fee {
 		remainder += fee - validFee
 	}

@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,7 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
 func BurnEvent(t *testing.T, txReceipt *types.Receipt, expectedRouterBurn *router.RouterBurn) string {
@@ -171,9 +172,9 @@ func BurnERC721Event(t *testing.T, txReceipt *types.Receipt, expectedRouterLock 
 	return ""
 }
 
-func WrappedAssetBalance(t *testing.T, evm setup.EVMUtils, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address) {
+func WrappedAssetBalance(t *testing.T, evm evmSetup.Utils, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address) {
 	t.Helper()
-	instance, err := setup.InitAssetContract(nativeAsset, evm.EVMClient)
+	instance, err := evmSetup.InitAssetContract(nativeAsset, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
 	}

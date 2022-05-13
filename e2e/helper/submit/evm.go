@@ -22,16 +22,17 @@ import (
 	"math/big"
 	"testing"
 
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
-func MintTransaction(t *testing.T, evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address) common.Hash {
+func MintTransaction(t *testing.T, evm evmSetup.Utils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address) common.Hash {
 	t.Helper()
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
@@ -62,7 +63,7 @@ func MintTransaction(t *testing.T, evm setup.EVMUtils, txId string, transactionD
 	return res.Hash()
 }
 
-func MintERC721Transaction(t *testing.T, evm setup.EVMUtils, txId string, transactionData *service.NonFungibleTransferData) common.Hash {
+func MintERC721Transaction(t *testing.T, evm evmSetup.Utils, txId string, transactionData *service.NonFungibleTransferData) common.Hash {
 	t.Helper()
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
@@ -90,7 +91,7 @@ func MintERC721Transaction(t *testing.T, evm setup.EVMUtils, txId string, transa
 	return res.Hash()
 }
 
-func UnlockTransaction(t *testing.T, evm setup.EVMUtils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address) common.Hash {
+func UnlockTransaction(t *testing.T, evm evmSetup.Utils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address) common.Hash {
 	t.Helper()
 	var signatures [][]byte
 	for i := 0; i < len(transactionData.Signatures); i++ {
@@ -121,9 +122,9 @@ func UnlockTransaction(t *testing.T, evm setup.EVMUtils, txId string, transactio
 	return res.Hash()
 }
 
-func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm setup.EVMUtils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64) (*types.Receipt, *router.RouterBurn) {
+func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup.Utils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64) (*types.Receipt, *router.RouterBurn) {
 	t.Helper()
-	wrappedAsset, err := setup.NativeToWrappedAsset(assetsService, sourceChainId, targetChainId, asset)
+	wrappedAsset, err := evmSetup.NativeToWrappedAsset(assetsService, sourceChainId, targetChainId, asset)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm setup.EV
 
 	approvedValue := big.NewInt(amount)
 
-	instance, err := setup.InitAssetContract(wrappedAsset, evm.EVMClient)
+	instance, err := evmSetup.InitAssetContract(wrappedAsset, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,11 +170,11 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm setup.EV
 	return burnTxReceipt, expectedRouterBurn
 }
 
-func LockEthTransaction(t *testing.T, evm setup.EVMUtils, asset string, targetChainId uint64, receiver []byte, amount int64) (*types.Receipt, *router.RouterLock) {
+func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetChainId uint64, receiver []byte, amount int64) (*types.Receipt, *router.RouterLock) {
 	t.Helper()
 	approvedValue := big.NewInt(amount)
 
-	instance, err := setup.InitAssetContract(asset, evm.EVMClient)
+	instance, err := evmSetup.InitAssetContract(asset, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +226,7 @@ func LockEthTransaction(t *testing.T, evm setup.EVMUtils, asset string, targetCh
 	return lockTxReceipt, expectedRouterLock
 }
 
-func BurnERC721Transaction(t *testing.T, evm setup.EVMUtils, wrappedToken string, targetChainId uint64, receiver []byte, serialNumber int64) (*types.Receipt, *router.RouterBurnERC721) {
+func BurnERC721Transaction(t *testing.T, evm evmSetup.Utils, wrappedToken string, targetChainId uint64, receiver []byte, serialNumber int64) (*types.Receipt, *router.RouterBurnERC721) {
 	t.Helper()
 	wrappedAddress := common.HexToAddress(wrappedToken)
 
@@ -291,7 +292,7 @@ func BurnERC721Transaction(t *testing.T, evm setup.EVMUtils, wrappedToken string
 	return burnTxReceipt, expectedRouterBurn
 }
 
-func WaitForTransaction(t *testing.T, evm setup.EVMUtils, txHash common.Hash) {
+func WaitForTransaction(t *testing.T, evm evmSetup.Utils, txHash common.Hash) {
 	t.Helper()
 	receipt, err := evm.EVMClient.WaitForTransactionReceipt(txHash)
 	if err != nil {

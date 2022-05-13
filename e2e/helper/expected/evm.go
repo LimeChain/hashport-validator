@@ -20,11 +20,12 @@ import (
 	"math/big"
 	"testing"
 
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
-func UnlockAmount(t *testing.T, evm setup.EVMUtils, token string, amount int64) *big.Int {
+func UnlockAmount(t *testing.T, evm evmSetup.Utils, token string, amount int64) *big.Int {
 	t.Helper()
 	amountBn := big.NewInt(amount)
 

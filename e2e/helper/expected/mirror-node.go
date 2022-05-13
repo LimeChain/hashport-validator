@@ -17,26 +17,26 @@
 package expected
 
 import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 )
 
-func MirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asset string, amount, fee int64) []transaction.Transfer {
+func MirrorNodeExpectedTransfersForBurnEvent(members []hedera.AccountID, hederaClient *hedera.Client, bridgeAccount hedera.AccountID, asset string, amount, fee int64) []transaction.Transfer {
 	total := amount + fee
-	feePerMember := fee / int64(len(setupEnv.Members))
+	feePerMember := fee / int64(len(members))
 
 	var expectedTransfers []transaction.Transfer
 	expectedTransfers = append(expectedTransfers, transaction.Transfer{
-		Account: setupEnv.BridgeAccount.String(),
+		Account: bridgeAccount.String(),
 		Amount:  -total,
 	},
 		transaction.Transfer{
-			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+			Account: hederaClient.GetOperatorAccountID().String(),
 			Amount:  amount,
 		})
 
-	for _, member := range setupEnv.Members {
+	for _, member := range members {
 		expectedTransfers = append(expectedTransfers, transaction.Transfer{
 			Account: member.String(),
 			Amount:  feePerMember,
@@ -52,15 +52,15 @@ func MirrorNodeExpectedTransfersForBurnEvent(setupEnv *setup.Setup, asset string
 	return expectedTransfers
 }
 
-func MirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string, amount int64) []transaction.Transfer {
+func MirrorNodeExpectedTransfersForLockEvent(hederaClient *hedera.Client, bridgeAccount hedera.AccountID, asset string, amount int64) []transaction.Transfer {
 	expectedTransfers := []transaction.Transfer{
 		{
-			Account: setupEnv.BridgeAccount.String(),
+			Account: bridgeAccount.String(),
 			Amount:  -amount,
 			Token:   asset,
 		},
 		{
-			Account: setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+			Account: hederaClient.GetOperatorAccountID().String(),
 			Amount:  amount,
 			Token:   asset,
 		},
@@ -69,16 +69,16 @@ func MirrorNodeExpectedTransfersForLockEvent(setupEnv *setup.Setup, asset string
 	return expectedTransfers
 }
 
-func MirrorNodeExpectedTransfersForHederaTransfer(setupEnv *setup.Setup, asset string, fee int64) []transaction.Transfer {
-	feePerMember := fee / int64(len(setupEnv.Members))
+func MirrorNodeExpectedTransfersForHederaTransfer(members []hedera.AccountID, bridgeAccount hedera.AccountID, asset string, fee int64) []transaction.Transfer {
+	feePerMember := fee / int64(len(members))
 
 	var expectedTransfers []transaction.Transfer
 	expectedTransfers = append(expectedTransfers, transaction.Transfer{
-		Account: setupEnv.BridgeAccount.String(),
+		Account: bridgeAccount.String(),
 		Amount:  -fee,
 	})
 
-	for _, member := range setupEnv.Members {
+	for _, member := range members {
 		expectedTransfers = append(expectedTransfers, transaction.Transfer{
 			Account: member.String(),
 			Amount:  feePerMember,
