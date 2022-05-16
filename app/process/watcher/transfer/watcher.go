@@ -20,6 +20,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -28,6 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -36,8 +40,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"time"
 )
 
 type Watcher struct {
@@ -239,6 +241,10 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
+	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
+	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
+	transferMessage.Originator = originator
+
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == constants.HederaNetworkId {
@@ -255,7 +261,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			topic = constants.HederaBurnMessageSubmission
 		}
 	} else {
-		transferMessage.Timestamp = tx.ConsensusTimestamp
+		transferMessage.NetworkTimestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == constants.HederaNetworkId {
 			if parsedTransfer.IsNft {
 				topic = constants.ReadOnlyHederaNativeNftTransfer

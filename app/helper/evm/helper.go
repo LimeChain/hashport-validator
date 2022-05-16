@@ -19,6 +19,7 @@ package evm
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -74,4 +75,13 @@ func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSigna
 	}
 
 	return decodedSig, hex.EncodeToString(evmSig), nil
+}
+
+func OriginatorFromTx(tx *types.Transaction) (string, error) {
+	msg, err := tx.AsMessage(types.LatestSignerForChainID(tx.ChainId()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return msg.From().String(), nil
 }

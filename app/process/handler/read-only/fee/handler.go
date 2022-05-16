@@ -135,7 +135,7 @@ func (fmh Handler) Handle(payload interface{}) {
 
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.NativeAsset, splitTransfer,
 			func() (*mirrorNodeTransaction.Response, error) {
-				return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+				return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 			},
 
 			func(transactionID, scheduleID, status string) error {

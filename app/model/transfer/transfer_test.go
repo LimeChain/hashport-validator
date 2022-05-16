@@ -44,19 +44,19 @@ func Test_New(t *testing.T) {
 
 func Test_NewNft(t *testing.T) {
 	expected := &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         true,
-		Amount:        "",
-		Timestamp:     "",
+		TransactionId:    txId,
+		SourceChainId:    sourceChainId,
+		TargetChainId:    targetChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      sourceAsset,
+		TargetAsset:      targetAsset,
+		NativeAsset:      nativeAsset,
+		Receiver:         receiver,
+		SerialNum:        serialNum,
+		Metadata:         metadata,
+		IsNft:            true,
+		Amount:           "",
+		NetworkTimestamp: "",
 	}
 
 	actual := NewNft(txId,
