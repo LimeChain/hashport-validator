@@ -108,9 +108,9 @@ func NewBridge(bridge parser.Bridge) Bridge {
 				config.Hedera.Tokens[name] = NewHederaTokenFromToken(tokenInfo)
 			}
 			fees := LoadHederaFees(networkInfo.Tokens)
-			config.Hedera.FeePercentages = fees.fungiblePercentages
-			config.Hedera.NftConstantFees = fees.constantNftFees
-			config.Hedera.NftDynamicFees = fees.dynamicNftFees
+			config.Hedera.FeePercentages = fees.FungiblePercentages
+			config.Hedera.NftConstantFees = fees.ConstantNftFees
+			config.Hedera.NftDynamicFees = fees.DynamicNftFees
 		} else {
 			config.EVMs[networkId] = BridgeEvm{
 				RouterContractAddress: networkInfo.RouterContractAddress,
@@ -168,24 +168,24 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 }
 
 func LoadHederaFees(tokens parser.Tokens) (res struct {
-	fungiblePercentages map[string]int64
-	constantNftFees     map[string]int64
-	dynamicNftFees      map[string]int64
+	FungiblePercentages map[string]int64
+	ConstantNftFees     map[string]int64
+	DynamicNftFees      map[string]int64
 }) {
-	res.fungiblePercentages = make(map[string]int64)
-	res.constantNftFees = make(map[string]int64)
-	res.dynamicNftFees = make(map[string]int64)
+	res.FungiblePercentages = make(map[string]int64)
+	res.ConstantNftFees = make(map[string]int64)
+	res.DynamicNftFees = make(map[string]int64)
 
 	for token, value := range tokens.Fungible {
-		res.fungiblePercentages[token] = value.FeePercentage
+		res.FungiblePercentages[token] = value.FeePercentage
 	}
 	for token, value := range tokens.Nft {
 		if value.Fee != 0 {
-			res.constantNftFees[token] = value.Fee
+			res.ConstantNftFees[token] = value.Fee
 			continue
 		}
 		if value.FeeAmountInUsd != 0 {
-			res.dynamicNftFees[token] = value.FeeAmountInUsd
+			res.DynamicNftFees[token] = value.FeeAmountInUsd
 			continue
 		}
 		log.Fatalf("NFT [%s] has no fee", token)

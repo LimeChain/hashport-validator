@@ -76,10 +76,10 @@ func Load() *Setup {
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
-		feePercentages, nftConstantFees, nftDynamicFees := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
-		configuration.FeePercentages = feePercentages
-		configuration.NftConstantFees = nftConstantFees
-		configuration.NftDynamicFees = nftDynamicFees
+		feeInfo := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
+		configuration.FeePercentages = feeInfo.FungiblePercentages
+		configuration.NftConstantFees = feeInfo.ConstantNftFees
+		configuration.NftDynamicFees = feeInfo.DynamicNftFees
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
