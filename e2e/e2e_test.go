@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -40,6 +41,7 @@ import (
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -98,6 +100,17 @@ func Test_HBAR(t *testing.T) {
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset, t)
 
+	// Step 4.1 - Get the consensus timestamp of transfer tx
+	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	if err != nil {
+		t.Fatal("failed to get successful transaction", err)
+	}
+	nanos, err := timestamp.FromString(tx.ConsensusTimestamp)
+	if err != nil {
+		t.Fatal("failed to parse consensus timestamp", err)
+	}
+	ts := timestamp.FromNanos(nanos)
+
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
 
@@ -118,7 +131,9 @@ func Test_HBAR(t *testing.T) {
 		constants.Hbar,
 		strconv.FormatInt(amount, 10),
 		receiver.String(),
-		status.Completed)
+		status.Completed,
+		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+		entity.NanoTime{Time: ts})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -172,6 +187,17 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.TokenID.String(), fmt.Sprint(mintAmount), targetAsset, t)
 
+	// Step 4.1 - Get the consensus timestamp of the transfer
+	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	if err != nil {
+		t.Fatal("failed to get successful transaction", err)
+	}
+	nanos, err := timestamp.FromString(tx.ConsensusTimestamp)
+	if err != nil {
+		t.Fatal("failed to parse consensus timestamp", err)
+	}
+	ts := timestamp.FromNanos(nanos)
+
 	// Step 5 - Submit Mint transaction
 	txHash := submitMintTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(targetAsset), t)
 
@@ -192,7 +218,9 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
 		evm.Receiver.String(),
-		status.Completed)
+		status.Completed,
+		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+		entity.NanoTime{Time: ts})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
 		scheduledTxID,
@@ -238,6 +266,13 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	// 2. Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := sendBurnEthTransaction(setupEnv.AssetMappings, evm, constants.Hbar, constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
 
+	// 2.1 Get the block timestamp of burn event
+	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
+
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
@@ -261,7 +296,9 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		constants.Hbar,
 		strconv.FormatInt(amount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		status.Completed)
+		status.Completed,
+		evm.Signer.Address(),
+		entity.NanoTime{Time: blockTimestamp})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
@@ -303,6 +340,13 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		amount,
 		t)
 
+	// 2.1 Get the block timestamp of burn event
+	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
+
 	// 3. Validate that the burn transaction went through and emitted the correct events
 	expectedId := validateBurnEvent(burnTxReceipt, expectedRouterBurn, t)
 
@@ -326,7 +370,9 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		status.Completed)
+		status.Completed,
+		evm.Signer.Address(),
+		entity.NanoTime{Time: blockTimestamp})
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(transactionID, scheduleID, fee, expectedId)
 
@@ -357,6 +403,13 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := sendLockEthTransaction(evm, setupEnv.NativeEvmToken, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount, t)
+
+	// Step 2.1 - Get the block timestamp of lock event
+	block, err := evm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
 	// Step 3: Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
@@ -392,7 +445,9 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedAmount, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
-		status.Completed)
+		status.Completed,
+		evm.Signer.Address(),
+		entity.NanoTime{Time: blockTimestamp})
 
 	expectedScheduleMintRecord := &entity.Schedule{
 		TransactionID: bridgeMintTransactionID,
@@ -509,6 +564,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 			Token:   wrappedAsset,
 		},
 	}
+
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
 
@@ -517,6 +573,17 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
+
+	// Step 4.1 - Get the consensus timestamp of the transfer
+	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	if err != nil {
+		t.Fatal("failed to get successful transaction", err)
+	}
+	nanos, err := timestamp.FromString(tx.ConsensusTimestamp)
+	if err != nil {
+		t.Fatal("failed to parse consensus timestamp", err)
+	}
+	ts := timestamp.FromNanos(nanos)
 
 	// Step 5 - Submit Unlock transaction
 	txHash := submitUnlockTransaction(evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken), t)
@@ -540,7 +607,9 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedSubmitUnlockAmount, 10),
 		evm.Receiver.String(),
-		status.Completed)
+		status.Completed,
+		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+		entity.NanoTime{Time: ts})
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Burn
 	expectedScheduleBurnRecord := &entity.Schedule{
@@ -603,6 +672,13 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 
 	expectedAmount := new(big.Int).Sub(expectedLockEventLog.Amount, expectedLockEventLog.ServiceFee)
 
+	// Step 2.1 - Get the block timestamp of the lock event
+	block, err := evm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
+
 	// Step 3 - Validate Lock Event was emitted with correct data
 	lockEventId := validateLockEvent(receipt, expectedLockEventLog, t)
 
@@ -632,7 +708,9 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		expectedAmount.String(),
 		evm.Receiver.String(),
-		status.Completed)
+		status.Completed,
+		evm.Signer.Address(),
+		entity.NanoTime{Time: blockTimestamp})
 
 	authMsgBytes, err := auth_message.
 		EncodeFungibleBytesFrom(
@@ -679,6 +757,13 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 2 - Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := sendBurnEthTransaction(setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, nativeEvm.Receiver.Bytes(), amount, t)
 
+	// Step 2.1 - Get the block timestamp of the burn event
+	block, err := wrappedEvm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
+
 	// Step 3 - Validate Burn Event was emitted with correct data
 	burnEventId := validateBurnEvent(receipt, expectedLockEventLog, t)
 
@@ -710,7 +795,9 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(amount, 10),
 		nativeEvm.Receiver.String(),
-		status.Completed)
+		status.Completed,
+		wrappedEvm.Signer.Address(),
+		entity.NanoTime{Time: blockTimestamp})
 
 	authMsgBytes, err := auth_message.
 		EncodeFungibleBytesFrom(
@@ -779,6 +866,17 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		transactionID,
 		nftToken, string(decodedMetadata), serialNumber, targetAsset, t)
 
+	// Step 5.1 - Get the consensus timestamp of the transfer
+	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(transactionID)
+	if err != nil {
+		t.Fatal("failed to get successful transaction", err)
+	}
+	nanos, err := timestamp.FromString(tx.ConsensusTimestamp)
+	if err != nil {
+		t.Fatal("failed to parse consensus timestamp", err)
+	}
+	ts := timestamp.FromNanos(nanos)
+
 	// Step 5 - Submit Mint ERC-721 transaction
 	txHash := submitMintERC721Transaction(evm, transactionID, transactionData, t)
 
@@ -804,6 +902,8 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		SerialNumber:  serialNumber,
 		Metadata:      string(decodedMetadata),
 		IsNft:         true,
+		Originator:    setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
+		Timestamp:     entity.NanoTime{Time: ts},
 	}
 	// and:
 	expectedFeeRecord := util.PrepareExpectedFeeRecord(
@@ -865,6 +965,13 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	// 2. Submit burnERC721 transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurnERC721 := sendBurnERC721Transaction(evm, wrappedAsset, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), serialNumber, t)
 
+	// 2.1 - Get the block timestamp of the burn event
+	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
+	if err != nil {
+		t.Fatal("failed to get block by number", err)
+	}
+	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
+
 	// 3. Validate that the burn ERC-721 transaction went through and emitted the correct event
 	expectedTxId := validateBurnERC721Event(burnTxReceipt, expectedRouterBurnERC721, t)
 
@@ -890,6 +997,8 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		Status:        status.Completed,
 		SerialNumber:  serialNumber,
 		IsNft:         true,
+		Originator:    evm.Signer.Address(),
+		Timestamp:     entity.NanoTime{Time: blockTimestamp},
 	}
 	expectedScheduleTransferRecord := &entity.Schedule{
 		TransactionID: scheduledTxID,

@@ -18,6 +18,9 @@ package message_submission
 
 import (
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
@@ -29,8 +32,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 var (

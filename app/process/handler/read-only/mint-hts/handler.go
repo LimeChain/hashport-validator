@@ -87,7 +87,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 
 	fmh.readOnlyService.FindTransfer(transferMsg.TransactionId,
 		func() (*mirrorNode.Response, error) {
-			return fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+			return fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
 			return fmh.scheduleRepository.Create(&entity.Schedule{
@@ -105,7 +105,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 	fmh.readOnlyService.FindTransfer(
 		transferMsg.TransactionId,
 		func() (*mirrorNode.Response, error) {
-			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
 

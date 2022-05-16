@@ -1,0 +1,17 @@
+dbs:
+  - host: localhost
+    name: hedera_validator
+    password: validator_pass
+    port: 6432
+    username: validator
+hedera:
+  env:
+  account_id:
+  private_key:
+  mirror_node:
+    api_address:
+    client_address:
+    polling_interval:
+evm:
+  80001:
+  43113:

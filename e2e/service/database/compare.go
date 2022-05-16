@@ -33,7 +33,9 @@ func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 		comparable.Status == comparing.Status &&
 		comparable.Metadata == comparing.Metadata &&
 		comparable.SerialNumber == comparing.SerialNumber &&
-		comparable.IsNft == comparing.IsNft
+		comparable.IsNft == comparing.IsNft &&
+		comparable.Originator == comparing.Originator &&
+		comparable.Timestamp == comparing.Timestamp
 }
 
 func messagesFieldsMatch(comparing, comparable entity.Message) bool {

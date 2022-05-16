@@ -123,7 +123,7 @@ func (fmh Handler) Handle(payload interface{}) {
 }
 
 func (fmh Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
-	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 }
 
 func (fmh Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {

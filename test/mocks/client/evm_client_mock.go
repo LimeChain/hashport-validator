@@ -18,12 +18,13 @@ package client
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/stretchr/testify/mock"
-	"math/big"
 )
 
 type MockEVM struct {
@@ -113,7 +114,7 @@ func (m *MockEVM) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 	return args.Get(0).(*common.Address), args.Get(1).(error)
 }
 
-func (m *MockEVM) WaitForTransaction(hex string, onSuccess, onRevert func(), onError func(err error)) {
+func (m *MockEVM) WaitForTransactionCallback(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	m.Called(hex, onSuccess, onRevert, onError)
 }
 
@@ -193,4 +194,9 @@ func (m *MockEVM) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 		return nil, err
 	}
 	return args.Get(0).(*types.Receipt), nil
+}
+
+func (m *MockEVM) RetryTransactionByHash(hash common.Hash) (*types.Transaction, error) {
+	//TODO implement me
+	panic("implement me")
 }
