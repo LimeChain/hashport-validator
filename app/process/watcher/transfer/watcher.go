@@ -30,7 +30,7 @@ import (
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	domainDecimal "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
@@ -38,26 +38,23 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type Watcher struct {
-	transfers             service.Transfers
-	client                client.MirrorNode
-	accountID             hedera.AccountID
-	pollingInterval       time.Duration
-	statusRepository      repository.Status
-	targetTimestamp       int64
-	logger                *log.Entry
-	contractServices      map[uint64]service.Contracts
-	assetsService         service.Assets
-	hederaConstantNftFees map[string]int64
-	hederaDynamicNftFees  map[string]int64
-	validator             bool
-	prometheusService     service.Prometheus
-	pricingService        service.Pricing
+	transfers         service.Transfers
+	client            client.MirrorNode
+	accountID         hedera.AccountID
+	pollingInterval   time.Duration
+	statusRepository  repository.Status
+	targetTimestamp   int64
+	logger            *log.Entry
+	contractServices  map[uint64]service.Contracts
+	assetsService     service.Assets
+	validator         bool
+	prometheusService service.Prometheus
+	pricingService    service.Pricing
 }
 
 func NewWatcher(
@@ -69,8 +66,6 @@ func NewWatcher(
 	startTimestamp int64,
 	contractServices map[uint64]service.Contracts,
 	assetsService service.Assets,
-	hederaConstantNftFees map[string]int64,
-	hederaDynamicNftFees map[string]int64,
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
@@ -105,20 +100,18 @@ func NewWatcher(
 	}
 
 	return &Watcher{
-		transfers:             transfers,
-		client:                client,
-		accountID:             id,
-		pollingInterval:       pollingInterval,
-		statusRepository:      repository,
-		targetTimestamp:       targetTimestamp,
-		logger:                config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices:      contractServices,
-		assetsService:         assetsService,
-		hederaConstantNftFees: hederaConstantNftFees,
-		hederaDynamicNftFees:  hederaDynamicNftFees,
-		validator:             validator,
-		pricingService:        pricingService,
-		prometheusService:     prometheusService,
+		transfers:         transfers,
+		client:            client,
+		accountID:         id,
+		pollingInterval:   pollingInterval,
+		statusRepository:  repository,
+		targetTimestamp:   targetTimestamp,
+		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:  contractServices,
+		assetsService:     assetsService,
+		validator:         validator,
+		pricingService:    pricingService,
+		prometheusService: prometheusService,
 	}
 }
 
@@ -226,28 +219,19 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		if fee, ok := ctw.hederaConstantNftFees[parsedTransfer.Asset]; ok {
-			if feeSent != fee {
-				ctw.logger.Errorf("[%s] - Invalid provided NFT constant Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, fee)
-				return
-			}
-
-			transferMessage, err = ctw.createNonFungiblePayload(
-				tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+		fee, ok := ctw.pricingService.GetHederaNftFee(parsedTransfer.Asset)
+		if !ok {
+			ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, parsedTransfer.Asset)
+			return
 		}
 
-		if fee, ok := ctw.hederaDynamicNftFees[parsedTransfer.Asset]; ok {
-			sentUsdTotal := ctw.pricingService.HbarToUsd(feeSent)
-			if sentUsdTotal.Round(2).LessThan(decimal.NewFromInt(fee)) {
-				ctw.logger.Errorf("[%s] - Invalid provided NFT dynamic Fee for [%s]. It was %d ($%s), should be $%d",
-					tx.TransactionID, parsedTransfer.Asset, feeSent, sentUsdTotal.Round(2), ctw.hederaConstantNftFees[parsedTransfer.Asset])
-				return
-			}
-
-			transferMessage, err = ctw.createNonFungiblePayloadDynamicFee(
-				tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset, feeSent)
+		if feeSent < fee {
+			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d], but was [%d].", tx.TransactionID, parsedTransfer.Asset, fee, feeSent)
+			return
 		}
 
+		transferMessage, err = ctw.createNonFungiblePayload(
+			tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset, feeSent)
 	} else {
 		transferMessage, err = ctw.createFungiblePayload(
 			tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
@@ -316,7 +300,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetChainAsset))
 	}
 
-	targetAmount := domainDecimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
+	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
 		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount))
 	}
@@ -350,7 +334,8 @@ func (ctw Watcher) createNonFungiblePayload(
 	nativeAsset asset.NativeAsset,
 	serialNum int64,
 	targetChainId uint64,
-	targetChainAsset string) (*transfer.Transfer, error) {
+	targetChainAsset string,
+	fee int64) (*transfer.Transfer, error) {
 	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
 	if err != nil {
 		return nil, err
@@ -370,31 +355,8 @@ func (ctw Watcher) createNonFungiblePayload(
 		targetChainAsset,
 		nativeAsset.Asset,
 		serialNum,
-		string(decodedMetadata)), nil
-}
-
-func (ctw Watcher) createNonFungiblePayloadDynamicFee(transactionID string, receiver string, sourceAsset string, nativeAsset asset.NativeAsset, serialNum int64, targetChainId uint64, targetChainAsset string, hbarSent int64) (*transfer.Transfer, error) {
-	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
-	if err != nil {
-		return nil, err
-	}
-	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
-	if e != nil {
-		return nil, errors.New(fmt.Sprintf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e))
-	}
-
-	return transfer.NewNftWithDynamicFee(
-		transactionID,
-		constants.HederaNetworkId,
-		targetChainId,
-		nativeAsset.ChainId,
-		receiver,
-		sourceAsset,
-		targetChainAsset,
-		nativeAsset.Asset,
-		serialNum,
 		string(decodedMetadata),
-		hbarSent), nil
+		fee), nil
 }
 
 func (ctw Watcher) initSuccessRatePrometheusMetrics(tx transaction.Transaction, sourceChainId, targetChainId uint64, asset string) {

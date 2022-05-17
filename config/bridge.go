@@ -19,10 +19,12 @@ package config
 import (
 	"math/big"
 
+	"github.com/shopspring/decimal"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 )
@@ -44,7 +46,7 @@ type BridgeHedera struct {
 	Tokens          map[string]HederaToken
 	FeePercentages  map[string]int64
 	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]int64
+	NftDynamicFees  map[string]decimal.Decimal
 }
 
 type HederaToken struct {
@@ -159,7 +161,7 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 				b.MinAmounts[wrappedNetworkId][wrappedAddress] = big.NewInt(0)
 				if tokenInfo.MinAmount != nil {
 					wrappedFungibleAssetsInfo, _ := assetsService.FungibleAssetInfo(wrappedNetworkId, wrappedAddress)
-					targetAmount := decimal.TargetAmount(nativeFungibleAssetsInfo.Decimals, wrappedFungibleAssetsInfo.Decimals, tokenInfo.MinAmount)
+					targetAmount := decimalHelper.TargetAmount(nativeFungibleAssetsInfo.Decimals, wrappedFungibleAssetsInfo.Decimals, tokenInfo.MinAmount)
 					b.MinAmounts[wrappedNetworkId][wrappedAddress] = targetAmount
 				}
 			}
@@ -170,11 +172,11 @@ func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser
 func LoadHederaFees(tokens parser.Tokens) (res struct {
 	FungiblePercentages map[string]int64
 	ConstantNftFees     map[string]int64
-	DynamicNftFees      map[string]int64
+	DynamicNftFees      map[string]decimal.Decimal
 }) {
 	res.FungiblePercentages = make(map[string]int64)
 	res.ConstantNftFees = make(map[string]int64)
-	res.DynamicNftFees = make(map[string]int64)
+	res.DynamicNftFees = make(map[string]decimal.Decimal)
 
 	for token, value := range tokens.Fungible {
 		res.FungiblePercentages[token] = value.FeePercentage
@@ -182,13 +184,15 @@ func LoadHederaFees(tokens parser.Tokens) (res struct {
 	for token, value := range tokens.Nft {
 		if value.Fee != 0 {
 			res.ConstantNftFees[token] = value.Fee
+			log.Infof("Skipping fee amount in usd for [%s]", token)
 			continue
 		}
-		if value.FeeAmountInUsd != 0 {
-			res.DynamicNftFees[token] = value.FeeAmountInUsd
-			continue
+
+		feeAmount, err := decimalHelper.ParseAmount(value.FeeAmountInUsd)
+		if err != nil {
+			log.Fatalf("[%s] - Failed to parse fee amount in usd [%s]. Error: [%s]", token, value.MinFeeAmountInUsd, err)
 		}
-		log.Fatalf("NFT [%s] has no fee", token)
+		res.DynamicNftFees[token] = *feeAmount
 	}
 
 	return res

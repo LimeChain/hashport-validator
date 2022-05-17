@@ -46,23 +46,21 @@ import (
 )
 
 type Service struct {
-	logger                *log.Entry
-	hederaNode            client.HederaNode
-	mirrorNode            client.MirrorNode
-	contractServices      map[uint64]service.Contracts
-	transferRepository    repository.Transfer
-	scheduleRepository    repository.Schedule
-	feeRepository         repository.Fee
-	distributor           service.Distributor
-	feeService            service.Fee
-	scheduledService      service.Scheduled
-	messageService        service.Messages
-	prometheusService     service.Prometheus
-	assetsService         service.Assets
-	topicID               hedera.TopicID
-	bridgeAccountID       hedera.AccountID
-	hederaConstantNftFees map[string]int64
-	hederaDynamicNftFees  map[string]int64
+	logger             *log.Entry
+	hederaNode         client.HederaNode
+	mirrorNode         client.MirrorNode
+	contractServices   map[uint64]service.Contracts
+	transferRepository repository.Transfer
+	scheduleRepository repository.Schedule
+	feeRepository      repository.Fee
+	distributor        service.Distributor
+	feeService         service.Fee
+	scheduledService   service.Scheduled
+	messageService     service.Messages
+	prometheusService  service.Prometheus
+	assetsService      service.Assets
+	topicID            hedera.TopicID
+	bridgeAccountID    hedera.AccountID
 }
 
 func NewService(
@@ -76,8 +74,6 @@ func NewService(
 	distributor service.Distributor,
 	topicID string,
 	bridgeAccount string,
-	hederaConstantNftFees map[string]int64,
-	hederaDynamicNftFees map[string]int64,
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 	prometheusService service.Prometheus,
@@ -93,23 +89,21 @@ func NewService(
 	}
 
 	return &Service{
-		logger:                config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
-		hederaNode:            hederaNode,
-		mirrorNode:            mirrorNode,
-		contractServices:      contractServices,
-		transferRepository:    transferRepository,
-		scheduleRepository:    scheduleRepository,
-		feeRepository:         feeRepository,
-		topicID:               tID,
-		feeService:            feeService,
-		distributor:           distributor,
-		bridgeAccountID:       bridgeAccountID,
-		scheduledService:      scheduledService,
-		messageService:        messageService,
-		hederaConstantNftFees: hederaConstantNftFees,
-		hederaDynamicNftFees:  hederaDynamicNftFees,
-		prometheusService:     prometheusService,
-		assetsService:         assetsService,
+		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
+		hederaNode:         hederaNode,
+		mirrorNode:         mirrorNode,
+		contractServices:   contractServices,
+		transferRepository: transferRepository,
+		scheduleRepository: scheduleRepository,
+		feeRepository:      feeRepository,
+		topicID:            tID,
+		feeService:         feeService,
+		distributor:        distributor,
+		bridgeAccountID:    bridgeAccountID,
+		scheduledService:   scheduledService,
+		messageService:     messageService,
+		prometheusService:  prometheusService,
+		assetsService:      assetsService,
 	}
 }
 
@@ -187,12 +181,7 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
-	fee, ok := ts.hederaConstantNftFees[tm.SourceAsset]
-	if !ok {
-		fee = tm.DynamicFee
-	}
-
-	feePerValidator := ts.distributor.ValidAmount(fee)
+	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
 
 	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 

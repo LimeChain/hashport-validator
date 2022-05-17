@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
@@ -76,7 +78,7 @@ func Load() *Setup {
 		Bridge:          e2eConfig.Bridge,
 		FeePercentages:  map[string]int64{},
 		NftConstantFees: map[string]int64{},
-		NftDynamicFees:  map[string]int64{},
+		NftDynamicFees:  map[string]decimal.Decimal{},
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
@@ -113,7 +115,7 @@ type Setup struct {
 	NftTokenID      hederaSDK.TokenID
 	NftSerialNumber int64
 	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]int64
+	NftDynamicFees  map[string]decimal.Decimal
 	FeePercentages  map[string]int64
 	Members         []hederaSDK.AccountID
 	Clients         *clients
@@ -357,7 +359,7 @@ type Config struct {
 	AssetMappings   service.Assets
 	FeePercentages  map[string]int64
 	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]int64
+	NftDynamicFees  map[string]decimal.Decimal
 }
 
 type EVMUtils struct {

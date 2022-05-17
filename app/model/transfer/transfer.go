@@ -35,7 +35,7 @@ type Transfer struct {
 	Originator       string
 	Timestamp        time.Time
 	NetworkTimestamp string
-	DynamicFee       int64
+	Fee              int64
 }
 
 // New instantiates Transfer struct ready for submission to the handler
@@ -59,7 +59,7 @@ func New(txId string,
 // NewNft instantiates a Transfer, consisting of serial num and metadata for a given NFT
 func NewNft(
 	txId string,
-	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string) *Transfer {
+	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string, fee int64) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
 		SourceChainId: sourceChainId,
@@ -72,22 +72,6 @@ func NewNft(
 		SerialNum:     serialNum,
 		Metadata:      metadata,
 		IsNft:         true,
-	}
-}
-
-func NewNftWithDynamicFee(txId string, sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string, dynamicFee int64) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         true,
-		DynamicFee:    dynamicFee,
+		Fee:           fee,
 	}
 }
