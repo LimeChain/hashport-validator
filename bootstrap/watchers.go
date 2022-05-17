@@ -17,6 +17,8 @@
 package bootstrap
 
 import (
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -26,7 +28,6 @@ import (
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func createTransferWatcher(configuration *config.Config,
@@ -50,7 +51,6 @@ func createTransferWatcher(configuration *config.Config,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
 		assetsService,
-		configuration.Bridge.Hedera.NftFees,
 		configuration.Node.Validator,
 		prometheusService,
 		pricingService,

@@ -48,3 +48,12 @@ func (mas *MockPricingService) GetMinAmountsForAPI() map[uint64]map[string]strin
 
 	return result
 }
+
+// GetHederaNftFee returns the nft fee for Hedera NFTs based on token id
+func (mas *MockPricingService) GetHederaNftFee(token string) (int64, bool) {
+	args := mas.Called()
+	fee := args.Get(0).(int64)
+	exist := args.Get(1).(bool)
+
+	return fee, exist
+}

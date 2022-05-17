@@ -19,6 +19,9 @@ package pricing
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
@@ -28,8 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"sync"
 )
 
 type Service struct {
@@ -45,6 +46,8 @@ type Service struct {
 	minAmountsForApi      map[uint64]map[string]string
 	hbarFungibleAssetInfo *asset.FungibleAssetInfo
 	hbarNativeAsset       *asset.NativeAsset
+	hederaNftDynamicFees  map[string]decimal.Decimal
+	hederaNftFees         map[string]int64
 	logger                *log.Entry
 }
 
@@ -59,6 +62,7 @@ func NewService(bridgeConfig config.Bridge,
 		tokensPriceInfo[networkId] = make(map[string]pricing.TokenPriceInfo)
 		minAmountsForApi[networkId] = make(map[string]string)
 	}
+	hederaNftFees := bridgeConfig.Hedera.NftConstantFees
 
 	logger := config.GetLoggerFor("Pricing Service")
 	hbarFungibleAssetInfo, _ := assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
@@ -76,6 +80,8 @@ func NewService(bridgeConfig config.Bridge,
 		coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
 		hbarFungibleAssetInfo: hbarFungibleAssetInfo,
 		hbarNativeAsset:       hbarNativeAsset,
+		hederaNftDynamicFees:  bridgeConfig.Hedera.NftDynamicFees,
+		hederaNftFees:         hederaNftFees,
 		logger:                logger,
 	}
 
@@ -134,6 +140,14 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	return s.minAmountsForApi
 }
 
+func (s *Service) GetHederaNftFee(token string) (int64, bool) {
+	s.tokenPriceInfoMutex.RLock()
+	defer s.tokenPriceInfoMutex.RUnlock()
+
+	fee, exists := s.hederaNftFees[token]
+	return fee, exists
+}
+
 func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
 	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
 		for tokenAddress, minAmount := range minAmountsByTokenAddress {
@@ -146,7 +160,6 @@ func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
 }
 
 func (s *Service) updateHbarPrice(results fetchResults) error {
-
 	var priceInUsd decimal.Decimal
 	if results.HbarErr != nil {
 		if results.AllPricesErr != nil {
@@ -169,10 +182,12 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 
 	err = s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
+		return errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
 	}
 
-	return err
+	s.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, s.hbarFungibleAssetInfo.Decimals)
+
+	return nil
 }
 
 func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) (minAmountWithFee *big.Int, err error) {
@@ -257,6 +272,15 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 	}
 
 	return nil
+}
+
+func (s *Service) updateHederaNftDynamicFeesBasedOnHbar(priceInUsd decimal.Decimal, decimals uint8) {
+	for token, feeAmount := range s.hederaNftDynamicFees {
+		nftDynamicFee := decimalHelper.ToLowestDenomination(feeAmount.Div(priceInUsd), decimals).Int64()
+		s.hederaNftFees[token] = nftDynamicFee
+
+		s.logger.Infof("Updating NFT Dynamic fee for [%s] to HBAR [%d], based on USD constant fee [%s] and HBAR/USD rate [%s]", token, nftDynamicFee, feeAmount, priceInUsd)
+	}
 }
 
 type fetchResults struct {
