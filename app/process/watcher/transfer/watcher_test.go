@@ -101,8 +101,6 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		0,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
-		map[string]int64{},
-		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
 		mocks.MPricingService)
@@ -123,8 +121,6 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		1,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
-		map[string]int64{},
-		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
 		mocks.MPricingService)
@@ -239,8 +235,6 @@ func initializeWatcher() *Watcher {
 		0,
 		map[uint64]iservice.Contracts{3: mocks.MBridgeContractService, 0: mocks.MBridgeContractService},
 		mocks.MAssetsService,
-		map[string]int64{},
-		map[string]int64{},
 		true,
 		mocks.MPrometheusService,
 		mocks.MPricingService)
