@@ -20,6 +20,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -39,9 +43,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 type Service struct {
@@ -60,7 +61,6 @@ type Service struct {
 	assetsService      service.Assets
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
-	hederaNftFees      map[string]int64
 }
 
 func NewService(
@@ -74,7 +74,6 @@ func NewService(
 	distributor service.Distributor,
 	topicID string,
 	bridgeAccount string,
-	hederaNftFees map[string]int64,
 	scheduledService service.Scheduled,
 	messageService service.Messages,
 	prometheusService service.Prometheus,
@@ -103,13 +102,12 @@ func NewService(
 		bridgeAccountID:    bridgeAccountID,
 		scheduledService:   scheduledService,
 		messageService:     messageService,
-		hederaNftFees:      hederaNftFees,
 		prometheusService:  prometheusService,
 		assetsService:      assetsService,
 	}
 }
 
-// SanityCheck performs validation on the memo and state proof for the transaction
+// SanityCheckTransfer performs validation on the memo and state proof for the transaction
 func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) (uint64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
@@ -183,10 +181,9 @@ func (ts *Service) ProcessNativeTransfer(tm model.Transfer) error {
 }
 
 func (ts *Service) ProcessNativeNftTransfer(tm model.Transfer) error {
-	fee := ts.hederaNftFees[tm.SourceAsset]
-	validFee := ts.distributor.ValidAmount(fee)
+	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
 
-	go ts.processFeeTransfer(validFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
+	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 
 	signatureMessage, err := ts.messageService.SignNftMessage(tm)
 	if err != nil {

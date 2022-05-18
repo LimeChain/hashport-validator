@@ -18,6 +18,10 @@ package pricing
 
 import (
 	"errors"
+	"math/big"
+	"sync"
+	"testing"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -29,9 +33,6 @@ import (
 	test_config "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"sync"
-	"testing"
 )
 
 var (
@@ -213,6 +214,7 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		minAmountsForApi:      minAmountsForApi,
 		hbarFungibleAssetInfo: testConstants.NetworkHederaFungibleNativeTokenFungibleAssetInfo,
 		hbarNativeAsset:       testConstants.NetworkHederaFungibleNativeAsset,
+		hederaNftFees:         testConstants.HederaNftFees,
 		logger:                config.GetLoggerFor("Pricing Service"),
 	}
 

@@ -45,6 +45,7 @@ type Tokens struct {
 
 type Token struct {
 	Fee               int64             `yaml:"fee" json:"fee,omitempty"`                                 // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
+	FeeAmountInUsd    string            `yaml:"fee_amount_in_usd" json:"feeAmountInUsd,omitempty"`        // Represent a dynamic fee amount in $USD for Non-Fungible tokens. Applies only for Hedera Native Tokens
 	FeePercentage     int64             `yaml:"fee_percentage" json:"feePercentage,omitempty"`            // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
 	MinFeeAmountInUsd string            `yaml:"min_fee_amount_in_usd" json:"minFeeAmountInUsd,omitempty"` // Represents a constant minimum fee amount in USD which is needed for the validator not to be on a loss
 	MinAmount         *big.Int          `yaml:"min_amount" json:"minAmount,omitempty"`                    // Represents a constant for minimum amount which is used when there is no 'coin_gecko_id' or 'coin_market_cap_id' supplied in the config.

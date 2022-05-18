@@ -832,7 +832,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
 	}
 
-	transferFee := setupEnv.NftFees[nftToken]
+	transferFee := setupEnv.NftConstantFees[nftToken]
 	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
 
 	// Step 1 - Get Token Metadata
