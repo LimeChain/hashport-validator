@@ -2,12 +2,13 @@ package burn_event
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
+	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"net/http"
 )
 
 var (
@@ -23,15 +24,7 @@ func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.
 		txID, err := burnService.TransactionID(eventID)
 		if err != nil {
 			logger.Errorf("Router resolved with an error. Error [%s].", err)
-			switch err {
-			case service.ErrNotFound:
-				render.Status(r, http.StatusNotFound)
-				render.JSON(w, r, response.ErrorResponse(err))
-			default:
-				render.Status(r, http.StatusInternalServerError)
-				render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
-			}
-
+			httpHelper.WriteErrorResponse(w, r, err)
 			return
 		}
 
