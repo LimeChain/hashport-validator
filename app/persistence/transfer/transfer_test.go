@@ -23,8 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+
+	model "github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -530,4 +533,96 @@ func Test_updateStatus_Err(t *testing.T) {
 
 	err := repository.updateStatus(transactionId, status.Initial)
 	assert.NotNil(t, err)
+}
+
+func Test_Paged(t *testing.T) {
+	setup()
+	req := &transfer.PagedRequest{
+		Page:    2,
+		PerPage: 10,
+	}
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterOriginator(t *testing.T) {
+	setup()
+	req := &transfer.PagedRequest{
+		Page:    1,
+		PerPage: 10,
+		Filter: transfer.Filter{
+			Originator: originator,
+		},
+	}
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, originator)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTimestamp(t *testing.T) {
+	setup()
+	req := &transfer.PagedRequest{
+		Page:    1,
+		PerPage: 10,
+		Filter: transfer.Filter{
+			Timestamp: nanoTime.Time,
+		},
+	}
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, nanoTime.Time.UnixNano())
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTransactionId(t *testing.T) {
+	setup()
+	req := &transfer.PagedRequest{
+		Page:    1,
+		PerPage: 10,
+		Filter: transfer.Filter{
+			TransactionId: transactionId,
+		},
+	}
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1% OR transaction_id = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, transactionId, transactionId)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTokenId(t *testing.T) {
+	setup()
+	req := &transfer.PagedRequest{
+		Page:    1,
+		PerPage: 10,
+		Filter: transfer.Filter{
+			TokenId: sourceAsset,
+		},
+	}
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE source_asset = $1 OR target_asset = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, sourceAsset, sourceAsset)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
 }

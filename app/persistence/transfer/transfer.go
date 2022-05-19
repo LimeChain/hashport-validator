@@ -19,7 +19,9 @@ package transfer
 import (
 	"errors"
 
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -94,7 +96,7 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 }
 
 // Create creates new record of Transfer
-func (tr Repository) Create(ct *model.Transfer) (*entity.Transfer, error) {
+func (tr Repository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
 	return tr.create(ct, status.Initial)
 }
 
@@ -123,7 +125,40 @@ func (tr Repository) UpdateStatusFailed(txId string) error {
 	return tr.updateStatus(txId, status.Failed)
 }
 
-func (tr Repository) create(ct *model.Transfer, status string) (*entity.Transfer, error) {
+func (tr Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+	offset := (req.Page - 1) * req.PerPage
+	res := make([]*entity.Transfer, 0, req.PerPage)
+	q := tr.dbClient.
+		Model(entity.Transfer{}).
+		Order("timestamp desc, status asc").
+		Offset(int(offset)).
+		Limit(int(req.PerPage))
+
+	f := req.Filter
+	if f.Originator != "" {
+		q.Where("originator = ?", f.Originator)
+	}
+	if f.TokenId != "" {
+		q.Where("source_asset = ?", f.TokenId).
+			Or("target_asset = ?", f.TokenId)
+	}
+	if f.TransactionId != "" {
+		q.Where("transaction_id LIKE ?%", f.TransactionId).
+			Or("transaction_id = ?", f.TransactionId)
+	}
+	if !f.Timestamp.IsZero() {
+		q.Where("timestamp = ?", f.Timestamp.UnixNano())
+	}
+
+	err := q.Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (tr Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
 		SourceChainID: ct.SourceChainId,

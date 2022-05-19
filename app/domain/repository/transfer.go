@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 )
 
 type Transfer interface {
@@ -29,7 +30,8 @@ type Transfer interface {
 	GetWithPreloads(txId string) (*entity.Transfer, error)
 	UpdateFee(txId string, fee string) error
 
-	Create(ct *transfer.Transfer) (*entity.Transfer, error)
+	Create(ct *payload.Transfer) (*entity.Transfer, error)
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
+	Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error)
 }
