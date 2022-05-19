@@ -18,6 +18,8 @@ package burn_event
 
 import (
 	"database/sql"
+	"strconv"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -28,11 +30,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type Service struct {
@@ -78,7 +80,7 @@ func NewService(
 	}
 }
 
-func (s Service) ProcessEvent(event transfer.Transfer) {
+func (s Service) ProcessEvent(event payload.Transfer) {
 	s.initSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.TargetAsset)
 
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
@@ -144,7 +146,7 @@ func (s Service) ProcessEvent(event transfer.Transfer) {
 	s.startAwaitingFunctionsForMetrics(event, feeOutParams, userOutParams)
 }
 
-func (s Service) startAwaitingFunctionsForMetrics(event transfer.Transfer, feeOutParams *hederaHelper.FeeOutParams, userOutParams *hederaHelper.UserOutParams) {
+func (s Service) startAwaitingFunctionsForMetrics(event payload.Transfer, feeOutParams *hederaHelper.FeeOutParams, userOutParams *hederaHelper.UserOutParams) {
 	if !s.prometheusService.GetIsMonitoringEnabled() {
 		return
 	}

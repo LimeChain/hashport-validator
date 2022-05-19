@@ -22,8 +22,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -63,10 +63,10 @@ func NewHandler(
 	}
 }
 
-func (smh Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+func (smh Handler) Handle(p interface{}) {
+	transferMsg, ok := p.(*payload.Transfer)
 	if !ok {
-		smh.logger.Errorf("Could not cast payload [%s]", payload)
+		smh.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 	transactionRecord, err := smh.transfersService.InitiateNewTransfer(*transferMsg)
@@ -87,7 +87,7 @@ func (smh Handler) Handle(payload interface{}) {
 	}
 }
 
-func (smh Handler) submitMessage(tm *model.Transfer) error {
+func (smh Handler) submitMessage(tm *payload.Transfer) error {
 	signatureMessageBytes, err := smh.messageService.SignFungibleMessage(*tm)
 	if err != nil {
 		return err

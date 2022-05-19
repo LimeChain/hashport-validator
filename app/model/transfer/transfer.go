@@ -20,58 +20,37 @@ import "time"
 
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
-	TransactionId    string
-	SourceChainId    uint64
-	TargetChainId    uint64
-	NativeChainId    uint64
-	SourceAsset      string
-	TargetAsset      string
-	NativeAsset      string
-	Receiver         string
-	Amount           string
-	SerialNum        int64
-	Metadata         string
-	IsNft            bool
-	Originator       string
-	Timestamp        time.Time
-	NetworkTimestamp string
-	Fee              int64
+	TransactionId string    `json:"transactionId"`
+	SourceChainId uint64    `json:"sourceChainId"`
+	TargetChainId uint64    `json:"targetChainId"`
+	NativeChainId uint64    `json:"nativeChainId"`
+	SourceAsset   string    `json:"sourceAsset"`
+	TargetAsset   string    `json:"targetAsset"`
+	NativeAsset   string    `json:"nativeAsset"`
+	Receiver      string    `json:"receiver"`
+	Amount        string    `json:"amount"`
+	SerialNum     int64     `json:"serialNum"`
+	Metadata      string    `json:"metadata"`
+	IsNft         bool      `json:"isNft"`
+	Originator    string    `json:"originator"`
+	Timestamp     time.Time `json:"timestamp"`
+	Fee           int64     `json:"fee"`
 }
 
-// New instantiates Transfer struct ready for submission to the handler
-func New(txId string,
-	sourceChainId, targetChainId, nativeChainId uint64,
-	receiver, sourceAsset, targetAsset, nativeAsset, amount string) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		Amount:        amount,
-		IsNft:         false,
-	}
+type Paged struct {
+	Items      []*Transfer `json:"items"`
+	TotalCount uint64      `json:"totalCount"`
 }
 
-// NewNft instantiates a Transfer, consisting of serial num and metadata for a given NFT
-func NewNft(
-	txId string,
-	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string, fee int64) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         true,
-		Fee:           fee,
-	}
+type PagedRequest struct {
+	Page    uint64 `json:"page"`
+	PerPage uint64 `json:"perPage"`
+	Filter  Filter `json:"filter"`
+}
+
+type Filter struct {
+	Originator    string    `json:"originator"`
+	TokenId       string    `json:"tokenId"`
+	Timestamp     time.Time `json:"timestamp"`
+	TransactionId string    `json:"transactionId"`
 }
