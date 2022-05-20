@@ -76,3 +76,8 @@ func (m *MockTransferRepository) Paged(req *transfer.PagedRequest) ([]*entity.Tr
 	//TODO implement me
 	panic("implement me")
 }
+
+func (m *MockTransferRepository) Count() (int64, error) {
+	//TODO implement me
+	panic("implement me")
+}

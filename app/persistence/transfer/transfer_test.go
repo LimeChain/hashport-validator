@@ -188,8 +188,8 @@ func setup() {
 	mocks.Setup()
 	dbConn, sqlMock, _ = helper.SetupSqlMock()
 	repository = &Repository{
-		dbClient: dbConn,
-		logger:   config.GetLoggerFor("Transfer Repository"),
+		db:     dbConn,
+		logger: config.GetLoggerFor("Transfer Repository"),
 	}
 }
 
