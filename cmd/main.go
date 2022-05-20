@@ -61,10 +61,10 @@ func main() {
 			panic(fmt.Sprintf("failed to parse bridge config topic id [%s]. Err: [%s]", parsedBridgeConfigTopicId, err))
 		}
 	}
-	services = bootstrap.PrepareServices(&configuration, &parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
-	bootstrap.InitializeServerPairs(server, services, repositories, clients, &configuration, parsedBridge.UseLocalConfig, parsedBridgeConfigTopicId)
+	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
+	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge.UseLocalConfig, parsedBridgeConfigTopicId)
 
-	apiRouter := bootstrap.InitializeAPIRouter(services, &parsedBridge)
+	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge)
 
 	executeRecovery(repositories.Fee, repositories.Schedule, clients.MirrorNode)
 
