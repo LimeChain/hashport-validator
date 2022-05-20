@@ -17,12 +17,15 @@
 package prometheus
 
 import (
+	"errors"
 	"fmt"
+	"github.com/gookit/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
+	bridgeConfigEvent "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,14 +38,15 @@ import (
 
 var (
 	whiteSpacesPattern = regexp.MustCompile(constants.WhiteSpacesPattern)
+	pausedSleepTime    = 10 * time.Second
 )
 
 type Watcher struct {
 	dashboardPolling           time.Duration
 	mirrorNode                 client.MirrorNode
-	EvmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
-	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
-	configuration              config.Config
+	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
+	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
+	bridgeCfg                  *config.Bridge
 	prometheusService          service.Prometheus
 	logger                     *log.Entry
 	bridgeAccountBalanceGauge  prometheus.Gauge
@@ -51,6 +55,7 @@ type Watcher struct {
 	monitoredAccountsGauges map[string]monitoredAccountsInfo
 	// A mapping, storing all network ID - asset address - metric name
 	assetsMetrics map[uint64]map[string]string
+	paused        bool
 	assetsService service.Assets
 }
 
@@ -62,55 +67,64 @@ type monitoredAccountsInfo struct {
 func NewWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
-	configuration config.Config,
+	bridgeCfg *config.Bridge,
 	prometheusService service.Prometheus,
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
-
-	return &Watcher{
+	instance := &Watcher{
 		dashboardPolling:           dashboardPolling,
 		mirrorNode:                 mirrorNode,
-		EvmFungibleTokenClients:    EvmFungibleTokenClients,
-		EvmNonFungibleTokenClients: EvmNonFungibleTokenClients,
-		configuration:              configuration,
+		evmFungibleTokenClients:    EvmFungibleTokenClients,
+		evmNonFungibleTokenClients: EvmNonFungibleTokenClients,
+		bridgeCfg:                  bridgeCfg,
 		prometheusService:          prometheusService,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
-		payerAccountBalanceGauge:   initPayerAccountBalanceGauge(prometheusService, configuration),
-		bridgeAccountBalanceGauge:  initBridgeAccountBalanceGauge(prometheusService, configuration),
-		monitoredAccountsGauges:    initMonitoredAccountsGauges(configuration, prometheusService),
+		payerAccountBalanceGauge:   initPayerAccountBalanceGauge(prometheusService, bridgeCfg),
+		bridgeAccountBalanceGauge:  initBridgeAccountBalanceGauge(prometheusService, bridgeCfg),
+		monitoredAccountsGauges:    initMonitoredAccountsGauges(bridgeCfg, prometheusService),
 		assetsMetrics:              make(map[uint64]map[string]string),
 		assetsService:              assetsService,
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		instance.paused = true
+		res := bridgeCfgUpdateEventHandler(e, instance)
+		instance.paused = false
+
+		return res
+	}), constants.WatcherEventPriority)
+
+	return instance
 }
 
-func initBridgeAccountBalanceGauge(prometheusService service.Prometheus, configuration config.Config) prometheus.Gauge {
+func initBridgeAccountBalanceGauge(prometheusService service.Prometheus, bridgeCfg *config.Bridge) prometheus.Gauge {
 	bridgeAccountBalanceGauge := prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
 		Name: constants.BridgeAccountAmountGaugeName,
 		Help: constants.BridgeAccountAmountGaugeHelp,
 		ConstLabels: prometheus.Labels{
-			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.BridgeAccount,
+			constants.AccountMetricLabelKey: bridgeCfg.Hedera.BridgeAccount,
 		},
 	})
 	return bridgeAccountBalanceGauge
 }
 
-func initPayerAccountBalanceGauge(prometheusService service.Prometheus, configuration config.Config) prometheus.Gauge {
+func initPayerAccountBalanceGauge(prometheusService service.Prometheus, bridgeCfg *config.Bridge) prometheus.Gauge {
 	payerAccountBalanceGauge := prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
 		Name: constants.FeeAccountAmountGaugeName,
 		Help: constants.FeeAccountAmountGaugeHelp,
 		ConstLabels: prometheus.Labels{
-			constants.AccountMetricLabelKey: configuration.Bridge.Hedera.PayerAccount,
+			constants.AccountMetricLabelKey: bridgeCfg.Hedera.PayerAccount,
 		},
 	})
 	return payerAccountBalanceGauge
 }
 
-func initMonitoredAccountsGauges(configuration config.Config, prometheusService service.Prometheus) map[string]monitoredAccountsInfo {
+func initMonitoredAccountsGauges(bridgeCfg *config.Bridge, prometheusService service.Prometheus) map[string]monitoredAccountsInfo {
 	monitoredAccountsGauges := make(map[string]monitoredAccountsInfo)
 
-	for name, accountId := range configuration.Bridge.MonitoredAccounts {
+	for name, accountId := range bridgeCfg.MonitoredAccounts {
 		preparedGaugeName := whiteSpacesPattern.ReplaceAllString(strings.ToLower(name), constants.NotAllowedSymbolsReplacement)
 		preparedGaugeName = constants.AccountBalanceGaugeNamePrefix + metrics.PrepareValueForPrometheusMetricName(preparedGaugeName)
 		gaugeHelp := constants.AccountBalanceGaugeHelpPrefix + accountId
@@ -131,7 +145,7 @@ func initMonitoredAccountsGauges(configuration config.Config, prometheusService 
 	return monitoredAccountsGauges
 }
 
-func (pw Watcher) Watch(q qi.Queue) {
+func (pw *Watcher) Watch(q qi.Queue) {
 	if !pw.prometheusService.GetIsMonitoringEnabled() {
 		pw.logger.Warnf("Tried to executed Prometheus watcher, when monitoring is not enabled.")
 		return
@@ -141,20 +155,20 @@ func (pw Watcher) Watch(q qi.Queue) {
 	go pw.beginWatching()
 }
 
-func (pw Watcher) beginWatching() {
+func (pw *Watcher) beginWatching() {
 	//The queue will be not used
 	pw.registerAllAssetsMetrics()
 	pw.setMetrics()
 }
 
-func (pw Watcher) registerAllAssetsMetrics() {
+func (pw *Watcher) registerAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
 	pw.registerAssetMetrics(fungibleAssets, true)
 	pw.registerAssetMetrics(nonFungibleAssets, false)
 }
 
-func (pw Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
+func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 			if pw.assetsService.IsNative(networkId, assetAddress) { // native
@@ -167,9 +181,10 @@ func (pw Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bo
 					constants.BalanceAssetMetricHelpPrefix,
 					isFungible,
 				)
+
 				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
 				for wrappedNetworkId, wrappedAssetAddress := range wrappedFromNative {
-					//register wrapped assets total supply
+					// register wrapped assets total supply
 					pw.registerAssetMetric(
 						networkId,
 						wrappedNetworkId,
@@ -184,7 +199,7 @@ func (pw Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bo
 	}
 }
 
-func (pw Watcher) registerAssetMetric(
+func (pw *Watcher) registerAssetMetric(
 	nativeNetworkId,
 	wrappedNetworkId uint64,
 	assetAddress string,
@@ -262,33 +277,37 @@ func getMetricData(
 	return name, help
 }
 
-func (pw Watcher) setMetrics() {
+func (pw *Watcher) setMetrics() {
 
 	for {
-		payerAccount, errPayerAcc := pw.getAccount(pw.configuration.Bridge.Hedera.PayerAccount)
-		if errPayerAcc == nil {
-			pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(payerAccount))
-		}
-		hbarAssetInfo, ok := pw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
-		if ok {
-			pw.bridgeAccountBalanceGauge.Set(metrics.ConvertToHbar(int(hbarAssetInfo.ReserveAmount.Int64())))
-		}
-
-		for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
-			monitoredAccount, monitoredAccErr := pw.getAccount(monitoredAccountInfo.AccountId)
-			if monitoredAccErr == nil {
-				monitoredAccountInfo.Gauge.Set(pw.getAccountBalance(monitoredAccount))
+		if !pw.paused {
+			payerAccount, errPayerAcc := pw.getAccount(pw.bridgeCfg.Hedera.PayerAccount)
+			if errPayerAcc == nil {
+				pw.payerAccountBalanceGauge.Set(pw.getAccountBalance(payerAccount))
 			}
+			hbarAssetInfo, ok := pw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
+			if ok {
+				pw.bridgeAccountBalanceGauge.Set(metrics.ConvertToHbar(int(hbarAssetInfo.ReserveAmount.Int64())))
+			}
+
+			for _, monitoredAccountInfo := range pw.monitoredAccountsGauges {
+				monitoredAccount, monitoredAccErr := pw.getAccount(monitoredAccountInfo.AccountId)
+				if monitoredAccErr == nil {
+					monitoredAccountInfo.Gauge.Set(pw.getAccountBalance(monitoredAccount))
+				}
+			}
+
+			pw.setAllAssetsMetrics()
+
+			pw.logger.Infoln("Dashboard Polling interval: ", pw.dashboardPolling)
+			time.Sleep(pw.dashboardPolling)
+		} else {
+			time.Sleep(pausedSleepTime)
 		}
-
-		pw.setAllAssetsMetrics()
-
-		pw.logger.Infoln("Dashboard Polling interval: ", pw.dashboardPolling)
-		time.Sleep(pw.dashboardPolling)
 	}
 }
 
-func (pw Watcher) getAccount(accountId string) (*account.AccountsResponse, error) {
+func (pw *Watcher) getAccount(accountId string) (*account.AccountsResponse, error) {
 	account, e := pw.mirrorNode.GetAccount(accountId)
 	if e != nil {
 		pw.logger.Errorf("Hedera Mirror Node for Account ID [%s] method GetAccount - Error: [%s]", accountId, e)
@@ -297,13 +316,13 @@ func (pw Watcher) getAccount(accountId string) (*account.AccountsResponse, error
 	return account, nil
 }
 
-func (pw Watcher) getAccountBalance(account *account.AccountsResponse) float64 {
+func (pw *Watcher) getAccountBalance(account *account.AccountsResponse) float64 {
 	balance := metrics.ConvertToHbar(account.Balance.Balance)
 	pw.logger.Infof("The Account with ID [%s] has balance = %f", account.Account, balance)
 	return balance
 }
 
-func (pw Watcher) setAllAssetsMetrics() {
+func (pw *Watcher) setAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
 	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
 	pw.setAssetsMetrics(fungibleAssets, true)
@@ -322,7 +341,7 @@ func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) 
 	}
 }
 
-func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
+func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
 	isFungible,
 	isNative bool,
@@ -364,4 +383,26 @@ func (pw Watcher) prepareAndSetAssetMetric(networkId uint64,
 	}
 	assetMetric.Set(value)
 	pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
+}
+
+func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
+	params, ok := e.Get(constants.BridgeConfigUpdateEventParamsKey).(*bridgeConfigEvent.Params)
+	if !ok {
+		errMsg := fmt.Sprintf("failed to cast params from event [%s]", constants.EventBridgeConfigUpdate)
+		log.Errorf(errMsg)
+		return errors.New(errMsg)
+	}
+	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
+	instance.evmNonFungibleTokenClients = params.EvmNFTClients
+	instance.bridgeCfg = params.Bridge
+	// Clear All Metrics
+	for _, metricsInNetwork := range instance.assetsMetrics {
+		for _, metric := range metricsInNetwork {
+			instance.prometheusService.DeleteGauge(metric)
+		}
+	}
+	// Register All Metrics Again
+	instance.registerAllAssetsMetrics()
+
+	return nil
 }

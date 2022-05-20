@@ -64,6 +64,7 @@ var MWatcher *watchers.MockWatcher
 var MHandler *handlers.MockHandler
 var MHttpHandler *http.MockHandler
 var MUtilsService *service.MockUtilsService
+var MBridgeConfigService *service.MockBridgeConfigService
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -102,4 +103,5 @@ func Setup() {
 	MHandler = &handlers.MockHandler{}
 	MHttpHandler = &http.MockHandler{}
 	MUtilsService = &service.MockUtilsService{}
+	MBridgeConfigService = &service.MockBridgeConfigService{}
 }

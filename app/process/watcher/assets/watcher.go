@@ -17,11 +17,14 @@
 package assets
 
 import (
+	"errors"
 	"fmt"
+	"github.com/gookit/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -30,46 +33,65 @@ import (
 )
 
 var (
-	sleepTime = 10 * time.Minute
+	sleepTime       = 10 * time.Minute
+	pausedSleepTime = 10 * time.Second
 )
 
 type Watcher struct {
 	mirrorNode                 client.MirrorNode
-	EvmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
-	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
-	configuration              config.Config
-	logger                     *log.Entry
+	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
+	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
+	bridgeCfg                  *config.Bridge
 	assetsService              service.Assets
+	paused                     bool
+	logger                     *log.Entry
 }
 
 func NewWatcher(
 	mirrorNode client.MirrorNode,
-	configuration config.Config,
+	bridgeCfg *config.Bridge,
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
 
-	return &Watcher{
+	instance := &Watcher{
 		mirrorNode:                 mirrorNode,
-		EvmFungibleTokenClients:    EvmFungibleTokenClients,
-		EvmNonFungibleTokenClients: EvmNonFungibleTokenClients,
-		configuration:              configuration,
+		evmFungibleTokenClients:    EvmFungibleTokenClients,
+		evmNonFungibleTokenClients: EvmNonFungibleTokenClients,
+		bridgeCfg:                  bridgeCfg,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Assets Watcher on interval [%v]", sleepTime)),
 		assetsService:              assetsService,
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		instance.paused = true
+		res := bridgeCfgUpdateEventHandler(e, instance)
+		instance.paused = false
+
+		return res
+	}), constants.WatcherEventPriority)
+
+	return instance
 }
+
 func (pw *Watcher) Watch(q qi.Queue) {
 
 	// there will be no handler, so the q is to implement the interface
 	go func() {
-		pw.watchIteration()
-		time.Sleep(sleepTime)
+		for {
+			if !pw.paused {
+				pw.watchIteration()
+				time.Sleep(sleepTime)
+			} else {
+				time.Sleep(pausedSleepTime)
+			}
+		}
 	}()
 }
 
 func (pw *Watcher) watchIteration() {
-	bridgeAccount, err := pw.getAccount(pw.configuration.Bridge.Hedera.BridgeAccount)
+	bridgeAccount, err := pw.getAccount(pw.bridgeCfg.Hedera.BridgeAccount)
 	if err != nil {
 		return
 	}
@@ -113,16 +135,16 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 				networkId,
 				assetId,
 				isNative,
-				pw.EvmFungibleTokenClients[networkId][assetId],
-				pw.configuration.Bridge.EVMs[networkId].RouterContractAddress,
+				pw.evmFungibleTokenClients[networkId][assetId],
+				pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
 			)
 		} else { // Non-Fungible
 			reserveAmount, err = pw.assetsService.FetchEvmNonFungibleReserveAmount(
 				networkId,
 				assetId,
 				isNative,
-				pw.EvmNonFungibleTokenClients[networkId][assetId],
-				pw.configuration.Bridge.EVMs[networkId].RouterContractAddress,
+				pw.evmNonFungibleTokenClients[networkId][assetId],
+				pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
 			)
 		}
 	}
@@ -143,4 +165,19 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 			assetInfo.ReserveAmount = reserveAmount
 		}
 	}
+}
+
+func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
+	params, ok := e.Get(constants.BridgeConfigUpdateEventParamsKey).(*bridge_config_event.Params)
+	if !ok {
+		errMsg := fmt.Sprintf("failed to cast params from event [%s]", constants.EventBridgeConfigUpdate)
+		log.Errorf(errMsg)
+		return errors.New(errMsg)
+	}
+	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
+	instance.evmNonFungibleTokenClients = params.EvmNFTClients
+	instance.bridgeCfg = params.Bridge
+	instance.watchIteration()
+
+	return nil
 }

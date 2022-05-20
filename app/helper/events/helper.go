@@ -14,31 +14,23 @@
  * limitations under the License.
  */
 
-package config_bridge
+package events
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"net/http"
+	"errors"
+	"fmt"
+	"github.com/gookit/event"
+	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	log "github.com/sirupsen/logrus"
 )
 
-var (
-	Route        = "/config/bridge"
-	BridgeConfig *parser.Bridge
-)
-
-//Router for bridge config
-func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	BridgeConfig = bridgeCfg
-	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse())
-	return r
-}
-
-// GET: .../config/bridge
-func configBridgeResponse() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *BridgeConfig)
+func GetBridgeCfgUpdateEventParams(e event.Event) (*bridge_config_event.Params, error) {
+	params, ok := e.Get(constants.BridgeConfigUpdateEventParamsKey).(*bridge_config_event.Params)
+	if !ok {
+		errMsg := fmt.Sprintf("failed to cast params from event [%s]", e.Name())
+		log.Errorf(errMsg)
+		return nil, errors.New(errMsg)
 	}
+	return params, nil
 }

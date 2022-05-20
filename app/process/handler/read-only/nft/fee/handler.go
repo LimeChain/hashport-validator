@@ -18,11 +18,13 @@ package fee
 
 import (
 	"database/sql"
+	"github.com/gookit/event"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -62,7 +64,8 @@ func NewHandler(
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
 	}
-	return &Handler{
+
+	instance := &Handler{
 		transferRepository: transferRepository,
 		feeRepository:      feeRepository,
 		scheduleRepository: scheduleRepository,
@@ -74,9 +77,15 @@ func NewHandler(
 		readOnlyService:    readOnlyService,
 		hederaNftFees:      hederaNftFees,
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgEventHandler(e, instance)
+	}), constants.HandlerEventPriority)
+
+	return instance
 }
 
-func (fmh Handler) Handle(payload interface{}) {
+func (fmh *Handler) Handle(payload interface{}) {
 	transferMsg, ok := payload.(*model.Transfer)
 	if !ok {
 		fmh.logger.Errorf("Could not cast payload [%s]", payload)
@@ -122,11 +131,16 @@ func (fmh Handler) Handle(payload interface{}) {
 	}
 }
 
+<<<<<<< Updated upstream
 func (fmh Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
 	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
+=======
+func (fmh *Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
+	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+>>>>>>> Stashed changes
 }
 
-func (fmh Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
+func (fmh *Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
 	err := fmh.scheduleRepository.Create(&entity.Schedule{
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,
@@ -155,4 +169,14 @@ func (fmh Handler) save(transactionID string, scheduleID string, status string, 
 		fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
 	}
 	return err
+}
+
+func bridgeCfgEventHandler(e event.Event, instance *Handler) error {
+	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
+	if err != nil {
+		return err
+	}
+	instance.hederaNftFees = params.Bridge.Hedera.NftFees
+
+	return nil
 }

@@ -77,7 +77,7 @@ type BridgeEvm struct {
 	Tokens                map[string]Token
 }
 
-func NewBridge(bridge parser.Bridge) Bridge {
+func NewBridge(bridge parser.Bridge) *Bridge {
 	config := Bridge{
 		TopicId:           bridge.TopicId,
 		Hedera:            nil,
@@ -150,7 +150,7 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		}
 	}
 
-	return config
+	return &config
 }
 
 func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser.Bridge, assetsService service.Assets) {

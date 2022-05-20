@@ -20,10 +20,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+<<<<<<< Updated upstream
 	"math/big"
 	"strconv"
 	"strings"
 
+=======
+	"github.com/gookit/event"
+>>>>>>> Stashed changes
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -31,6 +35,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/memo"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
@@ -88,7 +93,7 @@ func NewService(
 		log.Fatalf("Invalid BridgeAccountID [%s] - Error: [%s]", bridgeAccount, e)
 	}
 
-	return &Service{
+	instance := &Service{
 		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
@@ -105,6 +110,12 @@ func NewService(
 		prometheusService:  prometheusService,
 		assetsService:      assetsService,
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgEventHandler(e, instance)
+	}), constants.ServiceEventPriority)
+
+	return instance
 }
 
 // SanityCheckTransfer performs validation on the memo and state proof for the transaction
@@ -575,4 +586,14 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 		TokenId:      t.SerialNumber,
 		Metadata:     t.Metadata,
 	}, nil
+}
+
+func bridgeCfgEventHandler(e event.Event, instance *Service) error {
+	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
+	if err != nil {
+		return err
+	}
+	instance.hederaNftFees = params.Bridge.Hedera.NftFees
+
+	return nil
 }

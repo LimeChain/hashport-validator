@@ -27,7 +27,8 @@ import (
 )
 
 var (
-	Route = "/assets"
+	Route        = "/assets"
+	BridgeConfig *parser.Bridge
 )
 
 type fungibleBridgeDetails struct {
@@ -56,21 +57,22 @@ type networkAssets struct {
 }
 
 // Router for assets
-func NewRouter(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) http.Handler {
+func NewRouter(bridgeCfg *parser.Bridge, assetsService service.Assets, pricingService service.Pricing) http.Handler {
+	BridgeConfig = bridgeCfg
 	r := chi.NewRouter()
-	r.Get("/", assetsResponse(bridgeConfig, assetsService, pricingService))
+	r.Get("/", assetsResponse(assetsService, pricingService))
 	return r
 }
 
 // GET: .../assets
-func assetsResponse(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) func(w http.ResponseWriter, r *http.Request) {
+func assetsResponse(assetsService service.Assets, pricingService service.Pricing) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		responseContent := generateResponseContent(bridgeConfig, assetsService, pricingService)
+		responseContent := generateResponseContent(assetsService, pricingService)
 		render.JSON(w, r, responseContent)
 	}
 }
 
-func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.Assets, pricingService service.Pricing) map[uint64]networkAssets {
+func generateResponseContent(assetsService service.Assets, pricingService service.Pricing) map[uint64]networkAssets {
 	response := make(map[uint64]networkAssets)
 
 	fungibleNetworkAssets := assetsService.FungibleNetworkAssets()
@@ -86,7 +88,7 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 			fungibleAssetInfo, existInfo := assetsService.FungibleAssetInfo(networkId, assetAddress)
 			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
 			if existInfo && existMinAmount {
-				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
+				bridgeTokenInfo := BridgeConfig.Networks[networkId].Tokens.Fungible[assetAddress]
 				var nativeAsset *asset.NativeAsset
 				if !fungibleAssetInfo.IsNative {
 					nativeAsset = assetsService.WrappedToNative(assetAddress, networkId)
@@ -118,7 +120,7 @@ func generateResponseContent(bridgeConfig parser.Bridge, assetsService service.A
 					nativeAddress = nativeAsset.Asset
 				}
 
-				bridgeTokenInfo := bridgeConfig.Networks[networkId].Tokens.Nft[nativeAddress]
+				bridgeTokenInfo := BridgeConfig.Networks[networkId].Tokens.Nft[nativeAddress]
 				nonFungibleAssetDetails := nonFungibleBridgeDetails{
 					NonFungibleAssetInfo: nonFungibleAssetInfo,
 					Fee:                  bridgeTokenInfo.Fee,

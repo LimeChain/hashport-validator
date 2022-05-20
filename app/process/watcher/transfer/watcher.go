@@ -20,9 +20,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+<<<<<<< Updated upstream
 	"math/big"
 	"time"
 
+=======
+	"github.com/gookit/event"
+>>>>>>> Stashed changes
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -31,7 +35,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+<<<<<<< Updated upstream
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+=======
+	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
+>>>>>>> Stashed changes
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -98,8 +106,7 @@ func NewWatcher(
 		targetTimestamp = timeStamp
 		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
 	}
-
-	return &Watcher{
+	instance := &Watcher{
 		transfers:         transfers,
 		client:            client,
 		accountID:         id,
@@ -113,6 +120,13 @@ func NewWatcher(
 		pricingService:    pricingService,
 		prometheusService: prometheusService,
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgEventHandler(e, instance)
+	}), constants.WatcherEventPriority)
+
+	return instance
+
 }
 
 func (ctw Watcher) Watch(q qi.Queue) {
@@ -369,4 +383,15 @@ func (ctw Watcher) initSuccessRatePrometheusMetrics(tx transaction.Transaction, 
 		metrics.CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
 	}
 	metrics.CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, tx.TransactionID, ctw.prometheusService, ctw.logger)
+}
+
+func bridgeCfgEventHandler(e event.Event, instance *Watcher) error {
+	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
+	if err != nil {
+		return err
+	}
+
+	instance.hederaNftFees = params.Bridge.Hedera.NftFees
+
+	return nil
 }

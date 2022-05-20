@@ -17,8 +17,11 @@
 package bootstrap
 
 import (
+	"fmt"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
+	bridge_config "github.com/limechain/hedera-eth-bridge-validator/app/services/bridge-config"
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/services/burn-event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/contracts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
@@ -38,8 +41,8 @@ import (
 )
 
 type Services struct {
-	signers          map[uint64]service.Signer
-	contractServices map[uint64]service.Contracts
+	Signers          map[uint64]service.Signer
+	ContractServices map[uint64]service.Contracts
 	transfers        service.Transfers
 	Messages         service.Messages
 	BurnEvents       service.BurnEvent
@@ -52,10 +55,21 @@ type Services struct {
 	Pricing          service.Pricing
 	Assets           service.Assets
 	Utils            service.Utils
+	BridgeConfig     service.BridgeConfig
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Clients, repositories Repositories) *Services {
+func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Clients, repositories Repositories, parsedBridgeConfigTopicId hedera.TopicID) *Services {
+
+	bridgeCfgService := bridge_config.NewService(c, clients.MirrorNode)
+	if !parsedBridge.UseLocalConfig {
+		var err error
+		parsedBridge, err = bridgeCfgService.ProcessLatestConfig(parsedBridgeConfigTopicId)
+		if err != nil {
+			panic(fmt.Sprintf("failed to process latest bridge config from topic. Err: [%s]", err))
+		}
+	}
+
 	evmSigners := make(map[uint64]service.Signer)
 	contractServices := make(map[uint64]service.Contracts)
 	assetsService := assets.NewService(
@@ -67,7 +81,7 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 		clients.EvmFungibleTokenClients,
 		clients.EvmNFTClients,
 	)
-	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge, assetsService)
+	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*parsedBridge, assetsService)
 
 	for _, client := range clients.EvmClients {
 		chainId := client.GetChainID()
@@ -132,8 +146,8 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 	utilsService := utilsSvc.New(clients.EvmClients, burnEvent)
 
 	return &Services{
-		signers:          evmSigners,
-		contractServices: contractServices,
+		Signers:          evmSigners,
+		ContractServices: contractServices,
 		transfers:        transfers,
 		Messages:         messages,
 		BurnEvents:       burnEvent,
@@ -146,5 +160,6 @@ func PrepareServices(c config.Config, parsedBridge parser.Bridge, clients Client
 		Pricing:          pricingService,
 		Assets:           assetsService,
 		Utils:            utilsService,
+		BridgeConfig:     bridgeCfgService,
 	}
 }

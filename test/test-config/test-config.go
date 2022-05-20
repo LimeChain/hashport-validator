@@ -48,6 +48,7 @@ var (
 					ClientAddress:   "",
 					ApiAddress:      "",
 					PollingInterval: 0,
+					QueryMaxLimit:   100,
 				},
 				Hedera: config.Hedera{
 					Network: "testnet",
@@ -66,7 +67,7 @@ var (
 			},
 		},
 
-		Bridge: config.Bridge{
+		Bridge: &config.Bridge{
 			Hedera: &config.BridgeHedera{
 				BridgeAccount:   "0.0.578300",
 				NftConstantFees: testConstants.HederaNftFees,

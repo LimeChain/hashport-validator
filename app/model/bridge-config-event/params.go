@@ -14,31 +14,17 @@
  * limitations under the License.
  */
 
-package config_bridge
+package bridge_config_event
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"net/http"
 )
 
-var (
-	Route        = "/config/bridge"
-	BridgeConfig *parser.Bridge
-)
-
-//Router for bridge config
-func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	BridgeConfig = bridgeCfg
-	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse())
-	return r
-}
-
-// GET: .../config/bridge
-func configBridgeResponse() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *BridgeConfig)
-	}
+type Params struct {
+	Bridge                  *config.Bridge
+	ParsedBridge            *parser.Bridge
+	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
+	EvmNFTClients           map[uint64]map[string]client.EvmNft
 }

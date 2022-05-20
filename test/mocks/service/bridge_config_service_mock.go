@@ -14,31 +14,19 @@
  * limitations under the License.
  */
 
-package config_bridge
+package service
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"net/http"
+	"github.com/stretchr/testify/mock"
 )
 
-var (
-	Route        = "/config/bridge"
-	BridgeConfig *parser.Bridge
-)
-
-//Router for bridge config
-func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	BridgeConfig = bridgeCfg
-	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse())
-	return r
+type MockBridgeConfigService struct {
+	mock.Mock
 }
 
-// GET: .../config/bridge
-func configBridgeResponse() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *BridgeConfig)
-	}
+func (m *MockBridgeConfigService) ProcessLatestConfig(topicID hedera.TopicID) (*parser.Bridge, error) {
+	args := m.Called(topicID)
+	return args[0].(*parser.Bridge), args.Error(1)
 }

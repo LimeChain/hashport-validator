@@ -19,12 +19,17 @@ package pricing
 import (
 	"errors"
 	"fmt"
+<<<<<<< Updated upstream
 	"math/big"
 	"sync"
 
+=======
+	"github.com/gookit/event"
+>>>>>>> Stashed changes
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -51,11 +56,12 @@ type Service struct {
 	logger                *log.Entry
 }
 
-func NewService(bridgeConfig config.Bridge,
+func NewService(bridgeConfig *config.Bridge,
 	assetsService service.Assets,
 	mirrorNodeClient client.MirrorNode,
 	coinGeckoClient client.Pricing,
 	coinMarketCapClient client.Pricing) *Service {
+<<<<<<< Updated upstream
 	tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
 	minAmountsForApi := make(map[uint64]map[string]string)
 	for networkId := range constants.NetworksById {
@@ -84,13 +90,13 @@ func NewService(bridgeConfig config.Bridge,
 		hederaNftFees:         hederaNftFees,
 		logger:                logger,
 	}
+=======
+>>>>>>> Stashed changes
 
-	instance.loadStaticMinAmounts(bridgeConfig)
-
-	err := instance.FetchAndUpdateUsdPrices()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
-	}
+	instance := initialize(bridgeConfig, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient)
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgEventHandler(e, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, instance)
+	}), constants.ServiceEventPriority)
 
 	return instance
 }
@@ -140,6 +146,7 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	return s.minAmountsForApi
 }
 
+<<<<<<< Updated upstream
 func (s *Service) GetHederaNftFee(token string) (int64, bool) {
 	s.tokenPriceInfoMutex.RLock()
 	defer s.tokenPriceInfoMutex.RUnlock()
@@ -149,6 +156,9 @@ func (s *Service) GetHederaNftFee(token string) (int64, bool) {
 }
 
 func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
+=======
+func (s *Service) loadStaticMinAmounts(bridgeConfig *config.Bridge) {
+>>>>>>> Stashed changes
 	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
 		for tokenAddress, minAmount := range minAmountsByTokenAddress {
 			s.tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
@@ -308,4 +318,73 @@ func (s *Service) fetchUsdPricesFromAPIs() (fetchResults fetchResults) {
 	}
 
 	return fetchResults
+}
+
+func bridgeCfgEventHandler(e event.Event, assetsService service.Assets, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing, instance *Service) error {
+	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
+	if err != nil {
+		return err
+	}
+
+	newInstance := initialize(
+		params.Bridge,
+		assetsService,
+		mirrorNodeClient,
+		coinGeckoClient,
+		coinMarketCapClient,
+	)
+	copyFields(newInstance, instance)
+
+	return nil
+}
+
+func copyFields(from *Service, to *Service) {
+	to.assetsService = from.assetsService
+	to.mirrorNodeClient = from.mirrorNodeClient
+	to.coinGeckoClient = from.coinGeckoClient
+	to.coinMarketCapClient = from.coinMarketCapClient
+	to.tokenPriceInfoMutex = from.tokenPriceInfoMutex
+	to.minAmountsForApiMutex = from.minAmountsForApiMutex
+	to.coinMarketCapIds = from.coinMarketCapIds
+	to.coinGeckoIds = from.coinGeckoIds
+	to.tokensPriceInfo = from.tokensPriceInfo
+	to.minAmountsForApi = from.minAmountsForApi
+	to.hbarFungibleAssetInfo = from.hbarFungibleAssetInfo
+	to.hbarNativeAsset = from.hbarNativeAsset
+}
+
+func initialize(bridgeConfig *config.Bridge, assetsService service.Assets, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing) *Service {
+	tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
+	minAmountsForApi := make(map[uint64]map[string]string)
+	for networkId := range constants.NetworksById {
+		tokensPriceInfo[networkId] = make(map[string]pricing.TokenPriceInfo)
+		minAmountsForApi[networkId] = make(map[string]string)
+	}
+
+	logger := config.GetLoggerFor("Pricing Service")
+	hbarFungibleAssetInfo, _ := assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
+	hbarNativeAsset := assetsService.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
+	instance := &Service{
+		tokensPriceInfo:       tokensPriceInfo,
+		minAmountsForApi:      minAmountsForApi,
+		mirrorNodeClient:      mirrorNodeClient,
+		coinGeckoClient:       coinGeckoClient,
+		coinMarketCapClient:   coinMarketCapClient,
+		tokenPriceInfoMutex:   new(sync.RWMutex),
+		minAmountsForApiMutex: new(sync.RWMutex),
+		assetsService:         assetsService,
+		coinGeckoIds:          bridgeConfig.CoinGeckoIds,
+		coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
+		hbarFungibleAssetInfo: hbarFungibleAssetInfo,
+		hbarNativeAsset:       hbarNativeAsset,
+		logger:                logger,
+	}
+
+	instance.loadStaticMinAmounts(bridgeConfig)
+
+	err := instance.FetchAndUpdateUsdPrices()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
+	}
+	return instance
 }

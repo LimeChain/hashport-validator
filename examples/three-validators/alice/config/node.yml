@@ -1,13 +1,41 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
-#node:
-#  db:
-#    host:
-#    name:
-#    password:
-#    port:
-#    username:
-#  port:
-#  monitoring:
-#    enable:
-#    dashboard_polling:
+node:
+  database:
+    host: 127.0.0.1
+    name: hedera_validator
+    password: validator_pass
+    port: 5432
+    username: validator
+  clients:
+    evm:
+      80001:
+        block_confirmations: 5
+        node_url: https://polygon-mumbai.g.alchemy.com/v2/bENGS8COxswmrTVADvh4JK5Cy-Ik03Lg 
+        private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
+      3:
+        block_confirmations: 5
+        node_url: https://eth-ropsten.alchemyapi.io/v2/rQLyle52SoRmgNZ56ZqXBE4dUui3vRVy
+        private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
+    hedera:
+      operator:
+        account_id: 0.0.26306401
+        private_key: 302e020100300506032b65700422042012bf602c02a6a06b24de518fa934341e433d7ac8c4b06e464e5be9f269d29d66
+      network: testnet
+    mirror_node:
+      api_address: https://testnet.mirrornode.hedera.com/api/v1/
+      client_address: hcs.testnet.mirrornode.hedera.com:5600
+      polling_interval: 5
+      query_max_limit: 100
+      query_default_limit: 25
+    coingecko:
+      api_address: "https://api.coingecko.com/api/v3/"
+    coin_market_cap:
+      api_key: "0f56c8c8-4cde-4432-80f2-11f1623e5149"
+      api_address: "https://pro-api.coinmarketcap.com/v2/cryptocurrency/"
+  monitoring:
+    enable: true
+    dashboard_polling: 10 # in minutes
+  log_level: debug
+  port: 5200
+  validator: true
