@@ -33,20 +33,16 @@ const (
 	defaultNodeFile   = "config/node.yml"
 )
 
-<<<<<<< Updated upstream
-func LoadConfig() (Config, parser.Bridge, error) {
-=======
-func LoadConfig() (*Config, *parser.Bridge) {
->>>>>>> Stashed changes
+func LoadConfig() (*Config, *parser.Bridge, error) {
 	var parsed parser.Config
 	err := GetConfig(&parsed, defaultBridgeFile)
 	if err != nil {
-		return Config{}, parser.Bridge{}, err
+		return nil, nil, err
 	}
 
 	err = GetConfig(&parsed, defaultNodeFile)
 	if err != nil {
-		return Config{}, parser.Bridge{}, err
+		return nil, nil, err
 	}
 
 	if err := env.Parse(&parsed); err != nil {
@@ -55,11 +51,7 @@ func LoadConfig() (*Config, *parser.Bridge) {
 	return &Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),
-<<<<<<< Updated upstream
-	}, parsed.Bridge, nil
-=======
-	}, &parsed.Bridge
->>>>>>> Stashed changes
+	}, &parsed.Bridge, nil
 }
 
 func GetConfig(config interface{}, path string) error {

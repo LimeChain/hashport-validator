@@ -18,13 +18,7 @@ package main
 
 import (
 	"fmt"
-<<<<<<< Updated upstream
-
-	log "github.com/sirupsen/logrus"
-
-=======
 	"github.com/hashgraph/hedera-sdk-go/v2"
->>>>>>> Stashed changes
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -32,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/bootstrap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -66,10 +61,10 @@ func main() {
 			panic(fmt.Sprintf("failed to parse bridge config topic id [%s]. Err: [%s]", parsedBridgeConfigTopicId, err))
 		}
 	}
-	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
-	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge.UseLocalConfig, parsedBridgeConfigTopicId)
+	services = bootstrap.PrepareServices(&configuration, &parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
+	bootstrap.InitializeServerPairs(server, services, repositories, clients, &configuration, parsedBridge.UseLocalConfig, parsedBridgeConfigTopicId)
 
-	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge)
+	apiRouter := bootstrap.InitializeAPIRouter(services, &parsedBridge)
 
 	executeRecovery(repositories.Fee, repositories.Schedule, clients.MirrorNode)
 

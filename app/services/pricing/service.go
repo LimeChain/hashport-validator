@@ -19,13 +19,7 @@ package pricing
 import (
 	"errors"
 	"fmt"
-<<<<<<< Updated upstream
-	"math/big"
-	"sync"
-
-=======
 	"github.com/gookit/event"
->>>>>>> Stashed changes
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
@@ -36,6 +30,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
+	"math/big"
+	"sync"
 )
 
 type Service struct {
@@ -61,38 +57,6 @@ func NewService(bridgeConfig *config.Bridge,
 	mirrorNodeClient client.MirrorNode,
 	coinGeckoClient client.Pricing,
 	coinMarketCapClient client.Pricing) *Service {
-<<<<<<< Updated upstream
-	tokensPriceInfo := make(map[uint64]map[string]pricing.TokenPriceInfo)
-	minAmountsForApi := make(map[uint64]map[string]string)
-	for networkId := range constants.NetworksById {
-		tokensPriceInfo[networkId] = make(map[string]pricing.TokenPriceInfo)
-		minAmountsForApi[networkId] = make(map[string]string)
-	}
-	hederaNftFees := bridgeConfig.Hedera.NftConstantFees
-
-	logger := config.GetLoggerFor("Pricing Service")
-	hbarFungibleAssetInfo, _ := assetsService.FungibleAssetInfo(constants.HederaNetworkId, constants.Hbar)
-	hbarNativeAsset := assetsService.FungibleNativeAsset(constants.HederaNetworkId, constants.Hbar)
-	instance := &Service{
-		tokensPriceInfo:       tokensPriceInfo,
-		minAmountsForApi:      minAmountsForApi,
-		mirrorNodeClient:      mirrorNodeClient,
-		coinGeckoClient:       coinGeckoClient,
-		coinMarketCapClient:   coinMarketCapClient,
-		tokenPriceInfoMutex:   new(sync.RWMutex),
-		minAmountsForApiMutex: new(sync.RWMutex),
-		assetsService:         assetsService,
-		coinGeckoIds:          bridgeConfig.CoinGeckoIds,
-		coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
-		hbarFungibleAssetInfo: hbarFungibleAssetInfo,
-		hbarNativeAsset:       hbarNativeAsset,
-		hederaNftDynamicFees:  bridgeConfig.Hedera.NftDynamicFees,
-		hederaNftFees:         hederaNftFees,
-		logger:                logger,
-	}
-=======
->>>>>>> Stashed changes
-
 	instance := initialize(bridgeConfig, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient)
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
 		return bridgeCfgEventHandler(e, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, instance)
@@ -146,7 +110,6 @@ func (s *Service) GetMinAmountsForAPI() map[uint64]map[string]string {
 	return s.minAmountsForApi
 }
 
-<<<<<<< Updated upstream
 func (s *Service) GetHederaNftFee(token string) (int64, bool) {
 	s.tokenPriceInfoMutex.RLock()
 	defer s.tokenPriceInfoMutex.RUnlock()
@@ -155,10 +118,7 @@ func (s *Service) GetHederaNftFee(token string) (int64, bool) {
 	return fee, exists
 }
 
-func (s *Service) loadStaticMinAmounts(bridgeConfig config.Bridge) {
-=======
 func (s *Service) loadStaticMinAmounts(bridgeConfig *config.Bridge) {
->>>>>>> Stashed changes
 	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
 		for tokenAddress, minAmount := range minAmountsByTokenAddress {
 			s.tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{

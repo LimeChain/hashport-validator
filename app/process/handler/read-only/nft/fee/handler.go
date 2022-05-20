@@ -131,13 +131,8 @@ func (fmh *Handler) Handle(payload interface{}) {
 	}
 }
 
-<<<<<<< Updated upstream
-func (fmh Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
-	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
-=======
 func (fmh *Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
-	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
->>>>>>> Stashed changes
+	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 }
 
 func (fmh *Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
@@ -176,7 +171,7 @@ func bridgeCfgEventHandler(e event.Event, instance *Handler) error {
 	if err != nil {
 		return err
 	}
-	instance.hederaNftFees = params.Bridge.Hedera.NftFees
+	instance.hederaNftFees = params.Bridge.Hedera.NftConstantFees
 
 	return nil
 }
