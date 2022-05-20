@@ -23,8 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -174,7 +172,7 @@ func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 	return bytes, nil
 }
 
-func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
+func (ss Service) SignNftMessage(tm payload.Transfer) ([]byte, error) {
 	authMsgHash, err := auth_message.EncodeNftBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.SerialNum, tm.Metadata, tm.Receiver)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)

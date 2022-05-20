@@ -40,7 +40,7 @@ func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter,
 // POST: .../history
 func history(transferService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req := new(transferModel.Filter)
+		req := new(transferModel.PagedRequest)
 		err := json.NewDecoder(r.Body).Decode(req)
 		if err != nil {
 			render.Status(r, http.StatusBadRequest)
