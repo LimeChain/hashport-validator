@@ -1,8 +1,9 @@
 package transfer
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
 	targetAsset   = "0xwrapped00123"
 	serialNum     = 0
 	metadata      = "42"
+	nftFee        = 10
 )
 
 func Test_New(t *testing.T) {
@@ -44,19 +46,20 @@ func Test_New(t *testing.T) {
 
 func Test_NewNft(t *testing.T) {
 	expected := &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         true,
-		Amount:        "",
-		Timestamp:     "",
+		TransactionId:    txId,
+		SourceChainId:    sourceChainId,
+		TargetChainId:    targetChainId,
+		NativeChainId:    nativeChainId,
+		SourceAsset:      sourceAsset,
+		TargetAsset:      targetAsset,
+		NativeAsset:      nativeAsset,
+		Receiver:         receiver,
+		SerialNum:        serialNum,
+		Metadata:         metadata,
+		IsNft:            true,
+		Amount:           "",
+		NetworkTimestamp: "",
+		Fee:              nftFee,
 	}
 
 	actual := NewNft(txId,
@@ -68,6 +71,7 @@ func Test_NewNft(t *testing.T) {
 		targetAsset,
 		nativeAsset,
 		serialNum,
-		metadata)
+		metadata,
+		nftFee)
 	assert.Equal(t, expected, actual)
 }

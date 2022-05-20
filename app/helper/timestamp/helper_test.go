@@ -17,8 +17,9 @@
 package timestamp
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -60,6 +61,6 @@ func Test_ReverseStringReturnsInitialValue(t *testing.T) {
 
 func Test_ToHumanReadable(t *testing.T) {
 	res := ToHumanReadable(timestampInt64)
-	expectedDate := "2020-09-01T01:44:35.008554496Z"
+	expectedDate := "2020-09-01T01:44:35.082525Z"
 	assert.Equal(t, expectedDate, res)
 }

@@ -17,9 +17,10 @@
 package test_config
 
 import (
+	"math/big"
+
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
-	"math/big"
 )
 
 var (
@@ -67,8 +68,8 @@ var (
 
 		Bridge: config.Bridge{
 			Hedera: &config.BridgeHedera{
-				BridgeAccount: "0.0.578300",
-				NftFees:       testConstants.HederaNftFees,
+				BridgeAccount:   "0.0.578300",
+				NftConstantFees: testConstants.HederaNftFees,
 			},
 			MinAmounts: map[uint64]map[string]*big.Int{
 				testConstants.PolygonNetworkId: {

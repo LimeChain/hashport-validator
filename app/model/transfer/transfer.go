@@ -16,21 +16,26 @@
 
 package transfer
 
+import "time"
+
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
-	TransactionId string
-	SourceChainId uint64
-	TargetChainId uint64
-	NativeChainId uint64
-	SourceAsset   string
-	TargetAsset   string
-	NativeAsset   string
-	Receiver      string
-	Amount        string
-	SerialNum     int64
-	Metadata      string
-	IsNft         bool
-	Timestamp     string
+	TransactionId    string
+	SourceChainId    uint64
+	TargetChainId    uint64
+	NativeChainId    uint64
+	SourceAsset      string
+	TargetAsset      string
+	NativeAsset      string
+	Receiver         string
+	Amount           string
+	SerialNum        int64
+	Metadata         string
+	IsNft            bool
+	Originator       string
+	Timestamp        time.Time
+	NetworkTimestamp string
+	Fee              int64
 }
 
 // New instantiates Transfer struct ready for submission to the handler
@@ -54,7 +59,7 @@ func New(txId string,
 // NewNft instantiates a Transfer, consisting of serial num and metadata for a given NFT
 func NewNft(
 	txId string,
-	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string) *Transfer {
+	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string, fee int64) *Transfer {
 	return &Transfer{
 		TransactionId: txId,
 		SourceChainId: sourceChainId,
@@ -67,5 +72,6 @@ func NewNft(
 		SerialNum:     serialNum,
 		Metadata:      metadata,
 		IsNft:         true,
+		Fee:           fee,
 	}
 }

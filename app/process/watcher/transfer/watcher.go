@@ -20,6 +20,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -28,6 +31,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
@@ -36,8 +40,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"time"
 )
 
 type Watcher struct {
@@ -50,7 +52,6 @@ type Watcher struct {
 	logger            *log.Entry
 	contractServices  map[uint64]service.Contracts
 	assetsService     service.Assets
-	hederaNftFees     map[string]int64
 	validator         bool
 	prometheusService service.Prometheus
 	pricingService    service.Pricing
@@ -65,7 +66,6 @@ func NewWatcher(
 	startTimestamp int64,
 	contractServices map[uint64]service.Contracts,
 	assetsService service.Assets,
-	hederaNftFees map[string]int64,
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
@@ -109,7 +109,6 @@ func NewWatcher(
 		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
 		contractServices:  contractServices,
 		assetsService:     assetsService,
-		hederaNftFees:     hederaNftFees,
 		validator:         validator,
 		pricingService:    pricingService,
 		prometheusService: prometheusService,
@@ -214,18 +213,28 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	var transferMessage *transfer.Transfer
 	if parsedTransfer.IsNft {
 		// Validate that the HBAR fee is sent
-		amount, found := tx.GetHBARTransfer(ctw.accountID.String())
+		feeSent, found := tx.GetHBARTransfer(ctw.accountID.String())
 		if !found {
 			ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
 			return
 		}
-		if amount != ctw.hederaNftFees[parsedTransfer.Asset] {
-			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d]", tx.TransactionID, parsedTransfer.Asset, ctw.hederaNftFees[parsedTransfer.Asset])
+
+		fee, ok := ctw.pricingService.GetHederaNftFee(parsedTransfer.Asset)
+		if !ok {
+			ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, parsedTransfer.Asset)
 			return
 		}
-		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+
+		if feeSent < fee {
+			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s]. It should be [%d], but was [%d].", tx.TransactionID, parsedTransfer.Asset, fee, feeSent)
+			return
+		}
+
+		transferMessage, err = ctw.createNonFungiblePayload(
+			tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset, feeSent)
 	} else {
-		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+		transferMessage, err = ctw.createFungiblePayload(
+			tx.TransactionID, receiverAddress, parsedTransfer.Asset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
 	}
 
 	if err != nil {
@@ -238,6 +247,10 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		ctw.logger.Errorf("[%s] - Failed to parse consensus timestamp [%s]. Error: [%s]", tx.TransactionID, tx.ConsensusTimestamp, err)
 		return
 	}
+
+	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
+	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
+	transferMessage.Originator = originator
 
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
@@ -255,7 +268,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			topic = constants.HederaBurnMessageSubmission
 		}
 	} else {
-		transferMessage.Timestamp = tx.ConsensusTimestamp
+		transferMessage.NetworkTimestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == constants.HederaNetworkId {
 			if parsedTransfer.IsNft {
 				topic = constants.ReadOnlyHederaNativeNftTransfer
@@ -321,7 +334,8 @@ func (ctw Watcher) createNonFungiblePayload(
 	nativeAsset asset.NativeAsset,
 	serialNum int64,
 	targetChainId uint64,
-	targetChainAsset string) (*transfer.Transfer, error) {
+	targetChainAsset string,
+	fee int64) (*transfer.Transfer, error) {
 	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
 	if err != nil {
 		return nil, err
@@ -341,7 +355,8 @@ func (ctw Watcher) createNonFungiblePayload(
 		targetChainAsset,
 		nativeAsset.Asset,
 		serialNum,
-		string(decodedMetadata)), nil
+		string(decodedMetadata),
+		fee), nil
 }
 
 func (ctw Watcher) initSuccessRatePrometheusMetrics(tx transaction.Transaction, sourceChainId, targetChainId uint64, asset string) {

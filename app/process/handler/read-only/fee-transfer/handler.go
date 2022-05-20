@@ -152,7 +152,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 		feeAmount, hasReceiver := util.TotalFeeFromTransfers(splitTransfer, receiver)
 
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, transferMsg.TargetAsset, splitTransfer, func() (*mirrorNodeTransaction.Response, error) {
-			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.Timestamp)
+			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 		}, func(transactionID, scheduleID, status string) error {
 			result := false
 			if status == entityStatus.Completed {
