@@ -183,6 +183,13 @@ var (
 	saveQuery         = regexp.QuoteMeta(`UPDATE "transfers" SET "source_chain_id"=$1,"target_chain_id"=$2,"native_chain_id"=$3,"source_asset"=$4,"target_asset"=$5,"native_asset"=$6,"receiver"=$7,"amount"=$8,"fee"=$9,"status"=$10,"serial_number"=$11,"metadata"=$12,"is_nft"=$13,"timestamp"=$14,"originator"=$15 WHERE "transaction_id" = $16`)
 	updateFeeQuery    = regexp.QuoteMeta(`UPDATE "transfers" SET "fee"=$1 WHERE transaction_id = $2`)
 	updateStatusQuery = regexp.QuoteMeta(`UPDATE "transfers" SET "status"=$1 WHERE transaction_id = $2`)
+
+	countQuery                    = regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
+	pagedQuery                    = regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
+	pagedFilterOriginatorQuery    = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTimestampQuery     = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1 OR transaction_id LIKE $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTokenIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE source_asset = $1 OR target_asset = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
 )
 
 func setup() {
@@ -538,13 +545,12 @@ func Test_updateStatus_Err(t *testing.T) {
 
 func Test_Paged(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
 		Page:     2,
 		PageSize: 10,
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedQuery)
 
 	actual, err := repository.Paged(req)
 
@@ -552,8 +558,24 @@ func Test_Paged(t *testing.T) {
 	assert.NotEmpty(t, actual)
 }
 
+func Test_PagedWithErr(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     2,
+		PageSize: 10,
+	}
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, pagedQuery)
+
+	actual, err := repository.Paged(req)
+
+	assert.NotNil(t, err)
+	assert.Empty(t, actual)
+}
+
 func Test_PagedWithFilterOriginator(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
 		Page:     1,
 		PageSize: 10,
@@ -561,9 +583,7 @@ func Test_PagedWithFilterOriginator(t *testing.T) {
 			Originator: originator,
 		},
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, originator)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, originator)
 
 	actual, err := repository.Paged(req)
 
@@ -573,6 +593,7 @@ func Test_PagedWithFilterOriginator(t *testing.T) {
 
 func Test_PagedWithFilterTimestamp(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
 		Page:     1,
 		PageSize: 10,
@@ -580,9 +601,7 @@ func Test_PagedWithFilterTimestamp(t *testing.T) {
 			Timestamp: nanoTime.Time,
 		},
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, nanoTime.Time.UnixNano())
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, nanoTime.Time.UnixNano())
 
 	actual, err := repository.Paged(req)
 
@@ -592,6 +611,7 @@ func Test_PagedWithFilterTimestamp(t *testing.T) {
 
 func Test_PagedWithFilterTransactionId(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
 		Page:     1,
 		PageSize: 10,
@@ -599,9 +619,7 @@ func Test_PagedWithFilterTransactionId(t *testing.T) {
 			TransactionId: transactionId,
 		},
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1 OR transaction_id LIKE $2 ORDER BY timestamp desc, status asc LIMIT 10`)
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, transactionId, txIdWithPlaceholder)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTransactionIdQuery, transactionId, txIdWithPlaceholder)
 
 	actual, err := repository.Paged(req)
 
@@ -611,6 +629,7 @@ func Test_PagedWithFilterTransactionId(t *testing.T) {
 
 func Test_PagedWithFilterTokenId(t *testing.T) {
 	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
 		Page:     1,
 		PageSize: 10,
@@ -618,12 +637,33 @@ func Test_PagedWithFilterTokenId(t *testing.T) {
 			TokenId: sourceAsset,
 		},
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE source_asset = $1 OR target_asset = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, sourceAsset, sourceAsset)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTokenIdQuery, sourceAsset, sourceAsset)
 
 	actual, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
+}
+
+func Test_Count(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
+	actual, err := repository.Count()
+
+	assert.Nil(t, err)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_CountWithErr(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, countQuery)
+
+	actual, err := repository.Count()
+
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), actual)
 }

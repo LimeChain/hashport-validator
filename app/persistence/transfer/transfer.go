@@ -30,10 +30,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	countQuery = `SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`
-)
-
 type Repository struct {
 	db     *gorm.DB
 	logger *log.Entry
@@ -170,7 +166,7 @@ func (r Repository) Count() (int64, error) {
 		return 0, err
 	}
 
-	cur, err := db.Query(countQuery)
+	cur, err := db.Query(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
 	if err != nil {
 		return 0, err
 	}
