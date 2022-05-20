@@ -23,10 +23,10 @@ import (
 
 func Test_LoadConfig(t *testing.T) {
 	configuration, parseBridge, _ := LoadConfig()
-	if reflect.TypeOf(configuration).String() != "config.Config" {
+	if reflect.TypeOf(configuration).String() != "*config.Config" {
 		t.Fatalf(`Expected to return configuration type *config.Config, but returned: [%s]`, reflect.TypeOf(configuration).String())
 	}
-	if reflect.TypeOf(parseBridge).String() != "parser.Bridge" {
+	if reflect.TypeOf(parseBridge).String() != "*parser.Bridge" {
 		t.Fatalf(`Expected to return configuration type *parser.Bridge, but returned: [%s]`, reflect.TypeOf(parseBridge).String())
 	}
 }

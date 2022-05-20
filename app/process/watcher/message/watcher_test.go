@@ -39,6 +39,7 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
+	queryDefaultLimit     = int64(25)
 	consensusTimestamp    = "1633633534.108746000"
 	milestoneTimestamp, _ = timestamp.FromString(consensusTimestamp)
 )
@@ -78,7 +79,8 @@ func Test_NewWatcher_WithTS(t *testing.T) {
 func Test_BeginWatch_FailsMessagesRetrieval(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(5), nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(5)).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(5), queryDefaultLimit).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("QueryDefaultLimit").Return(queryDefaultLimit)
 	w.beginWatching(mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
@@ -105,8 +107,9 @@ func Test_BeginWatch_SuccessfulExecution(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(int64(2), nil).Once()
 	mocks.MStatusRepository.On("Get", topicID.String()).Return(milestoneTimestamp, nil)
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(2)).Return([]mirrorNodeMsg.Message{m}, nil).Once()
-	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, milestoneTimestamp).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
+	mocks.MHederaMirrorClient.On("QueryDefaultLimit").Return(queryDefaultLimit)
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, int64(2), queryDefaultLimit).Return([]mirrorNodeMsg.Message{m}, nil).Once()
+	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", topicID, milestoneTimestamp, queryDefaultLimit).Return([]mirrorNodeMsg.Message{}, errors.New("some-error"))
 	mocks.MQueue.On("Push", queueMessage)
 	mocks.MStatusRepository.On("Update", topicID.String(), milestoneTimestamp).Return(nil)
 

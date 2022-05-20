@@ -337,6 +337,8 @@ func initialize(bridgeConfig *config.Bridge, assetsService service.Assets, mirro
 		coinMarketCapIds:      bridgeConfig.CoinMarketCapIds,
 		hbarFungibleAssetInfo: hbarFungibleAssetInfo,
 		hbarNativeAsset:       hbarNativeAsset,
+		hederaNftFees:         bridgeConfig.Hedera.NftConstantFees,
+		hederaNftDynamicFees:  bridgeConfig.Hedera.NftDynamicFees,
 		logger:                logger,
 	}
 
