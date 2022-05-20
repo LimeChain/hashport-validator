@@ -26,7 +26,7 @@ import (
 )
 
 type Transfer struct {
-	TransactionID string `gorm:"primaryKey"`
+	TransactionID string `gorm:"primaryKey" gorm:"index:,type:btree"`
 	SourceChainID uint64
 	TargetChainID uint64
 	NativeChainID uint64

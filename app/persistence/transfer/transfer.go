@@ -29,22 +29,26 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	countQuery = `SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`
+)
+
 type Repository struct {
-	dbClient *gorm.DB
-	logger   *log.Entry
+	db     *gorm.DB
+	logger *log.Entry
 }
 
 func NewRepository(dbClient *gorm.DB) *Repository {
 	return &Repository{
-		dbClient: dbClient,
-		logger:   config.GetLoggerFor("Transfer Repository"),
+		db:     dbClient,
+		logger: config.GetLoggerFor("Transfer Repository"),
 	}
 }
 
 // Returns Transfer. Returns nil if not found
-func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
+func (r Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
-	result := tr.dbClient.
+	result := r.db.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		First(tx)
@@ -58,9 +62,9 @@ func (tr Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	return tx, nil
 }
 
-func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
+func (r Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
-	result := tr.dbClient.
+	result := r.db.
 		Preload("Fees").
 		Preload("Messages").
 		Model(entity.Transfer{}).
@@ -78,9 +82,9 @@ func (tr Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 }
 
 // Returns Transfer with preloaded Fee table. Returns nil if not found
-func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
+func (r Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
-	result := tr.dbClient.
+	result := r.db.
 		Preload("Fees").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
@@ -96,39 +100,39 @@ func (tr Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 }
 
 // Create creates new record of Transfer
-func (tr Repository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
-	return tr.create(ct, status.Initial)
+func (r Repository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
+	return r.create(ct, status.Initial)
 }
 
 // Save updates the provided Transfer instance
-func (tr Repository) Save(tx *entity.Transfer) error {
-	return tr.dbClient.Save(tx).Error
+func (r Repository) Save(tx *entity.Transfer) error {
+	return r.db.Save(tx).Error
 }
 
-func (tr Repository) UpdateFee(txId string, fee string) error {
-	err := tr.dbClient.
+func (r Repository) UpdateFee(txId string, fee string) error {
+	err := r.db.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("fee", fee).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Fee of TX [%s] to [%s]", txId, fee)
+		r.logger.Debugf("Updated Fee of TX [%s] to [%s]", txId, fee)
 	}
 	return err
 }
 
-func (tr Repository) UpdateStatusCompleted(txId string) error {
-	return tr.updateStatus(txId, status.Completed)
+func (r Repository) UpdateStatusCompleted(txId string) error {
+	return r.updateStatus(txId, status.Completed)
 }
 
-func (tr Repository) UpdateStatusFailed(txId string) error {
-	return tr.updateStatus(txId, status.Failed)
+func (r Repository) UpdateStatusFailed(txId string) error {
+	return r.updateStatus(txId, status.Failed)
 }
 
-func (tr Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+func (r Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
 	offset := (req.Page - 1) * req.PerPage
 	res := make([]*entity.Transfer, 0, req.PerPage)
-	q := tr.dbClient.
+	q := r.db.
 		Model(entity.Transfer{}).
 		Order("timestamp desc, status asc").
 		Offset(int(offset)).
@@ -152,13 +156,36 @@ func (tr Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 
 	err := q.Find(&res).Error
 	if err != nil {
+		r.logger.Errorf("Failed to get paged transfers: [%s]", err)
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func (tr Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
+func (r Repository) Count() (int64, error) {
+	db, err := r.db.DB()
+	if err != nil {
+		return 0, err
+	}
+
+	cur, err := db.Query(countQuery)
+	if err != nil {
+		return 0, err
+	}
+	defer cur.Close()
+
+	var res int64
+	if cur.Next() {
+		if err := cur.Scan(&res); err != nil {
+			return 0, err
+		}
+	}
+
+	return res, nil
+}
+
+func (r Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
 		SourceChainID: ct.SourceChainId,
@@ -176,12 +203,12 @@ func (tr Repository) create(ct *payload.Transfer, status string) (*entity.Transf
 		Timestamp:     entity.NanoTime{Time: ct.Timestamp},
 		Originator:    ct.Originator,
 	}
-	err := tr.dbClient.Create(tx).Error
+	err := r.db.Create(tx).Error
 
 	return tx, err
 }
 
-func (tr Repository) updateStatus(txId string, s string) error {
+func (r Repository) updateStatus(txId string, s string) error {
 	// Sanity check
 	if s != status.Initial &&
 		s != status.Completed &&
@@ -189,13 +216,13 @@ func (tr Repository) updateStatus(txId string, s string) error {
 		return errors.New("invalid status")
 	}
 
-	err := tr.dbClient.
+	err := r.db.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", s).
 		Error
 	if err == nil {
-		tr.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, s)
+		r.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, s)
 	}
 	return err
 }

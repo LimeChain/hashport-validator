@@ -39,7 +39,7 @@ type Transfer struct {
 
 type Paged struct {
 	Items      []*Transfer `json:"items"`
-	TotalCount uint64      `json:"totalCount"`
+	TotalCount int64       `json:"totalCount"`
 }
 
 type PagedRequest struct {
