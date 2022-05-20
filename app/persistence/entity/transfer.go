@@ -63,6 +63,7 @@ func (t *Transfer) ToDto() *transferModel.Transfer {
 		IsNft:         t.IsNft,
 		Originator:    t.Originator,
 		Timestamp:     t.Timestamp.Time,
+		Fee:           t.Fee,
 	}
 }
 

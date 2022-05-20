@@ -21,6 +21,8 @@ var (
 	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
+const maxHistoryPageSize = 50
+
 // GET: .../transfers/:id
 func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,22 @@ func history(transferService service.Transfers) func(w http.ResponseWriter, r *h
 		if err != nil {
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ErrorResponse(err))
+			return
+		}
+		if req.Page <= 0 {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ErrorResponse(fmt.Errorf("page must be greater than 0")))
+			return
+		}
+		if req.PageSize <= 0 {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ErrorResponse(fmt.Errorf("page size must be greater than 0")))
+			return
+		}
+		if req.PageSize > maxHistoryPageSize {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ErrorResponse(fmt.Errorf("maximum page size is %d", maxHistoryPageSize)))
+			return
 		}
 
 		res, err := transferService.Paged(req)

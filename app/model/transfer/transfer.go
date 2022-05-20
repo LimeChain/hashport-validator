@@ -28,13 +28,13 @@ type Transfer struct {
 	TargetAsset   string    `json:"targetAsset"`
 	NativeAsset   string    `json:"nativeAsset"`
 	Receiver      string    `json:"receiver"`
-	Amount        string    `json:"amount"`
-	SerialNum     int64     `json:"serialNum"`
-	Metadata      string    `json:"metadata"`
+	Amount        string    `json:"amount,omitempty"`
+	SerialNum     int64     `json:"serialNum,omitempty"`
+	Metadata      string    `json:"metadata,omitempty"`
 	IsNft         bool      `json:"isNft"`
 	Originator    string    `json:"originator"`
 	Timestamp     time.Time `json:"timestamp"`
-	Fee           int64     `json:"fee"`
+	Fee           string    `json:"fee"`
 }
 
 type Paged struct {
@@ -43,14 +43,14 @@ type Paged struct {
 }
 
 type PagedRequest struct {
-	Page    uint64 `json:"page"`
-	PerPage uint64 `json:"perPage"`
-	Filter  Filter `json:"filter"`
+	Page     uint64 `json:"page"`
+	PageSize uint64 `json:"pageSize"`
+	Filter   Filter `json:"filter"`
 }
 
 type Filter struct {
 	Originator    string    `json:"originator"`
-	TokenId       string    `json:"tokenId"`
 	Timestamp     time.Time `json:"timestamp"`
+	TokenId       string    `json:"tokenId"`
 	TransactionId string    `json:"transactionId"`
 }

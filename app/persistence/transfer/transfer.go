@@ -18,6 +18,7 @@ package transfer
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
@@ -130,28 +131,28 @@ func (r Repository) UpdateStatusFailed(txId string) error {
 }
 
 func (r Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
-	offset := (req.Page - 1) * req.PerPage
-	res := make([]*entity.Transfer, 0, req.PerPage)
+	offset := (req.Page - 1) * req.PageSize
+	res := make([]*entity.Transfer, 0, req.PageSize)
+	f := req.Filter
 	q := r.db.
 		Model(entity.Transfer{}).
 		Order("timestamp desc, status asc").
 		Offset(int(offset)).
-		Limit(int(req.PerPage))
+		Limit(int(req.PageSize))
 
-	f := req.Filter
 	if f.Originator != "" {
-		q.Where("originator = ?", f.Originator)
+		q = q.Where("originator = ?", f.Originator)
+	}
+	if !f.Timestamp.IsZero() {
+		q = q.Where("timestamp = ?", f.Timestamp.UnixNano())
 	}
 	if f.TokenId != "" {
-		q.Where("source_asset = ?", f.TokenId).
+		q = q.Where("source_asset = ?", f.TokenId).
 			Or("target_asset = ?", f.TokenId)
 	}
 	if f.TransactionId != "" {
-		q.Where("transaction_id LIKE ?%", f.TransactionId).
-			Or("transaction_id = ?", f.TransactionId)
-	}
-	if !f.Timestamp.IsZero() {
-		q.Where("timestamp = ?", f.Timestamp.UnixNano())
+		q = q.Where("transaction_id = ?", f.TransactionId).
+			Or("transaction_id LIKE ?", fmt.Sprintf(`%s%%`, f.TransactionId))
 	}
 
 	err := q.Find(&res).Error

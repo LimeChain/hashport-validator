@@ -38,26 +38,27 @@ import (
 )
 
 var (
-	repository    *Repository
-	dbConn        *gorm.DB
-	sqlMock       sqlmock.Sqlmock
-	transactionId = "transactionId"
-	sourceChainId = uint64(0)
-	targetChainId = uint64(1)
-	nativeChainId = uint64(2)
-	sourceAsset   = "sourceAsset"
-	targetAsset   = "targetAsset"
-	nativeAsset   = "nativeAsset"
-	receiver      = "receiver"
-	amount        = "amount"
-	fee           = ""
-	someStatus    = status.Initial
-	serialNumber  = int64(0)
-	metadata      = "metadata"
-	isNft         = false
-	now           = time.Now().UTC()
-	nanoTime      = entity.NanoTime{Time: now}
-	originator    = "originator"
+	repository          *Repository
+	dbConn              *gorm.DB
+	sqlMock             sqlmock.Sqlmock
+	transactionId       = "transactionId"
+	txIdWithPlaceholder = transactionId + "%"
+	sourceChainId       = uint64(0)
+	targetChainId       = uint64(1)
+	nativeChainId       = uint64(2)
+	sourceAsset         = "sourceAsset"
+	targetAsset         = "targetAsset"
+	nativeAsset         = "nativeAsset"
+	receiver            = "receiver"
+	amount              = "amount"
+	fee                 = ""
+	someStatus          = status.Initial
+	serialNumber        = int64(0)
+	metadata            = "metadata"
+	isNft               = false
+	now                 = time.Now().UTC()
+	nanoTime            = entity.NanoTime{Time: now}
+	originator          = "originator"
 
 	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
@@ -538,8 +539,8 @@ func Test_updateStatus_Err(t *testing.T) {
 func Test_Paged(t *testing.T) {
 	setup()
 	req := &transfer.PagedRequest{
-		Page:    2,
-		PerPage: 10,
+		Page:     2,
+		PageSize: 10,
 	}
 	q := regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
@@ -554,8 +555,8 @@ func Test_Paged(t *testing.T) {
 func Test_PagedWithFilterOriginator(t *testing.T) {
 	setup()
 	req := &transfer.PagedRequest{
-		Page:    1,
-		PerPage: 10,
+		Page:     1,
+		PageSize: 10,
 		Filter: transfer.Filter{
 			Originator: originator,
 		},
@@ -573,8 +574,8 @@ func Test_PagedWithFilterOriginator(t *testing.T) {
 func Test_PagedWithFilterTimestamp(t *testing.T) {
 	setup()
 	req := &transfer.PagedRequest{
-		Page:    1,
-		PerPage: 10,
+		Page:     1,
+		PageSize: 10,
 		Filter: transfer.Filter{
 			Timestamp: nanoTime.Time,
 		},
@@ -592,15 +593,15 @@ func Test_PagedWithFilterTimestamp(t *testing.T) {
 func Test_PagedWithFilterTransactionId(t *testing.T) {
 	setup()
 	req := &transfer.PagedRequest{
-		Page:    1,
-		PerPage: 10,
+		Page:     1,
+		PageSize: 10,
 		Filter: transfer.Filter{
 			TransactionId: transactionId,
 		},
 	}
-	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1% OR transaction_id = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	q := regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1 OR transaction_id LIKE $2 ORDER BY timestamp desc, status asc LIMIT 10`)
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, transactionId, transactionId)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, q, transactionId, txIdWithPlaceholder)
 
 	actual, err := repository.Paged(req)
 
@@ -611,8 +612,8 @@ func Test_PagedWithFilterTransactionId(t *testing.T) {
 func Test_PagedWithFilterTokenId(t *testing.T) {
 	setup()
 	req := &transfer.PagedRequest{
-		Page:    1,
-		PerPage: 10,
+		Page:     1,
+		PageSize: 10,
 		Filter: transfer.Filter{
 			TokenId: sourceAsset,
 		},
