@@ -80,7 +80,7 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 }
 
 func registerBridgeConfigWatcher(s *server.Server, services *Services, configuration *config.Config, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID) {
-	if useLocalConfig {
+	if !useLocalConfig {
 		dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
 		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId))
