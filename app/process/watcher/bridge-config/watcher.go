@@ -53,13 +53,15 @@ func (w *Watcher) Watch(q qi.Queue) {
 func (w *Watcher) watchIteration() {
 	w.logger.Infof("Checking for new bridge config ...")
 	parsedBridge, err := w.svc.ProcessLatestConfig(w.topicID)
+
+	if err != nil {
+		w.logger.Errorf(err.Error())
+		return
+	}
+
 	if parsedBridge != nil {
 		if parsedBridge.PollingInterval != w.pollingInterval {
 			w.pollingInterval = parsedBridge.PollingInterval
 		}
-	}
-
-	if err != nil {
-		w.logger.Errorf(err.Error())
 	}
 }

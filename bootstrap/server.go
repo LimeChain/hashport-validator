@@ -76,16 +76,14 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddWatcher(price.NewWatcher(services.Pricing))
 
 	// Bridge Config Watcher
-	registerBridgeConfigWatcher(server, services, configuration, useLocalConfig, bridgeCfgTopicId)
+	registerBridgeConfigWatcher(server, services, useLocalConfig, bridgeCfgTopicId)
 }
 
-func registerBridgeConfigWatcher(s *server.Server, services *Services, configuration *config.Config, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID) {
-	if !useLocalConfig {
-		dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
-		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
-		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId))
+func registerBridgeConfigWatcher(s *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID) {
+	if useLocalConfig {
+		log.Infoln("Using local bridge config. Skipping initialization of BridgeConfigWatcher ...")
 	} else {
-		log.Infoln("Monitoring is disabled. No metrics will be added.")
+		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId))
 	}
 }
 

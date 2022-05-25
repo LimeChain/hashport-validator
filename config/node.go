@@ -25,13 +25,12 @@ import (
 )
 
 type Node struct {
-	Database            Database
-	Clients             Clients
-	LogLevel            string
-	Port                string
-	Validator           bool
-	Monitoring          Monitoring
-	BridgeConfigTopicId Monitoring
+	Database   Database
+	Clients    Clients
+	LogLevel   string
+	Port       string
+	Validator  bool
+	Monitoring Monitoring
 }
 
 type Database struct {

@@ -18,13 +18,11 @@ package fee
 
 import (
 	"database/sql"
-	"github.com/gookit/event"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -78,10 +76,6 @@ func NewHandler(
 		hederaNftFees:      hederaNftFees,
 	}
 
-	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
-		return bridgeCfgEventHandler(e, instance)
-	}), constants.HandlerEventPriority)
-
 	return instance
 }
 
@@ -103,7 +97,7 @@ func (fmh *Handler) Handle(payload interface{}) {
 		return
 	}
 
-	validFee := fmh.distributor.ValidAmount(fmh.hederaNftFees[transferMsg.SourceAsset])
+	validFee := fmh.distributor.ValidAmount(transferMsg.Fee)
 
 	err = fmh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(validFee, 10))
 	if err != nil {
@@ -164,14 +158,4 @@ func (fmh *Handler) save(transactionID string, scheduleID string, status string,
 		fmh.logger.Errorf("[%s] - Failed to create fee  entity [%s]. Error: [%s]", transferMsg.TransactionId, scheduleID, err)
 	}
 	return err
-}
-
-func bridgeCfgEventHandler(e event.Event, instance *Handler) error {
-	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
-	if err != nil {
-		return err
-	}
-	instance.hederaNftFees = params.Bridge.Hedera.NftConstantFees
-
-	return nil
 }
