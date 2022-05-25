@@ -73,6 +73,7 @@ var (
 		Metadata:         metadata,
 		IsNft:            isNft,
 		NetworkTimestamp: timestamp,
+		Fee:              hederaFeeForSourceAsset,
 	}
 
 	entityTransfer = &entity.Transfer{
