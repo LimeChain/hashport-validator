@@ -26,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var (
@@ -35,13 +36,14 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	nilParser *parser.Bridge
+	pollingInterval = time.Duration(0)
+	nilParser       *parser.Bridge
 )
 
 func Test_NewWatcher(t *testing.T) {
 	setup()
 
-	actualWatcher := NewWatcher(mocks.MBridgeConfigService, topicId)
+	actualWatcher := NewWatcher(mocks.MBridgeConfigService, topicId, pollingInterval)
 
 	assert.Equal(t, watcher, actualWatcher)
 }
@@ -75,8 +77,9 @@ func setup() {
 	mocks.Setup()
 
 	watcher = &Watcher{
-		svc:     mocks.MBridgeConfigService,
-		topicID: topicId,
-		logger:  config.GetLoggerFor("Bridge Config Watcher"),
+		svc:             mocks.MBridgeConfigService,
+		topicID:         topicId,
+		pollingInterval: pollingInterval,
+		logger:          config.GetLoggerFor("Bridge Config Watcher"),
 	}
 }

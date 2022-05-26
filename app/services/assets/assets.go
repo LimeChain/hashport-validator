@@ -498,7 +498,7 @@ func NewService(
 
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
 		return bridgeCfgUpdateEventHandler(e, mirrorNode, routerClients, instance)
-	}), event.AboveNormal)
+	}), constants.AssetServicePriority)
 
 	return instance
 }
@@ -642,6 +642,7 @@ func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, ro
 		params.EvmNFTClients,
 	)
 	copyFields(newInstance, instance)
+	params.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*params.ParsedBridge, instance)
 
 	return nil
 }

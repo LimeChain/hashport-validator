@@ -39,12 +39,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/price"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
-func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID) {
+func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config, parsedBridge *parser.Bridge, bridgeCfgTopicId hedera.TopicID) {
 	// Transfer Message Watcher
 	registerTransferWatcher(server, services, repositories, clients, configuration)
 
@@ -76,14 +77,14 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 	server.AddWatcher(price.NewWatcher(services.Pricing))
 
 	// Bridge Config Watcher
-	registerBridgeConfigWatcher(server, services, useLocalConfig, bridgeCfgTopicId)
+	registerBridgeConfigWatcher(server, services, parsedBridge.UseLocalConfig, bridgeCfgTopicId, parsedBridge.PollingInterval)
 }
 
-func registerBridgeConfigWatcher(s *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID) {
+func registerBridgeConfigWatcher(s *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID, pollingInterval time.Duration) {
 	if useLocalConfig {
 		log.Infoln("Using local bridge config. Skipping initialization of BridgeConfigWatcher ...")
 	} else {
-		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId))
+		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId, pollingInterval))
 	}
 }
 
@@ -225,7 +226,6 @@ func registerHederaNativeNFTHandlers(server *server.Server, services *Services, 
 		configuration.Bridge.Hedera.BridgeAccount,
 		services.Distributor,
 		services.transfers,
-		configuration.Bridge.Hedera.NftConstantFees,
 		services.ReadOnly))
 }
 

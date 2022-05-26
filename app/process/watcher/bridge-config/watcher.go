@@ -32,11 +32,12 @@ type Watcher struct {
 	logger          *log.Entry
 }
 
-func NewWatcher(svc service.BridgeConfig, topicID hedera.TopicID) *Watcher {
+func NewWatcher(svc service.BridgeConfig, topicID hedera.TopicID, pollingInterval time.Duration) *Watcher {
 	return &Watcher{
-		svc:     svc,
-		topicID: topicID,
-		logger:  config.GetLoggerFor("Bridge Config Watcher"),
+		svc:             svc,
+		topicID:         topicID,
+		pollingInterval: pollingInterval,
+		logger:          config.GetLoggerFor("Bridge Config Watcher"),
 	}
 }
 

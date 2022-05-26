@@ -44,7 +44,6 @@ type Handler struct {
 	distributor        service.Distributor
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
-	hederaNftFees      map[string]int64
 	logger             *log.Entry
 }
 
@@ -56,7 +55,6 @@ func NewHandler(
 	bridgeAccount string,
 	distributor service.Distributor,
 	transfersService service.Transfers,
-	hederaNftFees map[string]int64,
 	readOnlyService service.ReadOnly) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
@@ -73,7 +71,6 @@ func NewHandler(
 		transfersService:   transfersService,
 		distributor:        distributor,
 		readOnlyService:    readOnlyService,
-		hederaNftFees:      hederaNftFees,
 	}
 
 	return instance

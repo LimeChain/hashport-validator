@@ -21,8 +21,9 @@ import "github.com/gookit/event"
 const (
 	EventBridgeConfigUpdate          = "config.bridge.update"
 	BridgeConfigUpdateEventParamsKey = "params"
-	ClientsEventPriority             = event.High
+	ClientsEventPriority             = event.Max
+	AssetServicePriority             = event.High
 	ServiceEventPriority             = event.AboveNormal
 	WatcherEventPriority             = event.Normal
-	HandlerEventPriority             = event.Normal
+	HandlerEventPriority             = event.BelowNormal
 )

@@ -247,6 +247,7 @@ func (s *Service) parseFullMsgContent(content []byte) (*parser.Bridge, error) {
 	err := yaml.Unmarshal(content, configParser)
 	if err != nil {
 		s.logger.Errorf("Failed to parse bridge config. Err: [%s]", err)
+		return nil, err
 	}
 
 	return &configParser.Bridge, nil
@@ -255,7 +256,7 @@ func (s *Service) parseFullMsgContent(content []byte) (*parser.Bridge, error) {
 func (s *Service) decodeMsgContent(msg mirrorNodeMsg.Message) ([]byte, error) {
 	decodedMsgContent, err := base64.StdEncoding.DecodeString(msg.Contents)
 	if err != nil {
-		s.logger.Errorf("Failed to decode message content from base64 format. Err: [%s]", err)
+		s.logger.Errorf("Failed to decode message content from base64 format: [%s]. Err: [%s]", msg.Contents, err)
 		return nil, err
 	}
 	return decodedMsgContent, nil
