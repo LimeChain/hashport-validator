@@ -16,7 +16,9 @@
 
 package transfer
 
-import "time"
+import (
+	"time"
+)
 
 // Transfer serves as a model between Transfer Watcher and Handler
 type Transfer struct {
@@ -35,6 +37,7 @@ type Transfer struct {
 	Originator    string    `json:"originator"`
 	Timestamp     time.Time `json:"timestamp"`
 	Fee           string    `json:"fee"`
+	Status        string    `json:"status"`
 }
 
 type Paged struct {

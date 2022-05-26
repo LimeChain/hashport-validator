@@ -49,7 +49,7 @@ func typeCheck(statusType string) {
 	}
 }
 
-func (s Repository) Get(entityID string) (int64, error) {
+func (s *Repository) Get(entityID string) (int64, error) {
 	lastFetchedStatus := &entity.Status{}
 	err := s.db.
 		Where("entity_id = ?", entityID).
@@ -60,14 +60,14 @@ func (s Repository) Get(entityID string) (int64, error) {
 	return lastFetchedStatus.Last, nil
 }
 
-func (s Repository) Create(entityID string, timestampOrBlockNumber int64) error {
+func (s *Repository) Create(entityID string, timestampOrBlockNumber int64) error {
 	return s.db.Create(entity.Status{
 		EntityID: entityID,
 		Last:     timestampOrBlockNumber,
 	}).Error
 }
 
-func (s Repository) Update(entityID string, timestampOrBlockNumber int64) error {
+func (s *Repository) Update(entityID string, timestampOrBlockNumber int64) error {
 	return s.db.
 		Where("entity_id = ?", entityID).
 		Save(entity.Status{

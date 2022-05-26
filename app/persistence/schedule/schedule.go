@@ -39,19 +39,19 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (r Repository) Create(entity *entity.Schedule) error {
+func (r *Repository) Create(entity *entity.Schedule) error {
 	return r.db.Create(entity).Error
 }
 
-func (r Repository) UpdateStatusCompleted(txId string) error {
+func (r *Repository) UpdateStatusCompleted(txId string) error {
 	return r.updateStatus(txId, status.Completed)
 }
 
-func (r Repository) UpdateStatusFailed(txId string) error {
+func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r Repository) updateStatus(txId string, status string) error {
+func (r *Repository) updateStatus(txId string, status string) error {
 	err := r.db.
 		Model(entity.Schedule{}).
 		Where("transaction_id = ?", txId).
@@ -64,7 +64,7 @@ func (r Repository) updateStatus(txId string, status string) error {
 }
 
 // Get Returns Schedule. Returns nil if not found
-func (r Repository) Get(id string) (*entity.Schedule, error) {
+func (r *Repository) Get(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
 
 	result := r.db.
@@ -81,7 +81,7 @@ func (r Repository) Get(id string) (*entity.Schedule, error) {
 	return record, nil
 }
 
-func (r Repository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
+func (r *Repository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
 	result := r.db.
 		Model(entity.Schedule{}).
@@ -96,7 +96,7 @@ func (r Repository) GetReceiverTransferByTransactionID(id string) (*entity.Sched
 	return record, nil
 }
 
-func (r Repository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
+func (r *Repository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
 	var schedules []*entity.Schedule
 
 	err := r.db.

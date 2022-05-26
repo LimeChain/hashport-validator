@@ -39,7 +39,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 }
 
 // Returns Fee. Returns nil if not found
-func (r Repository) Get(id string) (*entity.Fee, error) {
+func (r *Repository) Get(id string) (*entity.Fee, error) {
 	record := &entity.Fee{}
 
 	result := r.db.
@@ -56,19 +56,19 @@ func (r Repository) Get(id string) (*entity.Fee, error) {
 	return record, nil
 }
 
-func (r Repository) Create(entity *entity.Fee) error {
+func (r *Repository) Create(entity *entity.Fee) error {
 	return r.db.Create(entity).Error
 }
 
-func (r Repository) UpdateStatusCompleted(txId string) error {
+func (r *Repository) UpdateStatusCompleted(txId string) error {
 	return r.updateStatus(txId, status.Completed)
 }
 
-func (r Repository) UpdateStatusFailed(txId string) error {
+func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r Repository) updateStatus(txId string, status string) error {
+func (r *Repository) updateStatus(txId string, status string) error {
 	err := r.db.
 		Model(entity.Fee{}).
 		Where("transaction_id = ?", txId).
@@ -80,7 +80,7 @@ func (r Repository) updateStatus(txId string, status string) error {
 	return err
 }
 
-func (r Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
+func (r *Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
 	var fees []*entity.Fee
 
 	err := r.db.

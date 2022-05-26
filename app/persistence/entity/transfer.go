@@ -26,7 +26,7 @@ import (
 )
 
 type Transfer struct {
-	TransactionID string `gorm:"primaryKey" gorm:"index:,type:btree"`
+	TransactionID string `gorm:"primaryKey"`
 	SourceChainID uint64
 	TargetChainID uint64
 	NativeChainID uint64
@@ -64,6 +64,7 @@ func (t *Transfer) ToDto() *transferModel.Transfer {
 		Originator:    t.Originator,
 		Timestamp:     t.Timestamp.Time,
 		Fee:           t.Fee,
+		Status:        t.Status,
 	}
 }
 

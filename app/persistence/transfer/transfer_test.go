@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 
 	model "github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
@@ -59,6 +61,7 @@ var (
 	now                 = time.Now().UTC()
 	nanoTime            = entity.NanoTime{Time: now}
 	originator          = "originator"
+	originatorEVM       = "0x1235"
 
 	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
@@ -573,7 +576,7 @@ func Test_PagedWithErr(t *testing.T) {
 	assert.Empty(t, actual)
 }
 
-func Test_PagedWithFilterOriginator(t *testing.T) {
+func Test_PagedWithFilterOriginatorHedera(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
 	req := &transfer.PagedRequest{
@@ -584,6 +587,24 @@ func Test_PagedWithFilterOriginator(t *testing.T) {
 		},
 	}
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, originator)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterOriginatorEVM(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			Originator: originatorEVM,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, common.HexToAddress(originatorEVM).String())
 
 	actual, err := repository.Paged(req)
 

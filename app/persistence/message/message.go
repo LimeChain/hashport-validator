@@ -33,7 +33,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 	}
 }
 
-func (r Repository) GetMessageWith(transferID, signature, hash string) (*entity.Message, error) {
+func (r *Repository) GetMessageWith(transferID, signature, hash string) (*entity.Message, error) {
 	var message entity.Message
 	err := r.db.Model(&entity.Message{}).
 		Where("transfer_id = ? and signature = ? and hash = ?", transferID, signature, hash).
@@ -44,7 +44,7 @@ func (r Repository) GetMessageWith(transferID, signature, hash string) (*entity.
 	return &message, nil
 }
 
-func (r Repository) Exist(transferID, signature, hash string) (bool, error) {
+func (r *Repository) Exist(transferID, signature, hash string) (bool, error) {
 	_, err := r.GetMessageWith(transferID, signature, hash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,11 +56,11 @@ func (r Repository) Exist(transferID, signature, hash string) (bool, error) {
 	return true, nil
 }
 
-func (r Repository) Create(message *entity.Message) error {
+func (r *Repository) Create(message *entity.Message) error {
 	return r.db.Create(message).Error
 }
 
-func (r Repository) Get(transferID string) ([]entity.Message, error) {
+func (r *Repository) Get(transferID string) ([]entity.Message, error) {
 	var messages []entity.Message
 	err := r.db.
 		Preload("Transfer").

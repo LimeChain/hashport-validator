@@ -19,7 +19,9 @@ package transfer
 import (
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 
@@ -43,7 +45,7 @@ func NewRepository(dbClient *gorm.DB) *Repository {
 }
 
 // Returns Transfer. Returns nil if not found
-func (r Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
+func (r *Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := r.db.
 		Model(entity.Transfer{}).
@@ -59,7 +61,7 @@ func (r Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 	return tx, nil
 }
 
-func (r Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
+func (r *Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := r.db.
 		Preload("Fees").
@@ -79,7 +81,7 @@ func (r Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 }
 
 // Returns Transfer with preloaded Fee table. Returns nil if not found
-func (r Repository) GetWithFee(txId string) (*entity.Transfer, error) {
+func (r *Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{}
 	result := r.db.
 		Preload("Fees").
@@ -97,16 +99,16 @@ func (r Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 }
 
 // Create creates new record of Transfer
-func (r Repository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
+func (r *Repository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
 	return r.create(ct, status.Initial)
 }
 
 // Save updates the provided Transfer instance
-func (r Repository) Save(tx *entity.Transfer) error {
+func (r *Repository) Save(tx *entity.Transfer) error {
 	return r.db.Save(tx).Error
 }
 
-func (r Repository) UpdateFee(txId string, fee string) error {
+func (r *Repository) UpdateFee(txId string, fee string) error {
 	err := r.db.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
@@ -118,15 +120,15 @@ func (r Repository) UpdateFee(txId string, fee string) error {
 	return err
 }
 
-func (r Repository) UpdateStatusCompleted(txId string) error {
+func (r *Repository) UpdateStatusCompleted(txId string) error {
 	return r.updateStatus(txId, status.Completed)
 }
 
-func (r Repository) UpdateStatusFailed(txId string) error {
+func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
 	offset := (req.Page - 1) * req.PageSize
 	res := make([]*entity.Transfer, 0, req.PageSize)
 	f := req.Filter
@@ -137,7 +139,11 @@ func (r Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error
 		Limit(int(req.PageSize))
 
 	if f.Originator != "" {
-		q = q.Where("originator = ?", f.Originator)
+		if strings.Contains(f.Originator, "0x") {
+			q = q.Where("originator = ?", common.HexToAddress(f.Originator).String())
+		} else {
+			q = q.Where("originator = ?", f.Originator)
+		}
 	}
 	if !f.Timestamp.IsZero() {
 		q = q.Where("timestamp = ?", f.Timestamp.UnixNano())
@@ -160,7 +166,7 @@ func (r Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error
 	return res, nil
 }
 
-func (r Repository) Count() (int64, error) {
+func (r *Repository) Count() (int64, error) {
 	db, err := r.db.DB()
 	if err != nil {
 		return 0, err
@@ -182,7 +188,7 @@ func (r Repository) Count() (int64, error) {
 	return res, nil
 }
 
-func (r Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
+func (r *Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
 		SourceChainID: ct.SourceChainId,
@@ -205,7 +211,7 @@ func (r Repository) create(ct *payload.Transfer, status string) (*entity.Transfe
 	return tx, err
 }
 
-func (r Repository) updateStatus(txId string, s string) error {
+func (r *Repository) updateStatus(txId string, s string) error {
 	// Sanity check
 	if s != status.Initial &&
 		s != status.Completed &&
