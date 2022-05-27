@@ -26,8 +26,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
-	"github.com/limechain/hedera-eth-bridge-validator/app/router/assets"
-	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
@@ -47,15 +45,17 @@ type Service struct {
 	queryDefaultLimit  int64
 	queryMaxLimit      int64
 	config             *config.Config
+	parsedBridgeCfg    *parser.Bridge
 	logger             *log.Entry
 }
 
-func NewService(cfg *config.Config, mirrorNode client.MirrorNode) *Service {
+func NewService(cfg *config.Config, parsedBridgeCfg *parser.Bridge, mirrorNode client.MirrorNode) *Service {
 	return &Service{
 		mirrorNode:        mirrorNode,
 		queryMaxLimit:     mirrorNode.QueryMaxLimit(),
 		queryDefaultLimit: mirrorNode.QueryDefaultLimit(),
 		config:            cfg,
+		parsedBridgeCfg:   parsedBridgeCfg,
 		logger:            config.GetLoggerFor("Bridge Config Service"),
 	}
 }
@@ -203,15 +203,12 @@ func (s *Service) processFullMsgContent(decodedMsgContent []byte, consensusTimes
 	s.logger.Infof("Successfully processed latest bridge config!")
 
 	s.logger.Infof("Updating config dependencies ...")
-	s.config.Bridge = config.NewBridge(*parsedBridge)
+	s.config.Bridge.Update(config.NewBridge(*parsedBridge))
+	s.parsedBridgeCfg.Update(parsedBridge)
 	event.MustFire(constants.EventBridgeConfigUpdate, event.M{constants.BridgeConfigUpdateEventParamsKey: &bridge_config_event.Params{
 		Bridge:       s.config.Bridge,
 		ParsedBridge: parsedBridge,
 	}})
-
-	// Routers
-	config_bridge.BridgeConfig = parsedBridge
-	assets.BridgeConfig = parsedBridge
 
 	return parsedBridge, nil
 }

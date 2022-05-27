@@ -61,13 +61,14 @@ type Services struct {
 // PrepareServices instantiates all the necessary services with their required context and parameters
 func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Clients, repositories Repositories, parsedBridgeConfigTopicId hedera.TopicID) *Services {
 
-	bridgeCfgService := bridge_config.NewService(c, clients.MirrorNode)
+	bridgeCfgService := bridge_config.NewService(c, parsedBridge, clients.MirrorNode)
 	if !parsedBridge.UseLocalConfig {
 		var err error
-		parsedBridge, err = bridgeCfgService.ProcessLatestConfig(parsedBridgeConfigTopicId)
+		fetchedParsedBridge, err := bridgeCfgService.ProcessLatestConfig(parsedBridgeConfigTopicId)
 		if err != nil {
 			panic(fmt.Sprintf("failed to process latest bridge config from topic. Err: [%s]", err))
 		}
+		parsedBridge.Update(fetchedParsedBridge)
 	}
 
 	evmSigners := make(map[uint64]service.Signer)

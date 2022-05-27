@@ -39,6 +39,16 @@ type Bridge struct {
 	MonitoredAccounts map[string]string
 }
 
+func (b *Bridge) Update(from *Bridge) {
+	b.TopicId = from.TopicId
+	b.Hedera = from.Hedera
+	b.EVMs = from.EVMs
+	b.CoinMarketCapIds = from.CoinMarketCapIds
+	b.CoinGeckoIds = from.CoinGeckoIds
+	b.MinAmounts = from.MinAmounts
+	b.MonitoredAccounts = from.MonitoredAccounts
+}
+
 type BridgeHedera struct {
 	BridgeAccount   string
 	PayerAccount    string

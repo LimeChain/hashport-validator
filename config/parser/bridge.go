@@ -33,6 +33,15 @@ type Bridge struct {
 	MonitoredAccounts map[string]string   `yaml:"monitored_accounts" json:"monitoredAccounts,omitempty"`
 }
 
+func (b *Bridge) Update(from *Bridge) {
+	b.UseLocalConfig = from.UseLocalConfig
+	b.ConfigTopicId = from.ConfigTopicId
+	b.PollingInterval = from.PollingInterval
+	b.TopicId = from.TopicId
+	b.Networks = from.Networks
+	b.MonitoredAccounts = from.MonitoredAccounts
+}
+
 type Network struct {
 	Name                  string   `yaml:"name" json:"name,omitempty"`
 	BridgeAccount         string   `yaml:"bridge_account" json:"bridgeAccount,omitempty"`

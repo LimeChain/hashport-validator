@@ -23,6 +23,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	test_config "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
@@ -107,7 +108,7 @@ var (
 func Test_New(t *testing.T) {
 	setup()
 
-	actualService := NewService(&test_config.TestConfig, mocks.MHederaMirrorClient)
+	actualService := NewService(&test_config.TestConfig, &testConstants.ParserBridge, mocks.MHederaMirrorClient)
 
 	assert.Equal(t, serviceInstance, actualService)
 }
@@ -300,6 +301,7 @@ func setup() {
 	serviceInstance = &Service{
 		mirrorNode:        mocks.MHederaMirrorClient,
 		config:            &test_config.TestConfig,
+		parsedBridgeCfg:   &testConstants.ParserBridge,
 		queryDefaultLimit: queryDefaultLimit,
 		queryMaxLimit:     queryMaxLimit,
 		logger:            config.GetLoggerFor("Bridge Config Service"),
