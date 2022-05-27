@@ -70,7 +70,7 @@ func Test_assetsResponse(t *testing.T) {
 		}
 	}
 
-	assetsResponseContent := generateResponseContent(mocks.MAssetsService, mocks.MPricingService)
+	assetsResponseContent := generateResponseContent(mocks.MAssetsService, mocks.MPricingService, &testConstants.ParserBridge)
 	var err error
 	if err := enc.Encode(assetsResponseContent); err != nil {
 		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
@@ -80,7 +80,7 @@ func Test_assetsResponse(t *testing.T) {
 	mocks.MResponseWriter.On("Header").Return(http.Header{})
 	mocks.MResponseWriter.On("Write", assetsResponseAsBytes).Return(len(assetsResponseAsBytes), nil)
 
-	assetsResponseHandler := assetsResponse(mocks.MAssetsService, mocks.MPricingService)
+	assetsResponseHandler := assetsResponse(mocks.MAssetsService, mocks.MPricingService, &testConstants.ParserBridge)
 	assetsResponseHandler(mocks.MResponseWriter, new(http.Request))
 
 	assert.Nil(t, err)

@@ -48,7 +48,7 @@ func Test_configBridgeResponse(t *testing.T) {
 	mocks.MResponseWriter.On("Header").Return(http.Header{})
 	mocks.MResponseWriter.On("Write", bridgeConfigAsBytes).Return(len(bridgeConfigAsBytes), nil)
 
-	bridgeResponseHandler := configBridgeResponse()
+	bridgeResponseHandler := configBridgeResponse(&testConstants.ParserBridge)
 	bridgeResponseHandler(mocks.MResponseWriter, new(http.Request))
 
 	assert.Nil(t, err)
