@@ -30,15 +30,14 @@ var (
 
 //Router for bridge config
 func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	BridgeConfig = bridgeCfg
 	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse())
+	r.Get("/", configBridgeResponse(bridgeCfg))
 	return r
 }
 
 // GET: .../config/bridge
-func configBridgeResponse() func(w http.ResponseWriter, r *http.Request) {
+func configBridgeResponse(bridgeCfg *parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *BridgeConfig)
+		render.JSON(w, r, *bridgeCfg)
 	}
 }
