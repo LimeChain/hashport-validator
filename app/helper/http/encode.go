@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-package config_bridge
+package http
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"net/http"
+	"bytes"
+	"encoding/json"
+	"io"
+	"io/ioutil"
 )
 
-var (
-	Route        = "/config/bridge"
-	BridgeConfig *parser.Bridge
-)
-
-//Router for bridge config
-func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse(bridgeCfg))
-	return r
-}
-
-// GET: .../config/bridge
-func configBridgeResponse(bridgeCfg *parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *bridgeCfg)
+func EncodeBodyContent(content interface{}) (io.ReadCloser, error) {
+	encodedResponseBuffer := new(bytes.Buffer)
+	encodeErr := json.NewEncoder(encodedResponseBuffer).Encode(content)
+	if encodeErr != nil {
+		return nil, encodeErr
 	}
+	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
+	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
+
+	return encodedResponseReaderCloser, nil
 }

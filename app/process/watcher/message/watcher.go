@@ -111,7 +111,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 	cmw.logger.Infof("Watching for Messages after Timestamp [%s]", timestamp.ToHumanReadable(milestoneTimestamp))
 
 	for {
-		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp)
+		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp, cmw.client.QueryDefaultLimit())
 		if err != nil {
 			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
 			go cmw.beginWatching(q)

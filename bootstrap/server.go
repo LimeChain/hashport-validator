@@ -18,8 +18,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"time"
-
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	burn_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-message"
 	fee_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/fee-message"
@@ -36,14 +35,17 @@ import (
 	rnfmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/fee"
 	rnth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/transfer"
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
+	bridge_config "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/bridge-config"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/price"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
-func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config, parsedBridge *parser.Bridge, bridgeCfgTopicId hedera.TopicID) {
 	// Transfer Message Watcher
 	registerTransferWatcher(server, services, repositories, clients, configuration)
 
@@ -73,25 +75,36 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 
 	// Pricing Watcher
 	server.AddWatcher(price.NewWatcher(services.Pricing))
+
+	// Bridge Config Watcher
+	registerBridgeConfigWatcher(server, services, parsedBridge.UseLocalConfig, bridgeCfgTopicId, parsedBridge.PollingInterval)
 }
 
-func registerTransferWatcher(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerBridgeConfigWatcher(s *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID, pollingInterval time.Duration) {
+	if useLocalConfig {
+		log.Infoln("Using local bridge config. Skipping initialization of BridgeConfigWatcher ...")
+	} else {
+		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId, pollingInterval))
+	}
+}
+
+func registerTransferWatcher(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	server.AddWatcher(createTransferWatcher(
-		&configuration,
+		configuration,
 		services.transfers,
 		services.Assets,
 		clients.MirrorNode,
 		&repositories.TransferStatus,
-		services.contractServices,
+		services.ContractServices,
 		services.Prometheus,
 		services.Pricing))
 }
 
-func registerValidationServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerValidationServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	// Watcher - ConsensusTopic
 	server.AddWatcher(
 		createConsensusTopicWatcher(
-			&configuration,
+			configuration,
 			clients.MirrorNode,
 			repositories.MessageStatus))
 
@@ -100,13 +113,13 @@ func registerValidationServerPairs(server *server.Server, services *Services, re
 		configuration.Bridge.TopicId,
 		repositories.Transfer,
 		repositories.Message,
-		services.contractServices,
+		services.ContractServices,
 		services.Messages,
 		services.Prometheus,
 		services.Assets))
 }
 
-func registerTransferMessageHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerTransferMessageHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	// TopicMessageSubmission
 	server.AddHandler(constants.TopicMessageSubmission,
 		message_submission.NewHandler(
@@ -130,10 +143,10 @@ func registerTransferMessageHandlers(server *server.Server, services *Services, 
 	server.AddHandler(constants.HederaTransferMessageSubmission, fee_message.NewHandler(services.transfers))
 }
 
-func registerEvmClients(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerEvmClients(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	for _, evmClient := range clients.EvmClients {
 		chain := evmClient.GetChainID()
-		contractService := services.contractServices[chain]
+		contractService := services.ContractServices[chain]
 		// Given that addresses between different
 		// EVM networks might be the same, a concatenation between
 		// <chain-id>-<contract-address> removes possible duplication.
@@ -156,7 +169,7 @@ func registerEvmClients(server *server.Server, services *Services, repositories 
 	}
 }
 
-func registerAssetsWatcher(server *server.Server, services *Services, configuration config.Config, clients *Clients) {
+func registerAssetsWatcher(server *server.Server, services *Services, configuration *config.Config, clients *Clients) {
 	server.AddWatcher(createAssetsWatcher(
 		clients.MirrorNode,
 		configuration,
@@ -165,7 +178,7 @@ func registerAssetsWatcher(server *server.Server, services *Services, configurat
 		services.Assets))
 }
 
-func registerPrometheusWatcher(server *server.Server, services *Services, configuration config.Config, clients *Clients) {
+func registerPrometheusWatcher(server *server.Server, services *Services, configuration *config.Config, clients *Clients) {
 	if configuration.Node.Monitoring.Enable {
 		dashboardPolling := configuration.Node.Monitoring.DashboardPolling * time.Minute
 		log.Infoln("Dashboard Polling interval: ", dashboardPolling)
@@ -182,7 +195,7 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 	}
 }
 
-func registerHederaNativeUnlockNftHandlers(server *server.Server, services *Services, repositories *Repositories, configuration config.Config) {
+func registerHederaNativeUnlockNftHandlers(server *server.Server, services *Services, repositories *Repositories, configuration *config.Config) {
 	// HederaNftTransfer
 	server.AddHandler(constants.HederaNftTransfer, nth.NewHandler(
 		configuration.Bridge.Hedera.BridgeAccount,
@@ -200,7 +213,7 @@ func registerHederaNativeUnlockNftHandlers(server *server.Server, services *Serv
 		services.transfers))
 }
 
-func registerHederaNativeNFTHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerHederaNativeNFTHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	// HederaNativeNftTransfer
 	server.AddHandler(constants.HederaNativeNftTransfer, nfmh.NewHandler(services.transfers))
 
@@ -213,11 +226,10 @@ func registerHederaNativeNFTHandlers(server *server.Server, services *Services, 
 		configuration.Bridge.Hedera.BridgeAccount,
 		services.Distributor,
 		services.transfers,
-		configuration.Bridge.Hedera.NftConstantFees,
 		services.ReadOnly))
 }
 
-func registerReadOnlyHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration config.Config) {
+func registerReadOnlyHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
 	// ReadOnlyHederaTransfer
 	server.AddHandler(constants.ReadOnlyHederaTransfer, rfth.NewHandler(
 		repositories.Transfer,

@@ -14,30 +14,15 @@
  * limitations under the License.
  */
 
-package config_bridge
+package service
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
-	"net/http"
 )
 
-var (
-	Route        = "/config/bridge"
-	BridgeConfig *parser.Bridge
-)
-
-//Router for bridge config
-func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
-	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse(bridgeCfg))
-	return r
-}
-
-// GET: .../config/bridge
-func configBridgeResponse(bridgeCfg *parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, *bridgeCfg)
-	}
+// BridgeConfig is the service used for processing HCS messages containing the Bridge Config
+type BridgeConfig interface {
+	// ProcessLatestConfig processes the latest bridge config from HCS Topic
+	ProcessLatestConfig(topicID hedera.TopicID) (*parser.Bridge, error)
 }

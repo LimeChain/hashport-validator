@@ -20,9 +20,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math/big"
-	"time"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -40,6 +37,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math/big"
+	"time"
 )
 
 type Watcher struct {
@@ -98,8 +97,7 @@ func NewWatcher(
 		targetTimestamp = timeStamp
 		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
 	}
-
-	return &Watcher{
+	instance := &Watcher{
 		transfers:         transfers,
 		client:            client,
 		accountID:         id,
@@ -113,6 +111,9 @@ func NewWatcher(
 		pricingService:    pricingService,
 		prometheusService: prometheusService,
 	}
+
+	return instance
+
 }
 
 func (ctw Watcher) Watch(q qi.Queue) {

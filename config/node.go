@@ -86,9 +86,11 @@ type CoinMarketCap struct {
 // MirrorNode //
 
 type MirrorNode struct {
-	ClientAddress   string
-	ApiAddress      string
-	PollingInterval time.Duration
+	ClientAddress     string
+	ApiAddress        string
+	PollingInterval   time.Duration
+	QueryMaxLimit     int64
+	QueryDefaultLimit int64
 }
 
 type Monitoring struct {
@@ -113,9 +115,11 @@ func New(node parser.Node) Node {
 				Rpc:            rpc,
 			},
 			MirrorNode: MirrorNode{
-				ClientAddress:   node.Clients.MirrorNode.ClientAddress,
-				ApiAddress:      node.Clients.MirrorNode.ApiAddress,
-				PollingInterval: node.Clients.MirrorNode.PollingInterval,
+				ClientAddress:     node.Clients.MirrorNode.ClientAddress,
+				ApiAddress:        node.Clients.MirrorNode.ApiAddress,
+				PollingInterval:   node.Clients.MirrorNode.PollingInterval,
+				QueryMaxLimit:     node.Clients.MirrorNode.QueryMaxLimit,
+				QueryDefaultLimit: node.Clients.MirrorNode.QueryDefaultLimit,
 			},
 			Evm: make(map[uint64]Evm),
 			CoinGecko: CoinGecko{

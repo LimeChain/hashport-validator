@@ -43,7 +43,11 @@ type MirrorNode interface {
 	// GetAccountCreditTransactionsBetween returns all incoming Transfers for the specified account between timestamp `from` and `to` excluded
 	GetAccountCreditTransactionsBetween(accountId hedera.AccountID, from, to int64) ([]transaction.Transaction, error)
 	// GetMessagesAfterTimestamp returns all topic messages after the given timestamp
-	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]message.Message, error)
+	GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64, limit int64) ([]message.Message, error)
+	// GetMessageBySequenceNumber returns message from given topic with provided sequence number
+	GetMessageBySequenceNumber(topicId hedera.TopicID, sequenceNumber int64) (*message.Message, error)
+	// GetLatestMessages returns latest Topic messages
+	GetLatestMessages(topicId hedera.TopicID, limit int64) ([]message.Message, error)
 	// GetMessagesForTopicBetween returns all topic messages for a given topic between timestamp `from` included and `to` excluded
 	GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int64) ([]message.Message, error)
 	// GetNftTransactions returns the nft transactions for tokenID and serialNum
@@ -77,4 +81,8 @@ type MirrorNode interface {
 	WaitForScheduledTransaction(txId string, onSuccess, onFailure func())
 	// GetHBARUsdPrice Returns USD price for HBAR
 	GetHBARUsdPrice() (price decimal.Decimal, err error)
+	// QueryDefaultLimit returns the default records limit per query
+	QueryDefaultLimit() int64
+	// QueryMaxLimit returns the maximum allowed records limit per query
+	QueryMaxLimit() int64
 }

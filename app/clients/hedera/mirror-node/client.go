@@ -48,6 +48,8 @@ type Client struct {
 	mirrorAPIAddress             string
 	httpClient                   client.HttpClient
 	pollingInterval              time.Duration
+	queryMaxLimit                int64
+	queryDefaultLimit            int64
 	fullHederaGetHbarUsdPriceUrl string
 	logger                       *log.Entry
 }
@@ -56,6 +58,8 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 	return &Client{
 		mirrorAPIAddress:             mirrorNode.ApiAddress,
 		pollingInterval:              mirrorNode.PollingInterval,
+		queryMaxLimit:                mirrorNode.QueryMaxLimit,
+		queryDefaultLimit:            mirrorNode.QueryDefaultLimit,
 		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
 		httpClient:                   new(http.Client),
 		logger:                       config.GetLoggerFor("Mirror Node Client"),
@@ -138,12 +142,56 @@ func (c Client) GetAccountCreditTransactionsBetween(accountId hedera.AccountID, 
 }
 
 // GetMessagesAfterTimestamp returns all Topic messages after the given timestamp
-func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]message.Message, error) {
-	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s",
+func (c Client) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64, limit int64) ([]message.Message, error) {
+	messagesQuery := fmt.Sprintf("/%s/messages?timestamp=gt:%s&limit=%d",
 		topicId.String(),
-		timestampHelper.String(from))
+		timestampHelper.String(from),
+		limit)
 
 	return c.getTopicMessagesByQuery(messagesQuery)
+}
+
+// GetMessageBySequenceNumber returns message from given topic with provided sequence number
+func (c Client) GetMessageBySequenceNumber(topicId hedera.TopicID, sequenceNumber int64) (*message.Message, error) {
+	messagesQuery := fmt.Sprintf("%s%s/%s/messages/%d",
+		c.mirrorAPIAddress,
+		"topics",
+		topicId.String(),
+		sequenceNumber)
+
+	response, e := c.get(messagesQuery)
+	if e != nil {
+		return nil, e
+	}
+
+	bodyBytes, e := readResponseBody(response)
+	if e != nil {
+		return nil, e
+	}
+
+	var message *message.Message
+	e = json.Unmarshal(bodyBytes, &message)
+	if e != nil {
+		return nil, e
+	}
+
+	return message, nil
+}
+
+// GetLatestMessages returns latest Topic messages
+func (c Client) GetLatestMessages(topicId hedera.TopicID, limit int64) ([]message.Message, error) {
+	latestMessagesQuery := fmt.Sprintf("/%s/messages?order=desc&limit=%d", topicId.String(), limit)
+	return c.getTopicMessagesByQuery(latestMessagesQuery)
+}
+
+// GetQueryDefaultLimit returns the default records limit per query
+func (c Client) QueryDefaultLimit() int64 {
+	return c.queryDefaultLimit
+}
+
+// GetQueryMaxLimit returns the maximum allowed limit per messages query
+func (c Client) QueryMaxLimit() int64 {
+	return c.queryMaxLimit
 }
 
 // GetMessagesForTopicBetween returns all Topic messages for the specified topic between timestamp `from` and `to` excluded
@@ -510,7 +558,6 @@ func (c Client) getTopicMessagesByQuery(query string) ([]message.Message, error)
 	if e != nil {
 		return nil, e
 	}
-
 	var messages *message.Messages
 	e = json.Unmarshal(bodyBytes, &messages)
 	if e != nil {

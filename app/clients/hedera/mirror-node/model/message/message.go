@@ -17,13 +17,27 @@
 package message
 
 type (
+	InitialTransactionId struct {
+		AccountId             string `json:"account_id"`
+		Nonce                 uint64 `json:"nonce"`
+		Scheduled             bool   `json:"scheduled"`
+		TransactionValidStart string `json:"transaction_valid_start"`
+	}
+
+	ChunkInfo struct {
+		InitialTransactionId InitialTransactionId `json:"initial_transaction_id"`
+		Number               int64                `json:"number"`
+		Total                int64                `json:"total"`
+	}
+
 	// Message struct used by the Hedera Mirror node REST API to represent Topic Message
 	Message struct {
-		ConsensusTimestamp string `json:"consensus_timestamp"`
-		TopicId            string `json:"topic_id"`
-		Contents           string `json:"message"`
-		RunningHash        string `json:"running_hash"`
-		SequenceNumber     int    `json:"sequence_number"`
+		ConsensusTimestamp string     `json:"consensus_timestamp"`
+		TopicId            string     `json:"topic_id"`
+		Contents           string     `json:"message"`
+		RunningHash        string     `json:"running_hash"`
+		SequenceNumber     int64      `json:"sequence_number"`
+		ChunkInfo          *ChunkInfo `json:"chunk_info"`
 	}
 	// Messages struct used by the Hedera Mirror node REST API and returned once
 	// Topic Messages are queried

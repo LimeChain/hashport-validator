@@ -73,6 +73,7 @@ var (
 		Metadata:         metadata,
 		IsNft:            isNft,
 		NetworkTimestamp: timestamp,
+		Fee:              hederaFeeForSourceAsset,
 	}
 
 	entityTransfer = &entity.Transfer{
@@ -133,7 +134,6 @@ func Test_NewHandler(t *testing.T) {
 		bridgeAccountAsStr,
 		mocks.MDistributorService,
 		mocks.MTransferService,
-		testConstants.HederaNftFees,
 		mocks.MReadOnlyService,
 	)
 
@@ -155,7 +155,6 @@ func Test_NewHandler_ErrOnBridgeAccountParse(t *testing.T) {
 		"invalid account",
 		mocks.MDistributorService,
 		mocks.MTransferService,
-		testConstants.HederaNftFees,
 		mocks.MReadOnlyService,
 	)
 
@@ -327,7 +326,6 @@ func setup(t *testing.T, setupForHandle bool) {
 		distributor:        mocks.MDistributorService,
 		transfersService:   mocks.MTransferService,
 		readOnlyService:    mocks.MReadOnlyService,
-		hederaNftFees:      testConstants.HederaNftFees,
 		logger:             config.GetLoggerFor("Hedera Transfer and Topic Submission Read-only Handler"),
 	}
 }

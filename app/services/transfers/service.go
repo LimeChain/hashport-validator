@@ -20,10 +20,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math/big"
-	"strconv"
-	"strings"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -43,6 +39,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"math/big"
+	"strconv"
+	"strings"
 )
 
 type Service struct {
@@ -88,7 +87,7 @@ func NewService(
 		log.Fatalf("Invalid BridgeAccountID [%s] - Error: [%s]", bridgeAccount, e)
 	}
 
-	return &Service{
+	instance := &Service{
 		logger:             config.GetLoggerFor(fmt.Sprintf("Transfers Service")),
 		hederaNode:         hederaNode,
 		mirrorNode:         mirrorNode,
@@ -105,6 +104,8 @@ func NewService(
 		prometheusService:  prometheusService,
 		assetsService:      assetsService,
 	}
+
+	return instance
 }
 
 // SanityCheckTransfer performs validation on the memo and state proof for the transaction

@@ -116,8 +116,36 @@ func (m *MockHederaMirror) GetMessagesForTopicBetween(topicId hedera.TopicID, fr
 	return args.Get(0).([]message.Message), args.Get(1).(error)
 }
 
-func (m *MockHederaMirror) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64) ([]message.Message, error) {
-	args := m.Called(topicId, from)
+func (m *MockHederaMirror) QueryDefaultLimit() int64 {
+	args := m.Called()
+	return args.Get(0).(int64)
+}
+
+func (m *MockHederaMirror) QueryMaxLimit() int64 {
+	args := m.Called()
+	return args.Get(0).(int64)
+}
+
+func (m *MockHederaMirror) GetMessagesAfterTimestamp(topicId hedera.TopicID, from int64, limit int64) ([]message.Message, error) {
+	args := m.Called(topicId, from, limit)
+
+	if args.Get(1) == nil {
+		return args.Get(0).([]message.Message), nil
+	}
+	return args.Get(0).([]message.Message), args.Get(1).(error)
+}
+
+func (m *MockHederaMirror) GetMessageBySequenceNumber(topicId hedera.TopicID, sequenceNumber int64) (*message.Message, error) {
+	args := m.Called(topicId, sequenceNumber)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*message.Message), nil
+	}
+	return args.Get(0).(*message.Message), args.Get(1).(error)
+}
+
+func (m *MockHederaMirror) GetLatestMessages(topicId hedera.TopicID, limit int64) ([]message.Message, error) {
+	args := m.Called(topicId, limit)
 
 	if args.Get(1) == nil {
 		return args.Get(0).([]message.Message), nil

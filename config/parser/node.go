@@ -22,12 +22,13 @@ import "time"
 	Structs used to parse the node YAML configuration
 */
 type Node struct {
-	Database   Database   `yaml:"database"`
-	Clients    Clients    `yaml:"clients"`
-	LogLevel   string     `yaml:"log_level"`
-	Port       string     `yaml:"port"`
-	Validator  bool       `yaml:"validator"`
-	Monitoring Monitoring `yaml:"monitoring"`
+	Database            Database   `yaml:"database"`
+	Clients             Clients    `yaml:"clients"`
+	LogLevel            string     `yaml:"log_level"`
+	Port                string     `yaml:"port"`
+	Validator           bool       `yaml:"validator"`
+	Monitoring          Monitoring `yaml:"monitoring"`
+	BridgeConfigTopicId Monitoring `yaml:"bridge_config_topic_id"`
 }
 
 type Database struct {
@@ -74,9 +75,11 @@ type Operator struct {
 // MirrorNode //
 
 type MirrorNode struct {
-	ClientAddress   string        `yaml:"client_address"`
-	ApiAddress      string        `yaml:"api_address"`
-	PollingInterval time.Duration `yaml:"polling_interval"`
+	ClientAddress     string        `yaml:"client_address"`
+	ApiAddress        string        `yaml:"api_address"`
+	PollingInterval   time.Duration `yaml:"polling_interval"`
+	QueryMaxLimit     int64         `yaml:"query_max_limit"`
+	QueryDefaultLimit int64         `yaml:"query_default_limit"`
 }
 
 // CoinGecko //
