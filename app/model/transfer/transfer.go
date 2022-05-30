@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// Transfer serves as a model between Transfer Watcher and Handler
+// Transfer serves as a data transfer object and response model
 type Transfer struct {
 	TransactionId string    `json:"transactionId"`
 	SourceChainId uint64    `json:"sourceChainId"`
