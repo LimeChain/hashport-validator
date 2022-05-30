@@ -68,7 +68,7 @@ func (r *Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 		Preload("Messages").
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		Find(tx)
+		First(tx)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
