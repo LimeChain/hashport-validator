@@ -36,7 +36,7 @@ type Transfer struct {
 	IsNft         bool      `json:"isNft"`
 	Originator    string    `json:"originator"`
 	Timestamp     time.Time `json:"timestamp"`
-	Fee           string    `json:"fee"`
+	Fee           string    `json:"fee,omitempty"`
 	Status        string    `json:"status"`
 }
 
