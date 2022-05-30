@@ -1,6 +1,7 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
 #bridge:
+#  use_local_config: false
 #  topic_id:
 #  networks:
 #    296: # Hedera Testnet

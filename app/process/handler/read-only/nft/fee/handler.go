@@ -46,7 +46,6 @@ type Handler struct {
 	distributor        service.Distributor
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
-	hederaNftFees      map[string]int64
 	logger             *log.Entry
 }
 
@@ -58,13 +57,13 @@ func NewHandler(
 	bridgeAccount string,
 	distributor service.Distributor,
 	transfersService service.Transfers,
-	hederaNftFees map[string]int64,
 	readOnlyService service.ReadOnly) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
 	}
-	return &Handler{
+
+	instance := &Handler{
 		transferRepository: transferRepository,
 		feeRepository:      feeRepository,
 		scheduleRepository: scheduleRepository,
@@ -74,8 +73,9 @@ func NewHandler(
 		transfersService:   transfersService,
 		distributor:        distributor,
 		readOnlyService:    readOnlyService,
-		hederaNftFees:      hederaNftFees,
 	}
+
+	return instance
 }
 
 func (fmh Handler) Handle(p interface{}) {
@@ -96,7 +96,7 @@ func (fmh Handler) Handle(p interface{}) {
 		return
 	}
 
-	validFee := fmh.distributor.ValidAmount(fmh.hederaNftFees[transferMsg.SourceAsset])
+	validFee := fmh.distributor.ValidAmount(transferMsg.Fee)
 
 	err = fmh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(validFee, 10))
 	if err != nil {

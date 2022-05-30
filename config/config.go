@@ -33,25 +33,25 @@ const (
 	defaultNodeFile   = "config/node.yml"
 )
 
-func LoadConfig() (Config, parser.Bridge, error) {
+func LoadConfig() (*Config, *parser.Bridge, error) {
 	var parsed parser.Config
 	err := GetConfig(&parsed, defaultBridgeFile)
 	if err != nil {
-		return Config{}, parser.Bridge{}, err
+		return nil, nil, err
 	}
 
 	err = GetConfig(&parsed, defaultNodeFile)
 	if err != nil {
-		return Config{}, parser.Bridge{}, err
+		return nil, nil, err
 	}
 
 	if err := env.Parse(&parsed); err != nil {
 		panic(err)
 	}
-	return Config{
+	return &Config{
 		Node:   New(parsed.Node),
 		Bridge: NewBridge(parsed.Bridge),
-	}, parsed.Bridge, nil
+	}, &parsed.Bridge, nil
 }
 
 func GetConfig(config interface{}, path string) error {
@@ -63,6 +63,7 @@ func GetConfig(config interface{}, path string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -78,5 +79,5 @@ func GetConfig(config interface{}, path string) error {
 
 type Config struct {
 	Node   Node
-	Bridge Bridge
+	Bridge *Bridge
 }

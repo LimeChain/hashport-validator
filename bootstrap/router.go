@@ -30,7 +30,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func InitializeAPIRouter(services *Services, bridgeConfig parser.Bridge) *apirouter.APIRouter {
+func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))

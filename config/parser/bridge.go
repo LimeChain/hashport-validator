@@ -18,15 +18,28 @@ package parser
 
 import (
 	"math/big"
+	"time"
 )
 
 /*
 	Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
+	UseLocalConfig    bool                `yaml:"use_local_config" json:"useLocalConfig,omitempty"`
+	ConfigTopicId     string              `yaml:"config_topic_id" json:"configTopicId,omitempty"`
+	PollingInterval   time.Duration       `yaml:"polling_interval" json:"pollingInterval,omitempty"`
 	TopicId           string              `yaml:"topic_id" json:"topicId,omitempty"`
 	Networks          map[uint64]*Network `yaml:"networks" json:"networks,omitempty"`
 	MonitoredAccounts map[string]string   `yaml:"monitored_accounts" json:"monitoredAccounts,omitempty"`
+}
+
+func (b *Bridge) Update(from *Bridge) {
+	b.UseLocalConfig = from.UseLocalConfig
+	b.ConfigTopicId = from.ConfigTopicId
+	b.PollingInterval = from.PollingInterval
+	b.TopicId = from.TopicId
+	b.Networks = from.Networks
+	b.MonitoredAccounts = from.MonitoredAccounts
 }
 
 type Network struct {

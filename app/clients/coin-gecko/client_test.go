@@ -17,15 +17,13 @@
 package coin_gecko
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
+	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io/ioutil"
 	"net/http"
 	"testing"
 )
@@ -49,15 +47,14 @@ func Test_NewClient(t *testing.T) {
 
 func Test_GetUsdPrices(t *testing.T) {
 	setup()
-
-	encodedResponseBuffer := new(bytes.Buffer)
-	encodeErr := json.NewEncoder(encodedResponseBuffer).Encode(testConstants.SimplePriceResponse)
-	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
-	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
+	encodedResponseReaderCloser, encodeErr := httpHelper.EncodeBodyContent(testConstants.SimplePriceResponse)
+	if encodeErr != nil {
+		t.Fatal(encodeErr)
+	}
 	mocks.MHTTPClient.On("Do", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedResponseReaderCloser}, nilErr)
+
 	result, err := c.GetUsdPrices(testConstants.CoinGeckoIds)
 
-	assert.Nil(t, encodeErr)
 	assert.Nil(t, err)
 	assert.Equal(t, testConstants.UsdPrices, result)
 }

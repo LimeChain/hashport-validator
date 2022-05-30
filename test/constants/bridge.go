@@ -343,6 +343,7 @@ var (
 	}
 
 	ParserBridge = parser.Bridge{
+		UseLocalConfig:    true,
 		TopicId:           TopicId,
 		Networks:          Networks,
 		MonitoredAccounts: make(map[string]string),

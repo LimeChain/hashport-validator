@@ -39,6 +39,16 @@ type Bridge struct {
 	MonitoredAccounts map[string]string
 }
 
+func (b *Bridge) Update(from *Bridge) {
+	b.TopicId = from.TopicId
+	b.Hedera = from.Hedera
+	b.EVMs = from.EVMs
+	b.CoinMarketCapIds = from.CoinMarketCapIds
+	b.CoinGeckoIds = from.CoinGeckoIds
+	b.MinAmounts = from.MinAmounts
+	b.MonitoredAccounts = from.MonitoredAccounts
+}
+
 type BridgeHedera struct {
 	BridgeAccount   string
 	PayerAccount    string
@@ -77,7 +87,7 @@ type BridgeEvm struct {
 	Tokens                map[string]Token
 }
 
-func NewBridge(bridge parser.Bridge) Bridge {
+func NewBridge(bridge parser.Bridge) *Bridge {
 	config := Bridge{
 		TopicId:           bridge.TopicId,
 		Hedera:            nil,
@@ -150,7 +160,7 @@ func NewBridge(bridge parser.Bridge) Bridge {
 		}
 	}
 
-	return config
+	return &config
 }
 
 func (b Bridge) LoadStaticMinAmountsForWrappedFungibleTokens(parsedBridge parser.Bridge, assetsService service.Assets) {

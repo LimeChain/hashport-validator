@@ -27,6 +27,8 @@ hedera:
     api_address:
     client_address:
     polling_interval:
+    query_max_limit:
+    query_default_limit:
   network_type:
   sender:
     account:
