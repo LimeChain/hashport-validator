@@ -149,8 +149,14 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 		q = q.Where("timestamp = ?", f.Timestamp.UnixNano())
 	}
 	if f.TokenId != "" {
-		q = q.Where("source_asset = ?", f.TokenId).
-			Or("target_asset = ?", f.TokenId)
+		if strings.Contains(f.TokenId, "0x") {
+			a := common.HexToAddress(f.TokenId).String()
+			q = q.Where("source_asset = ?", a).
+				Or("target_asset = ?", a)
+		} else {
+			q = q.Where("source_asset = ?", f.TokenId).
+				Or("target_asset = ?", f.TokenId)
+		}
 	}
 	if f.TransactionId != "" {
 		q = q.Where("transaction_id = ?", f.TransactionId).

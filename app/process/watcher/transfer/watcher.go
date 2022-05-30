@@ -41,8 +41,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"time"
 )
 
 type Watcher struct {
