@@ -33,7 +33,7 @@ Example:
   - ```json
     {
       *"page": 1,
-      *"perPage": 20,
+      *"pageSize": 20,
       "filter": {
         "originator": "Hedera account ID or EVM address",
         "timestamp": "VALID RFC3339(Nano) DATE",
