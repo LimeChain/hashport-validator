@@ -20,6 +20,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -40,9 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 type Service struct {
@@ -253,6 +254,10 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 
 	if t == nil {
 		return nil, service.ErrNotFound
+	}
+
+	if t.TargetChainID == constants.HederaNetworkId {
+		return service.TransferData{}, service.ErrBadRequestTransferTargetNetworkNoSignaturesRequired
 	}
 
 	if t != nil && t.NativeChainID == constants.HederaNetworkId && t.Fee == "" {
