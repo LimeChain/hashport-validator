@@ -28,17 +28,17 @@ Example:
   }
 }
 ```
-- `GET /api/v1/transfers/history`: Accepts a request body in the form (`*` is required) and returns:
+- `POST /api/v1/transfers/history`: Accepts a request body in the form (`*` is required) and returns:
   - Maximum page size is 50. Pages start from 1.
   - ```json
     {
-      "page": 1,
-      "perPage": 20,
+      *"page": 1,
+      *"perPage": 20,
       "filter": {
         "originator": "Hedera account ID or EVM address",
         "timestamp": "VALID RFC3339(Nano) DATE",
         "tokenId": "Hedera Token ID or EVM address",
-        "transactionId": "Hedera Transaction ID or EVM transaction hash",
+        "transactionId": "Hedera Transaction ID or EVM transaction hash"
       }
     }
     ```
