@@ -70,7 +70,7 @@ func history(transferService service.Transfers) func(w http.ResponseWriter, r *h
 		if t := req.Filter.TransactionId; strings.Contains(t, "0x") {
 			if s := t[2:]; len(s) != constants.TransactionHashLength {
 				render.Status(r, http.StatusBadRequest)
-				render.JSON(w, r, response.ErrorResponse(fmt.Errorf("invalid tx hash")))
+				render.JSON(w, r, response.ErrorResponse(fmt.Errorf("invalid tx hash length")))
 				return
 			}
 		}
