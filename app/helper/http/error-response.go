@@ -26,6 +26,9 @@ import (
 
 func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	switch err {
+	case service.ErrBadRequestTransferTargetNetworkNoSignaturesRequired:
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ErrorResponse(err))
 	case service.ErrNotFound:
 		render.Status(r, http.StatusNotFound)
 		render.JSON(w, r, response.ErrorResponse(err))

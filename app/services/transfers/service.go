@@ -256,6 +256,10 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 		return nil, service.ErrNotFound
 	}
 
+	if t.TargetChainID == constants.HederaNetworkId {
+		return service.TransferData{}, service.ErrBadRequestTransferTargetNetworkNoSignaturesRequired
+	}
+
 	if t != nil && t.NativeChainID == constants.HederaNetworkId && t.Fee == "" {
 		return service.TransferData{}, service.ErrNotFound
 	}
