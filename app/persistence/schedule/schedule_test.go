@@ -19,6 +19,9 @@ package schedule
 import (
 	"database/sql"
 	"database/sql/driver"
+	"regexp"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
@@ -28,8 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"regexp"
-	"testing"
 )
 
 var (
@@ -214,7 +215,7 @@ func setup() {
 	dbConnection, sqlMock, db = helper.SetupSqlMock()
 
 	repository = &Repository{
-		dbClient: dbConnection,
-		logger:   config.GetLoggerFor("Transfer Repository"),
+		db:     dbConnection,
+		logger: config.GetLoggerFor("Transfer Repository"),
 	}
 }

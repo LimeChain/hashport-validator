@@ -17,7 +17,7 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/mock"
 )
@@ -26,7 +26,7 @@ type MockMessageService struct {
 	mock.Mock
 }
 
-func (m *MockMessageService) SignFungibleMessage(transfer transfer.Transfer) ([]byte, error) {
+func (m *MockMessageService) SignFungibleMessage(transfer payload.Transfer) ([]byte, error) {
 	args := m.Called(transfer)
 	if args[1] == nil {
 		return args[0].([]byte), nil
@@ -34,7 +34,7 @@ func (m *MockMessageService) SignFungibleMessage(transfer transfer.Transfer) ([]
 	return args[0].([]byte), args[1].(error)
 }
 
-func (m *MockMessageService) SignNftMessage(transfer transfer.Transfer) ([]byte, error) {
+func (m *MockMessageService) SignNftMessage(transfer payload.Transfer) ([]byte, error) {
 	args := m.Called(transfer)
 	if args[1] == nil {
 		return args[0].([]byte), nil

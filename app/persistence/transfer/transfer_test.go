@@ -23,8 +23,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+
+	model "github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -35,26 +40,28 @@ import (
 )
 
 var (
-	repository    *Repository
-	dbConn        *gorm.DB
-	sqlMock       sqlmock.Sqlmock
-	transactionId = "transactionId"
-	sourceChainId = uint64(0)
-	targetChainId = uint64(1)
-	nativeChainId = uint64(2)
-	sourceAsset   = "sourceAsset"
-	targetAsset   = "targetAsset"
-	nativeAsset   = "nativeAsset"
-	receiver      = "receiver"
-	amount        = "amount"
-	fee           = ""
-	someStatus    = status.Initial
-	serialNumber  = int64(0)
-	metadata      = "metadata"
-	isNft         = false
-	now           = time.Now().UTC()
-	nanoTime      = entity.NanoTime{Time: now}
-	originator    = "originator"
+	repository          *Repository
+	dbConn              *gorm.DB
+	sqlMock             sqlmock.Sqlmock
+	transactionId       = "transactionId"
+	txIdWithPlaceholder = transactionId + "%"
+	sourceChainId       = uint64(0)
+	targetChainId       = uint64(1)
+	nativeChainId       = uint64(2)
+	sourceAsset         = "sourceAsset"
+	targetAsset         = "targetAsset"
+	nativeAsset         = "nativeAsset"
+	receiver            = "receiver"
+	amount              = "amount"
+	fee                 = ""
+	someStatus          = status.Initial
+	serialNumber        = int64(0)
+	metadata            = "metadata"
+	isNft               = false
+	now                 = time.Now().UTC()
+	nanoTime            = entity.NanoTime{Time: now}
+	originator          = "originator"
+	originatorEVM       = "0x1235"
 
 	transferColumns = []string{"transaction_id", "source_chain_id", "target_chain_id", "native_chain_id", "source_asset", "target_asset", "native_asset", "receiver", "amount", "fee", "status", "serial_number", "metadata", "is_nft", "timestamp", "originator"}
 	feeColumns      = []string{"transaction_id", "schedule_id", "amount", "status", "transfer_id"}
@@ -179,14 +186,21 @@ var (
 	saveQuery         = regexp.QuoteMeta(`UPDATE "transfers" SET "source_chain_id"=$1,"target_chain_id"=$2,"native_chain_id"=$3,"source_asset"=$4,"target_asset"=$5,"native_asset"=$6,"receiver"=$7,"amount"=$8,"fee"=$9,"status"=$10,"serial_number"=$11,"metadata"=$12,"is_nft"=$13,"timestamp"=$14,"originator"=$15 WHERE "transaction_id" = $16`)
 	updateFeeQuery    = regexp.QuoteMeta(`UPDATE "transfers" SET "fee"=$1 WHERE transaction_id = $2`)
 	updateStatusQuery = regexp.QuoteMeta(`UPDATE "transfers" SET "status"=$1 WHERE transaction_id = $2`)
+
+	countQuery                    = regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
+	pagedQuery                    = regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
+	pagedFilterOriginatorQuery    = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTimestampQuery     = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTokenIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE (source_asset = $1 OR target_asset = $2) ORDER BY timestamp desc, status asc LIMIT 10`)
 )
 
 func setup() {
 	mocks.Setup()
 	dbConn, sqlMock, _ = helper.SetupSqlMock()
 	repository = &Repository{
-		dbClient: dbConn,
-		logger:   config.GetLoggerFor("Transfer Repository"),
+		db:     dbConn,
+		logger: config.GetLoggerFor("Transfer Repository"),
 	}
 }
 
@@ -530,4 +544,147 @@ func Test_updateStatus_Err(t *testing.T) {
 
 	err := repository.updateStatus(transactionId, status.Initial)
 	assert.NotNil(t, err)
+}
+
+func Test_Paged(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     2,
+		PageSize: 10,
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedQuery)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithErr(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     2,
+		PageSize: 10,
+	}
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, pagedQuery)
+
+	actual, err := repository.Paged(req)
+
+	assert.NotNil(t, err)
+	assert.Empty(t, actual)
+}
+
+func Test_PagedWithFilterOriginatorHedera(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			Originator: originator,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, originator)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterOriginatorEVM(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			Originator: originatorEVM,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, common.HexToAddress(originatorEVM).String())
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTimestamp(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			Timestamp: nanoTime.Time,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, nanoTime.Time.UnixNano())
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTransactionId(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			TransactionId: transactionId,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTransactionIdQuery, txIdWithPlaceholder)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTokenId(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			TokenId: sourceAsset,
+		},
+	}
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTokenIdQuery, sourceAsset, sourceAsset)
+
+	actual, err := repository.Paged(req)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
+}
+
+func Test_Count(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
+	actual, err := repository.Count()
+
+	assert.Nil(t, err)
+	assert.Equal(t, expected, actual)
+}
+
+func Test_CountWithErr(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, countQuery)
+
+	actual, err := repository.Count()
+
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), actual)
 }

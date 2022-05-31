@@ -18,12 +18,13 @@ package lock_event
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 		Realm:   0,
 		Account: 222222,
 	}
-	lockEvent = transfer.Transfer{
+	lockEvent = payload.Transfer{
 		TransactionId: "0x19283812312-2",
 		SourceChainId: 3,
 		TargetChainId: 0,

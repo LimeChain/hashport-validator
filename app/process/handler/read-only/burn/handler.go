@@ -18,15 +18,16 @@ package burn
 
 import (
 	"database/sql"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -60,10 +61,10 @@ func NewHandler(
 	}
 }
 
-func (mhh Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+func (mhh Handler) Handle(p interface{}) {
+	transferMsg, ok := p.(*payload.Transfer)
 	if !ok {
-		mhh.logger.Errorf("Could not cast payload [%s]", payload)
+		mhh.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 

@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -46,7 +47,7 @@ func (m *MockTransferRepository) GetWithPreloads(txId string) (*entity.Transfer,
 	panic("implement me")
 }
 
-func (m *MockTransferRepository) Create(ct *transfer.Transfer) (*entity.Transfer, error) {
+func (m *MockTransferRepository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
 	args := m.Called(ct)
 	if args.Get(1) == nil {
 		return args.Get(0).(*entity.Transfer), nil
@@ -69,4 +70,14 @@ func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 		return nil
 	}
 	return args.Get(0).(error)
+}
+
+func (m *MockTransferRepository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockTransferRepository) Count() (int64, error) {
+	//TODO implement me
+	panic("implement me")
 }

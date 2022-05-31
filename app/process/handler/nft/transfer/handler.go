@@ -18,13 +18,14 @@ package transfer
 
 import (
 	"database/sql"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -61,10 +62,10 @@ func NewHandler(
 	}
 }
 
-func (nth Handler) Handle(payload interface{}) {
-	transfer, ok := payload.(*model.Transfer)
+func (nth Handler) Handle(p interface{}) {
+	transfer, ok := p.(*payload.Transfer)
 	if !ok {
-		nth.logger.Errorf("Could not cast payload [%s]", payload)
+		nth.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 

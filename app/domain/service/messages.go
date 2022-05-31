@@ -17,7 +17,7 @@
 package service
 
 import (
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 )
 
@@ -31,7 +31,7 @@ type Messages interface {
 	// ProcessSignature processes the signature message, verifying and updating all necessary fields in the DB
 	ProcessSignature(transferID, signature string, targetChainId uint64, timestamp int64, authMsg []byte) error
 	// SignFungibleMessage signs a Fungible message based on Transfer
-	SignFungibleMessage(transfer model.Transfer) ([]byte, error)
+	SignFungibleMessage(transfer payload.Transfer) ([]byte, error)
 	// SignNftMessage signs an NFT messaged based on Transfer
-	SignNftMessage(transfer model.Transfer) ([]byte, error)
+	SignNftMessage(transfer payload.Transfer) ([]byte, error)
 }

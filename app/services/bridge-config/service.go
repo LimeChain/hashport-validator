@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+
 	"github.com/gookit/event"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeMsg "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
@@ -29,10 +30,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"time"
 )
 
 var (

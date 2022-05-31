@@ -18,8 +18,8 @@ package fee_message
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,10 +37,10 @@ func NewHandler(transfersService service.Transfers) *Handler {
 	}
 }
 
-func (fmh Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+func (fmh Handler) Handle(p interface{}) {
+	transferMsg, ok := p.(*payload.Transfer)
 	if !ok {
-		fmh.logger.Errorf("Could not cast payload [%s]", payload)
+		fmh.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 

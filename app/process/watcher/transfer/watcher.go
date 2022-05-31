@@ -20,6 +20,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -32,13 +37,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math/big"
-	"time"
 )
 
 type Watcher struct {
@@ -211,7 +213,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		}
 	}
 
-	var transferMessage *transfer.Transfer
+	var transferMessage *payload.Transfer
 	if parsedTransfer.IsNft {
 		// Validate that the HBAR fee is sent
 		feeSent, found := tx.GetHBARTransfer(ctw.accountID.String())
@@ -288,7 +290,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
 }
 
-func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset asset.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*transfer.Transfer, error) {
+func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset asset.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*payload.Transfer, error) {
 	nativeAsset := ctw.assetsService.FungibleNativeAsset(asset.ChainId, asset.Asset)
 
 	sourceAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
@@ -316,7 +318,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee))
 	}
 
-	return transfer.New(
+	return payload.New(
 		transactionID,
 		constants.HederaNetworkId,
 		targetChainId,
@@ -336,7 +338,7 @@ func (ctw Watcher) createNonFungiblePayload(
 	serialNum int64,
 	targetChainId uint64,
 	targetChainAsset string,
-	fee int64) (*transfer.Transfer, error) {
+	fee int64) (*payload.Transfer, error) {
 	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
 	if err != nil {
 		return nil, err
@@ -346,7 +348,7 @@ func (ctw Watcher) createNonFungiblePayload(
 		return nil, errors.New(fmt.Sprintf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e))
 	}
 
-	return transfer.NewNft(
+	return payload.NewNft(
 		transactionID,
 		constants.HederaNetworkId,
 		targetChainId,

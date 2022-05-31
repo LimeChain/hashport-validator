@@ -19,11 +19,14 @@ package transfer
 import (
 	"database/sql"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
@@ -31,8 +34,6 @@ import (
 	test_config "github.com/limechain/hedera-eth-bridge-validator/test/test-config"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var (
@@ -55,7 +56,7 @@ var (
 	entityStatus  = status.Initial
 	nilErr        error
 
-	payload = &model.Transfer{
+	p = &payload.Transfer{
 		TransactionId:    transactionId,
 		SourceChainId:    sourceChainId,
 		TargetChainId:    targetChainId,
@@ -155,16 +156,16 @@ func Test_Handle(t *testing.T) {
 		SerialNumber: serialNum,
 	}
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, nilErr)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
 	mocks.MScheduledService.On("ExecuteScheduledNftTransferTransaction",
 		transactionId,
 		nftID,
 		bridgeAccountId,
 		receiverAccountId).Return()
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MScheduledService.AssertCalled(t, "ExecuteScheduledNftTransferTransaction",
 		transactionId,
 		nftID,
@@ -184,11 +185,11 @@ func Test_Handle_CastError(t *testing.T) {
 
 func Test_Handle_ReceiverError(t *testing.T) {
 	setup(t)
-	payload.Receiver = ""
+	p.Receiver = ""
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	payload.Receiver = receiver
+	p.Receiver = receiver
 
 	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer")
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledNftTransferTransaction")
@@ -196,11 +197,11 @@ func Test_Handle_ReceiverError(t *testing.T) {
 
 func Test_Handle_TokenError(t *testing.T) {
 	setup(t)
-	payload.TargetAsset = ""
+	p.TargetAsset = ""
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	payload.TargetAsset = targetAsset
+	p.TargetAsset = targetAsset
 
 	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer")
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledNftTransferTransaction")
@@ -208,24 +209,24 @@ func Test_Handle_TokenError(t *testing.T) {
 
 func Test_Handle_TransactionError(t *testing.T) {
 	setup(t)
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, errors.New("failed to create record"))
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, errors.New("failed to create record"))
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledNftTransferTransaction")
 }
 
 func Test_Handle_NotInitialStatus(t *testing.T) {
 	setup(t)
 	resultEntityTransfer.Status = status.Submitted
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, nilErr)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
 	resultEntityTransfer.Status = entityStatus
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledNftTransferTransaction")
 }
 

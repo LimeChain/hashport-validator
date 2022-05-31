@@ -29,13 +29,13 @@ const (
 )
 
 type Repository struct {
-	dbClient *gorm.DB
+	db *gorm.DB
 }
 
 func NewRepositoryForStatus(dbClient *gorm.DB, statusType string) *Repository {
 	typeCheck(statusType)
 	return &Repository{
-		dbClient: dbClient,
+		db: dbClient,
 	}
 }
 
@@ -49,9 +49,9 @@ func typeCheck(statusType string) {
 	}
 }
 
-func (s Repository) Get(entityID string) (int64, error) {
+func (s *Repository) Get(entityID string) (int64, error) {
 	lastFetchedStatus := &entity.Status{}
-	err := s.dbClient.
+	err := s.db.
 		Where("entity_id = ?", entityID).
 		First(&lastFetchedStatus).Error
 	if err != nil {
@@ -60,15 +60,15 @@ func (s Repository) Get(entityID string) (int64, error) {
 	return lastFetchedStatus.Last, nil
 }
 
-func (s Repository) Create(entityID string, timestampOrBlockNumber int64) error {
-	return s.dbClient.Create(entity.Status{
+func (s *Repository) Create(entityID string, timestampOrBlockNumber int64) error {
+	return s.db.Create(entity.Status{
 		EntityID: entityID,
 		Last:     timestampOrBlockNumber,
 	}).Error
 }
 
-func (s Repository) Update(entityID string, timestampOrBlockNumber int64) error {
-	return s.dbClient.
+func (s *Repository) Update(entityID string, timestampOrBlockNumber int64) error {
+	return s.db.
 		Where("entity_id = ?", entityID).
 		Save(entity.Status{
 			EntityID: entityID,

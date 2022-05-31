@@ -18,6 +18,8 @@ package fee
 
 import (
 	"database/sql"
+	"strconv"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -27,11 +29,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 // Handler is transfers event handler
@@ -76,10 +78,10 @@ func NewHandler(
 	return instance
 }
 
-func (fmh *Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+func (fmh Handler) Handle(p interface{}) {
+	transferMsg, ok := p.(*payload.Transfer)
 	if !ok {
-		fmh.logger.Errorf("Could not cast payload [%s]", payload)
+		fmh.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 
@@ -122,11 +124,11 @@ func (fmh *Handler) Handle(payload interface{}) {
 	}
 }
 
-func (fmh *Handler) fetch(transferMsg *model.Transfer) (*mirror_node.Response, error) {
+func (fmh Handler) fetch(transferMsg *payload.Transfer) (*mirror_node.Response, error) {
 	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 }
 
-func (fmh *Handler) save(transactionID string, scheduleID string, status string, transferMsg *model.Transfer, feeAmount int64) error {
+func (fmh Handler) save(transactionID string, scheduleID string, status string, transferMsg *payload.Transfer, feeAmount int64) error {
 	err := fmh.scheduleRepository.Create(&entity.Schedule{
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,

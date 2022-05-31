@@ -14,10 +14,23 @@
  * limitations under the License.
  */
 
-package constants
+package http
 
-const (
-	EvmCompatibleAddressPattern = "^(0x)?[0-9a-fA-F]{40}$"
-	EvmDefaultDecimals          = uint8(18)
-	TransactionHashLength       = 64
+import (
+	"net/http"
+
+	"github.com/go-chi/render"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 )
+
+func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	switch err {
+	case service.ErrNotFound:
+		render.Status(r, http.StatusNotFound)
+		render.JSON(w, r, response.ErrorResponse(err))
+	default:
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
+	}
+}

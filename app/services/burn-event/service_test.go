@@ -19,17 +19,19 @@ package burn_event
 import (
 	"database/sql"
 	"errors"
+	"strconv"
+	"testing"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"testing"
 )
 
 var (
@@ -38,7 +40,7 @@ var (
 		Realm:   0,
 		Account: 222222,
 	}
-	tr = transfer.Transfer{
+	tr = payload.Transfer{
 		TransactionId: "0x1aFA123",
 		SourceChainId: 80001,
 		TargetChainId: 0,

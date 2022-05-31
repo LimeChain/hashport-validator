@@ -21,6 +21,8 @@ import (
 	"database/sql/driver"
 	"errors"
 	"time"
+
+	transferModel "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
 type Transfer struct {
@@ -43,6 +45,27 @@ type Transfer struct {
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
 	Fees          []Fee      `gorm:"foreignKey:TransferID"`
 	Schedules     []Schedule `gorm:"foreignKey:TransferID"`
+}
+
+func (t *Transfer) ToDto() *transferModel.Transfer {
+	return &transferModel.Transfer{
+		TransactionId: t.TransactionID,
+		SourceChainId: t.SourceChainID,
+		TargetChainId: t.TargetChainID,
+		NativeChainId: t.NativeChainID,
+		SourceAsset:   t.SourceAsset,
+		TargetAsset:   t.TargetAsset,
+		NativeAsset:   t.NativeAsset,
+		Receiver:      t.Receiver,
+		Amount:        t.Amount,
+		SerialNum:     t.SerialNumber,
+		Metadata:      t.Metadata,
+		IsNft:         t.IsNft,
+		Originator:    t.Originator,
+		Timestamp:     t.Timestamp.Time,
+		Fee:           t.Fee,
+		Status:        t.Status,
+	}
 }
 
 // Message is a db model used to track the messages signed by validators for a given transfer

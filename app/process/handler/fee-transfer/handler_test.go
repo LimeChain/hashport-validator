@@ -17,11 +17,12 @@
 package fee_transfer
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"testing"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
@@ -39,7 +40,7 @@ func Test_NewHandler(t *testing.T) {
 
 func Test_Handle_Burn(t *testing.T) {
 	setup()
-	someEvent := &transfer.Transfer{
+	someEvent := &payload.Transfer{
 		TransactionId: "",
 		SourceChainId: 0,
 		TargetChainId: 0,

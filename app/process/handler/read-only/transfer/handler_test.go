@@ -18,19 +18,20 @@ package transfer
 
 import (
 	"errors"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"testing"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
 	h  *Handler
-	tr = &model.Transfer{
+	tr = &payload.Transfer{
 		TransactionId:    "some-tx-id",
 		SourceChainId:    0,
 		TargetChainId:    1,
