@@ -248,7 +248,7 @@ statusBlocker:
 func (ts *Service) TransferData(txId string) (interface{}, error) {
 	t, err := ts.transferRepository.GetWithPreloads(txId)
 	if err != nil {
-		ts.logger.Errorf("[%s] - Faileds to query Transfer with messages. Error: [%s].", txId, err)
+		ts.logger.Errorf("[%s] - Failed to query Transfer with messages. Error: [%s].", txId, err)
 		return nil, err
 	}
 
