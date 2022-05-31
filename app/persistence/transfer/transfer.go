@@ -153,9 +153,9 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 	if f.TokenId != "" {
 		if strings.Contains(f.TokenId, "0x") {
 			a := common.HexToAddress(f.TokenId).String()
-			q = q.Where("source_asset = @address OR target_asset = @address", sql.Named("address", a))
+			q = q.Where("(source_asset = @address OR target_asset = @address)", sql.Named("address", a))
 		} else {
-			q = q.Where("source_asset = @tokenId OR target_asset = @tokenId", sql.Named("tokenId", f.TokenId))
+			q = q.Where("(source_asset = @tokenId OR target_asset = @tokenId)", sql.Named("tokenId", f.TokenId))
 		}
 	}
 	if f.TransactionId != "" {

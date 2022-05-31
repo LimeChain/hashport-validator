@@ -20,6 +20,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -40,9 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 type Service struct {
@@ -315,8 +316,8 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	}, nil
 }
 
-func (ts *Service) Paged(filter *model.PagedRequest) (*model.Paged, error) {
-	items, err := ts.transferRepository.Paged(filter)
+func (ts *Service) Paged(req *model.PagedRequest) (*model.Paged, error) {
+	items, err := ts.transferRepository.Paged(req)
 	if err != nil {
 		ts.logger.Errorf("Failed to get paged transfers. Error: [%s]", err)
 		return nil, err
