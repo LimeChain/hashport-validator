@@ -320,8 +320,8 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	}, nil
 }
 
-func (ts *Service) Paged(filter *model.PagedRequest) (*model.Paged, error) {
-	items, err := ts.transferRepository.Paged(filter)
+func (ts *Service) Paged(req *model.PagedRequest) (*model.Paged, error) {
+	items, err := ts.transferRepository.Paged(req)
 	if err != nil {
 		ts.logger.Errorf("Failed to get paged transfers. Error: [%s]", err)
 		return nil, err

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
 	transferModel "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 
@@ -63,6 +66,13 @@ func history(transferService service.Transfers) func(w http.ResponseWriter, r *h
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ErrorResponse(fmt.Errorf("maximum page size is %d", maxHistoryPageSize)))
 			return
+		}
+		if t := req.Filter.TransactionId; strings.Contains(t, "0x") {
+			if s := t[2:]; len(s) != constants.TransactionHashLength {
+				render.Status(r, http.StatusBadRequest)
+				render.JSON(w, r, response.ErrorResponse(fmt.Errorf("invalid tx hash length")))
+				return
+			}
 		}
 
 		res, err := transferService.Paged(req)

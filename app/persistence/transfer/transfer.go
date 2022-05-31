@@ -17,6 +17,7 @@
 package transfer
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -140,7 +141,8 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 
 	if f.Originator != "" {
 		if strings.Contains(f.Originator, "0x") {
-			q = q.Where("originator = ?", common.HexToAddress(f.Originator).String())
+			a := common.HexToAddress(f.Originator).String()
+			q = q.Where("originator = ?", a)
 		} else {
 			q = q.Where("originator = ?", f.Originator)
 		}
@@ -151,16 +153,13 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 	if f.TokenId != "" {
 		if strings.Contains(f.TokenId, "0x") {
 			a := common.HexToAddress(f.TokenId).String()
-			q = q.Where("source_asset = ?", a).
-				Or("target_asset = ?", a)
+			q = q.Where("(source_asset = @address OR target_asset = @address)", sql.Named("address", a))
 		} else {
-			q = q.Where("source_asset = ?", f.TokenId).
-				Or("target_asset = ?", f.TokenId)
+			q = q.Where("(source_asset = @tokenId OR target_asset = @tokenId)", sql.Named("tokenId", f.TokenId))
 		}
 	}
 	if f.TransactionId != "" {
-		q = q.Where("transaction_id = ?", f.TransactionId).
-			Or("transaction_id LIKE ?", fmt.Sprintf(`%s%%`, f.TransactionId))
+		q = q.Where("transaction_id LIKE ?", fmt.Sprintf(`%s%%`, f.TransactionId))
 	}
 
 	err := q.Find(&res).Error

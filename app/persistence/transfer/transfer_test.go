@@ -191,8 +191,8 @@ var (
 	pagedQuery                    = regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
 	pagedFilterOriginatorQuery    = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
 	pagedFilterTimestampQuery     = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	pagedFilterTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id = $1 OR transaction_id LIKE $2 ORDER BY timestamp desc, status asc LIMIT 10`)
-	pagedFilterTokenIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE source_asset = $1 OR target_asset = $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTokenIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE (source_asset = $1 OR target_asset = $2) ORDER BY timestamp desc, status asc LIMIT 10`)
 )
 
 func setup() {
@@ -640,7 +640,7 @@ func Test_PagedWithFilterTransactionId(t *testing.T) {
 			TransactionId: transactionId,
 		},
 	}
-	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTransactionIdQuery, transactionId, txIdWithPlaceholder)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTransactionIdQuery, txIdWithPlaceholder)
 
 	actual, err := repository.Paged(req)
 
