@@ -62,6 +62,8 @@ func Load() *Setup {
 		panic(err)
 	}
 
+	config.NewBridge(e2eConfig.Bridge)
+
 	configuration := Config{
 		Hedera: Hedera{
 			NetworkType:       e2eConfig.Hedera.NetworkType,
