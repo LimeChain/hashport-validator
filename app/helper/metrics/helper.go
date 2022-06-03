@@ -81,6 +81,9 @@ func SetUserGetHisTokens(sourceChainId, targetChainId uint64, asset string, tran
 	}
 	gauge := CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
 
+	if gauge == nil {
+		return
+	}
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.UserGetHisTokensNameSuffix)
 	gauge.Set(1.0)
 }
@@ -110,6 +113,10 @@ func SetFeeTransferred(sourceChainId, targetChainId uint64, asset string, transf
 		return
 	}
 	gauge := CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	if gauge == nil {
+		return
+	}
 
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
 	gauge.Set(1.0)
@@ -141,6 +148,10 @@ func SetMajorityReached(sourceChainId, targetChainId uint64, asset string, trans
 		return
 	}
 	gauge := CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	if gauge == nil {
+		return
+	}
 
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.MajorityReachedNameSuffix)
 	gauge.Set(1.0)
