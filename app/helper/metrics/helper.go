@@ -70,6 +70,7 @@ func CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId uint64, asse
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
+		return nil
 	}
 	return gauge
 }
@@ -80,6 +81,9 @@ func SetUserGetHisTokens(sourceChainId, targetChainId uint64, asset string, tran
 	}
 	gauge := CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
 
+	if gauge == nil {
+		return
+	}
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.UserGetHisTokensNameSuffix)
 	gauge.Set(1.0)
 }
@@ -99,6 +103,7 @@ func CreateFeeTransferredIfNotExists(sourceChainId, targetChainId uint64, asset 
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.FeeTransferredNameSuffix, err)
+		return nil
 	}
 	return gauge
 }
@@ -108,6 +113,10 @@ func SetFeeTransferred(sourceChainId, targetChainId uint64, asset string, transf
 		return
 	}
 	gauge := CreateFeeTransferredIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	if gauge == nil {
+		return
+	}
 
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.FeeTransferredNameSuffix)
 	gauge.Set(1.0)
@@ -128,6 +137,7 @@ func CreateMajorityReachedIfNotExists(sourceChainId uint64, targetChainId uint64
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.MajorityReachedNameSuffix, err)
+		return nil
 	}
 
 	return gauge
@@ -138,6 +148,10 @@ func SetMajorityReached(sourceChainId, targetChainId uint64, asset string, trans
 		return
 	}
 	gauge := CreateMajorityReachedIfNotExists(sourceChainId, targetChainId, asset, transferID, prometheusService, logger)
+
+	if gauge == nil {
+		return
+	}
 
 	logger.Infof("[%s] - Setting value to 1.0 for metric [%v]", transferID, constants.MajorityReachedNameSuffix)
 	gauge.Set(1.0)
