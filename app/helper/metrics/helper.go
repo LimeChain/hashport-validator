@@ -70,6 +70,7 @@ func CreateUserGetHisTokensIfNotExists(sourceChainId, targetChainId uint64, asse
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.UserGetHisTokensNameSuffix, err)
+		return nil
 	}
 	return gauge
 }
@@ -99,6 +100,7 @@ func CreateFeeTransferredIfNotExists(sourceChainId, targetChainId uint64, asset 
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.FeeTransferredNameSuffix, err)
+		return nil
 	}
 	return gauge
 }
@@ -128,6 +130,7 @@ func CreateMajorityReachedIfNotExists(sourceChainId uint64, targetChainId uint64
 
 	if err != nil {
 		logger.Errorf("[%s] - Failed to create gauge metric for [%s]. Error: [%s]", transferID, constants.MajorityReachedNameSuffix, err)
+		return nil
 	}
 
 	return gauge
