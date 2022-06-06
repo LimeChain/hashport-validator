@@ -43,10 +43,6 @@ const baseDir = "scripts/token/bulk/nft"
 type mainnetToken struct {
 	DeployedTokenId string `yaml:"deployed_token_id"`
 	Name            string `yaml:"name"`
-	Symbol          string `yaml:"symbol"`
-	MaxSupply       int64  `yaml:"max_supply"`
-	FeeOut          int    `yaml:"fee_out"`
-	FeeIn           int    `yaml:"fee_in"`
 }
 
 type operator struct {
@@ -99,6 +95,9 @@ func main() {
 
 	log.Infof("getting %d tokens and minted NFTs from mainnet", len(c.Tokens))
 	tokens, err := tm.collectTokensAndMintedNFTsFromMainnet()
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = tm.saveMainnetData(tokens)
 	if err != nil {
 		log.Fatal(err)
