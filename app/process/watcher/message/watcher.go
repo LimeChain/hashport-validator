@@ -19,6 +19,8 @@ package message
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeMsg "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
@@ -31,7 +33,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Watcher struct {
@@ -114,6 +115,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 		messages, err := cmw.client.GetMessagesAfterTimestamp(cmw.topicID, milestoneTimestamp, cmw.client.QueryDefaultLimit())
 		if err != nil {
 			cmw.logger.Errorf("Error while retrieving messages from mirror node. Error [%s]", err)
+			time.Sleep(cmw.pollingInterval * time.Second)
 			go cmw.beginWatching(q)
 			return
 		}
