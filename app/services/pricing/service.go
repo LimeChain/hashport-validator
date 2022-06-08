@@ -203,7 +203,7 @@ func (s *Service) evmWrappedFee(id string, diamondRouter client.DiamondRouter) (
 	return &pricing.NonFungibleFee{
 		IsNative:     false,
 		PaymentToken: paymentToken.String(),
-		Fee:          decimal.NewFromBigInt(fee, 10),
+		Fee:          decimal.NewFromBigInt(fee, 0),
 	}, nil
 }
 
