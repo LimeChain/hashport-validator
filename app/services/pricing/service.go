@@ -123,7 +123,7 @@ func (s *Service) FetchAndUpdateNftFeesForApi() error {
 			}
 
 			if networkId == constants.HederaNetworkId {
-				fee, err := s.hederaNativeFee(id, networkId)
+				fee, err := s.hederaNativeNftFee(id, networkId)
 				if err != nil {
 					return err
 				}
@@ -137,13 +137,13 @@ func (s *Service) FetchAndUpdateNftFeesForApi() error {
 			}
 
 			if assetInfo.IsNative {
-				fee, err := s.evmNativeFee(id, diamondRouter)
+				fee, err := s.evmNativeNftFee(id, diamondRouter)
 				if err != nil {
 					return err
 				}
 				res[networkId][id] = *fee
 			} else {
-				fee, err := s.evmWrappedFee(id, diamondRouter)
+				fee, err := s.evmWrappedNftFee(id, diamondRouter)
 				if err != nil {
 					return err
 				}
@@ -165,7 +165,7 @@ func (s *Service) NftFees() map[uint64]map[string]pricing.NonFungibleFee {
 	return s.nftFeesForApi
 }
 
-func (s *Service) evmNativeFee(id string, diamondRouter client.DiamondRouter) (*pricing.NonFungibleFee, error) {
+func (s *Service) evmNativeNftFee(id string, diamondRouter client.DiamondRouter) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.GetHederaNftFee(id)
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("could not get fee for asset %s", id))
@@ -187,7 +187,7 @@ func (s *Service) evmNativeFee(id string, diamondRouter client.DiamondRouter) (*
 	return nftFee, nil
 }
 
-func (s *Service) evmWrappedFee(id string, diamondRouter client.DiamondRouter) (*pricing.NonFungibleFee, error) {
+func (s *Service) evmWrappedNftFee(id string, diamondRouter client.DiamondRouter) (*pricing.NonFungibleFee, error) {
 	paymentToken, err := diamondRouter.Erc721Payment(&bind.CallOpts{}, common.HexToAddress(id))
 	if err != nil {
 		s.logger.Errorf("Failed to get payment token for asset %s. Error [%s]", id, err)
@@ -207,7 +207,7 @@ func (s *Service) evmWrappedFee(id string, diamondRouter client.DiamondRouter) (
 	}, nil
 }
 
-func (s *Service) hederaNativeFee(id string, networkId uint64) (*pricing.NonFungibleFee, error) {
+func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.hederaNftFees[id]
 	if !ok {
 		s.logger.Errorf("No fee found for NFT [%s] on network [%d]", id, networkId)

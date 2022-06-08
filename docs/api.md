@@ -48,3 +48,17 @@ Example:
       "totalCount": 0
     }
     ```
+
+- `GET /fees/nft`: Returns the fees for porting/burning NFT assets grouped by network. Ex:
+- ```json
+  {
+    "295": {
+      "tokenId or address": {
+        "isNative": true,
+        "paymentToken": "HBAR or address of the payment token",
+        "fee": "fee amount"
+      }
+    },
+  ...
+  }
+  ```
