@@ -274,6 +274,10 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 	}
 
 	s.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, s.hbarFungibleAssetInfo.Decimals)
+	err = s.FetchAndUpdateNftFeesForApi()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
