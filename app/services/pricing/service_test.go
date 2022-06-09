@@ -26,7 +26,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
-	client2 "github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	validatorClient "github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
@@ -48,7 +48,7 @@ var (
 	tokenPriceInfoMutex   *sync.RWMutex
 	minAmountsForApiMutex *sync.RWMutex
 	nftFeesForApiMutex    *sync.RWMutex
-	diamondRouters        map[uint64]client2.DiamondRouter
+	diamondRouters        map[uint64]validatorClient.DiamondRouter
 )
 
 func Test_New(t *testing.T) {
@@ -176,7 +176,7 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 	tokenPriceInfoMutex = new(sync.RWMutex)
 	minAmountsForApiMutex = new(sync.RWMutex)
 	nftFeesForApiMutex = new(sync.RWMutex)
-	diamondRouters = map[uint64]client2.DiamondRouter{
+	diamondRouters = map[uint64]validatorClient.DiamondRouter{
 		testConstants.PolygonNetworkId:  mocks.MDiamondRouter,
 		testConstants.EthereumNetworkId: mocks.MDiamondRouter,
 	}

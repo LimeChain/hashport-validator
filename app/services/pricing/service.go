@@ -106,7 +106,7 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 	return nil
 }
 
-func (s *Service) FetchAndUpdateNftFeesForApi() error {
+func (s *Service) fetchAndUpdateNftFeesForApi() error {
 	s.nftFeesForApiMutex.Lock()
 	defer s.nftFeesForApiMutex.Unlock()
 	s.logger.Infof("Populating NFT fees for API")
@@ -274,7 +274,7 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 	}
 
 	s.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, s.hbarFungibleAssetInfo.Decimals)
-	err = s.FetchAndUpdateNftFeesForApi()
+	err = s.fetchAndUpdateNftFeesForApi()
 	if err != nil {
 		return err
 	}
@@ -467,9 +467,5 @@ func initialize(bridgeConfig *config.Bridge, assetsService service.Assets, mirro
 		panic(fmt.Sprintf("Failed to initially fetch USD prices. Error: [%s]", err.Error()))
 	}
 
-	err = instance.FetchAndUpdateNftFeesForApi()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to initially fetch portal/burn fees for NFT assets. Error: [%s]", err.Error()))
-	}
 	return instance
 }

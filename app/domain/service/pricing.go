@@ -31,7 +31,7 @@ type Pricing interface {
 	GetHederaNftFee(token string) (int64, bool)
 
 	// FetchAndUpdateNftFeesForApi fetches the fees for porting/burning NFTs
-	FetchAndUpdateNftFeesForApi() error
+	fetchAndUpdateNftFeesForApi() error
 
 	NftFees() map[uint64]map[string]pricing.NonFungibleFee
 }
