@@ -30,8 +30,5 @@ type Pricing interface {
 	// GetHederaNftFee returns the nft fee for Hedera NFTs based on token id
 	GetHederaNftFee(token string) (int64, bool)
 
-	// FetchAndUpdateNftFeesForApi fetches the fees for porting/burning NFTs
-	fetchAndUpdateNftFeesForApi() error
-
 	NftFees() map[uint64]map[string]pricing.NonFungibleFee
 }
