@@ -17,12 +17,15 @@
 package constants
 
 import (
+	"math/big"
+	"strconv"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	constants "github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/shopspring/decimal"
-	"math/big"
-	"strconv"
 )
 
 var (
@@ -351,5 +354,26 @@ var (
 
 	HederaNftFees = map[string]int64{
 		NetworkHederaNonFungibleNativeToken: 1000,
+	}
+
+	PaymentTokens = map[uint64]string{
+		PolygonNetworkId: "0x0000000000000000000000000000000000006655",
+	}
+
+	NftFeesForApi = map[uint64]map[string]pricing.NonFungibleFee{
+		constants.HederaNetworkId: {
+			NetworkHederaNonFungibleNativeToken: pricing.NonFungibleFee{
+				IsNative:     true,
+				PaymentToken: constants.Hbar,
+				Fee:          decimal.NewFromInt(HederaNftFees[NetworkHederaNonFungibleNativeToken]),
+			},
+		},
+		PolygonNetworkId: {
+			NetworkPolygonWrappedNonFungibleTokenForHedera: pricing.NonFungibleFee{
+				IsNative:     false,
+				PaymentToken: PaymentTokens[PolygonNetworkId],
+				Fee:          decimal.NewFromBigInt(big.NewInt(10000000000), 0),
+			},
+		},
 	}
 )

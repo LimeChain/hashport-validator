@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
@@ -142,7 +143,13 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 
 	readOnly := read_only.New(clients.MirrorNode, repositories.Transfer, c.Node.Clients.MirrorNode.PollingInterval)
 
-	pricingService := pricing.NewService(c.Bridge, assetsService, clients.MirrorNode, clients.CoinGecko, clients.CoinMarketCap)
+	pricingService := pricing.NewService(
+		c.Bridge,
+		assetsService,
+		clients.RouterClients,
+		clients.MirrorNode,
+		clients.CoinGecko,
+		clients.CoinMarketCap)
 
 	utilsService := utilsSvc.New(clients.EvmClients, burnEvent)
 

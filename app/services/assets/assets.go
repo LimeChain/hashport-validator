@@ -19,6 +19,10 @@ package assets
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"regexp"
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gookit/event"
@@ -31,9 +35,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"regexp"
-	"strconv"
 )
 
 type Service struct {

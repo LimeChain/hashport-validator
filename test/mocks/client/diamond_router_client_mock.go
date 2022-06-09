@@ -17,13 +17,14 @@
 package client
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/stretchr/testify/mock"
-	"math/big"
 )
 
 type MockDiamondRouter struct {
@@ -94,4 +95,14 @@ func (m *MockDiamondRouter) TokenFeeData(opts *bind.CallOpts, _token common.Addr
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	}), args.Error(1)
+}
+
+func (m *MockDiamondRouter) Erc721Fee(opts *bind.CallOpts, _erc721 common.Address) (*big.Int, error) {
+	args := m.Called(opts, _erc721)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+func (m *MockDiamondRouter) Erc721Payment(opts *bind.CallOpts, _erc721 common.Address) (common.Address, error) {
+	args := m.Called(opts, _erc721)
+	return args.Get(0).(common.Address), args.Error(1)
 }

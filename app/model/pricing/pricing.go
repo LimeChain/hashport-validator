@@ -17,11 +17,18 @@
 package pricing
 
 import (
-	"github.com/shopspring/decimal"
 	"math/big"
+
+	"github.com/shopspring/decimal"
 )
 
 type TokenPriceInfo struct {
 	UsdPrice         decimal.Decimal
 	MinAmountWithFee *big.Int
+}
+
+type NonFungibleFee struct {
+	IsNative     bool            `json:"isNative"`
+	PaymentToken string          `json:"paymentToken"`
+	Fee          decimal.Decimal `json:"fee"`
 }
