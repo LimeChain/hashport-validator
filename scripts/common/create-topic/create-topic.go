@@ -19,42 +19,54 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 func main() {
-	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
-	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
+	membersKeys := flag.String("privateKeys", "0x0", "Members Hedera Private Keys separated by comma")
 	network := flag.String("network", "", "Hedera Network Type")
-	members := flag.Int("members", 1, "The count of the members")
+	executorAccountId := flag.String("executorAccountID", "", "Executor's Hedera Account Id")
+	executorPK := flag.String("executorPrivateKey", "", "Executor's Hedera Private Key")
 
 	flag.Parse()
-	if *privateKey == "0x0" {
-		panic("Private key was not provided")
+	if *membersKeys == "0x0" {
+		panic("Members Private Keys weren't provided")
 	}
-	if *accountID == "0.0" {
-		panic("Account id was not provided")
+	if *executorAccountId == "" {
+		panic("Executor Account Id wasn't provided")
+	}
+	if *executorPK == "" {
+		panic("Executor Private Key wasn't provided")
 	}
 
+	membersKeysParsed := strings.Split(*membersKeys, ",")
+
 	fmt.Println("-----------Start-----------")
-	client := client.Init(*privateKey, *accountID, *network)
-	pK, err := hedera.PrivateKeyFromString(*privateKey)
+	client := client.Init(*executorPK, *executorAccountId, *network)
+	executorPrivateKey, err := hedera.PrivateKeyFromString(*executorPK)
 	if err != nil {
 		panic(err)
 	}
 	var memberKeys []hedera.PrivateKey
-	memberKeys = append(memberKeys, pK)
+	for _, key := range membersKeysParsed {
+		pK, err := hedera.PrivateKeyFromString(key)
+		if err != nil {
+			panic(err)
+		}
+		memberKeys = append(memberKeys, pK)
+	}
 
 	fmt.Println("Private keys array:", memberKeys)
 
-	topicKey := hedera.KeyListWithThreshold(uint(*members))
-	for i := 0; i < *members; i++ {
+	topicKey := hedera.KeyListWithThreshold(uint(len(memberKeys)))
+	for i := 0; i < len(membersKeysParsed); i++ {
 		topicKey.Add(memberKeys[i].PublicKey())
 	}
 
-	adminPublicKey := pK.PublicKey()
+	adminPublicKey := executorPrivateKey.PublicKey()
 	txID, err := hedera.NewTopicCreateTransaction().
 		SetAdminKey(adminPublicKey).
 		SetSubmitKey(topicKey).
