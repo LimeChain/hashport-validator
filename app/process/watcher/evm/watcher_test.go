@@ -19,6 +19,10 @@ package evm
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+	"testing"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -28,16 +32,13 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/queue"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"math/big"
-	"strings"
-	"testing"
 )
 
 var (
@@ -147,7 +148,7 @@ func Test_HandleLockLog_HappyPath(t *testing.T) {
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, sourceChainId, lockLog.TargetChain.Uint64()).Return("")
 
-	parsedLockLog := &transfer.Transfer{
+	parsedLockLog := &payload.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: sourceChainId,
 		TargetChainId: lockLog.TargetChain.Uint64(),
@@ -183,7 +184,7 @@ func Test_HandleLockLog_ReadOnlyHederaMintHtsTransfer(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
-	parsedLockLog := &transfer.Transfer{
+	parsedLockLog := &payload.Transfer{
 		TransactionId:    fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId:    sourceChainId,
 		TargetChainId:    lockLog.TargetChain.Uint64(),
@@ -221,7 +222,7 @@ func Test_HandleLockLog_ReadOnlyTransferSave(t *testing.T) {
 
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, sourceChainId, lockLog.TargetChain.Uint64()).Return("")
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
-	parsedLockLog := &transfer.Transfer{
+	parsedLockLog := &payload.Transfer{
 		TransactionId:    fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId:    sourceChainId,
 		TargetChainId:    lockLog.TargetChain.Uint64(),
@@ -248,7 +249,7 @@ func Test_HandleLockLog_TopicMessageSubmission(t *testing.T) {
 	mocks.MAssetsService.On("NativeToWrapped", tokenAddressString, sourceChainId, lockLog.TargetChain.Uint64()).Return("")
 
 	lockLog.TargetChain = big.NewInt(1)
-	parsedLockLog := &transfer.Transfer{
+	parsedLockLog := &payload.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", lockLog.Raw.TxHash, lockLog.Raw.Index),
 		SourceChainId: sourceChainId,
 		TargetChainId: lockLog.TargetChain.Uint64(),
@@ -273,7 +274,7 @@ func Test_HandleBurnLog_HappyPath(t *testing.T) {
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	parsedBurnLog := &transfer.Transfer{
+	parsedBurnLog := &payload.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: sourceChainId,
 		TargetChainId: burnLog.TargetChain.Uint64(),
@@ -317,7 +318,7 @@ func Test_HandleBurnLog_TopicMessageSubmission(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	nativeChainId := uint64(1)
 	nativeAssetAddress := "0xb083879B1e10C8476802016CB12cd2F25a896691"
-	parsedBurnLog := &transfer.Transfer{
+	parsedBurnLog := &payload.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId: sourceChainId,
 		TargetChainId: nativeChainId,
@@ -367,7 +368,7 @@ func Test_HandleBurnLog_ReadOnlyTransferSave(t *testing.T) {
 	receiver := common.BytesToAddress(burnLog.Receiver).String()
 	nativeChainId := uint64(1)
 	nativeAssetAddress := "0xb083879B1e10C8476802016CB12cd2F25a896691"
-	parsedBurnLog := &transfer.Transfer{
+	parsedBurnLog := &payload.Transfer{
 		TransactionId:    fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId:    sourceChainId,
 		TargetChainId:    nativeChainId,
@@ -410,7 +411,7 @@ func Test_HandleBurnLog_ReadOnlyHederaTransfer(t *testing.T) {
 	}
 
 	mocks.MEVMClient.On("GetChainID").Return(sourceChainId)
-	parsedBurnLog := &transfer.Transfer{
+	parsedBurnLog := &payload.Transfer{
 		TransactionId:    fmt.Sprintf("%s-%d", burnLog.Raw.TxHash, burnLog.Raw.Index),
 		SourceChainId:    sourceChainId,
 		TargetChainId:    0,

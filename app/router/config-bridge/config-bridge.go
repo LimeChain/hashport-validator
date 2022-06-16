@@ -24,19 +24,20 @@ import (
 )
 
 var (
-	Route = "/config/bridge"
+	Route        = "/config/bridge"
+	BridgeConfig *parser.Bridge
 )
 
 //Router for bridge config
-func NewRouter(bridgeConfig parser.Bridge) http.Handler {
+func NewRouter(bridgeCfg *parser.Bridge) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", configBridgeResponse(bridgeConfig))
+	r.Get("/", configBridgeResponse(bridgeCfg))
 	return r
 }
 
 // GET: .../config/bridge
-func configBridgeResponse(bridgeConfig parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
+func configBridgeResponse(bridgeCfg *parser.Bridge) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, bridgeConfig)
+		render.JSON(w, r, *bridgeCfg)
 	}
 }

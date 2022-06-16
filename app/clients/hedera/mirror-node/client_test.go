@@ -17,11 +17,12 @@
 package mirror_node
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
@@ -41,7 +42,10 @@ var (
 		ApiAddress:      mirrorAPIAddress,
 		PollingInterval: pollingInterval,
 	}
-	logger = config.GetLoggerFor("Mirror Node Client")
+	queryDefaultLimit = int64(1)
+	queryMaxLimit     = int64(2)
+	sequenceNumber    = int64(3)
+	logger            = config.GetLoggerFor("Mirror Node Client")
 
 	accountId = hedera.AccountID{
 		Shard:   0,
@@ -67,10 +71,12 @@ var (
 func setup() {
 	mocks.Setup()
 	c = &Client{
-		mirrorAPIAddress: mirrorAPIAddress,
-		httpClient:       mocks.MHTTPClient,
-		pollingInterval:  5 * time.Second,
-		logger:           logger,
+		mirrorAPIAddress:  mirrorAPIAddress,
+		httpClient:        mocks.MHTTPClient,
+		pollingInterval:   5 * time.Second,
+		queryDefaultLimit: queryDefaultLimit,
+		queryMaxLimit:     queryMaxLimit,
+		logger:            logger,
 	}
 }
 
@@ -184,7 +190,7 @@ func Test_GetAccountTokenBurnTransactionsAfterTimestamp(t *testing.T) {
 func Test_GetMessagesAfterTimestamp(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	response, err := c.GetMessagesAfterTimestamp(topicId, time.Now().UnixNano())
+	response, err := c.GetMessagesAfterTimestamp(topicId, time.Now().UnixNano(), queryDefaultLimit)
 	assert.Error(t, errors.New("some-error"), err)
 	assert.Nil(t, response)
 }
@@ -249,16 +255,105 @@ func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
 	assert.Nil(t, response)
 }
 
-func Test_GetHBARUsdPrice(t *testing.T) {
+func Test_QueryDefaultLimit(t *testing.T) {
 	setup()
 
-	encodedResponseBuffer := new(bytes.Buffer)
-	encodeErr := json.NewEncoder(encodedResponseBuffer).Encode(testConstants.ParsedTransactionResponse)
+	actual := c.QueryDefaultLimit()
+
+	assert.Equal(t, queryDefaultLimit, actual)
+}
+
+func Test_QueryMaxLimit(t *testing.T) {
+	setup()
+
+	actual := c.QueryMaxLimit()
+
+	assert.Equal(t, queryMaxLimit, actual)
+}
+
+func Test_GetLatestMessages(t *testing.T) {
+	setup()
+	expectedMsg := message.Message{
+		ConsensusTimestamp: "1",
+		TopicId:            "1",
+		Contents:           "1",
+		RunningHash:        "1",
+		SequenceNumber:     1,
+		ChunkInfo:          nil,
+	}
+	content := message.Messages{
+		Messages: []message.Message{expectedMsg},
+	}
+	encodedContent, err := httpHelper.EncodeBodyContent(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+
+	response, err := c.GetLatestMessages(topicId, queryDefaultLimit)
+
+	assert.Equal(t, expectedMsg, response[0])
+	assert.Len(t, response, 1)
+	assert.Nil(t, err)
+}
+
+func Test_GetMessageBySequenceNumber(t *testing.T) {
+	setup()
+
+	expectedMsg := &message.Message{
+		ConsensusTimestamp: "1",
+		TopicId:            "1",
+		Contents:           "1",
+		RunningHash:        "1",
+		SequenceNumber:     sequenceNumber,
+		ChunkInfo:          nil,
+	}
+	encodedContent, err := httpHelper.EncodeBodyContent(expectedMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+
+	response, err := c.GetMessageBySequenceNumber(topicId, sequenceNumber)
+
+	assert.Equal(t, expectedMsg, response)
+	assert.Nil(t, err)
+}
+
+func Test_GetMessageBySequenceNumber_HttpErr(t *testing.T) {
+	setup()
+	expectedErr := errors.New("some error")
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, expectedErr)
+
+	response, err := c.GetMessageBySequenceNumber(topicId, sequenceNumber)
+
+	assert.Error(t, err, expectedErr)
+	assert.Nil(t, response)
+}
+
+func Test_GetMessageBySequenceNumber_JsonErr(t *testing.T) {
+	setup()
+	expectedErr := json.UnmarshalTypeError{
+		Value: "string",
+	}
+	encodedContent, err := httpHelper.EncodeBodyContent("invalid-content")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+
+	response, err := c.GetMessageBySequenceNumber(topicId, sequenceNumber)
+
+	assert.Error(t, err, expectedErr)
+	assert.Nil(t, response)
+}
+
+func Test_GetHBARUsdPrice(t *testing.T) {
+	setup()
+	encodedResponseReaderCloser, encodeErr := httpHelper.EncodeBodyContent(testConstants.ParsedTransactionResponse)
 	if encodeErr != nil {
 		t.Fatal(encodeErr)
 	}
-	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
-	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
 	response := &http.Response{
 		StatusCode: 200,
 		Body:       encodedResponseReaderCloser,

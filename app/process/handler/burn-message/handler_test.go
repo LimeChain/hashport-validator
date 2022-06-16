@@ -18,18 +18,19 @@ package burn_message
 
 import (
 	"errors"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"testing"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 var (
-	mt = model.Transfer{
+	mt = payload.Transfer{
 		TransactionId: "0.0.0-0000000-1234",
 		Receiver:      "0x12345",
 		Amount:        "10000000000",

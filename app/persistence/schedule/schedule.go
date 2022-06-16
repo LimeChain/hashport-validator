@@ -18,6 +18,7 @@ package schedule
 
 import (
 	"errors"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -27,31 +28,31 @@ import (
 )
 
 type Repository struct {
-	dbClient *gorm.DB
-	logger   *log.Entry
+	db     *gorm.DB
+	logger *log.Entry
 }
 
 func NewRepository(dbClient *gorm.DB) *Repository {
 	return &Repository{
-		dbClient: dbClient,
-		logger:   config.GetLoggerFor("Transfer Repository"),
+		db:     dbClient,
+		logger: config.GetLoggerFor("Transfer Repository"),
 	}
 }
 
-func (r Repository) Create(entity *entity.Schedule) error {
-	return r.dbClient.Create(entity).Error
+func (r *Repository) Create(entity *entity.Schedule) error {
+	return r.db.Create(entity).Error
 }
 
-func (r Repository) UpdateStatusCompleted(txId string) error {
+func (r *Repository) UpdateStatusCompleted(txId string) error {
 	return r.updateStatus(txId, status.Completed)
 }
 
-func (r Repository) UpdateStatusFailed(txId string) error {
+func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r Repository) updateStatus(txId string, status string) error {
-	err := r.dbClient.
+func (r *Repository) updateStatus(txId string, status string) error {
+	err := r.db.
 		Model(entity.Schedule{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
@@ -63,10 +64,10 @@ func (r Repository) updateStatus(txId string, status string) error {
 }
 
 // Get Returns Schedule. Returns nil if not found
-func (r Repository) Get(id string) (*entity.Schedule, error) {
+func (r *Repository) Get(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
 
-	result := r.dbClient.
+	result := r.db.
 		Model(entity.Schedule{}).
 		Where("transaction_id = ?", id).
 		First(record)
@@ -80,9 +81,9 @@ func (r Repository) Get(id string) (*entity.Schedule, error) {
 	return record, nil
 }
 
-func (r Repository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
+func (r *Repository) GetReceiverTransferByTransactionID(id string) (*entity.Schedule, error) {
 	record := &entity.Schedule{}
-	result := r.dbClient.
+	result := r.db.
 		Model(entity.Schedule{}).
 		Where("transfer_id = ? AND operation = ? AND has_receiver = true", id, schedule.TRANSFER).
 		First(record)
@@ -95,10 +96,10 @@ func (r Repository) GetReceiverTransferByTransactionID(id string) (*entity.Sched
 	return record, nil
 }
 
-func (r Repository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
+func (r *Repository) GetAllSubmittedIds() ([]*entity.Schedule, error) {
 	var schedules []*entity.Schedule
 
-	err := r.dbClient.
+	err := r.db.
 		Select("transaction_id").
 		Where("status = ?", status.Submitted).
 		Find(&schedules).Error

@@ -18,7 +18,9 @@ package bootstrap
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gookit/event"
 	coin_gecko "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-gecko"
 	coin_market_cap "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-market-cap"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
@@ -26,8 +28,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	mirrornode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	eventHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/events"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -49,10 +52,9 @@ type Clients struct {
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(clientsCfg config.Clients, bridgeEvmsCfgs map[uint64]config.BridgeEvm, networks map[uint64]*parser.Network) *Clients {
 	EvmClients := InitEVMClients(clientsCfg)
-
-	return &Clients{
+	instance := &Clients{
 		HederaNode:              hedera.NewNodeClient(clientsCfg.Hedera),
-		MirrorNode:              mirror_node.NewClient(clientsCfg.MirrorNode),
+		MirrorNode:              mirrornode.NewClient(clientsCfg.MirrorNode),
 		EvmClients:              EvmClients,
 		CoinGecko:               coin_gecko.NewClient(clientsCfg.CoinGecko),
 		CoinMarketCap:           coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
@@ -60,6 +62,54 @@ func PrepareClients(clientsCfg config.Clients, bridgeEvmsCfgs map[uint64]config.
 		EvmFungibleTokenClients: InitEvmFungibleTokenClients(networks, EvmClients),
 		EvmNFTClients:           InitEvmNftClients(networks, EvmClients),
 	}
+
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgEventHandler(e, instance)
+	}), constants.ClientsEventPriority)
+
+	return instance
+}
+
+func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
+	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
+	if err != nil {
+		return err
+	}
+	evmFungibleTokenClients := InitEvmFungibleTokenClients(params.ParsedBridge.Networks, instance.EvmClients)
+	evmNFTClients := InitEvmNftClients(params.ParsedBridge.Networks, instance.EvmClients)
+
+	// EVM Fungible Token Clients //
+	for networkId, tokenClients := range evmFungibleTokenClients {
+		_, ok := instance.EvmFungibleTokenClients[networkId]
+		if !ok {
+			log.Errorf("received not supported network [%d] on update bridge config", networkId)
+			continue
+		}
+		for address, tokenClient := range tokenClients {
+			if _, ok := instance.EvmFungibleTokenClients[networkId][address]; !ok {
+				instance.EvmFungibleTokenClients[networkId][address] = tokenClient
+			}
+		}
+	}
+
+	// EVM Non-Fungible Token Clients //
+	for networkId, tokenClients := range evmNFTClients {
+		_, ok := instance.EvmNFTClients[networkId]
+		if !ok {
+			log.Errorf("received not supported network [%d] on update bridge config", networkId)
+			continue
+		}
+		for address, tokenClient := range tokenClients {
+			if _, ok := instance.EvmNFTClients[networkId][address]; !ok {
+				instance.EvmNFTClients[networkId][address] = tokenClient
+			}
+		}
+	}
+
+	params.EvmFungibleTokenClients = evmFungibleTokenClients
+	params.EvmNFTClients = evmNFTClients
+
+	return nil
 }
 
 func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
@@ -68,7 +118,7 @@ func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
 		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
-			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare.", configChainId)
+			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare. Error: [%s]", configChainId, e)
 		}
 		if configChainId != clientChainId.Uint64() {
 			log.Fatalf("Chain IDs mismatch [%d] config, [%d] actual.", configChainId, clientChainId)

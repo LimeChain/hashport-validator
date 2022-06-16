@@ -18,15 +18,28 @@ package parser
 
 import (
 	"math/big"
+	"time"
 )
 
 /*
 	Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
+	UseLocalConfig    bool                `yaml:"use_local_config" json:"useLocalConfig,omitempty"`
+	ConfigTopicId     string              `yaml:"config_topic_id" json:"configTopicId,omitempty"`
+	PollingInterval   time.Duration       `yaml:"polling_interval" json:"pollingInterval,omitempty"`
 	TopicId           string              `yaml:"topic_id" json:"topicId,omitempty"`
 	Networks          map[uint64]*Network `yaml:"networks" json:"networks,omitempty"`
 	MonitoredAccounts map[string]string   `yaml:"monitored_accounts" json:"monitoredAccounts,omitempty"`
+}
+
+func (b *Bridge) Update(from *Bridge) {
+	b.UseLocalConfig = from.UseLocalConfig
+	b.ConfigTopicId = from.ConfigTopicId
+	b.PollingInterval = from.PollingInterval
+	b.TopicId = from.TopicId
+	b.Networks = from.Networks
+	b.MonitoredAccounts = from.MonitoredAccounts
 }
 
 type Network struct {
@@ -45,6 +58,7 @@ type Tokens struct {
 
 type Token struct {
 	Fee               int64             `yaml:"fee" json:"fee,omitempty"`                                 // Represent a constant fee for Non-Fungible tokens. Applies only for Hedera Native Tokens
+	FeeAmountInUsd    string            `yaml:"fee_amount_in_usd" json:"feeAmountInUsd,omitempty"`        // Represent a dynamic fee amount in $USD for Non-Fungible tokens. Applies only for Hedera Native Tokens
 	FeePercentage     int64             `yaml:"fee_percentage" json:"feePercentage,omitempty"`            // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
 	MinFeeAmountInUsd string            `yaml:"min_fee_amount_in_usd" json:"minFeeAmountInUsd,omitempty"` // Represents a constant minimum fee amount in USD which is needed for the validator not to be on a loss
 	MinAmount         *big.Int          `yaml:"min_amount" json:"minAmount,omitempty"`                    // Represents a constant for minimum amount which is used when there is no 'coin_gecko_id' or 'coin_market_cap_id' supplied in the config.

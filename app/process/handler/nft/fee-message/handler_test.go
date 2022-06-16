@@ -18,16 +18,17 @@ package fee_message
 
 import (
 	"errors"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"testing"
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var (
@@ -49,7 +50,7 @@ var (
 	entityStatus  = status.Initial
 	nilErr        error
 
-	payload = &model.Transfer{
+	p = &payload.Transfer{
 		TransactionId:    transactionId,
 		SourceChainId:    sourceChainId,
 		TargetChainId:    targetChainId,
@@ -97,13 +98,13 @@ func Test_NewHandler(t *testing.T) {
 func Test_Handle(t *testing.T) {
 	setup()
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, nilErr)
-	mocks.MTransferService.On("ProcessNativeNftTransfer", *payload).Return(nilErr)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
+	mocks.MTransferService.On("ProcessNativeNftTransfer", *p).Return(nilErr)
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
+	mocks.MTransferService.AssertCalled(t, "ProcessNativeNftTransfer", *p)
 }
 
 func Test_Handle_CastError(t *testing.T) {
@@ -112,46 +113,46 @@ func Test_Handle_CastError(t *testing.T) {
 
 	handler.Handle(brokenPayload)
 
-	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", *p)
+	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *p)
 }
 
 func Test_Handle_TransactionError(t *testing.T) {
 	setup()
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, errors.New("failed to create record"))
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, errors.New("failed to create record"))
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
+	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *p)
 }
 
 func Test_Handle_ProcessNativeNftTransferError(t *testing.T) {
 	setup()
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, nilErr)
-	mocks.MTransferService.On("ProcessNativeNftTransfer", *payload).Return(errors.New("failed to process native NFT transfer"))
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
+	mocks.MTransferService.On("ProcessNativeNftTransfer", *p).Return(errors.New("failed to process native NFT transfer"))
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
+	mocks.MTransferService.AssertCalled(t, "ProcessNativeNftTransfer", *p)
 }
 
 func Test_Handle_NotInitial(t *testing.T) {
 	setup()
 
 	resultEntityTransfer.Status = status.Submitted
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(resultEntityTransfer, nilErr)
-	mocks.MTransferService.On("ProcessNativeNftTransfer", *payload).Return(nilErr)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
+	mocks.MTransferService.On("ProcessNativeNftTransfer", *p).Return(nilErr)
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
 	resultEntityTransfer.Status = entityStatus
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
-	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
+	mocks.MTransferService.AssertNotCalled(t, "ProcessNativeNftTransfer", *p)
 
 }
 

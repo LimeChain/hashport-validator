@@ -17,14 +17,14 @@
 package service
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 )
 
 // BurnEvent is the major service used for processing BurnEvent operations
 type BurnEvent interface {
 	// ProcessEvent processes the burn event by submitting the appropriate
 	// scheduled transaction, leaving the synchronization of the actual transfer on HCS
-	ProcessEvent(transfer transfer.Transfer)
+	ProcessEvent(transfer payload.Transfer)
 	// TransactionID returns the corresponding Scheduled Transaction paying out the
 	// fees to validators and the amount being bridged to the receiver address
 	TransactionID(id string) (string, error)

@@ -18,6 +18,8 @@ package lock_event
 
 import (
 	"database/sql"
+	"strconv"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -27,10 +29,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type Service struct {
@@ -67,7 +69,7 @@ func NewService(
 	}
 }
 
-func (s *Service) ProcessEvent(event transfer.Transfer) {
+func (s *Service) ProcessEvent(event payload.Transfer) {
 	s.initSuccessRatePrometheusMetrics(event.TransactionId, event.SourceChainId, event.TargetChainId, event.SourceAsset)
 
 	amount, err := strconv.ParseInt(event.Amount, 10, 64)
@@ -204,7 +206,7 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, event transfer.Transfer, scheduleType string) (onSuccess, onFail func(transactionID string)) {
+func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, event payload.Transfer, scheduleType string) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 
 		if scheduleType == schedule.TRANSFER && s.prometheusService.GetIsMonitoringEnabled() {

@@ -21,10 +21,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -36,7 +37,7 @@ import (
 
 var (
 	msHandler *Handler
-	tr        = transfer.Transfer{
+	tr        = payload.Transfer{
 		TransactionId: "some-transaction-id",
 		SourceChainId: 0,
 		TargetChainId: 1,

@@ -18,13 +18,15 @@ package mint_hts
 
 import (
 	"database/sql"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	entityStatus "github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
@@ -67,10 +69,10 @@ func NewHandler(
 	}
 }
 
-func (fmh *Handler) Handle(payload interface{}) {
-	transferMsg, ok := payload.(*model.Transfer)
+func (fmh *Handler) Handle(p interface{}) {
+	transferMsg, ok := p.(*payload.Transfer)
 	if !ok {
-		fmh.logger.Errorf("Could not cast payload [%s]", payload)
+		fmh.logger.Errorf("Could not cast payload [%s]", p)
 		return
 	}
 

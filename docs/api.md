@@ -28,3 +28,37 @@ Example:
   }
 }
 ```
+- `POST /api/v1/transfers/history`: Accepts a request body in the form (`*` is required) and returns:
+  - Maximum page size is 50. Pages start from 1.
+  - ```json
+    {
+      *"page": 1,
+      *"pageSize": 20,
+      "filter": {
+        "originator": "Hedera account ID or EVM address",
+        "timestamp": "VALID RFC3339(Nano) DATE",
+        "tokenId": "Hedera Token ID or EVM address",
+        "transactionId": "Hedera Transaction ID or EVM transaction hash"
+      }
+    }
+    ```
+  - ```json
+    {
+      "items": [],
+      "totalCount": 0
+    }
+    ```
+
+- `GET /fees/nft`: Returns the fees for porting/burning NFT assets grouped by network. Ex:
+- ```json
+  {
+    "295": {
+      "tokenId or address": {
+        "isNative": true,
+        "paymentToken": "HBAR or address of the payment token",
+        "fee": "fee amount"
+      }
+    },
+  ...
+  }
+  ```

@@ -19,15 +19,16 @@ package message
 import (
 	"database/sql"
 	"database/sql/driver"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/test/helper"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"regexp"
-	"testing"
-	"time"
 )
 
 var (
@@ -165,6 +166,6 @@ func setup() {
 	dbConnection, sqlMock, db = helper.SetupSqlMock()
 
 	repository = &Repository{
-		dbClient: dbConnection,
+		db: dbConnection,
 	}
 }

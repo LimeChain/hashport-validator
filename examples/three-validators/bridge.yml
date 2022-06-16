@@ -1,6 +1,9 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
 #bridge:
+#  use_local_config: false
+#  config_topic_id:
+#  polling_interval:
 #  topic_id:
 #  monitored_accounts:
 #  networks:

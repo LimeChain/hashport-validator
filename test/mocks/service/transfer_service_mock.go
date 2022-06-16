@@ -21,6 +21,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -40,7 +41,7 @@ func (mts *MockTransferService) GetWithPreloads(txId string) (*entity.Transfer, 
 	panic("implement me")
 }
 
-func (mts *MockTransferService) Create(ct *transfer.Transfer) (*entity.Transfer, error) {
+func (mts *MockTransferService) Create(ct *payload.Transfer) (*entity.Transfer, error) {
 	panic("implement me")
 }
 
@@ -52,7 +53,7 @@ func (mts *MockTransferService) UpdateStatusFailed(txId string) error {
 	panic("implement me")
 }
 
-func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) error {
+func (mts *MockTransferService) ProcessNativeTransfer(tm payload.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil
@@ -60,7 +61,7 @@ func (mts *MockTransferService) ProcessNativeTransfer(tm transfer.Transfer) erro
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) ProcessNativeNftTransfer(tm transfer.Transfer) error {
+func (mts *MockTransferService) ProcessNativeNftTransfer(tm payload.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil
@@ -68,7 +69,7 @@ func (mts *MockTransferService) ProcessNativeNftTransfer(tm transfer.Transfer) e
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) ProcessWrappedTransfer(tm transfer.Transfer) error {
+func (mts *MockTransferService) ProcessWrappedTransfer(tm payload.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
 		return nil
@@ -84,7 +85,7 @@ func (mts *MockTransferService) SanityCheckTransfer(tx transaction.Transaction) 
 	return args.Get(0).(uint64), args.Get(1).(string), args.Get(2).(error)
 }
 
-func (mts *MockTransferService) InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error) {
+func (mts *MockTransferService) InitiateNewTransfer(tm payload.Transfer) (*entity.Transfer, error) {
 	args := mts.Called(tm)
 	if args.Get(0) == nil && args.Get(1) == nil {
 		return nil, nil
@@ -105,4 +106,9 @@ func (mts *MockTransferService) TransferData(txId string) (interface{}, error) {
 	}
 
 	return args.Get(0).(service.TransferData), args.Error(1)
+}
+
+func (mts *MockTransferService) Paged(filter *transfer.PagedRequest) (*transfer.Paged, error) {
+	//TODO implement me
+	panic("implement me")
 }

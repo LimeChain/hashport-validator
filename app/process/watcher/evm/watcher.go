@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -39,7 +41,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	c "github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -414,7 +415,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		return
 	}
 
-	burnEvent := &transfer.Transfer{
+	burnEvent := &payload.Transfer{
 		TransactionId: transactionId,
 		SourceChainId: sourceChainId,
 		TargetChainId: targetChainId,
@@ -524,7 +525,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		return
 	}
 
-	tr := &transfer.Transfer{
+	tr := &payload.Transfer{
 		TransactionId: transactionId,
 		SourceChainId: sourceChainId,
 		TargetChainId: targetChainId,
@@ -614,7 +615,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		return
 	}
 
-	transfer := &transfer.Transfer{
+	transfer := &payload.Transfer{
 		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
 		SourceChainId: sourceChainId,
 		TargetChainId: eventLog.TargetChain.Uint64(),

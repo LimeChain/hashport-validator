@@ -17,14 +17,11 @@
 package http
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -79,15 +76,10 @@ func setup(t *testing.T) (*http.Request, *http.Response) {
 	for key, value := range headers {
 		request.Header.Set(key, value)
 	}
-
-	encodedResponseBuffer := new(bytes.Buffer)
-	encodeErr := json.NewEncoder(encodedResponseBuffer).Encode(testConstants.SimplePriceResponse)
+	encodedResponseReaderCloser, encodeErr := EncodeBodyContent(testConstants.SimplePriceResponse)
 	if encodeErr != nil {
 		t.Fatal(encodeErr)
 	}
-
-	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
-	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
 	response := &http.Response{
 		StatusCode: 200,
 		Body:       encodedResponseReaderCloser,

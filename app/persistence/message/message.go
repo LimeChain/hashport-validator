@@ -18,23 +18,24 @@ package message
 
 import (
 	"errors"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"gorm.io/gorm"
 )
 
 type Repository struct {
-	dbClient *gorm.DB
+	db *gorm.DB
 }
 
 func NewRepository(dbClient *gorm.DB) *Repository {
 	return &Repository{
-		dbClient: dbClient,
+		db: dbClient,
 	}
 }
 
-func (m Repository) GetMessageWith(transferID, signature, hash string) (*entity.Message, error) {
+func (r *Repository) GetMessageWith(transferID, signature, hash string) (*entity.Message, error) {
 	var message entity.Message
-	err := m.dbClient.Model(&entity.Message{}).
+	err := r.db.Model(&entity.Message{}).
 		Where("transfer_id = ? and signature = ? and hash = ?", transferID, signature, hash).
 		First(&message).Error
 	if err != nil {
@@ -43,8 +44,8 @@ func (m Repository) GetMessageWith(transferID, signature, hash string) (*entity.
 	return &message, nil
 }
 
-func (m Repository) Exist(transferID, signature, hash string) (bool, error) {
-	_, err := m.GetMessageWith(transferID, signature, hash)
+func (r *Repository) Exist(transferID, signature, hash string) (bool, error) {
+	_, err := r.GetMessageWith(transferID, signature, hash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -55,13 +56,13 @@ func (m Repository) Exist(transferID, signature, hash string) (bool, error) {
 	return true, nil
 }
 
-func (m Repository) Create(message *entity.Message) error {
-	return m.dbClient.Create(message).Error
+func (r *Repository) Create(message *entity.Message) error {
+	return r.db.Create(message).Error
 }
 
-func (m Repository) Get(transferID string) ([]entity.Message, error) {
+func (r *Repository) Get(transferID string) ([]entity.Message, error) {
 	var messages []entity.Message
-	err := m.dbClient.
+	err := r.db.
 		Preload("Transfer").
 		Where("transfer_id = ?", transferID).
 		Order("transaction_timestamp").

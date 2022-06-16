@@ -17,12 +17,13 @@
 package client
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"math/big"
 )
 
 type DiamondRouter interface {
@@ -42,4 +43,6 @@ type DiamondRouter interface {
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	}, error)
+	Erc721Fee(opts *bind.CallOpts, _erc721 common.Address) (*big.Int, error)
+	Erc721Payment(opts *bind.CallOpts, _erc721 common.Address) (common.Address, error)
 }

@@ -17,6 +17,8 @@
 package bootstrap
 
 import (
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -26,11 +28,10 @@ import (
 	tw "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func createTransferWatcher(configuration *config.Config,
-	bridgeService service.Transfers,
+	transferService service.Transfers,
 	assetsService service.Assets,
 	mirrorNode client.MirrorNode,
 	repository *repository.Status,
@@ -42,7 +43,7 @@ func createTransferWatcher(configuration *config.Config,
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
-		bridgeService,
+		transferService,
 		mirrorNode,
 		account,
 		configuration.Node.Clients.MirrorNode.PollingInterval,
@@ -50,7 +51,6 @@ func createTransferWatcher(configuration *config.Config,
 		configuration.Node.Clients.Hedera.StartTimestamp,
 		contractServices,
 		assetsService,
-		configuration.Bridge.Hedera.NftFees,
 		configuration.Node.Validator,
 		prometheusService,
 		pricingService,
@@ -72,7 +72,7 @@ func createConsensusTopicWatcher(configuration *config.Config,
 
 func createAssetsWatcher(
 	mirrorNode client.MirrorNode,
-	configuration config.Config,
+	configuration *config.Config,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
@@ -81,7 +81,7 @@ func createAssetsWatcher(
 	log.Debugf("Added Assets Watcher")
 	return aw.NewWatcher(
 		mirrorNode,
-		configuration,
+		configuration.Bridge,
 		evmFungibleTokenClients,
 		evmNonFungibleTokenClients,
 		assetsService)
@@ -90,7 +90,7 @@ func createAssetsWatcher(
 func createPrometheusWatcher(
 	dashboardPolling time.Duration,
 	mirrorNode client.MirrorNode,
-	configuration config.Config,
+	configuration *config.Config,
 	prometheusService service.Prometheus,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
@@ -101,7 +101,7 @@ func createPrometheusWatcher(
 	return pw.NewWatcher(
 		dashboardPolling,
 		mirrorNode,
-		configuration,
+		configuration.Bridge,
 		prometheusService,
 		evmFungibleTokenClients,
 		evmNonFungibleTokenClients,

@@ -18,6 +18,7 @@ package fee
 
 import (
 	"errors"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -26,22 +27,22 @@ import (
 )
 
 type Repository struct {
-	dbClient *gorm.DB
-	logger   *log.Entry
+	db     *gorm.DB
+	logger *log.Entry
 }
 
 func NewRepository(dbClient *gorm.DB) *Repository {
 	return &Repository{
-		dbClient: dbClient,
-		logger:   config.GetLoggerFor("Fee Repository"),
+		db:     dbClient,
+		logger: config.GetLoggerFor("Fee Repository"),
 	}
 }
 
 // Returns Fee. Returns nil if not found
-func (r Repository) Get(id string) (*entity.Fee, error) {
+func (r *Repository) Get(id string) (*entity.Fee, error) {
 	record := &entity.Fee{}
 
-	result := r.dbClient.
+	result := r.db.
 		Model(entity.Fee{}).
 		Where("transaction_id = ?", id).
 		First(record)
@@ -55,20 +56,20 @@ func (r Repository) Get(id string) (*entity.Fee, error) {
 	return record, nil
 }
 
-func (r Repository) Create(entity *entity.Fee) error {
-	return r.dbClient.Create(entity).Error
+func (r *Repository) Create(entity *entity.Fee) error {
+	return r.db.Create(entity).Error
 }
 
-func (r Repository) UpdateStatusCompleted(txId string) error {
+func (r *Repository) UpdateStatusCompleted(txId string) error {
 	return r.updateStatus(txId, status.Completed)
 }
 
-func (r Repository) UpdateStatusFailed(txId string) error {
+func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r Repository) updateStatus(txId string, status string) error {
-	err := r.dbClient.
+func (r *Repository) updateStatus(txId string, status string) error {
+	err := r.db.
 		Model(entity.Fee{}).
 		Where("transaction_id = ?", txId).
 		UpdateColumn("status", status).
@@ -79,10 +80,10 @@ func (r Repository) updateStatus(txId string, status string) error {
 	return err
 }
 
-func (r Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
+func (r *Repository) GetAllSubmittedIds() ([]*entity.Fee, error) {
 	var fees []*entity.Fee
 
-	err := r.dbClient.
+	err := r.db.
 		Select("transaction_id").
 		Where("status = ?", status.Submitted).
 		Find(&fees).Error

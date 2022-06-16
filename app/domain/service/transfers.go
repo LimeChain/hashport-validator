@@ -18,8 +18,9 @@ package service
 
 import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 )
 
 // Transfers is the major service used for processing Transfers operations
@@ -29,19 +30,21 @@ type Transfers interface {
 	SanityCheckTransfer(tx transaction.Transaction) (uint64, string, error)
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
-	InitiateNewTransfer(tm transfer.Transfer) (*entity.Transfer, error)
+	InitiateNewTransfer(tm payload.Transfer) (*entity.Transfer, error)
 	// ProcessNativeTransfer processes the native fungible transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
-	ProcessNativeTransfer(tm transfer.Transfer) error
+	ProcessNativeTransfer(tm payload.Transfer) error
 	// ProcessNativeNftTransfer processes the native nft transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
-	ProcessNativeNftTransfer(tm transfer.Transfer) error
+	ProcessNativeNftTransfer(tm payload.Transfer) error
 	// ProcessWrappedTransfer processes the wrapped transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
-	ProcessWrappedTransfer(tm transfer.Transfer) error
+	ProcessWrappedTransfer(tm payload.Transfer) error
 	// TransferData returns from the database the given transfer, its signatures and
 	// calculates if its messages have reached super majority
 	TransferData(txId string) (interface{}, error)
+	// Paged returns a paginated list of all transfers
+	Paged(filter *model.PagedRequest) (*model.Paged, error)
 }
 
 type TransferData struct {

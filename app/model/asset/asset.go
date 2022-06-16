@@ -17,8 +17,9 @@
 package asset
 
 import (
-	"github.com/shopspring/decimal"
 	"math/big"
+
+	"github.com/shopspring/decimal"
 )
 
 type NativeAsset struct {

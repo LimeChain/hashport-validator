@@ -19,6 +19,10 @@ package fee
 import (
 	"database/sql"
 	"errors"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeErr "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -26,6 +30,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
@@ -33,9 +38,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"strconv"
-	"testing"
-	"time"
 )
 
 var (
@@ -59,7 +61,7 @@ var (
 	entityStatus       = status.Initial
 	nilErr             error
 
-	payload = &model.Transfer{
+	p = &payload.Transfer{
 		TransactionId:    transactionId,
 		SourceChainId:    sourceChainId,
 		TargetChainId:    targetChainId,
@@ -73,6 +75,7 @@ var (
 		Metadata:         metadata,
 		IsNft:            isNft,
 		NetworkTimestamp: timestamp,
+		Fee:              hederaFeeForSourceAsset,
 	}
 
 	entityTransfer = &entity.Transfer{
@@ -133,7 +136,6 @@ func Test_NewHandler(t *testing.T) {
 		bridgeAccountAsStr,
 		mocks.MDistributorService,
 		mocks.MTransferService,
-		testConstants.HederaNftFees,
 		mocks.MReadOnlyService,
 	)
 
@@ -155,7 +157,6 @@ func Test_NewHandler_ErrOnBridgeAccountParse(t *testing.T) {
 		"invalid account",
 		mocks.MDistributorService,
 		mocks.MTransferService,
-		testConstants.HederaNftFees,
 		mocks.MReadOnlyService,
 	)
 
@@ -165,15 +166,15 @@ func Test_NewHandler_ErrOnBridgeAccountParse(t *testing.T) {
 func Test_Handle(t *testing.T) {
 	setup(t, true)
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(entityTransfer, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(entityTransfer, nil)
 	mocks.MDistributorService.On("ValidAmount", hederaFeeForSourceAsset).Return(validFee)
 	mocks.MTransferRepository.On("UpdateFee", transactionId, formattedValidFee).Return(nil)
 	mocks.MDistributorService.On("CalculateMemberDistribution", validFee).Return(hederaTransfers, nilErr)
 	mocks.MReadOnlyService.On("FindAssetTransfer", transactionId, constants.Hbar, splitTransfers[0], mock.Anything, mock.Anything)
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MDistributorService.AssertCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertCalled(t, "CalculateMemberDistribution", validFee)
@@ -186,7 +187,7 @@ func Test_Handle_ErrOnCast(t *testing.T) {
 
 	handler.Handle(brokenPayload)
 
-	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", *p)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", validFee)
@@ -196,11 +197,11 @@ func Test_Handle_ErrOnCast(t *testing.T) {
 func Test_Handle_ErrOnTransactionRecord(t *testing.T) {
 	setup(t, true)
 	var nilTransfer *entity.Transfer
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(nilTransfer, errors.New("failed to create transaction record"))
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(nilTransfer, errors.New("failed to create transaction record"))
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", validFee)
@@ -210,13 +211,13 @@ func Test_Handle_ErrOnTransactionRecord(t *testing.T) {
 func Test_Handle_TransactionRecordNotInitialStatus(t *testing.T) {
 	setup(t, true)
 	entityTransfer.Status = status.Completed
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(entityTransfer, nilErr)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(entityTransfer, nilErr)
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
 	entityTransfer.Status = entityStatus
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertNotCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", validFee)
@@ -226,13 +227,13 @@ func Test_Handle_TransactionRecordNotInitialStatus(t *testing.T) {
 func Test_Handle_ErrOnUpdateFee(t *testing.T) {
 	setup(t, true)
 
-	mocks.MTransferService.On("InitiateNewTransfer", *payload).Return(entityTransfer, nil)
+	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(entityTransfer, nil)
 	mocks.MDistributorService.On("ValidAmount", hederaFeeForSourceAsset).Return(validFee)
 	mocks.MTransferRepository.On("UpdateFee", transactionId, formattedValidFee).Return(errors.New("failed to create transaction record"))
 
-	handler.Handle(payload)
+	handler.Handle(p)
 
-	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *payload)
+	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
 	mocks.MDistributorService.AssertCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", validFee)
@@ -248,14 +249,14 @@ func Test_fetch(t *testing.T) {
 	mocks.MHederaMirrorClient.On(
 		"GetAccountDebitTransactionsAfterTimestampString",
 		bridgeAccount,
-		payload.NetworkTimestamp,
+		p.NetworkTimestamp,
 	).Return(expectedResponse, nilErr)
 
-	actualResponse, err := handler.fetch(payload)
+	actualResponse, err := handler.fetch(p)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResponse, actualResponse)
-	mocks.MHederaMirrorClient.AssertCalled(t, "GetAccountDebitTransactionsAfterTimestampString", bridgeAccount, payload.NetworkTimestamp)
+	mocks.MHederaMirrorClient.AssertCalled(t, "GetAccountDebitTransactionsAfterTimestampString", bridgeAccount, p.NetworkTimestamp)
 }
 
 func Test_save(t *testing.T) {
@@ -263,7 +264,7 @@ func Test_save(t *testing.T) {
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(nilErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Nil(t, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
@@ -275,7 +276,7 @@ func Test_save_ErrOnCreateScheduleEntity(t *testing.T) {
 	expectedErr := errors.New("failed to create schedule record")
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(expectedErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
@@ -288,7 +289,7 @@ func Test_save_ErrOnCreateFeeEntity(t *testing.T) {
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(expectedErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, payload, -validFee)
+	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
@@ -327,7 +328,6 @@ func setup(t *testing.T, setupForHandle bool) {
 		distributor:        mocks.MDistributorService,
 		transfersService:   mocks.MTransferService,
 		readOnlyService:    mocks.MReadOnlyService,
-		hederaNftFees:      testConstants.HederaNftFees,
 		logger:             config.GetLoggerFor("Hedera Transfer and Topic Submission Read-only Handler"),
 	}
 }

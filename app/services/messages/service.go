@@ -20,12 +20,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	proto_models "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"strconv"
 	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	proto_models "github.com/limechain/hedera-eth-bridge-validator/proto"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -138,7 +139,7 @@ func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNf
 	return match, nil
 }
 
-func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
+func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 	authMsgHash, err := auth_message.EncodeFungibleBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
@@ -153,8 +154,8 @@ func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
 	signature := hex.EncodeToString(signatureBytes)
 
 	topicMsg := &proto_models.TopicEthSignatureMessage{
-		SourceChainId: uint64(tm.SourceChainId),
-		TargetChainId: uint64(tm.TargetChainId),
+		SourceChainId: tm.SourceChainId,
+		TargetChainId: tm.TargetChainId,
 		TransferID:    tm.TransactionId,
 		Asset:         tm.TargetAsset,
 		Recipient:     tm.Receiver,
@@ -171,7 +172,7 @@ func (ss Service) SignFungibleMessage(tm model.Transfer) ([]byte, error) {
 	return bytes, nil
 }
 
-func (ss Service) SignNftMessage(tm model.Transfer) ([]byte, error) {
+func (ss Service) SignNftMessage(tm payload.Transfer) ([]byte, error) {
 	authMsgHash, err := auth_message.EncodeNftBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.SerialNum, tm.Metadata, tm.Receiver)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)

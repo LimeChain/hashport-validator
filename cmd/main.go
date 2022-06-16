@@ -18,9 +18,7 @@ package main
 
 import (
 	"fmt"
-
-	log "github.com/sirupsen/logrus"
-
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -28,6 +26,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/bootstrap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -54,9 +53,16 @@ func main() {
 	repositories := bootstrap.PrepareRepositories(db)
 
 	// Prepare Services
-	services = bootstrap.PrepareServices(configuration, parsedBridge, *clients, *repositories)
-
-	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration)
+	var parsedBridgeConfigTopicId hedera.TopicID
+	if !parsedBridge.UseLocalConfig {
+		var err error
+		parsedBridgeConfigTopicId, err = hedera.TopicIDFromString(parsedBridge.ConfigTopicId)
+		if err != nil {
+			panic(fmt.Sprintf("failed to parse bridge config topic id [%s]. Err: [%s]", parsedBridgeConfigTopicId, err))
+		}
+	}
+	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
+	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge, parsedBridgeConfigTopicId)
 
 	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge)
 
