@@ -77,13 +77,34 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 	}
 	evmFungibleTokenClients := InitEvmFungibleTokenClients(params.ParsedBridge.Networks, instance.EvmClients)
 	evmNFTClients := InitEvmNftClients(params.ParsedBridge.Networks, instance.EvmClients)
+	routerClients := InitRouterClients(params.Bridge.EVMs, instance.EvmClients)
+	for networkId, ftClients := range evmFungibleTokenClients {
+		_, ok := instance.EvmFungibleTokenClients[networkId]
+		if !ok {
+			instance.EvmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
+		}
+		for key, ftClient := range ftClients {
+			instance.EvmFungibleTokenClients[networkId][key] = ftClient
+		}
+	}
 
-	instance.EvmFungibleTokenClients = evmFungibleTokenClients
-	instance.EvmNFTClients = evmNFTClients
-	instance.RouterClients = InitRouterClients(params.Bridge.EVMs, instance.EvmClients)
+	for networkId, nftClients := range evmNFTClients {
+		_, ok := instance.EvmNFTClients[networkId]
+		if !ok {
+			instance.EvmNFTClients[networkId] = make(map[string]client.EvmNft)
+		}
+		for key, nftClient := range nftClients {
+			instance.EvmNFTClients[networkId][key] = nftClient
+		}
+	}
+
+	for networkId, routerClient := range routerClients {
+		instance.RouterClients[networkId] = routerClient
+	}
 
 	params.EvmFungibleTokenClients = evmFungibleTokenClients
 	params.EvmNFTClients = evmNFTClients
+	params.RouterClients = routerClients
 
 	return nil
 }

@@ -62,7 +62,7 @@ type Service struct {
 func NewService(bridgeConfig *config.Bridge, assetsService service.Assets, diamondRouters map[uint64]client.DiamondRouter, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing) *Service {
 	instance := initialize(bridgeConfig, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, diamondRouters)
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
-		return bridgeCfgEventHandler(e, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, instance, diamondRouters)
+		return bridgeCfgEventHandler(e, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, instance)
 	}), constants.ServiceEventPriority)
 
 	return instance
@@ -402,13 +402,13 @@ func (s *Service) fetchUsdPricesFromAPIs() (fetchResults fetchResults) {
 	return fetchResults
 }
 
-func bridgeCfgEventHandler(e event.Event, assetsService service.Assets, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing, instance *Service, diamondRouters map[uint64]client.DiamondRouter) error {
+func bridgeCfgEventHandler(e event.Event, assetsService service.Assets, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing, instance *Service) error {
 	params, err := eventHelper.GetBridgeCfgUpdateEventParams(e)
 	if err != nil {
 		return err
 	}
 
-	newInstance := initialize(params.Bridge, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, diamondRouters)
+	newInstance := initialize(params.Bridge, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, params.RouterClients)
 	copyFields(newInstance, instance)
 
 	return nil
