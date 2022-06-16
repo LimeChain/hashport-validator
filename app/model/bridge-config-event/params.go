@@ -27,4 +27,5 @@ type Params struct {
 	ParsedBridge            *parser.Bridge
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
 	EvmNFTClients           map[uint64]map[string]client.EvmNft
+	RouterClients           map[uint64]client.DiamondRouter
 }

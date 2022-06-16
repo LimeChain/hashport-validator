@@ -498,7 +498,7 @@ func NewService(
 	)
 
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
-		return bridgeCfgUpdateEventHandler(e, mirrorNode, routerClients, instance)
+		return bridgeCfgUpdateEventHandler(e, mirrorNode, instance)
 	}), constants.AssetServicePriority)
 
 	return instance
@@ -625,7 +625,7 @@ func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, Hed
 	return instance
 }
 
-func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, routerClients map[uint64]client.DiamondRouter, instance *Service) error {
+func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, instance *Service) error {
 	params, ok := e.Get(constants.BridgeConfigUpdateEventParamsKey).(*bridge_config_event.Params)
 	if !ok {
 		errMsg := fmt.Sprintf("failed to cast params from event [%s]", constants.EventBridgeConfigUpdate)
@@ -637,7 +637,7 @@ func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, ro
 		params.ParsedBridge.Networks,
 		params.ParsedBridge.Networks[constants.HederaNetworkId].BridgeAccount,
 		params.Bridge.Hedera.FeePercentages,
-		routerClients,
+		params.RouterClients,
 		mirrorNode,
 		params.EvmFungibleTokenClients,
 		params.EvmNFTClients,
