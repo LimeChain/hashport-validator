@@ -130,7 +130,7 @@ func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients ma
 	for networkId, bridgeEVMsCfg := range bridgeEVMsCfgs {
 		evmClient, ok := evmClients[networkId]
 		if !ok {
-			log.Fatalf("failed to initialize RouterClient because of missing EVM client for network id: %d", networkId)
+			log.Fatalf("failed to initialize RouterClient because of missing EVM client for network id: [%d]", networkId)
 		}
 		contractAddress, err := evmClient.ValidateContractDeployedAt(bridgeEVMsCfg.RouterContractAddress)
 		additionalMsg := "Failed to initialize Router Contract Instance at [%s]. Error [%s]"
