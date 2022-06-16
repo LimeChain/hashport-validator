@@ -26,14 +26,15 @@ import (
 )
 
 func main() {
-	membersKeys := flag.String("privateKeys", "0x0", "Members Hedera Private Keys separated by comma")
+	supplyKeys := flag.String("supplyKeys", "0x0", "Hedera Supply Public Keys, separated by comma")
 	network := flag.String("network", "", "Hedera Network Type")
 	executorAccountId := flag.String("executorAccountID", "", "Executor's Hedera Account Id")
 	executorPK := flag.String("executorPrivateKey", "", "Executor's Hedera Private Key")
+	keyThreshold := flag.Uint("keyThreshold", 1, "Topic's keys threshold.")
 
 	flag.Parse()
-	if *membersKeys == "0x0" {
-		panic("Members Private Keys weren't provided")
+	if *supplyKeys == "0x0" {
+		panic("Hedera Topic Member's Supply Public Keys weren't provided")
 	}
 	if *executorAccountId == "" {
 		panic("Executor Account Id wasn't provided")
@@ -42,40 +43,34 @@ func main() {
 		panic("Executor Private Key wasn't provided")
 	}
 
-	membersKeysParsed := strings.Split(*membersKeys, ",")
+	supplyKeysParsed := strings.Split(*supplyKeys, ",")
 
 	fmt.Println("-----------Start-----------")
-	client := client.Init(*executorPK, *executorAccountId, *network)
+	hederaClient := client.Init(*executorPK, *executorAccountId, *network)
 	executorPrivateKey, err := hedera.PrivateKeyFromString(*executorPK)
 	if err != nil {
 		panic(err)
 	}
-	var memberKeys []hedera.PrivateKey
-	for _, key := range membersKeysParsed {
-		pK, err := hedera.PrivateKeyFromString(key)
+
+	topicKey := hedera.KeyListWithThreshold(*keyThreshold)
+	for _, key := range supplyKeysParsed {
+		pK, err := hedera.PublicKeyFromString(key)
 		if err != nil {
 			panic(err)
 		}
-		memberKeys = append(memberKeys, pK)
-	}
-
-	fmt.Println("Private keys array:", memberKeys)
-
-	topicKey := hedera.KeyListWithThreshold(uint(len(memberKeys)))
-	for i := 0; i < len(membersKeysParsed); i++ {
-		topicKey.Add(memberKeys[i].PublicKey())
+		topicKey.Add(pK)
 	}
 
 	adminPublicKey := executorPrivateKey.PublicKey()
 	txID, err := hedera.NewTopicCreateTransaction().
 		SetAdminKey(adminPublicKey).
 		SetSubmitKey(topicKey).
-		Execute(client)
+		Execute(hederaClient)
 	if err != nil {
 		panic(err)
 	}
 
-	topicReceipt, err := txID.GetReceipt(client)
+	topicReceipt, err := txID.GetReceipt(hederaClient)
 	if err != nil {
 		panic(err)
 	}

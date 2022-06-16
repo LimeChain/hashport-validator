@@ -78,33 +78,9 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 	evmFungibleTokenClients := InitEvmFungibleTokenClients(params.ParsedBridge.Networks, instance.EvmClients)
 	evmNFTClients := InitEvmNftClients(params.ParsedBridge.Networks, instance.EvmClients)
 
-	// EVM Fungible Token Clients //
-	for networkId, tokenClients := range evmFungibleTokenClients {
-		_, ok := instance.EvmFungibleTokenClients[networkId]
-		if !ok {
-			log.Errorf("received not supported network [%d] on update bridge config", networkId)
-			continue
-		}
-		for address, tokenClient := range tokenClients {
-			if _, ok := instance.EvmFungibleTokenClients[networkId][address]; !ok {
-				instance.EvmFungibleTokenClients[networkId][address] = tokenClient
-			}
-		}
-	}
-
-	// EVM Non-Fungible Token Clients //
-	for networkId, tokenClients := range evmNFTClients {
-		_, ok := instance.EvmNFTClients[networkId]
-		if !ok {
-			log.Errorf("received not supported network [%d] on update bridge config", networkId)
-			continue
-		}
-		for address, tokenClient := range tokenClients {
-			if _, ok := instance.EvmNFTClients[networkId][address]; !ok {
-				instance.EvmNFTClients[networkId][address] = tokenClient
-			}
-		}
-	}
+	instance.EvmFungibleTokenClients = evmFungibleTokenClients
+	instance.EvmNFTClients = evmNFTClients
+	instance.RouterClients = InitRouterClients(params.Bridge.EVMs, instance.EvmClients)
 
 	params.EvmFungibleTokenClients = evmFungibleTokenClients
 	params.EvmNFTClients = evmNFTClients
@@ -131,13 +107,17 @@ func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
 func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients map[uint64]client.EVM) map[uint64]client.DiamondRouter {
 	routers := make(map[uint64]client.DiamondRouter)
 	for networkId, bridgeEVMsCfg := range bridgeEVMsCfgs {
-		contractAddress, err := evmClients[networkId].ValidateContractDeployedAt(bridgeEVMsCfg.RouterContractAddress)
+		evmClient, ok := evmClients[networkId]
+		if !ok {
+			log.Fatalf("failed to initialize RouterClient because of missing EVM client for network id: %d", networkId)
+		}
+		contractAddress, err := evmClient.ValidateContractDeployedAt(bridgeEVMsCfg.RouterContractAddress)
 		additionalMsg := "Failed to initialize Router Contract Instance at [%s]. Error [%s]"
 		if err != nil {
 			log.Fatalf(additionalMsg, bridgeEVMsCfg.RouterContractAddress, err)
 		}
 
-		contractInstance, err := router.NewRouter(*contractAddress, evmClients[networkId].GetClient())
+		contractInstance, err := router.NewRouter(*contractAddress, evmClient.GetClient())
 		if err != nil {
 			log.Fatalf(additionalMsg, bridgeEVMsCfg.RouterContractAddress, err)
 		}
