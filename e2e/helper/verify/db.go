@@ -18,7 +18,6 @@ package verify
 
 import (
 	"encoding/hex"
-	"reflect"
 	"testing"
 
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
@@ -115,7 +114,7 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 		if err != nil {
 			return false, nil, err
 		}
-		if !reflect.DeepEqual(*expectedTransferRecord, *actualDbTx) {
+		if !transferIsAsExpected(expectedTransferRecord, actualDbTx) {
 			return false, nil, nil
 		}
 	}
@@ -128,7 +127,7 @@ func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, er
 		if err != nil {
 			return false, err
 		}
-		if !reflect.DeepEqual(*expectedRecord, *actualDbTx) {
+		if !scheduleIsAsExpected(expectedRecord, actualDbTx) {
 			return false, nil
 		}
 	}
@@ -181,7 +180,7 @@ func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !reflect.DeepEqual(*actual, *expectedRecord) {
+		if !feeIsAsExpected(actual, expectedRecord) {
 			return false, nil
 		}
 	}
@@ -230,4 +229,48 @@ func TransferRecordAndSignatures(t *testing.T, dbValidation *Service, expectedRe
 	if !exist {
 		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
 	}
+}
+
+func transferIsAsExpected(expected, actual *entity.Transfer) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.SourceChainID != actual.SourceChainID ||
+		expected.TargetChainID != actual.TargetChainID ||
+		expected.NativeChainID != actual.NativeChainID ||
+		expected.SourceAsset != actual.SourceAsset ||
+		expected.TargetAsset != actual.TargetAsset ||
+		expected.NativeAsset != actual.NativeAsset ||
+		expected.Receiver != actual.Receiver ||
+		expected.Amount != actual.Amount ||
+		expected.Fee != actual.Fee ||
+		expected.Status != actual.Status ||
+		expected.SerialNumber != actual.SerialNumber ||
+		expected.Metadata != actual.Metadata ||
+		expected.IsNft != actual.IsNft ||
+		expected.Timestamp != actual.Timestamp {
+		return false
+	}
+	return true
+}
+
+func scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.ScheduleID != actual.ScheduleID ||
+		expected.HasReceiver != actual.HasReceiver ||
+		expected.Operation != actual.Operation ||
+		expected.Status != actual.Status ||
+		expected.TransferID.String != actual.TransferID.String {
+		return false
+	}
+	return true
+}
+
+func feeIsAsExpected(expected, actual *entity.Fee) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.ScheduleID != actual.ScheduleID ||
+		expected.Amount != actual.Amount ||
+		expected.Status != actual.Status ||
+		expected.TransferID.String != actual.TransferID.String {
+		return false
+	}
+	return true
 }
