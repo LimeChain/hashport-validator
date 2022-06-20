@@ -121,6 +121,7 @@ func Test_HBAR(t *testing.T) {
 		targetAsset,
 		constants.Hbar,
 		strconv.FormatInt(amount, 10),
+		strconv.FormatInt(fee, 10),
 		receiver.String(),
 		status.Completed,
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
@@ -214,6 +215,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		targetAsset,
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
+		strconv.FormatInt(fee, 10),
 		evm.Receiver.String(),
 		status.Completed,
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
@@ -295,6 +297,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		constants.Hbar,
 		constants.Hbar,
 		strconv.FormatInt(amount, 10),
+		strconv.FormatInt(fee, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		status.Completed,
 		evm.Signer.Address(),
@@ -365,6 +368,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		setupEnv.TokenID.String(),
 		setupEnv.TokenID.String(),
 		strconv.FormatInt(amount, 10),
+		strconv.FormatInt(fee, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		status.Completed,
 		evm.Signer.Address(),
@@ -396,6 +400,11 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	feeData, err := evm.RouterContract.TokenFeeData(nil, common.HexToAddress(setupEnv.NativeEvmToken))
+	if err != nil {
+		t.Fatalf("failed to get token fee data: %v", err)
+	}
+	fee := amount * (feeData.ServiceFeePercentage.Int64() / constants.FeeMaxPercentage)
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := submit.LockEthTransaction(
@@ -442,6 +451,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		targetAsset,
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedAmount, 10),
+		strconv.FormatInt(fee, 10),
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		status.Completed,
 		evm.Signer.Address(),
@@ -575,6 +585,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(expectedSubmitUnlockAmount, 10),
+		"",
 		evm.Receiver.String(),
 		status.Completed,
 		setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
@@ -622,6 +633,11 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	feeData, err := evm.RouterContract.TokenFeeData(nil, common.HexToAddress(setupEnv.NativeEvmToken))
+	if err != nil {
+		t.Fatalf("failed to get token fee data: %v", err)
+	}
+	fee := amount * (feeData.ServiceFeePercentage.Int64() / constants.FeeMaxPercentage)
 
 	wrappedEvm := setupEnv.Clients.EVM[targetChainID]
 	wrappedInstance, err := evmSetup.InitAssetContract(wrappedAsset, wrappedEvm.EVMClient)
@@ -675,6 +691,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		wrappedAsset,
 		setupEnv.NativeEvmToken,
 		expectedAmount.String(),
+		strconv.FormatInt(fee, 10),
 		evm.Receiver.String(),
 		status.Completed,
 		evm.Signer.Address(),
@@ -763,6 +780,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(amount, 10),
+		"",
 		nativeEvm.Receiver.String(),
 		status.Completed,
 		wrappedEvm.Signer.Address(),
@@ -801,7 +819,14 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
 	}
 
-	transferFee := setupEnv.NftConstantFees[nftToken]
+	transferFee, ok := setupEnv.NftConstantFees[nftToken]
+	if !ok {
+		fee, ok1 := setupEnv.NftDynamicFees[nftToken]
+		if !ok1 {
+			t.Fatalf("could not find fee for NFT: %v", nftToken)
+		}
+		transferFee = fee.IntPart()
+	}
 	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
 
 	// Step 1 - Get Token Metadata
