@@ -22,6 +22,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	msgHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
@@ -91,9 +92,11 @@ func (cmh Handler) Handle(payload interface{}) {
 
 	switch msg := m.Message.(type) {
 	case *proto.TopicMessage_FungibleSignatureMessage:
+		msgHelper.UpdateHederaChainIdOfFungibleMsg(msg.FungibleSignatureMessage)
 		cmh.handleFungibleSignatureMessage(msg.FungibleSignatureMessage, m.TransactionTimestamp)
 		break
 	case *proto.TopicMessage_NftSignatureMessage:
+		msgHelper.UpdateHederaChainIdOfNftMsg(msg.NftSignatureMessage)
 		cmh.handleNftSignatureMessage(msg.NftSignatureMessage, m.TransactionTimestamp)
 		break
 	default:
@@ -104,6 +107,7 @@ func (cmh Handler) Handle(payload interface{}) {
 
 // handleFungibleSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
 func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMessage, timestamp int64) {
+
 	valid, err := cmh.messages.SanityCheckFungibleSignature(tsm)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Failed to perform sanity check on incoming signature [%s].", tsm.TransferID, tsm.GetSignature())

@@ -1,44 +1,57 @@
 #E2E ETH-Hedera
 hedera:
-  bridge_account:
+  bridge_account: 0.0.26306405
+  payer_account: 0.0.26306406
   dbs:
-    - host:
-      name:
-      password:
-      port:
-      username:
-    - host:
-      name:
-      password:
-      port:
-      username:
-    - host:
-      name:
-      password:
-      port:
-      username:
-    - host:
-      name:
-      password:
-      port:
-      username:
+    - host: localhost
+      name: hedera_validator
+      password: validator_pass
+      port: 6432
+      username: validator
+    - host: localhost
+      name: hedera_validator
+      password: validator_pass
+      port: 7432
+      username: validator
+    - host: localhost
+      name: hedera_validator
+      password: validator_pass
+      port: 8432
+      username: validator
+    - host: localhost
+      name: hedera_validator
+      password: validator_pass
+      port: 9432
+      username: validator
+  fee_percentage: 10000 # 10%
   members:
+    - 0.0.26306401
+    - 0.0.26306402
+    - 0.0.26306403
   mirror_node:
-    api_address:
-    client_address:
-    polling_interval:
-    query_max_limit:
-    query_default_limit:
-  network_type:
+    api_address: https://testnet.mirrornode.hedera.com/api/v1/
+    client_address: hcs.testnet.mirrornode.hedera.com:5600
+    polling_interval: 5
+    query_max_limit: 100
+    query_default_limit: 25
+  network_type: testnet
   sender:
-    account:
-    private_key:
-  topic_id:
+    account: 0.0.26306361
+    private_key: 302e020100300506032b65700422042044f8c9f0e4ba6fc64059f8acd2b77e28b1e07d1735aee756488984070e2885ff
+  topic_id: 0.0.26306404
 evm:
+  80001:
+    block_confirmations: 5
+    node_url: https://matic-mumbai.chainstacklabs.com/
+    private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
+  3:
+    block_confirmations: 5
+    node_url: https://eth-ropsten.alchemyapi.io/v2/rQLyle52SoRmgNZ56ZqXBE4dUui3vRVy
+    private_key: 40b9cf6bf6eb67c166ee38f38d5310d529f750852b4126d6531c6ce9fa27d798
 tokens:
   whbar: "HBAR"
-  wtoken:
-  nft_token:
-  ntf_serial_number:
-  evm_native_token:
-validator_url:
+  wtoken: "0.0.26306414"
+  nft_token: "0.0.46834561"
+  nft_serial_number: 8
+  evm_native_token: "0xF568EE8a03750eE5FFefAEbcD8FF588e486F64B2"
+validator_url: http://localhost:6200

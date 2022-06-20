@@ -20,6 +20,7 @@ const (
 	Hbar                  = "HBAR"
 	HederaDefaultDecimals = uint8(8)
 	HederaName            = "Hedera"
+	OldHederaNetworkId    = uint64(0)
 )
 
 var (

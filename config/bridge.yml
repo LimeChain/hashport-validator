@@ -1,25 +1,320 @@
-# This file contains application defaults
-# Check docs/configuration.md for more information
-#bridge:
-#  use_local_config: false
-#  config_topic_id:
-#  polling_interval:
-#  topic_id:
-#  monitored_accounts:
-#  networks:
-#    296: # Hedera Testnet
-#      name: Hedera
-#      bridge_account:
-#      payer_account:
-#      members:
-#        -
-#      tokens:
-#        "HBAR":
-#          coin_gecko_id: "hedera-hashgraph"
-#          coin_market_cap_id: "4642"
-#          min_fee_amount_in_usd:
-#          fee_percentage: 10000 # 10.000%
-#          networks:
-#    1: # Ethereum mainnet
-#      router_contract_address:
-#      tokens:
+bridge:
+  topic_id: 0.0.15678171
+  use_local_config: false
+  config_topic_id: 0.0.45962955
+  polling_interval: 30 # in seconds
+  monitored_accounts:
+    validator_1: 0.0.15678164
+    validator_2: 0.0.15678166
+    validator_3: 0.0.15678168
+    validator_4: 0.0.2812286
+    validator_5: 0.0.2812287
+    validator_6: 0.0.2812288
+    validator_7: 0.0.2884440
+  networks:
+    296: # Hedera testnet
+      name: Hedera
+      bridge_account: 0.0.15678172
+      payer_account: 0.0.15678173
+      members:
+        - 0.0.15678164
+        - 0.0.15678166
+        - 0.0.15678168
+        - 0.0.2812286
+        - 0.0.2812287
+        - 0.0.2812288
+        - 0.0.2884440
+      tokens:
+        fungible:
+          HBAR:
+            coin_gecko_id: hedera-hashgraph
+            coin_market_cap_id: 4642
+            min_fee_amount_in_usd: 0.2
+            fee_percentage: 500 # 0.5000%
+            networks:
+              #              3: 0x5C6584962c690Aac146eC212a3c2Adb92FeD3d84
+              80001: 0x0E575b28b52a072183acbb81a0e144Cc05E5a9d9
+              97: 0x7Ab97a1e71B2Db82CC3858d1fff3F16eca5e8193
+              43113: 0x486b755049F6e66FD328872413825B17a278447B
+              5: 0x86392844d90cc8d684D051d693BC8a5A8B1b06dC
+          0.0.34093244: # JAM
+            coin_gecko_id: tune-fm
+            coin_market_cap_id: 11420
+            min_fee_amount_in_usd: 0.2
+            fee_percentage: 500 # 0.5000%
+            networks:
+              #              3: 0x1b92688ABc1151AAb2F3CAA3AEF512dB45F1e7d0
+              80001: 0x7e767e282faf3F3675cF375d66134dAC330fb3b1
+              5: 0xf95AC07e1715FFde2D8aC3188366cB5e456ff424
+          0.0.34123036: # REV3L
+            fee_percentage: 500 # 0.5000%
+            min_amount: 100000000000 # 100 REV3L
+            networks:
+              #              3: 0xAFC1dAFeA83dA57d3C1ffd8033bd1113918FAcF3
+              80001: 0x4c08D852c710163a4e0Afe516558c5332D9dc7Dd
+              5: 0xf6b8bF3773E4FFC2e29788DcD06fA78118ED3E63
+          0.0.34298474: # CLXY
+            fee_percentage: 500 # 0.5000%
+            min_amount: 100000000 # 100 CLXY
+            networks:
+              #              3: 0xE4D98d3A77aAEAF843CA835d33b0Ad7C86eE2095
+              80001: 0xaF8f32d1a954695f329a224Fb9975AB146460cfD
+              5: 0xA7e3e06B7063f6659ddeF5a061559fEd7157Fd78
+          0.0.45957510: # HST
+            fee_percentage: 500 # 0.500%
+            min_amount: 10000000000 # 100 HST
+            networks:
+              #              3: 0xA7e3e06B7063f6659ddeF5a061559fEd7157Fd78
+              5: 0x636993e88f24CA564573AB49677F4Fd6A63fBe91
+              80001: 0x9FF8A1aC048B1Feb67b4114A5CC7Baa769D25E48
+              97: 0x994f24c3B9BB3A5a9A6f31B43aA60e194c584871
+        nft:
+          0.0.15678175:
+            fee: 100000000 # 1 HBAR
+            #fee_amount_in_usd: 0.5
+            networks:
+              #              3: 0x4FaC7e5B9C23F97744EA3D3581a5cbcC8EAe9aD8
+              80001: 0x4918F66EbDB6CA98D58Fa2112cc8F4B2D17BA6aC
+              5: 0x660725dFB53b5c0309e612b814439e5f3BE94282
+          0.0.34957056: # Cosmo Monkis
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0xe07863A81e878ec946Cd45cb2037BaE21602ca8c
+              80001: 0x33d6aD8d366273B62e31036A7dcf0B9E72c0a212
+              5: 0xaD47efB0564B1006275D3F44F4c38C35E3aaa84A
+          0.0.34957101: # Lazy Superheroes - Gen 2
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0xC6140E498bAbbECc621a6d3a86cCA1aaE7c47e09
+              80001: 0x4a8B8Ca670F1d80C918Bc44E239a31F4fc1875ec
+              5: 0x2423068670D66D3Ac9564984BA221632317fde44
+          0.0.34957152: # Dead Pixels Ghost Club
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x8e48c02F2d4de1E39e8a8bCf91DB51E28dDe82cb
+              80001: 0x10282EA21498a031996f9372D744aa9e23B51281
+              5: 0x2818Cf22205528762A02DA74D5dc70b533e5f605
+          0.0.34957190: # Leemon Club
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0xbaeDAf2184F92a0d41fE26a0C0ad81a3e5D1fC14
+              80001: 0x8a030FfB94d188Ad5E65FAEb63Fb9D83A1c33Fd1
+              5: 0xc3DD779067c3a74FbD466Cd2De8A3d0dA9B0F961
+          0.0.34957240: # Moon Shells
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0xAaC4c75a385D0b42a1d7a2e72aB01826be949cd0
+              80001: 0x1DF934Db1965582c637925299fa7bFb62a10b5A3
+              5: 0x523fd2c6F4d67bEbc51C914965759E7F47b01c08
+          0.0.34962911: # DoodleVerse
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x3EC20798BdE7d1A48d571e77a98a87b8770D2412
+              80001: 0x3EC20798BdE7d1A48d571e77a98a87b8770D2412
+              5: 0x1bCd19A2aA2724c335E0E2705B3e21B89398900b
+          0.0.34962917: # Lil Monkis
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0xB90D766E7FE1128653276620Dd4280682b58f66E
+              80001: 0xB90D766E7FE1128653276620Dd4280682b58f66E
+              5: 0x1eC96c870F525aEAD94a865cf97030520A002747
+          0.0.34962920: # Hashmingos
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x3cC76AB295114AAC9ee19D35113c9c4B877aE41d
+              80001: 0x3cC76AB295114AAC9ee19D35113c9c4B877aE41d
+              5: 0x94181Ba59668B950760420ddb231f632cB3dC06f
+          0.0.34962931: # Meerkat Gang
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x735Ef30c50c51B735311439a3b861663Bd725545
+              80001: 0x735Ef30c50c51B735311439a3b861663Bd725545
+              5: 0x3D434F9e78A83315F01902925d6CC41B2Dc1Fb4b
+          0.0.34962933: # Hash Horses
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x1Ee3e1dE5608C4Cc558B6d2510fDe08136325EE4
+              80001: 0x1Ee3e1dE5608C4Cc558B6d2510fDe08136325EE4
+              5: 0xa02e7318578b53FB182c79658E5d6B82aB8C6a4a
+          0.0.34962937: # HGraph Punks
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x9d042DB7d54D9Bf147A6444fCC3E9b078419A213
+              80001: 0x9d042DB7d54D9Bf147A6444fCC3E9b078419A213
+              5: 0x9609990c0E7183177B02C96142E26F47f15953fc
+          0.0.46030908: # Hot DeFi Summer
+            fee_amount_in_usd: 20
+            networks:
+              #              3: 0x2818Cf22205528762A02DA74D5dc70b533e5f605
+              80001: 0xfc58Df1DE11adB045675D3a8890F74777D321D8F
+              5: 0xfE4AcaF3caeC7A77b1E7F47b287AFa1619b43261
+    80001: # Mumbai Polygon testnet
+      name: Polygon
+      router_contract_address: 0xE23fC14A2e522b5294ad8CaB4883198491af6277
+      tokens:
+        fungible:
+          0x20e9F8fC86Ac2967A49382F38280afA16A08d122: # REVV
+            coin_gecko_id: revv
+            coin_market_cap_id: 6993
+            min_fee_amount_in_usd: 0.2
+            min_amount: 278000000000000000000 # 278 REVV
+            networks:
+              296: 0.0.29594544
+              97: 0xD27999FB95E603b812fBF7086B49f9bd07c86699
+              43113: 0x8889A994761Cb0B139dF85437506ef767C1081db
+          0xd5Bd0347599E36e1d3b22a9898c72317870F7D7a: # SAND
+            coin_gecko_id: the-sandbox
+            coin_market_cap_id: 6210
+            min_fee_amount_in_usd: 0.2
+            min_amount: 7420000000000000000 # 7.42 SAND
+            networks:
+              296: 0.0.29594595
+              97: 0xd830C848d5D6C648c17F999CCf227A2b56f7C9f6
+              43113: 0x765eC669FB5093f1f1dE7EA44064eA9a95c874a3
+          0xA1F8bB2849527459A8E3F3C2a21175451C8fd8d6: # USDC
+            min_amount: 100000000 # 100 USDC
+            networks:
+              296: 0.0.45909612
+          0xbdD64Fd21F0443243E6e3DF165c0672c0AC661C2: # USDT
+            min_amount: 100000000 # 100 USDT
+            networks:
+              296: 0.0.45909613
+          0xE362ED9De6B58e117E78398Fa9c979f762d55924: # WBTC
+            min_amount: 500000 # 0.005 WBTC
+            networks:
+              296: 0.0.45909614
+          0x1E06180251d7299Fe3070C80616AF7514eb54562: # LINK
+            min_amount: 15000000000000000000 # 15 LINK
+            networks:
+              296: 0.0.45909615
+          0x94002a90EA2Ac4cF1F3e82016F22585F678ebAa1: # AAVE
+            min_amount: 1000000000000000000 # 1 AAVE
+            networks:
+              296: 0.0.45909616
+          0x5f766fFF9bF872472753D413810fC9b3FFfE0F5A: # DAI
+            min_amount: 100000000000000000000 # 100 DAI
+            networks:
+              296: 0.0.45909617
+        nft:
+    5: # Goerli Ethereum testnet
+      name: Ethereum
+      router_contract_address: 0x5f953791A42bD221134E50b01fcfFD4A4f9713A0
+      tokens:
+        fungible:
+          0x22Bf97520dab66F97Cd50C927B500571E2a41791: # USDC
+            min_amount: 100000000 # 100 USDC
+            networks:
+              296: 0.0.45961756
+          0x2Fada7c6209ef8D45B1D7328B95Ffb24D4A3941b: # USDT
+            min_amount: 100000000 # 100 USDT
+            networks:
+              296: 0.0.45961757
+          0x29BC94212d977BDC9065136B24a4b8a1Ef4F2A19: # WBTC
+            min_amount: 500000 # 0.005 WBTC
+            networks:
+              296: 0.0.45961758
+          0xB8DeDD50dB03670c7e7a696D1BaD0a23a9d631d3: # LINK
+            min_amount: 15000000000000000000 # 15 LINK
+            networks:
+              296: 0.0.45961759
+          0x50115d84250Ca8e1414DCC2f281fE8f47424ebb6: # AAVE
+            min_amount: 1000000000000000000 # 1 AAVE
+            networks:
+              296: 0.0.45961760
+          0x69A34181001a0f2dbBe6738920b037FA6b05678e: # DAI
+            min_amount: 100000000000000000000 # 100 DAI
+            networks:
+              296: 0.0.45961761
+          # Uncomment once Ropsten is removed
+          0x5fF787483b7B2dF7B5D40E1DE86075AA31FbD5FC: # DOV
+            coin_gecko_id: dovu
+            coin_market_cap_id: 2110
+            min_fee_amount_in_usd: 0.2
+            min_amount: 1665000000000000000000 # 1665 DOV
+            networks:
+              296: 0.0.26056684
+              97: 0xbF88147471389BDa0D9b2C36a0D18531EAE26F01
+              43113: 0x04aAFf0Ff78275b5E0081e00e46412F7eCE6CCDD
+          0x34557A6229f53B7c62489d60e01C259B03e640d4: # REVV
+            coin_gecko_id: revv
+            coin_market_cap_id: 6993
+            min_fee_amount_in_usd: 0.2
+            min_amount: 278000000000000000000 # 278 REVV
+            networks:
+              296: 0.0.29594579
+              97: 0xD35A11B6261855c1Cd9cd1F3256C7dd94f21FC36
+              43113: 0x85c63c103763820217e02556278Ac6CF3c1CB20D
+          0x9616680BA03F6aF5735DA3B35ef446d9a3befe96: # SAND
+            coin_gecko_id: the-sandbox
+            coin_market_cap_id: 6210
+            min_fee_amount_in_usd: 0.2
+            min_amount: 7420000000000000000 # 7.42 SAND
+            networks:
+              296: 0.0.29594617
+              97: 0x6f9889Be558BF594D99c0546d26A95E0a7fefc4F
+              43113: 0x3bfeA33c76831C07D960625223dA3C1Ac29F047a
+    #    3: # Ropsten Ethereum testnet
+    #      name: Ropsten_Ethereum
+    #      router_contract_address: 0x972330a840552000a7bc4C78F288F92dfF48E3D5
+    #      tokens:
+    #        fungible:
+    #          0x3B410bAcD292c8349Cd5BE55C6C70585015a33e9: # DOV
+    #            coin_gecko_id: dovu
+    #            coin_market_cap_id: 2110
+    #            min_fee_amount_in_usd: 0.2
+    #            min_amount: 1665000000000000000000 # 1665 DOV
+    #            networks:
+    #              296: 0.0.26056684
+    #              97: 0xbF88147471389BDa0D9b2C36a0D18531EAE26F01
+    #              43113: 0x04aAFf0Ff78275b5E0081e00e46412F7eCE6CCDD
+    #          0x9849dbBDCf960a56F08bA1354b35590fF0DCF91D: # REVV.e
+    #            coin_gecko_id: revv
+    #            coin_market_cap_id: 6993
+    #            min_fee_amount_in_usd: 0.2
+    #            min_amount: 278000000000000000000 # 278 REVV
+    #            networks:
+    #              296: 0.0.29594579
+    #              97: 0xD35A11B6261855c1Cd9cd1F3256C7dd94f21FC36
+    #              43113: 0x85c63c103763820217e02556278Ac6CF3c1CB20D
+    #          0x77D85bC82A5Ac0EAEbB4fCF47E501E353c53473c: # SAND
+    #            coin_gecko_id: the-sandbox
+    #            coin_market_cap_id: 6210
+    #            min_fee_amount_in_usd: 0.2
+    #            min_amount: 7420000000000000000 # 7.42 SAND
+    #            networks:
+    #              296: 0.0.29594617
+    #              97: 0x6f9889Be558BF594D99c0546d26A95E0a7fefc4F
+    #              43113: 0x3bfeA33c76831C07D960625223dA3C1Ac29F047a
+    #          0x8Ba3a22c753c127B05b96DF3c864F8DEFD09aCB1: # USDC
+    #            min_amount: 100000000 # 100 USDC
+    #            networks:
+    #              296: 0.0.45909618
+    #          0x6FFE60A4A0d58bD04fFd9e5ceF57097D6BfdAfEc: # USDT
+    #            min_amount: 100000000 # 100 USDT
+    #            networks:
+    #              296: 0.0.45909619
+    #          0x9c17F7861a7Bd454F1244Cd67B6c24Ee664F4621: # WBTC
+    #            min_amount: 500000 # 0.005 WBTC
+    #            networks:
+    #              296: 0.0.45909620
+    #          0x90b8a94720Dbb04b4395AfAcE52F4AA3B8509169: # LINK
+    #            min_amount: 15000000000000000000 # 15 LINK
+    #            networks:
+    #              296: 0.0.45909621
+    #          0x5C2AA1f960F1480Ef4F97F56875e8F153DCF42d5: # AAVE
+    #            min_amount: 1000000000000000000 # 1 AAVE
+    #            networks:
+    #              296: 0.0.45909622
+    #          0xb3BA405e5D054eEfEe921D1203275DCBad03b102: # DAI
+    #            min_amount: 100000000000000000000 # 100 DAI
+    #            networks:
+    #              296: 0.0.45909623
+    #        nft:
+    97: # Binance Smart Chain Testnet
+      name: Binance
+      router_contract_address: 0x0d128d95E678a138A2646B32E4F28279635B3E88
+      tokens:
+    43113: # Avalanche Fuji Testnet
+      name: Avalanche
+      router_contract_address: 0x2e2de3444E0b83bdb4FBB2688D2fB399cCaa4C85
+      tokens:
