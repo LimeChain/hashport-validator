@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/golang/protobuf v1.5.2
 	github.com/gookit/event v1.0.6
-	github.com/hashgraph/hedera-sdk-go/v2 v2.6.0
+	github.com/hashgraph/hedera-sdk-go/v2 v2.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/cors v1.7.0
