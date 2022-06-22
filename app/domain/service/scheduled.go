@@ -32,4 +32,8 @@ type Scheduled interface {
 	ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 	// ExecuteScheduledNftTransferTransaction submits a scheduled nft transfer transaction and executes provided functions when necessary
 	ExecuteScheduledNftTransferTransaction(id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
+	// ExecuteScheduledNftAllowTransaction submits a scheduled NFT allow transaction and executes provided functions when necessary
+	ExecuteScheduledNftAllowTransaction(
+		id string, nftID hedera.NftID, owner hedera.AccountID, spender hedera.AccountID,
+		onExecutionSuccess func(txId, scheduleId string), onExecutionFail, onSuccess, onFail func(txId string))
 }
