@@ -19,6 +19,7 @@ package hedera
 import (
 	"errors"
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -173,6 +174,32 @@ func (hc Node) SubmitScheduledNftTransferTransaction(
 		AddNftTransfer(nftID, sender, receiving)
 
 	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
+}
+
+func (hc Node) SubmitScheduledNftApproveTransaction(
+	payer hedera.AccountID,
+	memo string,
+	nftId hedera.NftID,
+	owner hedera.AccountID,
+	spender hedera.AccountID) (*hedera.TransactionResponse, error) {
+	tx := hedera.NewAccountAllowanceApproveTransaction().
+		ApproveTokenNftAllowance(nftId, owner, spender)
+
+	return hc.submitScheduledAllowTransaction(payer, memo, tx)
+}
+
+func (hc Node) submitScheduledAllowTransaction(payer hedera.AccountID, memo string, tx *hedera.AccountAllowanceApproveTransaction) (*hedera.TransactionResponse, error) {
+	tx, err := tx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTx, err := tx.SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTx, payer, memo)
 }
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
