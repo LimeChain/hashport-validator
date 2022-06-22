@@ -99,7 +99,7 @@ func (nth Handler) Handle(p interface{}) {
 	onExecutionSuccess, onExecutionFail := nth.scheduledTxExecutionCallbacks(transfer.TransactionId, true)
 	onSuccess, onFail := nth.scheduledTxMinedCallbacks(transfer.TransactionId)
 
-	nth.scheduledService.ExecuteScheduledNftTransferTransaction(transfer.TransactionId, nftID, nth.bridgeAccount, receiver, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	nth.scheduledService.ExecuteScheduledNftAllowTransaction(transfer.TransactionId, nftID, nth.bridgeAccount, receiver, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
 
 func (nth *Handler) scheduledTxExecutionCallbacks(id string, hasReceiver bool) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
