@@ -67,18 +67,6 @@ func (rnth Handler) Handle(p interface{}) {
 		return
 	}
 
-	receiver, err := hedera.AccountIDFromString(transfer.Receiver)
-	if err != nil {
-		rnth.logger.Errorf("[%s] - Failed to parse event receiver account [%s]. Error [%s].", transfer.TransactionId, transfer.Receiver, err)
-		return
-	}
-
-	token, err := hedera.TokenIDFromString(transfer.TargetAsset)
-	if err != nil {
-		rnth.logger.Errorf("[%s] - Failed to parse token [%s]. Error [%s].", transfer.TransactionId, transfer.TargetAsset, err)
-		return
-	}
-
 	transactionRecord, err := rnth.transfersService.InitiateNewTransfer(*transfer)
 	if err != nil {
 		rnth.logger.Errorf("[%s] - Error occurred while initiating processing. Error: [%s]", transfer.TransactionId, err)
@@ -90,16 +78,14 @@ func (rnth Handler) Handle(p interface{}) {
 		return
 	}
 
-	rnth.readOnlyService.FindNftTransfer(transfer.TransactionId,
-		token.String(),
-		transfer.SerialNum,
-		rnth.bridgeAccount.String(),
-		receiver.String(),
+	rnth.readOnlyService.FindScheduledNftAllowanceApprove(
+		transfer,
+		rnth.bridgeAccount,
 		func(transactionID, scheduleID, status string) error {
 			err := rnth.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,
-				Operation:     schedule.TRANSFER,
+				Operation:     schedule.APPROVE,
 				Status:        status,
 				HasReceiver:   true,
 				TransferID: sql.NullString{
@@ -108,10 +94,10 @@ func (rnth Handler) Handle(p interface{}) {
 				},
 			})
 			if err != nil {
-				rnth.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transfer.TransactionId, scheduleID, err)
+				rnth.logger.Errorf("[%s] - Error to create scheduled entity. Error: [%s]", transactionID, err)
 				return err
 			}
-
-			return rnth.transferRepository.UpdateStatusCompleted(transfer.TransactionId)
-		})
+			return rnth.transferRepository.UpdateStatusCompleted(transactionID)
+		},
+	)
 }

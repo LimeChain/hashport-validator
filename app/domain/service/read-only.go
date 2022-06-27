@@ -17,13 +17,19 @@
 package service
 
 import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 )
 
 type ReadOnly interface {
 	FindTransfer(transferID string, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
 	FindAssetTransfer(transferID string, asset string, transfers []model.Hedera, fetch func() (*mirror_node.Response, error), save func(transactionID, scheduleID, status string) error)
 	FindNftTransfer(transferID string, tokenID string, serialNum int64, sender string, receiver string,
+		save func(transactionID, scheduleID, status string) error)
+	FindScheduledNftAllowanceApprove(
+		t *payload.Transfer,
+		sender hedera.AccountID,
 		save func(transactionID, scheduleID, status string) error)
 }

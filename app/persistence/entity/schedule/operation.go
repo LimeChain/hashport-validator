@@ -20,4 +20,5 @@ const (
 	BURN     = "burn"
 	MINT     = "mint"
 	TRANSFER = "transfer"
+	APPROVE  = "approve"
 )
