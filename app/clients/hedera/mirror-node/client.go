@@ -20,6 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
@@ -33,10 +38,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 )
 
 var (
@@ -415,6 +416,21 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 		topicID.String())
 
 	return c.query(topicQuery, topicID.String())
+}
+
+func (c *Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
+	query := fmt.Sprintf("?account_id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
+		accountId,
+		timestampHelper.String(startTimestamp),
+		transactionType,
+		c.queryDefaultLimit)
+
+	resp, err := c.getTransactionsByQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Transactions, nil
 }
 
 func (c Client) query(query, entityID string) bool {
