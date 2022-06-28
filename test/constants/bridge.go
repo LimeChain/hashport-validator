@@ -78,6 +78,11 @@ var (
 		Symbol:        NetworkHederaNonFungibleNativeToken,
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
+		CustomFees: asset.CustomFees{
+			CreatedTimestamp: "",
+			FixedFees:        make([]asset.FixedFee, 0),
+			RoyaltyFees:      make([]asset.RoyaltyFee, 0),
+		},
 	}
 
 	// Wrapped Tokens //

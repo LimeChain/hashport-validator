@@ -19,6 +19,7 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"math/big"
 	"testing"
 	"time"
@@ -41,6 +42,7 @@ var (
 	wrappedTokenAddressNetwork3 = "0x0000000000000000000000000000000000000001"
 	network0                    = constants.HederaNetworkId
 	network3                    = uint64(3)
+	evmAddress                  = "0xaiskdjakdjakl"
 	emptyString                 = ""
 	nilNativeAsset              *asset.NativeAsset
 	nativeAssetNetwork0         = &asset.NativeAsset{ChainId: constants.HederaNetworkId, Asset: nativeTokenAddressNetwork0}
@@ -77,7 +79,7 @@ var (
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(network3, emptyString, nil)
+	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: emptyString})
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(emptyString)
 	mocks.MAssetsService.On("WrappedToNative", nativeTokenAddressNetwork0, network0).Return(nilNativeAsset)
@@ -142,7 +144,7 @@ func Test_Watch_AccountNotExist(t *testing.T) {
 func Test_ProcessTransaction(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
@@ -159,7 +161,7 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
@@ -180,7 +182,7 @@ func Test_UpdateStatusTimestamp_Works(t *testing.T) {
 func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(0), "", errors.New("some-error"))
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(transfer.SanityCheckResult{ChainId: network0, EvmAddress: "", Err: errors.New("some-error")})
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 
@@ -204,7 +206,7 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = "asd"
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)

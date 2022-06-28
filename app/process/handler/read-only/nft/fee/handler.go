@@ -96,8 +96,34 @@ func (fmh Handler) Handle(p interface{}) {
 		return
 	}
 
-	validFee := fmh.distributor.ValidAmount(transferMsg.Fee)
+	fmh.readOnlyService.FindNftTransfer(
+		transferMsg.TransactionId,
+		transferMsg.SourceAsset,
+		transferMsg.SerialNum,
+		transferMsg.Originator,
+		fmh.bridgeAccount.String(),
+		func(transactionID, scheduleID, status string) error {
+			err := fmh.scheduleRepository.Create(&entity.Schedule{
+				TransactionID: transferMsg.TransactionId,
+				ScheduleID:    scheduleID,
+				Operation:     schedule.TRANSFER,
+				Status:        status,
+				HasReceiver:   true,
+				TransferID: sql.NullString{
+					String: transferMsg.TransactionId,
+					Valid:  true,
+				},
+			})
+			if err != nil {
+				fmh.logger.Errorf("[%s] - Failed to create scheduled entity [%s]. Error: [%s]", transactionID, scheduleID, err)
+				return err
+			}
 
+			return fmh.transferRepository.UpdateStatusCompleted(transactionID)
+		},
+	)
+
+	validFee := fmh.distributor.ValidAmount(transferMsg.Fee)
 	err = fmh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(validFee, 10))
 	if err != nil {
 		fmh.logger.Errorf("[%s] - Failed to update fee [%d]. Error: [%s]", transferMsg.TransactionId, validFee, err)
@@ -105,7 +131,6 @@ func (fmh Handler) Handle(p interface{}) {
 	}
 
 	transfers, err := fmh.distributor.CalculateMemberDistribution(validFee)
-
 	splitTransfers := distributor.SplitAccountAmounts(transfers,
 		model.Hedera{
 			AccountID: fmh.bridgeAccount,
@@ -116,19 +141,19 @@ func (fmh Handler) Handle(p interface{}) {
 		feeAmount := -splitTransfer[len(splitTransfer)-1].Amount
 		fmh.readOnlyService.FindAssetTransfer(transferMsg.TransactionId, constants.Hbar, splitTransfer,
 			func() (*mirror_node.Response, error) {
-				return fmh.fetch(transferMsg)
+				return fmh.feeTransfersFetch(transferMsg)
 			},
 			func(transactionID, scheduleID, status string) error {
-				return fmh.save(transactionID, scheduleID, status, transferMsg, feeAmount)
+				return fmh.feeTransfersSave(transactionID, scheduleID, status, transferMsg, feeAmount)
 			})
 	}
 }
 
-func (fmh Handler) fetch(transferMsg *payload.Transfer) (*mirror_node.Response, error) {
+func (fmh Handler) feeTransfersFetch(transferMsg *payload.Transfer) (*mirror_node.Response, error) {
 	return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 }
 
-func (fmh Handler) save(transactionID string, scheduleID string, status string, transferMsg *payload.Transfer, feeAmount int64) error {
+func (fmh Handler) feeTransfersSave(transactionID string, scheduleID string, status string, transferMsg *payload.Transfer, feeAmount int64) error {
 	err := fmh.scheduleRepository.Create(&entity.Schedule{
 		TransactionID: transactionID,
 		ScheduleID:    scheduleID,

@@ -168,9 +168,15 @@ func (hc Node) SubmitScheduledNftTransferTransaction(
 	payerAccount hedera.AccountID,
 	sender hedera.AccountID,
 	receiving hedera.AccountID,
-	memo string) (*hedera.TransactionResponse, error) {
-	transferTransaction := hedera.NewTransferTransaction().
-		AddNftTransfer(nftID, sender, receiving)
+	memo string, approved bool) (*hedera.TransactionResponse, error) {
+	var transferTransaction *hedera.TransferTransaction
+	if approved {
+		transferTransaction = hedera.NewTransferTransaction().
+			AddApprovedNftTransfer(nftID, sender, receiving, true)
+	} else {
+		transferTransaction = hedera.NewTransferTransaction().
+			AddNftTransfer(nftID, sender, receiving)
+	}
 
 	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
 }

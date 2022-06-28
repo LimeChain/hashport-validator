@@ -19,6 +19,7 @@ package assets
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -206,6 +207,9 @@ func (a *Service) fetchEvmFungibleAssetInfo(
 	isNative bool,
 	routerContractAddress string,
 ) (assetInfo *assetModel.FungibleAssetInfo, err error) {
+	if evmTokenClient == nil {
+		a.logger.Fatalf("Evm Token Client is missing for network [%d] and asset [%s]", networkId, assetAddress)
+	}
 	assetInfo = &assetModel.FungibleAssetInfo{}
 	name, err := evmTokenClient.Name(&bind.CallOpts{})
 	if err != nil {
@@ -339,6 +343,8 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 		assetInfo.Name = assetInfoResponse.Name
 		assetInfo.Symbol = assetInfoResponse.Symbol
 		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+		assetInfo.CustomFees.InitFromResponse(assetInfoResponse.CustomFees)
+		assetInfo.CustomFeeTotalAmounts = fee.SumFallbackFeeAmounts(assetInfo.CustomFees)
 	}
 
 	return assetInfo, err
