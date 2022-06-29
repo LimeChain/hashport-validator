@@ -154,7 +154,7 @@ Once supermajority is reached, Alice submits `unlock` transaction to the EVM cha
 
 The transfer of NFT assets from Hedera to the EVM chain is described in the following sequence diagram.
 <p align="center">
-  <img src="./assets/hedera-to-evm(nft%20hedera%20native).png">
+  <img src="./assets/hedera-to-evm%28nft%20hedera%20native%29%20using%20crypto%20allowances.png">
 </p>
 
 #### Steps
