@@ -1,41 +1,13 @@
 # This file contains application defaults
 # Check docs/configuration.md for more information
-node:
-  database:
-    host: 127.0.0.1
-    name: hedera_validator
-    password: validator_pass
-    port: 5432
-    username: validator
-  clients:
-    evm:
-      80001:
-        block_confirmations: 5
-        node_url: https://matic-mumbai.chainstacklabs.com/
-        private_key: e50dbdcea7d78217303826ef1cf8fee2200f22ea93470fa1a42a4835badd352a
-      3:
-        block_confirmations: 5
-        node_url: https://eth-ropsten.alchemyapi.io/v2/rQLyle52SoRmgNZ56ZqXBE4dUui3vRVy
-        private_key: e50dbdcea7d78217303826ef1cf8fee2200f22ea93470fa1a42a4835badd352a
-    hedera:
-      operator:
-        account_id: 0.0.26306403
-        private_key: 302e020100300506032b65700422042087ee302f3289456bcd1e311eced9bd6c7805b10d748bef82c84bbd45d4a7fa60
-      network: testnet
-    mirror_node:
-      api_address: https://testnet.mirrornode.hedera.com/api/v1/
-      client_address: hcs.testnet.mirrornode.hedera.com:5600
-      polling_interval: 5
-      query_max_limit: 100
-      query_default_limit: 25
-    coingecko:
-      api_address: "https://api.coingecko.com/api/v3/"
-    coin_market_cap:
-      api_key: "0f56c8c8-4cde-4432-80f2-11f1623e5149"
-      api_address: "https://pro-api.coinmarketcap.com/v2/cryptocurrency/"
-  monitoring:
-    enable: true
-    dashboard_polling: 10 # in minutes
-  log_level: debug
-  port: 5200
-  validator: true
+#node:
+#  db:
+#    host:
+#    name:
+#    password:
+#    port:
+#    username:
+#  port:
+#  monitoring:
+#    enable:
+#    dashboard_polling:

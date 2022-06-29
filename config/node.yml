@@ -1,4 +1,3 @@
-#DAVE read-only
 node:
   database:
     host: 127.0.0.1
@@ -8,35 +7,13 @@ node:
     username: validator
   clients:
     evm:
-      80001:
-        block_confirmations: 5
-        node_url: wss://polygon-mumbai.g.alchemy.com/v2/_cim7pcEaNdWTo-CQWwVytrdHLbkWlUo
-        private_key: 3ca354118220c109d5fb97db7dbbfa05c8413f0d556f2fb0b3243ce822121caf
-        start_block: 22467240
-        #3:
-        #block_confirmations: 5
-        #node_url: wss://eth-ropsten.alchemyapi.io/v2/FmyeyMy_oeSFXUuYGNXQy_COJGJ3FbRL
-        #private_key: 3ca354118220c109d5fb97db7dbbfa05c8413f0d556f2fb0b3243ce822121caf
-      5:
-        block_confirmations: 5
-        node_url: wss://eth-goerli.alchemyapi.io/v2/luXs0CFEDOgQvuqqslwzH-yKs-KDq0DN
-        private_key: 3ca354118220c109d5fb97db7dbbfa05c8413f0d556f2fb0b3243ce822121caf
-      97:
-        block_confirmations: 5
-        node_url: https://speedy-nodes-nyc.moralis.io/a66af21aa95d62843aabdd27/bsc/testnet
-        private_key: 3ca354118220c109d5fb97db7dbbfa05c8413f0d556f2fb0b3243ce822121caf
-        polling_interval: 60
-      43113:
-        block_confirmations: 5
-        node_url: https://api.avax-test.network/ext/bc/C/rpc
-        private_key: 3ca354118220c109d5fb97db7dbbfa05c8413f0d556f2fb0b3243ce822121caf
-        polling_interval: 60
     hedera:
       operator:
-        account_id: 0.0.15678164
-        private_key: 302e020100300506032b657004220420c48a4e58d69916319083b97dfe57aec656f9bb6beb09c1a6f1dc57d7bd8ad147
+        account_id:
+        private_key:
       network: testnet
-      start_timestamp: 1639104895
+      rpc:
+#        "127.0.0.1": "0.0.1"
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600
@@ -44,16 +21,13 @@ node:
       query_default_limit: 25
       query_max_limit: 100
     coingecko:
-      api_address: https://api.coingecko.com/api/v3/
+      api_address: "https://api.coingecko.com/api/v3/"
     coin_market_cap:
-      api_key: 72c06988-c356-4b3a-a2de-0fc43468a72b
-      api_address: https://pro-api.coinmarketcap.com/v2/cryptocurrency/
+      api_key:
+      api_address: "https://pro-api.coinmarketcap.com/v2/cryptocurrency/"
   monitoring:
-    enable: true
+    enable: false
     dashboard_polling: 15 #in minutes
-  log_level: debug
+  log_level: info
   port: 5200
-  recovery:
-    start_timestamp: 1639104895
-    start_block: 22467240
-  validator: false #read-only
+  validator: true
