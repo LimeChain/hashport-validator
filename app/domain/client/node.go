@@ -31,7 +31,7 @@ type HederaNode interface {
 	SubmitScheduledTokenTransferTransaction(tokenID hedera.TokenID, transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
 	// SubmitScheduledHbarTransferTransaction creates an hbar transfer transaction and submits it as a scheduled transfer transaction
 	SubmitScheduledHbarTransferTransaction(transfers []transfer.Hedera, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
-	// SubmitScheduledNftTransferTransaction creates a Nft transfer transaction and submits it as a scheduled transfer transactions
+	// SubmitScheduledNftTransferTransaction creates an Nft transfer transaction and submits it as a scheduled transfer transactions
 	SubmitScheduledNftTransferTransaction(nftID hedera.NftID, payerAccount hedera.AccountID, sender hedera.AccountID, receiving hedera.AccountID, memo string, approved bool) (*hedera.TransactionResponse, error)
 	// SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
 	SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error)

@@ -1,6 +1,7 @@
 #E2E ETH-Hedera
 hedera:
   bridge_account:
+  payer_account:
   dbs:
     - host:
       name:

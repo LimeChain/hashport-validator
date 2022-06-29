@@ -857,8 +857,8 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Failed to parse NFT ID [%s]. Error: [%s]", nftIDString, err)
 	}
 
-	// Step 2 - Send the NFT Allowance for the Bridge Account
-	_, err = sendNFTAllowance(setupEnv, nftID, setupEnv.Clients.Hedera.GetOperatorAccountID(), setupEnv.BridgeAccount)
+	// Step 2 - Send the NFT Allowance for the Payer Account
+	_, err = sendNFTAllowance(setupEnv, nftID, setupEnv.Clients.Hedera.GetOperatorAccountID(), setupEnv.PayerAccount)
 	if err != nil {
 		t.Fatalf("Failed to send Allowance for NFT [%s]. Error: [%s]", nftIDString, err)
 	}
@@ -2157,13 +2157,12 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*h
 	return &res, err
 }
 
-func sendNFTAllowance(setup *setup.Setup, nftId hedera.NftID, ownerAccountId, receiverAccountId hedera.AccountID) (*hedera.TransactionResponse, error) {
-	payerAccountId, _ := hedera.AccountIDFromString("0.0.26306406")
-	fmt.Println(fmt.Sprintf("Sending Allowance for NFT [%s] to account [%s]", nftId.String(), receiverAccountId.String()))
+func sendNFTAllowance(setup *setup.Setup, nftId hedera.NftID, ownerAccountId, spenderAccountId hedera.AccountID) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf("Sending Allowance for NFT [%s] to account [%s]", nftId.String(), spenderAccountId.String()))
 	res, err := hedera.NewAccountAllowanceApproveTransaction().ApproveTokenNftAllowance(
 		nftId,
 		ownerAccountId,
-		payerAccountId,
+		spenderAccountId,
 	).Execute(setup.Clients.Hedera)
 
 	if err != nil {

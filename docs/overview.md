@@ -159,29 +159,39 @@ The transfer of NFT assets from Hedera to the EVM chain is described in the foll
 
 #### Steps
 1. **Initiating the transfer**
-   Alice wants to transfer `HTS NFT` from Hedera to the EVM chain. She opens any UI that integrates the Bridge and sends the NFT asset and flat fee to the `Bridge` Account. The memo of the transfer contains the `evm-address`, which is going to be the receiver of the wrapped ERC-721 (NFT) asset on the other chain.
-2. **Picking up the Transfer**
-   The Bridge validator nodes listen for new incoming transfers to the `Bridge` Account. Once they pick up the new transaction, they validate that the `memo` contains a valid EVM address configured as receiver of the wrapped asset.
-3. **Paying out fees**
+   
+   **1.1** Alice sends `Allowance` for the NFT to the `Payer Account` of the `Bridge`
+   
+   **1.2** Alice wants to transfer `HTS NFT` from Hedera to the EVM chain. She opens any UI that integrates the Bridge and sends the flat fee and all the necessary Royalty (fallback fee) and Fixed fees for the NFT asset to the `Bridge` Account. The memo of the transfer contains the other `chain-Id`, the `evm-address` which is going to be the receiver of the wrapped ERC-721 (NFT) asset and the Hedera NFT ID `serial@token-id`.
 
-   **3.1** Each of the Validators create a Schedule Create transaction transferring the `flat NFT transfer fee` amount from the `Bridge` account to the list of validators equally.
+2. **Picking up the Transfer**
+   The Bridge validator nodes listen for new incoming transfers to the `Bridge` Account. Once they pick up the new transaction, they validate that the `memo` contains a valid EVM address configured as receiver of the wrapped asset and the NFT ID of the Native asset is valid.
+3. **Transferring the NFT to the Bridge Account**
+   
+   **3.1** Each of the Validators create a Schedule Create transaction transferring the `NFT` to the `Bridge` account.
 
    **3.2** Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `IDENTICAL_SCHEDULE_ALREADY_CREATED` error, and the transaction receipt will include the `ScheduleID` of the first submitted transaction.
+
+6. **Paying out fees**
+
+   **4.1** Each of the Validators create a Schedule Create transaction transferring the `flat NFT transfer fee` amount from the `Bridge` account to the list of validators equally.
+
+   **4.2** Due to the nature of Scheduled Transactions, only one will be successfully executed, creating a scheduled Entity and all others will fail with `IDENTICAL_SCHEDULE_ALREADY_CREATED` error, and the transaction receipt will include the `ScheduleID` of the first submitted transaction.
    All validators, except the one that successfully created the Transaction execute `ScheduleSign` and once `n out of m` validators execute the Sign operation, the transfer of the fees will be executed.
 
-4. **Providing Authorisation Signature**
+7. **Providing Authorisation Signature**
    Each of the Validators sign the following authorisation message:
    `{source-chain-id}{target-chain-id}{hedera-tx-id}{wrapped-token}{token-id}{metadata}{receiver}` using their EVM-compatible private key.
    The authorisation is then submitted to a topic in Hedera Consensus Service
 
-5. **Waiting for Supermajority**
+8. **Waiting for Supermajority**
    Alice's UI or API waits for a supermajority of the signatures. She can either watch the topic messages stream or fetch the data directly from Validator nodes.
 
-6. **Submitting the EVM Transaction**
+9. **Submitting the EVM Transaction**
    Once supermajority is reached, Alice submits the transaction to the EVM chain, claiming her wrapped asset. The transaction contains the raw data signed in the message: `{source-chain-id}{target-chain-id}{hedera-tx-id}{wrapped-token}{token-id}{metadata}{receiver}`
 
-7. **Mint Operation**
-   The smart contract verifies that no reply attack is being executed by verifying the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped ERC-721 (NFT) to the `receiving` address.
+10. **Mint Operation**
+    The smart contract verifies that no reply attack is being executed by verifying the provided signatures against the raw data that was signed. If supermajority is reached, the `Router` contract `mints` the wrapped ERC-721 (NFT) to the `receiving` address.
 
 ### EVM to Hedera
 
