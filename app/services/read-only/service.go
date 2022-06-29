@@ -184,6 +184,59 @@ func (s Service) FindScheduledNftAllowanceApprove(
 	}
 }
 
+func (s Service) FindNftTransfer(
+	transferID string, tokenID string, serialNum int64, sender string, receiver string,
+	save func(transactionID, scheduleID, status string) error) {
+	for {
+		response, err := s.mirrorNode.GetNftTransactions(tokenID, serialNum)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to get nft transactions after timestamp. Error: [%s]", transferID, err)
+			continue
+		}
+
+		finished := false
+		for _, transaction := range response.Transactions {
+			if transaction.Type == CryptoTransfer &&
+				transaction.ReceiverAccountID == receiver &&
+				transaction.SenderAccountID == sender {
+
+				scheduledTx, err := s.mirrorNode.GetScheduledTransaction(transaction.TransactionID)
+				if err != nil {
+					s.logger.Errorf("[%s] - Failed to retrieve scheduled transaction [%s]. Error: [%s]", transferID, transaction.TransactionID, err)
+					continue
+				}
+				for _, tx := range scheduledTx.Transactions {
+					if tx.Result == hedera.StatusSuccess.String() {
+						scheduleID, err := s.mirrorNode.GetSchedule(tx.EntityId)
+						if err != nil {
+							s.logger.Errorf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", transferID, scheduleID, err)
+							break
+						}
+						if scheduleID.Memo == transferID {
+							s.logger.Infof("[%s] - Found a corresponding transaction [%s], ScheduleID [%s].", transferID, transaction.TransactionID, tx.EntityId)
+							finished = true
+							txStatus := status.Completed
+
+							err := save(transaction.TransactionID, tx.EntityId, txStatus)
+							if err != nil {
+								s.logger.Errorf("[%s] - Failed to save entity [%s]. Error: [%s]", transferID, tx.EntityId, err)
+								break
+							}
+
+							break
+						}
+					}
+				}
+			}
+		}
+		if finished {
+			break
+		}
+
+		time.Sleep(s.pollingInterval * time.Second)
+	}
+}
+
 func (s Service) FindTransfer(
 	transferID string,
 	fetch func() (*mirrorNodeTransaction.Response, error),
