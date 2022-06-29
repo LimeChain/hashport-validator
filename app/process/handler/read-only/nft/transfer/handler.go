@@ -35,6 +35,7 @@ type Handler struct {
 	transferRepository repository.Transfer
 	scheduleRepository repository.Schedule
 	bridgeAccount      hedera.AccountID
+	payerAccount       hedera.AccountID
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
 	logger             *log.Entry
@@ -42,6 +43,7 @@ type Handler struct {
 
 func NewHandler(
 	bridgeAccount string,
+	payerAccount string,
 	transferRepository repository.Transfer,
 	scheduleRepository repository.Schedule,
 	readOnlyService service.ReadOnly,
@@ -50,8 +52,14 @@ func NewHandler(
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
 	}
+	payerAcc, err := hedera.AccountIDFromString(payerAccount)
+	if err != nil {
+		log.Fatalf("Invalid account id [%s]. Error: [%s]", payerAccount, err)
+	}
+
 	return &Handler{
 		bridgeAccount:      bridgeAcc,
+		payerAccount:       payerAcc,
 		transferRepository: transferRepository,
 		scheduleRepository: scheduleRepository,
 		readOnlyService:    readOnlyService,
@@ -80,7 +88,7 @@ func (rnth Handler) Handle(p interface{}) {
 
 	rnth.readOnlyService.FindScheduledNftAllowanceApprove(
 		transfer,
-		rnth.bridgeAccount,
+		rnth.payerAccount,
 		func(transactionID, scheduleID, status string) error {
 			err := rnth.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,
