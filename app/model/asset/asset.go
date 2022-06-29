@@ -53,6 +53,7 @@ type NonFungibleAssetInfo struct {
 	ReserveAmount         *big.Int              `json:"-"`
 	CustomFees            CustomFees            `json:"customFees"`
 	CustomFeeTotalAmounts CustomFeeTotalAmounts `json:"-"`
+	TreasuryAccountId     string                `json:"-"`
 }
 
 type CustomFees struct {

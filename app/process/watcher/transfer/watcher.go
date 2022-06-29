@@ -217,6 +217,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 
 	var transferMessage *payload.Transfer
+	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
 	if checkResult.NftId != nil {
 		nftAssetInfo, ok := ctw.assetsService.NonFungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
 		if !ok {
@@ -235,18 +236,21 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
 			return
 		}
-
-		// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
-		if feeSent < (fee + nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar) {
-			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
-			return
+		totalHbarFeeExpected := fee
+		if originator != nftAssetInfo.TreasuryAccountId {
+			totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+			// Validate that the required Custom fees by Token ID are sent
+			if len(nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId) > 0 {
+				if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
+					return
+				}
+			}
 		}
 
-		// Validate that the required Custom fees by Token ID are sent
-		if len(nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId) > 0 {
-			if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
-				return
-			}
+		// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
+		if feeSent < totalHbarFeeExpected {
+			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
+			return
 		}
 
 		feeForValidators := feeSent - nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
@@ -269,7 +273,6 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
 	transferMessage.Timestamp = time.Unix(0, transactionTimestamp)
 	transferMessage.Originator = originator
 

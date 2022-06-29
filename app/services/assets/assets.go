@@ -345,6 +345,7 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 		assetInfo.CustomFees.InitFromResponse(assetInfoResponse.CustomFees)
 		assetInfo.CustomFeeTotalAmounts = fee.SumFallbackFeeAmounts(assetInfo.CustomFees)
+		assetInfo.TreasuryAccountId = assetInfoResponse.TreasuryAccountId
 	}
 
 	return assetInfo, err

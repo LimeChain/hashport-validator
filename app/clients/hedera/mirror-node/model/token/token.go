@@ -18,12 +18,13 @@ package token
 
 type (
 	TokenResponse struct {
-		TokenID     string     `json:"token_id"`
-		Name        string     `json:"name"`
-		Symbol      string     `json:"symbol"`
-		TotalSupply string     `json:"total_supply"`
-		Decimals    string     `json:"decimals"`
-		CustomFees  CustomFees `json:"custom_fees"`
+		TokenID           string     `json:"token_id"`
+		Name              string     `json:"name"`
+		Symbol            string     `json:"symbol"`
+		TotalSupply       string     `json:"total_supply"`
+		Decimals          string     `json:"decimals"`
+		CustomFees        CustomFees `json:"custom_fees"`
+		TreasuryAccountId string     `json:"treasury_account_id"`
 	}
 
 	NetworkSupplyResponse struct {

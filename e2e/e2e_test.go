@@ -845,7 +845,10 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	if !ok {
 		t.Fatalf("Failed to asset info for NFT [%s]. Error [%s]", nftToken, err)
 	}
-	transferFee = transferFee + nftInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+	if originator != nftInfo.TreasuryAccountId {
+		transferFee += nftInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+	}
+
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
 	if e != nil {
 		t.Fatalf("Failed to decode metadata [%s]. Error [%s]", nftData.Metadata, e)
