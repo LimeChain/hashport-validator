@@ -125,15 +125,14 @@ func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) mod
 	result.ChainId = chainId
 	evmAddress := memoArgs[1]
 	result.EvmAddress = evmAddress
-	var nftId hedera.NftID
 	if len(memoArgs) > 2 {
-		nftId, e = hedera.NftIDFromString(memoArgs[2])
+		nftId, e := hedera.NftIDFromString(memoArgs[2])
 		if e != nil {
 			result.Err = errors.New(fmt.Sprintf("[%s] - Could not parse NftId in transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
 			return result
 		}
+		result.NftId = &nftId
 	}
-	result.NftId = &nftId
 
 	return result
 }

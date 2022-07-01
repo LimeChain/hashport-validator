@@ -184,7 +184,6 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 	sourceAsset := parsedTransfer.Asset
-
 	checkResult := ctw.transfers.SanityCheckTransfer(tx)
 	if checkResult.Err != nil {
 		ctw.logger.Errorf("[%s] - Sanity check failed. Error: [%s]", tx.TransactionID, checkResult.Err)
@@ -236,8 +235,11 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
 			return
 		}
+
 		totalHbarFeeExpected := fee
-		if originator != nftAssetInfo.TreasuryAccountId {
+
+		feeForValidators := feeSent
+		if originator != nftAssetInfo.TreasuryAccountId { // Custom Fees are expected only for Non-Treasury Account ID
 			totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
 			// Validate that the required Custom fees by Token ID are sent
 			if len(nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId) > 0 {
@@ -245,6 +247,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 					return
 				}
 			}
+			feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
 		}
 
 		// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
@@ -253,7 +256,6 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		feeForValidators := feeSent - nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
 		transferMessage, err = ctw.createNonFungiblePayload(
 			tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, checkResult.NftId.SerialNumber, targetChainId, targetChainAsset, feeForValidators)
 
