@@ -63,6 +63,7 @@ type Hedera struct {
 	Network        string
 	Rpc            map[string]hedera.AccountID
 	StartTimestamp int64
+	MaxRetry       int
 }
 
 type Operator struct {
@@ -111,8 +112,9 @@ func New(node parser.Node) Node {
 			Hedera: Hedera{
 				Operator:       Operator(node.Clients.Hedera.Operator),
 				Network:        node.Clients.Hedera.Network,
-				StartTimestamp: node.Clients.Hedera.StartTimestamp,
 				Rpc:            rpc,
+				StartTimestamp: node.Clients.Hedera.StartTimestamp,
+				MaxRetry:       node.Clients.Hedera.MaxRetry,
 			},
 			MirrorNode: MirrorNode{
 				ClientAddress:     node.Clients.MirrorNode.ClientAddress,

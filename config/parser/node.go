@@ -65,6 +65,7 @@ type Hedera struct {
 	Network        string            `yaml:"network"`
 	Rpc            map[string]string `yaml:"rpc"`
 	StartTimestamp int64             `yaml:"start_timestamp"`
+	MaxRetry       int               `yaml:"max_retry"`
 }
 
 type Operator struct {
