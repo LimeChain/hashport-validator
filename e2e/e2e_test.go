@@ -846,7 +846,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("Failed to asset info for NFT [%s]. Error [%s]", nftToken, err)
 	}
 	if originator != nftInfo.TreasuryAccountId {
-		transferFee += nftInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+		transferFee += nftInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
 	}
 
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
@@ -2162,11 +2162,12 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*h
 
 func sendNFTAllowance(setup *setup.Setup, nftId hedera.NftID, ownerAccountId, spenderAccountId hedera.AccountID) (*hedera.TransactionResponse, error) {
 	fmt.Println(fmt.Sprintf("Sending Allowance for NFT [%s] to account [%s]", nftId.String(), spenderAccountId.String()))
-	res, err := hedera.NewAccountAllowanceApproveTransaction().ApproveTokenNftAllowance(
-		nftId,
-		ownerAccountId,
-		spenderAccountId,
-	).Execute(setup.Clients.Hedera)
+	res, err := hedera.NewAccountAllowanceApproveTransaction().
+		ApproveTokenNftAllowance(
+			nftId,
+			ownerAccountId,
+			spenderAccountId,
+		).Execute(setup.Clients.Hedera)
 
 	if err != nil {
 		return nil, err

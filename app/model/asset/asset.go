@@ -42,8 +42,6 @@ type CustomFeeTotalAmounts struct {
 	FallbackFeeAmountsByTokenId map[string]int64 `json:"-"`
 	FixedFeeAmountInHbar        int64            `json:"-"`
 	FixedFeeAmountsByTokenId    map[string]int64 `json:"-"`
-	TotalFeeAmountsInHbar       int64            `json:"-"`
-	TotalAmountsByTokenId       map[string]int64 `json:"-"`
 }
 
 type NonFungibleAssetInfo struct {

@@ -191,9 +191,10 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 	targetChainId := checkResult.ChainId
 
-	if checkResult.NftId != nil {
-		sourceAsset = checkResult.NftId.TokenID.String()
+	if checkResult.NftId == nil {
 		ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, sourceAsset)
+	} else {
+		sourceAsset = checkResult.NftId.TokenID.String()
 	}
 
 	nativeAsset := &asset.NativeAsset{
@@ -240,14 +241,14 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 
 		feeForValidators := feeSent
 		if originator != nftAssetInfo.TreasuryAccountId { // Custom Fees are expected only for Non-Treasury Account ID
-			totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+			totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
 			// Validate that the required Custom fees by Token ID are sent
-			if len(nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId) > 0 {
+			if len(nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId) > 0 {
 				if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
 					return
 				}
 			}
-			feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.TotalFeeAmountsInHbar
+			feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
 		}
 
 		// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
@@ -314,8 +315,8 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 }
 
 func (ctw Watcher) validateNftTokenCustomFees(nftAssetInfo *asset.NonFungibleAssetInfo, tx transaction.Transaction, sourceAsset string) bool {
-	for tokenId := range nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId {
-		feeForToken := nftAssetInfo.CustomFeeTotalAmounts.TotalAmountsByTokenId[tokenId]
+	for tokenId := range nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId {
+		feeForToken := nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId[tokenId]
 		if feeForToken > 0 {
 			tokenFeeSent, ok := tx.GetTokenTransfer(ctw.accountID.String())
 			if !ok {

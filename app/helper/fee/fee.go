@@ -55,15 +55,12 @@ func sumFallbackFeeAmounts(royaltyFees []asset.RoyaltyFee, customFeeAmounts *ass
 	for _, royaltyFee := range royaltyFees {
 		if royaltyFee.FallbackFee.DenominatingTokenId == nil {
 			customFeeAmounts.FallbackFeeAmountInHbar += royaltyFee.FallbackFee.Amount
-			customFeeAmounts.TotalFeeAmountsInHbar += royaltyFee.FallbackFee.Amount
 		} else {
 			tokenId := *royaltyFee.FallbackFee.DenominatingTokenId
 			if _, ok := customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId]; !ok {
 				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] = royaltyFee.FallbackFee.Amount
-				customFeeAmounts.TotalAmountsByTokenId[tokenId] = royaltyFee.FallbackFee.Amount
 			} else {
 				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] += royaltyFee.FallbackFee.Amount
-				customFeeAmounts.TotalAmountsByTokenId[tokenId] += royaltyFee.FallbackFee.Amount
 			}
 		}
 	}
@@ -73,15 +70,12 @@ func sumFixedFeeAmounts(fixedFees []asset.FixedFee, customFeeAmounts *asset.Cust
 	for _, fixedFee := range fixedFees {
 		if fixedFee.DenominatingTokenId == nil {
 			customFeeAmounts.FixedFeeAmountInHbar += fixedFee.Amount
-			customFeeAmounts.TotalFeeAmountsInHbar += fixedFee.Amount
 		} else {
 			tokenId := *fixedFee.DenominatingTokenId
 			if _, ok := customFeeAmounts.FixedFeeAmountsByTokenId[tokenId]; !ok {
 				customFeeAmounts.FixedFeeAmountsByTokenId[tokenId] = fixedFee.Amount
-				customFeeAmounts.TotalAmountsByTokenId[tokenId] = fixedFee.Amount
 			} else {
 				customFeeAmounts.FixedFeeAmountsByTokenId[tokenId] += fixedFee.Amount
-				customFeeAmounts.TotalAmountsByTokenId[tokenId] += fixedFee.Amount
 			}
 		}
 	}

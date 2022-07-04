@@ -642,20 +642,36 @@ The steps below will showcase a bridge transfer from Hedera Native NFT to any EV
 
 ### Step 1. Deposit Transaction
 
-In order to initiate transfer, user must submit a deposit transfer transaction, which will include the serial number of the given TokenID and an HBAR transfer with the fee.
-Similar to fungible transfers, the transfer **must** include a memo, in the following format: `{targetChainId}-{receiverAddress}`, where:
+In order to initiate transfer, user must submit `CryptoApproveAllowance` transaction for the given NFT, specifying the spender to be `Payer Account` of the bridge configuration. 
+Then to send a deposit transfer transaction for the `Bridge` flat fee and all the necessary `Royalty` (`Fallback Fee`) for the NFT asset to the `Bridge` Account 
+with memo in format `{targetChainId}-{receiverAddress}-{serial_number}@{token_id}`.
+Similar to fungible transfers, the transfer **must** include a memo, in format `{targetChainId}-{receiverAddress}-{serialNumber}@{tokenId}`, where:
 
 * `targetChainId` - the chain id of the network to which the bridge transfer will go to.
-* `receiverAddress` - the address to which the wrapped version of the NFT will be minted. 
+* `receiverAddress` - the address to which the wrapped version of the NFT will be minted.
+* `serialNumber` - the serial number of the transferred NFT to which the wrapped version of the NFT will be minted.
+* `tokenId` - the token ID of the transferred NFT to which the wrapped version of the NFT will be minted.
+  
+
+Example of how to submit a `CryptoApproveAllowance` transaction for the `Payer Account` in Go using Hedera Go SDK:
+```go
+nftID, _ := hedera.NftIDFromString("11@0.0.15633470")// 11 - Hedera Token serial number, 0.0.15633470 - tokenID of the Hedera token
+res, err := hedera.NewAccountAllowanceApproveTransaction().
+    ApproveTokenNftAllowance(
+        nftId,
+        ownerAccountId, // The user's account ID
+        spenderAccountId, // Payer's Account ID from the Bridge Config
+    ).Execute(setup.Clients.Hedera)
+```
 
 Example of how to submit a Deposit transaction to the Bridge account in Go using Hedera Go SDK:
 ```go
 nftID, _ := hedera.NftIDFromString("11@0.0.15633470") // 11 - Hedera Token serial number, 0.0.15633470 - tokenID of the Hedera token
 response, _ := hedera.NewTransferTransaction().
-    SetTransactionMemo("80001-0x0000000000000000000000000000000000000002"). // 80001 - chainId of Polygon Mumbai Testnet, 0x0000000000000000000000000000000000000002 - receiver address
+    SetTransactionMemo("80001-0x0000000000000000000000000000000000000002-11@0.0.15633470"). // 80001 - chainId of Polygon Mumbai Testnet, 0x0000000000000000000000000000000000000002 - receiver address, 11@0.0.15633470 - the NFT ID
     AddNftTransfer(nftID, client.GetOperatorAccountID(), bridgeAccount). // Send the NFT to the bridge account
-    AddHbarTransfer(bridgeAccount, hedera.HbarFrom(1, "hbar")). // Send the NFT bridge transfer fee to the bridge account
-    AddHbarTransfer(client.GetOperatorAccountID(), hedera.HbarFrom(-1, "hbar")). // The negated transfer fee from the sender account
+    AddHbarTransfer(bridgeAccount, hedera.HbarFrom(1, "hbar")). // Send the NFT bridge transfer fee to the bridge account (including the Royalty (Fallback Fee) in HBAR if the NFT has such in the Custom Fees)
+    AddHbarTransfer(client.GetOperatorAccountID(), hedera.HbarFrom(-1, "hbar")). // The negated transfer fee from the sender account (including the Royalty (Fallback Fee) in HBAR if the NFT has such in the Custom Fees)
     Execute(client)
 ```
 

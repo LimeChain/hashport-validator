@@ -69,13 +69,37 @@ func main() {
 }
 
 func createToken(client *hedera.Client) *hedera.TokenID {
+
+	operatorAccountId := client.GetOperatorAccountID()
 	createTokenTX, err := hedera.NewTokenCreateTransaction().
+		SetCustomFees([]hedera.Fee{
+
+			hedera.CustomFixedFee{
+				CustomFee: hedera.CustomFee{
+					FeeCollectorAccountID: &operatorAccountId,
+				},
+				Amount:              78000000,
+				DenominationTokenID: nil,
+			},
+			hedera.CustomRoyaltyFee{
+				CustomFee: hedera.CustomFee{
+					FeeCollectorAccountID: &operatorAccountId,
+				},
+				Numerator:   510,
+				Denominator: 10000,
+				FallbackFee: &hedera.CustomFixedFee{
+					CustomFee:           hedera.CustomFee{},
+					Amount:              454000000,
+					DenominationTokenID: nil,
+				},
+			},
+		}).
 		SetAdminKey(client.GetOperatorPublicKey()).
 		SetTreasuryAccountID(client.GetOperatorAccountID()).
 		SetTokenType(hedera.TokenTypeNonFungibleUnique).
-		SetTokenName("Test NFT Token").
-		SetTokenSymbol("Test_NFT_T").
-		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
+		SetTokenName("Test NFT With Fixed Fee").
+		SetTokenSymbol("NFT_F_FEE").
+		SetMaxTransactionFee(hedera.HbarFrom(200, "hbar")).
 		SetSupplyKey(client.GetOperatorPublicKey()).
 		Execute(client)
 	if err != nil {
@@ -89,7 +113,7 @@ func createToken(client *hedera.Client) *hedera.TokenID {
 }
 
 func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID, custodianKey []hedera.PrivateKey) hedera.TransactionReceipt {
-	freezedAssociateTX, err := hedera.
+	frozenAssociateTX, err := hedera.
 		NewTokenAssociateTransaction().
 		SetAccountID(bridgeID).
 		SetTokenIDs(token).
@@ -99,9 +123,9 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridge
 	}
 
 	for i := 0; i < len(custodianKey); i++ {
-		freezedAssociateTX = freezedAssociateTX.Sign(custodianKey[i])
+		frozenAssociateTX = frozenAssociateTX.Sign(custodianKey[i])
 	}
-	associateTX, err := freezedAssociateTX.Execute(client)
+	associateTX, err := frozenAssociateTX.Execute(client)
 	if err != nil {
 		panic(err)
 	}
