@@ -69,37 +69,13 @@ func main() {
 }
 
 func createToken(client *hedera.Client) *hedera.TokenID {
-
-	operatorAccountId := client.GetOperatorAccountID()
 	createTokenTX, err := hedera.NewTokenCreateTransaction().
-		SetCustomFees([]hedera.Fee{
-
-			hedera.CustomFixedFee{
-				CustomFee: hedera.CustomFee{
-					FeeCollectorAccountID: &operatorAccountId,
-				},
-				Amount:              78000000,
-				DenominationTokenID: nil,
-			},
-			hedera.CustomRoyaltyFee{
-				CustomFee: hedera.CustomFee{
-					FeeCollectorAccountID: &operatorAccountId,
-				},
-				Numerator:   510,
-				Denominator: 10000,
-				FallbackFee: &hedera.CustomFixedFee{
-					CustomFee:           hedera.CustomFee{},
-					Amount:              454000000,
-					DenominationTokenID: nil,
-				},
-			},
-		}).
 		SetAdminKey(client.GetOperatorPublicKey()).
 		SetTreasuryAccountID(client.GetOperatorAccountID()).
 		SetTokenType(hedera.TokenTypeNonFungibleUnique).
-		SetTokenName("Test NFT With Fixed Fee").
-		SetTokenSymbol("NFT_F_FEE").
-		SetMaxTransactionFee(hedera.HbarFrom(200, "hbar")).
+		SetTokenName("Test NFT Token").
+		SetTokenSymbol("Test_NFT_T").
+		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
 		SetSupplyKey(client.GetOperatorPublicKey()).
 		Execute(client)
 	if err != nil {
