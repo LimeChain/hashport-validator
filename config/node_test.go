@@ -52,9 +52,8 @@ func Test_New(t *testing.T) {
 				StartTimestamp: 0,
 			},
 			MirrorNode: parser.MirrorNode{
-				ClientAddress:   "client-address",
-				ApiAddress:      "api-address",
-				PollingInterval: 0,
+				ClientAddress: "client-address",
+				ApiAddress:    "api-address",
 			},
 		},
 		LogLevel:  "log-level",
