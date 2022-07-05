@@ -66,6 +66,7 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 	rp := mirrorNode.RetryPolicy
 	c := httpretry.NewCustomClient(httpC,
 		httpretry.WithMaxRetryCount(rp.MaxRetry),
+		httpretry.WithRetryPolicy(httpHelper.RetryPolicy),
 		httpretry.WithBackoffPolicy(
 			httpretry.ExponentialBackoff(
 				rp.MinWait, rp.MaxWait, rp.MaxJitter)),
