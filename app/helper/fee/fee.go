@@ -41,12 +41,11 @@ func TotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) 
 	return strconv.FormatInt(result, 10), hasReceiver
 }
 
-// SumFallbackFeeAmounts sums fallback and fixed fees in HBAR and by token ID
-// Returns the sum of the fallback and fixed fees in HBAR and by token ID
+// SumFallbackFeeAmounts sums fallback fees in HBAR and by token ID
+// Returns the sum of the fallback fees in HBAR and by token ID
 func SumFallbackFeeAmounts(customFees asset.CustomFees) asset.CustomFeeTotalAmounts {
 	customFeeAmounts := new(asset.CustomFeeTotalAmounts)
 	sumFallbackFeeAmounts(customFees.RoyaltyFees, customFeeAmounts)
-	sumFixedFeeAmounts(customFees.FixedFees, customFeeAmounts)
 
 	return *customFeeAmounts
 }
@@ -61,21 +60,6 @@ func sumFallbackFeeAmounts(royaltyFees []asset.RoyaltyFee, customFeeAmounts *ass
 				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] = royaltyFee.FallbackFee.Amount
 			} else {
 				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] += royaltyFee.FallbackFee.Amount
-			}
-		}
-	}
-}
-
-func sumFixedFeeAmounts(fixedFees []asset.FixedFee, customFeeAmounts *asset.CustomFeeTotalAmounts) {
-	for _, fixedFee := range fixedFees {
-		if fixedFee.DenominatingTokenId == nil {
-			customFeeAmounts.FixedFeeAmountInHbar += fixedFee.Amount
-		} else {
-			tokenId := *fixedFee.DenominatingTokenId
-			if _, ok := customFeeAmounts.FixedFeeAmountsByTokenId[tokenId]; !ok {
-				customFeeAmounts.FixedFeeAmountsByTokenId[tokenId] = fixedFee.Amount
-			} else {
-				customFeeAmounts.FixedFeeAmountsByTokenId[tokenId] += fixedFee.Amount
 			}
 		}
 	}

@@ -40,8 +40,6 @@ type FungibleAssetInfo struct {
 type CustomFeeTotalAmounts struct {
 	FallbackFeeAmountInHbar     int64            `json:"-"`
 	FallbackFeeAmountsByTokenId map[string]int64 `json:"-"`
-	FixedFeeAmountInHbar        int64            `json:"-"`
-	FixedFeeAmountsByTokenId    map[string]int64 `json:"-"`
 }
 
 type NonFungibleAssetInfo struct {
@@ -56,19 +54,14 @@ type NonFungibleAssetInfo struct {
 
 type CustomFees struct {
 	CreatedTimestamp string       `json:"createdTimestamp"`
-	FixedFees        []FixedFee   `json:"fixedFees"`
 	RoyaltyFees      []RoyaltyFee `json:"royaltyFees"`
 }
 
 func (c *CustomFees) InitFromResponse(customFees token.CustomFees) {
 	c.CreatedTimestamp = customFees.CreatedTimestamp
 	c.RoyaltyFees = make([]RoyaltyFee, len(customFees.RoyaltyFees))
-	c.FixedFees = make([]FixedFee, len(customFees.FixedFees))
 	for i, fee := range customFees.RoyaltyFees {
 		c.RoyaltyFees[i].InitFromResponse(fee)
-	}
-	for i, fee := range customFees.FixedFees {
-		c.FixedFees[i].InitFromResponse(fee)
 	}
 }
 

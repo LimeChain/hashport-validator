@@ -36,7 +36,6 @@ type (
 
 type CustomFees struct {
 	CreatedTimestamp string       `json:"created_timestamp"`
-	FixedFees        []FixedFee   `json:"fixed_fees"`
 	RoyaltyFees      []RoyaltyFee `json:"royalty_fees"`
 }
 

@@ -52,6 +52,8 @@ func ScheduledNftTxExecutionCallbacks(
 			},
 		})
 		if err != nil {
+			defer wg.Done()
+			*statusResult = syncHelper.FAIL
 			logger.Errorf(
 				"[%s] - Failed to update submitted status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				id, transactionID, scheduleID, err)
