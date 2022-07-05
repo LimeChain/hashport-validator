@@ -91,6 +91,15 @@ type MirrorNode struct {
 	PollingInterval   time.Duration
 	QueryMaxLimit     int64
 	QueryDefaultLimit int64
+	RetryPolicy       RetryPolicy
+	RequestTimeout    time.Duration
+}
+
+type RetryPolicy struct {
+	MaxRetry  int
+	MinWait   time.Duration
+	MaxWait   time.Duration
+	MaxJitter time.Duration
 }
 
 type Monitoring struct {
@@ -120,6 +129,13 @@ func New(node parser.Node) Node {
 				PollingInterval:   node.Clients.MirrorNode.PollingInterval,
 				QueryMaxLimit:     node.Clients.MirrorNode.QueryMaxLimit,
 				QueryDefaultLimit: node.Clients.MirrorNode.QueryDefaultLimit,
+				RetryPolicy: RetryPolicy{
+					MaxRetry:  node.Clients.MirrorNode.RetryPolicy.MaxRetry,
+					MinWait:   time.Duration(node.Clients.MirrorNode.RetryPolicy.MinWait) * time.Second,
+					MaxWait:   time.Duration(node.Clients.MirrorNode.RetryPolicy.MaxWait) * time.Second,
+					MaxJitter: time.Duration(node.Clients.MirrorNode.RetryPolicy.MaxJitter) * time.Second,
+				},
+				RequestTimeout: time.Duration(node.Clients.MirrorNode.RequestTimeout) * time.Second,
 			},
 			Evm: make(map[uint64]Evm),
 			CoinGecko: CoinGecko{
