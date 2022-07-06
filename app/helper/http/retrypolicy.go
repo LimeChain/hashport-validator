@@ -24,35 +24,39 @@ import (
 )
 
 func RetryPolicy(statusCode int, err error) bool {
-	// check if error is of type temporary
-	t, ok := err.(interface{ Temporary() bool })
-	if ok && t.Temporary() {
-		return true
+	if err != nil {
+		// check if error is of type temporary
+		t, ok := err.(interface{ Temporary() bool })
+		if ok && t.Temporary() {
+			return true
+		}
+
+		switch e := err.(type) {
+		case *url.Error:
+			switch {
+			case
+				e.Op == "parse",
+				strings.Contains(e.Err.Error(), "stopped after"),
+				strings.Contains(e.Error(), "unsupported protocol scheme"),
+				strings.Contains(e.Error(), "no Host in request URL"):
+				return false
+			default:
+				// check inner error of url.Error
+				switch e.Err.(type) {
+				case // this errors will not likely change when retrying
+					x509.UnknownAuthorityError,
+					x509.CertificateInvalidError,
+					x509.ConstraintViolationError:
+					return false
+				}
+			}
+		case error: // generic error, check for strings if nothing found, retry
+			return true
+		case nil: // no error, continue
+		}
 	}
 
 	// we cannot know all errors, so we filter errors that should NOT be retried
-	switch e := err.(type) {
-	case *url.Error:
-		switch {
-		case
-			e.Op == "parse",
-			strings.Contains(e.Err.Error(), "stopped after"),
-			strings.Contains(e.Error(), "unsupported protocol scheme"),
-			strings.Contains(e.Error(), "no Host in request URL"):
-			return false
-		}
-		// check inner error of url.Error
-		switch e.Err.(type) {
-		case // this errors will not likely change when retrying
-			x509.UnknownAuthorityError,
-			x509.CertificateInvalidError,
-			x509.ConstraintViolationError:
-			return false
-		}
-	case error: // generic error, check for strings if nothing found, retry
-		return true
-	case nil: // no error, continue
-	}
 
 	// most of the codes should not be retried, so we filter status codes that SHOULD be retried
 	switch statusCode {
