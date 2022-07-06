@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/shopspring/decimal"
 
@@ -73,20 +72,7 @@ func Load() *Setup {
 			TopicID:           e2eConfig.Hedera.TopicID,
 			Sender:            Sender(e2eConfig.Hedera.Sender),
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
-			MirrorNode: config.MirrorNode{
-				ClientAddress:     e2eConfig.Hedera.MirrorNode.ClientAddress,
-				ApiAddress:        e2eConfig.Hedera.MirrorNode.ApiAddress,
-				PollingInterval:   e2eConfig.Hedera.MirrorNode.PollingInterval,
-				QueryMaxLimit:     e2eConfig.Hedera.MirrorNode.QueryMaxLimit,
-				QueryDefaultLimit: e2eConfig.Hedera.MirrorNode.QueryDefaultLimit,
-				RetryPolicy: config.RetryPolicy{
-					MaxRetry:  e2eConfig.Hedera.MirrorNode.RetryPolicy.MaxRetry,
-					MinWait:   time.Second * time.Duration(e2eConfig.Hedera.MirrorNode.RetryPolicy.MinWait),
-					MaxWait:   time.Second * time.Duration(e2eConfig.Hedera.MirrorNode.RetryPolicy.MaxWait),
-					MaxJitter: time.Second * time.Duration(e2eConfig.Hedera.MirrorNode.RetryPolicy.MaxJitter),
-				},
-				RequestTimeout: time.Second * time.Duration(e2eConfig.Hedera.MirrorNode.RequestTimeout),
-			},
+			MirrorNode:        *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
 		},
 		EVM:             make(map[uint64]config.Evm),
 		Tokens:          e2eConfig.Tokens,
