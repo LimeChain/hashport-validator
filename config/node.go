@@ -72,7 +72,8 @@ type Operator struct {
 }
 
 const (
-	defaultMaxRetry = 20
+	defaultMaxRetry       = 20
+	defaultStartTimestamp = 0
 )
 
 func (h *Hedera) DefaultOrConfig(cfg *parser.Hedera) *Hedera {
@@ -83,17 +84,17 @@ func (h *Hedera) DefaultOrConfig(cfg *parser.Hedera) *Hedera {
 		log.Fatalf("node configuration: Hedera Operator Private Key is required")
 	}
 
+	h.Rpc = parseRpc(cfg.Rpc)
+
 	if h.Network = cfg.Network; h.Network == "" {
 		h.Network = string(hedera.NetworkNameTestnet)
+	}
+	if h.StartTimestamp = cfg.StartTimestamp; h.StartTimestamp == 0 {
+		h.StartTimestamp = defaultStartTimestamp
 	}
 	if h.MaxRetry = cfg.MaxRetry; h.MaxRetry == 0 {
 		h.MaxRetry = defaultMaxRetry
 	}
-	if h.StartTimestamp = cfg.StartTimestamp; h.StartTimestamp == 0 {
-		h.StartTimestamp = 0
-	}
-
-	h.Rpc = parseRpc(cfg.Rpc)
 
 	return h
 }
@@ -132,17 +133,10 @@ type Recovery struct {
 }
 
 func New(node parser.Node) Node {
-	rpc := parseRpc(node.Clients.Hedera.Rpc)
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
-			Hedera: Hedera{
-				Operator:       Operator(node.Clients.Hedera.Operator),
-				Network:        node.Clients.Hedera.Network,
-				Rpc:            rpc,
-				StartTimestamp: node.Clients.Hedera.StartTimestamp,
-				MaxRetry:       node.Clients.Hedera.MaxRetry,
-			},
+			Hedera: *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
 			MirrorNode: MirrorNode{
 				ClientAddress:     node.Clients.MirrorNode.ClientAddress,
 				ApiAddress:        node.Clients.MirrorNode.ApiAddress,
