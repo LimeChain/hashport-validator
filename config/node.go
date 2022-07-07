@@ -71,6 +71,33 @@ type Operator struct {
 	PrivateKey string
 }
 
+const (
+	defaultMaxRetry = 20
+)
+
+func (h *Hedera) DefaultOrConfig(cfg *parser.Hedera) *Hedera {
+	if h.Operator.AccountId = cfg.Operator.AccountId; h.Operator.AccountId == "" {
+		log.Fatalf("node configuration: Hedera Operator Account ID is required")
+	}
+	if h.Operator.PrivateKey = cfg.Operator.PrivateKey; h.Operator.PrivateKey == "" {
+		log.Fatalf("node configuration: Hedera Operator Private Key is required")
+	}
+
+	if h.Network = cfg.Network; h.Network == "" {
+		h.Network = string(hedera.NetworkNameTestnet)
+	}
+	if h.MaxRetry = cfg.MaxRetry; h.MaxRetry == 0 {
+		h.MaxRetry = defaultMaxRetry
+	}
+	if h.StartTimestamp = cfg.StartTimestamp; h.StartTimestamp == 0 {
+		h.StartTimestamp = 0
+	}
+
+	h.Rpc = parseRpc(cfg.Rpc)
+
+	return h
+}
+
 // CoinGecko //
 
 type CoinGecko struct {
