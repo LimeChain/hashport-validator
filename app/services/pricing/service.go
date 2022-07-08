@@ -210,8 +210,9 @@ func (s *Service) evmWrappedNftFee(id string, diamondRouter client.DiamondRouter
 func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.hederaNftFees[id]
 	if !ok {
-		s.logger.Errorf("No fee found for NFT [%s] on network [%d]", id, networkId)
-		return nil, errors.New(fmt.Sprintf("No fee found for NFT [%s] on network [%d]", id, networkId))
+		errMsg := fmt.Sprintf("No fee found for NFT [%s] on network [%d]", id, networkId)
+		s.logger.Errorf(errMsg)
+		return nil, errors.New(errMsg)
 	}
 
 	return &pricing.NonFungibleFee{
