@@ -17,10 +17,11 @@
 package config
 
 import (
+	"testing"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_New(t *testing.T) {
@@ -92,6 +93,7 @@ func Test_New(t *testing.T) {
 				Network:        "network",
 				StartTimestamp: 0,
 				Rpc:            map[string]hedera.AccountID{},
+				MaxRetry:       20,
 			},
 			MirrorNode: MirrorNode{
 				ClientAddress:   "client-address",
