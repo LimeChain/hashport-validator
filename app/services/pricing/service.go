@@ -410,24 +410,9 @@ func bridgeCfgEventHandler(e event.Event, assetsService service.Assets, mirrorNo
 	}
 
 	newInstance := initialize(params.Bridge, assetsService, mirrorNodeClient, coinGeckoClient, coinMarketCapClient, params.RouterClients)
-	copyFields(newInstance, instance)
+	*instance = *newInstance
 
 	return nil
-}
-
-func copyFields(from *Service, to *Service) {
-	to.assetsService = from.assetsService
-	to.mirrorNodeClient = from.mirrorNodeClient
-	to.coinGeckoClient = from.coinGeckoClient
-	to.coinMarketCapClient = from.coinMarketCapClient
-	to.tokenPriceInfoMutex = from.tokenPriceInfoMutex
-	to.minAmountsForApiMutex = from.minAmountsForApiMutex
-	to.coinMarketCapIds = from.coinMarketCapIds
-	to.coinGeckoIds = from.coinGeckoIds
-	to.tokensPriceInfo = from.tokensPriceInfo
-	to.minAmountsForApi = from.minAmountsForApi
-	to.hbarFungibleAssetInfo = from.hbarFungibleAssetInfo
-	to.hbarNativeAsset = from.hbarNativeAsset
 }
 
 func initialize(bridgeConfig *config.Bridge, assetsService service.Assets, mirrorNodeClient client.MirrorNode, coinGeckoClient client.Pricing, coinMarketCapClient client.Pricing, diamondRouters map[uint64]client.DiamondRouter) *Service {
