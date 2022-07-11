@@ -19,6 +19,7 @@ package hedera
 import (
 	"errors"
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -27,7 +28,8 @@ import (
 
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
 type Node struct {
-	client *hedera.Client
+	client   *hedera.Client
+	maxRetry int
 }
 
 // NewNodeClient creates new instance of hedera.Client based on the provided client configuration
@@ -65,7 +67,7 @@ func NewNodeClient(config config.Hedera) *Node {
 
 	client.SetOperator(accID, privateKey)
 
-	return &Node{client}
+	return &Node{client: client, maxRetry: config.MaxRetry}
 }
 
 // GetClient returns the hedera.Client
@@ -75,7 +77,10 @@ func (hc Node) GetClient() *hedera.Client {
 
 // SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
 func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
-	tokenMintTx := hedera.NewTokenMintTransaction().SetTokenID(tokenID).SetAmount(uint64(amount))
+	tokenMintTx := hedera.NewTokenMintTransaction().
+		SetTokenID(tokenID).
+		SetAmount(uint64(amount)).
+		SetMaxRetry(hc.maxRetry)
 
 	tx, err := tokenMintTx.FreezeWith(hc.GetClient())
 	if err != nil {
@@ -93,7 +98,10 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 
 // SubmitScheduledTokenBurnTransaction creates a token burn transaction and submits it as a scheduled burn transaction
 func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
-	tokenBurnTx := hedera.NewTokenBurnTransaction().SetTokenID(tokenID).SetAmount(uint64(amount))
+	tokenBurnTx := hedera.NewTokenBurnTransaction().
+		SetTokenID(tokenID).
+		SetAmount(uint64(amount)).
+		SetMaxRetry(hc.maxRetry)
 	tx, err := tokenBurnTx.FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, err
@@ -114,6 +122,7 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
+		SetMaxRetry(hc.maxRetry).
 		Execute(hc.client)
 
 	if err != nil {
@@ -129,6 +138,7 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
 	response, err := hedera.NewScheduleSignTransaction().
 		SetScheduleID(scheduleID).
+		SetMaxRetry(hc.maxRetry).
 		Execute(hc.GetClient())
 
 	return &response, err
@@ -140,7 +150,8 @@ func (hc Node) SubmitScheduledTokenTransferTransaction(
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
-	transferTransaction := hedera.NewTransferTransaction()
+	transferTransaction := hedera.NewTransferTransaction().
+		SetMaxRetry(hc.maxRetry)
 
 	for _, t := range transfers {
 		transferTransaction.AddTokenTransfer(tokenID, t.AccountID, t.Amount)
@@ -154,7 +165,8 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 	transfers []transfer.Hedera,
 	payerAccountID hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
-	transferTransaction := hedera.NewTransferTransaction()
+	transferTransaction := hedera.NewTransferTransaction().
+		SetMaxRetry(hc.maxRetry)
 
 	for _, t := range transfers {
 		transferTransaction.AddHbarTransfer(t.AccountID, hedera.HbarFromTinybar(t.Amount))
@@ -170,9 +182,18 @@ func (hc Node) SubmitScheduledNftTransferTransaction(
 	receiving hedera.AccountID,
 	memo string) (*hedera.TransactionResponse, error) {
 	transferTransaction := hedera.NewTransferTransaction().
-		AddNftTransfer(nftID, sender, receiving)
+		AddNftTransfer(nftID, sender, receiving).
+		SetMaxRetry(hc.maxRetry)
 
 	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
+}
+
+func (hc Node) TransactionReceiptQuery(transactionID hedera.TransactionID, nodeAccIds []hedera.AccountID) (hedera.TransactionReceipt, error) {
+	return hedera.NewTransactionReceiptQuery().
+		SetTransactionID(transactionID).
+		SetNodeAccountIDs(nodeAccIds).
+		SetMaxRetry(hc.maxRetry).
+		Execute(hc.GetClient())
 }
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
