@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 	"time"
@@ -49,12 +51,13 @@ var (
 	fungibleAssetInfoNetwork0   = &asset.FungibleAssetInfo{Decimals: 8}
 	fungibleAssetInfoNetwork3   = &asset.FungibleAssetInfo{Decimals: 18}
 	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
-
-	tx = transaction.Transaction{
+	txAccountId                 = "0.0.444444"
+	txAmount                    = int64(10)
+	tx                          = transaction.Transaction{
 		TokenTransfers: []transaction.Transfer{
 			{
-				Account: "0.0.444444",
-				Amount:  10,
+				Account: txAccountId,
+				Amount:  txAmount,
 				Token:   nativeTokenAddressNetwork0,
 			},
 		},
@@ -97,7 +100,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 	NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		0,
@@ -107,17 +110,17 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		mocks.MPrometheusService,
 		mocks.MPricingService)
 
-	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
+	mocks.MStatusRepository.AssertCalled(t, "Create", txAccountId, mock.Anything)
 }
 
 func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 	setup()
-	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(nil)
+	mocks.MStatusRepository.On("Update", txAccountId, mock.Anything).Return(nil)
 
 	NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		1,
@@ -127,7 +130,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		mocks.MPrometheusService,
 		mocks.MPricingService)
 
-	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
+	mocks.MStatusRepository.AssertCalled(t, "Update", txAccountId, mock.Anything)
 }
 
 func Test_Watch_AccountNotExist(t *testing.T) {
@@ -175,7 +178,7 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 
 func Test_UpdateStatusTimestamp_Works(t *testing.T) {
 	w := initializeWatcher()
-	mocks.MStatusRepository.On("Update", "0.0.444444", int64(100)).Return(nil)
+	mocks.MStatusRepository.On("Update", txAccountId, int64(100)).Return(nil)
 	w.updateStatusTimestamp(100)
 }
 
@@ -218,6 +221,34 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
+func Test_validateNftTokenCustomFees(t *testing.T) {
+	w := initializeWatcher()
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+
+	assert.True(t, ok)
+}
+
+func Test_validateNftTokenCustomFees_ErrOnTransferForAccountNotFound(t *testing.T) {
+	w := initializeWatcher()
+	tx.TokenTransfers[0].Account = txAccountId + "1"
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+	tx.TokenTransfers[0].Account = txAccountId
+
+	assert.False(t, ok)
+}
+
+func Test_validateNftTokenCustomFees_ErrOnTransferForFeeLessThanExpected(t *testing.T) {
+	w := initializeWatcher()
+	tx.TokenTransfers[0].Amount = txAmount - 1
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+	tx.TokenTransfers[0].Amount = txAmount
+
+	assert.False(t, ok)
+}
+
 func setup() {
 	mocks.Setup()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
@@ -231,7 +262,7 @@ func initializeWatcher() *Watcher {
 	return NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		0,
