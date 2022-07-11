@@ -77,7 +77,7 @@ var (
 	NetworkHederaNFTRoyaltyFeeForToken = asset.RoyaltyFee{
 		Amount: token.Fraction{
 			Numerator:   100,
-			Denominator: 200,
+			Denominator: 100,
 		},
 		FallbackFee: asset.FixedFee{
 			Amount:              10,
@@ -90,6 +90,22 @@ var (
 		Symbol:        NetworkHederaNonFungibleNativeToken,
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
+		CustomFees: asset.CustomFees{
+			CreatedTimestamp: "",
+			RoyaltyFees: []asset.RoyaltyFee{
+				{
+					Amount: token.Fraction{
+						Numerator:   100,
+						Denominator: 100,
+					},
+					FallbackFee: asset.FixedFee{
+						Amount:              NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount,
+						DenominatingTokenId: &NetworkHederaFungibleNativeToken,
+					},
+					CollectorAccountID: "",
+				},
+			},
+		},
 		CustomFeeTotalAmounts: asset.CustomFeeTotalAmounts{
 			FallbackFeeAmountInHbar:     0,
 			FallbackFeeAmountsByTokenId: map[string]int64{NetworkHederaFungibleNativeToken: NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount},

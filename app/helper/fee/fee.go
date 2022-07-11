@@ -45,6 +45,7 @@ func TotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) 
 // Returns the sum of the fallback fees in HBAR and by token ID
 func SumFallbackFeeAmounts(customFees asset.CustomFees) asset.CustomFeeTotalAmounts {
 	customFeeAmounts := new(asset.CustomFeeTotalAmounts)
+	customFeeAmounts.FallbackFeeAmountsByTokenId = make(map[string]int64)
 	sumFallbackFeeAmounts(customFees.RoyaltyFees, customFeeAmounts)
 
 	return *customFeeAmounts
