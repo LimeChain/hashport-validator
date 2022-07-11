@@ -175,14 +175,14 @@ type RetryPolicy struct {
 
 const (
 	// in seconds
-	defaultMaxRetry  = 10
-	defaultMinWait   = 1
-	defaultMaxWait   = 60
-	defaultMaxJitter = 0
+	defaultMaxMirrorNodeRetry = 20
+	defaultMinWait            = 1
+	defaultMaxWait            = 60
+	defaultMaxJitter          = 0
 )
 
 func (r *RetryPolicy) DefaultOrConfig(cfg *parser.RetryPolicy) *RetryPolicy {
-	r.MaxRetry = defaultMaxRetry
+	r.MaxRetry = defaultMaxMirrorNodeRetry
 	r.MinWait = defaultMinWait
 	r.MaxWait = defaultMaxWait
 	r.MaxJitter = defaultMaxJitter
@@ -217,7 +217,7 @@ func New(node parser.Node) Node {
 		Database: Database(node.Database),
 		Clients: Clients{
 			MirrorNode: *new(MirrorNode).DefaultOrConfig(&node.Clients.MirrorNode),
-			Hedera: *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
+			Hedera:     *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
 			Evm:        make(map[uint64]Evm),
 			CoinGecko: CoinGecko{
 				ApiAddress: node.Clients.CoinGecko.ApiAddress,
