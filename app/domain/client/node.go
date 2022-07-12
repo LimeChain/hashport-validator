@@ -41,4 +41,6 @@ type HederaNode interface {
 	SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
 	// SubmitScheduledTokenBurnTransaction creates a token burn transaction and submits it as a scheduled burn transaction
 	SubmitScheduledTokenBurnTransaction(id hedera.TokenID, amount int64, account hedera.AccountID, memo string) (*hedera.TransactionResponse, error)
+	// TransactionReceiptQuery returns the receipt for a given transaction ID
+	TransactionReceiptQuery(transactionID hedera.TransactionID, nodeAccIds []hedera.AccountID) (hedera.TransactionReceipt, error)
 }

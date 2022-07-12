@@ -193,10 +193,7 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 		id,
 		scheduledTxID)
 
-	txReceipt, err := hedera.NewTransactionReceiptQuery().
-		SetTransactionID(transactionResponse.TransactionID).
-		SetNodeAccountIDs([]hedera.AccountID{transactionResponse.NodeID}).
-		Execute(s.hederaNodeClient.GetClient())
+	txReceipt, err := s.hederaNodeClient.TransactionReceiptQuery(transactionResponse.TransactionID, []hedera.AccountID{transactionResponse.NodeID})
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to get transaction receipt for [%s]. Error: [%s]", id, transactionResponse.TransactionID.String(), err)
 		onExecutionFail(scheduledTxID)
