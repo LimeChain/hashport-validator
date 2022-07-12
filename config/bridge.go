@@ -65,6 +65,7 @@ type HederaToken struct {
 	MinFeeAmountInUsd string
 	MinAmount         *big.Int
 	Networks          map[uint64]string
+	ReleaseTimestamp  uint64
 }
 
 func NewHederaTokenFromToken(token parser.Token) HederaToken {
@@ -73,6 +74,7 @@ func NewHederaTokenFromToken(token parser.Token) HederaToken {
 		FeePercentage:     token.FeePercentage,
 		MinFeeAmountInUsd: token.MinFeeAmountInUsd,
 		MinAmount:         token.MinAmount,
+		ReleaseTimestamp:  token.ReleaseTimestamp,
 		Networks:          token.Networks,
 	}
 }
@@ -80,6 +82,7 @@ func NewHederaTokenFromToken(token parser.Token) HederaToken {
 type Token struct {
 	MinFeeAmountInUsd *big.Int
 	Networks          map[uint64]string
+	ReleaseTimestamp  uint64
 }
 
 type BridgeEvm struct {
@@ -130,7 +133,10 @@ func NewBridge(bridge parser.Bridge) *Bridge {
 			}
 			// Currently, only EVM Fungible native tokens are supported
 			for name, tokenInfo := range networkInfo.Tokens.Fungible {
-				config.EVMs[networkId].Tokens[name] = Token{Networks: tokenInfo.Networks}
+				config.EVMs[networkId].Tokens[name] = Token{
+					Networks:         tokenInfo.Networks,
+					ReleaseTimestamp: tokenInfo.ReleaseTimestamp,
+				}
 			}
 		}
 
