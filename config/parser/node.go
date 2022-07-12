@@ -81,6 +81,15 @@ type MirrorNode struct {
 	PollingInterval   time.Duration `yaml:"polling_interval"`
 	QueryMaxLimit     int64         `yaml:"query_max_limit"`
 	QueryDefaultLimit int64         `yaml:"query_default_limit"`
+	RetryPolicy       RetryPolicy   `yaml:"retry_policy"`
+	RequestTimeout    int           `yaml:"request_timeout" default:"15"`
+}
+
+type RetryPolicy struct {
+	MaxRetry  int `yaml:"max_retry" default:"10"`
+	MinWait   int `yaml:"min_wait" default:"1"`
+	MaxWait   int `yaml:"max_wait" default:"60"`
+	MaxJitter int `yaml:"max_jitter" default:"0"`
 }
 
 // CoinGecko //

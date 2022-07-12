@@ -120,6 +120,86 @@ type MirrorNode struct {
 	PollingInterval   time.Duration
 	QueryMaxLimit     int64
 	QueryDefaultLimit int64
+	RetryPolicy       RetryPolicy
+	RequestTimeout    time.Duration
+}
+
+const (
+	// in seconds
+	defaultPollingInterval   = 5
+	defaultQueryMaxLimit     = 100
+	defaultQueryDefaultLimit = 25
+	// in seconds
+	defaultRequestTimeout = 15
+)
+
+func (m *MirrorNode) DefaultOrConfig(cfg *parser.MirrorNode) *MirrorNode {
+	if cfg.ClientAddress == "" {
+		log.Fatalf("node configuration: MirrorNode ClientAddress is required")
+	}
+	m.ClientAddress = cfg.ClientAddress
+	if cfg.ApiAddress == "" {
+		log.Fatalf("node configuration: MirrorNode ApiAddress is required")
+	}
+	m.ApiAddress = cfg.ApiAddress
+
+	m.PollingInterval = defaultPollingInterval
+	m.QueryMaxLimit = defaultQueryMaxLimit
+	m.QueryDefaultLimit = defaultQueryDefaultLimit
+	m.RequestTimeout = defaultRequestTimeout
+
+	if cfg.PollingInterval != 0 {
+		m.PollingInterval = cfg.PollingInterval
+	}
+	if cfg.QueryMaxLimit != 0 {
+		m.QueryMaxLimit = cfg.QueryMaxLimit
+	}
+	if cfg.QueryDefaultLimit != 0 {
+		m.QueryDefaultLimit = cfg.QueryDefaultLimit
+	}
+	if cfg.RequestTimeout != 0 {
+		m.RequestTimeout = time.Duration(cfg.RequestTimeout)
+	}
+
+	m.RetryPolicy = *m.RetryPolicy.DefaultOrConfig(&cfg.RetryPolicy)
+
+	return m
+}
+
+type RetryPolicy struct {
+	MaxRetry  int
+	MinWait   time.Duration
+	MaxWait   time.Duration
+	MaxJitter time.Duration
+}
+
+const (
+	// in seconds
+	defaultMaxMirrorNodeRetry = 20
+	defaultMinWait            = 1
+	defaultMaxWait            = 60
+	defaultMaxJitter          = 0
+)
+
+func (r *RetryPolicy) DefaultOrConfig(cfg *parser.RetryPolicy) *RetryPolicy {
+	r.MaxRetry = defaultMaxMirrorNodeRetry
+	r.MinWait = defaultMinWait
+	r.MaxWait = defaultMaxWait
+	r.MaxJitter = defaultMaxJitter
+
+	if cfg.MaxRetry != 0 {
+		r.MaxRetry = cfg.MaxRetry
+	}
+	if cfg.MinWait != 0 {
+		r.MinWait = time.Duration(cfg.MinWait)
+	}
+	if cfg.MaxWait != 0 {
+		r.MaxWait = time.Duration(cfg.MaxWait)
+	}
+	if cfg.MaxJitter != 0 {
+		r.MaxJitter = time.Duration(cfg.MaxJitter)
+	}
+	return r
 }
 
 type Monitoring struct {
@@ -136,15 +216,9 @@ func New(node parser.Node) Node {
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
-			Hedera: *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
-			MirrorNode: MirrorNode{
-				ClientAddress:     node.Clients.MirrorNode.ClientAddress,
-				ApiAddress:        node.Clients.MirrorNode.ApiAddress,
-				PollingInterval:   node.Clients.MirrorNode.PollingInterval,
-				QueryMaxLimit:     node.Clients.MirrorNode.QueryMaxLimit,
-				QueryDefaultLimit: node.Clients.MirrorNode.QueryDefaultLimit,
-			},
-			Evm: make(map[uint64]Evm),
+			MirrorNode: *new(MirrorNode).DefaultOrConfig(&node.Clients.MirrorNode),
+			Hedera:     *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
+			Evm:        make(map[uint64]Evm),
 			CoinGecko: CoinGecko{
 				ApiAddress: node.Clients.CoinGecko.ApiAddress,
 			},
