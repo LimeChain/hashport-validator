@@ -63,11 +63,40 @@ type Hedera struct {
 	Network        string
 	Rpc            map[string]hedera.AccountID
 	StartTimestamp int64
+	MaxRetry       int
 }
 
 type Operator struct {
 	AccountId  string
 	PrivateKey string
+}
+
+const (
+	defaultMaxRetry       = 20
+	defaultStartTimestamp = 0
+)
+
+func (h *Hedera) DefaultOrConfig(cfg *parser.Hedera) *Hedera {
+	if h.Operator.AccountId = cfg.Operator.AccountId; h.Operator.AccountId == "" {
+		log.Fatalf("node configuration: Hedera Operator Account ID is required")
+	}
+	if h.Operator.PrivateKey = cfg.Operator.PrivateKey; h.Operator.PrivateKey == "" {
+		log.Fatalf("node configuration: Hedera Operator Private Key is required")
+	}
+
+	h.Rpc = parseRpc(cfg.Rpc)
+
+	if h.Network = cfg.Network; h.Network == "" {
+		h.Network = string(hedera.NetworkNameTestnet)
+	}
+	if h.StartTimestamp = cfg.StartTimestamp; h.StartTimestamp == 0 {
+		h.StartTimestamp = defaultStartTimestamp
+	}
+	if h.MaxRetry = cfg.MaxRetry; h.MaxRetry == 0 {
+		h.MaxRetry = defaultMaxRetry
+	}
+
+	return h
 }
 
 // CoinGecko //
@@ -104,16 +133,10 @@ type Recovery struct {
 }
 
 func New(node parser.Node) Node {
-	rpc := parseRpc(node.Clients.Hedera.Rpc)
 	config := Node{
 		Database: Database(node.Database),
 		Clients: Clients{
-			Hedera: Hedera{
-				Operator:       Operator(node.Clients.Hedera.Operator),
-				Network:        node.Clients.Hedera.Network,
-				StartTimestamp: node.Clients.Hedera.StartTimestamp,
-				Rpc:            rpc,
-			},
+			Hedera: *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
 			MirrorNode: MirrorNode{
 				ClientAddress:     node.Clients.MirrorNode.ClientAddress,
 				ApiAddress:        node.Clients.MirrorNode.ApiAddress,
