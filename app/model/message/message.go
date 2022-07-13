@@ -19,6 +19,7 @@ package message
 import (
 	"encoding/base64"
 	"github.com/golang/protobuf/proto"
+	msgHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
 )
@@ -38,8 +39,12 @@ func FromBytes(data []byte) (*Message, error) {
 	}
 	switch msg.Message.(type) {
 	case *model.TopicMessage_NftSignatureMessage:
+		nftMsg := msg.GetNftSignatureMessage()
+		msgHelper.UpdateHederaChainIdOfNftMsg(nftMsg)
 		return &Message{TopicMessage: msg}, nil
 	case *model.TopicMessage_FungibleSignatureMessage:
+		fungibleMsg := msg.GetFungibleSignatureMessage()
+		msgHelper.UpdateHederaChainIdOfFungibleMsg(fungibleMsg)
 		return &Message{TopicMessage: msg}, nil
 	default: // try to parse it to backward compatible type
 		oldFungibleMessage := &model.TopicEthSignatureMessage{}
@@ -48,6 +53,7 @@ func FromBytes(data []byte) (*Message, error) {
 			return nil, err
 		}
 
+		msgHelper.UpdateHederaChainIdOfFungibleMsg(oldFungibleMessage)
 		result := &model.TopicMessage{
 			Message: &model.TopicMessage_FungibleSignatureMessage{
 				FungibleSignatureMessage: oldFungibleMessage,

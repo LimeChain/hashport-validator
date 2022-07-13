@@ -340,10 +340,12 @@ func (ctw Watcher) createNonFungiblePayload(
 	targetChainId uint64,
 	targetChainAsset string,
 	fee int64) (*payload.Transfer, error) {
+
 	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
 	if err != nil {
 		return nil, err
 	}
+	
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
 	if e != nil {
 		return nil, errors.New(fmt.Sprintf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e))

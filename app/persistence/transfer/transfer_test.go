@@ -19,6 +19,7 @@ package transfer
 import (
 	"database/sql"
 	"database/sql/driver"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"regexp"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ var (
 	sqlMock             sqlmock.Sqlmock
 	transactionId       = "transactionId"
 	txIdWithPlaceholder = transactionId + "%"
-	sourceChainId       = uint64(0)
+	sourceChainId       = constants.HederaNetworkId
 	targetChainId       = uint64(1)
 	nativeChainId       = uint64(2)
 	sourceAsset         = "sourceAsset"
