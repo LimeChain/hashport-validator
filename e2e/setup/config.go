@@ -72,7 +72,7 @@ func Load() *Setup {
 			TopicID:           e2eConfig.Hedera.TopicID,
 			Sender:            Sender(e2eConfig.Hedera.Sender),
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
-			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
+			MirrorNode:        *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
 		},
 		EVM:             make(map[uint64]config.Evm),
 		Tokens:          e2eConfig.Tokens,

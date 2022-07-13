@@ -642,19 +642,8 @@ func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, in
 		params.EvmFungibleTokenClients,
 		params.EvmNFTClients,
 	)
-	copyFields(newInstance, instance)
+	*instance = *newInstance
 	params.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*params.ParsedBridge, instance)
 
 	return nil
-}
-
-func copyFields(from *Service, to *Service) {
-	to.nativeToWrapped = from.nativeToWrapped
-	to.wrappedToNative = from.wrappedToNative
-	to.fungibleNetworkAssets = from.fungibleNetworkAssets
-	to.fungibleNativeAssets = from.fungibleNativeAssets
-	to.fungibleAssetInfos = from.fungibleAssetInfos
-	to.nonFungibleNetworkAssets = from.nonFungibleNetworkAssets
-	to.nonFungibleAssetInfos = from.nonFungibleAssetInfos
-	to.bridgeAccountId = from.bridgeAccountId
 }

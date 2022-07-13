@@ -20,6 +20,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/ybbus/httpretry"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
@@ -33,10 +40,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 )
 
 var (
@@ -55,13 +58,26 @@ type Client struct {
 }
 
 func NewClient(mirrorNode config.MirrorNode) *Client {
+	httpC := &http.Client{
+		Transport: http.DefaultTransport,
+		Timeout:   time.Second * mirrorNode.RequestTimeout,
+	}
+
+	rp := mirrorNode.RetryPolicy
+	c := httpretry.NewCustomClient(httpC,
+		httpretry.WithMaxRetryCount(rp.MaxRetry),
+		httpretry.WithRetryPolicy(httpHelper.RetryPolicy),
+		httpretry.WithBackoffPolicy(
+			httpretry.ExponentialBackoff(
+				rp.MinWait, rp.MaxWait, rp.MaxJitter)),
+	)
 	return &Client{
 		mirrorAPIAddress:             mirrorNode.ApiAddress,
 		pollingInterval:              mirrorNode.PollingInterval,
 		queryMaxLimit:                mirrorNode.QueryMaxLimit,
 		queryDefaultLimit:            mirrorNode.QueryDefaultLimit,
 		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
-		httpClient:                   new(http.Client),
+		httpClient:                   c,
 		logger:                       config.GetLoggerFor("Mirror Node Client"),
 	}
 }
