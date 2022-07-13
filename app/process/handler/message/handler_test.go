@@ -25,6 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ var (
 		Realm: 0,
 		Topic: 1,
 	}
-	SourceChainId = uint64(0)
+	SourceChainId = constants.HederaNetworkId
 	TargetChainId = uint64(1)
 	Asset         = "0.0.1"
 	tesm          = &proto.TopicEthSignatureMessage{
