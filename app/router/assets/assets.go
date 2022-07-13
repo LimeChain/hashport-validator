@@ -36,7 +36,7 @@ type fungibleBridgeDetails struct {
 	MinAmount        string            `json:"minAmount"`
 	Networks         map[uint64]string `json:"networks"`
 	ReserveAmount    string            `json:"reserveAmount"`
-	ReleaseTimestamp uint64            `json:"releaseTimestamp"`
+	ReleaseTimestamp uint64            `json:"releaseTimestamp,omitempty"`
 }
 
 type feePercentageInfo struct {
