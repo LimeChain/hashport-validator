@@ -27,7 +27,7 @@ import (
 type Transfers interface {
 	// SanityCheckTransfer performs any validation required prior to handling the transaction
 	// (memo, state proof verification)
-	SanityCheckTransfer(tx transaction.Transaction) (uint64, string, error)
+	SanityCheckTransfer(tx transaction.Transaction) model.SanityCheckResult
 	// InitiateNewTransfer Stores the incoming transfer message into the Database
 	// aware of already processed transfers
 	InitiateNewTransfer(tm payload.Transfer) (*entity.Transfer, error)

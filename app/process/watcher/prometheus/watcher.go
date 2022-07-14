@@ -171,6 +171,7 @@ func (pw *Watcher) registerAllAssetsMetrics() {
 func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
+
 			if pw.assetsService.IsNative(networkId, assetAddress) { // native
 				// register native assets balance
 				pw.registerAssetMetric(
