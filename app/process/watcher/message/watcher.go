@@ -128,6 +128,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 				cmw.logger.Errorf("Unable to parse latest message timestamp. Error - [%s].", err)
 				continue
 			}
+
 			cmw.processMessage(msg, q)
 			cmw.updateStatusTimestamp(milestoneTimestamp)
 		}

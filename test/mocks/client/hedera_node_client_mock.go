@@ -99,3 +99,11 @@ func (m *MockHederaNode) SubmitScheduledTokenBurnTransaction(id hedera.TokenID, 
 	}
 	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
 }
+
+func (m *MockHederaNode) TransactionReceiptQuery(transactionID hedera.TransactionID, nodeAccIds []hedera.AccountID) (hedera.TransactionReceipt, error) {
+	args := m.Called(transactionID, nodeAccIds)
+	if args.Get(1) == nil {
+		return args.Get(0).(hedera.TransactionReceipt), nil
+	}
+	return args.Get(0).(hedera.TransactionReceipt), args.Get(1).(error)
+}

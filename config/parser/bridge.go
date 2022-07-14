@@ -65,4 +65,5 @@ type Token struct {
 	Networks          map[uint64]string `yaml:"networks" json:"networks,omitempty"`
 	CoinGeckoId       string            `yaml:"coin_gecko_id" json:"coinGeckoId,omitempty"`
 	CoinMarketCapId   string            `yaml:"coin_market_cap_id" json:"coinMarketCapId,omitempty"`
+	ReleaseTimestamp  uint64            `yaml:"release_timestamp" json:"releaseTimestamp,omitempty"`
 }
