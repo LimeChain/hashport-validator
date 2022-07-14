@@ -32,10 +32,11 @@ var (
 
 type fungibleBridgeDetails struct {
 	*asset.FungibleAssetInfo
-	FeePercentage feePercentageInfo `json:"feePercentage"`
-	MinAmount     string            `json:"minAmount"`
-	Networks      map[uint64]string `json:"networks"`
-	ReserveAmount string            `json:"reserveAmount"`
+	FeePercentage    feePercentageInfo `json:"feePercentage"`
+	MinAmount        string            `json:"minAmount"`
+	Networks         map[uint64]string `json:"networks"`
+	ReserveAmount    string            `json:"reserveAmount"`
+	ReleaseTimestamp uint64            `json:"releaseTimestamp,omitempty"`
 }
 
 type feePercentageInfo struct {
@@ -45,9 +46,10 @@ type feePercentageInfo struct {
 
 type nonFungibleBridgeDetails struct {
 	*asset.NonFungibleAssetInfo
-	Fee           int64             `json:"fee"`
-	Networks      map[uint64]string `json:"networks"`
-	ReserveAmount string            `json:"reserveAmount"`
+	Fee              int64             `json:"fee"`
+	Networks         map[uint64]string `json:"networks"`
+	ReserveAmount    string            `json:"reserveAmount"`
+	ReleaseTimestamp uint64            `json:"releaseTimestamp,omitempty"`
 }
 
 type networkAssets struct {
@@ -101,6 +103,7 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 					MinAmount:         minAmount.MinAmountWithFee.String(),
 					Networks:          bridgeTokenInfo.Networks,
 					ReserveAmount:     fungibleAssetInfo.ReserveAmount.String(),
+					ReleaseTimestamp:  bridgeTokenInfo.ReleaseTimestamp,
 				}
 				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
 			}
@@ -124,6 +127,7 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 					Fee:                  bridgeTokenInfo.Fee,
 					Networks:             bridgeTokenInfo.Networks,
 					ReserveAmount:        nonFungibleAssetInfo.ReserveAmount.String(),
+					ReleaseTimestamp:     bridgeTokenInfo.ReleaseTimestamp,
 				}
 				response[networkId].NonFungible[assetAddress] = nonFungibleAssetDetails
 			}

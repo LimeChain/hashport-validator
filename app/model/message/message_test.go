@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"github.com/golang/protobuf/proto"
 	timestampHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -21,7 +22,7 @@ var (
 
 func expectedSignature() *model.TopicEthSignatureMessage {
 	return &model.TopicEthSignatureMessage{
-		SourceChainId: 0,
+		SourceChainId: constants.HederaNetworkId,
 		TargetChainId: 1,
 		TransferID:    "0.0.123321-123321-420",
 		Asset:         "0xasset",
@@ -66,7 +67,7 @@ func Test_FromBytesWithTSWithInvalidBytes(t *testing.T) {
 
 func Test_NewSignatureWorks(t *testing.T) {
 	topicMsg := &model.TopicEthSignatureMessage{
-		SourceChainId: 0,
+		SourceChainId: constants.HederaNetworkId,
 		TargetChainId: 1,
 		TransferID:    "0.0.123321-123321-420",
 		Asset:         "0xasset",

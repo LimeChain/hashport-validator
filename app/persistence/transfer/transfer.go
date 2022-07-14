@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -59,6 +60,8 @@ func (r *Repository) GetByTransactionId(txId string) (*entity.Transfer, error) {
 		}
 		return nil, result.Error
 	}
+	r.updateHederaChainId(tx)
+
 	return tx, nil
 }
 
@@ -77,6 +80,7 @@ func (r *Repository) GetWithPreloads(txId string) (*entity.Transfer, error) {
 		}
 		return nil, result.Error
 	}
+	r.updateHederaChainId(tx)
 
 	return tx, nil
 }
@@ -96,6 +100,8 @@ func (r *Repository) GetWithFee(txId string) (*entity.Transfer, error) {
 		}
 		return nil, result.Error
 	}
+	r.updateHederaChainId(tx)
+
 	return tx, nil
 }
 
@@ -233,4 +239,19 @@ func (r *Repository) updateStatus(txId string, s string) error {
 		r.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, s)
 	}
 	return err
+}
+
+func (r *Repository) updateHederaChainId(tx *entity.Transfer) {
+	// SourceChainID
+	if tx.SourceChainID == constants.OldHederaNetworkId {
+		tx.SourceChainID = constants.HederaNetworkId
+	}
+	// NativeChainID
+	if tx.NativeChainID == constants.OldHederaNetworkId {
+		tx.NativeChainID = constants.HederaNetworkId
+	}
+	// TargetChainID
+	if tx.TargetChainID == constants.OldHederaNetworkId {
+		tx.TargetChainID = constants.HederaNetworkId
+	}
 }

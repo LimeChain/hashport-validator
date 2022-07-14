@@ -827,7 +827,6 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	chainId := firstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
-	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 
 	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
 	if err != nil {
@@ -839,36 +838,60 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 
 	// Step 1 - Get Token Metadata
 	nftData, err := setupEnv.Clients.MirrorNode.GetNft(nftToken, serialNumber)
+
 	if err != nil {
 		t.Fatalf("Failed to get mirror node nft. Error [%s]", err)
 	}
+	originator := nftData.AccountID
+	nftInfo, ok := setupEnv.AssetMappings.NonFungibleAssetInfo(constants.HederaNetworkId, nftToken)
+	if !ok {
+		t.Fatalf("Failed to asset info for NFT [%s]. Error [%s]", nftToken, err)
+	}
+	if originator != nftInfo.TreasuryAccountId {
+		transferFee += nftInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
+	}
+
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
 	if e != nil {
 		t.Fatalf("Failed to decode metadata [%s]. Error [%s]", nftData.Metadata, e)
 	}
 
-	// Step 2 - Send the NFT transfer, including the fee to the Bridge Account
-	transactionResponse, err := sendNFTWithFeeToBridgeAccount(setupEnv, memo, nftToken, serialNumber, transferFee)
+	nftIDString := fmt.Sprintf("%d@%s", serialNumber, nftToken)
+	nftID, err := hedera.NftIDFromString(nftIDString)
 	if err != nil {
-		t.Fatalf("Failed to send NFT transfer. Error: [%s]", err)
+		t.Fatalf("Failed to parse NFT ID [%s]. Error: [%s]", nftIDString, err)
 	}
 
-	transactionID := hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String()
+	// Step 2 - Send the NFT Allowance for the Payer Account
+	_, err = sendNFTAllowance(setupEnv, nftID, setupEnv.Clients.Hedera.GetOperatorAccountID(), setupEnv.PayerAccount)
+	if err != nil {
+		t.Fatalf("Failed to send Allowance for NFT [%s]. Error: [%s]", nftIDString, err)
+	}
+	signaturesStartTime := time.Now().UnixNano()
+	// Step 3 - Send the NFT transfer, including the fee to the Bridge Account
+	feeResponse, err := sendFeeForNFTToBridgeAccount(setupEnv, evm.Receiver, chainId, nftID, transferFee)
+	if err != nil {
+		t.Fatalf("Failed to send Fee and allowance for NFT transfer. Error: [%s]", err)
+	}
+	transactionID := hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String()
 
-	// Step 3 - Verify the submitted topic messages
-	receivedSignatures := verifyTopicMessages(setupEnv, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), t)
+	// Step 4 - Validate that a scheduled NFT transaction to the bridge account was submitted by a validator
+	scheduledTxID, scheduleID := validateScheduledNftTransfer(setupEnv, transactionID, nftToken, serialNumber, originator, setupEnv.BridgeAccount.String(), t)
 
-	// Step 4 - Validate members fee scheduled transaction
-	scheduledTxID, scheduleID := validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, validatorsFee), t)
+	// Step 5 - Verify the submitted topic messages
+	receivedSignatures := verifyTopicMessagesWithStartTime(setupEnv, hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String(), signaturesStartTime, t)
 
-	// Step 5 - Verify Non-Fungible Transfer retrieved from Validator API
+	// Step 6 - Validate members fee scheduled transaction
+	scheduledTxID, scheduleID = validateMembersScheduledTxs(setupEnv, constants.Hbar, generateMirrorNodeExpectedTransfersForHederaTransfer(setupEnv, constants.Hbar, validatorsFee), t)
+
+	// Step 7 - Verify Non-Fungible Transfer retrieved from Validator API
 	transactionData := verifyNonFungibleTransferFromValidatorAPI(
 		setupEnv,
 		evm,
 		transactionID,
 		nftToken, string(decodedMetadata), serialNumber, targetAsset, t)
 
-	// Step 5.1 - Get the consensus timestamp of the transfer
+	// Step 7.1 - Get the consensus timestamp of the transfer
 	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(transactionID)
 	if err != nil {
 		t.Fatal("failed to get successful transaction", err)
@@ -879,16 +902,16 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	}
 	ts := timestamp.FromNanos(nanos)
 
-	// Step 5 - Submit Mint ERC-721 transaction
+	// Step 8 - Submit Mint ERC-721 transaction
 	txHash := submitMintERC721Transaction(evm, transactionID, transactionData, t)
 
-	// Step 6 - Wait for transaction to be mined
+	// Step 9 - Wait for transaction to be mined
 	waitForTransaction(evm, txHash, t)
 
-	// Step 7 - Validate EVM TokenId
+	// Step 10 - Validate EVM TokenId
 	verifyERC721TokenId(evm.EVMClient, targetAsset, serialNumber, receiver.String(), string(decodedMetadata), t)
 
-	// Step 8 - Verify Database records
+	// Step 11 - Verify Database records
 	expectedTxRecord := &entity.Transfer{
 		TransactionID: transactionID,
 		SourceChainID: constants.HederaNetworkId,
@@ -938,7 +961,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
 
-	// Step 9 - Verify Database Records
+	// Step 12 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
 	// and:
 	verifyFeeRecord(setupEnv.DbValidator, expectedFeeRecord, t)
@@ -1348,7 +1371,7 @@ func validateScheduledNftAllowanceApprove(t *testing.T, setupEnv *setup.Setup, e
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", receiver, timeLeft))
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for NFT Transfer for account [%s]. Trying again. Time left: ~[%d] seconds", receiverAccountId, timeLeft))
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -2074,6 +2097,12 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 }
 
 func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string {
+	fmt.Println(fmt.Sprintf("Waiting for Signatures & TX Hash to be published to Topic [%v]", setup.TopicID.String()))
+
+	return verifyTopicMessagesWithStartTime(setup, txId, time.Now().UnixNano(), t)
+}
+
+func verifyTopicMessagesWithStartTime(setup *setup.Setup, txId string, startTime int64, t *testing.T) []string {
 	ethSignaturesCollected := 0
 	var receivedSignatures []string
 
@@ -2081,7 +2110,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 
 	// Subscribe to Topic
 	subscription, err := hedera.NewTopicMessageQuery().
-		SetStartTime(time.Unix(0, time.Now().UnixNano())).
+		SetStartTime(time.Unix(0, startTime)).
 		SetTopicID(setup.TopicID).
 		Subscribe(
 			setup.Clients.Hedera,
@@ -2156,6 +2185,28 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*h
 	return &res, err
 }
 
+func sendNFTAllowance(setup *setup.Setup, nftId hedera.NftID, ownerAccountId, spenderAccountId hedera.AccountID) (*hedera.TransactionResponse, error) {
+	fmt.Println(fmt.Sprintf("Sending Allowance for NFT [%s] to account [%s]", nftId.String(), spenderAccountId.String()))
+	res, err := hedera.NewAccountAllowanceApproveTransaction().
+		ApproveTokenNftAllowance(
+			nftId,
+			ownerAccountId,
+			spenderAccountId,
+		).Execute(setup.Clients.Hedera)
+
+	if err != nil {
+		return nil, err
+	}
+	rec, err := res.GetReceipt(setup.Clients.Hedera)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	time.Sleep(4 * time.Second)
+
+	return &res, err
+}
+
 func sendTokensToBridgeAccount(setup *setup.Setup, tokenID hedera.TokenID, memo string, amount int64) (*hedera.TransactionResponse, error) {
 	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", amount, memo))
 
@@ -2178,18 +2229,14 @@ func sendTokensToBridgeAccount(setup *setup.Setup, tokenID hedera.TokenID, memo 
 	return &res, err
 }
 
-func sendNFTWithFeeToBridgeAccount(setup *setup.Setup, memo string, token string, serialNum int64, fee int64) (*hedera.TransactionResponse, error) {
+func sendFeeForNFTToBridgeAccount(setup *setup.Setup, receiver common.Address, chainId uint64, nftID hedera.NftID, fee int64) (*hedera.TransactionResponse, error) {
 	hbarSendAmount := hedera.HbarFromTinybar(fee)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-fee)
 
-	fmt.Println(fmt.Sprintf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]", token, serialNum, memo))
-	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNum, token))
-	if err != nil {
-		return nil, err
-	}
+	memo := fmt.Sprintf("%d-%s-%s", chainId, receiver, nftID.String())
+	fmt.Println(fmt.Sprintf("Sending Fungible Fee for NFT [%s] through the Portal. Transaction Memo: [%s]", nftID.String(), memo))
 
 	res, err := hedera.NewTransferTransaction().
-		AddNftTransfer(nftID, setup.Clients.Hedera.GetOperatorAccountID(), setup.BridgeAccount).
 		AddHbarTransfer(setup.Clients.Hedera.GetOperatorAccountID(), hbarRemovalAmount).
 		AddHbarTransfer(setup.BridgeAccount, hbarSendAmount).
 		SetTransactionMemo(memo).

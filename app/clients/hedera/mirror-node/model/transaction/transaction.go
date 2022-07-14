@@ -152,6 +152,17 @@ func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool
 	return 0, false
 }
 
+// GetTokenTransfer gets the token transfer for an Account
+func (t Transaction) GetTokenTransfer(account string) (amount int64, isFound bool) {
+	for _, tr := range t.TokenTransfers {
+		if tr.Account == account {
+			return tr.Amount, true
+		}
+	}
+
+	return 0, false
+}
+
 // GetIncomingTransfer returns the transfer to an account in the following order:
 // 1. Checks if there is an NFT transfer
 // 2. Checks if there is a Fungible Token transfer

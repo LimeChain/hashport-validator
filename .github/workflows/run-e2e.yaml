@@ -67,7 +67,7 @@ jobs:
           echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/setup/application.yml
           echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./e2e/setup/bridge.yml
       - name: Run E2E Tests
-        run: go test ./e2e/ -timeout 2000s # 25 minutes
+        run: go test ./e2e/ -timeout 2000s # 33 minutes
       - name: Prepare container logs
         if: ${{ always() }}
         run: |

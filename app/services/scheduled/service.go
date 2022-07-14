@@ -60,9 +60,9 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 
 // ExecuteScheduledNftTransferTransaction submits a scheduled nft transaction and executes provided functions when necessary
 func (s *Service) ExecuteScheduledNftTransferTransaction(
-	id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID,
+	id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, approved bool,
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	transactionResponse, err := s.hederaNodeClient.SubmitScheduledNftTransferTransaction(nftID, s.payerAccount, sender, receiving, id)
+	transactionResponse, err := s.hederaNodeClient.SubmitScheduledNftTransferTransaction(nftID, s.payerAccount, sender, receiving, id, approved)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
 		if transactionResponse != nil {

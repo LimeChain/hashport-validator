@@ -89,7 +89,7 @@ func createToken(client *hedera.Client) *hedera.TokenID {
 }
 
 func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridgeID hedera.AccountID, custodianKey []hedera.PrivateKey) hedera.TransactionReceipt {
-	freezedAssociateTX, err := hedera.
+	frozenAssociateTX, err := hedera.
 		NewTokenAssociateTransaction().
 		SetAccountID(bridgeID).
 		SetTokenIDs(token).
@@ -99,9 +99,9 @@ func associateTokenToAccount(client *hedera.Client, token hedera.TokenID, bridge
 	}
 
 	for i := 0; i < len(custodianKey); i++ {
-		freezedAssociateTX = freezedAssociateTX.Sign(custodianKey[i])
+		frozenAssociateTX = frozenAssociateTX.Sign(custodianKey[i])
 	}
-	associateTX, err := freezedAssociateTX.Execute(client)
+	associateTX, err := frozenAssociateTX.Execute(client)
 	if err != nil {
 		panic(err)
 	}

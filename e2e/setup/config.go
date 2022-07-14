@@ -68,11 +68,12 @@ func Load() *Setup {
 		Hedera: Hedera{
 			NetworkType:       e2eConfig.Hedera.NetworkType,
 			BridgeAccount:     e2eConfig.Hedera.BridgeAccount,
+			PayerAccount:      e2eConfig.Hedera.PayerAccount,
 			Members:           e2eConfig.Hedera.Members,
 			TopicID:           e2eConfig.Hedera.TopicID,
 			Sender:            Sender(e2eConfig.Hedera.Sender),
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
-			MirrorNode:        config.MirrorNode(e2eConfig.Hedera.MirrorNode),
+			MirrorNode:        *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
 		},
 		EVM:             make(map[uint64]config.Evm),
 		Tokens:          e2eConfig.Tokens,
@@ -111,6 +112,7 @@ func Load() *Setup {
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
 	BridgeAccount   hederaSDK.AccountID
+	PayerAccount    hederaSDK.AccountID
 	TopicID         hederaSDK.TopicID
 	TokenID         hederaSDK.TokenID
 	NativeEvmToken  string
@@ -128,6 +130,10 @@ type Setup struct {
 // newSetup instantiates new Setup struct
 func newSetup(config Config) (*Setup, error) {
 	bridgeAccount, err := hederaSDK.AccountIDFromString(config.Hedera.BridgeAccount)
+	if err != nil {
+		return nil, err
+	}
+	payerAccount, err := hederaSDK.AccountIDFromString(config.Hedera.PayerAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +180,7 @@ func newSetup(config Config) (*Setup, error) {
 
 	return &Setup{
 		BridgeAccount:   bridgeAccount,
+		PayerAccount:    payerAccount,
 		TopicID:         topicID,
 		TokenID:         tokenID,
 		NftTokenID:      nftTokenID,
@@ -380,6 +387,7 @@ type EVMUtils struct {
 type Hedera struct {
 	NetworkType       string
 	BridgeAccount     string
+	PayerAccount      string
 	Members           []string
 	TopicID           string
 	Sender            Sender

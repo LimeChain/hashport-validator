@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -111,17 +112,29 @@ func NewService(
 }
 
 // SanityCheckTransfer performs validation on the memo and state proof for the transaction
-func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) (uint64, string, error) {
+func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) model.SanityCheckResult {
+	result := model.SanityCheckResult{}
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		result.Err = errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		return result
 	}
 
 	memoArgs := strings.Split(m, "-")
 	chainId, _ := strconv.ParseUint(memoArgs[0], 10, 64)
+	result.ChainId = chainId
 	evmAddress := memoArgs[1]
+	result.EvmAddress = evmAddress
+	if len(memoArgs) > 2 {
+		nftId, e := hedera.NftIDFromString(memoArgs[2])
+		if e != nil {
+			result.Err = errors.New(fmt.Sprintf("[%s] - Could not parse NftId in transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+			return result
+		}
+		result.NftId = &nftId
+	}
 
-	return chainId, evmAddress, nil
+	return result
 }
 
 // InitiateNewTransfer Stores the incoming transfer message into the Database aware of already processed transfers
@@ -184,8 +197,20 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 }
 
 func (ts *Service) ProcessNativeNftTransfer(tm payload.Transfer) error {
-	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
+	status, wg, err := ts.transferNftToBridgeAccount(tm)
+	if err != nil {
+		return err
+	}
 
+	wg.Wait()
+	if *status == syncHelper.DONE {
+		ts.logger.Debugf("[%s] - Proceeding to process fee transfer to validators and mint wrapped NFT.", tm.TransactionId)
+	} else {
+		ts.logger.Errorf("[%s] - Scheduled Transaction for NFT transfer failed.", tm.TransactionId)
+		return errors.New("failed-scheduled-nft-transfer")
+	}
+
+	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
 	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 
 	signatureMessage, err := ts.messageService.SignNftMessage(tm)
@@ -194,6 +219,34 @@ func (ts *Service) ProcessNativeNftTransfer(tm payload.Transfer) error {
 	}
 
 	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
+}
+
+func (ts *Service) transferNftToBridgeAccount(tm payload.Transfer) (status *string, wg *sync.WaitGroup, err error) {
+	status = new(string)
+	wg = new(sync.WaitGroup)
+	wg.Add(1)
+	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, true, status, wg)
+	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, status, wg)
+
+	token, err := hedera.TokenIDFromString(tm.SourceAsset)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to parse token [%s]. Error [%s].", tm.TransactionId, tm.TargetAsset, err)
+		return nil, nil, err
+	}
+
+	nftID := hedera.NftID{
+		TokenID:      token,
+		SerialNumber: tm.SerialNum,
+	}
+
+	sender, err := hedera.AccountIDFromString(tm.Originator)
+	if err != nil {
+		ts.logger.Errorf("[%s] - Failed to parse receiver [%s]. Error [%s].", tm.TransactionId, tm.Receiver, err)
+		return nil, nil, err
+	}
+
+	ts.scheduledService.ExecuteScheduledNftTransferTransaction(tm.TransactionId, nftID, sender, ts.bridgeAccountID, true, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	return status, wg, err
 }
 
 func (ts *Service) ProcessWrappedTransfer(tm payload.Transfer) error {
@@ -389,8 +442,8 @@ func (ts *Service) processFeeTransfer(totalFee int64, sourceChainId, targetChain
 
 	for _, splitTransfer := range splitTransfers {
 		fee := -splitTransfer[len(splitTransfer)-1].Amount
-		onExecutionSuccess, onExecutionFail := ts.scheduledTxExecutionCallbacks(transferID, strconv.FormatInt(fee, 10))
-		onSuccess, onFail := ts.scheduledTxMinedCallbacks(feeOutParams, splitTransfer)
+		onExecutionSuccess, onExecutionFail := ts.scheduledFeeTxExecutionCallbacks(transferID, strconv.FormatInt(fee, 10))
+		onSuccess, onFail := ts.scheduledFeeTxMinedCallbacks(feeOutParams, splitTransfer)
 
 		ts.scheduledService.ExecuteScheduledTransferTransaction(transferID, nativeAsset, splitTransfer, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 	}
@@ -494,7 +547,7 @@ func (ts *Service) scheduledBurnTxMinedCallbacks(status *chan string) (onSuccess
 	return onSuccess, onFail
 }
 
-func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
+func (ts *Service) scheduledFeeTxExecutionCallbacks(transferID, feeAmount string) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
 		err := ts.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
@@ -564,7 +617,7 @@ func (ts *Service) scheduledTxExecutionCallbacks(transferID, feeAmount string) (
 	return onExecutionSuccess, onExecutionFail
 }
 
-func (ts *Service) scheduledTxMinedCallbacks(feeOutParams *hederaHelper.FeeOutParams, splitTransfer []model.Hedera) (onSuccess, onFail func(transactionID string)) {
+func (ts *Service) scheduledFeeTxMinedCallbacks(feeOutParams *hederaHelper.FeeOutParams, splitTransfer []model.Hedera) (onSuccess, onFail func(transactionID string)) {
 	onSuccess = func(transactionID string) {
 		ts.logger.Debugf("[%s] Fee - Scheduled TX execution successful.", transactionID)
 

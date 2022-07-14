@@ -19,6 +19,7 @@ package assets
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -206,6 +207,9 @@ func (a *Service) fetchEvmFungibleAssetInfo(
 	isNative bool,
 	routerContractAddress string,
 ) (assetInfo *assetModel.FungibleAssetInfo, err error) {
+	if evmTokenClient == nil {
+		a.logger.Fatalf("Evm Token Client is missing for network [%d] and asset [%s]", networkId, assetAddress)
+	}
 	assetInfo = &assetModel.FungibleAssetInfo{}
 	name, err := evmTokenClient.Name(&bind.CallOpts{})
 	if err != nil {
@@ -339,6 +343,9 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 		assetInfo.Name = assetInfoResponse.Name
 		assetInfo.Symbol = assetInfoResponse.Symbol
 		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+		assetInfo.CustomFees.InitFromResponse(assetInfoResponse.CustomFees)
+		assetInfo.CustomFeeTotalAmounts = fee.SumFallbackFeeAmounts(assetInfo.CustomFees)
+		assetInfo.TreasuryAccountId = assetInfoResponse.TreasuryAccountId
 	}
 
 	return assetInfo, err
@@ -642,19 +649,8 @@ func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, in
 		params.EvmFungibleTokenClients,
 		params.EvmNFTClients,
 	)
-	copyFields(newInstance, instance)
+	*instance = *newInstance
 	params.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*params.ParsedBridge, instance)
 
 	return nil
-}
-
-func copyFields(from *Service, to *Service) {
-	to.nativeToWrapped = from.nativeToWrapped
-	to.wrappedToNative = from.wrappedToNative
-	to.fungibleNetworkAssets = from.fungibleNetworkAssets
-	to.fungibleNativeAssets = from.fungibleNativeAssets
-	to.fungibleAssetInfos = from.fungibleAssetInfos
-	to.nonFungibleNetworkAssets = from.nonFungibleNetworkAssets
-	to.nonFungibleAssetInfos = from.nonFungibleAssetInfos
-	to.bridgeAccountId = from.bridgeAccountId
 }

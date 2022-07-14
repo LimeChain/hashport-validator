@@ -18,6 +18,7 @@ package fee
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"strconv"
 )
@@ -38,4 +39,29 @@ func TotalFeeFromTransfers(transfers []model.Hedera, receiver hedera.AccountID) 
 	}
 
 	return strconv.FormatInt(result, 10), hasReceiver
+}
+
+// SumFallbackFeeAmounts sums fallback fees in HBAR and by token ID
+// Returns the sum of the fallback fees in HBAR and by token ID
+func SumFallbackFeeAmounts(customFees asset.CustomFees) asset.CustomFeeTotalAmounts {
+	customFeeAmounts := new(asset.CustomFeeTotalAmounts)
+	customFeeAmounts.FallbackFeeAmountsByTokenId = make(map[string]int64)
+	sumFallbackFeeAmounts(customFees.RoyaltyFees, customFeeAmounts)
+
+	return *customFeeAmounts
+}
+
+func sumFallbackFeeAmounts(royaltyFees []asset.RoyaltyFee, customFeeAmounts *asset.CustomFeeTotalAmounts) {
+	for _, royaltyFee := range royaltyFees {
+		if royaltyFee.FallbackFee.DenominatingTokenId == nil {
+			customFeeAmounts.FallbackFeeAmountInHbar += royaltyFee.FallbackFee.Amount
+		} else {
+			tokenId := *royaltyFee.FallbackFee.DenominatingTokenId
+			if _, ok := customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId]; !ok {
+				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] = royaltyFee.FallbackFee.Amount
+			} else {
+				customFeeAmounts.FallbackFeeAmountsByTokenId[tokenId] += royaltyFee.FallbackFee.Amount
+			}
+		}
+	}
 }

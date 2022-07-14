@@ -29,7 +29,7 @@ type MockReadOnlyService struct {
 }
 
 func (m *MockReadOnlyService) FindNftTransfer(transferID string, tokenID string, serialNum int64, sender string, receiver string, save func(transactionID string, scheduleID string, status string) error) {
-	panic("implement me")
+	m.Called(transferID, tokenID, serialNum, sender, receiver, save)
 }
 
 func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirrorNodeTransaction.Response, error), save func(transactionID, scheduleID, status string) error) {

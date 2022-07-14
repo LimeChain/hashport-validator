@@ -16,6 +16,7 @@ type Config struct {
 type HederaParser struct {
 	NetworkType       string            `yaml:"network_type"`
 	BridgeAccount     string            `yaml:"bridge_account"`
+	PayerAccount      string            `yaml:"payer_account"`
 	Members           []string          `yaml:"members"`
 	TopicID           string            `yaml:"topic_id"`
 	Sender            Sender            `yaml:"sender"`
