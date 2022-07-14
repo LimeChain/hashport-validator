@@ -962,7 +962,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	}
 
 	// 1. Validate that NFT spender is the bridge account
-	validateNftSpender(t, setupEnv, nftToken, serialNumber, setupEnv.BridgeAccount)
+	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.BridgeAccount, t)
 
 	// 2. Submit burnERC721 transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurnERC721 := sendBurnERC721Transaction(evm, wrappedAsset, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), serialNumber, t)
@@ -1324,7 +1324,7 @@ func validateScheduledNftAllowanceApprove(t *testing.T, setupEnv *setup.Setup, e
 	timeLeft := 180
 
 	for {
-		scheduleCreates, err := setupEnv.Clients.MirrorNode.GetTransactionsAfterTimestamp(setupEnv.BridgeAccount, startTimestamp, read_only.ScheduleCreate)
+		scheduleCreates, err := setupEnv.Clients.MirrorNode.GetTransactionsAfterTimestamp(setupEnv.BridgeAccount, startTimestamp, read_only.CryptoApproveAllowance)
 		if err != nil {
 			t.Fatal(err)
 		}

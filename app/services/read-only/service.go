@@ -40,7 +40,6 @@ type Service struct {
 }
 
 const CryptoTransfer = "CRYPTOTRANSFER"
-const ScheduleCreate = "SCHEDULECREATE"
 const CryptoApproveAllowance = "CRYPTOAPPROVEALLOWANCE"
 
 func New(
@@ -130,7 +129,7 @@ func (s Service) FindScheduledNftAllowanceApprove(
 	save func(transactionID, scheduleID, status string) error) {
 	transferID := t.TransactionId
 	for {
-		txs, err := s.mirrorNode.GetTransactionsAfterTimestamp(sender, t.Timestamp.UnixNano(), ScheduleCreate)
+		txs, err := s.mirrorNode.GetTransactionsAfterTimestamp(sender, t.Timestamp.UnixNano(), CryptoApproveAllowance)
 		if err != nil {
 			s.logger.Errorf("[%s] - Failed to get transactions after timestamp. Error: [%s]", transferID, err)
 			continue
