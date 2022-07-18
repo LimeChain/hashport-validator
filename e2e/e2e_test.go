@@ -1011,7 +1011,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 
 	// 7. Transfer the NFT to the receiver account
 	tx, err := hedera.NewTransferTransaction().
-		AddNftTransfer(hedera.NftID{TokenID: setupEnv.NftTokenID, SerialNumber: setupEnv.NftSerialNumber}, setupEnv.BridgeAccount, setupEnv.Clients.Hedera.GetOperatorAccountID()).
+		AddApprovedNftTransfer(hedera.NftID{TokenID: setupEnv.NftTokenID, SerialNumber: setupEnv.NftSerialNumber}, setupEnv.BridgeAccount, setupEnv.Clients.Hedera.GetOperatorAccountID(), true).
 		Execute(setupEnv.Clients.Hedera)
 	if err != nil {
 		t.Fatal("failed to execute transfer transaction", err)

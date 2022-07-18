@@ -790,7 +790,7 @@ nftID := hedera.NftID{
   SerialNumber: serialNum,
 }
 tx, err := hedera.NewTransferTransaction().
-  AddNftTransfer(nftID, ownerAccId /* bridge account ID */, receiverAccId).
-  Execute(setupEnv.Clients.Hedera)
+	AddApprovedNftTransfer(nftID, ownerAccId /* bridge account ID */, receiverAccId, true).
+    Execute(setupEnv.Clients.Hedera)
 //...
 ```
