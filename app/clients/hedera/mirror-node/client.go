@@ -434,10 +434,10 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 }
 
 func (c *Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
-	query := fmt.Sprintf("?account_id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
+	query := fmt.Sprintf("?account.id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
 		accountId,
-		timestampHelper.String(startTimestamp),
 		transactionType,
+		timestampHelper.String(startTimestamp),
 		c.queryDefaultLimit)
 
 	resp, err := c.getTransactionsByQuery(query)
