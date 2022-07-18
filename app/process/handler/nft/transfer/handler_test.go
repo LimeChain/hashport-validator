@@ -19,10 +19,11 @@ package transfer
 import (
 	"database/sql"
 	"errors"
-	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 	"sync"
 	"testing"
 	"time"
+
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -159,22 +160,21 @@ func Test_Handle(t *testing.T) {
 	}
 
 	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
-	mocks.MScheduledService.On("ExecuteScheduledNftTransferTransaction",
+	mocks.MScheduledService.On("ExecuteScheduledNftAllowTransaction",
 		transactionId,
 		nftID,
 		bridgeAccountId,
 		receiverAccountId,
-		false).Return()
+	).Return()
 
 	handler.Handle(p)
 
 	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
-	mocks.MScheduledService.AssertCalled(t, "ExecuteScheduledNftTransferTransaction",
+	mocks.MScheduledService.AssertCalled(t, "ExecuteScheduledNftAllowTransaction",
 		transactionId,
 		nftID,
 		bridgeAccountId,
-		receiverAccountId,
-		false)
+		receiverAccountId)
 }
 
 func Test_Handle_CastError(t *testing.T) {
