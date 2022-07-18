@@ -777,3 +777,7 @@ where `burn_erc721_id` is constructed in the following format: `{transactionHash
 |---------------------|-----------------------------------------------------------------------|
 | **transactionHash** | The transaction hash of the `burnERC721` transaction                  |
 | **eventLogIndex**   | The log index of the `BurnERC721` event from the transaction receipt. |
+
+### Step 3. Transfer the native Hedera NFT back to the user
+
+After the burn transaction has been mined, the NFT is approved for the user. Then, the user can submit a transfer transaction on Hedera to get it back. 
