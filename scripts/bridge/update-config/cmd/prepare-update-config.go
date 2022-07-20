@@ -21,7 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	clientScript "github.com/limechain/hedera-eth-bridge-validator/scripts"
+	clientScript "github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"io/ioutil"
 	"time"
 )
