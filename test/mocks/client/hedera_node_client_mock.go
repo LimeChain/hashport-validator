@@ -107,3 +107,11 @@ func (m *MockHederaNode) TransactionReceiptQuery(transactionID hedera.Transactio
 	}
 	return args.Get(0).(hedera.TransactionReceipt), args.Get(1).(error)
 }
+
+func (m *MockHederaNode) SubmitScheduledNftApproveTransaction(payer hedera.AccountID, memo string, nftId hedera.NftID, owner, spender hedera.AccountID) (*hedera.TransactionResponse, error) {
+	args := m.Called(payer, memo, nftId, owner, spender)
+	if args.Get(1) == nil {
+		return args.Get(0).(*hedera.TransactionResponse), nil
+	}
+	return args.Get(0).(*hedera.TransactionResponse), args.Get(1).(error)
+}

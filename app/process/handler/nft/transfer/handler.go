@@ -101,5 +101,5 @@ func (nth Handler) Handle(p interface{}) {
 	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, true, statusResult, wg)
 	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, statusResult, wg)
 
-	nth.scheduledService.ExecuteScheduledNftTransferTransaction(transfer.TransactionId, nftID, nth.bridgeAccount, receiver, false, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	nth.scheduledService.ExecuteScheduledNftAllowTransaction(transfer.TransactionId, nftID, nth.bridgeAccount, receiver, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }

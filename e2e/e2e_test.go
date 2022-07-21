@@ -31,6 +31,8 @@ import (
 	"testing"
 	"time"
 
+	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -874,7 +876,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	transactionID := hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String()
 
 	// Step 4 - Validate that a scheduled NFT transaction to the bridge account was submitted by a validator
-	scheduledTxID, scheduleID := validateScheduledNftTransfer(setupEnv, transactionID, nftToken, serialNumber, originator, setupEnv.BridgeAccount.String(), t)
+	scheduledTxID, scheduleID := validateScheduledNftAllowanceApprove(t, setupEnv, transactionID, now.UnixNano())
 
 	// Step 5 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessagesWithStartTime(setupEnv, hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String(), signaturesStartTime, t)
@@ -982,7 +984,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nftToken, err)
 	}
 
-	// 1. Validate that NFT owner is the bridge account
+	// 1. Validate that NFT spender is the bridge account
 	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.BridgeAccount, t)
 
 	// 2. Submit burnERC721 transaction to the bridge contract
@@ -999,16 +1001,33 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	expectedTxId := validateBurnERC721Event(burnTxReceipt, expectedRouterBurnERC721, t)
 
 	// 4. Validate that a scheduled NFT transaction was submitted
-	receiver := setupEnv.Clients.Hedera.GetOperatorAccountID()
-	scheduledTxID, scheduleID := validateScheduledNftTransfer(setupEnv, expectedTxId, nftToken, serialNumber, setupEnv.BridgeAccount.String(), receiver.String(), t)
+	scheduledTxID, scheduleID := validateScheduledNftAllowanceApprove(t, setupEnv, expectedTxId, blockTimestamp.UnixNano())
 
 	// 5. Validate Event Transaction ID retrieved from Validator API
 	validateEventTransactionIDFromValidatorAPI(setupEnv, expectedTxId, scheduledTxID, t)
 
-	// 6. Validate that the NFT was sent to the receiver account
+	// 6. Validate that the NFT is allowed to the receiver account
+	validateNftSpender(t, setupEnv, nftToken, serialNumber, setupEnv.Clients.Hedera.GetOperatorAccountID())
+
+	// 7. Transfer the NFT to the receiver account
+	tx, err := hedera.NewTransferTransaction().
+		AddApprovedNftTransfer(hedera.NftID{TokenID: setupEnv.NftTokenID, SerialNumber: setupEnv.NftSerialNumber}, setupEnv.BridgeAccount, setupEnv.Clients.Hedera.GetOperatorAccountID(), true).
+		Execute(setupEnv.Clients.Hedera)
+	if err != nil {
+		t.Fatal("failed to execute transfer transaction", err)
+	}
+	rx, err := tx.GetReceipt(setupEnv.Clients.Hedera)
+	if err != nil {
+		t.Fatal("failed to get receipt", err)
+	}
+	if rx.Status != hedera.StatusSuccess {
+		t.Fatal("transfer transaction failed", rx.Status)
+	}
+
+	// 8. Validate that the NFT is transferred to the receiver account
 	validateNftOwner(setupEnv, nftToken, serialNumber, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
 
-	// 7. Prepare Expected Database Records
+	// 9. Prepare Expected Database Records
 	expectedTxRecord := &entity.Transfer{
 		TransactionID: expectedTxId,
 		SourceChainID: chainId,
@@ -1036,10 +1055,10 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		},
 	}
 
-	// 8. Wait for validators to update DB state after Scheduled TX is mined
+	// 10. Wait for validators to update DB state after Scheduled TX is mined
 	time.Sleep(20 * time.Second)
 
-	// 9. Validate Database Records
+	// 11. Validate Database Records
 	verifyTransferRecord(setupEnv.DbValidator, expectedTxRecord, t)
 	// and:
 	verifyScheduleRecord(setupEnv.DbValidator, expectedScheduleTransferRecord, t)
@@ -1065,6 +1084,34 @@ func validateNftOwner(setup *setup.Setup, tokenID string, serialNumber int64, ex
 	owner := nftInfo[0].AccountID
 	if owner != expectedOwner {
 		t.Fatalf("Invalid NftID [%s] owner. Expected [%s], actual [%s].", nftID.String(), expectedOwner, owner)
+	}
+}
+
+func validateNftSpender(t *testing.T, setup *setup.Setup, tokenID string, serialNumber int64, expectedSpender hedera.AccountID) {
+	tokenIdFromString, err := hedera.TokenIDFromString(tokenID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nftId := hedera.NftID{
+		TokenID:      tokenIdFromString,
+		SerialNumber: serialNumber,
+	}
+
+	nftInfo, err := hedera.NewTokenNftInfoQuery().
+		SetNftID(nftId).
+		Execute(setup.Clients.Hedera)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(nftInfo) != 1 {
+		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftId.String(), nftInfo)
+	}
+
+	spender := nftInfo[0].SpenderID
+	if spender != expectedSpender {
+		t.Fatalf("Invalid NftID [%s] spender. Expected [%s], actual [%s].", nftId.String(), expectedSpender, spender)
 	}
 }
 
@@ -1313,40 +1360,36 @@ func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, as
 	return "", ""
 }
 
-func validateScheduledNftTransfer(setupEnv *setup.Setup, expectedTransactionID, token string, serialNum int64, senderAccountId, receiverAccountId string, t *testing.T) (transactionID, scheduleID string) {
+func validateScheduledNftAllowanceApprove(t *testing.T, setupEnv *setup.Setup, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
 	timeLeft := 180
+	receiver := setupEnv.Clients.Hedera.GetOperatorAccountID()
 
 	for {
-		response, err := setupEnv.Clients.MirrorNode.GetNftTransactions(token, serialNum)
+		scheduleCreates, err := setupEnv.Clients.MirrorNode.GetTransactionsAfterTimestamp(setupEnv.BridgeAccount, startTimestamp, read_only.CryptoApproveAllowance)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		for _, nftTransfer := range response.Transactions {
-			if nftTransfer.Type == "CRYPTOTRANSFER" &&
-				nftTransfer.ReceiverAccountID == receiverAccountId &&
-				nftTransfer.SenderAccountID == senderAccountId {
+		for _, scheduleCreate := range scheduleCreates {
+			scheduledTransaction, err := setupEnv.Clients.MirrorNode.GetScheduledTransaction(scheduleCreate.TransactionID)
+			if err != nil {
+				t.Fatalf("Could not get scheduled transaction for [%s]", scheduleCreate.TransactionID)
+			}
 
-				scheduledTx, err := setupEnv.Clients.MirrorNode.GetScheduledTransaction(nftTransfer.TransactionID)
+			for _, tx := range scheduledTransaction.Transactions {
+				schedule, err := setupEnv.Clients.MirrorNode.GetSchedule(tx.EntityId)
 				if err != nil {
-					t.Fatalf("Failed to retrieve scheduled transaction [%s]. Error: [%s]", nftTransfer.TransactionID, err)
+					t.Fatalf("Could not get schedule entity for [%s]", tx.EntityId)
 				}
-				for _, tx := range scheduledTx.Transactions {
-					if tx.Result == hedera.StatusSuccess.String() {
-						schedule, err := setupEnv.Clients.MirrorNode.GetSchedule(tx.EntityId)
-						if err != nil {
-							t.Fatalf("[%s] - Failed to get scheduled entity [%s]. Error: [%s]", expectedTransactionID, scheduleID, err)
-						}
-						if schedule.Memo == expectedTransactionID {
-							return nftTransfer.TransactionID, schedule.ScheduleId
-						}
-					}
+
+				if schedule.Memo == expectedTransactionID {
+					return tx.TransactionID, tx.EntityId
 				}
 			}
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for NFT Transfer for account [%s]. Trying again. Time left: ~[%d] seconds", receiverAccountId, timeLeft))
+			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for NFT Transfer for account [%s]. Trying again. Time left: ~[%d] seconds", receiver, timeLeft))
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue

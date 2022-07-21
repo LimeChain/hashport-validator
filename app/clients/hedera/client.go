@@ -197,6 +197,32 @@ func (hc Node) TransactionReceiptQuery(transactionID hedera.TransactionID, nodeA
 		Execute(hc.GetClient())
 }
 
+func (hc Node) SubmitScheduledNftApproveTransaction(
+	payer hedera.AccountID,
+	memo string,
+	nftId hedera.NftID,
+	owner hedera.AccountID,
+	spender hedera.AccountID) (*hedera.TransactionResponse, error) {
+	tx := hedera.NewAccountAllowanceApproveTransaction().
+		ApproveTokenNftAllowance(nftId, owner, spender)
+
+	return hc.submitScheduledAllowTransaction(payer, memo, tx)
+}
+
+func (hc Node) submitScheduledAllowTransaction(payer hedera.AccountID, memo string, tx *hedera.AccountAllowanceApproveTransaction) (*hedera.TransactionResponse, error) {
+	tx, err := tx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTx, err := tx.SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTx, payer, memo)
+}
+
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it
 func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountID, memo string, tx *hedera.TransferTransaction) (*hedera.TransactionResponse, error) {
 	tx, err := tx.FreezeWith(hc.GetClient())

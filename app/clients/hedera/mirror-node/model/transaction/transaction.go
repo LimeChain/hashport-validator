@@ -18,6 +18,7 @@ package transaction
 
 import (
 	"errors"
+
 	mirrorNodeErr "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"

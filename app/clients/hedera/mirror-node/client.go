@@ -433,6 +433,21 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	return c.query(topicQuery, topicID.String())
 }
 
+func (c *Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
+	query := fmt.Sprintf("?account.id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
+		accountId,
+		transactionType,
+		timestampHelper.String(startTimestamp),
+		c.queryDefaultLimit)
+
+	resp, err := c.getTransactionsByQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Transactions, nil
+}
+
 func (c Client) query(query, entityID string) bool {
 	response, err := c.httpClient.Get(query)
 	if err != nil {

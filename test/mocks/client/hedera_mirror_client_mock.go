@@ -221,3 +221,8 @@ func (m *MockHederaMirror) GetHBARUsdPrice() (price decimal.Decimal, err error) 
 	args := m.Called()
 	return args.Get(0).(decimal.Decimal), args.Error(1)
 }
+
+func (m *MockHederaMirror) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
+	args := m.Called(accountId, startTimestamp, transactionType)
+	return args.Get(0).([]transaction.Transaction), args.Error(1)
+}

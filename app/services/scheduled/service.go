@@ -77,6 +77,24 @@ func (s *Service) ExecuteScheduledNftTransferTransaction(
 	}
 }
 
+func (s *Service) ExecuteScheduledNftAllowTransaction(
+	id string, nftID hedera.NftID, owner hedera.AccountID, spender hedera.AccountID,
+	onExecutionSuccess func(txId, scheduleId string), onExecutionFail, onSuccess, onFail func(txId string)) {
+	tx, err := s.hederaNodeClient.SubmitScheduledNftApproveTransaction(s.payerAccount, id, nftID, owner, spender)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to submit scheduled nft approve transaction. Error [%s].", id, err)
+		if tx != nil {
+			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(tx.TransactionID.String()))
+		}
+		return
+	}
+	err = s.createOrSignScheduledTransaction(tx, id, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
+	if err != nil {
+		s.logger.Errorf("[%s] - Failed to create/sign scheduled nft approve transaction. Error [%s].", id, err)
+		return
+	}
+}
+
 func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, transfers []transfer.Hedera) (*hedera.TransactionResponse, error) {
 	var tokenID hedera.TokenID
 	var transactionResponse *hedera.TransactionResponse
