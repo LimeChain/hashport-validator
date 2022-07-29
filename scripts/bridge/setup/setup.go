@@ -156,7 +156,7 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 }
 
 func cryptoCreate(client *hedera.Client, result *DeployResult) (hedera.PrivateKey, error) {
-	privateKey, _ := hedera.GeneratePrivateKey()
+	privateKey, _ := hedera.PrivateKeyGenerateEd25519()
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
 	fmt.Printf("Hederea Public Key: %v\n", privateKey.PublicKey().String())
 	publicKey := privateKey.PublicKey()
