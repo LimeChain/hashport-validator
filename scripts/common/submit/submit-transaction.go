@@ -21,7 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 )
 
 func main() {
