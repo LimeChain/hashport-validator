@@ -23,3 +23,5 @@ testscenario/
 
 # CodeCav
 coverage.txt
+
+scripts/**/*.yml

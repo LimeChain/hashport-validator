@@ -122,8 +122,8 @@ type NetworkForDeploy struct {
 }
 
 type TokensForDeploy struct {
-	Fungible map[string]FungibleTokenForDeploy    `yaml:"fungible,omitempty" json:"fungible,omitempty"`
-	Nft      map[string]NonFungibleTokenForDeploy `yaml:"nft,omitempty" json:"nft,omitempty"`
+	Fungible map[string]*FungibleTokenForDeploy    `yaml:"fungible,omitempty" json:"fungible,omitempty"`
+	Nft      map[string]*NonFungibleTokenForDeploy `yaml:"nft,omitempty" json:"nft,omitempty"`
 }
 
 type NonFungibleTokenForDeploy struct {

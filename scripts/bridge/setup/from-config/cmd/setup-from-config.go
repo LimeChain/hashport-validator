@@ -21,21 +21,24 @@ import (
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	cfgParser "github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	bridgeSetup "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
-	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/from-config/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/associate"
 	nativeFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/create"
 	nativeNftCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/nft/create"
 	wrappedFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/wrapped/create"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"strings"
 )
 
 const (
 	HederaMainnetNetworkId = 295
 	HederaTestnetNetworkId = 296
+	outputFilePath         = "./scripts/bridge/setup/from-config/new-bridge.yml"
 )
 
 var (
@@ -45,12 +48,12 @@ var (
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
-	network := flag.String("network", "", "Hedera Network Type")
+	network := flag.String("network", "testnet", "Hedera Network Type")
 	members := flag.Int("members", 1, "The count of the members")
 	adminKey := flag.String("adminKey", "", "The admin key")
 	topicThreshold := flag.Uint("topicThreshold", 1, "Topic member keys sign threshold")
 	wrappedFungibleThreshold := flag.Uint("wrappedTokenThreshold", 1, "The desired threshold of n/m keys required for supply key of wrapped tokens")
-	configPath := flag.String("configPath", "", "Path to the 'bridge.yaml' config file")
+	configPath := flag.String("configPath", "scripts/bridge/setup/extend-config/extended-bridge.yml", "Path to the 'bridge.yaml' config file")
 	flag.Parse()
 
 	validateArguments(privateKey, accountID, adminKey, topicThreshold, members, configPath, network)
@@ -70,13 +73,16 @@ func main() {
 		parsedBridgeCfgForDeploy,
 	)
 
-	bridgeParserBytes, err := yaml.Marshal(parsedBridgeCfgForDeploy.ToBridgeParser())
-	if err != nil {
-		fmt.Println(fmt.Sprintf("[ERROR] Failed to parse bridge parser to yaml. Error: [%s]", err))
-	}
-
 	printTitle("Updated Bridge yaml config:")
-	fmt.Println(string(bridgeParserBytes))
+	newBridgeYml, err := yaml.Marshal(cfgParser.Config{Bridge: *parsedBridgeCfgForDeploy.ToBridgeParser()})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to marshal updated bridge config to yaml. Err: [%s]", err))
+	}
+	err = ioutil.WriteFile(outputFilePath, newBridgeYml, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("failed to write new-bridge.yml file. Err: [%s]", err))
+	}
+	fmt.Println(fmt.Sprintf("Successfully created new config file at: %s", outputFilePath))
 }
 
 func createAndAssociateTokens(wrappedFungibleThreshold *uint, bridgeDeployResult bridgeSetup.DeployResult, privateKey *string, accountID *string, network *string, parsedBridgeCfgForDeploy *parser.ExtendedBridge) {
