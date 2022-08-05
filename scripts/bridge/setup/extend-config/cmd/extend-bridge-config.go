@@ -27,7 +27,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	parser "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
