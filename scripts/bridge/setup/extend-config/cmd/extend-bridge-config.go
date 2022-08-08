@@ -47,8 +47,13 @@ var (
 	///////////////////////////////////////
 	// FILL THE EVM NODE URLS BEFORE RUN //
 	///////////////////////////////////////
-	evmNodeUrls = map[uint64]string{}
-	evmClients  = make(map[uint64]client.EVM)
+	evmNodeUrls = map[uint64]string{
+		80001: "wss://polygon-mumbai.g.alchemy.com/v2/_rtk-MrbEkjHcBcb1HW6k0oJjVHs9ALB",
+		5:     "wss://eth-goerli.alchemyapi.io/v2/luXs0CFEDOgQvuqqslwzH-yKs-KDq0DN",
+		97:    "https://data-seed-prebsc-1-s1.binance.org:8545/",
+		43113: "https://api.avax-test.network/ext/bc/C/rpc",
+	}
+	evmClients = make(map[uint64]client.EVM)
 
 	// Hedera //
 	hederaNetworkId           uint64
@@ -116,7 +121,6 @@ func updateAdditionalFieldsToCfg(extendedBridgeCfg *parser.ExtendedBridge, evmPr
 		for fungibleTokenAddress, fungibleTokenInfo := range networkContent.Tokens.Fungible {
 			if networkId == hederaNetworkId {
 				err := updateHederaFungibleAssetInfo(fungibleTokenAddress, fungibleTokenInfo, mirrorNodeClient)
-				//networkContent.Tokens.Fungible[fungibleTokenName] = fungibleTokenInfo
 				if err != nil {
 					panic(err)
 				}
@@ -136,7 +140,6 @@ func updateAdditionalFieldsToCfg(extendedBridgeCfg *parser.ExtendedBridge, evmPr
 		for nftAddress, nftInfo := range networkContent.Tokens.Nft {
 			if networkId == hederaNetworkId {
 				err := updateHederaNonFungibleAssetInfo(nftAddress, nftInfo, mirrorNodeClient)
-				//networkContent.Tokens.Nft[nftName] = nftInfo
 				if err != nil {
 					panic(err)
 				}
@@ -169,25 +172,25 @@ func updateHederaFungibleAssetInfo(
 		return nil
 	}
 
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		log.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
-		assetInfo.Decimals = uint(parsedDecimals)
-		parsedTotalSupply, _ := strconv.Atoi(assetInfoResponse.TotalSupply)
-		assetInfo.Supply = uint64(parsedTotalSupply)
-		if assetInfo.Supply == 0 {
-			assetInfo.Supply = defaultSupply
-		} else if assetInfo.Supply > math.MaxInt64 || assetInfo.Supply < 0 {
-			assetInfo.Supply = math.MaxInt64
-
-		}
+	assetInfoResponse, err := mirrorNode.GetToken(assetId)
+	if err != nil {
+		log.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
+		return err
 	}
 
-	return e
+	assetInfo.Name = assetInfoResponse.Name
+	assetInfo.Symbol = assetInfoResponse.Symbol
+	parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
+	assetInfo.Decimals = uint(parsedDecimals)
+	parsedTotalSupply, _ := strconv.Atoi(assetInfoResponse.TotalSupply)
+	assetInfo.Supply = uint64(parsedTotalSupply)
+	if assetInfo.Supply == 0 {
+		assetInfo.Supply = defaultSupply
+	} else if assetInfo.Supply > math.MaxInt64 || assetInfo.Supply < 0 {
+		assetInfo.Supply = math.MaxInt64
+	}
+
+	return nil
 }
 
 func updateHederaNonFungibleAssetInfo(
@@ -268,7 +271,7 @@ func updateEvmNonFungibleAssetInfo(
 	}
 	assetInfo.Symbol = symbol
 
-	return err
+	return nil
 }
 
 func parseExtendedBridge(configPath *string) *parser.ExtendedBridge {

@@ -279,15 +279,16 @@ func (a *Service) fetchHederaFungibleAssetInfo(
 	assetInfoResponse, err := mirrorNode.GetToken(assetId)
 	if err != nil {
 		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
-		assetInfo.Decimals = uint8(parsedDecimals)
-		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+		return nil, err
 	}
 
-	return assetInfo, err
+	assetInfo.Name = assetInfoResponse.Name
+	assetInfo.Symbol = assetInfoResponse.Symbol
+	parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
+	assetInfo.Decimals = uint8(parsedDecimals)
+	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+
+	return assetInfo, nil
 }
 
 func (a *Service) fetchHederaNonFungibleAssetInfo(
@@ -301,13 +302,14 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 	assetInfoResponse, err := mirrorNode.GetToken(assetId)
 	if err != nil {
 		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+		return nil, err
 	}
 
-	return assetInfo, err
+	assetInfo.Name = assetInfoResponse.Name
+	assetInfo.Symbol = assetInfoResponse.Symbol
+	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+
+	return assetInfo, nil
 }
 
 func (a *Service) loadFungibleAssetInfos(
