@@ -61,7 +61,8 @@
                 "value": 100
               }
             ]
-          }
+          },
+          "unit": "locale"
         },
         "overrides": []
       },
@@ -87,7 +88,7 @@
         "text": {},
         "textMode": "value_and_name"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -136,7 +137,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "locale"
         },
         "overrides": []
       },
@@ -162,7 +164,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -592,7 +594,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -670,7 +672,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -736,7 +738,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -893,7 +895,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1063,7 +1065,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1220,7 +1222,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1390,7 +1392,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1547,7 +1549,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1717,7 +1719,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1874,7 +1876,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
