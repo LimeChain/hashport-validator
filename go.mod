@@ -18,7 +18,7 @@ require (
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.7.1
-	github.com/ybbus/httpretry v1.0.1 // indirect
+	github.com/ybbus/httpretry v1.0.1
 	golang.org/x/net v0.0.0-20210907225631-ff17edfbf26d
 	google.golang.org/protobuf v1.26.1-0.20210525005349-febffdd88e85
 	gopkg.in/yaml.v2 v2.4.0

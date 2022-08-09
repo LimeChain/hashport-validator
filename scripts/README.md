@@ -27,15 +27,8 @@
    `go run ./scripts/common/submit/submit-transaction.go --privateKey /private key of executor/ --accountID /account id of the executor/ --network=/previewnet|testnet|mainnet/ --transaction /signed transaction bytes/`
 
 ## Full Hedera Bridge Setup with Tokens from extended Bridge Config
-1. Add the following additional fields for the tokens in the Bridge Config as follows:
-   1. Fungible:
-      1. `name`
-      2. `symbol`
-      3. `decimals`
-      4. `supply`
-   2. Non-Fungible:
-      1. `name`
-      2. `symbol`
+1. Run extend-bridge-config with evmPrivateKey, network, configPath to extend bridge config with needed additional information (you will need also to update the 'evmNodeUrls' to add node urls for each used EVM) and will output 'extended-bridge.yml' inside 'setup/extend-config':
+   `go run ./scripts/bridge/setup/extend-config/cmd/extend-bridge-config.go --evmPrivateKey=/your evm private key/ --network=/previewnet|testnet|mainnet/ --configPath=/the path to the normal (non-extended) bridge config/` 
       
 2. Run setup-from-config.go with privateKey, accountID, network, members, adminKey, topicThreshold, wrappedTokenThreshold, configPath to fully deploy bridge with all Hedera Tokens from specified extended bridge config.
    `go run ./scripts/bridge/setup/from-config/cmd/setup-from-config.go --privateKey=/your private key/ --accountID=/your account id/ --network=/previewnet|testnet|mainnet/ --members=/int, the count of the wanted bridge custodians/ --adminKey=/your admin key/ --topicThreshold=/topic threshold of signs needed to submit a message/ --wrappedTokenThreshold=/threshold of signs needed to manage a wrapped token/ --configPath=/the path to the extended bridge config/`
