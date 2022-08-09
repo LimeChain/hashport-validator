@@ -7,8 +7,8 @@
 #        for: 1m
 #        # Labels - additional labels to be attached to the alert
 #        labels:
-#          severity: 'minor'
-#          group: 'account_amounts'
+#          severity: "minor"
+#          group: "account_amounts"
 #        annotations:
 #          description: "Fee account amount: {{ $value }} HBAR"
 #
@@ -18,8 +18,8 @@
 #        for: 1m
 #        # Labels - additional labels to be attached to the alert
 #        labels:
-#          severity: 'minor'
-#          group: 'account_amounts'
+#          severity: "minor"
+#          group: "account_amounts"
 #        annotations:
 #          description: "Operator account amount: {{ $value }} HBAR"
 #
@@ -31,8 +31,40 @@
 #        for: 1m
 #        # Labels - additional labels to be attached to the alert
 #        labels:
-#          severity: 'critical'
-#          group: 'validators'
-#          repeat_interval: 'long'
+#          severity: "critical"
+#          group: "validators"
+#          repeat_interval: "long"
 #        annotations:
 #          description: "Participation Rate: {{ $value }} %"
+#      # Rules for health checking. Should be set according to validators count
+#      - alert: HealthyValidatorsMinor
+#        # Condition for alerting
+#        expr: count_validators_alive < 3
+#        for: 1m
+#        # Labels - additional labels to be attached to the alert
+#        labels:
+#          severity: "minor"
+#          group: "validators"
+#        annotations:
+#          description: "Healthy validators: {{ $value }}"
+#      - alert: HealthyValidatorsWarning
+#        # Condition for alerting
+#        expr: count_validators_alive < 2
+#        for: 1m
+#        # Labels - additional labels to be attached to the alert
+#        labels:
+#          severity: "warning"
+#          group: "validators"
+#        annotations:
+#          description: "Healthy validators: {{ $value }}"
+#      - alert: HealthyValidatorsCritical
+#        # Condition for alerting
+#        expr: count_validators_alive < 1
+#        for: 1m
+#        # Labels - additional labels to be attached to the alert
+#        labels:
+#          severity: "critical"
+#          group: "validators"
+#          repeat_interval: "long"
+#        annotations:
+#          description: "Healthy validators: {{ $value }}"
