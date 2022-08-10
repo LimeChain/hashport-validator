@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"context"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gookit/event"
 	coin_gecko "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-gecko"
@@ -51,7 +50,7 @@ type Clients struct {
 
 // PrepareClients instantiates all the necessary clients for a validator node
 func PrepareClients(clientsCfg config.Clients, bridgeEvmsCfgs map[uint64]config.BridgeEvm, networks map[uint64]*parser.Network) *Clients {
-	EvmClients := InitEVMClients(clientsCfg)
+	EvmClients := InitEVMClients(clientsCfg, networks)
 	instance := &Clients{
 		HederaNode:              hedera.NewNodeClient(clientsCfg.Hedera),
 		MirrorNode:              mirrornode.NewClient(clientsCfg.MirrorNode),
@@ -109,9 +108,13 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 	return nil
 }
 
-func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
+func InitEVMClients(clientsCfg config.Clients, networks map[uint64]*parser.Network) map[uint64]client.EVM {
 	EVMClients := make(map[uint64]client.EVM)
 	for configChainId, ec := range clientsCfg.Evm {
+		network, ok := networks[configChainId]
+		if !ok || network.RouterContractAddress == "" {
+			continue
+		}
 		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
@@ -128,6 +131,9 @@ func InitEVMClients(clientsCfg config.Clients) map[uint64]client.EVM {
 func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients map[uint64]client.EVM) map[uint64]client.DiamondRouter {
 	routers := make(map[uint64]client.DiamondRouter)
 	for networkId, bridgeEVMsCfg := range bridgeEVMsCfgs {
+		if bridgeEVMsCfg.RouterContractAddress == "" {
+			continue
+		}
 		evmClient, ok := evmClients[networkId]
 		if !ok {
 			log.Fatalf("failed to initialize RouterClient because of missing EVM client for network id: [%d]", networkId)
