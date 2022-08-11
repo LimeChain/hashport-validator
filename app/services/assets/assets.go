@@ -276,18 +276,40 @@ func (a *Service) fetchHederaFungibleAssetInfo(
 		return assetInfo, err
 	}
 
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
-		assetInfo.Decimals = uint8(parsedDecimals)
-		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+	assetInfoResponse, err := mirrorNode.GetToken(assetId)
+	if err != nil {
+		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
+		return nil, err
 	}
 
-	return assetInfo, err
+	assetInfo.Name = assetInfoResponse.Name
+	assetInfo.Symbol = assetInfoResponse.Symbol
+	parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
+	assetInfo.Decimals = uint8(parsedDecimals)
+	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+
+	return assetInfo, nil
+}
+
+func (a *Service) fetchHederaNonFungibleAssetInfo(
+	assetId string,
+	mirrorNode client.MirrorNode,
+	isNative bool,
+	hederaTokenBalances map[string]int,
+) (assetInfo *assetModel.NonFungibleAssetInfo, err error) {
+
+	assetInfo = &assetModel.NonFungibleAssetInfo{}
+	assetInfoResponse, err := mirrorNode.GetToken(assetId)
+	if err != nil {
+		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
+		return nil, err
+	}
+
+	assetInfo.Name = assetInfoResponse.Name
+	assetInfo.Symbol = assetInfoResponse.Symbol
+	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+
+	return assetInfo, nil
 }
 
 func (a *Service) loadFungibleAssetInfos(
@@ -322,26 +344,6 @@ func (a *Service) loadFungibleAssetInfos(
 			}
 		}
 	}
-}
-
-func (a *Service) fetchHederaNonFungibleAssetInfo(
-	assetId string,
-	mirrorNode client.MirrorNode,
-	isNative bool,
-	hederaTokenBalances map[string]int,
-) (assetInfo *assetModel.NonFungibleAssetInfo, err error) {
-
-	assetInfo = &assetModel.NonFungibleAssetInfo{}
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
-	}
-
-	return assetInfo, err
 }
 
 func (a *Service) getHederaTokenReserveAmount(
