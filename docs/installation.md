@@ -10,7 +10,7 @@ docker-compose pull
 **_NOTE:_** All commands run from the default directory of the repository.
 
 ## Prerequisites
-- [Go 1.13+](https://golang.org/doc/install)
+- [Go 1.18+](https://golang.org/doc/install)
 - [docker](https://docs.docker.com/install/)
 
 ## Local development
