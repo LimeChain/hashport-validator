@@ -18,7 +18,7 @@ package message
 
 import (
 	"encoding/base64"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	msgHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	model "github.com/limechain/hedera-eth-bridge-validator/proto"
