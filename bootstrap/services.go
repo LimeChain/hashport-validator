@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"fmt"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
@@ -88,7 +87,10 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 	for _, client := range clients.EvmClients {
 		chainId := client.GetChainID()
 		evmSigners[chainId] = evm.NewEVMSigner(client.GetPrivateKey())
-		contractServices[chainId] = contracts.NewService(client, c.Bridge.EVMs[chainId].RouterContractAddress, clients.RouterClients[chainId])
+		evmConfig, ok := c.Bridge.EVMs[chainId]
+		if ok && evmConfig.RouterContractAddress != "" {
+			contractServices[chainId] = contracts.NewService(client, evmConfig.RouterContractAddress, clients.RouterClients[chainId])
+		}
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
