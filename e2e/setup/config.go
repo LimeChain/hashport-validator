@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/shopspring/decimal"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -245,7 +244,11 @@ func newClients(config Config) (*clients, error) {
 		} else {
 			return nil, errors.New("chain IDs mismatch config and actual")
 		}
-		routerContractAddress := common.HexToAddress(config.Bridge.Networks[configChainId].RouterContractAddress)
+		network, ok := config.Bridge.Networks[configChainId]
+		if !ok || network.RouterContractAddress == "" {
+			continue
+		}
+		routerContractAddress := common.HexToAddress(network.RouterContractAddress)
 		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
 
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
