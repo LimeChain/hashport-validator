@@ -28,6 +28,8 @@ services:
       - 80:5200
     depends_on:
       - "db"
+    logging:
+      driver: gcplogs
 
   prometheus:
     image: prom/prometheus:v2.34.0
