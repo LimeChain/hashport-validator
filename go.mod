@@ -9,7 +9,6 @@ require (
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/render v1.0.1
-	github.com/golang/protobuf v1.5.2
 	github.com/gookit/event v1.0.6
 	github.com/hashgraph/hedera-sdk-go/v2 v2.15.0
 	github.com/pkg/errors v0.9.1
