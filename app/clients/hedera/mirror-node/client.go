@@ -60,7 +60,7 @@ type Client struct {
 func NewClient(mirrorNode config.MirrorNode) *Client {
 	httpC := &http.Client{
 		Transport: http.DefaultTransport,
-		Timeout:   time.Second * mirrorNode.RequestTimeout,
+		Timeout:   time.Second * time.Duration(mirrorNode.RequestTimeout),
 	}
 
 	rp := mirrorNode.RetryPolicy
@@ -69,7 +69,9 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 		httpretry.WithRetryPolicy(httpHelper.RetryPolicy),
 		httpretry.WithBackoffPolicy(
 			httpretry.ExponentialBackoff(
-				rp.MinWait, rp.MaxWait, rp.MaxJitter)),
+				time.Duration(rp.MinWait)*time.Second,
+				time.Duration(rp.MaxWait)*time.Second,
+				time.Duration(rp.MaxJitter)*time.Second)),
 	)
 	return &Client{
 		mirrorAPIAddress:             mirrorNode.ApiAddress,
