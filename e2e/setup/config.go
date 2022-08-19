@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/shopspring/decimal"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"

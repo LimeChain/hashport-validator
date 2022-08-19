@@ -165,7 +165,6 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 		if tokenAddress == constants.Hbar {
 			continue
 		}
-
 		fmt.Printf("Creating Hedera Native Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := nativeFungibleCreate.CreateNativeFungibleToken(
 			client,
