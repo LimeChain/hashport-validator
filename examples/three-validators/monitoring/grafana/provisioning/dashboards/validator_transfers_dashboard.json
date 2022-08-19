@@ -61,7 +61,8 @@
                 "value": 100
               }
             ]
-          }
+          },
+          "unit": "locale"
         },
         "overrides": []
       },
@@ -87,7 +88,7 @@
         "text": {},
         "textMode": "value_and_name"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -136,7 +137,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "locale"
         },
         "overrides": []
       },
@@ -162,7 +164,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -174,6 +176,18 @@
           "interval": "",
           "legendFormat": "HBAR",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "{__name__=~\"Native_Hedera_.*_balance.*\"}",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{symbol}}",
+          "refId": "C"
         },
         {
           "datasource": {
@@ -580,7 +594,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -658,7 +672,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -724,7 +738,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -881,7 +895,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1051,7 +1065,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1208,7 +1222,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1378,7 +1392,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1535,7 +1549,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1705,7 +1719,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
@@ -1862,7 +1876,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.4.3",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {

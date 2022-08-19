@@ -19,10 +19,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
+	wrapped_create "github.com/limechain/hedera-eth-bridge-validator/scripts/token/wrapped/create"
 	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 func main() {
@@ -99,38 +100,20 @@ func main() {
 		panic(err)
 	}
 
-	tokenId := createBridgeAccountToken(client, bridgeIDFromString, adminPublicKey, supplyKey, custodianKey)
+	tokenId, err := wrapped_create.WrappedFungibleToken(
+		client,
+		bridgeIDFromString,
+		adminPublicKey,
+		supplyKey,
+		custodianKey,
+		"e2e-test-token",
+		"ett",
+		8,
+		100000000000000,
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println("Token ID:", tokenId)
-}
-
-func createBridgeAccountToken(client *hedera.Client, bridgeAccount hedera.AccountID, adminKey hedera.PublicKey, supplyKey *hedera.KeyList, custodianKey []hedera.PrivateKey) *hedera.TokenID {
-	freezeTokenTX, err := hedera.NewTokenCreateTransaction().
-		SetTreasuryAccountID(bridgeAccount).
-		SetAdminKey(adminKey).
-		SetSupplyKey(supplyKey).
-		SetTokenName("e2e-test-token").
-		SetTokenSymbol("ett").
-		SetInitialSupply(100000000000000).
-		SetDecimals(8).
-		FreezeWith(client)
-
-	if err != nil {
-		panic(err)
-	}
-
-	// add all keys
-	for i := 0; i < len(custodianKey); i++ {
-		freezeTokenTX = freezeTokenTX.Sign(custodianKey[i])
-	}
-	createTx, err := freezeTokenTX.Execute(client)
-	if err != nil {
-		panic(err)
-	}
-	receipt, err := createTx.GetReceipt(client)
-	if err != nil {
-		panic(err)
-	}
-
-	return receipt.TokenID
 }

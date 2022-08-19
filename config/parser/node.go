@@ -86,10 +86,10 @@ type MirrorNode struct {
 }
 
 type RetryPolicy struct {
-	MaxRetry  int `yaml:"max_retry" default:"10"`
-	MinWait   int `yaml:"min_wait" default:"1"`
-	MaxWait   int `yaml:"max_wait" default:"60"`
-	MaxJitter int `yaml:"max_jitter" default:"0"`
+	MaxRetry  int `yaml:"max_retry"`
+	MinWait   int `yaml:"min_wait"`
+	MaxWait   int `yaml:"max_wait"`
+	MaxJitter int `yaml:"max_jitter"`
 }
 
 // CoinGecko //

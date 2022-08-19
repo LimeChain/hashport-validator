@@ -143,3 +143,80 @@ func Test_parseRpc(t *testing.T) {
 	actual := parseRpc(in)
 	assert.Equal(t, expected, actual)
 }
+
+func Test_RetryPolicy_DefaultOrConfig(t *testing.T) {
+	expected := RetryPolicy{
+		MaxRetry:  defaultMaxRetry,
+		MinWait:   defaultMinWait,
+		MaxWait:   defaultMaxWait,
+		MaxJitter: defaultMaxJitter,
+	}
+
+	actual := RetryPolicy{}
+	actual.DefaultOrConfig(&parser.RetryPolicy{})
+
+	assert.Equal(t, expected, actual)
+}
+func Test_RetryPolicy_DefaultOrConfig_WithPassedMaxRetry(t *testing.T) {
+	expected := RetryPolicy{
+		MaxRetry:  10,
+		MinWait:   defaultMinWait,
+		MaxWait:   defaultMaxWait,
+		MaxJitter: defaultMaxJitter,
+	}
+
+	actual := RetryPolicy{}
+	actual.DefaultOrConfig(&parser.RetryPolicy{
+		MaxRetry: 10,
+	})
+
+	assert.Equal(t, expected, actual)
+}
+
+func Test_RetryPolicy_DefaultOrConfig_WithPassedMinWait(t *testing.T) {
+	expected := RetryPolicy{
+		MaxRetry:  defaultMaxRetry,
+		MinWait:   10,
+		MaxWait:   defaultMaxWait,
+		MaxJitter: defaultMaxJitter,
+	}
+
+	actual := RetryPolicy{}
+	actual.DefaultOrConfig(&parser.RetryPolicy{
+		MinWait: 10,
+	})
+
+	assert.Equal(t, expected, actual)
+}
+
+func Test_RetryPolicy_DefaultOrConfig_WithPassedMaxWait(t *testing.T) {
+	expected := RetryPolicy{
+		MaxRetry:  defaultMaxRetry,
+		MinWait:   defaultMinWait,
+		MaxWait:   10,
+		MaxJitter: defaultMaxJitter,
+	}
+
+	actual := RetryPolicy{}
+	actual.DefaultOrConfig(&parser.RetryPolicy{
+		MaxWait: 10,
+	})
+
+	assert.Equal(t, expected, actual)
+}
+
+func Test_RetryPolicy_DefaultOrConfig_WithPassedMaxJitter(t *testing.T) {
+	expected := RetryPolicy{
+		MaxRetry:  defaultMaxRetry,
+		MinWait:   defaultMinWait,
+		MaxWait:   defaultMaxWait,
+		MaxJitter: 10,
+	}
+
+	actual := RetryPolicy{}
+	actual.DefaultOrConfig(&parser.RetryPolicy{
+		MaxJitter: 10,
+	})
+
+	assert.Equal(t, expected, actual)
+}
