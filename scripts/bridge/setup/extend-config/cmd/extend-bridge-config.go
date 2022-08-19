@@ -48,8 +48,8 @@ var (
 	// FILL THE EVM NODE URLS BEFORE RUN //
 	///////////////////////////////////////
 	evmNodeUrls = map[uint64]string{
-		80001: "wss://polygon-mumbai.g.alchemy.com/v2/_rtk-MrbEkjHcBcb1HW6k0oJjVHs9ALB",
-		5:     "wss://eth-goerli.alchemyapi.io/v2/luXs0CFEDOgQvuqqslwzH-yKs-KDq0DN",
+		80001: "https://rpc-mumbai.maticvigil.com/",
+		5:     "https://goerli-light.eth.linkpool.io/",
 		97:    "https://data-seed-prebsc-1-s1.binance.org:8545/",
 		43113: "https://api.avax-test.network/ext/bc/C/rpc",
 	}
