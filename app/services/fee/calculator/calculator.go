@@ -17,6 +17,10 @@
 package calculator
 
 import (
+	"errors"
+	"fmt"
+	"github.com/gookit/event"
+	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
@@ -33,10 +37,15 @@ func New(feePercentages map[string]int64) *Service {
 			log.Fatalf("[%s] Invalid fee percentage: [%d]", token, fee)
 		}
 	}
-
-	return &Service{
+	instance := &Service{
 		feePercentages: feePercentages,
-		logger:         config.GetLoggerFor("Fee Service")}
+		logger:         config.GetLoggerFor("Fee Service"),
+	}
+	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
+		return bridgeCfgUpdateEventHandler(e, instance)
+	}), constants.AssetServicePriority)
+
+	return instance
 }
 
 // CalculateFee calculates the fee and remainder of a given token and amount
@@ -50,4 +59,17 @@ func (s Service) CalculateFee(token string, amount int64) (fee, remainder int64)
 	}
 
 	return fee, remainder
+}
+
+func bridgeCfgUpdateEventHandler(e event.Event, instance *Service) error {
+	params, ok := e.Get(constants.BridgeConfigUpdateEventParamsKey).(*bridge_config_event.Params)
+	if !ok {
+		errMsg := fmt.Sprintf("failed to cast params from event [%s]", constants.EventBridgeConfigUpdate)
+		log.Errorf(errMsg)
+		return errors.New(errMsg)
+	}
+
+	instance.feePercentages = params.Bridge.Hedera.FeePercentages
+
+	return nil
 }
