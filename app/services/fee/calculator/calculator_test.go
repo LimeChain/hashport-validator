@@ -1,7 +1,10 @@
 package calculator
 
 import (
+	"github.com/gookit/event"
+	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -32,4 +35,22 @@ func Test_CalculateFee(t *testing.T) {
 
 	assert.Equal(t, expectedFee, fee)
 	assert.Equal(t, expectedRemainder, remainder)
+}
+
+func Test_bridgeCfgUpdateEventHandler(t *testing.T) {
+	service := New(feePercentages)
+
+	newFeePercentages := make(map[string]int64)
+	for tokenName, feeAmount := range service.feePercentages {
+		newFeePercentages[tokenName] = feeAmount + 1
+	}
+	event.MustFire(constants.EventBridgeConfigUpdate, event.M{constants.BridgeConfigUpdateEventParamsKey: &bridge_config_event.Params{
+		Bridge: &config.Bridge{
+			Hedera: &config.BridgeHedera{
+				FeePercentages: newFeePercentages,
+			},
+		},
+	}})
+
+	assert.Equal(t, newFeePercentages, service.feePercentages)
 }
