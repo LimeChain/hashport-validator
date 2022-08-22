@@ -49,7 +49,7 @@ type TokenInfo struct {
 	IsActive                      int             `json:"is_active"`
 	Platform                      interface{}     `json:"platform"`
 	CmcRank                       int             `json:"cmc_rank"`
-	IsFiat                        bool            `json:"is_fiat"`
+	IsFiat                        int             `json:"is_fiat"`
 	SelfReportedCirculatingSupply interface{}     `json:"self_reported_circulating_supply"`
 	SelfReportedMarketCap         interface{}     `json:"self_reported_market_cap"`
 	LastUpdated                   time.Time       `json:"last_updated"`
