@@ -30,22 +30,22 @@ func TokenToAccount(client *hedera.Client, token hedera.TokenID, accountId heder
 		SetTokenIDs(token).
 		Execute(client)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf(
+		return nil, fmt.Errorf(
 			"Failed to associate token id [%s] with account id [%s]. Error: [%s]",
 			token.String(),
 			accountId.String(),
 			err,
-		))
+		)
 	}
 
 	receipt, err := associateTX.GetReceipt(client)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf(
+		return nil, fmt.Errorf(
 			"Failed to get receipt for associate token id [%s] with account id [%s]. Error: [%s]",
 			token.String(),
 			accountId.String(),
 			err,
-		))
+		)
 	}
 
 	return &receipt, nil

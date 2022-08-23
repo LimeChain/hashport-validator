@@ -251,7 +251,7 @@ func (c Client) GetNftTransactions(tokenID string, serialNum int64) (transaction
 	}
 
 	if httpResponse.StatusCode != http.StatusOK {
-		return transaction.NftTransactionsResponse{}, errors.New(fmt.Sprintf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes))
+		return transaction.NftTransactionsResponse{}, fmt.Errorf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes)
 	}
 
 	var response *transaction.NftTransactionsResponse
@@ -283,7 +283,7 @@ func (c Client) GetSuccessfulTransaction(transactionID string) (transaction.Tran
 		}
 	}
 
-	return transaction.Transaction{}, errors.New(fmt.Sprintf("[%s] - No SUCCESS transaction found", transactionID))
+	return transaction.Transaction{}, fmt.Errorf("[%s] - No SUCCESS transaction found", transactionID)
 }
 
 // GetScheduledTransaction gets the Scheduled transaction of an executed transaction
@@ -300,7 +300,7 @@ func (c Client) GetSchedule(scheduleID string) (*transaction.Schedule, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -327,7 +327,7 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("State Proof HTTP GET for TransactionID [%s] ended with Status Code [%d].", transactionID, response.StatusCode))
+		return nil, fmt.Errorf("State Proof HTTP GET for TransactionID [%s] ended with Status Code [%d].", transactionID, response.StatusCode)
 	}
 
 	return readResponseBody(response)
@@ -342,7 +342,7 @@ func (c Client) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -380,7 +380,7 @@ func (c Client) GetAccount(accountID string) (*account.AccountsResponse, error) 
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -409,7 +409,7 @@ func (c Client) GetToken(tokenID string) (*token.TokenResponse, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, query))
+		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -559,7 +559,7 @@ func (c Client) getAndParse(query string) (*transaction.Response, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return response, errors.New(fmt.Sprintf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String()))
+		return response, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String())
 	}
 
 	return response, nil

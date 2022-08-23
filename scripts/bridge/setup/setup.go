@@ -53,7 +53,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	for i := 0; i < *members; i++ {
 		privKey, err := cryptoCreate(client, &result)
 		if err != nil {
-			result.Error = errors.New(fmt.Sprintf("Failed to create member Private Key. Err: [%s]", err))
+			result.Error = fmt.Errorf("Failed to create member Private Key. Err: [%s]", err)
 			return result
 		}
 		result.MembersPrivateKeys = append(result.MembersPrivateKeys, privKey)
@@ -71,7 +71,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 
 	adminPublicKey, err := hedera.PublicKeyFromString(*adminKey)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to parse admin Public Key. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to parse admin Public Key. Err: [%s]", err)
 		return result
 	}
 
@@ -80,13 +80,13 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 		SetSubmitKey(topicKey).
 		Execute(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to create topic. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to create topic. Err: [%s]", err)
 		return result
 	}
 
 	topicReceipt, err := txID.GetReceipt(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to get topic receipt. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to get topic receipt. Err: [%s]", err)
 		return result
 	}
 	result.TopicId = topicReceipt.TopicID
@@ -103,13 +103,13 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 		SetKey(custodialKey).
 		Execute(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to create bridge account. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to create bridge account. Err: [%s]", err)
 		return result
 	}
 
 	bridgeAccountReceipt, err := bridgeAccount.GetReceipt(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to get bridge account receipt. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to get bridge account receipt. Err: [%s]", err)
 		return result
 	}
 	result.BridgeAccountID = bridgeAccountReceipt.AccountID
@@ -122,12 +122,12 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 		SetInitialBalance(balance).
 		Execute(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to create payer account. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to create payer account. Err: [%s]", err)
 		return result
 	}
 	scheduledTxPayerAccountReceipt, err := scheduledTxPayerAccount.GetReceipt(client)
 	if err != nil {
-		result.Error = errors.New(fmt.Sprintf("Failed to get payer account receipt. Err: [%s]", err))
+		result.Error = fmt.Errorf("Failed to get payer account receipt. Err: [%s]", err)
 		return result
 	}
 	result.PayerAccountID = scheduledTxPayerAccountReceipt.AccountID

@@ -114,7 +114,7 @@ func NewService(
 func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) (uint64, string, error) {
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
-		return 0, "", errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		return 0, "", fmt.Errorf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e)
 	}
 
 	memoArgs := strings.Split(m, "-")
@@ -204,18 +204,18 @@ func (ts *Service) ProcessWrappedTransfer(tm payload.Transfer) error {
 
 	sourceAssetInfo, exists := ts.assetsService.FungibleAssetInfo(tm.SourceChainId, tm.SourceAsset)
 	if !exists {
-		return errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", tm.SourceAsset))
+		return fmt.Errorf("Failed to retrieve fungible asset info of [%s].", tm.SourceAsset)
 	}
 
 	targetAssetInfo, exists := ts.assetsService.FungibleAssetInfo(tm.TargetChainId, tm.TargetAsset)
 	if !exists {
-		return errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", tm.TargetAsset))
+		return fmt.Errorf("Failed to retrieve fungible asset info of [%s].", tm.TargetAsset)
 	}
 
 	// Convert the amount to the initial, so that the correct amount is being burned.
 	targetAmount := decimal.TargetAmount(targetAssetInfo.Decimals, sourceAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%s] and Target Amount [%s].", amount, targetAmount))
+		return fmt.Errorf("Insufficient amount provided: Amount [%s] and Target Amount [%s].", amount, targetAmount)
 	}
 
 	status := make(chan string)

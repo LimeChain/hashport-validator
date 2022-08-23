@@ -28,11 +28,11 @@ func Validate(chainAndEVMAddress string) (string, error) {
 	encodingFormat := regexp.MustCompile("^[1-9]([0-9]+)?-0x([A-Fa-f0-9]){40}$")
 	decodedMemo, e := base64.StdEncoding.DecodeString(chainAndEVMAddress)
 	if e != nil {
-		return "", errors.New(fmt.Sprintf("Invalid base64 string provided: [%s]", e))
+		return "", fmt.Errorf("Invalid base64 string provided: [%s]", e)
 	}
 
 	if !encodingFormat.MatchString(string(decodedMemo)) {
-		return "", errors.New(fmt.Sprintf("Memo is invalid or has invalid encoding format: [%s]", string(decodedMemo)))
+		return "", fmt.Errorf("Memo is invalid or has invalid encoding format: [%s]", string(decodedMemo))
 	}
 
 	return string(decodedMemo), nil

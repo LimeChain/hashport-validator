@@ -268,7 +268,7 @@ func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureByte
 
 	if !ss.contractServices[targetChainId].IsMember(address.String()) {
 		ss.logger.Errorf("[%s] - Received Signature [%s] is not signed by Bridge member", transferID, authMessageStr)
-		return common.Address{}, errors.New(fmt.Sprintf("signer is not signatures member"))
+		return common.Address{}, fmt.Errorf("signer is not signatures member")
 	}
 	return address, nil
 }
