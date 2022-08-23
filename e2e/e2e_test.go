@@ -2095,16 +2095,13 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 		t.Fatalf("Unable to subscribe to Topic [%s]", setup.TopicID)
 	}
 
-	select {
-	case <-time.After(120 * time.Second):
-		if ethSignaturesCollected != expectedValidatorsCount {
-			t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
-		}
-		subscription.Unsubscribe()
-		return receivedSignatures
+	time.Sleep(120 * time.Second)
+
+	if ethSignaturesCollected != expectedValidatorsCount {
+		t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
 	}
-	// Not possible end-case
-	return nil
+	subscription.Unsubscribe()
+	return receivedSignatures
 }
 
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*hedera.TransactionResponse, error) {
