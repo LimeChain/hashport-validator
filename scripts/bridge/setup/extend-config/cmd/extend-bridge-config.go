@@ -86,7 +86,7 @@ func main() {
 	extendedBridgeCfg := parseExtendedBridge(configPath)
 	updateAdditionalFieldsToCfg(extendedBridgeCfg, evmPrivateKey, mirrorNodeClient)
 	createOutputFile(extendedBridgeCfg)
-	fmt.Println(fmt.Sprintf("Successfully created extended config file at: %s", outputFilePath))
+	fmt.Printf("Successfully created extended config file at: %s\n", outputFilePath)
 }
 
 func createOutputFile(extendedBridgeCfg *parser.ExtendedBridge) {

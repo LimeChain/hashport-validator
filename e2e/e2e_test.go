@@ -1247,7 +1247,7 @@ func validateScheduledMintTx(setupEnv *setup.Setup, account hedera.AccountID, as
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -1277,7 +1277,7 @@ func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, as
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -1323,7 +1323,7 @@ func validateScheduledNftTransfer(setupEnv *setup.Setup, expectedTransactionID, 
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", receiver, timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", receiver, timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -1394,7 +1394,7 @@ func validateScheduledTx(setupEnv *setup.Setup, account hedera.AccountID, asset 
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", setupEnv.Clients.Hedera.GetOperatorAccountID(), timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", setupEnv.Clients.Hedera.GetOperatorAccountID(), timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -1623,7 +1623,7 @@ func sendBurnEthTransaction(assetsService service.Assets, evm setup.EVMUtils, as
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
+	fmt.Printf("Parsed [%s] to ETH Token [%s]\n", asset, wrappedAsset)
 
 	approvedValue := big.NewInt(amount)
 
@@ -1637,14 +1637,14 @@ func sendBurnEthTransaction(assetsService service.Assets, evm setup.EVMUtils, as
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
+	fmt.Printf("[%s] Waiting for Approval Transaction\n", approveTx.Hash())
 	waitForTransaction(evm, approveTx.Hash(), t)
 
 	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, new(big.Int).SetUint64(sourceChainId), common.HexToAddress(wrappedAsset), approvedValue, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
 
 	expectedRouterBurn := &router.RouterBurn{
 		//Account:      common.HexToAddress(evm.Signer.Address()),
@@ -1655,12 +1655,12 @@ func sendBurnEthTransaction(assetsService service.Assets, evm setup.EVMUtils, as
 
 	burnTxHash := burnTx.Hash()
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn Transaction Receipt.", burnTxHash))
+	fmt.Printf("[%s] Waiting for Burn Transaction Receipt.\n", burnTxHash)
 	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Burn Transaction mined and retrieved receipt.", burnTxHash))
+	fmt.Printf("[%s] Burn Transaction mined and retrieved receipt.\n", burnTxHash)
 
 	return burnTxReceipt, expectedRouterBurn
 }
@@ -1690,14 +1690,14 @@ func sendLockEthTransaction(evm setup.EVMUtils, asset string, targetChainId uint
 	multiplied := new(big.Int).Mul(approvedValue, feeData.ServiceFeePercentage)
 	serviceFee := new(big.Int).Div(multiplied, precision)
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
+	fmt.Printf("[%s] Waiting for Approval Transaction\n", approveTx.Hash())
 	waitForTransaction(evm, approveTx.Hash(), t)
 
 	lockTx, err := evm.RouterContract.Lock(evm.KeyTransactor, new(big.Int).SetUint64(targetChainId), common.HexToAddress(asset), approvedValue, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Submitted Lock Transaction", lockTx.Hash()))
+	fmt.Printf("[%s] Submitted Lock Transaction\n", lockTx.Hash())
 
 	expectedRouterLock := &router.RouterLock{
 		TargetChain: new(big.Int).SetUint64(targetChainId),
@@ -1710,12 +1710,12 @@ func sendLockEthTransaction(evm setup.EVMUtils, asset string, targetChainId uint
 
 	lockTxHash := lockTx.Hash()
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Lock Transaction Receipt.", lockTxHash))
+	fmt.Printf("[%s] Waiting for Lock Transaction Receipt.\n", lockTxHash)
 	lockTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(lockTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Lock Transaction mined and retrieved receipt.", lockTxHash))
+	fmt.Printf("[%s] Lock Transaction mined and retrieved receipt.\n", lockTxHash)
 
 	return lockTxReceipt, expectedRouterLock
 }
@@ -1743,7 +1743,7 @@ func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetCh
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-20 Approval Transaction", approveERC20Tx.Hash()))
+	fmt.Printf("[%s] Waiting for ERC-20 Approval Transaction\n", approveERC20Tx.Hash())
 	waitForTransaction(evm, approveERC20Tx.Hash(), t)
 
 	erc721Contract, err := werc721.NewWerc721(wrappedAddress, evm.EVMClient)
@@ -1757,14 +1757,14 @@ func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetCh
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-721 Approval Transaction", approveERC721Tx.Hash()))
+	fmt.Printf("[%s] Waiting for ERC-721 Approval Transaction\n", approveERC721Tx.Hash())
 	waitForTransaction(evm, approveERC721Tx.Hash(), t)
 	targetChainIdBigInt := new(big.Int).SetUint64(targetChainId)
 	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, targetChainIdBigInt, wrappedAddress, tokenId, paymentToken, fee, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
 
 	expectedRouterBurn := &router.RouterBurnERC721{
 		TargetChain:  targetChainIdBigInt,
@@ -1775,12 +1775,12 @@ func sendBurnERC721Transaction(evm setup.EVMUtils, wrappedToken string, targetCh
 
 	burnTxHash := burnTx.Hash()
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn ERC-721 Transaction Receipt.", burnTxHash))
+	fmt.Printf("[%s] Waiting for Burn ERC-721 Transaction Receipt.\n", burnTxHash)
 	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Burn ERC-721 Transaction mined and retrieved receipt.", burnTxHash))
+	fmt.Printf("[%s] Burn ERC-721 Transaction mined and retrieved receipt.\n", burnTxHash)
 
 	return burnTxReceipt, expectedRouterBurn
 }
@@ -1793,7 +1793,7 @@ func waitForTransaction(evm setup.EVMUtils, txHash common.Hash, t *testing.T) {
 	}
 
 	if receipt.Status == 1 {
-		fmt.Println(fmt.Sprintf("TX [%s] was successfully mined", txHash))
+		fmt.Printf("TX [%s] was successfully mined\n", txHash)
 	} else {
 		t.Fatalf("TX [%s] reverted", txHash)
 	}
@@ -1971,11 +1971,11 @@ func verifyTransferToBridgeAccount(s *setup.Setup, wrappedAsset string, evm setu
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("WHBAR balance before transaction: [%s]", whbarBalanceBefore))
+	fmt.Printf("WHBAR balance before transaction: [%s]\n", whbarBalanceBefore)
 	// Get bridge account hbar balance before transfer
 	receiverBalance := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge account balance HBAR balance before transaction: [%d]", receiverBalance))
+	fmt.Printf("Bridge account balance HBAR balance before transaction: [%d]\n", receiverBalance)
 
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendHbarsToBridgeAccount(s, memo, expectedAmount)
@@ -1988,12 +1988,12 @@ func verifyTransferToBridgeAccount(s *setup.Setup, wrappedAsset string, evm setu
 		t.Fatalf("Transaction unsuccessful, Error: [%s]", err)
 	}
 
-	fmt.Println(fmt.Sprintf("Successfully sent HBAR to bridge account, Status: [%s]", transactionReceipt.Status))
+	fmt.Printf("Successfully sent HBAR to bridge account, Status: [%s]\n", transactionReceipt.Status)
 
 	// Get bridge account hbar balance after transfer
 	receiverBalanceNew := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge Account HBAR balance after transaction: [%d]", receiverBalanceNew))
+	fmt.Printf("Bridge Account HBAR balance after transaction: [%d]\n", receiverBalanceNew)
 
 	// Verify that the custodial address has received exactly the amount sent
 	amount := receiverBalanceNew - receiverBalance
@@ -2017,11 +2017,11 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 		t.Fatalf("Unable to query the token balance of the receiver account. Error: [%s]", err)
 	}
 
-	fmt.Println(fmt.Sprintf("Token balance before transaction: [%s]", wrappedBalanceBefore))
+	fmt.Printf("Token balance before transaction: [%s]\n", wrappedBalanceBefore)
 	// Get bridge account token balance before transfer
 	receiverBalance := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t)
 
-	fmt.Println(fmt.Sprintf("Bridge account Token balance before transaction: [%d]", receiverBalance.Token[s.TokenID]))
+	fmt.Printf("Bridge account Token balance before transaction: [%d]\n", receiverBalance.Token[s.TokenID])
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendTokensToBridgeAccount(s, tokenID, memo, amount)
 	if err != nil {
@@ -2031,12 +2031,12 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Transaction unsuccessful, Error: [%s]", err))
 	}
-	fmt.Println(fmt.Sprintf("Successfully sent Tokens to bridge account, Status: [%s]", transactionReceipt.Status))
+	fmt.Printf("Successfully sent Tokens to bridge account, Status: [%s]\n", transactionReceipt.Status)
 
 	// Get bridge account HTS token balance after transfer
 	receiverBalanceNew := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t)
 
-	fmt.Println(fmt.Sprintf("Bridge Account Token balance after transaction: [%d]", receiverBalanceNew.Token[s.TokenID]))
+	fmt.Printf("Bridge Account Token balance after transaction: [%d]\n", receiverBalanceNew.Token[s.TokenID])
 
 	// Verify that the custodial address has received exactly the amount sent
 	resultAmount := receiverBalanceNew.Token[tokenID] - receiverBalance.Token[tokenID]
@@ -2052,7 +2052,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 	ethSignaturesCollected := 0
 	var receivedSignatures []string
 
-	fmt.Println(fmt.Sprintf("Waiting for Signatures & TX Hash to be published to Topic [%v]", setup.TopicID.String()))
+	fmt.Printf("Waiting for Signatures & TX Hash to be published to Topic [%v]\n", setup.TopicID.String())
 
 	// Subscribe to Topic
 	subscription, err := hedera.NewTopicMessageQuery().
@@ -2083,11 +2083,11 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 
 				//Verify that all the submitted messages have signed the same transaction
 				if transferID != txId {
-					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, txId))
+					fmt.Printf(`Expected signature message to contain the transaction id: [%s]\n`, txId)
 				} else {
 					receivedSignatures = append(receivedSignatures, signature)
 					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signature))
+					fmt.Printf("Received Auth Signature [%s]\n", signature)
 				}
 			},
 		)
@@ -2110,7 +2110,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*hedera.TransactionResponse, error) {
 	hbarSendAmount := hedera.HbarFromTinybar(amount)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-amount)
-	fmt.Println(fmt.Sprintf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]", hbarSendAmount, memo))
+	fmt.Printf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]\n", hbarSendAmount, memo)
 
 	res, err := hedera.NewTransferTransaction().
 		AddHbarTransfer(setup.Clients.Hedera.GetOperatorAccountID(), hbarRemovalAmount).
@@ -2125,14 +2125,14 @@ func sendHbarsToBridgeAccount(setup *setup.Setup, memo string, amount int64) (*h
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err
 }
 
 func sendTokensToBridgeAccount(setup *setup.Setup, tokenID hedera.TokenID, memo string, amount int64) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", amount, memo))
+	fmt.Printf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]\n", amount, memo)
 
 	res, err := hedera.NewTransferTransaction().
 		SetTransactionMemo(memo).
@@ -2147,7 +2147,7 @@ func sendTokensToBridgeAccount(setup *setup.Setup, tokenID hedera.TokenID, memo 
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err
@@ -2157,7 +2157,7 @@ func sendNFTWithFeeToBridgeAccount(setup *setup.Setup, memo string, token string
 	hbarSendAmount := hedera.HbarFromTinybar(fee)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-fee)
 
-	fmt.Println(fmt.Sprintf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]", token, serialNum, memo))
+	fmt.Printf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]\n", token, serialNum, memo)
 	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNum, token))
 	if err != nil {
 		return nil, err
@@ -2177,7 +2177,7 @@ func sendNFTWithFeeToBridgeAccount(setup *setup.Setup, memo string, token string
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err

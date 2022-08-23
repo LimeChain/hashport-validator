@@ -55,5 +55,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(fmt.Sprintf("%s - %s", rec.Status, res.TransactionID))
+	fmt.Printf("%s - %s\n", rec.Status, res.TransactionID)
 }

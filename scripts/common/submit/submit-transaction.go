@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(fmt.Sprintf("TransactionID: [%s]", transactionResponse.TransactionID))
+	fmt.Printf("TransactionID: [%s]\n", transactionResponse.TransactionID)
 
 	receipt, err := transactionResponse.GetReceipt(client)
 	if err != nil {
