@@ -62,7 +62,7 @@ var (
 )
 
 func setup() {
-	outResults := make([]*bool, 0, 0)
+	outResults := make([]*bool, 0)
 	outParams = &OutParams{
 		waitGroup:              &sync.WaitGroup{},
 		outTransactionsResults: &outResults,
@@ -71,7 +71,7 @@ func setup() {
 		return
 	}
 
-	outTransactionResults := make([]*bool, 0, 0)
+	outTransactionResults := make([]*bool, 0)
 	outTransactionResults = append(outTransactionResults, nil)
 	outTransactionResults = append(outTransactionResults, nil)
 	feeOutParams.outTransactionsResults = &outTransactionResults
@@ -87,7 +87,7 @@ func Test_AwaitMultipleScheduledTransactions_WithUnsuccessfulTransfer(t *testing
 	callback = func(sourceChainId, targetChainId uint64, nativeAsset string, transferID string, isTransferSuccessful bool) {
 		assert.False(t, isTransferSuccessful)
 	}
-	outTransactionResults := make([]*bool, 0, 0)
+	outTransactionResults := make([]*bool, 0)
 	f := false
 	outTransactionResults = append(outTransactionResults, &f)
 	outParams.outTransactionsResults = &outTransactionResults
@@ -144,7 +144,7 @@ func Test_NewFeeOutParams(t *testing.T) {
 	}
 
 	expected.OutParams.waitGroup.Add(1)
-	results := make([]*bool, 0, 0)
+	results := make([]*bool, 0)
 	results = append(results, nil)
 	expected.OutParams.outTransactionsResults = &results
 
