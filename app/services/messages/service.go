@@ -229,7 +229,7 @@ func (ss *Service) ProcessSignature(transferID, signature string, targetChainId 
 	}
 
 	// Verify Signature
-	address, err := ss.verifySignature(err, authMsg, signatureBytes, transferID, targetChainId, authMessageStr)
+	address, err := ss.verifySignature(authMsg, signatureBytes, transferID, targetChainId, authMessageStr)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (ss *Service) ProcessSignature(transferID, signature string, targetChainId 
 	return nil
 }
 
-func (ss *Service) verifySignature(err error, authMsgBytes []byte, signatureBytes []byte, transferID string, targetChainId uint64, authMessageStr string) (common.Address, error) {
+func (ss *Service) verifySignature(authMsgBytes []byte, signatureBytes []byte, transferID string, targetChainId uint64, authMessageStr string) (common.Address, error) {
 	publicKey, err := crypto.Ecrecover(authMsgBytes, signatureBytes)
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to recover public key. Hash [%s]. Error: [%s]", transferID, authMessageStr, err)
