@@ -1054,8 +1054,8 @@ func validateReceiverAccountBalance(setup *setup.Setup, expectedReceiveAmount ui
 		beforeTransfer = uint64(beforeHbarBalance.Hbars.AsTinybar())
 		afterTransfer = uint64(afterHbarBalance.Hbars.AsTinybar())
 	} else {
-		beforeTransfer = beforeHbarBalance.Token[setup.TokenID]
-		afterTransfer = afterHbarBalance.Token[setup.TokenID]
+		beforeTransfer = beforeHbarBalance.Tokens.Get(setup.TokenID)
+		afterTransfer = afterHbarBalance.Tokens.Get(setup.TokenID)
 	}
 
 	if afterTransfer-beforeTransfer != expectedReceiveAmount {
@@ -1071,8 +1071,8 @@ func validateAccountBalance(setup *setup.Setup, hederaID hedera.AccountID, expec
 		t.Fatal(err)
 	}
 
-	beforeTransfer := beforeHbarBalance.Token[tokenAsset]
-	afterTransfer := afterHbarBalance.Token[tokenAsset]
+	beforeTransfer := beforeHbarBalance.Tokens.Get(tokenAsset)
+	afterTransfer := afterHbarBalance.Tokens.Get(tokenAsset)
 
 	if afterTransfer-beforeTransfer != expectedReceiveAmount {
 		t.Fatalf("[%s] Expected %s balance after - [%d], but was [%d]. Expected to receive [%d], but was [%d]", setup.Clients.Hedera.GetOperatorAccountID(), asset, beforeTransfer+expectedReceiveAmount, afterTransfer, expectedReceiveAmount, afterTransfer-beforeTransfer)
@@ -2021,7 +2021,7 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 	// Get bridge account token balance before transfer
 	receiverBalance := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t)
 
-	fmt.Printf("Bridge account Token balance before transaction: [%d]\n", receiverBalance.Token[s.TokenID])
+	fmt.Printf("Bridge account Token balance before transaction: [%d]\n", receiverBalance.Tokens.Get(s.TokenID))
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := sendTokensToBridgeAccount(s, tokenID, memo, amount)
 	if err != nil {
@@ -2036,10 +2036,10 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 	// Get bridge account HTS token balance after transfer
 	receiverBalanceNew := util.GetHederaAccountBalance(s.Clients.Hedera, s.BridgeAccount, t)
 
-	fmt.Printf("Bridge Account Token balance after transaction: [%d]\n", receiverBalanceNew.Token[s.TokenID])
+	fmt.Printf("Bridge Account Token balance after transaction: [%d]\n", receiverBalanceNew.Tokens.Get(s.TokenID))
 
 	// Verify that the custodial address has received exactly the amount sent
-	resultAmount := receiverBalanceNew.Token[tokenID] - receiverBalance.Token[tokenID]
+	resultAmount := receiverBalanceNew.Tokens.Get(tokenID) - receiverBalance.Tokens.Get(tokenID)
 	// Verify that the bridge account has received exactly the amount sent
 	if resultAmount != uint64(amount) {
 		t.Fatalf("Expected to receive the exact transfer amount of hbar: [%v], but received: [%v]", amount, resultAmount)
