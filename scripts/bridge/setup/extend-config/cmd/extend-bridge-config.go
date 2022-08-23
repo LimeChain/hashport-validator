@@ -186,7 +186,7 @@ func updateHederaFungibleAssetInfo(
 	assetInfo.Supply = uint64(parsedTotalSupply)
 	if assetInfo.Supply == 0 {
 		assetInfo.Supply = defaultSupply
-	} else if assetInfo.Supply > math.MaxInt64 || assetInfo.Supply < 0 {
+	} else if assetInfo.Supply > math.MaxInt64 {
 		assetInfo.Supply = math.MaxInt64
 	}
 
@@ -244,7 +244,7 @@ func updateEvmFungibleAssetInfo(
 	assetInfo.Supply = totalSupply.Uint64()
 	if assetInfo.Supply == 0 {
 		assetInfo.Supply = defaultSupply
-	} else if assetInfo.Supply > math.MaxInt64 || assetInfo.Supply < 0 {
+	} else if assetInfo.Supply > math.MaxInt64 {
 		assetInfo.Supply = math.MaxInt64
 	}
 
