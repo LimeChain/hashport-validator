@@ -127,7 +127,7 @@ func (fmh *Handler) Handle(p interface{}) {
 		return
 	}
 
-	transfers, err := fmh.distributorService.CalculateMemberDistribution(validFee)
+	transfers, _ := fmh.distributorService.CalculateMemberDistribution(validFee)
 	transfers = append(transfers,
 		model.Hedera{
 			AccountID: receiver,

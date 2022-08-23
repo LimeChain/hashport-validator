@@ -249,7 +249,7 @@ func newClients(config Config) (*clients, error) {
 			continue
 		}
 		routerContractAddress := common.HexToAddress(network.RouterContractAddress)
-		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
+		routerInstance, _ := router.NewRouter(routerContractAddress, evmClient)
 
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(clientChainId)

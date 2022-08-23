@@ -286,7 +286,7 @@ func (a *Service) fetchHederaFungibleAssetInfo(
 	assetInfo.Symbol = assetInfoResponse.Symbol
 	parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
 	assetInfo.Decimals = uint8(parsedDecimals)
-	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 
 	return assetInfo, nil
 }
@@ -307,7 +307,7 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 
 	assetInfo.Name = assetInfoResponse.Name
 	assetInfo.Symbol = assetInfoResponse.Symbol
-	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 
 	return assetInfo, nil
 }
