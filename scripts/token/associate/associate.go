@@ -18,7 +18,6 @@ package associate
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )

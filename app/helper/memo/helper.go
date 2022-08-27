@@ -19,7 +19,6 @@ package memo
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/pkg/errors"
 	"regexp"
 )
 

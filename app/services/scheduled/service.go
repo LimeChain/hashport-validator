@@ -1,7 +1,6 @@
 package scheduled
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"

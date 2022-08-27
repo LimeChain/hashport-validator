@@ -17,7 +17,6 @@
 package big_numbers
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 )

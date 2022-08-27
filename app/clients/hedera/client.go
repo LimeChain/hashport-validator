@@ -17,7 +17,6 @@
 package hedera
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"

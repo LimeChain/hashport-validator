@@ -18,7 +18,6 @@ package mirror_node
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
