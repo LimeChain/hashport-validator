@@ -296,17 +296,17 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 
 	sourceAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
 	if !exists {
-		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", sourceAsset))
+		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", sourceAsset)
 	}
 
 	targetAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(targetChainId, targetChainAsset)
 	if !exists {
-		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetChainAsset))
+		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", targetChainAsset)
 	}
 
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount))
+		return nil, fmt.Errorf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount)
 	}
 
 	tokenPriceInfo, exist := ctw.pricingService.GetTokenPriceInfo(asset.ChainId, nativeAsset.Asset)
@@ -316,7 +316,7 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 	}
 
 	if targetAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
-		return nil, errors.New(fmt.Sprintf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee))
+		return nil, fmt.Errorf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee)
 	}
 
 	return payload.New(
@@ -348,7 +348,7 @@ func (ctw Watcher) createNonFungiblePayload(
 	
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
 	if e != nil {
-		return nil, errors.New(fmt.Sprintf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e))
+		return nil, fmt.Errorf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e)
 	}
 
 	return payload.NewNft(

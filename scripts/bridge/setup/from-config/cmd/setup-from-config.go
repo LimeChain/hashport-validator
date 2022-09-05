@@ -82,7 +82,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to write new-bridge.yml file. Err: [%s]", err))
 	}
-	fmt.Println(fmt.Sprintf("Successfully created new config file at: %s", outputFilePath))
+	fmt.Printf("Successfully created new config file at: %s\n", outputFilePath)
 }
 
 func createAndAssociateTokens(wrappedFungibleThreshold *uint, bridgeDeployResult bridgeSetup.DeployResult, privateKey *string, accountID *string, network *string, parsedBridgeCfgForDeploy *parser.ExtendedBridge) {
@@ -136,7 +136,7 @@ func createAndAssociateWrappedTokens(network uint64, networkInfo *parser.Network
 		if _, ok := tokenInfo.Networks[hederaNetworkId]; !ok {
 			continue
 		}
-		fmt.Println(fmt.Sprintf("Creating Hedera Wrapped Fungible Token based on info of token with address [%s] ...", tokenAddress))
+		fmt.Printf("Creating Hedera Wrapped Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := wrappedFungibleCreate.WrappedFungibleToken(
 			client,
 			client.GetOperatorAccountID(),
@@ -149,10 +149,10 @@ func createAndAssociateWrappedTokens(network uint64, networkInfo *parser.Network
 			tokenInfo.Supply,
 		)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("[ERROR] Failed to Create Hedera Wrapped Fungible Token based on info of token [%s]. Error: [%s]", tokenAddress, err))
+			fmt.Printf("[ERROR] Failed to Create Hedera Wrapped Fungible Token based on info of token [%s]. Error: [%s]\n", tokenAddress, err)
 			continue
 		}
-		fmt.Println(fmt.Sprintf("Successfully Created Hedera Wrapped Fungible Token with address [%s] based on info of token [%s]", tokenId.String(), tokenAddress))
+		fmt.Printf("Successfully Created Hedera Wrapped Fungible Token with address [%s] based on info of token [%s]\n", tokenId.String(), tokenAddress)
 		err = associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
 		if err == nil {
 			ExtendedBridge.Networks[network].Tokens.Fungible[tokenAddress].Networks[hederaNetworkId] = tokenId.String()
@@ -166,7 +166,7 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			continue
 		}
 
-		fmt.Println(fmt.Sprintf("Creating Hedera Native Fungible Token based on info of token with address [%s] ...", tokenAddress))
+		fmt.Printf("Creating Hedera Native Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := nativeFungibleCreate.CreateNativeFungibleToken(
 			client,
 			client.GetOperatorAccountID(),
@@ -177,10 +177,10 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			hedera.HbarFrom(20, "hbar"),
 		)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("[ERROR] Failed to Created Hedera Native Fungible Token based on info of token [%s]. Error: [%s]", tokenAddress, err))
+			fmt.Printf("[ERROR] Failed to Created Hedera Native Fungible Token based on info of token [%s]. Error: [%s]\n", tokenAddress, err)
 			continue
 		}
-		fmt.Println(fmt.Sprintf("Successfully Created Hedera Native Fungible Token with address [%s] based on info of token [%s]", tokenId.String(), tokenAddress))
+		fmt.Printf("Successfully Created Hedera Native Fungible Token with address [%s] based on info of token [%s]\n", tokenId.String(), tokenAddress)
 		err = associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
 		if err == nil {
 			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Fungible, tokenAddress)
@@ -189,7 +189,7 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 	}
 
 	for tokenAddress, tokenInfo := range networkInfo.Tokens.Nft {
-		fmt.Println(fmt.Sprintf("Creating Hedera Native Non-Fungible Token based on info of token with address [%s] ...", tokenAddress))
+		fmt.Printf("Creating Hedera Native Non-Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := nativeNftCreate.Nft(
 			client,
 			client.GetOperatorPublicKey(),
@@ -199,7 +199,7 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			client.GetOperatorPublicKey(),
 		)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("[ERROR] Failed to Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s]. Error: [%s]", tokenId.String(), tokenAddress, err))
+			fmt.Printf("[ERROR] Failed to Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s]. Error: [%s]\n", tokenId.String(), tokenAddress, err)
 			continue
 		}
 		fmt.Printf("Successfully Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s] ...\n", tokenId.String(), tokenAddress)
@@ -215,12 +215,12 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 }
 
 func associateToken(tokenId *hedera.TokenID, client *hedera.Client, accountId hedera.AccountID, accountName string, custodianKey []hedera.PrivateKey) error {
-	fmt.Println(fmt.Sprintf("Associating Hedera Native Fungible Token [%s] with %s Account ...", tokenId.String(), accountName))
+	fmt.Printf("Associating Hedera Native Fungible Token [%s] with %s Account ...\n", tokenId.String(), accountName)
 	_, err := associate.TokenToAccountWithCustodianKey(client, *tokenId, accountId, custodianKey)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("[ERROR] Failed to associate Hedera Native Fungible Token [%s] with %s Account. Error: [%s]", tokenId.String(), accountName, err))
+		fmt.Printf("[ERROR] Failed to associate Hedera Native Fungible Token [%s] with %s Account. Error: [%s]\n", tokenId.String(), accountName, err)
 	}
-	fmt.Println(fmt.Sprintf("Successfully Associated Hedera Native Fungible Token [%s] with %s Account.", tokenId.String(), accountName))
+	fmt.Printf("Successfully Associated Hedera Native Fungible Token [%s] with %s Account.\n", tokenId.String(), accountName)
 	return err
 }
 

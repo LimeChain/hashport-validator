@@ -674,17 +674,17 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 func (ew *Watcher) convertTargetAmount(sourceChainId, targetChainId uint64, sourceAsset, targetAsset string, amount *big.Int) (*big.Int, error) {
 	sourceAssetInfo, exists := ew.assetsService.FungibleAssetInfo(sourceChainId, sourceAsset)
 	if !exists {
-		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", sourceAsset))
+		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", sourceAsset)
 	}
 
 	targetAssetInfo, exists := ew.assetsService.FungibleAssetInfo(targetChainId, targetAsset)
 	if !exists {
-		return nil, errors.New(fmt.Sprintf("Failed to retrieve fungible asset info of [%s].", targetAsset))
+		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", targetAsset)
 	}
 
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return nil, errors.New(fmt.Sprintf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount))
+		return nil, fmt.Errorf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount)
 	}
 
 	return targetAmount, nil

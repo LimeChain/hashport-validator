@@ -17,7 +17,6 @@
 package metrics
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -41,11 +40,11 @@ func ConstructNameForMetric(sourceNetworkId, targetNetworkId uint64, tokenType, 
 	errMsg := "Network id %v is missing in id to name mapping."
 	sourceNetworkName, exist := constants.NetworksById[sourceNetworkId]
 	if !exist {
-		return "", errors.New(fmt.Sprintf(errMsg, sourceNetworkId))
+		return "", fmt.Errorf(errMsg, sourceNetworkId)
 	}
 	targetNetworkName, exist := constants.NetworksById[targetNetworkId]
 	if !exist {
-		return "", errors.New(fmt.Sprintf(errMsg, targetNetworkId))
+		return "", fmt.Errorf(errMsg, targetNetworkId)
 	}
 
 	transactionId = PrepareValueForPrometheusMetricName(transactionId)
@@ -170,7 +169,7 @@ func ConvertToHbar(amount int) float64 {
 
 func ConvertBasedOnDecimal(value *big.Int, decimal uint8) (*float64, error) {
 	if decimal < 1 {
-		return nil, errors.New(fmt.Sprintf(`Failed to calc with decimal: [%d].`, decimal))
+		return nil, fmt.Errorf(`Failed to calc with decimal: [%d].`, decimal)
 	}
 	parseValue, e := strconv.ParseFloat(constants.CreateDecimalPrefix+strings.Repeat(constants.CreateDecimalRepeat, int(decimal)), 64)
 	if e != nil {

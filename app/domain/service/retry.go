@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	timeoutError = errors.New(fmt.Sprintf("Timeout after [%d]", sleepPeriod))
+	timeoutError = fmt.Errorf("Timeout after [%d]", sleepPeriod)
 )
 
 // timeout is a function that returns an error after sleepPeriod.

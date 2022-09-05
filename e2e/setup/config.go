@@ -147,12 +147,12 @@ func newSetup(config Config) (*Setup, error) {
 
 	for token, fp := range config.FeePercentages {
 		if fp < constants.FeeMinPercentage || fp > constants.FeeMaxPercentage {
-			return nil, errors.New(fmt.Sprintf("[%s] - invalid fee percentage [%d]", token, fp))
+			return nil, fmt.Errorf("[%s] - invalid fee percentage [%d]", token, fp)
 		}
 	}
 
 	if len(config.Hedera.Members) == 0 {
-		return nil, errors.New(fmt.Sprintf("members account ids cannot be 0"))
+		return nil, fmt.Errorf("members account ids cannot be 0")
 	}
 
 	var members []hederaSDK.AccountID
@@ -249,7 +249,7 @@ func newClients(config Config) (*clients, error) {
 			continue
 		}
 		routerContractAddress := common.HexToAddress(network.RouterContractAddress)
-		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
+		routerInstance, _ := router.NewRouter(routerContractAddress, evmClient)
 
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(clientChainId)
@@ -314,7 +314,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("EvmFungibleToken [%s] is not supported", nativeAsset))
+		return "", fmt.Errorf("EvmFungibleToken [%s] is not supported", nativeAsset)
 	}
 
 	return wrappedAsset, nil
@@ -323,7 +323,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
 	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
-		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
+		return nil, fmt.Errorf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId)
 	}
 
 	return targetAsset, nil

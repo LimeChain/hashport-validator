@@ -286,7 +286,7 @@ func (a *Service) fetchHederaFungibleAssetInfo(
 	assetInfo.Symbol = assetInfoResponse.Symbol
 	parsedDecimals, _ := strconv.Atoi(assetInfoResponse.Decimals)
 	assetInfo.Decimals = uint8(parsedDecimals)
-	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 
 	return assetInfo, nil
 }
@@ -307,7 +307,7 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 
 	assetInfo.Name = assetInfoResponse.Name
 	assetInfo.Symbol = assetInfoResponse.Symbol
-	assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 
 	return assetInfo, nil
 }
@@ -358,7 +358,7 @@ func (a *Service) getHederaTokenReserveAmount(
 
 	reserveAmount, ok := new(big.Int).SetString(assetInfoResponse.TotalSupply, 10)
 	if !ok {
-		err := errors.New(fmt.Sprintf(`"Hedera asset [%s] total supply SetString - Error": [%s].`, assetId, assetInfoResponse.TotalSupply))
+		err := fmt.Errorf(`"Hedera asset [%s] total supply SetString - Error": [%s].`, assetId, assetInfoResponse.TotalSupply)
 		a.logger.Errorf(err.Error())
 		return nil, err
 	}
@@ -383,7 +383,7 @@ func (a *Service) fetchFungibleAssetInfo(
 	if chainId == constants.HederaNetworkId { // Hedera
 		assetInfo, err = a.fetchHederaFungibleAssetInfo(assetAddress, mirrorNode, isNative, hederaTokenBalances)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to load Hedera Fungible Asset Info. Error [%v]", err))
+			err = fmt.Errorf("Failed to load Hedera Fungible Asset Info. Error [%v]", err)
 			return assetInfo, assetAddress, err
 		}
 	} else { // EVM
@@ -395,7 +395,7 @@ func (a *Service) fetchFungibleAssetInfo(
 		evmTokenClient := evmTokenClients[chainId][assetAddress]
 		assetInfo, err = a.fetchEvmFungibleAssetInfo(chainId, assetAddress, evmTokenClient, isNative, routerContractAddress)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to load EVM NetworkId [%v] Fungible Asset Info. Error [%v]", chainId, err))
+			err = fmt.Errorf("Failed to load EVM NetworkId [%v] Fungible Asset Info. Error [%v]", chainId, err)
 			return assetInfo, assetAddress, err
 		}
 	}
@@ -460,7 +460,7 @@ func (a *Service) fetchNonFungibleAssetInfo(
 	if chainId == constants.HederaNetworkId { // Hedera
 		assetInfo, err = a.fetchHederaNonFungibleAssetInfo(assetAddress, mirrorNode, isNative, hederaTokenBalances)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to load Hedera Non-Fungible Asset Info. Error [%v]", err))
+			err = fmt.Errorf("Failed to load Hedera Non-Fungible Asset Info. Error [%v]", err)
 			return assetInfo, assetAddress, err
 		}
 	} else { // EVM
@@ -471,7 +471,7 @@ func (a *Service) fetchNonFungibleAssetInfo(
 		assetAddress = common.HexToAddress(assetAddress).String()
 		assetInfo, err = a.fetchEvmNonFungibleAssetInfo(chainId, assetAddress, evmTokenClients, isNative, routerContractAddress)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to load EVM NetworkId [%v] Non-Fungible Asset Info. Error [%v]", chainId, err))
+			err = fmt.Errorf("Failed to load EVM NetworkId [%v] Non-Fungible Asset Info. Error [%v]", chainId, err)
 			return assetInfo, assetAddress, err
 		}
 	}

@@ -89,11 +89,11 @@ func (ec *Client) ValidateContractDeployedAt(contractAddress string) (*common.Ad
 
 	bytecode, err := ec.CodeAt(context.Background(), address, nil)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to Get Code for contract address [%s].", contractAddress))
+		return nil, fmt.Errorf("Failed to Get Code for contract address [%s].", contractAddress)
 	}
 
 	if len(bytecode) == 0 {
-		return nil, errors.New(fmt.Sprintf("Provided address [%s] is not an EVM smart contract.", contractAddress))
+		return nil, fmt.Errorf("Provided address [%s] is not an EVM smart contract.", contractAddress)
 	}
 
 	return &address, nil
@@ -195,7 +195,7 @@ func (ec Client) RetryBlockNumber() (uint64, error) {
 
 	block, ok := result.(uint64)
 	if !ok {
-		return 0, errors.New(fmt.Sprintf("failed to cast block [%v]", result))
+		return 0, fmt.Errorf("failed to cast block [%v]", result)
 	}
 
 	return block, nil
@@ -226,7 +226,7 @@ func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error
 
 	logs, ok := result.([]types.Log)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("failed to cast logs [%v]", result))
+		return nil, fmt.Errorf("failed to cast logs [%v]", result)
 	}
 
 	return logs, nil

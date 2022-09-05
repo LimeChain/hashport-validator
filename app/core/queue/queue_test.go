@@ -46,11 +46,9 @@ func Test_Push(t *testing.T) {
 	received := 0
 	var wg sync.WaitGroup
 	go func() {
-		select {
-		case <-q.Channel():
-			received++
-			wg.Done()
-		}
+		<-q.Channel()
+		received++
+		wg.Done()
 	}()
 
 	wg.Add(1)

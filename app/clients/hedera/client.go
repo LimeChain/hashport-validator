@@ -17,7 +17,6 @@
 package hedera
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -233,7 +232,7 @@ func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status))
+		return nil, fmt.Errorf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status)
 	}
 
 	return &receipt, err

@@ -1,7 +1,6 @@
 package scheduled
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -191,7 +190,7 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 		s.logger.Errorf("[%s] - TX [%s] - Scheduled Transaction resolved with [%s].", id, txID, txReceipt.Status)
 
 		onExecutionFail(txID)
-		return errors.New(fmt.Sprintf("receipt-status: %s", txReceipt.Status))
+		return fmt.Errorf("receipt-status: %s", txReceipt.Status)
 	}
 
 	transactionID := hederahelper.ToMirrorNodeTransactionID(txReceipt.ScheduledTransactionID.String())

@@ -44,40 +44,32 @@ func main() {
 	}
 
 	var transactionResponse hedera.TransactionResponse
-	switch deserialized.(type) {
+	switch tx := deserialized.(type) {
 	case hedera.TransferTransaction:
-		tx := deserialized.(hedera.TransferTransaction)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TopicUpdateTransaction:
-		tx := deserialized.(hedera.TopicUpdateTransaction)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TokenUpdateTransaction:
-		tx := deserialized.(hedera.TokenUpdateTransaction)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.AccountUpdateTransaction:
-		tx := deserialized.(hedera.AccountUpdateTransaction)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TokenCreateTransaction:
-		tx := deserialized.(hedera.TokenCreateTransaction)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TokenMintTransaction:
-		tx := deserialized.(hedera.TokenMintTransaction)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TokenAssociateTransaction:
-		tx := deserialized.(hedera.TokenAssociateTransaction)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 		break
 	case hedera.TopicMessageSubmitTransaction:
-		tx := deserialized.(hedera.TopicMessageSubmitTransaction)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 		break
@@ -88,7 +80,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(fmt.Sprintf("TransactionID: [%s]", transactionResponse.TransactionID))
+	fmt.Printf("TransactionID: [%s]\n", transactionResponse.TransactionID)
 
 	receipt, err := transactionResponse.GetReceipt(client)
 	if err != nil {

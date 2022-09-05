@@ -1,0 +1,14 @@
+name: staticcheck
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dominikh/staticcheck-action@v1.2.0
+        with:
+          checks: "all,-ST*,-S1002,-S1005,-S1008,-S1023,-S1039,-U1000"
