@@ -44,7 +44,7 @@ func (s *Service) ExecuteScheduledTransferTransaction(
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
+		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction at Node Account [%s]. Error [%s].", id, transactionResponse.NodeID.String(), err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 		}
@@ -63,7 +63,7 @@ func (s *Service) ExecuteScheduledNftTransferTransaction(
 	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.hederaNodeClient.SubmitScheduledNftTransferTransaction(nftID, s.payerAccount, sender, receiving, id)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction. Error [%s].", id, err)
+		s.logger.Errorf("[%s] - Failed to submit scheduled transfer transaction at Node Account [%s]. Error [%s].", id, transactionResponse.NodeID.String(), err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
 		}
