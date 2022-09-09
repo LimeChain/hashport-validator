@@ -103,9 +103,11 @@ func (s *Service) executeScheduledTransfersTransaction(id, nativeAsset string, t
 func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTokenMintTransaction(id, asset, amount)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled mint transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+			s.logger.Errorf("[%s] - Failed to submit scheduled mint transaction at Node Account [%s]. Error [%s].", id, transactionResponse.NodeID.String(), err)
+		} else {
+			s.logger.Errorf("[%s] - Failed to submit scheduled mint transaction. Error [%s].", id, err)
 		}
 		*status <- sync.FAIL
 		return
@@ -122,9 +124,11 @@ func (s *Service) ExecuteScheduledMintTransaction(id, asset string, amount int64
 func (s *Service) ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTokenBurnTransaction(id, asset, amount)
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit scheduled burn transaction. Error [%s].", id, err)
 		if transactionResponse != nil {
 			onExecutionFail(hederahelper.ToMirrorNodeTransactionID(transactionResponse.TransactionID.String()))
+			s.logger.Errorf("[%s] - Failed to submit scheduled burn transaction at Node Account [%s]. Error [%s].", id, transactionResponse.NodeID.String(), err)
+		} else {
+			s.logger.Errorf("[%s] - Failed to submit scheduled burn transaction. Error [%s].", id, err)
 		}
 		*status <- sync.FAIL
 		return
