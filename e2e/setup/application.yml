@@ -44,5 +44,5 @@ tokens:
 scenario:
   expectedValidatorsCount: 3
   firstEvmChainId: 80001
-  secondEvmChainId: 5
+  secondEvmChainId: 43113
 validator_url:
