@@ -41,4 +41,8 @@ tokens:
   nft_token:
   ntf_serial_number:
   evm_native_token:
+scenario:
+  expectedValidatorsCount: 3
+  firstEvmChainId: 80001
+  secondEvmChainId: 5
 validator_url:
