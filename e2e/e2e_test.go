@@ -64,19 +64,13 @@ var (
 	now time.Time
 )
 
-const (
-	expectedValidatorsCount = 3
-	firstEvmChainId         = uint64(80001) // represents Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
-	secondEvmChainId        = uint64(43113) // represents Avalanche Fuji Testnet (e2e config must have configuration for that particular network)
-)
-
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
 	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
@@ -165,7 +159,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	mintAmount, fee := calculateReceiverAndFeeAmounts(setupEnv, setupEnv.TokenID.String(), amount)
@@ -250,7 +244,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -316,7 +310,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	accountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), t)
@@ -391,7 +385,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
 	bridgeAccountBalanceBefore := util.GetHederaAccountBalance(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, t)
@@ -535,7 +529,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now = time.Now()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
 	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
@@ -647,10 +641,10 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	now = time.Now()
-	targetChainID := secondEvmChainId
+	targetChainID := setupEnv.Scenario.SecondEvmChainId
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
@@ -734,8 +728,8 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 
-	chainId := firstEvmChainId
-	sourceChain := secondEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
+	sourceChain := setupEnv.Scenario.SecondEvmChainId
 	wrappedEvm := setupEnv.Clients.EVM[sourceChain]
 	now = time.Now()
 	sourceAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, sourceChain, setupEnv.NativeEvmToken)
@@ -822,7 +816,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
@@ -951,7 +945,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
-	chainId := firstEvmChainId
+	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
@@ -2097,6 +2091,7 @@ func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string
 
 	time.Sleep(120 * time.Second)
 
+	expectedValidatorsCount := setup.Scenario.ExpectedValidatorsCount
 	if ethSignaturesCollected != expectedValidatorsCount {
 		t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
 	}

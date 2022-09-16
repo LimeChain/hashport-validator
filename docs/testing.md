@@ -37,6 +37,9 @@ Configuration for `e2e/setup/application.yml`:
 | `tokens.nft_token`                    | The Hedera TokenID of the token, used in NFT E2E tests.                                                                                                                                                           |
 | `tokens.nft_serial_number`            | The Hedera Serial Number of the token, used in NFT E2E tests.                                                                                                                                                     |
 | `validator_url`                       | The URL of the Validator node. Used for querying Metadata.                                                                                                                                                        |
+| `scenario.expectedValidatorsCount`    | Test scenario option describing the expected number of collected signatures                                                                                                                                       |
+| `scenario.firstEvmChainId`            | Test scenario option describing the first chain Id                                                                                                                                                                |
+| `scenario.secondEvmChainId`           | Test scenario option describing the second (target) chain Id                                                                                                                                                      |
 
 Configuration for `e2e/setup/bridge.yml`:
 
