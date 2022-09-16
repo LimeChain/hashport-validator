@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/shopspring/decimal"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -80,6 +81,7 @@ func Load() *Setup {
 		FeePercentages:  map[string]int64{},
 		NftConstantFees: map[string]int64{},
 		NftDynamicFees:  map[string]decimal.Decimal{},
+		Scenario:        e2eConfig.Scenario,
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
@@ -122,6 +124,7 @@ type Setup struct {
 	Clients         *clients
 	DbValidator     *db_validation.Service
 	AssetMappings   service.Assets
+	Scenario        *ScenarioConfig
 }
 
 // newSetup instantiates new Setup struct
@@ -171,6 +174,11 @@ func newSetup(config Config) (*Setup, error) {
 
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
+	scenario, err := newScenario(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Setup{
 		BridgeAccount:   bridgeAccount,
 		TopicID:         topicID,
@@ -185,6 +193,7 @@ func newSetup(config Config) (*Setup, error) {
 		Clients:         clients,
 		DbValidator:     dbValidator,
 		AssetMappings:   config.AssetMappings,
+		Scenario:        scenario,
 	}, nil
 }
 
@@ -297,6 +306,16 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
+func newScenario(config Config) (*ScenarioConfig, error) {
+	scenario := ScenarioConfig{
+		ExpectedValidatorsCount: config.Scenario.ExpectedValidatorsCount,
+		FirstEvmChainId:         config.Scenario.FirstEvmChainId,
+		SecondEvmChainId:        config.Scenario.SecondEvmChainId,
+	}
+
+	return &scenario, nil
+}
+
 func InitWrappedAssetContract(nativeAsset string, assetsService service.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(assetsService, sourceChain, targetChain, nativeAsset)
 	if err != nil {
@@ -365,6 +384,7 @@ type Config struct {
 	FeePercentages  map[string]int64
 	NftConstantFees map[string]int64
 	NftDynamicFees  map[string]decimal.Decimal
+	Scenario        e2eParser.ScenarioParser
 }
 
 type EVMUtils struct {
@@ -398,4 +418,10 @@ type Sender struct {
 
 type Receiver struct {
 	Account string
+}
+
+type ScenarioConfig struct {
+	ExpectedValidatorsCount int
+	FirstEvmChainId         uint64
+	SecondEvmChainId        uint64
 }
