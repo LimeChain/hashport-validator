@@ -44,6 +44,8 @@ const (
 	AssetMetricLabelKey                     = "symbol"
 	AccountMetricLabelKey                   = "account_id"
 	NameMetricLabelKey                      = "name"
+	FungibleAddon                           = "Fungible"
+	NonFungibleAddon                        = "NonFungible"
 
 	CreateDecimalPrefix = "1"
 	CreateDecimalRepeat = "0"
