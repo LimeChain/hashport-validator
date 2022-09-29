@@ -284,11 +284,17 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 }
 
 func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) (minAmountWithFee *big.Int, err error) {
+	if priceInUsd.Cmp(decimal.NewFromFloat(0.0)) <= 0 {
+		return nil, fmt.Errorf("price in USD [%s] for NativeAsset [%s] must be a positive number", priceInUsd.String(), nativeAsset.Asset)
+	}
 	if nativeAsset.MinFeeAmountInUsd.Equal(decimal.NewFromFloat(0.0)) {
 		return big.NewInt(0), nil
 	}
 
 	feePercentageBigInt := big.NewInt(nativeAsset.FeePercentage)
+	if feePercentageBigInt.Cmp(big.NewInt(0)) <= 0 {
+		return nil, fmt.Errorf("FeePercentage [%d] for NativeAsset [%s] must be a positive number", nativeAsset.FeePercentage, nativeAsset.Asset)
+	}
 	minFeeAmountMultiplier, err := decimal.NewFromString(big.NewInt(0).Div(constants.FeeMaxPercentageBigInt, feePercentageBigInt).String())
 	if err != nil {
 		return nil, err
