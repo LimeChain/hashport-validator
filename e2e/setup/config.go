@@ -82,6 +82,7 @@ func Load() *Setup {
 		FeePercentages:  map[string]int64{},
 		NftConstantFees: map[string]int64{},
 		NftDynamicFees:  map[string]decimal.Decimal{},
+		Scenario:        e2eConfig.Scenario,
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
@@ -125,6 +126,7 @@ type Setup struct {
 	Clients         *clients
 	DbValidator     *db_validation.Service
 	AssetMappings   service.Assets
+	Scenario        *ScenarioConfig
 }
 
 // newSetup instantiates new Setup struct
@@ -154,12 +156,12 @@ func newSetup(config Config) (*Setup, error) {
 
 	for token, fp := range config.FeePercentages {
 		if fp < constants.FeeMinPercentage || fp > constants.FeeMaxPercentage {
-			return nil, errors.New(fmt.Sprintf("[%s] - invalid fee percentage [%d]", token, fp))
+			return nil, fmt.Errorf("[%s] - invalid fee percentage [%d]", token, fp)
 		}
 	}
 
 	if len(config.Hedera.Members) == 0 {
-		return nil, errors.New(fmt.Sprintf("members account ids cannot be 0"))
+		return nil, fmt.Errorf("members account ids cannot be 0")
 	}
 
 	var members []hederaSDK.AccountID
@@ -178,6 +180,11 @@ func newSetup(config Config) (*Setup, error) {
 
 	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
 
+	scenario, err := newScenario(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Setup{
 		BridgeAccount:   bridgeAccount,
 		PayerAccount:    payerAccount,
@@ -193,6 +200,7 @@ func newSetup(config Config) (*Setup, error) {
 		Clients:         clients,
 		DbValidator:     dbValidator,
 		AssetMappings:   config.AssetMappings,
+		Scenario:        scenario,
 	}, nil
 }
 
@@ -252,8 +260,12 @@ func newClients(config Config) (*clients, error) {
 		} else {
 			return nil, errors.New("chain IDs mismatch config and actual")
 		}
-		routerContractAddress := common.HexToAddress(config.Bridge.Networks[configChainId].RouterContractAddress)
-		routerInstance, err := router.NewRouter(routerContractAddress, evmClient)
+		network, ok := config.Bridge.Networks[configChainId]
+		if !ok || network.RouterContractAddress == "" {
+			continue
+		}
+		routerContractAddress := common.HexToAddress(network.RouterContractAddress)
+		routerInstance, _ := router.NewRouter(routerContractAddress, evmClient)
 
 		signer := evm_signer.NewEVMSigner(evmClient.GetPrivateKey())
 		keyTransactor, err := signer.NewKeyTransactor(clientChainId)
@@ -301,6 +313,16 @@ func newClients(config Config) (*clients, error) {
 	}, nil
 }
 
+func newScenario(config Config) (*ScenarioConfig, error) {
+	scenario := ScenarioConfig{
+		ExpectedValidatorsCount: config.Scenario.ExpectedValidatorsCount,
+		FirstEvmChainId:         config.Scenario.FirstEvmChainId,
+		SecondEvmChainId:        config.Scenario.SecondEvmChainId,
+	}
+
+	return &scenario, nil
+}
+
 func InitWrappedAssetContract(nativeAsset string, assetsService service.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	wTokenContractAddress, err := NativeToWrappedAsset(assetsService, sourceChain, targetChain, nativeAsset)
 	if err != nil {
@@ -318,7 +340,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("EvmFungibleToken [%s] is not supported", nativeAsset))
+		return "", fmt.Errorf("EvmFungibleToken [%s] is not supported", nativeAsset)
 	}
 
 	return wrappedAsset, nil
@@ -327,7 +349,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
 	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
-		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
+		return nil, fmt.Errorf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId)
 	}
 
 	return targetAsset, nil
@@ -369,6 +391,7 @@ type Config struct {
 	FeePercentages  map[string]int64
 	NftConstantFees map[string]int64
 	NftDynamicFees  map[string]decimal.Decimal
+	Scenario        e2eParser.ScenarioParser
 }
 
 type EVMUtils struct {
@@ -403,4 +426,10 @@ type Sender struct {
 
 type Receiver struct {
 	Account string
+}
+
+type ScenarioConfig struct {
+	ExpectedValidatorsCount int
+	FirstEvmChainId         uint64
+	SecondEvmChainId        uint64
 }

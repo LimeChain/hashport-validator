@@ -17,7 +17,6 @@
 package hedera
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -30,12 +29,13 @@ import (
 type Node struct {
 	client   *hedera.Client
 	maxRetry int
+	logger   *log.Entry
 }
 
 // NewNodeClient creates new instance of hedera.Client based on the provided client configuration
-func NewNodeClient(config config.Hedera) *Node {
+func NewNodeClient(cfg config.Hedera) *Node {
 	var client *hedera.Client
-	switch config.Network {
+	switch cfg.Network {
 	case "mainnet":
 		client = hedera.ClientForMainnet()
 	case "testnet":
@@ -43,31 +43,35 @@ func NewNodeClient(config config.Hedera) *Node {
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
-		log.Fatalf("Invalid Client Network provided: [%s]", config.Network)
+		log.Fatalf("Invalid Client Network provided: [%s]", cfg.Network)
 	}
-	if len(config.Rpc) > 0 {
-		log.Infof("Setting provided RPC nodes for [%s].", config.Network)
-		err := client.SetNetwork(config.Rpc)
+	if len(cfg.Rpc) > 0 {
+		log.Infof("Setting provided RPC nodes for [%s].", cfg.Network)
+		err := client.SetNetwork(cfg.Rpc)
 		if err != nil {
-			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", config.Rpc, err)
+			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
 		}
 	} else {
-		log.Infof("Setting default node rpc urls for [%s].", config.Network)
+		log.Infof("Setting default node rpc urls for [%s].", cfg.Network)
 	}
 
-	accID, err := hedera.AccountIDFromString(config.Operator.AccountId)
+	accID, err := hedera.AccountIDFromString(cfg.Operator.AccountId)
 	if err != nil {
-		log.Fatalf("Invalid Operator AccountId provided: [%s]", config.Operator.AccountId)
+		log.Fatalf("Invalid Operator AccountId provided: [%s]", cfg.Operator.AccountId)
 	}
 
-	privateKey, err := hedera.PrivateKeyFromString(config.Operator.PrivateKey)
+	privateKey, err := hedera.PrivateKeyFromString(cfg.Operator.PrivateKey)
 	if err != nil {
-		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", config.Operator.PrivateKey)
+		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", cfg.Operator.PrivateKey)
 	}
 
 	client.SetOperator(accID, privateKey)
 
-	return &Node{client: client, maxRetry: config.MaxRetry}
+	return &Node{
+		client:   client,
+		maxRetry: cfg.MaxRetry,
+		logger:   config.GetLoggerFor("Hedera Node Client"),
+	}
 }
 
 // GetClient returns the hedera.Client
@@ -87,6 +91,7 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
+	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -107,6 +112,7 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
+	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -230,6 +236,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
+	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -260,7 +267,7 @@ func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*
 	}
 
 	if receipt.Status != hedera.StatusSuccess {
-		return nil, errors.New(fmt.Sprintf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status))
+		return nil, fmt.Errorf("Transaction [%s] failed with status [%s]", txResponse.TransactionID.String(), receipt.Status)
 	}
 
 	return &receipt, err

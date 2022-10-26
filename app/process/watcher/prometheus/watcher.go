@@ -19,6 +19,11 @@ package prometheus
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/gookit/event"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -30,10 +35,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"regexp"
-	"strings"
-	"time"
 )
 
 var (
@@ -235,10 +236,13 @@ func (pw *Watcher) registerAssetMetric(
 			name,
 			metricNameCnt,
 			metricHelpCnt,
+			isFungible,
 		)
+
 		if pw.assetsMetrics[wrappedNetworkId] == nil {
 			pw.assetsMetrics[wrappedNetworkId] = make(map[string]string)
 		}
+
 		pw.assetsMetrics[wrappedNetworkId][assetAddress] = metricName
 		pw.prometheusService.CreateGaugeIfNotExists(prometheus.GaugeOpts{
 			Name: metricName,
@@ -257,24 +261,35 @@ func getMetricData(
 	assetName string,
 	metricNameSuffix string,
 	metricsHelpPrefix string,
+	isFungible bool,
 ) (string, string) {
 
 	nativeNetworkName := constants.NetworksById[nativeNetworkId]
 	wrappedNetworkName := constants.NetworksById[wrappedNetworkId]
 	assetType := constants.Wrapped
+
 	if nativeNetworkId == wrappedNetworkId {
 		assetType = constants.Native
 	}
-	name := fmt.Sprintf("%s_%s_%s%s%s",
+
+	fungleAddon := constants.FungibleAddon
+	if !isFungible {
+		fungleAddon = constants.NonFungibleAddon
+	}
+
+	name := fmt.Sprintf("%s_%s_%s_%s%s%s",
 		assetType,
 		nativeNetworkName,
+		fungleAddon,
 		wrappedNetworkName,
 		metricNameSuffix,
 		metrics.AssetAddressToMetricName(assetAddress))
+
 	help := fmt.Sprintf("%s %s %s",
 		metricsHelpPrefix,
 		assetType,
 		assetName)
+
 	return name, help
 }
 

@@ -130,7 +130,8 @@ func (fmh Handler) Handle(p interface{}) {
 		return
 	}
 
-	transfers, err := fmh.distributor.CalculateMemberDistribution(validFee)
+	transfers, _ := fmh.distributor.CalculateMemberDistribution(validFee)
+
 	splitTransfers := distributor.SplitAccountAmounts(transfers,
 		model.Hedera{
 			AccountID: fmh.bridgeAccount,

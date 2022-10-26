@@ -92,7 +92,7 @@ func (s *Service) ProcessLatestConfig(topicID hedera.TopicID) (*parser.Bridge, e
 	}
 
 	if lastMessage.ChunkInfo.Number < lastMessage.ChunkInfo.Total {
-		lastMessage, err = s.waitForAllChunks(topicID, lastMessage)
+		lastMessage, _ = s.waitForAllChunks(topicID, lastMessage)
 	}
 
 	var messagesToProcess []mirrorNodeMsg.Message

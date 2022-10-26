@@ -25,17 +25,17 @@ jobs:
         shell: bash
         run: |
           echo "TAG=${{ github.event.client_payload.tag }}" > .env && \
-          echo "${{ secrets.ENV_READ_ONLY }}" >> .env
+          echo '${{ secrets.ENV_READ_ONLY }}' >> .env
 
       - name: Export application config
         shell: bash
         run: |
-          echo "${{ secrets.APP_MAINNET_DAVE_CONFIG }}" > ./node.yml && \
-          echo "${{ secrets.APP_MAINNET_BRIDGE_CONFIG }}" > ./bridge.yml && \
-          echo "${{ secrets.APP_MAINNET_ALERT_CONFIG }}" > ./monitoring/alertmanager/config.yml && \
-          echo "${{ secrets.APP_MAINNET_GRAFANA_CONFIG_ENV }}" > ./monitoring/grafana/config-overrides.env && \
-          echo "${{ secrets.APP_MAINNET_PROMETHEUS_CONFIG }}" > ./monitoring/prometheus/prometheus.yml && \
-          echo "${{ secrets.APP_MAINNET_PROMETHEUS_RULES_CONFIG }}" > ./monitoring/prometheus/rules.yml
+          echo '${{ secrets.APP_MAINNET_DAVE_CONFIG }}' > ./node.yml && \
+          echo '${{ secrets.APP_MAINNET_BRIDGE_CONFIG }}' > ./bridge.yml && \
+          echo '${{ secrets.APP_MAINNET_ALERT_CONFIG }}' > ./monitoring/alertmanager/config.yml && \
+          echo '${{ secrets.APP_MAINNET_GRAFANA_CONFIG_ENV }}' > ./monitoring/grafana/config-overrides.env && \
+          echo '${{ secrets.APP_MAINNET_PROMETHEUS_CONFIG }}' > ./monitoring/prometheus/prometheus.yml && \
+          echo '${{ secrets.APP_MAINNET_PROMETHEUS_RULES_CONFIG }}' > ./monitoring/prometheus/rules.yml
 
       - name: Copy files
         run: |

@@ -18,7 +18,6 @@ package clients
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -62,7 +61,7 @@ func (v *Validator) get(url string) ([]byte, error) {
 		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("GET resolved with status [%d].", response.StatusCode))
+		return nil, fmt.Errorf("GET resolved with status [%d].", response.StatusCode)
 	}
 
 	return ioutil.ReadAll(response.Body)

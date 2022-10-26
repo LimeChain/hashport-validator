@@ -92,14 +92,14 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 	if results.AllPricesErr == nil {
 		err := s.updatePricesWithoutHbar(results.AllPrices)
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to update prices for all tokens without HBAR. Error [%s]", err))
+			err = fmt.Errorf("Failed to update prices for all tokens without HBAR. Error [%s]", err)
 			return err
 		}
 	}
 
 	err := s.updateHbarPrice(results)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Failed to fetch price for HBAR. Error [%s]", err))
+		err = fmt.Errorf("Failed to fetch price for HBAR. Error [%s]", err)
 		return err
 	}
 
@@ -119,7 +119,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 			assetInfo, ok := s.assetsService.NonFungibleAssetInfo(networkId, id)
 			if !ok {
 				s.logger.Errorf("Failed to get asset info for [%s]", id)
-				return errors.New(fmt.Sprintf("Failed to get asset info for [%s]", id))
+				return fmt.Errorf("Failed to get asset info for [%s]", id)
 			}
 
 			if networkId == constants.HederaNetworkId {
@@ -133,7 +133,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 
 			diamondRouter, ok := s.diamondRouters[networkId]
 			if !ok {
-				return errors.New(fmt.Sprintf("could not get diamond router for network %d", networkId))
+				return fmt.Errorf("could not get diamond router for network %d", networkId)
 			}
 
 			if assetInfo.IsNative {
@@ -168,7 +168,7 @@ func (s *Service) NftFees() map[uint64]map[string]pricing.NonFungibleFee {
 func (s *Service) evmNativeNftFee(id string, diamondRouter client.DiamondRouter) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.GetHederaNftFee(id)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("could not get fee for asset %s", id))
+		return nil, fmt.Errorf("could not get fee for asset %s", id)
 	}
 
 	nftFee := &pricing.NonFungibleFee{
@@ -271,7 +271,7 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 
 	err = s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
+		return fmt.Errorf("Failed to update price info containers. Error: [%s]", err)
 	}
 
 	s.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, s.hbarFungibleAssetInfo.Decimals)
@@ -284,11 +284,17 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 }
 
 func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, decimals uint8, priceInUsd decimal.Decimal) (minAmountWithFee *big.Int, err error) {
+	if priceInUsd.Cmp(decimal.NewFromFloat(0.0)) <= 0 {
+		return nil, fmt.Errorf("price in USD [%s] for NativeAsset [%s] must be a positive number", priceInUsd.String(), nativeAsset.Asset)
+	}
 	if nativeAsset.MinFeeAmountInUsd.Equal(decimal.NewFromFloat(0.0)) {
 		return big.NewInt(0), nil
 	}
 
 	feePercentageBigInt := big.NewInt(nativeAsset.FeePercentage)
+	if feePercentageBigInt.Cmp(big.NewInt(0)) <= 0 {
+		return nil, fmt.Errorf("FeePercentage [%d] for NativeAsset [%s] must be a positive number", nativeAsset.FeePercentage, nativeAsset.Asset)
+	}
 	minFeeAmountMultiplier, err := decimal.NewFromString(big.NewInt(0).Div(constants.FeeMaxPercentageBigInt, feePercentageBigInt).String())
 	if err != nil {
 		return nil, err
@@ -347,7 +353,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 			nativeAsset := s.assetsService.FungibleNativeAsset(networkId, assetAddress)
 			minAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, usdPrice)
 			if err != nil {
-				err = errors.New(fmt.Sprintf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err))
+				err = fmt.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err)
 				return err
 			}
 
@@ -358,7 +364,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 
 			err = s.updatePriceInfoContainers(nativeAsset, tokenPriceInfo)
 			if err != nil {
-				err = errors.New(fmt.Sprintf("Failed to update price info containers. Error: [%s]", err))
+				err = fmt.Errorf("Failed to update price info containers. Error: [%s]", err)
 				return err
 			}
 		}

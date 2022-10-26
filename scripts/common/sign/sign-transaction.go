@@ -52,9 +52,8 @@ func main() {
 		panic(fmt.Sprintf("failed to parse transaction. err [%s]", err))
 	}
 
-	switch deserialized.(type) {
+	switch tx := deserialized.(type) {
 	case hedera.TransferTransaction:
-		tx := deserialized.(hedera.TransferTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -66,7 +65,6 @@ func main() {
 		fmt.Println(hex.EncodeToString(bytes))
 		break
 	case hedera.TopicUpdateTransaction:
-		tx := deserialized.(hedera.TopicUpdateTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -78,7 +76,6 @@ func main() {
 		fmt.Println(hex.EncodeToString(bytes))
 		break
 	case hedera.TokenUpdateTransaction:
-		tx := deserialized.(hedera.TokenUpdateTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -90,7 +87,6 @@ func main() {
 		fmt.Println(hex.EncodeToString(bytes))
 		break
 	case hedera.AccountUpdateTransaction:
-		tx := deserialized.(hedera.AccountUpdateTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -101,7 +97,6 @@ func main() {
 		}
 		fmt.Println(hex.EncodeToString(bytes))
 	case hedera.TokenCreateTransaction:
-		tx := deserialized.(hedera.TokenCreateTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -112,7 +107,6 @@ func main() {
 		}
 		fmt.Println(hex.EncodeToString(bytes))
 	case hedera.TokenMintTransaction:
-		tx := deserialized.(hedera.TokenMintTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -123,7 +117,6 @@ func main() {
 		}
 		fmt.Println(hex.EncodeToString(bytes))
 	case hedera.TokenAssociateTransaction:
-		tx := deserialized.(hedera.TokenAssociateTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
@@ -134,7 +127,6 @@ func main() {
 		}
 		fmt.Println(hex.EncodeToString(bytes))
 	case hedera.TopicMessageSubmitTransaction:
-		tx := deserialized.(hedera.TopicMessageSubmitTransaction)
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)

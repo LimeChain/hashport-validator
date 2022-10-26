@@ -43,3 +43,7 @@ tokens:
   ntf_serial_number:
   evm_native_token:
 validator_url:
+scenario:
+  expectedValidatorsCount: 3
+  firstEvmChainId: 80001 # Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+  secondEvmChainId: 43113 # Avalanche Fuji Testnet (e2e config must have configuration for that particular network)

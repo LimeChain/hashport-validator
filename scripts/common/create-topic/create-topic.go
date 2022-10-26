@@ -19,10 +19,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
 func main() {

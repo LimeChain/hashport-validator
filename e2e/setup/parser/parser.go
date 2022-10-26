@@ -11,6 +11,7 @@ type Config struct {
 	Tokens       Tokens                `yaml:"tokens"`
 	ValidatorUrl string                `yaml:"validator_url"`
 	Bridge       parser.Bridge         `yaml:"bridge"`
+	Scenario     ScenarioParser        `yaml:"scenario"`
 }
 
 type HederaParser struct {
@@ -22,6 +23,12 @@ type HederaParser struct {
 	Sender            Sender            `yaml:"sender"`
 	DbValidationProps []parser.Database `yaml:"dbs"`
 	MirrorNode        parser.MirrorNode `yaml:"mirror_node"`
+}
+
+type ScenarioParser struct {
+	ExpectedValidatorsCount int    `yaml:"expectedValidatorsCount"`
+	FirstEvmChainId         uint64 `yaml:"firstEvmChainId"`
+	SecondEvmChainId        uint64 `yaml:"secondEvmChainId"`
 }
 
 type Sender struct {

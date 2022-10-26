@@ -62,7 +62,7 @@ func (bsc *Service) GetMembers() []string {
 // IsMember returns true/false depending on whether the provided address is a Bridge member or not
 func (bsc *Service) IsMember(address string) bool {
 	for _, k := range bsc.members.Get() {
-		if strings.ToLower(k) == strings.ToLower(address) {
+		if strings.EqualFold(k, address) {
 			return true
 		}
 	}

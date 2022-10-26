@@ -121,7 +121,7 @@ type MirrorNode struct {
 	QueryMaxLimit     int64
 	QueryDefaultLimit int64
 	RetryPolicy       RetryPolicy
-	RequestTimeout    time.Duration
+	RequestTimeout    int
 }
 
 const (
@@ -158,7 +158,7 @@ func (m *MirrorNode) DefaultOrConfig(cfg *parser.MirrorNode) *MirrorNode {
 		m.QueryDefaultLimit = cfg.QueryDefaultLimit
 	}
 	if cfg.RequestTimeout != 0 {
-		m.RequestTimeout = time.Duration(cfg.RequestTimeout)
+		m.RequestTimeout = cfg.RequestTimeout
 	}
 
 	m.RetryPolicy = *m.RetryPolicy.DefaultOrConfig(&cfg.RetryPolicy)
@@ -168,9 +168,9 @@ func (m *MirrorNode) DefaultOrConfig(cfg *parser.MirrorNode) *MirrorNode {
 
 type RetryPolicy struct {
 	MaxRetry  int
-	MinWait   time.Duration
-	MaxWait   time.Duration
-	MaxJitter time.Duration
+	MinWait   int
+	MaxWait   int
+	MaxJitter int
 }
 
 const (
@@ -191,13 +191,13 @@ func (r *RetryPolicy) DefaultOrConfig(cfg *parser.RetryPolicy) *RetryPolicy {
 		r.MaxRetry = cfg.MaxRetry
 	}
 	if cfg.MinWait != 0 {
-		r.MinWait = time.Duration(cfg.MinWait)
+		r.MinWait = cfg.MinWait
 	}
 	if cfg.MaxWait != 0 {
-		r.MaxWait = time.Duration(cfg.MaxWait)
+		r.MaxWait = cfg.MaxWait
 	}
 	if cfg.MaxJitter != 0 {
-		r.MaxJitter = time.Duration(cfg.MaxJitter)
+		r.MaxJitter = cfg.MaxJitter
 	}
 	return r
 }

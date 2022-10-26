@@ -14,56 +14,62 @@
 * limitations under the License.
  */
 
-package main
+package associate
 
 import (
-	"flag"
 	"fmt"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
-	client "github.com/limechain/hedera-eth-bridge-validator/scripts"
 )
 
-func main() {
-	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
-	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
-	network := flag.String("network", "", "Hedera Network Type")
-	tokenID := flag.String("tokenID", "0.0", "Bridge account ID")
-	flag.Parse()
-	if *privateKey == "0x0" {
-		panic("Private key was not provided")
-	}
-	if *accountID == "0.0" {
-		panic("Account id was not provided")
-	}
-	if *tokenID == "0.0" {
-		panic("Token id was not provided")
-	}
-
-	fmt.Println("-----------Start-----------")
-	client := client.Init(*privateKey, *accountID, *network)
-
-	tokenIDFromString, err := hedera.TokenIDFromString(*tokenID)
-	if err != nil {
-		panic(err)
-	}
-	receipt := associateTokenToAccount(client, tokenIDFromString)
-	fmt.Println("Associate transaction status:", receipt.Status)
-}
-
-func associateTokenToAccount(client *hedera.Client, token hedera.TokenID) hedera.TransactionReceipt {
+func TokenToAccount(client *hedera.Client, token hedera.TokenID, accountId hedera.AccountID) (*hedera.TransactionReceipt, error) {
 	associateTX, err := hedera.
 		NewTokenAssociateTransaction().
-		SetAccountID(client.GetOperatorAccountID()).
+		SetAccountID(accountId).
 		SetTokenIDs(token).
 		Execute(client)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf(
+			"Failed to associate token id [%s] with account id [%s]. Error: [%s]",
+			token.String(),
+			accountId.String(),
+			err,
+		)
 	}
 
 	receipt, err := associateTX.GetReceipt(client)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf(
+			"Failed to get receipt for associate token id [%s] with account id [%s]. Error: [%s]",
+			token.String(),
+			accountId.String(),
+			err,
+		)
 	}
-	return receipt
+
+	return &receipt, nil
+}
+
+func TokenToAccountWithCustodianKey(client *hedera.Client, token hedera.TokenID, accountID hedera.AccountID, custodianKey []hedera.PrivateKey) (*hedera.TransactionReceipt, error) {
+	freezedAssociateTX, err := hedera.
+		NewTokenAssociateTransaction().
+		SetAccountID(accountID).
+		SetTokenIDs(token).
+		FreezeWith(client)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(custodianKey); i++ {
+		freezedAssociateTX = freezedAssociateTX.Sign(custodianKey[i])
+	}
+	associateTX, err := freezedAssociateTX.Execute(client)
+	if err != nil {
+		return nil, err
+	}
+	receipt, err := associateTX.GetReceipt(client)
+	if err != nil {
+		return nil, err
+	}
+	return &receipt, nil
 }
