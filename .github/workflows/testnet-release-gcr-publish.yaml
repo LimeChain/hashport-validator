@@ -21,8 +21,8 @@ jobs:
       - name: Export application config
         shell: bash
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > ./test.txt && \
-          echo '${{ secrets.GCP_CE_KEY }}' > ./test2.txt
+          echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./test.txt && \
+          echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./test2.txt
 
       - name: Copy files
         run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./test.txt ./test2.txt ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
