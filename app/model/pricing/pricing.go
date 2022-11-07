@@ -25,6 +25,7 @@ import (
 type TokenPriceInfo struct {
 	UsdPrice         decimal.Decimal
 	MinAmountWithFee *big.Int
+	DefaultMinAmount *big.Int
 }
 
 type NonFungibleFee struct {

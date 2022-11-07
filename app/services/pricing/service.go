@@ -242,6 +242,7 @@ func (s *Service) loadStaticMinAmounts(bridgeConfig *config.Bridge) {
 		for tokenAddress, minAmount := range minAmountsByTokenAddress {
 			s.tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
 				MinAmountWithFee: minAmount,
+				DefaultMinAmount: minAmount,
 			}
 			s.minAmountsForApi[networkId][tokenAddress] = minAmount.String()
 		}
@@ -259,6 +260,15 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 		priceInUsd = results.HbarPrice
 	}
 
+	defaultMinAmount := s.tokensPriceInfo[constants.HederaNetworkId][constants.Hbar].DefaultMinAmount
+	previousUsdPrice := s.tokensPriceInfo[constants.HederaNetworkId][constants.Hbar].UsdPrice
+
+	// Use the cached priceInUsd in case the price fetching failed
+	if priceInUsd.Cmp(decimal.NewFromFloat(0.0)) == 0 {
+		priceInUsd = previousUsdPrice
+		s.logger.Warnf("Using the cached price for [%s]", constants.Hbar)
+	}
+
 	minAmountWithFee, err := s.calculateMinAmountWithFee(s.hbarNativeAsset, s.hbarFungibleAssetInfo.Decimals, priceInUsd)
 	if err != nil {
 		return err
@@ -267,6 +277,7 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 	tokenPriceInfo := pricing.TokenPriceInfo{
 		UsdPrice:         priceInUsd,
 		MinAmountWithFee: minAmountWithFee,
+		DefaultMinAmount: defaultMinAmount,
 	}
 
 	err = s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
@@ -323,10 +334,17 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		if wrappedToken == "" {
 			continue
 		}
+
 		wrappedAssetInfo, _ := s.assetsService.FungibleAssetInfo(networkId, wrappedToken)
+		defaultMinAmount := tokenPriceInfo.DefaultMinAmount
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
 		if err != nil {
-			return err
+			s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", wrappedToken, err)
+			if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
+				return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", wrappedToken, err)
+			}
+			s.logger.Infof("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", wrappedToken)
+			wrappedMinAmountWithFee = defaultMinAmount
 		}
 
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
@@ -351,15 +369,29 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 				continue
 			}
 			nativeAsset := s.assetsService.FungibleNativeAsset(networkId, assetAddress)
+			defaultMinAmount := s.tokensPriceInfo[networkId][assetAddress].DefaultMinAmount
+			previousUsdPrice := s.tokensPriceInfo[networkId][assetAddress].UsdPrice
+
+			// Use the cached priceInUsd in case the price fetching failed
+			if usdPrice.Cmp(decimal.NewFromFloat(0.0)) == 0 {
+				usdPrice = previousUsdPrice
+				s.logger.Warnf("Using the cached price for [%s]", assetAddress)
+			}
+
 			minAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, usdPrice)
 			if err != nil {
-				err = fmt.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err)
-				return err
+				s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err)
+				if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
+					return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", assetAddress, err)
+				}
+				s.logger.Infof("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", assetAddress)
+				minAmountWithFee = defaultMinAmount
 			}
 
 			tokenPriceInfo := pricing.TokenPriceInfo{
 				UsdPrice:         usdPrice,
 				MinAmountWithFee: minAmountWithFee,
+				DefaultMinAmount: defaultMinAmount,
 			}
 
 			err = s.updatePriceInfoContainers(nativeAsset, tokenPriceInfo)
