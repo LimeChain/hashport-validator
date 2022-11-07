@@ -235,6 +235,9 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
 
+	// 8. Wait for validators to update DB state after Scheduled TX is mined
+	time.Sleep(20 * time.Second)
+
 	// Step 9 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
 	// and:
@@ -870,7 +873,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	transactionID := hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String()
 
 	// Step 4 - Validate that a scheduled NFT transaction to the bridge account was submitted by a validator
-	scheduledTxID, scheduleID := validateScheduledNftAllowanceApprove(t, setupEnv, transactionID, now.UnixNano())
+	scheduledTxID, scheduleID := validateScheduledNftTransfer(setupEnv, nftToken, serialNumber, t)
 
 	// Step 5 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessagesWithStartTime(setupEnv, hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String(), signaturesStartTime, t)
@@ -954,6 +957,9 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
+
+	// Wait a bit
+	time.Sleep(20 * time.Second)
 
 	// Step 12 - Verify Database Records
 	verifyTransferRecordAndSignatures(setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures, t)
@@ -1040,7 +1046,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	expectedScheduleTransferRecord := &entity.Schedule{
 		TransactionID: scheduledTxID,
 		ScheduleID:    scheduleID,
-		Operation:     schedule.TRANSFER,
+		Operation:     schedule.APPROVE,
 		HasReceiver:   true,
 		Status:        status.Completed,
 		TransferID: sql.NullString{
@@ -1354,12 +1360,57 @@ func validateScheduledBurnTx(setupEnv *setup.Setup, account hedera.AccountID, as
 	return "", ""
 }
 
+func validateScheduledNftTransfer(setupEnv *setup.Setup, token string, serialNum int64, t *testing.T) (transactionID, scheduleID string) {
+	sender := setupEnv.Clients.Hedera.GetOperatorAccountID()
+	receiver := setupEnv.BridgeAccount
+	timeLeft := 180
+
+	for {
+		response, err := setupEnv.Clients.MirrorNode.GetNftTransactions(token, serialNum)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, nftTransfer := range response.Transactions {
+			if nftTransfer.Type == "CRYPTOTRANSFER" &&
+				nftTransfer.ReceiverAccountID == receiver.String() &&
+				nftTransfer.SenderAccountID == sender.String() {
+
+				scheduledTx, err := setupEnv.Clients.MirrorNode.GetScheduledTransaction(nftTransfer.TransactionID)
+				if err != nil {
+					t.Fatalf("Failed to retrieve scheduled transaction [%s]. Error: [%s]", nftTransfer.TransactionID, err)
+				}
+				for _, tx := range scheduledTx.Transactions {
+					if tx.Result == hedera.StatusSuccess.String() {
+						schedule, err := setupEnv.Clients.MirrorNode.GetSchedule(tx.EntityId)
+						if err != nil {
+							t.Fatalf("[%s] - Failed to get scheduled transaction for NFT [%s]. Error: [%s]", token, scheduleID, err)
+						}
+						return nftTransfer.TransactionID, schedule.ScheduleId
+					}
+				}
+			}
+		}
+
+		if timeLeft > 0 {
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", receiver, timeLeft)
+			timeLeft -= 10
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", setupEnv.Clients.Hedera.GetOperatorAccountID())
+	return "", ""
+}
+
 func validateScheduledNftAllowanceApprove(t *testing.T, setupEnv *setup.Setup, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
 	timeLeft := 180
 	receiver := setupEnv.Clients.Hedera.GetOperatorAccountID()
 
 	for {
-		scheduleCreates, err := setupEnv.Clients.MirrorNode.GetTransactionsAfterTimestamp(setupEnv.BridgeAccount, startTimestamp, read_only.CryptoApproveAllowance)
+		scheduleCreates, err := setupEnv.Clients.MirrorNode.GetTransactionsAfterTimestamp(setupEnv.PayerAccount, startTimestamp, read_only.CryptoApproveAllowance)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -2109,14 +2160,13 @@ func verifyTokenTransferToBridgeAccount(s *setup.Setup, evmAsset string, tokenID
 }
 
 func verifyTopicMessages(setup *setup.Setup, txId string, t *testing.T) []string {
-	fmt.Println(fmt.Sprintf("Waiting for Signatures & TX Hash to be published to Topic [%v]", setup.TopicID.String()))
-
 	return verifyTopicMessagesWithStartTime(setup, txId, time.Now().UnixNano(), t)
 }
 
 func verifyTopicMessagesWithStartTime(setup *setup.Setup, txId string, startTime int64, t *testing.T) []string {
 	ethSignaturesCollected := 0
 	var receivedSignatures []string
+	signatureChannel := make(chan string)
 
 	fmt.Printf("Waiting for Signatures & TX Hash to be published to Topic [%v]\n", setup.TopicID.String())
 
@@ -2151,8 +2201,7 @@ func verifyTopicMessagesWithStartTime(setup *setup.Setup, txId string, startTime
 				if transferID != txId {
 					fmt.Printf(`Expected signature message to contain the transaction id: [%s]\n`, txId)
 				} else {
-					receivedSignatures = append(receivedSignatures, signature)
-					ethSignaturesCollected++
+					signatureChannel <- signature
 					fmt.Printf("Received Auth Signature [%s]\n", signature)
 				}
 			},
@@ -2161,9 +2210,21 @@ func verifyTopicMessagesWithStartTime(setup *setup.Setup, txId string, startTime
 		t.Fatalf("Unable to subscribe to Topic [%s]", setup.TopicID)
 	}
 
-	time.Sleep(120 * time.Second)
+	timeoutTimer := time.NewTimer(120 * time.Second)
 
 	expectedValidatorsCount := setup.Scenario.ExpectedValidatorsCount
+
+signatureLoop:
+	for ethSignaturesCollected < expectedValidatorsCount {
+		select {
+		case signature := <-signatureChannel:
+			receivedSignatures = append(receivedSignatures, signature)
+			ethSignaturesCollected++
+		case <-timeoutTimer.C:
+			break signatureLoop
+		}
+	}
+
 	if ethSignaturesCollected != expectedValidatorsCount {
 		t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
 	}

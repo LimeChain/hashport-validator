@@ -229,6 +229,7 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 	onMinedFail := func() {
 		onFail(transactionID)
 	}
+
 	go s.mirrorNodeClient.WaitForScheduledTransaction(transactionID, onMinedSuccess, onMinedFail)
 	return nil
 }
@@ -236,9 +237,13 @@ func (s *Service) createOrSignScheduledTransaction(transactionResponse *hedera.T
 func (s *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {
 	s.logger.Debugf("[%s] - Scheduled transaction already created - Executing Scheduled Sign for [%s].", id, scheduleID)
 	txResponse, err := s.hederaNodeClient.SubmitScheduleSign(scheduleID)
+
 	if err != nil {
-		s.logger.Errorf("[%s] - Failed to submit schedule sign [%s]. Error: [%s].", id, scheduleID, err)
-		return
+		if txResponse != nil {
+			s.logger.Errorf("[%s] - Failed to submit schedule sign at Node Account [%s]. Error [%s].", id, txResponse.NodeID.String(), err)
+		} else {
+			s.logger.Errorf("[%s] - Failed to submit schedule sign. Error [%s].", id, err)
+		}
 	}
 
 	receipt, err := txResponse.GetReceipt(s.hederaNodeClient.GetClient())

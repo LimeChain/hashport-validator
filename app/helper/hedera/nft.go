@@ -21,7 +21,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	syncHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/sync"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -34,6 +33,7 @@ func ScheduledNftTxExecutionCallbacks(
 	id string,
 	hasReceiver bool,
 	statusResult *string,
+	operation string,
 	wg *sync.WaitGroup,
 ) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
@@ -42,7 +42,7 @@ func ScheduledNftTxExecutionCallbacks(
 			transactionID)
 		err := scheduleRepository.Create(&entity.Schedule{
 			ScheduleID:    scheduleID,
-			Operation:     schedule.TRANSFER,
+			Operation:     operation,
 			TransactionID: transactionID,
 			HasReceiver:   hasReceiver,
 			Status:        status.Submitted,

@@ -11,13 +11,13 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/gookit/event v1.0.6
 	github.com/hashgraph/hedera-sdk-go/v2 v2.15.0
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.7.1
-	github.com/ybbus/httpretry v1.0.1
 	golang.org/x/net v0.0.0-20210907225631-ff17edfbf26d
 	google.golang.org/protobuf v1.26.1-0.20210525005349-febffdd88e85
 	gopkg.in/yaml.v2 v2.4.0

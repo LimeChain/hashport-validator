@@ -197,6 +197,7 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 }
 
 func (ts *Service) ProcessNativeNftTransfer(tm payload.Transfer) error {
+	ts.logger.Infof("[%s] - Sending NFT to bridge account.", tm.TransactionId)
 	status, wg, err := ts.transferNftToBridgeAccount(tm)
 	if err != nil {
 		return err
@@ -225,7 +226,7 @@ func (ts *Service) transferNftToBridgeAccount(tm payload.Transfer) (status *stri
 	status = new(string)
 	wg = new(sync.WaitGroup)
 	wg.Add(1)
-	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, true, status, wg)
+	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, true, status, schedule.TRANSFER, wg)
 	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, status, wg)
 
 	token, err := hedera.TokenIDFromString(tm.SourceAsset)

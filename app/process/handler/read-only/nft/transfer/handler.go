@@ -105,7 +105,7 @@ func (rnth Handler) Handle(p interface{}) {
 				rnth.logger.Errorf("[%s] - Error to create scheduled entity. Error: [%s]", transactionID, err)
 				return err
 			}
-			return rnth.transferRepository.UpdateStatusCompleted(transactionID)
+			return rnth.transferRepository.UpdateStatusCompleted(transfer.TransactionId)
 		},
 	)
 }

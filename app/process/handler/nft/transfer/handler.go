@@ -18,6 +18,7 @@ package transfer
 
 import (
 	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"sync"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -95,11 +96,11 @@ func (nth Handler) Handle(p interface{}) {
 		return
 	}
 
-	var statusResult *string
+	var statusResult string
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, true, statusResult, wg)
-	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, statusResult, wg)
+	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, true, &statusResult, schedule.APPROVE, wg)
+	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(nth.repository, nth.scheduleRepository, nth.logger, transfer.TransactionId, &statusResult, wg)
 
 	nth.scheduledService.ExecuteScheduledNftAllowTransaction(transfer.TransactionId, nftID, nth.bridgeAccount, receiver, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
 }
