@@ -98,7 +98,7 @@ var (
 	hbarNativeAsset      = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
 	fungibleAssetInfo    = &asset.FungibleAssetInfo{Decimals: 8}
 	evmFungibleAssetInfo = &asset.FungibleAssetInfo{Decimals: 18}
-	tokenPriceInfo       = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
+	tokenPriceInfo       = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
