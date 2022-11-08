@@ -43,7 +43,7 @@ var (
 	updateStatusQuery           = regexp.QuoteMeta(`UPDATE "schedules" SET "status"=$1 WHERE transaction_id = $2`)
 	selectQuery                 = regexp.QuoteMeta(`SELECT * FROM "schedules" WHERE transaction_id = $1 ORDER BY "schedules"."transaction_id" LIMIT 1`)
 	selectIdsByStatusQuery      = regexp.QuoteMeta(`SELECT "transaction_id" FROM "schedules" WHERE status = $1`)
-	selectReceiverTransferQuery = regexp.QuoteMeta(`SELECT * FROM "schedules" WHERE transfer_id = $1 AND operation = $2 AND has_receiver = true ORDER BY "schedules"."transaction_id" LIMIT 1`)
+	selectReceiverTransferQuery = regexp.QuoteMeta(`SELECT * FROM "schedules" WHERE transfer_id = $1 AND operation IN ($2, $3) AND has_receiver = true ORDER BY "schedules"."transaction_id" LIMIT 1`)
 
 	transactionId  = "someTransactionId"
 	scheduleId     = "someScheduleId"
@@ -163,7 +163,7 @@ func Test_Get_Error(t *testing.T) {
 func Test_GetReceiverTransferByTransactionID(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	helper.SqlMockPrepareQuery(sqlMock, entityColumns, entityArgs, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER)
+	helper.SqlMockPrepareQuery(sqlMock, entityColumns, entityArgs, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER, schedule.APPROVE)
 
 	fetchedSchedule, err := repository.GetReceiverTransferByTransactionID(transferId.String)
 
@@ -174,11 +174,11 @@ func Test_GetReceiverTransferByTransactionID(t *testing.T) {
 func Test_GetReceiverTransferByTransactionID_Error(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	expectedErr1 := helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER)
+	expectedErr1 := helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER, schedule.APPROVE)
 
 	fetchedSchedule1, err1 := repository.GetReceiverTransferByTransactionID(transferId.String)
 
-	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER)
+	_ = helper.SqlMockPrepareQueryWithErrNotFound(sqlMock, selectReceiverTransferQuery, transferId.String, schedule.TRANSFER, schedule.APPROVE)
 	fetchedSchedule2, err2 := repository.GetReceiverTransferByTransactionID(transferId.String)
 
 	assert.Error(t, err1, expectedErr1)

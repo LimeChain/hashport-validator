@@ -116,7 +116,7 @@ func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) mod
 	result := model.SanityCheckResult{}
 	m, e := memo.Validate(tx.MemoBase64)
 	if e != nil {
-		result.Err = errors.New(fmt.Sprintf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+		result.Err = fmt.Errorf("[%s] - Could not parse transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e)
 		return result
 	}
 
@@ -128,7 +128,7 @@ func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) mod
 	if len(memoArgs) > 2 {
 		nftId, e := hedera.NftIDFromString(memoArgs[2])
 		if e != nil {
-			result.Err = errors.New(fmt.Sprintf("[%s] - Could not parse NftId in transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e))
+			result.Err = fmt.Errorf("[%s] - Could not parse NftId in transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e)
 			return result
 		}
 		result.NftId = &nftId

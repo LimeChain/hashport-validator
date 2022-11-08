@@ -366,6 +366,7 @@ func Test_scheduledTxExecutionCallbacks_OnSuccess(t *testing.T) {
 		transactionId,
 		true,
 		statusResult,
+		schedule.TRANSFER,
 		wg)
 
 	onSuccess(transactionId, scheduleId)
@@ -389,6 +390,7 @@ func Test_scheduledTxExecutionCallbacks_OnSuccess_Err(t *testing.T) {
 		transactionId,
 		true,
 		statusResult,
+		schedule.TRANSFER,
 		wg)
 
 	onSuccess(transactionId, scheduleId)
@@ -413,6 +415,7 @@ func Test_scheduledTxExecutionCallbacks_OnFailure(t *testing.T) {
 		transactionId,
 		true,
 		statusResult,
+		schedule.TRANSFER,
 		wg)
 	OnFailure(transactionId)
 
@@ -435,6 +438,7 @@ func Test_scheduledTxExecutionCallbacks_OnFailure_CreateEntityErr(t *testing.T) 
 		transactionId,
 		true,
 		statusResult,
+		schedule.TRANSFER,
 		wg)
 	OnFailure(transactionId)
 
@@ -457,6 +461,7 @@ func Test_scheduledTxExecutionCallbacks_OnFailure_UpdateStatusErr(t *testing.T) 
 		transactionId,
 		true,
 		statusResult,
+		schedule.TRANSFER,
 		wg)
 	OnFailure(transactionId)
 

@@ -52,7 +52,7 @@ var (
 func Test_ScheduledNftTxExecutionCallbacks(t *testing.T) {
 	setupNftTest(true)
 
-	onSuccess, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, wg)
+	onSuccess, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, schedule.TRANSFER, wg)
 
 	onSuccess(transactionId, scheduleId)
 	onFail(transactionId)
@@ -63,7 +63,7 @@ func Test_ScheduledNftTxExecutionCallbacks_ErrScheduleCreateOnSuccess(t *testing
 
 	mocks.MScheduleRepository.On("Create", createdScheduleOnSuccess).Return(error)
 
-	onSuccess, _ := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, wg)
+	onSuccess, _ := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, schedule.TRANSFER, wg)
 
 	onSuccess(transactionId, scheduleId)
 }
@@ -73,7 +73,7 @@ func Test_ScheduledNftTxExecutionCallbacks_ErrScheduleCreateOnFail(t *testing.T)
 	updateFieldsForCreatedScheduleOnError()
 	mocks.MScheduleRepository.On("Create", &createdScheduleOnError).Return(error)
 
-	_, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, wg)
+	_, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, schedule.TRANSFER, wg)
 
 	onFail(transactionId)
 }
@@ -84,7 +84,7 @@ func Test_ScheduledNftTxExecutionCallbacks_ErrUpdateStatusFailedOnFail(t *testin
 	mocks.MScheduleRepository.On("Create", &createdScheduleOnError).Return(nil)
 	mocks.MTransferRepository.On("UpdateStatusFailed", transactionId).Return(error)
 
-	_, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, wg)
+	_, onFail := ScheduledNftTxExecutionCallbacks(mocks.MTransferRepository, mocks.MScheduleRepository, logger, transactionId, true, statusResult, schedule.TRANSFER, wg)
 
 	onFail(transactionId)
 }
