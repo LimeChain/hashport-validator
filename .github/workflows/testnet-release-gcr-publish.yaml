@@ -15,8 +15,8 @@ jobs:
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0
         with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          service_account_key: ${{ secrets.GCP_CE_KEY }}
+          project_id: ${{ secrets.GCP_MAINNET_PROJECT }}
+          service_account_key: ${{ secrets.GCP_MAINNET_CE_KEY }}
 
       - name: Export application config
         shell: bash
@@ -25,7 +25,7 @@ jobs:
           echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./test2.txt
 
       - name: Copy files
-        run: gcloud compute scp --zone=${{ secrets.APP_TESTNET_DAVE_ZONE }} ./test.txt ./test2.txt ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
+        run: gcloud compute scp --zone=${{ secrets.APP_MAINNET_DAVE_ZONE }} ./test.txt ./test2.txt ${{ secrets.APP_TESTNET_DAVE_INSTANCE }}:~
      
 
  
