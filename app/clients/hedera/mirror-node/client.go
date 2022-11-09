@@ -56,8 +56,10 @@ type Client struct {
 }
 
 func NewClient(mirrorNode config.MirrorNode) *Client {
+	loggerInstance := config.GetLoggerFor("Mirror Node Client")
 	rp := mirrorNode.RetryPolicy
 	retryClient := retryablehttp.NewClient()
+	retryClient.Logger = httpHelper.NewRetryLogger(loggerInstance)
 	retryClient.RetryMax = rp.MaxRetry
 	retryClient.RetryWaitMax = time.Duration(rp.MaxWait) * time.Second
 	retryClient.RetryWaitMin = time.Duration(rp.MinWait) * time.Second
@@ -69,7 +71,7 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 		queryDefaultLimit:            mirrorNode.QueryDefaultLimit,
 		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
 		httpClient:                   retryClient.StandardClient(),
-		logger:                       config.GetLoggerFor("Mirror Node Client"),
+		logger:                       loggerInstance,
 	}
 }
 
