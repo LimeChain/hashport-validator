@@ -16,7 +16,7 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.7.4
+	github.com/stretchr/testify v1.7.5
 	github.com/ybbus/httpretry v1.0.1
 	golang.org/x/net v0.0.0-20220919232410-f2f64ebce3c1
 	google.golang.org/protobuf v1.28.1
