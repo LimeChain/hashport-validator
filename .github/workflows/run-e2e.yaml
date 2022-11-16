@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
-          go-version: '1.13'
+          go-version: '1.17'
       - name: Cache Go E2E Test modules
         uses: actions/cache@v2
         with:
@@ -67,7 +67,7 @@ jobs:
           echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/setup/application.yml
           echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./e2e/setup/bridge.yml
       - name: Run E2E Tests
-        run: go test ./e2e/ -timeout 2000s # 25 minutes
+        run: go test ./e2e/ -timeout 3000s # 50 minutes
       - name: Prepare container logs
         if: ${{ always() }}
         run: |
