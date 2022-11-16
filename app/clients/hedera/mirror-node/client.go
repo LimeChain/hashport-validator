@@ -19,11 +19,12 @@ package mirror_node
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ybbus/httpretry"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
@@ -56,26 +57,33 @@ type Client struct {
 }
 
 func NewClient(mirrorNode config.MirrorNode) *Client {
-	loggerInstance := config.GetLoggerFor("Mirror Node Client")
-	rp := mirrorNode.RetryPolicy
-	retryClient := retryablehttp.NewClient()
-	retryClient.Logger = httpHelper.NewRetryLogger(loggerInstance)
-	retryClient.RetryMax = rp.MaxRetry
-	retryClient.RetryWaitMax = time.Duration(rp.MaxWait) * time.Second
-	retryClient.RetryWaitMin = time.Duration(rp.MinWait) * time.Second
+	httpC := &http.Client{
+		Transport: http.DefaultTransport,
+		Timeout:   time.Second * time.Duration(mirrorNode.RequestTimeout),
+	}
 
+	rp := mirrorNode.RetryPolicy
+	c := httpretry.NewCustomClient(httpC,
+		httpretry.WithMaxRetryCount(rp.MaxRetry),
+		httpretry.WithRetryPolicy(httpHelper.RetryPolicy),
+		httpretry.WithBackoffPolicy(
+			httpretry.ExponentialBackoff(
+				time.Duration(rp.MinWait)*time.Second,
+				time.Duration(rp.MaxWait)*time.Second,
+				time.Duration(rp.MaxJitter)*time.Second)),
+	)
 	return &Client{
 		mirrorAPIAddress:             mirrorNode.ApiAddress,
 		pollingInterval:              mirrorNode.PollingInterval,
 		queryMaxLimit:                mirrorNode.QueryMaxLimit,
 		queryDefaultLimit:            mirrorNode.QueryDefaultLimit,
 		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
-		httpClient:                   retryClient.StandardClient(),
-		logger:                       loggerInstance,
+		httpClient:                   c,
+		logger:                       config.GetLoggerFor("Mirror Node Client"),
 	}
 }
 
-func (c *Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
+func (c Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 	var parsedResponse mirrorNodeModel.TransactionsResponse
 	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger)
 	if err != nil {
@@ -193,12 +201,12 @@ func (c Client) GetLatestMessages(topicId hedera.TopicID, limit int64) ([]messag
 	return c.getTopicMessagesByQuery(latestMessagesQuery)
 }
 
-// GetQueryDefaultLimit returns the default records limit per query
+// QueryDefaultLimit returns the default records limit per query
 func (c Client) QueryDefaultLimit() int64 {
 	return c.queryDefaultLimit
 }
 
-// GetQueryMaxLimit returns the maximum allowed limit per messages query
+// QueryMaxLimit returns the maximum allowed limit per messages query
 func (c Client) QueryMaxLimit() int64 {
 	return c.queryMaxLimit
 }
@@ -426,7 +434,7 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 	return c.query(topicQuery, topicID.String())
 }
 
-func (c *Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
+func (c Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
 	query := fmt.Sprintf("?account.id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
 		accountId,
 		transactionType,
@@ -512,7 +520,7 @@ func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure fu
 		}
 		if err != nil {
 			c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err)
-			continue
+			return
 		}
 
 		if len(response.Transactions) > 1 {
@@ -549,7 +557,6 @@ func (c Client) getTransactionsByQuery(query string) (*transaction.Response, err
 }
 
 func (c Client) getAndParse(query string) (*transaction.Response, error) {
-	c.logger.Tracef("MirrorNode request: %s", query)
 	httpResponse, e := c.get(query)
 	if e != nil {
 		return nil, e

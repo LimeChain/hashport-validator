@@ -200,7 +200,7 @@ The transfer of NFT assets from Hedera to the EVM chain is described in the foll
 The transfer of ERC-721 (NFT) assets from the EVM chain to Hedera is described in the following sequence diagram.
 
 <p align="center">
-  <img src="./assets/evm-to-hedera(nft%20hedera%20native).png">
+  <img src="./assets/evm-to-hedera(nft%20hedera%20native)%20using%20crypto%20allowances.png">
 </p>
 
 #### Steps
