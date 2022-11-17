@@ -26,12 +26,12 @@ type MockFeePolicyHandler struct {
 	mock.Mock
 }
 
-func (m MockFeePolicyHandler) ProcessLatestFeePolicyConfig(feePolicyTopicID hedera.TopicID) (*parser.FeePolicy, error) {
-	args := m.Called(feePolicyTopicID)
+func (m *MockFeePolicyHandler) ProcessLatestFeePolicyConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
+	args := m.Called(topicID)
 	return args[0].(*parser.FeePolicy), args.Error(1)
 }
 
-func (m MockFeePolicyHandler) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
+func (m *MockFeePolicyHandler) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
 	// TODO implement me
 	panic("implement me")
 }

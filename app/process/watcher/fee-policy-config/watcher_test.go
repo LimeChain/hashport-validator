@@ -35,7 +35,7 @@ var (
 	topicId = hedera.TopicID{
 		Shard: 0,
 		Realm: 0,
-		Topic: 1,
+		Topic: 42,
 	}
 	pollingInterval = time.Duration(0)
 	nilParser       *parser.FeePolicy
@@ -78,7 +78,7 @@ func setup() {
 	mocks.Setup()
 
 	watcher = &Watcher{
-		svc:              mocks.MBFeePolicyHandler,
+		feePolicyHandler: mocks.MBFeePolicyHandler,
 		feePolicyTopicID: topicId,
 		logger:           config.GetLoggerFor("Fee Policy Config Watcher"),
 	}

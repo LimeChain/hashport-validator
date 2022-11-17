@@ -51,22 +51,22 @@ var (
 				PolicyInfo: parser.PolicyInfo{
 					FeeType:  constants.FeePolicyTypeFlat,
 					Networks: []uint64{8001},
-					Value:    3000,
+					Value:    2000,
 				},
 			},
 		},
 	}
 
-	encodedOneChunkConfig = "cG9saWNpZXM6CiAgIlNvbWUgTFREIjoKICAgIGFkZHJlc3NlczoKICAgICAgLSAiMC4wLjEwMSIKICAgICAgLSAiMC4wLjEwMiIKICAgICAgLSAiMC4wLjEwMyIKICAgIHBvbGljeToKICAgICAgZmVlX3R5cGU6ICJmbGF0IgogICAgICBuZXR3b3JrczoKICAgICAgICAtIDgwMDEKICAgICAgdmFsdWU6IDMwMDA="
+	encodedOneChunkConfig = "cG9saWNpZXM6CiAgICAiU29tZSBMVEQiOgogICAgICBhZGRyZXNzZXM6CiAgICAgICAgLSAiMC4wLjEwMSIKICAgICAgICAtICIwLjAuMTAyIgogICAgICAgIC0gIjAuMC4xMDMiCiAgICAgIHBvbGljeToKICAgICAgICBmZWVfdHlwZTogImZsYXQiCiAgICAgICAgbmV0d29ya3M6CiAgICAgICAgICAtIDgwMDEKICAgICAgICB2YWx1ZTogMjAwMA=="
 	encodedTwoChunkConfig = []string{
-		"cG9saWNpZXM6CiAgIlNvbWUgTFREIjoKICAgIGFkZHJlc3NlczoKICAgICAgLSAiMC4wLjEwMSIKICAgICAgLSAiMC4wLjEwMiIKICAgICAgLSAiMC4wLjEwMyI=",
-		"ICAgIHBvbGljeToKICAgICAgZmVlX3R5cGU6ICJmbGF0IgogICAgICBuZXR3b3JrczoKICAgICAgICAtIDgwMDEKICAgICAgdmFsdWU6IDIwMDA=",
+		"cG9saWNpZXM6CiAgICAiU29tZSBMVEQiOgogICAgICBhZGRyZXNzZXM6CiAgICAgICAgLSAiMC4wLjEwMSIKICAgICAgICAtICIwLjAuMTAyIgogICAgICAgIC0gIjAuMC4xMDMiCg==",
+		"ICAgICAgcG9saWN5OgogICAgICAgIGZlZV90eXBlOiAiZmxhdCIKICAgICAgICBuZXR3b3JrczoKICAgICAgICAgIC0gODAwMQogICAgICAgIHZhbHVlOiAyMDAw",
 	}
 	twoMsgs                 = helper.MakeMessagePerChunk(encodedTwoChunkConfig, consensusTimestampStr, feePolicyTopicId.String())
 	encodedThreeChunkConfig = []string{
-		"cG9saWNpZXM6CiAgIlNvbWUgTFREIjoKICAgIGFkZHJlc3NlczoKICAgICAgLSAiMC4wLjEwMSIKICAgICAgLSAiMC4wLjEwMiIKICAgICAgLSAiMC4wLjEwMyI=",
-		"ICAgIHBvbGljeToKICAgICAgZmVlX3R5cGU6ICJmbGF0Ig==",
-		"ICAgICAgbmV0d29ya3M6CiAgICAgICAgLSA4MDAxCiAgICAgIHZhbHVlOiAyMDAw",
+		"cG9saWNpZXM6CiAgICAiU29tZSBMVEQiOgogICAgICBhZGRyZXNzZXM6CiAgICAgICAgLSAiMC4wLjEwMSIKICAgICAgICAtICIwLjAuMTAyIgogICAgICAgIC0gIjAuMC4xMDMiCg==",
+		"ICAgICAgcG9saWN5OgogICAgICAgIGZlZV90eXBlOiAiZmxhdCIK",
+		"ICAgICAgICBuZXR3b3JrczoKICAgICAgICAgIC0gODAwMQogICAgICAgIHZhbHVlOiAyMDAw",
 	}
 	threeMsgs = helper.MakeMessagePerChunk(encodedThreeChunkConfig, consensusTimestampStr, feePolicyTopicId.String())
 	nilMsg    *message.Message
@@ -78,6 +78,9 @@ func Test_New(t *testing.T) {
 	setup()
 
 	actualService := NewService(&test_config.TestConfig, mocks.MHederaMirrorClient)
+
+	serviceInstance.feePolicyConfig = nil
+	serviceInstance.parsedFeePolicyConfig = nil
 
 	assert.Equal(t, serviceInstance, actualService)
 }

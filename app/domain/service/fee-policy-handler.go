@@ -24,7 +24,7 @@ import (
 // Service for processing topic message that contains Fee Policy Config
 type FeePolicyHandler interface {
 	// Processes the latest topic Fee Policy Config
-	ProcessLatestFeePolicyConfig(feePolicyTopicID hedera.TopicID) (*parser.FeePolicy, error)
+	ProcessLatestFeePolicyConfig(topicID hedera.TopicID) (*parser.FeePolicy, error)
 	// Returns fee policy amount for specific combination
 	FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool)
 }

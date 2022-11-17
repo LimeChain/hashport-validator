@@ -57,7 +57,6 @@ func NewService(cfg *config.Config, mirrorNode client.MirrorNode) *Service {
 		queryDefaultLimit: mirrorNode.QueryDefaultLimit(),
 		config:            cfg,
 		logger:            config.GetLoggerFor("Fee Policy Config Service"),
-		feePolicyConfig:   &config.FeePolicy{},
 	}
 }
 
@@ -216,7 +215,9 @@ func (svc *Service) processFullMsgContent(decodedMsgContent []byte, consensusTim
 
 	svc.parsedFeePolicyConfig = parsedFeePolicy
 
-	svc.feePolicyConfig.StoreAddresses = svc.parsePolicyInterfaces(parsedFeePolicy)
+	svc.feePolicyConfig = &config.FeePolicy{
+		StoreAddresses: svc.parsePolicyInterfaces(parsedFeePolicy),
+	}
 
 	return parsedFeePolicy, nil
 }

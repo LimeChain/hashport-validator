@@ -31,35 +31,36 @@ var (
 )
 
 type Watcher struct {
-	svc              service.FeePolicyHandler
+	feePolicyHandler service.FeePolicyHandler
 	feePolicyTopicID hedera.TopicID
 	logger           *log.Entry
 }
 
-func NewWatcher(svc service.FeePolicyHandler, feePolicyTopicID hedera.TopicID) *Watcher {
+func NewWatcher(feePolicyHandler service.FeePolicyHandler, feePolicyTopicID hedera.TopicID) *Watcher {
 	return &Watcher{
-		svc:              svc,
+		feePolicyHandler: feePolicyHandler,
 		feePolicyTopicID: feePolicyTopicID,
 		logger:           config.GetLoggerFor("Fee Policy Config Watcher"),
 	}
 }
 
-func (wather *Watcher) Watch(q qi.Queue) {
+func (watcher *Watcher) Watch(q qi.Queue) {
 	// there will be no handler, so the q is to implement the interface
 	go func() {
 		for {
-			wather.watchIteration()
+			watcher.watchIteration()
 			time.Sleep(sleepTime)
 		}
 	}()
 }
 
-func (wather *Watcher) watchIteration() {
-	wather.logger.Infof("Checking for new Fee Policy Config ...")
-	_, err := wather.svc.ProcessLatestFeePolicyConfig(wather.feePolicyTopicID)
+func (watcher *Watcher) watchIteration() {
+	watcher.logger.Infof("Checking for new Fee Policy Config ...")
+	_, err := watcher.feePolicyHandler.ProcessLatestFeePolicyConfig(watcher.feePolicyTopicID)
+
 	if err != nil {
-		wather.logger.Errorf(err.Error())
+		watcher.logger.Errorf(err.Error())
 	} else {
-		wather.logger.Infof("Fee Policy Config finished successfully!")
+		watcher.logger.Infof("Fee Policy Config finished successfully!")
 	}
 }
