@@ -11,13 +11,13 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/gookit/event v1.0.6
 	github.com/hashgraph/hedera-sdk-go/v2 v2.17.7
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.7.5
-	github.com/ybbus/httpretry v1.0.1
 	golang.org/x/net v0.0.0-20220919232410-f2f64ebce3c1
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -39,6 +39,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220831114249-138cd7171d62 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.7.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
