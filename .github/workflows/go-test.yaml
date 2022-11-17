@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-go@v2
         name: Setup GO Env
         with:
-          go-version: '1.13'
+          go-version: '1.17'
       - name: Cache Go Test modules
         uses: actions/cache@v2
         with:

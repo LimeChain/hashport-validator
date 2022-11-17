@@ -50,10 +50,11 @@ var (
 	nativeAssetNetwork0         = &asset.NativeAsset{ChainId: constants.HederaNetworkId, Asset: nativeTokenAddressNetwork0}
 	fungibleAssetInfoNetwork0   = &asset.FungibleAssetInfo{Decimals: 8}
 	fungibleAssetInfoNetwork3   = &asset.FungibleAssetInfo{Decimals: 18}
-	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000)}
+	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
 	txAccountId                 = "0.0.444444"
 	txAmount                    = int64(10)
-	tx                          = transaction.Transaction{
+
+	tx = transaction.Transaction{
 		TokenTransfers: []transaction.Transfer{
 			{
 				Account: txAccountId,

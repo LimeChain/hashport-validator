@@ -24,9 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ybbus/httpretry"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
@@ -57,29 +56,22 @@ type Client struct {
 }
 
 func NewClient(mirrorNode config.MirrorNode) *Client {
-	httpC := &http.Client{
-		Transport: http.DefaultTransport,
-		Timeout:   time.Second * time.Duration(mirrorNode.RequestTimeout),
-	}
-
+	loggerInstance := config.GetLoggerFor("Mirror Node Client")
 	rp := mirrorNode.RetryPolicy
-	c := httpretry.NewCustomClient(httpC,
-		httpretry.WithMaxRetryCount(rp.MaxRetry),
-		httpretry.WithRetryPolicy(httpHelper.RetryPolicy),
-		httpretry.WithBackoffPolicy(
-			httpretry.ExponentialBackoff(
-				time.Duration(rp.MinWait)*time.Second,
-				time.Duration(rp.MaxWait)*time.Second,
-				time.Duration(rp.MaxJitter)*time.Second)),
-	)
+	retryClient := retryablehttp.NewClient()
+	retryClient.Logger = httpHelper.NewRetryLogger(loggerInstance)
+	retryClient.RetryMax = rp.MaxRetry
+	retryClient.RetryWaitMax = time.Duration(rp.MaxWait) * time.Second
+	retryClient.RetryWaitMin = time.Duration(rp.MinWait) * time.Second
+
 	return &Client{
 		mirrorAPIAddress:             mirrorNode.ApiAddress,
 		pollingInterval:              mirrorNode.PollingInterval,
 		queryMaxLimit:                mirrorNode.QueryMaxLimit,
 		queryDefaultLimit:            mirrorNode.QueryDefaultLimit,
 		fullHederaGetHbarUsdPriceUrl: strings.Join([]string{mirrorNode.ApiAddress, TransactionsGetHBARUsdPrice}, ""),
-		httpClient:                   c,
-		logger:                       config.GetLoggerFor("Mirror Node Client"),
+		httpClient:                   retryClient.StandardClient(),
+		logger:                       loggerInstance,
 	}
 }
 
