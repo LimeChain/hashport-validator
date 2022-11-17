@@ -1,8 +1,9 @@
 package auth_message
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -13,6 +14,7 @@ const (
 	receiverAddress = "0xsomeaddress"
 	invalidAmount   = "invalidamount"
 	amount          = "100"
+	fee             = "5"
 )
 
 func Test_EncodeFungibleBytesFromWithInvalidAmount(t *testing.T) {

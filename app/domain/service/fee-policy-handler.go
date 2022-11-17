@@ -16,10 +16,15 @@
 
 package service
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
+import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+)
 
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
+// Service for processing topic message that contains Fee Policy Config
+type FeePolicyHandler interface {
+	// Processes the latest topic Fee Policy Config
+	ProcessLatestFeePolicyConfig(feePolicyTopicID hedera.TopicID) (*parser.FeePolicy, error)
+	// Returns fee policy amount for specific combination
+	FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool)
 }

@@ -106,3 +106,13 @@ func (m *MockDiamondRouter) Erc721Payment(opts *bind.CallOpts, _erc721 common.Ad
 	args := m.Called(opts, _erc721)
 	return args.Get(0).(common.Address), args.Error(1)
 }
+
+func (m *MockDiamondRouter) FeeAmountFor(opts *bind.CallOpts, _targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (m *MockDiamondRouter) ServiceFeePrecision(opts *bind.CallOpts) (*big.Int, error) {
+	// TODO implement me
+	panic("implement me")
+}

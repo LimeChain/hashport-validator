@@ -31,6 +31,7 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, r
 	if err != nil {
 		return nil, err
 	}
+
 	amountBn, err := big_numbers.ToBigInt(amount)
 	if err != nil {
 		return nil, err
@@ -43,9 +44,46 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, r
 		common.HexToAddress(asset),
 		common.HexToAddress(receiverEthAddress),
 		amountBn)
+
 	if err != nil {
 		return nil, err
 	}
+
+	return keccak(bytesToHash), nil
+}
+
+// EncodeFungibleBytesFromWithFee returns the array of bytes representing an
+// authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
+func EncodeFungibleBytesFromWithFee(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string, fee string) ([]byte, error) {
+
+	args, err := generateFungibleArgumentsWithFee()
+	if err != nil {
+		return nil, err
+	}
+
+	amountBn, err := big_numbers.ToBigInt(amount)
+	if err != nil {
+		return nil, err
+	}
+
+	feeBn, err := big_numbers.ToBigInt(fee)
+	if err != nil {
+		return nil, err
+	}
+
+	bytesToHash, err := args.Pack(
+		new(big.Int).SetUint64(sourceChainId),
+		new(big.Int).SetUint64(targetChainId),
+		[]byte(txId),
+		common.HexToAddress(asset),
+		common.HexToAddress(receiverEthAddress),
+		amountBn,
+		feeBn)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return keccak(bytesToHash), nil
 }
 
@@ -148,6 +186,46 @@ func generateFungibleArguments() (abi.Arguments, error) {
 		},
 		{
 			Type: addressType,
+		},
+		{
+			Type: uint256Type,
+		}}, nil
+}
+
+func generateFungibleArgumentsWithFee() (abi.Arguments, error) {
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return abi.Arguments{
+		{
+			Type: uint256Type,
+		},
+		{
+			Type: uint256Type,
+		},
+		{
+			Type: bytesType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: addressType,
+		},
+		{
+			Type: uint256Type,
 		},
 		{
 			Type: uint256Type,

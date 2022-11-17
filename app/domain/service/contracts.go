@@ -54,4 +54,13 @@ type Contracts interface {
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
 	WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterLock) (event.Subscription, error)
+	// FeeAmountFor returns fee data for specific bridge operation
+	FeeAmountFor(_targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error)
+
+	TokenFeeData(_token common.Address) (struct {
+		ServiceFeePercentage *big.Int
+		FeesAccrued          *big.Int
+		PreviousAccrued      *big.Int
+		Accumulator          *big.Int
+	}, error)
 }

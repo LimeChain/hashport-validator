@@ -136,6 +136,19 @@ func (bsc *Service) getMembers() ([]string, error) {
 	return membersArray, nil
 }
 
+func (bsc *Service) FeeAmountFor(_targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error) {
+	return bsc.contract.FeeAmountFor(nil, _targetChain, _userAddress, _tokenAddress, _amount)
+}
+
+func (bsc *Service) TokenFeeData(_token common.Address) (struct {
+	ServiceFeePercentage *big.Int
+	FeesAccrued          *big.Int
+	PreviousAccrued      *big.Int
+	Accumulator          *big.Int
+}, error) {
+	return bsc.contract.TokenFeeData(nil, _token)
+}
+
 // NewService creates new instance of a Contract Services based on the provided configuration
 func NewService(client client.EVM, address string, contractInstance client.DiamondRouter) *Service {
 	contractAddress, err := client.ValidateContractDeployedAt(address)

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,31 @@
  * limitations under the License.
  */
 
-package service
+package fee_policy
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
+func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
+	mobj, ok := input.(map[interface{}]interface{})
+	if !ok {
+		return nil, false
+	}
 
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
+	for eleKey, eleValue := range mobj {
+		if eleKey.(string) == key {
+			return eleValue, true
+		}
+	}
+
+	return nil, false
+}
+
+func networkFound(networks []uint64, networkId uint64) bool {
+	if networks != nil && networkId > 0 {
+		for _, ele := range networks {
+			if ele == networkId {
+				return true
+			}
+		}
+	}
+
+	return true
 }

@@ -18,6 +18,9 @@ package message
 
 import (
 	"fmt"
+	"math"
+	"math/big"
+
 	"github.com/dariubs/percent"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
@@ -32,8 +35,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"math"
-	"math/big"
 )
 
 type Handler struct {
@@ -118,11 +119,21 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 		return
 	}
 
-	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
-		return
+	var authMsgBytes []byte
+
+	// if Topic Signature Message contains Fee - try to parse it first
+	if tsm.Fee != "" {
+		authMsgBytes, err = auth_message.EncodeFungibleBytesFromWithFee(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount, tsm.Fee)
+		if err != nil {
+			cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature with fee. Error: [%s]", tsm.TransferID, err)
+			return
+		}
+	} else {
+		authMsgBytes, err = auth_message.EncodeFungibleBytesFrom(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount)
+		if err != nil {
+			cmh.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tsm.TransferID, err)
+			return
+		}
 	}
 
 	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, tsm.TargetChainId, timestamp, authMsgBytes)
