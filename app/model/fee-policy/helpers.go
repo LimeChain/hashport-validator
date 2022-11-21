@@ -17,12 +17,12 @@
 package fee_policy
 
 func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
-	mobj, ok := input.(map[interface{}]interface{})
+	mapObject, ok := input.(map[interface{}]interface{})
 	if !ok {
 		return nil, false
 	}
 
-	for eleKey, eleValue := range mobj {
+	for eleKey, eleValue := range mapObject {
 		if eleKey.(string) == key {
 			return eleValue, true
 		}
@@ -32,15 +32,15 @@ func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
 }
 
 func networkAllowed(networks []uint64, networkId uint64) bool {
-	if networks != nil && networkId > 0 {
-		for _, ele := range networks {
-			if ele == networkId {
-				return true
-			}
-		}
-
-		return false
+	if networks == nil {
+		return true
 	}
 
-	return true
+	for _, ele := range networks {
+		if ele == networkId {
+			return true
+		}
+	}
+
+	return false
 }

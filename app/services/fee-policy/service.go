@@ -273,32 +273,31 @@ func (s *Service) parsePolicyInterfaces(configParser *parser.FeePolicy) map[stri
 	result := make(map[string]fee_policy.FeePolicy)
 
 	for _, itemLegalEntity := range configParser.LegalEntities {
-		for _, itemAddress := range itemLegalEntity.Addresses {
-			switch itemLegalEntity.PolicyInfo.FeeType {
-			case constants.FeePolicyTypeFlat:
-				flatFeePolicy, err := fee_policy.ParseNewFlatFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
-				if err != nil {
-					s.logger.Errorf("Unable to parse fee Flat Fee Policy [%s]", err)
-				} else {
-					result[itemAddress] = flatFeePolicy
-				}
-			case constants.FeePolicyTypePercentage:
-				percentageFeePolicy, err := fee_policy.ParseNewPercentageFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
-				if err != nil {
-					s.logger.Errorf("Unable to parse fee Percentage Fee Policy [%s]", err)
-				} else {
-					result[itemAddress] = percentageFeePolicy
-				}
-			case constants.FeePolicyTypeFlatPerToken:
-				flatFeePerTokenPolicy, err := fee_policy.ParseNewFlatFeePerTokenPolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
-				if err != nil {
-					s.logger.Errorf("Unable to parse fee Flat Fee Per Token Policy [%s]", err)
-				} else {
-					result[itemAddress] = flatFeePerTokenPolicy
-				}
-			default:
-				s.logger.Errorf("Unrecognized fee policy type [%s]", itemLegalEntity.PolicyInfo.FeeType)
+		var parsedFeePolicy fee_policy.FeePolicy
+		var err error
+
+		switch itemLegalEntity.PolicyInfo.FeeType {
+		case constants.FeePolicyTypeFlat:
+			parsedFeePolicy, err = fee_policy.ParseNewFlatFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+			if err != nil {
+				s.logger.Errorf("Unable to parse fee Flat Fee Policy for addresses %v, [%s]", itemLegalEntity.Addresses, err)
 			}
+		case constants.FeePolicyTypePercentage:
+			parsedFeePolicy, err = fee_policy.ParseNewPercentageFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+			if err != nil {
+				s.logger.Errorf("Unable to parse fee Percentage Fee Policy for addresses %v, [%s]", itemLegalEntity.Addresses, err)
+			}
+		case constants.FeePolicyTypeFlatPerToken:
+			parsedFeePolicy, err = fee_policy.ParseNewFlatFeePerTokenPolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+			if err != nil {
+				s.logger.Errorf("Unable to parse fee Flat Fee Per Token Policy for addresses %v, [%s]", itemLegalEntity.Addresses, err)
+			}
+		default:
+			s.logger.Errorf("Unrecognized fee policy type for addresses %v [%s]", itemLegalEntity.Addresses, itemLegalEntity.PolicyInfo.FeeType)
+		}
+
+		for _, itemAddress := range itemLegalEntity.Addresses {
+			result[itemAddress] = parsedFeePolicy
 		}
 	}
 
