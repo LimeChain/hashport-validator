@@ -24,7 +24,7 @@ jobs:
           echo "${{ secrets.APP_TESTNET_ALERT_CONFIG }}" > ./test.txt && \
           echo '${{ secrets.APP_TESTNET_PROMETHEUS_RULES_CONFIG }}' > ./test2.txt
 
-      - name: Copy files
+      - name: Copy files 
         run: gcloud compute scp --zone=${{ secrets.APP_MAINNET_DAVE_ZONE }} ./test.txt ./test2.txt ${{ secrets.APP_MAINNET_READ_ONLY_INSTANCE }}:~
      
 
