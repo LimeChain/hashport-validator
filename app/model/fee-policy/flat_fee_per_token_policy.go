@@ -22,7 +22,7 @@ import (
 
 type FlatFeePerTokenPolicy struct {
 	Networks  []uint64
-	TokenFees map[string]int64 // { token: "0.0.4564", value: 2000 }
+	TokenFees map[string]int64
 }
 
 func ParseNewFlatFeePerTokenPolicy(networks []uint64, parsingValue interface{}) (*FlatFeePerTokenPolicy, error) {
