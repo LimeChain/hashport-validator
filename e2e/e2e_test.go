@@ -431,7 +431,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	bridgeMintTransactionID, bridgeMintScheduleID := validateScheduledMintTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	// Step 5: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := util.PrepareExpectedTransfer(
@@ -471,7 +471,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Transfer
 	expectedScheduleTransferRecord := &entity.Schedule{
@@ -569,6 +569,8 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 	// Step 3 - Validate burn scheduled transaction
 	burnTransactionID, burnScheduleID := validateScheduledBurnTx(setupEnv, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, t)
+
+	time.Sleep(30 * time.Second)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.NativeEvmToken, fmt.Sprint(expectedSubmitUnlockAmount), setupEnv.NativeEvmToken, t)
@@ -683,6 +685,8 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 
 	// Step 4 - Verify the submitted topic messages
 	receivedSignatures := verifyTopicMessages(setupEnv, lockEventId, t)
+
+	time.Sleep(30 * time.Second)
 
 	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verifyFungibleTransferFromValidatorAPI(setupEnv, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset, t)
@@ -1109,7 +1113,7 @@ func validateNftSpender(t *testing.T, setup *setup.Setup, tokenID string, serial
 		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftId.String(), nftInfo)
 	}
 
-	spender := nftInfo[0].SpenderID
+	spender := nftInfo[0].AllowanceSpenderAccountID
 	if spender != expectedSpender {
 		t.Fatalf("Invalid NftID [%s] spender. Expected [%s], actual [%s].", nftId.String(), expectedSpender, spender)
 	}
@@ -1968,13 +1972,36 @@ func validateEventTransactionIDFromValidatorAPI(setupEnv *setup.Setup, eventID, 
 	}
 }
 
-func verifyFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.FungibleTransferData {
-	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
-	if err != nil {
-		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
+func getTransactionData(setupEnv *setup.Setup, txId string, t *testing.T) []byte {
+	retryAttempts := 3
+
+	for retryAttempts > 0 {
+		bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
+		if err != nil {
+			t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
+		}
+		var transferDataResponse *service.TransferData
+		err = json.Unmarshal(bytes, &transferDataResponse)
+		if err != nil {
+			t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
+		}
+		if len(transferDataResponse.Signatures) == setupEnv.Scenario.ExpectedValidatorsCount {
+			return bytes
+		}
+
+		time.Sleep(10 * time.Second)
+		retryAttempts--
 	}
+
+	t.Fatalf("Failed to get transaction data for [%s] with %d signatures.", txId, setupEnv.Scenario.ExpectedValidatorsCount)
+	return nil
+}
+
+func verifyFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, expectedSendAmount, targetAsset string, t *testing.T) *service.FungibleTransferData {
+	bytes := getTransactionData(setupEnv, txId, t)
+
 	var transferDataResponse *service.FungibleTransferData
-	err = json.Unmarshal(bytes, &transferDataResponse)
+	err := json.Unmarshal(bytes, &transferDataResponse)
 	if err != nil {
 		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
 	}
@@ -1999,12 +2026,10 @@ func verifyFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVM
 }
 
 func verifyNonFungibleTransferFromValidatorAPI(setupEnv *setup.Setup, evm setup.EVMUtils, txId, tokenID, metadata string, tokenIdOrSerialNum int64, targetAsset string, t *testing.T) *service.NonFungibleTransferData {
-	bytes, err := setupEnv.Clients.ValidatorClient.GetTransferData(txId)
-	if err != nil {
-		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
-	}
+	bytes := getTransactionData(setupEnv, txId, t)
+
 	var transferDataResponse *service.NonFungibleTransferData
-	err = json.Unmarshal(bytes, &transferDataResponse)
+	err := json.Unmarshal(bytes, &transferDataResponse)
 	if err != nil {
 		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
 	}
@@ -2199,7 +2224,7 @@ func verifyTopicMessagesWithStartTime(setup *setup.Setup, txId string, startTime
 
 				//Verify that all the submitted messages have signed the same transaction
 				if transferID != txId {
-					fmt.Printf(`Expected signature message to contain the transaction id: [%s]\n`, txId)
+					fmt.Printf("Expected signature message to contain the transaction id: [%s]\n", txId)
 				} else {
 					signatureChannel <- signature
 					fmt.Printf("Received Auth Signature [%s]\n", signature)
