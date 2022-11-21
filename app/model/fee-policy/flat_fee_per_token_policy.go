@@ -16,33 +16,53 @@
 
 package fee_policy
 
+import (
+	"errors"
+)
+
 type FlatFeePerTokenPolicy struct {
 	Networks  []uint64
-	TokenFees map[string]int64 // { token: "0.0.4564", value: 7 }
+	TokenFees map[string]int64 // { token: "0.0.4564", value: 2000 }
 }
 
-func ParseNewFlatFeePerTokenPolicy(networks []uint64, parsingValue interface{}) *FlatFeePerTokenPolicy {
-	var result = &FlatFeePerTokenPolicy{
+func ParseNewFlatFeePerTokenPolicy(networks []uint64, parsingValue interface{}) (*FlatFeePerTokenPolicy, error) {
+	result := &FlatFeePerTokenPolicy{
 		Networks: networks,
 	}
 	result.TokenFees = make(map[string]int64)
 
-	pairs := parsingValue.([]interface{})
+	pairs, ok := parsingValue.([]interface{})
+
+	if !ok {
+		return nil, errors.New("invalid map of token fee pairs")
+	}
 
 	for _, item := range pairs {
 		token, foundToken := getInterfaceValue(item, "token")
+		if !foundToken {
+			return nil, errors.New("map does not contains key 'token'")
+		}
+
 		value, foundValue := getInterfaceValue(item, "value")
+		if !foundValue {
+			return nil, errors.New("map does not contains key 'value'")
+		}
 
 		if foundToken && foundValue {
-			result.TokenFees[token.(string)] = (int64(value.(int)))
+			feeValue, ok := value.(int)
+
+			if !ok {
+				return nil, errors.New("value is not integer")
+			}
+			result.TokenFees[token.(string)] = int64(feeValue)
 		}
 	}
 
-	return result
+	return result, nil
 }
 
-func (policy *FlatFeePerTokenPolicy) FeeAmountFor(networkId uint64, token string, amount int64) (feeAmount int64, exist bool) {
-	var found bool = networkFound(policy.Networks, networkId)
+func (policy *FlatFeePerTokenPolicy) FeeAmountFor(networkId uint64, token string, _ int64) (feeAmount int64, exist bool) {
+	found := networkAllowed(policy.Networks, networkId)
 
 	if found {
 		value, ok := policy.TokenFees[token]

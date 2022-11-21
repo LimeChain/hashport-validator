@@ -18,6 +18,6 @@ package config
 
 import fee_policy "github.com/limechain/hedera-eth-bridge-validator/app/model/fee-policy"
 
-type FeePolicy struct {
-	StoreAddresses map[string]fee_policy.FeePolicyInterface
+type FeePolicyStorage struct {
+	StoreAddresses map[string]fee_policy.FeePolicy
 }

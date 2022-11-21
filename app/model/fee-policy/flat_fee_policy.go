@@ -16,13 +16,15 @@
 
 package fee_policy
 
+import "errors"
+
 type FlatFeePolicy struct {
 	Networks []uint64
 	Value    int64
 }
 
 func (policy *FlatFeePolicy) FeeAmountFor(networkId uint64, token string, amount int64) (int64, bool) {
-	var found bool = networkFound(policy.Networks, networkId)
+	var found bool = networkAllowed(policy.Networks, networkId)
 
 	if found {
 		return policy.Value, true
@@ -31,9 +33,15 @@ func (policy *FlatFeePolicy) FeeAmountFor(networkId uint64, token string, amount
 	return 0, false
 }
 
-func ParseNewFlatFeePolicy(networks []uint64, parsingValue interface{}) *FlatFeePolicy {
+func ParseNewFlatFeePolicy(networks []uint64, parsingValue interface{}) (*FlatFeePolicy, error) {
+	value, ok := parsingValue.(int)
+
+	if !ok {
+		return nil, errors.New("value is not integer")
+	}
+
 	return &FlatFeePolicy{
 		Networks: networks,
-		Value:    (int64(parsingValue.(int))),
-	}
+		Value:    int64(value),
+	}, nil
 }

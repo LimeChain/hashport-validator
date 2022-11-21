@@ -121,7 +121,7 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 
 	var authMsgBytes []byte
 
-	// if Topic Signature Message contains Fee - try to parse it first
+	// if Topic Signature Message contains Fee - encode authorisation signature with fee
 	if tsm.Fee != "" {
 		authMsgBytes, err = auth_message.EncodeFungibleBytesFromWithFee(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, tsm.Recipient, tsm.Amount, tsm.Fee)
 		if err != nil {

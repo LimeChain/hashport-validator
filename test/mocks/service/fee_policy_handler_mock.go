@@ -26,7 +26,7 @@ type MockFeePolicyHandler struct {
 	mock.Mock
 }
 
-func (m *MockFeePolicyHandler) ProcessLatestFeePolicyConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
+func (m *MockFeePolicyHandler) ProcessLatestConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
 	args := m.Called(topicID)
 	return args[0].(*parser.FeePolicy), args.Error(1)
 }

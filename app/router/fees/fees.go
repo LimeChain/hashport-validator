@@ -18,9 +18,10 @@ package fees
 
 import (
 	"errors"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"net/http"
 	"strconv"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/response"
 
@@ -30,11 +31,6 @@ import (
 )
 
 const Route = "/fees"
-
-type feePercentageInfo struct {
-	Amount        int64 `json:"amount"`
-	MaxPercentage int64 `json:"maxPercentage"`
-}
 
 func NewRouter(pricingService service.Pricing, feeService service.Fee, feePolicyHandler service.FeePolicyHandler) http.Handler {
 	r := chi.NewRouter()
@@ -66,7 +62,7 @@ func calculateForResponse(feeService service.Fee, feePolicyHandler service.FeePo
 
 		targetChainId, err := strconv.ParseUint(targetChainIdStr, 10, 64)
 		if err != nil {
-			render.Status(r, http.StatusInternalServerError)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ErrorResponse(err))
 			return
 		}
@@ -79,7 +75,7 @@ func calculateForResponse(feeService service.Fee, feePolicyHandler service.FeePo
 
 		amount, err := strconv.ParseInt(amountStr, 10, 64)
 		if err != nil {
-			render.Status(r, http.StatusInternalServerError)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ErrorResponse(err))
 			return
 		}

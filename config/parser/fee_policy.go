@@ -30,8 +30,3 @@ type PolicyInfo struct {
 	Networks []uint64    `yaml:"networks,omitempty" json:"networks,omitempty"`
 	Value    interface{} `yaml:"value,omitempty" json:"value,omitempty"`
 }
-
-func (policyParser *FeePolicy) Update(from *FeePolicy) {
-	// TODO : Check if this is needed
-	policyParser.LegalEntities = from.LegalEntities
-}

@@ -100,7 +100,7 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
 
 	feePolicyService := fee_policy.NewService(c, clients.MirrorNode)
-	_, errFeePolicyCfgService := feePolicyService.ProcessLatestFeePolicyConfig(parsedFeePolicyTopicId)
+	_, errFeePolicyCfgService := feePolicyService.ProcessLatestConfig(parsedFeePolicyTopicId)
 	if errFeePolicyCfgService != nil {
 		panic(fmt.Sprintf("failed to process latest bridge config from topic. Err: [%s]", errFeePolicyCfgService))
 	}

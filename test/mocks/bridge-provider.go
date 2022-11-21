@@ -32,7 +32,7 @@ type MockBridgeContract struct {
 	mock.Mock
 }
 
-func (m *MockBridgeContract) TokenFeeData(_token common.Address) (struct {
+func (m *MockBridgeContract) TokenFeeData(token common.Address) (struct {
 	ServiceFeePercentage *big.Int
 	FeesAccrued          *big.Int
 	PreviousAccrued      *big.Int
@@ -152,6 +152,6 @@ func (m *MockBridgeContract) ReloadMembers() {
 	m.Called()
 }
 
-func (m *MockBridgeContract) FeeAmountFor(_targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error) {
+func (m *MockBridgeContract) FeeAmountFor(targetChain *big.Int, userAddress common.Address, tokenAddress common.Address, amount *big.Int) (*big.Int, error) {
 	return big.NewInt(5), nil
 }

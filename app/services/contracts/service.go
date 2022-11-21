@@ -18,6 +18,11 @@ package contracts
 
 import (
 	"fmt"
+	"math/big"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -26,10 +31,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
-	"math/big"
-	"strings"
-	"sync"
-	"time"
 )
 
 type Service struct {
@@ -136,17 +137,17 @@ func (bsc *Service) getMembers() ([]string, error) {
 	return membersArray, nil
 }
 
-func (bsc *Service) FeeAmountFor(_targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error) {
-	return bsc.contract.FeeAmountFor(nil, _targetChain, _userAddress, _tokenAddress, _amount)
+func (bsc *Service) FeeAmountFor(targetChain *big.Int, userAddress common.Address, tokenAddress common.Address, amount *big.Int) (*big.Int, error) {
+	return bsc.contract.FeeAmountFor(nil, targetChain, userAddress, tokenAddress, amount)
 }
 
-func (bsc *Service) TokenFeeData(_token common.Address) (struct {
+func (bsc *Service) TokenFeeData(token common.Address) (struct {
 	ServiceFeePercentage *big.Int
 	FeesAccrued          *big.Int
 	PreviousAccrued      *big.Int
 	Accumulator          *big.Int
 }, error) {
-	return bsc.contract.TokenFeeData(nil, _token)
+	return bsc.contract.TokenFeeData(nil, token)
 }
 
 // NewService creates new instance of a Contract Services based on the provided configuration

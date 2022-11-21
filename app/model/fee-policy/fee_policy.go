@@ -16,6 +16,6 @@
 
 package fee_policy
 
-type FeePolicyInterface interface {
+type FeePolicy interface {
 	FeeAmountFor(networkId uint64, token string, amount int64) (int64, bool)
 }

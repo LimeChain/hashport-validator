@@ -545,7 +545,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	unlockAmount := int64(100) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
+	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, constants.HederaNetworkId, setupEnv.NativeEvmToken)
@@ -665,7 +665,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 // Test_EVM_Native_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Native_to_EVM_Token(t *testing.T) {
-	amount := int64(1000000000000000) // 1000 gwei
+	amount := int64(1000000000000) // 1000 gwei
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
 

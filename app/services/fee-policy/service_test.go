@@ -96,7 +96,7 @@ func Test_ProcessLatestConfig_OneChunk(t *testing.T) {
 		1)
 	mocks.MHederaMirrorClient.On("GetLatestMessages", feePolicyTopicId, int64(1)).Return([]message.Message{messageFromTopic}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Equal(t, *expectedFeePolicy, *parsedFeePolicy)
 	assert.Nil(t, err)
@@ -110,7 +110,7 @@ func Test_ProcessLatestConfig_TwoChunks(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, int64(1)).Return([]message.Message{twoMsgs[0]}, nil)
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp, int64(1)).Return([]message.Message{twoMsgs[1]}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Equal(t, *expectedFeePolicy, *parsedFeePolicy)
 	assert.Nil(t, err)
@@ -124,7 +124,7 @@ func Test_ProcessLatestConfig_TwoChunksWithBiggerMaxLimit(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessageBySequenceNumber", feePolicyTopicId, int64(1)).Return(&twoMsgs[0], nil)
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, int64(len(twoMsgs))).Return([]message.Message{twoMsgs[0], twoMsgs[1]}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 	serviceInstance.queryMaxLimit = queryMaxLimit
 
 	assert.Equal(t, *expectedFeePolicy, *parsedFeePolicy)
@@ -141,7 +141,7 @@ func Test_ProcessLatestConfig_WaitingChunks(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, int64(1)).Return([]message.Message{twoMsgs[0]}, nil)
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp, int64(1)).Return([]message.Message{twoMsgs[1]}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Equal(t, *expectedFeePolicy, *parsedFeePolicy)
 	assert.Nil(t, err)
@@ -156,7 +156,7 @@ func Test_ProcessLatestConfig_ThreeChunksWithLeftOver(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, serviceInstance.queryMaxLimit).Return([]message.Message{threeMsgs[0], threeMsgs[1]}, nil).Once()
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp+1, int64(1)).Return([]message.Message{threeMsgs[2]}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 	serviceInstance.queryMaxLimit = queryMaxLimit
 
 	assert.Equal(t, *expectedFeePolicy, *parsedFeePolicy)
@@ -167,7 +167,7 @@ func Test_ProcessLatestConfig_ErrFirstReqLastMsg(t *testing.T) {
 	setup()
 	mocks.MHederaMirrorClient.On("GetLatestMessages", feePolicyTopicId, int64(1)).Return(nilMsgs, returnErr)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Error(t, err)
 	assert.Nil(t, parsedFeePolicy)
@@ -185,7 +185,7 @@ func Test_ProcessLatestConfig_NoNewMessages(t *testing.T) {
 		1)
 	mocks.MHederaMirrorClient.On("GetLatestMessages", feePolicyTopicId, int64(1)).Return([]message.Message{messageFromTopic}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 	serviceInstance.milestoneTimestamp = 0
 
 	assert.Nil(t, err)
@@ -203,7 +203,7 @@ func Test_ProcessLatestConfig_ErrInvalidContent(t *testing.T) {
 		1)
 	mocks.MHederaMirrorClient.On("GetLatestMessages", feePolicyTopicId, int64(1)).Return([]message.Message{messageFromTopic}, nil)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Error(t, err)
 	assert.Nil(t, parsedFeePolicy)
@@ -217,7 +217,7 @@ func Test_ProcessLatestConfig_ErrOneMissingFromThreeChunks(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessageBySequenceNumber", feePolicyTopicId, int64(1)).Return(&threeMsgs[0], nil)
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, serviceInstance.queryMaxLimit).Return([]message.Message{threeMsgs[0], threeMsgs[2]}, nil).Once()
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 	serviceInstance.queryMaxLimit = queryMaxLimit
 
 	assert.Error(t, err)
@@ -230,7 +230,7 @@ func Test_ProcessLatestConfig_ErrOnFetchingBySequenceNumber(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetLatestMessages", feePolicyTopicId, int64(1)).Return([]message.Message{threeMsgs[2]}, nil)
 	mocks.MHederaMirrorClient.On("GetMessageBySequenceNumber", feePolicyTopicId, int64(1)).Return(nilMsg, returnErr)
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Error(t, err)
 	assert.Nil(t, parsedFeePolicy)
@@ -243,7 +243,7 @@ func Test_ProcessLatestConfig_ErrOnFetchingAllChunks(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessageBySequenceNumber", feePolicyTopicId, int64(1)).Return(&threeMsgs[0], nil)
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, serviceInstance.queryMaxLimit).Return(nilMsgs, returnErr).Once()
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Error(t, err)
 	assert.Nil(t, parsedFeePolicy)
@@ -258,7 +258,7 @@ func Test_ProcessLatestConfig_ErrOnFetchingLeftOverChunks(t *testing.T) {
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp-1, serviceInstance.queryMaxLimit).Return([]message.Message{threeMsgs[0], threeMsgs[1]}, nil).Once()
 	mocks.MHederaMirrorClient.On("GetMessagesAfterTimestamp", feePolicyTopicId, consensusTimestamp+1, int64(1)).Return(nilMsgs, returnErr).Once()
 
-	parsedFeePolicy, err := serviceInstance.ProcessLatestFeePolicyConfig(feePolicyTopicId)
+	parsedFeePolicy, err := serviceInstance.ProcessLatestConfig(feePolicyTopicId)
 
 	assert.Error(t, err)
 	assert.Nil(t, parsedFeePolicy)

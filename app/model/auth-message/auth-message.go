@@ -17,17 +17,18 @@
 package auth_message
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
-	"math/big"
+	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
 )
 
 // EncodeFungibleBytesFrom returns the array of bytes representing an
 // authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
 func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
-	args, err := generateFungibleArguments()
+	args, err := generateFungibleArguments(false)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, r
 // authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
 func EncodeFungibleBytesFromWithFee(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string, fee string) ([]byte, error) {
 
-	args, err := generateFungibleArgumentsWithFee()
+	args, err := generateFungibleArguments(true)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +156,7 @@ func generateNftArguments() (abi.Arguments, error) {
 	}, nil
 }
 
-func generateFungibleArguments() (abi.Arguments, error) {
+func generateFungibleArguments(withFee bool) (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, err
@@ -171,44 +172,7 @@ func generateFungibleArguments() (abi.Arguments, error) {
 		return nil, err
 	}
 
-	return abi.Arguments{
-		{
-			Type: uint256Type,
-		},
-		{
-			Type: uint256Type,
-		},
-		{
-			Type: bytesType,
-		},
-		{
-			Type: addressType,
-		},
-		{
-			Type: addressType,
-		},
-		{
-			Type: uint256Type,
-		}}, nil
-}
-
-func generateFungibleArgumentsWithFee() (abi.Arguments, error) {
-	bytesType, err := abi.NewType("bytes", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	uint256Type, err := abi.NewType("uint256", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return abi.Arguments{
+	result := abi.Arguments{
 		{
 			Type: uint256Type,
 		},
@@ -227,9 +191,13 @@ func generateFungibleArgumentsWithFee() (abi.Arguments, error) {
 		{
 			Type: uint256Type,
 		},
-		{
-			Type: uint256Type,
-		}}, nil
+	}
+
+	if withFee {
+		result = append(result, abi.Argument{Type: uint256Type})
+	}
+
+	return result, nil
 }
 
 func keccak(encodedData []byte) []byte {

@@ -19,7 +19,6 @@ package fee_policy_config
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -37,8 +36,7 @@ var (
 		Realm: 0,
 		Topic: 42,
 	}
-	pollingInterval = time.Duration(0)
-	nilParser       *parser.FeePolicy
+	nilParser *parser.FeePolicy
 )
 
 func Test_NewWatcher(t *testing.T) {
@@ -51,25 +49,25 @@ func Test_NewWatcher(t *testing.T) {
 
 func Test_watchIteration(t *testing.T) {
 	setup()
-	mocks.MBFeePolicyHandler.On("ProcessLatestFeePolicyConfig", topicId).Return(&testConstants.ParsedFeePolicyConfig, nil)
+	mocks.MBFeePolicyHandler.On("ProcessLatestConfig", topicId).Return(&testConstants.ParsedFeePolicyConfig, nil)
 
 	watcher.watchIteration()
 
-	mocks.MBFeePolicyHandler.AssertCalled(t, "ProcessLatestFeePolicyConfig", topicId)
+	mocks.MBFeePolicyHandler.AssertCalled(t, "ProcessLatestConfig", topicId)
 }
 
 func Test_watchIteration_Error(t *testing.T) {
 	setup()
-	mocks.MBFeePolicyHandler.On("ProcessLatestFeePolicyConfig", topicId).Return(nilParser, errors.New("some error"))
+	mocks.MBFeePolicyHandler.On("ProcessLatestConfig", topicId).Return(nilParser, errors.New("some error"))
 
 	watcher.watchIteration()
 
-	mocks.MBFeePolicyHandler.On("ProcessLatestFeePolicyConfig", topicId)
+	mocks.MBFeePolicyHandler.On("ProcessLatestConfig", topicId)
 }
 
 func Test_Watch(t *testing.T) {
 	setup()
-	mocks.MBFeePolicyHandler.On("ProcessLatestFeePolicyConfig", topicId).Return(&testConstants.ParsedFeePolicyConfig, nil)
+	mocks.MBFeePolicyHandler.On("ProcessLatestConfig", topicId).Return(&testConstants.ParsedFeePolicyConfig, nil)
 
 	watcher.Watch(qi.Queue(nil))
 }
@@ -79,7 +77,7 @@ func setup() {
 
 	watcher = &Watcher{
 		feePolicyHandler: mocks.MBFeePolicyHandler,
-		feePolicyTopicID: topicId,
+		topicID:          topicId,
 		logger:           config.GetLoggerFor("Fee Policy Config Watcher"),
 	}
 }

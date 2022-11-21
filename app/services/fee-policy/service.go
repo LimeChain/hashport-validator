@@ -46,7 +46,7 @@ type Service struct {
 	queryMaxLimit         int64
 	config                *config.Config
 	parsedFeePolicyConfig *parser.FeePolicy
-	feePolicyConfig       *config.FeePolicy
+	feePolicyConfig       *config.FeePolicyStorage
 	logger                *log.Entry
 }
 
@@ -60,9 +60,9 @@ func NewService(cfg *config.Config, mirrorNode client.MirrorNode) *Service {
 	}
 }
 
-func (svc *Service) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
-	if svc.feePolicyConfig.StoreAddresses != nil {
-		policy := svc.feePolicyConfig.StoreAddresses[account]
+func (s *Service) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
+	if s.feePolicyConfig.StoreAddresses != nil {
+		policy := s.feePolicyConfig.StoreAddresses[account]
 
 		if policy != nil {
 			return policy.FeeAmountFor(networkId, token, amount)
@@ -72,53 +72,45 @@ func (svc *Service) FeeAmountFor(networkId uint64, account string, token string,
 	return 0, false
 }
 
-func (svc *Service) ProcessLatestFeePolicyConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
-	latestMessages, err := svc.mirrorNode.GetLatestMessages(topicID, 1)
-
+func (s *Service) ProcessLatestConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
+	latestMessages, err := s.mirrorNode.GetLatestMessages(topicID, 1)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get latest messages from topic: [%s]. Err: [%s]", topicID.String(), err)
 		return nil, errors.New(errMsg)
 	}
 
-	if len(latestMessages) == 0 {
-		svc.logger.Infof("No new fee policy config messages to process.")
-		return nil, nil
-	}
-
 	lastMessage := latestMessages[0]
 	latestConsensusTimestamp, _ := timestamp.FromString(lastMessage.ConsensusTimestamp)
-
-	if latestConsensusTimestamp == svc.milestoneTimestamp {
-		svc.logger.Infof("No new fee policy config messages to process.")
+	if latestConsensusTimestamp == s.milestoneTimestamp {
+		s.logger.Infof("No new Fee Policy Config messages to process.")
 		return nil, nil
 	}
 
 	if lastMessage.ChunkInfo.Total == 1 {
 		// The whole config content is in 1 message
-		decodedMsgContent, err := svc.decodeMsgContent(lastMessage)
+		decodedMsgContent, err := s.decodeMsgContent(lastMessage)
 		if err != nil {
 			return nil, err
 		}
-		return svc.processFullMsgContent(decodedMsgContent, lastMessage.ConsensusTimestamp)
+		return s.processFullMsgContent(decodedMsgContent, lastMessage.ConsensusTimestamp)
 	}
 
 	if lastMessage.ChunkInfo.Number < lastMessage.ChunkInfo.Total {
-		lastMessage, _ = svc.waitForAllChunks(topicID, lastMessage)
+		lastMessage, _ = s.waitForAllChunks(topicID, lastMessage)
 	}
 
 	var messagesToProcess []mirrorNodeMsg.Message
-	messagesToProcess, err = svc.fetchAllChunks(topicID, lastMessage)
-
+	messagesToProcess, err = s.fetchAllChunks(topicID, lastMessage)
 	if err != nil {
 		return nil, err
 	}
 
-	return svc.processAllMessages(messagesToProcess)
+	return s.processAllMessages(messagesToProcess)
 }
 
-func (svc *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNodeMsg.Message) ([]mirrorNodeMsg.Message, error) {
+func (s *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNodeMsg.Message) ([]mirrorNodeMsg.Message, error) {
 	firstChunkMsgSeqNum := lastMessage.SequenceNumber - (lastMessage.ChunkInfo.Total - 1)
-	msg, err := svc.mirrorNode.GetMessageBySequenceNumber(topicID, firstChunkMsgSeqNum)
+	msg, err := s.mirrorNode.GetMessageBySequenceNumber(topicID, firstChunkMsgSeqNum)
 
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get first message chunk by sequence number - [%d]. Err: [%s]", firstChunkMsgSeqNum, err)
@@ -126,8 +118,8 @@ func (svc *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNod
 	}
 
 	firstConsensusTimestamp, _ := timestamp.FromString(msg.ConsensusTimestamp)
-	if lastMessage.ChunkInfo.Total <= svc.queryMaxLimit {
-		allChunks, err := svc.mirrorNode.GetMessagesAfterTimestamp(topicID, firstConsensusTimestamp-1, lastMessage.ChunkInfo.Total)
+	if lastMessage.ChunkInfo.Total <= s.queryMaxLimit {
+		allChunks, err := s.mirrorNode.GetMessagesAfterTimestamp(topicID, firstConsensusTimestamp-1, lastMessage.ChunkInfo.Total)
 
 		if err != nil {
 			errMsg := fmt.Sprintf("Failed to fetch messages after first consensus timestamp - [%d]. Err: [%s]", firstConsensusTimestamp, err)
@@ -138,12 +130,12 @@ func (svc *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNod
 	}
 
 	consensusTimestamp := firstConsensusTimestamp - 1
-	countOfRequestsWithMaxLimit := int(lastMessage.ChunkInfo.Total / svc.queryMaxLimit)
-	leftOverChunks := lastMessage.ChunkInfo.Total % svc.queryMaxLimit
+	countOfRequestsWithMaxLimit := int(lastMessage.ChunkInfo.Total / s.queryMaxLimit)
+	leftOverChunks := lastMessage.ChunkInfo.Total % s.queryMaxLimit
 	allChunks := make([]mirrorNodeMsg.Message, 0)
 
 	for i := 0; i < countOfRequestsWithMaxLimit; i++ {
-		currMsgs, err := svc.mirrorNode.GetMessagesAfterTimestamp(topicID, consensusTimestamp, svc.queryMaxLimit)
+		currMsgs, err := s.mirrorNode.GetMessagesAfterTimestamp(topicID, consensusTimestamp, s.queryMaxLimit)
 
 		if err != nil {
 			errMsg := fmt.Sprintf("Failed to fetch messages after first consensus timestamp - [%d]. Err: [%s]", consensusTimestamp, err)
@@ -155,7 +147,7 @@ func (svc *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNod
 	}
 
 	if leftOverChunks > 0 {
-		currMsgs, err := svc.mirrorNode.GetMessagesAfterTimestamp(topicID, consensusTimestamp, leftOverChunks)
+		currMsgs, err := s.mirrorNode.GetMessagesAfterTimestamp(topicID, consensusTimestamp, leftOverChunks)
 
 		if err != nil {
 			errMsg := fmt.Sprintf("Failed to fetch messages after first consensus timestamp - [%d]. Err: [%s]", consensusTimestamp, err)
@@ -168,12 +160,12 @@ func (svc *Service) fetchAllChunks(topicID hedera.TopicID, lastMessage mirrorNod
 	return allChunks, nil
 }
 
-func (svc *Service) waitForAllChunks(topicID hedera.TopicID, lastMessage mirrorNodeMsg.Message) (mirrorNodeMsg.Message, error) {
+func (s *Service) waitForAllChunks(topicID hedera.TopicID, lastMessage mirrorNodeMsg.Message) (mirrorNodeMsg.Message, error) {
 	var err error
 	for lastMessage.ChunkInfo.Number < lastMessage.ChunkInfo.Total {
 		time.Sleep(waitSleepTime * time.Second)
 		var latestMessages []mirrorNodeMsg.Message
-		latestMessages, err = svc.mirrorNode.GetLatestMessages(topicID, 1)
+		latestMessages, err = s.mirrorNode.GetLatestMessages(topicID, 1)
 
 		if err != nil {
 			return lastMessage, err
@@ -185,11 +177,11 @@ func (svc *Service) waitForAllChunks(topicID hedera.TopicID, lastMessage mirrorN
 	return lastMessage, err
 }
 
-func (svc *Service) processAllMessages(allMessages []mirrorNodeMsg.Message) (*parser.FeePolicy, error) {
+func (s *Service) processAllMessages(allMessages []mirrorNodeMsg.Message) (*parser.FeePolicy, error) {
 	chunksProcessor := new(chunkInfosProcessor)
 
 	for _, msg := range allMessages {
-		allChunksProcessed, err := svc.processMessage(msg, chunksProcessor)
+		allChunksProcessed, err := s.processMessage(msg, chunksProcessor)
 
 		if err != nil {
 			errMsg := fmt.Sprintf("Failed to process chunk info. Err: [%s]", err)
@@ -197,7 +189,7 @@ func (svc *Service) processAllMessages(allMessages []mirrorNodeMsg.Message) (*pa
 		} else {
 			if allChunksProcessed {
 				// Returning immediately after current config file is fully processed
-				return svc.processFullMsgContent(chunksProcessor.content, msg.ConsensusTimestamp)
+				return s.processFullMsgContent(chunksProcessor.content, msg.ConsensusTimestamp)
 			}
 		}
 	}
@@ -205,25 +197,25 @@ func (svc *Service) processAllMessages(allMessages []mirrorNodeMsg.Message) (*pa
 	return nil, nil
 }
 
-func (svc *Service) processFullMsgContent(decodedMsgContent []byte, consensusTimestamp string) (*parser.FeePolicy, error) {
-	parsedFeePolicy, err := svc.parseFullMsgContent(decodedMsgContent)
+func (s *Service) processFullMsgContent(decodedMsgContent []byte, consensusTimestamp string) (*parser.FeePolicy, error) {
+	parsedFeePolicy, err := s.parseFullMsgContent(decodedMsgContent)
 	if err != nil {
 		return nil, err
 	}
-	svc.milestoneTimestamp, _ = timestamp.FromString(consensusTimestamp)
-	svc.logger.Infof("Successfully processed latest fee policy config!")
+	s.milestoneTimestamp, _ = timestamp.FromString(consensusTimestamp)
+	s.logger.Infof("Successfully processed latest fee policy config!")
 
-	svc.parsedFeePolicyConfig = parsedFeePolicy
+	s.parsedFeePolicyConfig = parsedFeePolicy
 
-	svc.feePolicyConfig = &config.FeePolicy{
-		StoreAddresses: svc.parsePolicyInterfaces(parsedFeePolicy),
+	s.feePolicyConfig = &config.FeePolicyStorage{
+		StoreAddresses: s.parsePolicyInterfaces(parsedFeePolicy),
 	}
 
 	return parsedFeePolicy, nil
 }
 
-func (svc *Service) processMessage(msg mirrorNodeMsg.Message, chunksProcessor *chunkInfosProcessor) (bool, error) {
-	decodedMsgContent, err := svc.decodeMsgContent(msg)
+func (s *Service) processMessage(msg mirrorNodeMsg.Message, chunksProcessor *chunkInfosProcessor) (bool, error) {
+	decodedMsgContent, err := s.decodeMsgContent(msg)
 
 	if err != nil {
 		return false, err
@@ -249,48 +241,63 @@ func (svc *Service) processMessage(msg mirrorNodeMsg.Message, chunksProcessor *c
 	return false, nil
 }
 
-func (svc *Service) parseFullMsgContent(content []byte) (*parser.FeePolicy, error) {
+func (s *Service) parseFullMsgContent(content []byte) (*parser.FeePolicy, error) {
 	configParser := &parser.FeePolicy{}
 	err := yaml.Unmarshal(content, configParser)
 
 	if err != nil {
-		svc.logger.Errorf("Failed to parse fee policy config. Err: [%s]", err)
+		s.logger.Errorf("Failed to parse fee policy config. Err: [%s]", err)
 		return nil, err
 	}
 
-	svc.parsedFeePolicyConfig = configParser
+	s.parsedFeePolicyConfig = configParser
 
-	svc.feePolicyConfig = &config.FeePolicy{}
-	svc.feePolicyConfig.StoreAddresses = svc.parsePolicyInterfaces(configParser)
+	s.feePolicyConfig = &config.FeePolicyStorage{}
+	s.feePolicyConfig.StoreAddresses = s.parsePolicyInterfaces(configParser)
 
 	return configParser, nil
 }
 
-func (svc *Service) decodeMsgContent(msg mirrorNodeMsg.Message) ([]byte, error) {
+func (s *Service) decodeMsgContent(msg mirrorNodeMsg.Message) ([]byte, error) {
 	decodedMsgContent, err := base64.StdEncoding.DecodeString(msg.Contents)
 
 	if err != nil {
-		svc.logger.Errorf("Failed to decode message content from base64 format: [%s]. Err: [%s]", msg.Contents, err)
+		s.logger.Errorf("Failed to decode message content from base64 format: [%s]. Err: [%s]", msg.Contents, err)
 		return nil, err
 	}
 
 	return decodedMsgContent, nil
 }
 
-func (svc *Service) parsePolicyInterfaces(configParser *parser.FeePolicy) map[string]fee_policy.FeePolicyInterface {
-	result := make(map[string]fee_policy.FeePolicyInterface)
+func (s *Service) parsePolicyInterfaces(configParser *parser.FeePolicy) map[string]fee_policy.FeePolicy {
+	result := make(map[string]fee_policy.FeePolicy)
 
 	for _, itemLegalEntity := range configParser.LegalEntities {
 		for _, itemAddress := range itemLegalEntity.Addresses {
 			switch itemLegalEntity.PolicyInfo.FeeType {
 			case constants.FeePolicyTypeFlat:
-				result[itemAddress] = fee_policy.ParseNewFlatFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				flatFeePolicy, err := fee_policy.ParseNewFlatFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				if err != nil {
+					s.logger.Errorf("Unable to parse fee Flat Fee Policy [%s]", err)
+				} else {
+					result[itemAddress] = flatFeePolicy
+				}
 			case constants.FeePolicyTypePercentage:
-				result[itemAddress] = fee_policy.ParseNewPercentageFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				percentageFeePolicy, err := fee_policy.ParseNewPercentageFeePolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				if err != nil {
+					s.logger.Errorf("Unable to parse fee Percentage Fee Policy [%s]", err)
+				} else {
+					result[itemAddress] = percentageFeePolicy
+				}
 			case constants.FeePolicyTypeFlatPerToken:
-				result[itemAddress] = fee_policy.ParseNewFlatFeePerTokenPolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				flatFeePerTokenPolicy, err := fee_policy.ParseNewFlatFeePerTokenPolicy(itemLegalEntity.PolicyInfo.Networks, itemLegalEntity.PolicyInfo.Value)
+				if err != nil {
+					s.logger.Errorf("Unable to parse fee Flat Fee Per Token Policy [%s]", err)
+				} else {
+					result[itemAddress] = flatFeePerTokenPolicy
+				}
 			default:
-				svc.logger.Errorf("Unrecognized fee policy type [%s]", itemLegalEntity.PolicyInfo.FeeType)
+				s.logger.Errorf("Unrecognized fee policy type [%s]", itemLegalEntity.PolicyInfo.FeeType)
 			}
 		}
 	}
@@ -304,18 +311,18 @@ type chunkInfosProcessor struct {
 	content   []byte
 }
 
-func (svc *chunkInfosProcessor) allProcessed() bool {
-	return svc.total == svc.processed
+func (s *chunkInfosProcessor) allProcessed() bool {
+	return s.total == s.processed
 }
 
-func (svc *chunkInfosProcessor) processChunk(number int64, content []byte) error {
+func (s *chunkInfosProcessor) processChunk(number int64, content []byte) error {
 	var err error
-	if number-svc.processed > 1 {
-		msg := fmt.Sprintf("missing chunk of fee policy config. latest processed number: %d, and current chunk number: %d", svc.processed, number)
+	if number-s.processed > 1 {
+		msg := fmt.Sprintf("missing chunk of fee policy config. latest processed number: %d, and current chunk number: %d", s.processed, number)
 		err = errors.New(msg)
 	}
 
-	svc.content = append(svc.content, content...)
-	svc.processed = number
+	s.content = append(s.content, content...)
+	s.processed = number
 	return err
 }

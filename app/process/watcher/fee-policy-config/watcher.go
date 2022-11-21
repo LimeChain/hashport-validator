@@ -32,14 +32,14 @@ var (
 
 type Watcher struct {
 	feePolicyHandler service.FeePolicyHandler
-	feePolicyTopicID hedera.TopicID
+	topicID          hedera.TopicID
 	logger           *log.Entry
 }
 
-func NewWatcher(feePolicyHandler service.FeePolicyHandler, feePolicyTopicID hedera.TopicID) *Watcher {
+func NewWatcher(feePolicyHandler service.FeePolicyHandler, topicID hedera.TopicID) *Watcher {
 	return &Watcher{
 		feePolicyHandler: feePolicyHandler,
-		feePolicyTopicID: feePolicyTopicID,
+		topicID:          topicID,
 		logger:           config.GetLoggerFor("Fee Policy Config Watcher"),
 	}
 }
@@ -56,7 +56,7 @@ func (watcher *Watcher) Watch(q qi.Queue) {
 
 func (watcher *Watcher) watchIteration() {
 	watcher.logger.Infof("Checking for new Fee Policy Config ...")
-	_, err := watcher.feePolicyHandler.ProcessLatestFeePolicyConfig(watcher.feePolicyTopicID)
+	_, err := watcher.feePolicyHandler.ProcessLatestConfig(watcher.topicID)
 
 	if err != nil {
 		watcher.logger.Errorf(err.Error())

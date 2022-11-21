@@ -37,8 +37,8 @@ var (
 		},
 	}
 
-	FeePolicyConfig = config.FeePolicy{
-		StoreAddresses: map[string]fee_policy.FeePolicyInterface{
+	FeePolicyConfig = config.FeePolicyStorage{
+		StoreAddresses: map[string]fee_policy.FeePolicy{
 			"0.0.101": &fee_policy.FlatFeePolicy{Networks: []uint64{8001}, Value: 2000},
 			"0.0.102": &fee_policy.FlatFeePolicy{Networks: []uint64{8001}, Value: 2000},
 			"0.0.103": &fee_policy.FlatFeePolicy{Networks: []uint64{8001}, Value: 2000},

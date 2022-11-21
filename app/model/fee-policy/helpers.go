@@ -31,13 +31,15 @@ func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
 	return nil, false
 }
 
-func networkFound(networks []uint64, networkId uint64) bool {
+func networkAllowed(networks []uint64, networkId uint64) bool {
 	if networks != nil && networkId > 0 {
 		for _, ele := range networks {
 			if ele == networkId {
 				return true
 			}
 		}
+
+		return false
 	}
 
 	return true

@@ -16,22 +16,32 @@
 
 package fee_policy
 
-import "github.com/limechain/hedera-eth-bridge-validator/constants"
+import (
+	"errors"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
+)
 
 type PercentageFeePolicy struct {
 	Networks []uint64
 	Value    int64
 }
 
-func ParseNewPercentageFeePolicy(networks []uint64, parsingValue interface{}) *PercentageFeePolicy {
+func ParseNewPercentageFeePolicy(networks []uint64, parsingValue interface{}) (*PercentageFeePolicy, error) {
+	value, ok := parsingValue.(int)
+
+	if !ok {
+		return nil, errors.New("value is not integer")
+	}
+
 	return &PercentageFeePolicy{
 		Networks: networks,
-		Value:    (int64(parsingValue.(int))),
-	}
+		Value:    int64(value),
+	}, nil
 }
 
-func (policy *PercentageFeePolicy) FeeAmountFor(networkId uint64, token string, amount int64) (feeAmount int64, exist bool) {
-	var found bool = networkFound(policy.Networks, networkId)
+func (policy *PercentageFeePolicy) FeeAmountFor(networkId uint64, _ string, amount int64) (feeAmount int64, exist bool) {
+	found := networkAllowed(policy.Networks, networkId)
 
 	if found {
 		feeAmount = amount * policy.Value / constants.FeeMaxPercentage

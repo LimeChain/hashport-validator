@@ -79,16 +79,9 @@ var (
 		Amount:        transferRecord.Amount,
 		Signature:     "signature",
 	}
-	authMsgBytes, _ = auth_message.EncodeFungibleBytesFrom(
-		transferRecord.SourceChainID,
-		transferRecord.TargetChainID,
-		transferRecord.TransactionID,
-		transferRecord.TargetAsset,
-		transferRecord.Receiver,
-		transferRecord.Amount,
-	)
-	date = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
-	txId = &hedera.TransactionID{
+	authMsgBytes, _ = auth_message.EncodeFungibleBytesFrom(transferRecord.SourceChainID, transferRecord.TargetChainID, transferRecord.TransactionID, transferRecord.TargetAsset, transferRecord.Receiver, transferRecord.Amount)
+	date            = time.Date(2001, time.June, 1, 1, 1, 1, 1, time.UTC)
+	txId            = &hedera.TransactionID{
 		AccountID: &hedera.AccountID{
 			Shard:   0,
 			Realm:   0,
