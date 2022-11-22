@@ -19,8 +19,11 @@ package transfer
 import (
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 	"time"
+
+	hederaHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
@@ -157,16 +160,17 @@ func Test_Handle(t *testing.T) {
 	}
 
 	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(resultEntityTransfer, nilErr)
-	mocks.MScheduledService.On("ExecuteScheduledNftTransferTransaction",
+	mocks.MScheduledService.On("ExecuteScheduledNftAllowTransaction",
 		transactionId,
 		nftID,
 		bridgeAccountId,
-		receiverAccountId).Return()
+		receiverAccountId,
+	).Return()
 
 	handler.Handle(p)
 
 	mocks.MTransferService.AssertCalled(t, "InitiateNewTransfer", *p)
-	mocks.MScheduledService.AssertCalled(t, "ExecuteScheduledNftTransferTransaction",
+	mocks.MScheduledService.AssertCalled(t, "ExecuteScheduledNftAllowTransaction",
 		transactionId,
 		nftID,
 		bridgeAccountId,
@@ -238,7 +242,16 @@ func Test_scheduledTxMinedCallbacks(t *testing.T) {
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", transactionId).Return(nilErr)
 	mocks.MScheduleRepository.On("UpdateStatusFailed", transactionId).Return(nilErr)
 
-	onSuccess, onFailure := handler.scheduledTxMinedCallbacks(transactionId)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	onSuccess, onFailure := hederaHelper.ScheduledNftTxMinedCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		statusResult,
+		wg)
 	onSuccess(transactionId)
 	onFailure(transactionId)
 
@@ -254,7 +267,16 @@ func Test_scheduledTxMinedCallbacks_TransferRepoErrorOnSuccess(t *testing.T) {
 	err := errors.New("some error")
 	mocks.MTransferRepository.On("UpdateStatusCompleted", transactionId).Return(err)
 
-	onSuccess, _ := handler.scheduledTxMinedCallbacks(transactionId)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := hederaHelper.ScheduledNftTxMinedCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		statusResult,
+		wg)
 	onSuccess(transactionId)
 
 	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", transactionId)
@@ -268,7 +290,16 @@ func Test_scheduledTxMinedCallbacks_ScheduleRepoErrorOnSuccess(t *testing.T) {
 	mocks.MTransferRepository.On("UpdateStatusCompleted", transactionId).Return(nilErr)
 	mocks.MScheduleRepository.On("UpdateStatusCompleted", transactionId).Return(err)
 
-	onSuccess, _ := handler.scheduledTxMinedCallbacks(transactionId)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := hederaHelper.ScheduledNftTxMinedCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		statusResult,
+		wg)
 	onSuccess(transactionId)
 
 	mocks.MTransferRepository.AssertCalled(t, "UpdateStatusCompleted", transactionId)
@@ -282,7 +313,16 @@ func Test_scheduledTxMinedCallbacks_TransferRepoErrorOnFailure(t *testing.T) {
 	mocks.MScheduleRepository.On("UpdateStatusFailed", transactionId).Return(nilErr)
 	mocks.MTransferRepository.On("UpdateStatusFailed", transactionId).Return(err)
 
-	_, onFailure := handler.scheduledTxMinedCallbacks(transactionId)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, onFailure := hederaHelper.ScheduledNftTxMinedCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		statusResult,
+		wg)
 	onFailure(transactionId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "UpdateStatusFailed", transactionId)
@@ -295,7 +335,16 @@ func Test_scheduledTxMinedCallbacks_ScheduledRepoErrorOnFailure(t *testing.T) {
 	err := errors.New("some error")
 	mocks.MScheduleRepository.On("UpdateStatusFailed", transactionId).Return(err)
 
-	_, onFailure := handler.scheduledTxMinedCallbacks(transactionId)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, onFailure := hederaHelper.ScheduledNftTxMinedCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		statusResult,
+		wg)
 	onFailure(transactionId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "UpdateStatusFailed", transactionId)
@@ -307,7 +356,19 @@ func Test_scheduledTxExecutionCallbacks_OnSuccess(t *testing.T) {
 
 	mocks.MScheduleRepository.On("Create", onSuccessScheduleEntity).Return(nilErr)
 
-	onSuccess, _ := handler.scheduledTxExecutionCallbacks(transactionId, true)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := hederaHelper.ScheduledNftTxExecutionCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		true,
+		statusResult,
+		schedule.TRANSFER,
+		wg)
+
 	onSuccess(transactionId, scheduleId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "Create", onSuccessScheduleEntity)
@@ -319,7 +380,19 @@ func Test_scheduledTxExecutionCallbacks_OnSuccess_Err(t *testing.T) {
 
 	mocks.MScheduleRepository.On("Create", onSuccessScheduleEntity).Return(errors.New("some error"))
 
-	onSuccess, _ := handler.scheduledTxExecutionCallbacks(transactionId, true)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	onSuccess, _ := hederaHelper.ScheduledNftTxExecutionCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		true,
+		statusResult,
+		schedule.TRANSFER,
+		wg)
+
 	onSuccess(transactionId, scheduleId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "Create", onSuccessScheduleEntity)
@@ -332,7 +405,18 @@ func Test_scheduledTxExecutionCallbacks_OnFailure(t *testing.T) {
 	mocks.MScheduleRepository.On("Create", onFailureScheduleEntity).Return(nilErr)
 	mocks.MTransferRepository.On("UpdateStatusFailed", transactionId).Return(nilErr)
 
-	_, OnFailure := handler.scheduledTxExecutionCallbacks(transactionId, true)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, OnFailure := hederaHelper.ScheduledNftTxExecutionCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		true,
+		statusResult,
+		schedule.TRANSFER,
+		wg)
 	OnFailure(transactionId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "Create", onFailureScheduleEntity)
@@ -344,7 +428,18 @@ func Test_scheduledTxExecutionCallbacks_OnFailure_CreateEntityErr(t *testing.T) 
 
 	mocks.MScheduleRepository.On("Create", onFailureScheduleEntity).Return(errors.New("some error"))
 
-	_, OnFailure := handler.scheduledTxExecutionCallbacks(transactionId, true)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, OnFailure := hederaHelper.ScheduledNftTxExecutionCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		true,
+		statusResult,
+		schedule.TRANSFER,
+		wg)
 	OnFailure(transactionId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "Create", onFailureScheduleEntity)
@@ -356,7 +451,18 @@ func Test_scheduledTxExecutionCallbacks_OnFailure_UpdateStatusErr(t *testing.T) 
 	mocks.MScheduleRepository.On("Create", onFailureScheduleEntity).Return(nilErr)
 	mocks.MTransferRepository.On("UpdateStatusFailed", transactionId).Return(errors.New("some error"))
 
-	_, OnFailure := handler.scheduledTxExecutionCallbacks(transactionId, true)
+	statusResult := new(string)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	_, OnFailure := hederaHelper.ScheduledNftTxExecutionCallbacks(
+		handler.repository,
+		handler.scheduleRepository,
+		handler.logger,
+		transactionId,
+		true,
+		statusResult,
+		schedule.TRANSFER,
+		wg)
 	OnFailure(transactionId)
 
 	mocks.MScheduleRepository.AssertCalled(t, "Create", onFailureScheduleEntity)

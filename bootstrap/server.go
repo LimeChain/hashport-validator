@@ -18,6 +18,8 @@ package bootstrap
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/core/server"
 	burn_message "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/burn-message"
@@ -42,7 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config, parsedBridge *parser.Bridge, bridgeCfgTopicId hedera.TopicID) {
@@ -207,6 +208,7 @@ func registerHederaNativeUnlockNftHandlers(server *server.Server, services *Serv
 	// ReadOnlyHederaUnlockNftTransfer
 	server.AddHandler(constants.ReadOnlyHederaUnlockNftTransfer, rnth.NewHandler(
 		configuration.Bridge.Hedera.BridgeAccount,
+		configuration.Bridge.Hedera.PayerAccount,
 		repositories.Transfer,
 		repositories.Schedule,
 		services.ReadOnly,

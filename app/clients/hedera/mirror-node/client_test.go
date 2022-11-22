@@ -366,3 +366,11 @@ func Test_GetHBARUsdPrice(t *testing.T) {
 	assert.Equal(t, testConstants.ParsedTransactionResponseCurrentRate, price)
 	assert.Nil(t, err)
 }
+
+func Test_GetTransactionsAfterTimestamp(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetTransactionsAfterTimestamp(accountId, time.Now().UnixNano(), "CryptoTransfer")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}

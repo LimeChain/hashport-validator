@@ -39,7 +39,6 @@ func Get(client client.HttpClient, url string, headers map[string]string, respon
 		log.Errorf("Error while sending request to server. Error: [%v]", err)
 		return err
 	}
-
 	err = json.NewDecoder(resp.Body).Decode(responseStruct)
 
 	return err

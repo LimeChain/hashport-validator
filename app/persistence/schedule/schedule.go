@@ -85,7 +85,7 @@ func (r *Repository) GetReceiverTransferByTransactionID(id string) (*entity.Sche
 	record := &entity.Schedule{}
 	result := r.db.
 		Model(entity.Schedule{}).
-		Where("transfer_id = ? AND operation = ? AND has_receiver = true", id, schedule.TRANSFER).
+		Where("transfer_id = ? AND operation IN (?, ?) AND has_receiver = true", id, schedule.TRANSFER, schedule.APPROVE).
 		First(record)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

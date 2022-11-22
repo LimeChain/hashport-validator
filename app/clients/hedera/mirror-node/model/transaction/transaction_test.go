@@ -192,3 +192,21 @@ func setup() {
 		},
 	}
 }
+
+func Test_GetTokenTransfer(t *testing.T) {
+	setup()
+
+	actualAmount, isFound := transaction.GetTokenTransfer(tokenAccountId)
+
+	assert.True(t, isFound)
+	assert.Equal(t, amount, actualAmount)
+}
+
+func Test_GetTokenTransfer_NotFound(t *testing.T) {
+	setup()
+
+	actualAmount, isFound := transaction.GetTokenTransfer(nonExistingAccount)
+
+	assert.False(t, isFound)
+	assert.Equal(t, int64(0), actualAmount)
+}
