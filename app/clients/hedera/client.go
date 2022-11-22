@@ -135,7 +135,7 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 		return nil, err
 	}
 
-	hc.logger.Debugf("Submit Schedule Sign, with transaction ID [%s] and Node Account IDs: %v",
+	hc.logger.Debugf("Submit Topic Consensus Message, with transaction ID [%s] and Node Account IDs: %v",
 		tx.GetTransactionID(),
 		tx.GetNodeAccountIDs(),
 	)
@@ -145,7 +145,7 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 	if err != nil {
 		return nil, err
 	}
-	
+
 	_, err = hc.checkTransactionReceipt(response)
 
 	return &response.TransactionID, err
@@ -249,7 +249,7 @@ func (hc Node) submitScheduledTransaction(signedTransaction hedera.ITransaction,
 	scheduledTx = scheduledTx.
 		SetPayerAccountID(payerAccountID).
 		SetScheduleMemo(memo)
-	
+
 	response, err := scheduledTx.Execute(hc.GetClient())
 	return &response, err
 }

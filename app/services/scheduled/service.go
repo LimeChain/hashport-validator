@@ -39,14 +39,9 @@ func New(
 
 // ExecuteScheduledTransferTransaction submits a scheduled transaction and executes provided functions when necessary
 func (s *Service) ExecuteScheduledTransferTransaction(
-		id,
-		nativeAsset string,
-		transfers []transfer.Hedera,
-		onExecutionSuccess func(transactionID, scheduleID string),
-		onExecutionFail,
-		onSuccess, 
-		onFail func(transactionID string),
-	) {
+	id, nativeAsset string,
+	transfers []transfer.Hedera,
+	onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	transactionResponse, err := s.executeScheduledTransfersTransaction(id, nativeAsset, transfers)
 	if err != nil {
 		if transactionResponse != nil {
