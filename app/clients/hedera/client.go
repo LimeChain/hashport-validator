@@ -91,7 +91,7 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -112,7 +112,7 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -125,28 +125,49 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 // SubmitTopicConsensusMessage submits the provided message bytes to the
 // specified HCS `topicId`
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	txResponse, err := hedera.NewTopicMessageSubmitTransaction().
+	tx, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicId).
 		SetMessage(message).
 		SetMaxRetry(hc.maxRetry).
-		Execute(hc.client)
+		FreezeWith(hc.client)
 
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = hc.checkTransactionReceipt(txResponse)
+	hc.logger.Debugf("Submit Topic Consensus Message, with transaction ID [%s] and Node Account IDs: %v",
+		tx.GetTransactionID(),
+		tx.GetNodeAccountIDs(),
+	)
 
-	return &txResponse.TransactionID, err
+	response, err :=  tx.Execute(hc.GetClient())
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = hc.checkTransactionReceipt(response)
+
+	return &response.TransactionID, err
 }
 
 // SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
 func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
-	response, err := hedera.NewScheduleSignTransaction().
+	tx, err := hedera.NewScheduleSignTransaction().
 		SetScheduleID(scheduleID).
 		SetMaxRetry(hc.maxRetry).
-		Execute(hc.GetClient())
+		FreezeWith(hc.GetClient())
 
+	if err != nil {
+		return nil, err
+	}
+
+	hc.logger.Debugf("Submit Schedule Sign, with transaction ID [%s], schedule ID: [%s] and Node Account IDs: %v",
+		tx.GetTransactionID(),
+		tx.GetScheduleID(),
+		tx.GetNodeAccountIDs(),
+	)
+	response, err :=  tx.Execute(hc.GetClient())
 	return &response, err
 }
 
@@ -236,7 +257,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
