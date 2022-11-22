@@ -19,6 +19,7 @@ package assets
 import (
 	"errors"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -206,6 +207,9 @@ func (a *Service) fetchEvmFungibleAssetInfo(
 	isNative bool,
 	routerContractAddress string,
 ) (assetInfo *assetModel.FungibleAssetInfo, err error) {
+	if evmTokenClient == nil {
+		a.logger.Fatalf("Evm Token Client is missing for network [%d] and asset [%s]", networkId, assetAddress)
+	}
 	assetInfo = &assetModel.FungibleAssetInfo{}
 	name, err := evmTokenClient.Name(&bind.CallOpts{})
 	if err != nil {
@@ -299,17 +303,19 @@ func (a *Service) fetchHederaNonFungibleAssetInfo(
 ) (assetInfo *assetModel.NonFungibleAssetInfo, err error) {
 
 	assetInfo = &assetModel.NonFungibleAssetInfo{}
-	assetInfoResponse, err := mirrorNode.GetToken(assetId)
-	if err != nil {
-		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, err)
-		return nil, err
+	assetInfoResponse, e := mirrorNode.GetToken(assetId)
+	if e != nil {
+		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
+	} else {
+		assetInfo.Name = assetInfoResponse.Name
+		assetInfo.Symbol = assetInfoResponse.Symbol
+		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
+		assetInfo.CustomFees.InitFromResponse(assetInfoResponse.CustomFees)
+		assetInfo.CustomFeeTotalAmounts = fee.SumFallbackFeeAmounts(assetInfo.CustomFees)
+		assetInfo.TreasuryAccountId = assetInfoResponse.TreasuryAccountId
 	}
 
-	assetInfo.Name = assetInfoResponse.Name
-	assetInfo.Symbol = assetInfoResponse.Symbol
-	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
-
-	return assetInfo, nil
+	return assetInfo, err
 }
 
 func (a *Service) loadFungibleAssetInfos(

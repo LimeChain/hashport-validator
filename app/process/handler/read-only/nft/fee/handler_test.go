@@ -170,6 +170,7 @@ func Test_Handle(t *testing.T) {
 	mocks.MDistributorService.On("ValidAmount", hederaFeeForSourceAsset).Return(validFee)
 	mocks.MTransferRepository.On("UpdateFee", transactionId, formattedValidFee).Return(nil)
 	mocks.MDistributorService.On("CalculateMemberDistribution", validFee).Return(hederaTransfers, nilErr)
+	mocks.MReadOnlyService.On("FindNftTransfer", transactionId, sourceAsset, serialNum, mock.Anything, bridgeAccountAsStr, mock.Anything)
 	mocks.MReadOnlyService.On("FindAssetTransfer", transactionId, constants.Hbar, splitTransfers[0], mock.Anything, mock.Anything)
 
 	handler.Handle(p)
@@ -178,6 +179,7 @@ func Test_Handle(t *testing.T) {
 	mocks.MDistributorService.AssertCalled(t, "ValidAmount", hederaFeeForSourceAsset)
 	mocks.MTransferRepository.AssertCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertCalled(t, "CalculateMemberDistribution", validFee)
+	mocks.MReadOnlyService.AssertCalled(t, "FindNftTransfer", transactionId, sourceAsset, serialNum, mock.Anything, bridgeAccountAsStr, mock.Anything)
 	mocks.MReadOnlyService.AssertCalled(t, "FindAssetTransfer", transactionId, constants.Hbar, splitTransfers[0], mock.Anything, mock.Anything)
 }
 
@@ -230,6 +232,7 @@ func Test_Handle_ErrOnUpdateFee(t *testing.T) {
 	mocks.MTransferService.On("InitiateNewTransfer", *p).Return(entityTransfer, nil)
 	mocks.MDistributorService.On("ValidAmount", hederaFeeForSourceAsset).Return(validFee)
 	mocks.MTransferRepository.On("UpdateFee", transactionId, formattedValidFee).Return(errors.New("failed to create transaction record"))
+	mocks.MReadOnlyService.On("FindNftTransfer", transactionId, sourceAsset, serialNum, mock.Anything, bridgeAccountAsStr, mock.Anything)
 
 	handler.Handle(p)
 
@@ -238,6 +241,7 @@ func Test_Handle_ErrOnUpdateFee(t *testing.T) {
 	mocks.MTransferRepository.AssertCalled(t, "UpdateFee", transactionId, formattedValidFee)
 	mocks.MDistributorService.AssertNotCalled(t, "CalculateMemberDistribution", validFee)
 	mocks.MReadOnlyService.AssertNotCalled(t, "FindAssetTransfer", transactionId, constants.Hbar, splitTransfers[0], mock.Anything, mock.Anything)
+	mocks.MReadOnlyService.AssertCalled(t, "FindNftTransfer", transactionId, sourceAsset, serialNum, mock.Anything, bridgeAccountAsStr, mock.Anything)
 }
 
 func Test_fetch(t *testing.T) {
@@ -252,7 +256,7 @@ func Test_fetch(t *testing.T) {
 		p.NetworkTimestamp,
 	).Return(expectedResponse, nilErr)
 
-	actualResponse, err := handler.fetch(p)
+	actualResponse, err := handler.feeTransfersFetch(p)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -264,7 +268,7 @@ func Test_save(t *testing.T) {
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(nilErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
+	err := handler.feeTransfersSave(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Nil(t, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
@@ -276,7 +280,7 @@ func Test_save_ErrOnCreateScheduleEntity(t *testing.T) {
 	expectedErr := errors.New("failed to create schedule record")
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(expectedErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
+	err := handler.feeTransfersSave(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)
@@ -289,7 +293,7 @@ func Test_save_ErrOnCreateFeeEntity(t *testing.T) {
 	mocks.MScheduleRepository.On("Create", scheduleEntity).Return(nilErr)
 	mocks.MFeeRepository.On("Create", feeEntity).Return(expectedErr)
 
-	err := handler.save(transactionId, scheduleId, status.Completed, p, -validFee)
+	err := handler.feeTransfersSave(transactionId, scheduleId, status.Completed, p, -validFee)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MScheduleRepository.AssertCalled(t, "Create", scheduleEntity)

@@ -26,8 +26,8 @@ type MockScheduledService struct {
 	mock.Mock
 }
 
-func (mss *MockScheduledService) ExecuteScheduledNftTransferTransaction(id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
-	mss.Called(id, nftID, sender, receiving)
+func (mss *MockScheduledService) ExecuteScheduledNftTransferTransaction(id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, approved bool, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
+	mss.Called(id, nftID, sender, receiving, approved)
 }
 
 func (mss *MockScheduledService) ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID string, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
@@ -40,4 +40,8 @@ func (mss *MockScheduledService) ExecuteScheduledMintTransaction(id, asset strin
 
 func (mss *MockScheduledService) ExecuteScheduledTransferTransaction(id, nativeAsset string, transfers []transfer.Hedera, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string)) {
 	mss.Called(id, nativeAsset, transfers)
+}
+
+func (mss *MockScheduledService) ExecuteScheduledNftAllowTransaction(id string, nftID hedera.NftID, owner hedera.AccountID, spender hedera.AccountID, onExecutionSuccess func(txId string, scheduleId string), onExecutionFail, onSuccess, onFail func(txId string)) {
+	mss.Called(id, nftID, owner, spender)
 }

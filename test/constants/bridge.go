@@ -17,6 +17,7 @@
 package constants
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"math/big"
 	"strconv"
 
@@ -73,11 +74,42 @@ var (
 		ChainId: constants.HederaNetworkId,
 		Asset:   NetworkHederaNonFungibleNativeToken,
 	}
+	NetworkHederaNFTRoyaltyFeeForToken = asset.RoyaltyFee{
+		Amount: token.Fraction{
+			Numerator:   100,
+			Denominator: 100,
+		},
+		FallbackFee: asset.FixedFee{
+			Amount:              10,
+			DenominatingTokenId: &NetworkHederaFungibleNativeToken,
+		},
+		CollectorAccountID: "",
+	}
 	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
 		Name:          NetworkHederaNonFungibleNativeToken,
 		Symbol:        NetworkHederaNonFungibleNativeToken,
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
+		CustomFees: asset.CustomFees{
+			CreatedTimestamp: "",
+			RoyaltyFees: []asset.RoyaltyFee{
+				{
+					Amount: token.Fraction{
+						Numerator:   100,
+						Denominator: 100,
+					},
+					FallbackFee: asset.FixedFee{
+						Amount:              NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount,
+						DenominatingTokenId: &NetworkHederaFungibleNativeToken,
+					},
+					CollectorAccountID: "",
+				},
+			},
+		},
+		CustomFeeTotalAmounts: asset.CustomFeeTotalAmounts{
+			FallbackFeeAmountInHbar:     0,
+			FallbackFeeAmountsByTokenId: map[string]int64{NetworkHederaFungibleNativeToken: NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount},
+		},
 	}
 
 	// Wrapped Tokens //

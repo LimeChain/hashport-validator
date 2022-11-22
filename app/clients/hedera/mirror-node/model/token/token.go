@@ -18,11 +18,13 @@ package token
 
 type (
 	TokenResponse struct {
-		TokenID     string `json:"token_id"`
-		Name        string `json:"name"`
-		Symbol      string `json:"symbol"`
-		TotalSupply string `json:"total_supply"`
-		Decimals    string `json:"decimals"`
+		TokenID           string     `json:"token_id"`
+		Name              string     `json:"name"`
+		Symbol            string     `json:"symbol"`
+		TotalSupply       string     `json:"total_supply"`
+		Decimals          string     `json:"decimals"`
+		CustomFees        CustomFees `json:"custom_fees"`
+		TreasuryAccountId string     `json:"treasury_account_id"`
 	}
 
 	NetworkSupplyResponse struct {
@@ -31,3 +33,24 @@ type (
 		TotalSupply    string `json:"total_supply"`
 	}
 )
+
+type CustomFees struct {
+	CreatedTimestamp string       `json:"created_timestamp"`
+	RoyaltyFees      []RoyaltyFee `json:"royalty_fees"`
+}
+
+type FixedFee struct {
+	Amount              int64   `json:"amount"`
+	DenominatingTokenId *string `json:"denominating_token_id"`
+}
+
+type RoyaltyFee struct {
+	Amount             Fraction `json:"amount"`
+	FallbackFee        FixedFee `json:"fallback_fee"`
+	CollectorAccountID string   `json:"collector_account_id"`
+}
+
+type Fraction struct {
+	Numerator   int64 `json:"numerator"`
+	Denominator int64 `json:"denominator"`
+}

@@ -24,6 +24,8 @@ import (
 const (
 	validMemoBase64          = "My0weDM4RTg5MzdiNUE3YjlmMzc5YjE3MGI5OUY1YkRlQjJiMzY0ZGZCNjU="
 	validMemo                = "3-0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65"
+	validNFTMemo             = "3-0x38E8937b5A7b9f379b170b99F5bDeB2b364dfB65-12@0.0.132414142"
+	validNFTMemoBase64       = "My0weDM4RTg5MzdiNUE3YjlmMzc5YjE3MGI5OUY1YkRlQjJiMzY0ZGZCNjUtMTJAMC4wLjEzMjQxNDE0Mg=="
 	nonValidEthAddress       = "0"
 	nonValidEthAddressBase64 = "MHgzOEU4OTM3YjVBN2I5ZjM3OWIxNzBiOTlGNWJEZUIyYjM2NGRmQjYq"
 )
@@ -31,6 +33,12 @@ const (
 func Test_Validate(t *testing.T) {
 	decodedAddress, err := Validate(validMemoBase64)
 	assert.Equal(t, validMemo, decodedAddress)
+	assert.Nil(t, err)
+}
+
+func Test_ValidateForNFT(t *testing.T) {
+	decodedAddress, err := Validate(validNFTMemoBase64)
+	assert.Equal(t, validNFTMemo, decodedAddress)
 	assert.Nil(t, err)
 }
 
