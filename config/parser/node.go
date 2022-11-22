@@ -25,6 +25,7 @@ type Node struct {
 	Database            Database   `yaml:"database"`
 	Clients             Clients    `yaml:"clients"`
 	LogLevel            string     `yaml:"log_level"`
+	LogFormat           string     `yaml:"log_format"`
 	Port                string     `yaml:"port"`
 	Validator           bool       `yaml:"validator"`
 	Monitoring          Monitoring `yaml:"monitoring"`
