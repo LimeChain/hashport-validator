@@ -59,10 +59,10 @@ func (v *Validator) GetEventTransactionID(eventId string) (string, error) {
 
 func (v *Validator) GetCalculatedFeeFor(targetChainId uint64, account string, token string, amount int64) (int64, error) {
 	params := url.Values{
-		"chain":   {strconv.FormatUint(targetChainId, 10)},
-		"account": {account},
-		"token":   {token},
-		"amount":  {strconv.FormatInt(amount, 10)},
+		"targetChain": {strconv.FormatUint(targetChainId, 10)},
+		"account":     {account},
+		"token":       {token},
+		"amount":      {strconv.FormatInt(amount, 10)},
 	}
 
 	url := v.baseUrl + "/api/v1/fees/calculate-for?" + params.Encode()

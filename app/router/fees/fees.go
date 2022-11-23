@@ -55,7 +55,7 @@ func feesNftResponse(pricingService service.Pricing) func(w http.ResponseWriter,
 
 func calculateForResponse(feeService service.Fee, feePolicyHandler service.FeePolicyHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		targetChainIdStr := r.URL.Query().Get("chain")
+		targetChainIdStr := r.URL.Query().Get("targetChain")
 		account := r.URL.Query().Get("account")
 		token := r.URL.Query().Get("token")
 		amountStr := r.URL.Query().Get("amount")
