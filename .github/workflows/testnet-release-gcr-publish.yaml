@@ -1,15 +1,13 @@
 name: Testnet Build and Publish Image to GCR
 
-on:
-  release:
-    types: [published]
+on: push
 
 jobs:
   deploy_testnet:
     runs-on: ubuntu-latest
     if: |
       contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'testnet'
+      github.event.release.target_commitish == 'gcp/test/deploy'
     steps:
       - uses: actions/checkout@v2
 
