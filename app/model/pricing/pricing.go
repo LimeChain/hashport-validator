@@ -32,4 +32,10 @@ type NonFungibleFee struct {
 	IsNative     bool            `json:"isNative"`
 	PaymentToken string          `json:"paymentToken"`
 	Fee          decimal.Decimal `json:"fee"`
+	CustomFees   []CustomFee     `json:"customFees"`
+}
+
+type CustomFee struct {
+	PaymentToken string          `json:"paymentToken"`
+	Fee          decimal.Decimal `json:"fee"`
 }
