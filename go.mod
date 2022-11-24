@@ -10,7 +10,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/gookit/event v1.0.6
-	github.com/hashgraph/hedera-sdk-go/v2 v2.17.7
+	github.com/hashgraph/hedera-sdk-go/v2 v2.19.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
@@ -38,7 +38,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220831114249-138cd7171d62 // indirect
+	github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220927094515-9a7aad3fa052 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.7.0 // indirect
