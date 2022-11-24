@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'gcp/test/deploy'
+      github.event.release.target_commitish == 'gcptestdeploy'
     steps:
       - uses: actions/checkout@v2
 
