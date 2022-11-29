@@ -30,7 +30,7 @@ var (
 )
 
 func Test_ParseNewFlatFeePolicy_Works(t *testing.T) {
-	policy, err := ParseNewFlatFeePolicy(nil, int64(10))
+	policy, err := ParseNewFlatFeePolicy(nil, 10)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, policy)

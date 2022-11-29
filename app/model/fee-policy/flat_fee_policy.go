@@ -24,7 +24,7 @@ type FlatFeePolicy struct {
 }
 
 func ParseNewFlatFeePolicy(networks []uint64, parsingValue interface{}) (*FlatFeePolicy, error) {
-	value, ok := parsingValue.(int64)
+	value, ok := parsingValue.(int)
 
 	if !ok {
 		return nil, errors.New("value is not integer")

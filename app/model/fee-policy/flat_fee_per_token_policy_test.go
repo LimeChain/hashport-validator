@@ -35,8 +35,8 @@ var (
 )
 
 func Test_ParseNewFlatFeePerTokenPolicy_Works(t *testing.T) {
-	token1 := map[interface{}]interface{}{"token": "token1", "value": int64(100)}
-	token2 := map[interface{}]interface{}{"token": "token2", "value": int64(200)}
+	token1 := map[interface{}]interface{}{"token": "token1", "value": 100}
+	token2 := map[interface{}]interface{}{"token": "token2", "value": 200}
 
 	tokens := []interface{}{token1, token2}
 

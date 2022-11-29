@@ -37,6 +37,7 @@ func NewWatcher(feePolicyHandler service.FeePolicyHandler, topicID hedera.TopicI
 	return &Watcher{
 		feePolicyHandler: feePolicyHandler,
 		topicID:          topicID,
+		pollingInterval:  pollingInterval,
 		logger:           config.GetLoggerFor("Fee Policy Config Watcher"),
 	}
 }
@@ -57,7 +58,6 @@ func (w *Watcher) watchIteration() {
 
 	if err != nil {
 		w.logger.Errorf(err.Error())
-	} else {
-		w.logger.Infof("Fee Policy Config finished successfully!")
+		return
 	}
 }
