@@ -90,11 +90,11 @@ func InitializeServerPairs(
 	registerBridgeConfigWatcher(server, services, parsedBridge.UseLocalConfig, bridgeCfgTopicId, parsedBridge.PollingInterval)
 
 	// Fee policy watcher
-	registerFeePolicyWatcher(server, services, parsedFeePolicyTopicId)
+	registerFeePolicyWatcher(server, services, parsedFeePolicyTopicId, parsedBridge.PollingInterval)
 }
 
-func registerFeePolicyWatcher(server *server.Server, services *Services, parsedFeePolicyTopicId hedera.TopicID) {
-	server.AddWatcher(fee_policy.NewWatcher(services.FeePolicyHandler, parsedFeePolicyTopicId))
+func registerFeePolicyWatcher(server *server.Server, services *Services, parsedFeePolicyTopicId hedera.TopicID, pollingInterval time.Duration) {
+	server.AddWatcher(fee_policy.NewWatcher(services.FeePolicyHandler, parsedFeePolicyTopicId, pollingInterval))
 }
 
 func registerBridgeConfigWatcher(server *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID, pollingInterval time.Duration) {

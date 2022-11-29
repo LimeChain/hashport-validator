@@ -264,6 +264,24 @@ func Test_ProcessLatestConfig_ErrOnFetchingLeftOverChunks(t *testing.T) {
 	assert.Nil(t, parsedFeePolicy)
 }
 
+func Test_FeeAmountFor_ShouldExists(t *testing.T) {
+	setup()
+
+	feeAmount, exist := serviceInstance.FeeAmountFor(8001, "0.0.101", "", 300000)
+
+	assert.Equal(t, int64(2000), feeAmount)
+	assert.Equal(t, true, exist)
+}
+
+func Test_FeeAmountFor_ShouldNotExists(t *testing.T) {
+	setup()
+
+	feeAmount, exist := serviceInstance.FeeAmountFor(8001, "0.0.105", "", 300000)
+
+	assert.Equal(t, int64(0), feeAmount)
+	assert.Equal(t, false, exist)
+}
+
 func setup() {
 	mocks.Setup()
 	helper.SetupNetworks()

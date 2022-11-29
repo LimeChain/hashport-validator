@@ -16,32 +16,29 @@
 
 package fee_policy
 
-import "errors"
+import (
+	"testing"
 
-type FlatFeePolicy struct {
-	Networks []uint64
-	Value    int64
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	testingPercentageFeePolicyPolicy = PercentageFeePolicy{
+		Networks: []uint64{10, 20, 30, 40, 50},
+		Value:    2000,
+	}
+)
+
+func Test_ParseNewPercentageFeePolicy_Works(t *testing.T) {
+	policy, err := ParseNewPercentageFeePolicy(nil, int64(10))
+
+	assert.Nil(t, err)
+	assert.NotNil(t, policy)
 }
 
-func ParseNewFlatFeePolicy(networks []uint64, parsingValue interface{}) (*FlatFeePolicy, error) {
-	value, ok := parsingValue.(int64)
+func Test_PercentageFeePolicy_FeeAmountFor_ShouldReturnFeePolicy(t *testing.T) {
+	feeAmount, exist := testingPercentageFeePolicyPolicy.FeeAmountFor(10, "", 3000000)
 
-	if !ok {
-		return nil, errors.New("value is not integer")
-	}
-
-	return &FlatFeePolicy{
-		Networks: networks,
-		Value:    int64(value),
-	}, nil
-}
-
-func (policy *FlatFeePolicy) FeeAmountFor(networkId uint64, _ string, _ int64) (int64, bool) {
-	var found bool = networkAllowed(policy.Networks, networkId)
-
-	if found {
-		return policy.Value, true
-	}
-
-	return 0, false
+	assert.Equal(t, true, exist)
+	assert.Equal(t, int64(60000), feeAmount)
 }

@@ -32,6 +32,5 @@ func (m *MockFeePolicyHandler) ProcessLatestConfig(topicID hedera.TopicID) (*par
 }
 
 func (m *MockFeePolicyHandler) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
-	// TODO implement me
 	panic("implement me")
 }

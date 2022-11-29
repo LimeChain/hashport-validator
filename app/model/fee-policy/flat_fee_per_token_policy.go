@@ -49,7 +49,7 @@ func ParseNewFlatFeePerTokenPolicy(networks []uint64, parsingValue interface{}) 
 		}
 
 		if foundToken && foundValue {
-			feeValue, ok := value.(int)
+			feeValue, ok := value.(int64)
 
 			if !ok {
 				return nil, errors.New("value is not integer")

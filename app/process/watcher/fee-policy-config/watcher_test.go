@@ -19,6 +19,7 @@ package fee_policy_config
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	qi "github.com/limechain/hedera-eth-bridge-validator/app/domain/queue"
@@ -36,13 +37,14 @@ var (
 		Realm: 0,
 		Topic: 42,
 	}
-	nilParser *parser.FeePolicy
+	pollingInterval = time.Duration(0)
+	nilParser       *parser.FeePolicy
 )
 
 func Test_NewWatcher(t *testing.T) {
 	setup()
 
-	actualWatcher := NewWatcher(mocks.MBFeePolicyHandler, topicId)
+	actualWatcher := NewWatcher(mocks.MBFeePolicyHandler, topicId, pollingInterval)
 
 	assert.Equal(t, watcher, actualWatcher)
 }

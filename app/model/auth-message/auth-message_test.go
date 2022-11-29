@@ -43,7 +43,7 @@ func Test_EncodeFungibleBytesFromWorks(t *testing.T) {
 	assert.NotNil(t, actualResult)
 }
 
-func Test_EncodeFungibleBytesFromWithFeeWithInvalidAmount(t *testing.T) {
+func Test_EncodeFungibleBytesFromWithFee_WithInvalidAmount(t *testing.T) {
 	actualResult, err := EncodeFungibleBytesFromWithFee(
 		sourceChainId,
 		targetChainId,
@@ -57,7 +57,7 @@ func Test_EncodeFungibleBytesFromWithFeeWithInvalidAmount(t *testing.T) {
 	assert.Nil(t, actualResult)
 }
 
-func Test_EncodeFungibleBytesFromWWithFeeorks(t *testing.T) {
+func Test_EncodeFungibleBytesFromWithFee_Works(t *testing.T) {
 	actualResult, err := EncodeFungibleBytesFromWithFee(
 		sourceChainId,
 		targetChainId,
@@ -66,6 +66,20 @@ func Test_EncodeFungibleBytesFromWWithFeeorks(t *testing.T) {
 		receiverAddress,
 		amount,
 		fee)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, actualResult)
+}
+
+func Test_generateFungibleArguments_WithFee(t *testing.T) {
+	actualResult, err := generateFungibleArguments(true)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, actualResult)
+}
+
+func Test_generateFungibleArguments_WithoutFee(t *testing.T) {
+	actualResult, err := generateFungibleArguments(false)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, actualResult)

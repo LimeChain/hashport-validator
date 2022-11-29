@@ -26,17 +26,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	sleepTime = 10 * time.Minute
-)
-
 type Watcher struct {
 	feePolicyHandler service.FeePolicyHandler
+	pollingInterval  time.Duration
 	topicID          hedera.TopicID
 	logger           *log.Entry
 }
 
-func NewWatcher(feePolicyHandler service.FeePolicyHandler, topicID hedera.TopicID) *Watcher {
+func NewWatcher(feePolicyHandler service.FeePolicyHandler, topicID hedera.TopicID, pollingInterval time.Duration) *Watcher {
 	return &Watcher{
 		feePolicyHandler: feePolicyHandler,
 		topicID:          topicID,
@@ -44,23 +41,23 @@ func NewWatcher(feePolicyHandler service.FeePolicyHandler, topicID hedera.TopicI
 	}
 }
 
-func (watcher *Watcher) Watch(q qi.Queue) {
+func (w *Watcher) Watch(q qi.Queue) {
 	// there will be no handler, so the q is to implement the interface
 	go func() {
 		for {
-			watcher.watchIteration()
-			time.Sleep(sleepTime)
+			w.watchIteration()
+			time.Sleep(w.pollingInterval * time.Second)
 		}
 	}()
 }
 
-func (watcher *Watcher) watchIteration() {
-	watcher.logger.Infof("Checking for new Fee Policy Config ...")
-	_, err := watcher.feePolicyHandler.ProcessLatestConfig(watcher.topicID)
+func (w *Watcher) watchIteration() {
+	w.logger.Infof("Checking for new Fee Policy Config ...")
+	_, err := w.feePolicyHandler.ProcessLatestConfig(w.topicID)
 
 	if err != nil {
-		watcher.logger.Errorf(err.Error())
+		w.logger.Errorf(err.Error())
 	} else {
-		watcher.logger.Infof("Fee Policy Config finished successfully!")
+		w.logger.Infof("Fee Policy Config finished successfully!")
 	}
 }

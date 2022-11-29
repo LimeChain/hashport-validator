@@ -28,7 +28,7 @@ type PercentageFeePolicy struct {
 }
 
 func ParseNewPercentageFeePolicy(networks []uint64, parsingValue interface{}) (*PercentageFeePolicy, error) {
-	value, ok := parsingValue.(int)
+	value, ok := parsingValue.(int64)
 
 	if !ok {
 		return nil, errors.New("value is not integer")

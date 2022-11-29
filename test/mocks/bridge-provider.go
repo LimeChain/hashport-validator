@@ -38,7 +38,6 @@ func (m *MockBridgeContract) TokenFeeData(token common.Address) (struct {
 	PreviousAccrued      *big.Int
 	Accumulator          *big.Int
 }, error) {
-	// TODO implement me
 	panic("implement me")
 }
 
