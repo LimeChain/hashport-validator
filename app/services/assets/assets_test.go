@@ -414,6 +414,17 @@ func setupClientMocks() {
 								},
 								CollectorAccountID: "",
 							},
+							{
+								Amount: token.Fraction{
+									Numerator:   100,
+									Denominator: 100,
+								},
+								FallbackFee: token.FixedFee{
+									Amount:              testConstants.NetworkHederaNFTRoyaltyFeeHbarFallback.FallbackFee.Amount,
+									DenominatingTokenId: nil,
+								},
+								CollectorAccountID: "",
+							},
 						},
 					},
 					Decimals: "0",
