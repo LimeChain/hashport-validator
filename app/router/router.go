@@ -39,7 +39,7 @@ var (
 	middlewares = chi.Middlewares{
 		render.SetContentType(render.ContentTypeJSON),
 		middleware.AllowContentType("application/json"),
-		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: config.GetLoggerFor("Router Client"), NoColor: false}),
+		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: config.GetLoggerFor("Validator API Handler"), NoColor: true}),
 		middleware.RedirectSlashes,
 		middleware.Recoverer,
 		middleware.NoCache,
