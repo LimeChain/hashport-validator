@@ -34,17 +34,32 @@ func Test_LevelsWorkCorrectly(t *testing.T) {
 	ctx := "testContext"
 	logEntry := GetLoggerFor(ctx)
 
-	InitLogger("trace")
+	InitLogger("trace", "gcp")
 	if logEntry.Logger.Level != log.TraceLevel {
 		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.TraceLevel, logEntry.Level)
 	}
 
-	InitLogger("debug")
+	InitLogger("debug", "gcp")
 	if logEntry.Logger.Level != log.DebugLevel {
 		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.DebugLevel, logEntry.Level)
 	}
 
-	InitLogger("info")
+	InitLogger("info", "gcp")
+	if logEntry.Logger.Level != log.InfoLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.InfoLevel, logEntry.Level)
+	}
+
+	InitLogger("trace", "")
+	if logEntry.Logger.Level != log.TraceLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.TraceLevel, logEntry.Level)
+	}
+
+	InitLogger("debug", "")
+	if logEntry.Logger.Level != log.DebugLevel {
+		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.DebugLevel, logEntry.Level)
+	}
+
+	InitLogger("info", "")
 	if logEntry.Logger.Level != log.InfoLevel {
 		t.Fatalf(`Expected to logger level to be [%s], but got [%s]`, log.InfoLevel, logEntry.Level)
 	}
