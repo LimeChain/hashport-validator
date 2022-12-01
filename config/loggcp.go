@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"regexp"
 
 	"github.com/sirupsen/logrus"
 )
@@ -118,9 +119,12 @@ func (f *GCEFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		}
 	}
 
+	const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+	var re = regexp.MustCompile(ansi)
+
 	data["time"] = entry.Time.Format(time.RFC3339Nano)
 	data["severity"] = levelsLogrusToGCE[entry.Level]
-	data["message"] = entry.Message
+	data["message"] = re.ReplaceAllString(entry.Message, "")
 
 	if f.withSourceInfo == true {
 		skip, err := getSkipLevel(entry.Level)
