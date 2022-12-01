@@ -28,6 +28,7 @@ type Node struct {
 	Database   Database
 	Clients    Clients
 	LogLevel   string
+	LogFormat  string
 	Port       string
 	Validator  bool
 	Monitoring Monitoring
@@ -228,6 +229,7 @@ func New(node parser.Node) Node {
 			},
 		},
 		LogLevel:  node.LogLevel,
+		LogFormat: node.LogFormat,
 		Port:      node.Port,
 		Validator: node.Validator,
 		Monitoring: Monitoring{
