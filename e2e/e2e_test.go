@@ -1113,7 +1113,7 @@ func validateNftSpender(t *testing.T, setup *setup.Setup, tokenID string, serial
 		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftId.String(), nftInfo)
 	}
 
-	spender := nftInfo[0].AllowanceSpenderAccountID
+	spender := nftInfo[0].SpenderID
 	if spender != expectedSpender {
 		t.Fatalf("Invalid NftID [%s] spender. Expected [%s], actual [%s].", nftId.String(), expectedSpender, spender)
 	}
