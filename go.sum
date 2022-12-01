@@ -322,10 +322,10 @@ github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0U
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/graph-gophers/graphql-go v1.3.0/go.mod h1:9CQHMSxwO4MprSdzoIEobiHpoLtHm77vfxsvsIN5Vuc=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
-github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220831114249-138cd7171d62 h1:sBbQeAn1TmHQJuGVlmYQPREeeycu6knRjh3lqyWKz30=
-github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220831114249-138cd7171d62/go.mod h1:P0QU+a1kwZlqFNfG44/YhgR2njoDbAtDrYz3zR5lq3U=
-github.com/hashgraph/hedera-sdk-go/v2 v2.17.7 h1:0FdnNqLpYWLiLP0u8EWAVKZxOGj6lwJkv8I6HI6RN/A=
-github.com/hashgraph/hedera-sdk-go/v2 v2.17.7/go.mod h1:70fpnH1Ds4gIGLsV7cz8cfHYCM18Zf9q+H+FtVkODpY=
+github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220927094515-9a7aad3fa052 h1:3k7X1kd43nwnBNo37ST5lsxKCAf3Er93tDUe4mdRFGA=
+github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20220927094515-9a7aad3fa052/go.mod h1:P0QU+a1kwZlqFNfG44/YhgR2njoDbAtDrYz3zR5lq3U=
+github.com/hashgraph/hedera-sdk-go/v2 v2.19.0 h1:a2IhVnHCHYrmIaTqpJguHLU8h5aLPSMKGSF/I9DZIOA=
+github.com/hashgraph/hedera-sdk-go/v2 v2.19.0/go.mod h1:5YpoxitKd1wAVI4gYUp6RcI7eiWFoE6J7D80lynJh5c=
 github.com/hashicorp/go-bexpr v0.1.10 h1:9kuI5PFotCboP3dkDYFr/wi0gg0QVbSNz5oFRpxn4uE=
 github.com/hashicorp/go-bexpr v0.1.10/go.mod h1:oxlubA2vC/gFVfX1A6JGp7ls7uCDlfJn732ehYYg+g0=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
