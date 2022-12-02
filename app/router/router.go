@@ -18,11 +18,12 @@ package router
 
 import (
 	"fmt"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/rs/cors"
-	log "github.com/sirupsen/logrus"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"net/http"
 )
 
@@ -38,7 +39,7 @@ var (
 	middlewares = chi.Middlewares{
 		render.SetContentType(render.ContentTypeJSON),
 		middleware.AllowContentType("application/json"),
-		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.StandardLogger()}),
+		middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: config.GetLoggerFor("Validator API Handler"), NoColor: true}),
 		middleware.RedirectSlashes,
 		middleware.Recoverer,
 		middleware.NoCache,

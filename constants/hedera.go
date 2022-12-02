@@ -49,3 +49,5 @@ const (
 	ReadOnlyHederaNativeNftTransfer = "READ_ONLY_HEDERA_NFT_TRANSFER"        // NH NFT -> WEVM
 	ReadOnlyHederaUnlockNftTransfer = "READ_ONLY_HEDERA_UNLOCK_NFT_TRANSFER" // WEVM NFT -> NH
 )
+
+const InvalidNodeAccount = "INVALID_NODE_ACCOUNT"
