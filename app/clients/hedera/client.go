@@ -21,7 +21,9 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
@@ -302,6 +304,10 @@ func shouldRetryTransaction(err error) bool {
 
 	preCheckError, ok := err.(*hedera.ErrHederaPreCheckStatus)
 	if ok && preCheckError.Status == hedera.StatusInvalidNodeAccount {
+		return true
+	}
+
+	if strings.Contains(err.Error(), constants.InvalidNodeAccount) {
 		return true
 	}
 
