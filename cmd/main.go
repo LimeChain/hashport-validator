@@ -36,7 +36,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	config.InitLogger(configuration.Node.LogLevel)
+	config.InitLogger(configuration.Node.LogLevel, configuration.Node.LogFormat)
 
 	// Prepare Clients
 	clients := bootstrap.PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs, parsedBridge.Networks)

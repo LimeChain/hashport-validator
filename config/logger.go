@@ -30,7 +30,20 @@ func GetLoggerFor(ctx string) *log.Entry {
 }
 
 // InitLogger sets the initial configuration of the used logger
-func InitLogger(level string) {
+func InitLogger(level string, format string) {
+
+	switch strings.ToLower(format) {
+	case "gcp":
+	log.SetFormatter(NewGCEFormatter(true))
+	case "default", "":
+		log.SetFormatter(&log.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: time.RFC3339Nano,
+		})
+	default:
+		log.Fatalf("Unsupported log format: %s", format)
+	}
+
 	log.SetOutput(os.Stdout)
 
 	switch strings.ToLower(level) {
@@ -43,11 +56,6 @@ func InitLogger(level string) {
 	default:
 		log.Fatalf("Unsupported log level: %s", level)
 	}
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339Nano,
-	})
 
 	log.Infof("Configured Log Level [%s]", log.GetLevel())
 }
