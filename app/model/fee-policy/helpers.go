@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,19 +14,33 @@
  * limitations under the License.
  */
 
-package service
+package fee_policy
 
-import "github.com/stretchr/testify/mock"
+func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
+	mapObject, ok := input.(map[interface{}]interface{})
+	if !ok {
+		return nil, false
+	}
 
-type MockFeeService struct {
-	mock.Mock
+	for eleKey, eleValue := range mapObject {
+		if eleKey.(string) == key {
+			return eleValue, true
+		}
+	}
+
+	return nil, false
 }
 
-func (mfs *MockFeeService) CalculateFee(token string, amount int64) (fee, remainder int64) {
-	args := mfs.Called(token, amount)
-	return args.Get(0).(int64), args.Get(1).(int64)
-}
+func networkAllowed(networks []uint64, networkId uint64) bool {
+	if networks == nil {
+		return true
+	}
 
-func (mfs *MockFeeService) CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64) {
-	panic("implement me")
+	for _, ele := range networks {
+		if ele == networkId {
+			return true
+		}
+	}
+
+	return false
 }

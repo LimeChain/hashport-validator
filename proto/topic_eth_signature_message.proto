@@ -12,4 +12,5 @@ message TopicEthSignatureMessage {
   string recipient = 5; // ID / Address of the receiver
   string amount = 6; // The amount to transfer
   string signature = 7; // The signature of the validator
+  string fee = 8; // The fee of the transfer
 }

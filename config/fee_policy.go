@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package service
+package config
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
+import fee_policy "github.com/limechain/hedera-eth-bridge-validator/app/model/fee-policy"
 
-	// CalculatePercentageFee performs the actual percentage calculation with provided params using constants.FeeMaxPercentage
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
+type FeePolicyStorage struct {
+	StoreAddresses map[string]fee_policy.FeePolicy
 }

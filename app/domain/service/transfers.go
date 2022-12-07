@@ -69,4 +69,5 @@ type NonFungibleTransferData struct {
 type FungibleTransferData struct {
 	TransferData
 	Amount string `json:"amount"`
+	Fee    string `json:"fee"`
 }

@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -158,7 +159,7 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 func cryptoCreate(client *hedera.Client, result *DeployResult) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.PrivateKeyGenerateEd25519()
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
-	fmt.Printf("Hederea Public Key: %v\n", privateKey.PublicKey().String())
+	fmt.Printf("Hedera Public Key: %v\n", privateKey.PublicKey().String())
 	publicKey := privateKey.PublicKey()
 	newAccount, err := hedera.NewAccountCreateTransaction().
 		SetKey(publicKey).

@@ -14,13 +14,19 @@
  * limitations under the License.
  */
 
-package service
+package parser
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
+type FeePolicy struct {
+	LegalEntities map[string]*LegalEntity `yaml:"policies,omitempty" json:"policies,omitempty"`
+}
 
-	// CalculatePercentageFee performs the actual percentage calculation with provided params using constants.FeeMaxPercentage
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
+type LegalEntity struct {
+	Addresses  []string   `yaml:"addresses,omitempty" json:"addresses,omitempty"`
+	PolicyInfo PolicyInfo `yaml:"policy,omitempty" json:"policy,omitempty"`
+}
+
+type PolicyInfo struct {
+	FeeType  string      `yaml:"fee_type,omitempty" json:"feeТype,omitempty"`
+	Networks []uint64    `yaml:"networks,omitempty" json:"networks,omitempty"`
+	Value    interface{} `yaml:"value,omitempty" json:"value,omitempty"`
 }

@@ -41,6 +41,6 @@ func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge) *apiro
 	apiRouter.AddV1Router(min_amounts.Route, min_amounts.NewRouter(services.Pricing))
 	apiRouter.AddV1Router(assets.Route, assets.NewRouter(bridgeConfig, services.Assets, services.Pricing))
 	apiRouter.AddV1Router(utils.Route, utils.NewRouter(services.Utils))
-	apiRouter.AddV1Router(fees.Route, fees.NewRouter(services.Pricing))
+	apiRouter.AddV1Router(fees.Route, fees.NewRouter(services.Pricing, services.Fees, services.FeePolicyHandler))
 	return apiRouter
 }

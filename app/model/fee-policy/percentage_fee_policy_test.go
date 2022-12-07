@@ -14,19 +14,31 @@
  * limitations under the License.
  */
 
-package service
+package fee_policy
 
-import "github.com/stretchr/testify/mock"
+import (
+	"testing"
 
-type MockFeeService struct {
-	mock.Mock
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	testingPercentageFeePolicyPolicy = PercentageFeePolicy{
+		Networks: []uint64{10, 20, 30, 40, 50},
+		Value:    2000,
+	}
+)
+
+func Test_ParseNewPercentageFeePolicy_Works(t *testing.T) {
+	policy, err := ParseNewPercentageFeePolicy(nil, 10)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, policy)
 }
 
-func (mfs *MockFeeService) CalculateFee(token string, amount int64) (fee, remainder int64) {
-	args := mfs.Called(token, amount)
-	return args.Get(0).(int64), args.Get(1).(int64)
-}
+func Test_PercentageFeePolicy_FeeAmountFor_ShouldReturnFeePolicy(t *testing.T) {
+	feeAmount, exist := testingPercentageFeePolicyPolicy.FeeAmountFor(10, "", 3000000)
 
-func (mfs *MockFeeService) CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64) {
-	panic("implement me")
+	assert.Equal(t, true, exist)
+	assert.Equal(t, int64(60000), feeAmount)
 }

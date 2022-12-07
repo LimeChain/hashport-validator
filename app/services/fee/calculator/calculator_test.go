@@ -1,12 +1,13 @@
 package calculator
 
 import (
+	"testing"
+
 	"github.com/gookit/event"
 	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var feePercentages = map[string]int64{
@@ -29,6 +30,18 @@ func Test_CalculateFee(t *testing.T) {
 	service := New(feePercentages)
 
 	fee, remainder := service.CalculateFee("hbar", 20)
+
+	expectedFee := int64(2)
+	expectedRemainder := int64(18)
+
+	assert.Equal(t, expectedFee, fee)
+	assert.Equal(t, expectedRemainder, remainder)
+}
+
+func Test_CalculatePercentageFee(t *testing.T) {
+	service := New(feePercentages)
+
+	fee, remainder := service.CalculatePercentageFee(20, 10000)
 
 	expectedFee := int64(2)
 	expectedRemainder := int64(18)

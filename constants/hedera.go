@@ -24,6 +24,7 @@ const (
 )
 
 var (
+	// WARNING : This value is set during bridge config processing in config.NewBridge and is using the above constants.HederaName
 	HederaNetworkId = uint64(296) // Default Testnet
 )
 

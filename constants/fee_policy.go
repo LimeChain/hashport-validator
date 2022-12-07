@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package service
+package constants
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
-
-	// CalculatePercentageFee performs the actual percentage calculation with provided params using constants.FeeMaxPercentage
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
-}
+const (
+	FeePolicyTypeFlat         = "flat"
+	FeePolicyTypePercentage   = "percentage"
+	FeePolicyTypeFlatPerToken = "flat_per_token"
+)

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,17 +16,21 @@
 
 package service
 
-import "github.com/stretchr/testify/mock"
+import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
+	"github.com/stretchr/testify/mock"
+)
 
-type MockFeeService struct {
+type MockFeePolicyHandler struct {
 	mock.Mock
 }
 
-func (mfs *MockFeeService) CalculateFee(token string, amount int64) (fee, remainder int64) {
-	args := mfs.Called(token, amount)
-	return args.Get(0).(int64), args.Get(1).(int64)
+func (m *MockFeePolicyHandler) ProcessLatestConfig(topicID hedera.TopicID) (*parser.FeePolicy, error) {
+	args := m.Called(topicID)
+	return args[0].(*parser.FeePolicy), args.Error(1)
 }
 
-func (mfs *MockFeeService) CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64) {
+func (m *MockFeePolicyHandler) FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool) {
 	panic("implement me")
 }
