@@ -7,13 +7,12 @@ The network consists of **three** validator nodes, which process incoming transf
 
 Example uses `Docker Compose`.
 
-
 ## Terminology
-* HTS - Hedera token service
-* HCS - Hedera contract service
+* HTS - Hedera token service.
+* HCS - Hedera contract service.
 * Native Token - In the sense of the Hashport Bridge, this is a token, that is deployed on the EVM or HTS and is the original version of that token. It is Native to the specific EVM. For example [Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7) is Native to Ethereum but has been `bridged` to other EVMs. [WETH](https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2) is also Native to Ethereum.
 * Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token that is deployed to EVM or HTS BY the bridge itself. For example [Theter USD](https://bscscan.com/token/0x55d398326f99059ff775485246999027b3197955) on BSC has been `bridged` by Binance and actually represents the value of the native [Ethereum Native Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7).
-
+* EVM - Ethereum Virtual Machine.
 
 ## Onboarding in depth guide:
    To get a general idea for the whole hashport system it will be best to start with setting up the bridge.yml for the 
@@ -22,11 +21,11 @@ Example uses `Docker Compose`.
    ! Hedera scripts are found in the [Validator repo](https://github.com/LimeChain/hashport-validator)
    ! EVM scripts are found in [Contracts repo](https://github.com/LimeChain/hashport-contracts)
 
-
    - 1 go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
    - 2 run the script to create the bridge topic (the network will be testnet and we will have 3 members):
       ```
-      go run ./scripts/bridge/setup/cmd/setup.go \ --privateKey=__ED25519_PRIVATE_KEY__ \
+      go run ./scripts/bridge/setup/cmd/setup.go \
+         --privateKey=__ED25519_PRIVATE_KEY__ \
          --accountID=__ED25519_ACC__ --adminKey=__ED25519_PUB_KEY__ \
          --network=testnet --members=3
       ```
@@ -90,7 +89,6 @@ Example uses `Docker Compose`.
    npx hardhat update-native-token --fee-percentage 5 --native-token __TOKEN_ADDRES__ --router __EVM_ROUTER_ADDRES__ --status true --network __EVM_NETWORK__
    ```
  
-
    - 7 To pay fees for bridging from this EVM we will set a payment token.
       ```
       npx hardhat deploy-token --decimals 6 --name "USDC" --symbol USDC --network __EVM_NETWORK__
@@ -113,9 +111,8 @@ Example uses `Docker Compose`.
          --symbol "__SYMBOL__" \
          --decimals 8
       ```
-      
-      ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
+      ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
    - 10 Use steps from 4 to 9 to deploy router to one more EVM network
    - 11 Create Wrapped versions for EVM to EVM bridging on both EVMS ( For Native Token on EVM we need coresponding Wrapped token on the Other EVM )
@@ -130,7 +127,6 @@ Example uses `Docker Compose`.
          --decimals 18
       ```
 
-
    - 12 To enable bridging from EVM ---> Hedera. We will need to create a "Wrapped" versions of "EVM native token" on Hedera.
    Run wrapped-token-create.go to create custom wrapped token with a bridge account treasury and associate it with hedera (save the output)
       ```
@@ -143,7 +139,6 @@ Example uses `Docker Compose`.
          --bridgeID=__Bridge_Topick_ID__ \
          --generateSupplyKeysFromMemberPrKeys = true
       ```
-
 
    - 13 NFT setup. For now we can only bridge Hedera `Native` NFTs to other EVMs and those EVM wrapped versions back to the `Native` Hedera NFT.
       * Deploy NFT on Hedera
@@ -175,8 +170,7 @@ Example uses `Docker Compose`.
          --symbol "__WRAPPED_NFT_SYMBOL__"
       ```
 
-
-!!! Make sure to have enoug Tkoens for paying fees and enoug gas to use in each EVM Wallet. 
+!!! Make sure to have enoug Tokens for paying fees and enoug gas to use in each EVM Wallet. 
 !!! Make sure to associate all tokens with all hedera accounts
    ```
    go run ./scripts/token/associate/cmd/associate.go \
@@ -185,8 +179,6 @@ Example uses `Docker Compose`.
       --network=testnet \
       --tokenID=__TOKEN_TOPIC_ID__
    ```
-
-
 
 The structure of the three validators
 ```
