@@ -9,10 +9,10 @@ Example uses `Docker Compose`.
 
 
 ## Terminology
-HTS - Hedera token service
-HCS - Hedera contract service
-Native Token - In the sense of the Hashport Bridge, this is a token, that is deployed on the EVM or HTS and is the original version of that token. It is Native to the specific EVM. For example [Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7) is Native to Ethereum but has been `bridged` to other EVMs. [WETH](https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2) is also Native to Ethereum.
-Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token that is deployed to EVM or HTS BY the bridge itself. For example [Theter USD](https://bscscan.com/token/0x55d398326f99059ff775485246999027b3197955) on BSC has been `bridged` by Binance and actually represents the value of the native [Ethereum Native Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7).
+* HTS - Hedera token service
+* HCS - Hedera contract service
+* Native Token - In the sense of the Hashport Bridge, this is a token, that is deployed on the EVM or HTS and is the original version of that token. It is Native to the specific EVM. For example [Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7) is Native to Ethereum but has been `bridged` to other EVMs. [WETH](https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2) is also Native to Ethereum.
+* Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token that is deployed to EVM or HTS BY the bridge itself. For example [Theter USD](https://bscscan.com/token/0x55d398326f99059ff775485246999027b3197955) on BSC has been `bridged` by Binance and actually represents the value of the native [Ethereum Native Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7).
 
 
 ## Onboarding in depth guide:
