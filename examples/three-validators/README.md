@@ -25,10 +25,11 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
 
    - 1 go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
    - 2 run the script to create the bridge topic (the network will be testnet and we will have 3 members):
-      
+      ```
       go run ./scripts/bridge/setup/cmd/setup.go \ --privateKey=__ED25519_PRIVATE_KEY__ \
          --accountID=__ED25519_ACC__ --adminKey=__ED25519_PUB_KEY__ \
          --network=testnet --members=3
+      ```
 
       This script will generate 
       - Alice, Bob and Carl accounts  
@@ -37,19 +38,20 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
       ! Save it all.
 
    - 3 Create a Hedera Native token (save the output)
+      ```
       go run ./scripts/token/native/create/cmd/create.go \
-      --privateKey = __ED25519_PRIVATE_KEY__ \
-      --accountID=__ED25519_ACC__ --network=testnet \
-      --memberPrKeys = __Alice__,__Bob__,__Carl__ \
-      --bridgeID=__Bridge_Topick_ID__
-
+         --privateKey = __ED25519_PRIVATE_KEY__ \
+         --accountID=__ED25519_ACC__ --network=testnet \
+         --memberPrKeys = __Alice__,__Bob__,__Carl__ \
+         --bridgeID=__Bridge_Topick_ID__
+      ```
 
    Now set up the EVM Routers. We will need at least 2 EVM networks, because this system can bridge directly from EVM to EVM.
    Possible bridging combinations include Hedera <-> EVM, EVM <-> EVM
 
    - 4 Setup EVM Router by running the [EVM deployment scripts](https://github.com/LimeChain/hashport-contracts) from the [hashport-contracts](https://github.com/LimeChain/hedera-eth-bridge-contracts/blob/main/README.md#scripts) repo. You will need 4 EVM Wallets: Owner, Alice, Bob and Carl accounts
    Deploy the router:
-
+      ```
       npx hardhat deploy-router --help
          --fee-calculator-precision    The precision of fee calculations for native tokens (default: 100000)
          --governance-percentage       The percentage of how many of the total members are required to sign given message (default: 50)
@@ -66,11 +68,11 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
          --fee-calculator-precision 100000 \
          --members __Alice__,__Bob__,__Carl__ \
          --members-admins __Alice__,__Bob__,__Carl__
-
+      ```
       ! Save the router address
 
    - 5 To bridge native HBAR from Hedera we will need a wrapped version on the EVM network. The flow is Hedeera HBAR --> Wrapped HBAR. To deploay a wrapped version of HBAR we will use:
-
+      ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
          --router __EVM_ROUTER_ADDRES__ \
@@ -79,22 +81,29 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
          --name "HBAR[__EVM_CHAIN_ID__]" \
          --symbol "HBAR[__EVM_CHAIN_ID__]" \
          --decimals 8
+      ```
 
    - 6 To bridge a native token from the EVM to Hedera we will need to transfer the ownership of that token to the Router. This is a script that `Creates` a token and thenwe will `Transfers` ownership.
+   ```
    npx hardhat deploy-token --decimals 18 --name "Some Native Toekn Name" --symbol "SNTN" --network __EVM_NETWORK__
+
    npx hardhat update-native-token --fee-percentage 5 --native-token __TOKEN_ADDRES__ --router __EVM_ROUTER_ADDRES__ --status true --network __EVM_NETWORK__
+   ```
  
 
    - 7 To pay fees for bridging from this EVM we will set a payment token.
+      ```
       npx hardhat deploy-token --decimals 6 --name "USDC" --symbol USDC --network __EVM_NETWORK__
+
       npx hardhat set-payment-token \
          --network __EVM_NETWORK__ \
          --router __EVM_ROUTER_ADDRES__ \
          --payment-token __TOKEN_ADDRES__ \
          --status true
-
+      ```
 
    - 8 Create a wrapped version of the Hedera token (from step 3) so we can brigde it. Native Hedeera Token --> Wrapped EVM token
+      ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
          --router __EVM_ROUTER_ADDRES__ \
@@ -103,12 +112,14 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
          --name "__Name__" \
          --symbol "__SYMBOL__" \
          --decimals 8
+      ```
       
       ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
 
    - 10 Use steps from 4 to 9 to deploy router to one more EVM network
    - 11 Create Wrapped versions for EVM to EVM bridging on both EVMS ( For Native Token on EVM we need coresponding Wrapped token on the Other EVM )
+      ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
          --router __EVM_ROUTER_ADDRES__ \
@@ -117,10 +128,12 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
          --name "Wraped __SOURCE_EVM_NATIVE_TOKEN_NAME__" \
          --symbol "W_ __SOURCE_EVM_NATIVE_TOKEN_SYMBOL__" \
          --decimals 18
+      ```
 
 
    - 12 To enable bridging from EVM ---> Hedera. We will need to create a "Wrapped" versions of "EVM native token" on Hedera.
    Run wrapped-token-create.go to create custom wrapped token with a bridge account treasury and associate it with hedera (save the output)
+      ```
       go run ./scripts/token/wrapped/create/cmd/create.go \
          --privateKey =__ED25519_PRIVATE_KEY__ \
          --accountID = __ED25519_ACC__ \
@@ -129,40 +142,49 @@ Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token 
          --memberPrKeys = __Alice__,__Bob__,__Carl__ \
          --bridgeID=__Bridge_Topick_ID__ \
          --generateSupplyKeysFromMemberPrKeys = true
+      ```
 
 
    - 13 NFT setup. For now we can only bridge Hedera `Native` NFTs to other EVMs and those EVM wrapped versions back to the `Native` Hedera NFT.
       * Deploy NFT on Hedera
+      ```
       go run ./scripts/token/native/nft/create/cmd/create.go \
          --privateKey=__ED25519_PRIVATE_KEY__ \
          --accountID=__ED25519_ACC__ \
          --network=testnet \
          --memberPrKeys=__Alice__,__Bob__,__Carl__ \
          --bridgeID=__Bridge_Topick_ID__
+      ```
 
       * Mint the NFT on hedera
+      ```
       go run scripts/token/native/nft/mint/main.go \
-      -privateKey __ED25519_PRIVATE_KEY__ \
-      -accountID __ED25519_ACC__ \
-      -network testnet \
-      -tokenID __ID_OF_DEPLOYED_NFT__ \
-      -metadata SomeTestMetaData
+         -privateKey __ED25519_PRIVATE_KEY__ \
+         -accountID __ED25519_ACC__ \
+         -network testnet \
+         -tokenID __ID_OF_DEPLOYED_NFT__ \
+         -metadata SomeTestMetaData
+      ```
 
       * Deploy the wrapped versions of the Hedera NFT to the EVMs
+      ```
       npx hardhat deploy-wrapped-erc721-transfer-ownership \
          --network __EVM_NETWORK__ \
          --name "__WRAPPED_NFT_NAME__" \
          --router __EVM_ROUTER_ADDRES__ \
          --symbol "__WRAPPED_NFT_SYMBOL__"
+      ```
 
 
 !!! Make sure to have enoug Tkoens for paying fees and enoug gas to use in each EVM Wallet. 
 !!! Make sure to associate all tokens with all hedera accounts
+   ```
    go run ./scripts/token/associate/cmd/associate.go \
       --privateKey=__Wallet_PK__ \
       --accountID=__Wallet_ID__ \
       --network=testnet \
       --tokenID=__TOKEN_TOPIC_ID__
+   ```
 
 
 
