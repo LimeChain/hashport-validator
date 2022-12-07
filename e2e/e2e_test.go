@@ -84,12 +84,10 @@ func Test_HBAR(t *testing.T) {
 
 	// Step 3 - Validate fee scheduled transaction
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, constants.Hbar, fee)
-	scheduledTxID, scheduleID := verify.MembersScheduledTxs(
-		t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar, expectedTransfers, now)
+	scheduledTxID, scheduleID := verify.MembersScheduledTxs(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar, expectedTransfers, now)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verify.FungibleTransferFromValidatorAPI(
-		t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset)
+	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), constants.Hbar, fmt.Sprint(mintAmount), targetAsset)
 
 	// Step 4.1 - Get the consensus timestamp of transfer tx
 	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
@@ -168,8 +166,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	}
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
-	transactionResponse, wrappedBalanceBefore := verify.TokenTransferToBridgeAccount(
-		t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, targetAsset, setupEnv.TokenID, evm, memo, evm.Receiver, amount)
+	transactionResponse, wrappedBalanceBefore := verify.TokenTransferToBridgeAccount(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, targetAsset, setupEnv.TokenID, evm, memo, evm.Receiver, amount)
 
 	// Step 2 - Verify the submitted topic messages
 	receivedSignatures := verify.TopicMessages(
@@ -177,8 +174,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 	// Step 3 - Validate fee scheduled transaction
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, setupEnv.TokenID.String(), fee)
-	scheduledTxID, scheduleID := verify.MembersScheduledTxs(t,
-		setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, setupEnv.TokenID.String(), expectedTransfers, now)
+	scheduledTxID, scheduleID := verify.MembersScheduledTxs(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, setupEnv.TokenID.String(), expectedTransfers, now)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
@@ -277,8 +273,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedId := verify.BurnEvent(t, burnTxReceipt, expectedRouterBurn)
 
 	// 4. Validate that a scheduled transaction was submitted
-	expectedTransfers := expected.MirrorNodeExpectedTransfersForBurnEvent(
-		setupEnv.Members, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, constants.Hbar, expectedReceiveAmount, fee)
+	expectedTransfers := expected.MirrorNodeExpectedTransfersForBurnEvent(setupEnv.Members, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, constants.Hbar, expectedReceiveAmount, fee)
 	transactionID, scheduleID := verify.SubmittedScheduledTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar, expectedTransfers, now)
 
 	// 5. Validate Event Transaction ID retrieved from Validator API
@@ -333,8 +328,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, setupEnv.TokenID.String(), amount)
 
 	// 2. Submit burn transaction to the bridge contract
-	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(
-		t, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
+	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(t, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
 
 	// 2.1 Get the block timestamp of burn event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
@@ -407,8 +401,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	fee := amount * (feeData.ServiceFeePercentage.Int64() / constants.FeeMaxPercentage)
 
 	// Step 2: Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := submit.LockEthTransaction(
-		t, evm, setupEnv.NativeEvmToken, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
+	receipt, expectedLockEventLog := submit.LockEthTransaction(t, evm, setupEnv.NativeEvmToken, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
 
 	// Step 2.1 - Get the block timestamp of lock event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
@@ -544,8 +537,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		t, setupEnv.Clients.Hedera, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.TopicID)
 
 	// Step 3 - Validate burn scheduled transaction
-	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(
-		t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
+	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
@@ -852,13 +844,11 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t, setupEnv.Clients.Hedera, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), setupEnv.TopicID)
 
 	// Step 4 - Validate members fee scheduled transaction
-	scheduledTxID, scheduleID := verify.MembersScheduledTxs(
-		t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar,
+	scheduledTxID, scheduleID := verify.MembersScheduledTxs(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar,
 		expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, constants.Hbar, validatorsFee), now)
 
 	// Step 5 - Verify Non-Fungible Transfer retrieved from Validator API
-	transactionData := verify.NonFungibleTransferFromValidatorAPI(
-		t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, transactionID, nftToken, string(decodedMetadata), serialNumber, targetAsset)
+	transactionData := verify.NonFungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, transactionID, nftToken, string(decodedMetadata), serialNumber, targetAsset)
 
 	// Step 5.1 - Get the consensus timestamp of the transfer
 	tx, err := setupEnv.Clients.MirrorNode.GetSuccessfulTransaction(transactionID)
