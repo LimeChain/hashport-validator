@@ -75,7 +75,7 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 	}
 }
 
-func (c *Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
+func (c Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 	var parsedResponse mirrorNodeModel.TransactionsResponse
 	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger)
 	if err != nil {
@@ -193,12 +193,12 @@ func (c Client) GetLatestMessages(topicId hedera.TopicID, limit int64) ([]messag
 	return c.getTopicMessagesByQuery(latestMessagesQuery)
 }
 
-// GetQueryDefaultLimit returns the default records limit per query
+// QueryDefaultLimit returns the default records limit per query
 func (c Client) QueryDefaultLimit() int64 {
 	return c.queryDefaultLimit
 }
 
-// GetQueryMaxLimit returns the maximum allowed limit per messages query
+// QueryMaxLimit returns the maximum allowed limit per messages query
 func (c Client) QueryMaxLimit() int64 {
 	return c.queryMaxLimit
 }
@@ -424,6 +424,21 @@ func (c Client) TopicExists(topicID hedera.TopicID) bool {
 		topicID.String())
 
 	return c.query(topicQuery, topicID.String())
+}
+
+func (c Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startTimestamp int64, transactionType string) ([]transaction.Transaction, error) {
+	query := fmt.Sprintf("?account.id=%s&transactionType=%s&timestamp=gte:%s&limit=%d",
+		accountId,
+		transactionType,
+		timestampHelper.String(startTimestamp),
+		c.queryDefaultLimit)
+
+	resp, err := c.getTransactionsByQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Transactions, nil
 }
 
 func (c Client) query(query, entityID string) bool {

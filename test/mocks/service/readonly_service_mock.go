@@ -17,8 +17,10 @@
 package service
 
 import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -27,7 +29,7 @@ type MockReadOnlyService struct {
 }
 
 func (m *MockReadOnlyService) FindNftTransfer(transferID string, tokenID string, serialNum int64, sender string, receiver string, save func(transactionID string, scheduleID string, status string) error) {
-	panic("implement me")
+	m.Called(transferID, tokenID, serialNum, sender, receiver, save)
 }
 
 func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mirrorNodeTransaction.Response, error), save func(transactionID, scheduleID, status string) error) {
@@ -36,4 +38,8 @@ func (m *MockReadOnlyService) FindTransfer(transferID string, fetch func() (*mir
 
 func (m *MockReadOnlyService) FindAssetTransfer(transferID string, asset string, transfers []transfer.Hedera, fetch func() (*mirrorNodeTransaction.Response, error), save func(transactionID, scheduleID, status string) error) {
 	m.Called(transferID, asset, transfers, fetch, save)
+}
+
+func (m *MockReadOnlyService) FindScheduledNftAllowanceApprove(t *payload.Transfer, sender hedera.AccountID, save func(transactionID string, scheduleID string, status string) error) {
+	m.Called(t, sender, save)
 }

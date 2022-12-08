@@ -17,6 +17,7 @@
 package constants
 
 import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"math/big"
 	"strconv"
 
@@ -73,11 +74,44 @@ var (
 		ChainId: constants.HederaNetworkId,
 		Asset:   NetworkHederaNonFungibleNativeToken,
 	}
+	NetworkHederaNFTRoyaltyFeeForToken = asset.RoyaltyFee{
+		Amount: token.Fraction{
+			Numerator:   100,
+			Denominator: 100,
+		},
+		FallbackFee: asset.FixedFee{
+			Amount:              10,
+			DenominatingTokenId: &NetworkHederaFungibleNativeToken,
+		},
+		CollectorAccountID: "",
+	}
+	NetworkHederaNFTRoyaltyFeeHbarFallback = asset.RoyaltyFee{
+		Amount: token.Fraction{
+			Numerator:   100,
+			Denominator: 100,
+		},
+		FallbackFee: asset.FixedFee{
+			Amount:              100,
+			DenominatingTokenId: nil,
+		},
+		CollectorAccountID: "",
+	}
 	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
 		Name:          NetworkHederaNonFungibleNativeToken,
 		Symbol:        NetworkHederaNonFungibleNativeToken,
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
+		CustomFees: asset.CustomFees{
+			CreatedTimestamp: "",
+			RoyaltyFees: []asset.RoyaltyFee{
+				NetworkHederaNFTRoyaltyFeeForToken,
+				NetworkHederaNFTRoyaltyFeeHbarFallback,
+			},
+		},
+		CustomFeeTotalAmounts: asset.CustomFeeTotalAmounts{
+			FallbackFeeAmountInHbar:     100,
+			FallbackFeeAmountsByTokenId: map[string]int64{NetworkHederaFungibleNativeToken: NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount},
+		},
 	}
 
 	// Wrapped Tokens //
@@ -366,6 +400,16 @@ var (
 				IsNative:     true,
 				PaymentToken: constants.Hbar,
 				Fee:          decimal.NewFromInt(HederaNftFees[NetworkHederaNonFungibleNativeToken]),
+				CustomFees: []pricing.CustomFee{
+					{
+						PaymentToken: constants.Hbar,
+						Fee:          decimal.NewFromInt(NetworkHederaNFTRoyaltyFeeHbarFallback.FallbackFee.Amount),
+					},
+					{
+						PaymentToken: NetworkHederaFungibleNativeToken,
+						Fee:          decimal.NewFromInt(NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount),
+					},
+				},
 			},
 		},
 		PolygonNetworkId: {
