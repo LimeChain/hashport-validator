@@ -1,0 +1,49 @@
+#E2E ETH-Hedera
+hedera:
+  bridge_account:
+  payer_account:
+  dbs:
+    - host:
+      name:
+      password:
+      port:
+      username:
+    - host:
+      name:
+      password:
+      port:
+      username:
+    - host:
+      name:
+      password:
+      port:
+      username:
+    - host:
+      name:
+      password:
+      port:
+      username:
+  members:
+  mirror_node:
+    api_address:
+    client_address:
+    polling_interval:
+    query_max_limit:
+    query_default_limit:
+  network_type:
+  sender:
+    account:
+    private_key:
+  topic_id:
+evm:
+tokens:
+  whbar: "HBAR"
+  wtoken:
+  nft_token:
+  ntf_serial_number:
+  evm_native_token:
+validator_url:
+scenario:
+  expectedValidatorsCount: 3
+  firstEvmChainId: 80001 # Polygon Mumbai Testnet (e2e config must have configuration for that particular network)
+  secondEvmChainId: 43113 # Avalanche Fuji Testnet (e2e config must have configuration for that particular network)

@@ -137,12 +137,10 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	payerAccount, err := hederaSDK.AccountIDFromString(config.Hedera.PayerAccount)
 	if err != nil {
 		return nil, err
 	}
-
 	topicID, err := hederaSDK.TopicIDFromString(config.Hedera.TopicID)
 	if err != nil {
 		return nil, err
