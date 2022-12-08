@@ -123,7 +123,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 			}
 
 			if networkId == constants.HederaNetworkId {
-				fee, err := s.hederaNativeNftFee(id, networkId)
+				fee, err := s.hederaNativeNftFee(id, networkId, *assetInfo)
 				if err != nil {
 					return err
 				}
@@ -207,7 +207,7 @@ func (s *Service) evmWrappedNftFee(id string, diamondRouter client.DiamondRouter
 	}, nil
 }
 
-func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonFungibleFee, error) {
+func (s *Service) hederaNativeNftFee(id string, networkId uint64, asset asset.NonFungibleAssetInfo) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.hederaNftFees[id]
 	if !ok {
 		errMsg := fmt.Sprintf("No fee found for NFT [%s] on network [%d]", id, networkId)
@@ -215,10 +215,26 @@ func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonF
 		return nil, errors.New(errMsg)
 	}
 
+	var customFees []pricing.CustomFee
+	if asset.CustomFeeTotalAmounts.FallbackFeeAmountInHbar > 0 {
+		customFees = append(customFees, pricing.CustomFee{
+			PaymentToken: constants.Hbar,
+			Fee:          decimal.NewFromInt(asset.CustomFeeTotalAmounts.FallbackFeeAmountInHbar),
+		})
+	}
+
+	for token, fee := range asset.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId {
+		customFees = append(customFees, pricing.CustomFee{
+			PaymentToken: token,
+			Fee:          decimal.NewFromInt(fee),
+		})
+	}
+
 	return &pricing.NonFungibleFee{
 		IsNative:     true,
 		Fee:          decimal.NewFromInt(fee),
 		PaymentToken: constants.Hbar,
+		CustomFees:   customFees,
 	}, nil
 }
 

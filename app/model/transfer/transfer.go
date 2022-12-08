@@ -17,6 +17,7 @@
 package transfer
 
 import (
+	"github.com/hashgraph/hedera-sdk-go/v2"
 	"time"
 )
 
@@ -56,4 +57,11 @@ type Filter struct {
 	Timestamp     time.Time `json:"timestamp"`
 	TokenId       string    `json:"tokenId"`
 	TransactionId string    `json:"transactionId"`
+}
+
+type SanityCheckResult struct {
+	ChainId    uint64
+	EvmAddress string
+	NftId      *hedera.NftID
+	Err        error
 }
