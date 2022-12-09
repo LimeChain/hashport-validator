@@ -21,9 +21,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
+
 	"github.com/shopspring/decimal"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
@@ -42,7 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	e2eClients "github.com/limechain/hedera-eth-bridge-validator/e2e/clients"
-	db_validation "github.com/limechain/hedera-eth-bridge-validator/e2e/service/database"
 	e2eParser "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/parser"
 )
 
@@ -124,7 +125,7 @@ type Setup struct {
 	FeePercentages  map[string]int64
 	Members         []hederaSDK.AccountID
 	Clients         *clients
-	DbValidator     *db_validation.Service
+	DbValidator     *verify.Service
 	AssetMappings   service.Assets
 	Scenario        *ScenarioConfig
 }
@@ -178,7 +179,7 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	dbValidator := db_validation.NewService(config.Hedera.DbValidationProps)
+	dbValidator := verify.NewService(config.Hedera.DbValidationProps)
 
 	scenario, err := newScenario(config)
 	if err != nil {
@@ -207,14 +208,14 @@ func newSetup(config Config) (*Setup, error) {
 // clients used by the e2e tests
 type clients struct {
 	Hedera          *hederaSDK.Client
-	EVM             map[uint64]EVMUtils
+	EVM             map[uint64]evmSetup.Utils
 	MirrorNode      *mirror_node.Client
 	ValidatorClient *e2eClients.Validator
 	FeeCalculator   service.Fee
 	Distributor     service.Distributor
 }
 
-func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]EVMUtils) (
+func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]evmSetup.Utils) (
 	routerClients map[uint64]client.DiamondRouter,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
 	evmNftClients map[uint64]map[string]client.EvmNft,
@@ -246,7 +247,7 @@ func newClients(config Config) (*clients, error) {
 		return nil, err
 	}
 
-	EVM := make(map[uint64]EVMUtils)
+	EVM := make(map[uint64]evmSetup.Utils)
 	evmClients := make(map[uint64]client.EVM)
 	for configChainId, conf := range config.EVM {
 		evmClient := evm.NewClient(conf, configChainId)
@@ -273,7 +274,7 @@ func newClients(config Config) (*clients, error) {
 			return nil, err
 		}
 
-		EVM[configChainId] = EVMUtils{
+		EVM[configChainId] = evmSetup.Utils{
 			EVMClient:               evmClient,
 			RouterContract:          routerInstance,
 			KeyTransactor:           keyTransactor,
@@ -392,18 +393,6 @@ type Config struct {
 	NftConstantFees map[string]int64
 	NftDynamicFees  map[string]decimal.Decimal
 	Scenario        e2eParser.ScenarioParser
-}
-
-type EVMUtils struct {
-	EVMClient               *evm.Client
-	EVMFungibleTokenClients map[string]client.EvmFungibleToken
-	EVMNftClients           map[string]client.EvmNft
-	RouterContract          *router.Router
-	KeyTransactor           *bind.TransactOpts
-	Signer                  *evm_signer.Signer
-	Receiver                common.Address
-	RouterAddress           common.Address
-	WTokenContractAddress   string
 }
 
 // Hedera props from the application.yml

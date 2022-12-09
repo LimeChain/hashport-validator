@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package database
+package verify
 
 import (
 	"encoding/hex"
+	"testing"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
-	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/fee"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/message"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity"
 )
 
 type dbVerifier struct {
@@ -109,7 +112,7 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 		if err != nil {
 			return false, nil, err
 		}
-		if !transfersFieldsMatch(*expectedTransferRecord, *actualDbTx) {
+		if !transferIsAsExpected(expectedTransferRecord, actualDbTx) {
 			return false, nil, nil
 		}
 	}
@@ -122,7 +125,7 @@ func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, er
 		if err != nil {
 			return false, err
 		}
-		if !scheduleFieldsMatch(*expectedRecord, *actualDbTx) {
+		if !scheduleIsAsExpected(expectedRecord, actualDbTx) {
 			return false, nil
 		}
 	}
@@ -175,11 +178,55 @@ func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !feeFieldsMatch(*actual, *expectedRecord) {
+		if !feeIsAsExpected(actual, expectedRecord) {
 			return false, nil
 		}
 	}
 	return true, nil
+}
+
+func FeeRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Fee) {
+	t.Helper()
+	ok, err := dbValidation.VerifyFeeRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !ok {
+		t.Fatalf("[%s] - Database does not contain expected fee records", expectedRecord.TransactionID)
+	}
+}
+
+func TransferRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Transfer) {
+	t.Helper()
+	exist, err := dbValidation.VerifyTransferRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected transfer records", expectedRecord.TransactionID)
+	}
+}
+
+func ScheduleRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Schedule) {
+	t.Helper()
+	exist, err := dbValidation.VerifyScheduleRecord(expectedRecord)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected schedule records", expectedRecord.TransactionID)
+	}
+}
+
+func TransferRecordAndSignatures(t *testing.T, dbValidation *Service, expectedRecord *entity.Transfer, authMsgBytes []byte, signatures []string) {
+	t.Helper()
+	exist, err := dbValidation.VerifyTransferAndSignatureRecords(expectedRecord, authMsgBytes, signatures)
+	if err != nil {
+		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
+	}
+	if !exist {
+		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
+	}
 }
 
 func contains(m entity.Message, array []entity.Message) bool {
@@ -189,4 +236,73 @@ func contains(m entity.Message, array []entity.Message) bool {
 		}
 	}
 	return false
+}
+
+func messagesFieldsMatch(comparing, comparable entity.Message) bool {
+	return comparable.TransferID == comparing.TransferID &&
+		comparable.Signature == comparing.Signature &&
+		comparable.Hash == comparing.Hash &&
+		transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
+		comparable.Signer == comparing.Signer
+}
+
+func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
+	return comparable.TransactionID == comparing.TransactionID &&
+		comparable.SourceChainID == comparing.SourceChainID &&
+		comparable.TargetChainID == comparing.TargetChainID &&
+		comparable.NativeChainID == comparing.NativeChainID &&
+		comparable.SourceAsset == comparing.SourceAsset &&
+		comparable.TargetAsset == comparing.TargetAsset &&
+		comparable.NativeAsset == comparing.NativeAsset &&
+		comparable.Receiver == comparing.Receiver &&
+		comparable.Amount == comparing.Amount &&
+		comparable.Status == comparing.Status &&
+		comparable.Metadata == comparing.Metadata &&
+		comparable.SerialNumber == comparing.SerialNumber &&
+		comparable.IsNft == comparing.IsNft &&
+		comparable.Originator == comparing.Originator &&
+		comparable.Timestamp == comparing.Timestamp
+}
+
+func transferIsAsExpected(expected, actual *entity.Transfer) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.SourceChainID != actual.SourceChainID ||
+		expected.TargetChainID != actual.TargetChainID ||
+		expected.NativeChainID != actual.NativeChainID ||
+		expected.SourceAsset != actual.SourceAsset ||
+		expected.TargetAsset != actual.TargetAsset ||
+		expected.NativeAsset != actual.NativeAsset ||
+		expected.Receiver != actual.Receiver ||
+		expected.Amount != actual.Amount ||
+		expected.Status != actual.Status ||
+		expected.SerialNumber != actual.SerialNumber ||
+		expected.Metadata != actual.Metadata ||
+		expected.IsNft != actual.IsNft ||
+		expected.Timestamp != actual.Timestamp {
+		return false
+	}
+	return true
+}
+
+func scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.ScheduleID != actual.ScheduleID ||
+		expected.HasReceiver != actual.HasReceiver ||
+		expected.Operation != actual.Operation ||
+		expected.Status != actual.Status ||
+		expected.TransferID.String != actual.TransferID.String {
+		return false
+	}
+	return true
+}
+
+func feeIsAsExpected(expected, actual *entity.Fee) bool {
+	if expected.TransactionID != actual.TransactionID ||
+		expected.ScheduleID != actual.ScheduleID ||
+		expected.Amount != actual.Amount ||
+		expected.Status != actual.Status ||
+		expected.TransferID.String != actual.TransferID.String {
+		return false
+	}
+	return true
 }
