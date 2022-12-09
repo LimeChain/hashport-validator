@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package util
+package expected
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
-	"testing"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 )
 
-func GetHederaAccountBalance(client *hedera.Client, account hedera.AccountID, t *testing.T) hedera.AccountBalance {
-	// Get bridge account hbar balance before transfer
-	receiverBalance, err := hedera.NewAccountBalanceQuery().
-		SetAccountID(account).
-		Execute(client)
-	if err != nil {
-		t.Fatalf("Unable to query the balance of the account [%s], Error: [%s]", account.String(), err)
+func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
+	fee, remainder := feeCalc.CalculateFee(token, amount)
+	validFee := distributor.ValidAmount(fee)
+	if validFee != fee {
+		remainder += fee - validFee
 	}
-	return receiverBalance
+
+	return remainder, validFee
 }
