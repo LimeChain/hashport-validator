@@ -54,6 +54,10 @@ var (
 
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now := time.Now()
@@ -151,8 +155,6 @@ func Test_HBAR(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
 
-	time.Sleep(30 * time.Second)
-
 	// Step 9 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures)
 	// and:
@@ -161,6 +163,10 @@ func Test_HBAR(t *testing.T) {
 
 // Test_E2E_Token_Transfer recreates a real life situation of a user who wants to bridge a Hedera native token to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
 func Test_E2E_Token_Transfer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now := time.Now()
@@ -256,7 +262,6 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	}
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// Step 9 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures)
@@ -266,6 +271,10 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 
 // Test_EVM_Hedera_HBAR recreates a real life situation of a user who wants to return a Hedera native HBARs from the EVM Network infrastructure. The wrapped HBARs on the EVM network(corresponding to the native Hedera Hashgraph's one) gets burned, then the locked HBARs on the Hedera bridge account get unlocked, forwarding them to the recipient account.
 func Test_EVM_Hedera_HBAR(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
@@ -324,7 +333,6 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	expectedFeeRecord := expected.FeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// 9. Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedBurnEventRecord)
@@ -334,6 +342,10 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 
 // Test_EVM_Hedera_Token recreates a real life situation of a user who wants to return a Hedera native token from the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera one) gets burned, then the amount gets unlocked on the Hedera bridge account, forwarding it to the recipient account.
 func Test_EVM_Hedera_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
 
@@ -392,7 +404,6 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	expectedFeeRecord := expected.FeeRecord(transactionID, scheduleID, fee, expectedId)
 
 	// 8. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// 9. Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedBurnEventRecord)
@@ -402,6 +413,10 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 
 // Test_EVM_Hedera_Native_Token recreates a real life situation of a user who wants to bridge an EVM native token to the Hedera infrastructure. A new wrapped token (corresponding to the native EVM one) gets minted to the bridge account, then gets transferred to the recipient account.
 func Test_EVM_Hedera_Native_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(1000000000000) // 1 000 gwei
 	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
@@ -456,7 +471,6 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	bridgeMintTransactionID, bridgeMintScheduleID := verify.ScheduledMintTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, now)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// Step 5: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := expected.FungibleTransferRecord(
@@ -487,7 +501,6 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// Step 6: Verify that records have been created successfully
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedLockEventRecord)
@@ -505,7 +518,6 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	)
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// Step 8: Validate that database statuses were updated correctly for the Schedule Transfer
 	expectedScheduleTransferRecord := &entity.Schedule{
@@ -528,6 +540,10 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 
 // Test_E2E_Hedera_EVM_Native_Token recreates a real life situation of a user who wants to bridge a Hedera wrapped token to the EVM Native Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's one) gets minted, then transferred to the recipient account on the EVM network.
 func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	setupEnv := setup.Load()
 	now := time.Now()
 
@@ -567,8 +583,6 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 	// Step 3 - Validate burn scheduled transaction
 	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
-
-	time.Sleep(30 * time.Second)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
@@ -656,6 +670,10 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 // Test_EVM_Native_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Native_to_EVM_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(1000000000000) // 1000 gwei
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
@@ -704,8 +722,6 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	// Step 4 - Verify the submitted topic messages
 	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, lockEventId)
 
-	time.Sleep(30 * time.Second)
-
 	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset)
 
@@ -753,6 +769,10 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 
 // Test_EVM_Wrapped_to_EVM_Token recreates a real life situation of a user who wants to bridge an EVM native token to another EVM chain.
 func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	amount := int64(100000000000) // 100 gwei
 	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
@@ -847,7 +867,6 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	}
 
 	// Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// Step 9 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedLockEventRecord, authMsgBytes, receivedSignatures)
@@ -855,6 +874,10 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 
 // Test_Hedera_Native_EVM_NFT_Transfer recreates User who wants to portal a Hedera Native NFT to an EVM chain.
 func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	now = time.Now()
 	setupEnv := setup.Load()
 	nftToken := setupEnv.NftTokenID.String()
@@ -993,21 +1016,18 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		},
 	}
 	// and recreate signed auth message
-	authMsgBytes, err := auth_message.
-		EncodeNftBytesFrom(
-			expectedTxRecord.SourceChainID,
-			expectedTxRecord.TargetChainID,
-			expectedTxRecord.TransactionID,
-			expectedTxRecord.TargetAsset,
-			expectedTxRecord.SerialNumber,
-			expectedTxRecord.Metadata,
-			expectedTxRecord.Receiver)
+	authMsgBytes, err := auth_message.EncodeNftBytesFrom(
+		expectedTxRecord.SourceChainID,
+		expectedTxRecord.TargetChainID,
+		expectedTxRecord.TransactionID,
+		expectedTxRecord.TargetAsset,
+		expectedTxRecord.SerialNumber,
+		expectedTxRecord.Metadata,
+		expectedTxRecord.Receiver,
+	)
 	if err != nil {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
-
-	// Wait a bit
-	time.Sleep(20 * time.Second)
 
 	// Step 12 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures)
@@ -1019,6 +1039,10 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 
 // Test_Hedera_EVM_BurnERC721_Transfer recreates User who wants to portal back a Hedera Native NFT from an EVM chain.
 func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("test skipped in short mode")
+	}
+
 	now = time.Now()
 	setupEnv := setup.Load()
 	nftToken := setupEnv.NftTokenID.String()
@@ -1091,6 +1115,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		Originator:    evm.Signer.Address(),
 		Timestamp:     entity.NanoTime{Time: blockTimestamp},
 	}
+
 	expectedScheduleTransferRecord := &entity.Schedule{
 		TransactionID: scheduledTxID,
 		ScheduleID:    scheduleID,
@@ -1104,11 +1129,9 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	}
 
 	// 10. Wait for validators to update DB state after Scheduled TX is mined
-	time.Sleep(30 * time.Second)
 
 	// 11. Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedTxRecord)
 	// and:
 	verify.ScheduleRecord(t, setupEnv.DbValidator, expectedScheduleTransferRecord)
-
 }

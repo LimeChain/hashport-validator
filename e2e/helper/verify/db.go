@@ -19,6 +19,7 @@ package verify
 import (
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
@@ -108,11 +109,12 @@ func (s *Service) VerifyScheduleRecord(expectedRecord *entity.Schedule) (bool, e
 
 func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer) (bool, *entity.Transfer, error) {
 	for _, verifier := range s.verifiers {
-		actualDbTx, err := verifier.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)
+		actualDbTx, err := s.getTransactionById(verifier, expectedTransferRecord)
 		if err != nil {
 			return false, nil, err
 		}
 		if !transferIsAsExpected(expectedTransferRecord, actualDbTx) {
+			s.logger.Infof("expected transaction: [%+v]; actual: [%+v]", expectedTransferRecord, actualDbTx)
 			return false, nil, nil
 		}
 	}
@@ -121,11 +123,12 @@ func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer
 
 func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, error) {
 	for _, verifier := range s.verifiers {
-		actualDbTx, err := verifier.schedule.Get(expectedRecord.TransactionID)
+		actualDbTx, err := s.getScheduleByTransactionId(verifier, expectedRecord)
 		if err != nil {
 			return false, err
 		}
 		if !scheduleIsAsExpected(expectedRecord, actualDbTx) {
+			s.logger.Infof("expected schedule: [%+v]; actual: [%+v]", expectedRecord, actualDbTx)
 			return false, nil
 		}
 	}
@@ -174,15 +177,99 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, authMsgBytes [
 
 func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 	for _, verifier := range s.verifiers {
-		actual, err := verifier.fee.Get(expectedRecord.TransactionID)
+		actual, err := s.getFeeByTransactionId(verifier, expectedRecord)
 		if err != nil {
 			return false, err
 		}
-		if !feeIsAsExpected(actual, expectedRecord) {
+
+		if !feeIsAsExpected(expectedRecord, actual) {
+			s.logger.Infof("expected fee: [%+v]; actual: [%+v]", expectedRecord, actual)
 			return false, nil
 		}
 	}
+
 	return true, nil
+}
+
+// getTransactionById returns a record from the validator database. The method will retry few times to get completed record.
+func (s *Service) getTransactionById(verifier dbVerifier, expectedTransferRecord *entity.Transfer) (*entity.Transfer, error) {
+	var result *entity.Transfer
+	var err error
+
+	retryAttempts := 6
+	current := 0
+
+	for current < retryAttempts {
+		current++
+
+		result, err = verifier.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)
+
+		// if result == nil && err == nil - the record is not found in the database
+		// if status != COMPLETED - the record processing is not finished
+		if (result != nil && result.Status == "COMPLETED") || err != nil {
+			return result, err
+		}
+
+		time.Sleep(10 * time.Second)
+		s.logger.Infof("Database Transaction record [%s] retry %d", expectedTransferRecord.TransactionID, current)
+	}
+
+	s.logger.Errorf("Database Transaction record [%s] not found after %d retries", expectedTransferRecord.TransactionID, current)
+	return result, err
+}
+
+// getScheduleByTransactionId returns a record from the validator database. The method will retry few times to get completed record.
+func (s *Service) getScheduleByTransactionId(verifier dbVerifier, expectedRecord *entity.Schedule) (*entity.Schedule, error) {
+	var result *entity.Schedule
+	var err error
+
+	retryAttempts := 6
+	current := 0
+
+	for current < retryAttempts {
+		current++
+
+		result, err = verifier.schedule.Get(expectedRecord.TransactionID)
+
+		// if result == nil && err == nil - the record is not found in the database
+		// if status != COMPLETED - the record processing is not finished
+		if (result != nil && result.Status == "COMPLETED") || err != nil {
+			return result, err
+		}
+
+		time.Sleep(10 * time.Second)
+		s.logger.Infof("Database Schedule record [%s] retry %d", expectedRecord.TransactionID, current)
+	}
+
+	s.logger.Errorf("Database Schedule record [%s] not found after %d retries", expectedRecord.TransactionID, current)
+	return result, err
+}
+
+// getFeeByTransactionId returns a record from the validator database. The method will retry few times to get completed record.
+func (s *Service) getFeeByTransactionId(verifier dbVerifier, expectedRecord *entity.Fee) (*entity.Fee, error) {
+	var result *entity.Fee
+	var err error
+
+	retryAttempts := 6
+	current := 0
+
+	for current < retryAttempts {
+		current++
+
+		result, err = verifier.fee.Get(expectedRecord.TransactionID)
+
+		// if result == nil && err == nil - the record is not found in the database
+		// if status != COMPLETED - the record processing is not finished
+		if (result != nil && result.Status == "COMPLETED") || err != nil {
+			return result, err
+		}
+
+		time.Sleep(10 * time.Second)
+		s.logger.Infof("Database Fee record [%s] retry %d", expectedRecord.TransactionID, current)
+	}
+
+	s.logger.Errorf("Database Fee record [%s] not found after %d retries", expectedRecord.TransactionID, current)
+	return result, err
 }
 
 func FeeRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.Fee) {

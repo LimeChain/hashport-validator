@@ -168,7 +168,7 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("Parsed [%s] to ETH Token [%s]", asset, wrappedAsset))
+	fmt.Printf("Parsed [%s] to ETH Token [%s]\n", asset, wrappedAsset)
 
 	approvedValue := big.NewInt(amount)
 
@@ -182,14 +182,14 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Approval Transaction", approveTx.Hash()))
+	fmt.Printf("[%s] Waiting for Approval Transaction\n", approveTx.Hash())
 	WaitForTransaction(t, evm, approveTx.Hash())
 
 	burnTx, err := evm.RouterContract.Burn(evm.KeyTransactor, new(big.Int).SetUint64(sourceChainId), common.HexToAddress(wrappedAsset), approvedValue, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
 
 	expectedRouterBurn := &router.RouterBurn{
 		//Account:      common.HexToAddress(evm.Signer.Address()),
@@ -200,12 +200,12 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup
 
 	burnTxHash := burnTx.Hash()
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn Transaction Receipt.", burnTxHash))
+	fmt.Printf("[%s] Waiting for Burn Transaction Receipt\n", burnTxHash)
 	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Burn Transaction mined and retrieved receipt.", burnTxHash))
+	fmt.Printf("[%s] Burn Transaction mined and retrieved receipt.\n", burnTxHash)
 
 	return burnTxReceipt, expectedRouterBurn
 }
@@ -256,12 +256,12 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 
 	lockTxHash := lockTx.Hash()
 
-	fmt.Printf("[%s] Waiting for Lock Transaction Receipt.\n", lockTxHash)
+	fmt.Printf("[%s] Waiting for Lock Transaction Receipt\n", lockTxHash)
 	lockTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(lockTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("[%s] Lock Transaction mined and retrieved receipt.\n", lockTxHash)
+	fmt.Printf("[%s] Lock Transaction mined and retrieved receipt\n", lockTxHash)
 
 	return lockTxReceipt, expectedRouterLock
 }
@@ -290,7 +290,7 @@ func BurnERC721Transaction(t *testing.T, evm evmSetup.Utils, wrappedToken string
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-20 Approval Transaction", approveERC20Tx.Hash()))
+	fmt.Printf("[%s] Waiting for ERC-20 Approval Transaction\n", approveERC20Tx.Hash())
 	WaitForTransaction(t, evm, approveERC20Tx.Hash())
 
 	erc721Contract, err := werc721.NewWerc721(wrappedAddress, evm.EVMClient)
@@ -304,14 +304,14 @@ func BurnERC721Transaction(t *testing.T, evm evmSetup.Utils, wrappedToken string
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for ERC-721 Approval Transaction", approveERC721Tx.Hash()))
+	fmt.Printf("[%s] Waiting for ERC-721 Approval Transaction\n", approveERC721Tx.Hash())
 	WaitForTransaction(t, evm, approveERC721Tx.Hash())
 	targetChainIdBigInt := new(big.Int).SetUint64(targetChainId)
 	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, targetChainIdBigInt, wrappedAddress, tokenId, paymentToken, fee, receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Submitted Burn Transaction", burnTx.Hash()))
+	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
 
 	expectedRouterBurn := &router.RouterBurnERC721{
 		TargetChain:  targetChainIdBigInt,
@@ -322,12 +322,12 @@ func BurnERC721Transaction(t *testing.T, evm evmSetup.Utils, wrappedToken string
 
 	burnTxHash := burnTx.Hash()
 
-	fmt.Println(fmt.Sprintf("[%s] Waiting for Burn ERC-721 Transaction Receipt.", burnTxHash))
+	fmt.Printf("[%s] Waiting for Burn ERC-721 Transaction Receipt\n", burnTxHash)
 	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fmt.Sprintf("[%s] Burn ERC-721 Transaction mined and retrieved receipt.", burnTxHash))
+	fmt.Printf("[%s] Burn ERC-721 Transaction mined and retrieved receipt\n", burnTxHash)
 
 	return burnTxReceipt, expectedRouterBurn
 }
@@ -341,7 +341,7 @@ func WaitForTransaction(t *testing.T, evm evmSetup.Utils, txHash common.Hash) {
 	}
 
 	if receipt.Status == 1 {
-		fmt.Println(fmt.Sprintf("TX [%s] was successfully mined", txHash))
+		fmt.Printf("TX [%s] was successfully mined\n", txHash)
 	} else {
 		t.Fatalf("TX [%s] reverted", txHash)
 	}

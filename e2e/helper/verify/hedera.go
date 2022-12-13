@@ -54,11 +54,11 @@ func TransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bridgeAc
 		t.Fatal(err)
 	}
 
-	fmt.Println(fmt.Sprintf("WHBAR balance before transaction: [%s]", whbarBalanceBefore))
+	fmt.Printf("WHBAR balance before transaction: [%s]\n", whbarBalanceBefore)
 	// Get bridge account hbar balance before transfer
 	receiverBalance := fetch.HederaAccountBalance(t, hederaClient, bridgeAccount).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge account balance HBAR balance before transaction: [%d]", receiverBalance))
+	fmt.Printf("Bridge account balance HBAR balance before transaction: [%d]\n", receiverBalance)
 
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := submit.HbarToBridgeAccount(hederaClient, bridgeAccount, memo, expectedAmount)
@@ -71,12 +71,12 @@ func TransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bridgeAc
 		t.Fatalf("Transaction unsuccessful, Error: [%s]", err)
 	}
 
-	fmt.Println(fmt.Sprintf("Successfully sent HBAR to bridge account, Status: [%s]", transactionReceipt.Status))
+	fmt.Printf("Successfully sent HBAR to bridge account, Status: [%s]\n", transactionReceipt.Status)
 
 	// Get bridge account hbar balance after transfer
 	receiverBalanceNew := fetch.HederaAccountBalance(t, hederaClient, bridgeAccount).Hbars.AsTinybar()
 
-	fmt.Println(fmt.Sprintf("Bridge Account HBAR balance after transaction: [%d]", receiverBalanceNew))
+	fmt.Printf("Bridge Account HBAR balance after transaction: [%d]\n", receiverBalanceNew)
 
 	// Verify that the custodial address has received exactly the amount sent
 	amount := receiverBalanceNew - receiverBalance
@@ -101,11 +101,11 @@ func TokenTransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bri
 		t.Fatalf("Unable to query the token balance of the receiver account. Error: [%s]", err)
 	}
 
-	fmt.Println(fmt.Sprintf("Token balance before transaction: [%s]", wrappedBalanceBefore))
+	fmt.Printf("Token balance before transaction: [%s]\n", wrappedBalanceBefore)
 	// Get bridge account token balance before transfer
 	receiverBalance := fetch.HederaAccountBalance(t, hederaClient, bridgeAccount)
 
-	fmt.Println(fmt.Sprintf("Bridge account Token balance before transaction: [%d]", receiverBalance.Tokens.Get(tokenID)))
+	fmt.Printf("Bridge account Token balance before transaction: [%d]\n", receiverBalance.Tokens.Get(tokenID))
 	// Get the transaction receipt to verify the transaction was executed
 	transactionResponse, err := submit.TokensToBridgeAccount(hederaClient, bridgeAccount, tokenID, memo, amount)
 	if err != nil {
@@ -115,12 +115,12 @@ func TokenTransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bri
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Transaction unsuccessful, Error: [%s]", err))
 	}
-	fmt.Println(fmt.Sprintf("Successfully sent Tokens to bridge account, Status: [%s]", transactionReceipt.Status))
+	fmt.Printf("Successfully sent Tokens to bridge account, Status: [%s]\n", transactionReceipt.Status)
 
 	// Get bridge account HTS token balance after transfer
 	receiverBalanceNew := fetch.HederaAccountBalance(t, hederaClient, bridgeAccount)
 
-	fmt.Println(fmt.Sprintf("Bridge Account Token balance after transaction: [%d]", receiverBalanceNew.Tokens.Get(tokenID)))
+	fmt.Printf("Bridge Account Token balance after transaction: [%d]\n", receiverBalanceNew.Tokens.Get(tokenID))
 
 	// Verify that the custodial address has received exactly the amount sent
 	resultAmount := receiverBalanceNew.Tokens.Get(tokenID) - receiverBalance.Tokens.Get(tokenID)
@@ -137,7 +137,7 @@ func TopicMessages(t *testing.T, hederaClient *hedera.Client, topicId hedera.Top
 	ethSignaturesCollected := 0
 	var receivedSignatures []string
 
-	fmt.Println(fmt.Sprintf("Waiting for Signatures & TX Hash to be published to Topic [%v]", topicId.String()))
+	fmt.Printf("Waiting for Signatures & TX Hash to be published to Topic [%v]\n", topicId.String())
 
 	// Subscribe to Topic
 	subscription, err := hedera.NewTopicMessageQuery().
@@ -168,11 +168,11 @@ func TopicMessages(t *testing.T, hederaClient *hedera.Client, topicId hedera.Top
 
 				//Verify that all the submitted messages have signed the same transaction
 				if transferID != txId {
-					fmt.Println(fmt.Sprintf(`Expected signature message to contain the transaction id: [%s]`, txId))
+					fmt.Printf("Expected signature message to contain the transaction id: [%s]\n", txId)
 				} else {
 					receivedSignatures = append(receivedSignatures, signature)
 					ethSignaturesCollected++
-					fmt.Println(fmt.Sprintf("Received Auth Signature [%s]", signature))
+					fmt.Printf("Received Auth Signature [%s]\n", signature)
 				}
 			},
 		)
@@ -290,7 +290,7 @@ func ScheduledMintTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -298,7 +298,7 @@ func ScheduledMintTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient
 		break
 	}
 
-	t.Fatalf("Could not find any scheduled transactions for account [%s]", hederaClient.GetOperatorAccountID())
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", account)
 	return "", ""
 }
 
@@ -321,7 +321,7 @@ func ScheduledBurnTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", account, timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -329,7 +329,7 @@ func ScheduledBurnTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient
 		break
 	}
 
-	t.Fatalf("Could not find any scheduled transactions for account [%s]", hederaClient.GetOperatorAccountID())
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", account)
 	return "", ""
 }
 
@@ -373,7 +373,7 @@ func ScheduledNftTransfer(t *testing.T, hederaClient *hedera.Client, mirrorNodeC
 		break
 	}
 
-	t.Fatalf("Could not find any scheduled transactions for account [%s]", hederaClient.GetOperatorAccountID())
+	t.Fatalf("Could not find any scheduled transactions for account [%s]", bridgeAccount)
 	return "", ""
 }
 
@@ -396,7 +396,7 @@ func ScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mi
 		}
 
 		if timeLeft > 0 {
-			fmt.Println(fmt.Sprintf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds", hederaClient.GetOperatorAccountID(), timeLeft))
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", hederaClient.GetOperatorAccountID(), timeLeft)
 			timeLeft -= 10
 			time.Sleep(10 * time.Second)
 			continue
@@ -606,7 +606,7 @@ func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mir
 		break
 	}
 
-	t.Fatalf("Could not find any scheduled transactions for account [%s]", hederaClient.GetOperatorAccountID())
+	t.Fatalf("Could not find any scheduled transactions for NFT Transfer for account [%s]", receiver)
 	return "", ""
 }
 

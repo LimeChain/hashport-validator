@@ -26,7 +26,7 @@ import (
 func HbarToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.AccountID, memo string, amount int64) (*hedera.TransactionResponse, error) {
 	hbarSendAmount := hedera.HbarFromTinybar(amount)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-amount)
-	fmt.Println(fmt.Sprintf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]", hbarSendAmount, memo))
+	fmt.Printf("Sending [%v] Hbars through the Bridge. Transaction Memo: [%s]\n", hbarSendAmount, memo)
 
 	res, err := hedera.NewTransferTransaction().
 		AddHbarTransfer(hederaClient.GetOperatorAccountID(), hbarRemovalAmount).
@@ -41,14 +41,14 @@ func HbarToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.Accou
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err
 }
 
 func TokensToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.AccountID, tokenID hedera.TokenID, memo string, amount int64) (*hedera.TransactionResponse, error) {
-	fmt.Println(fmt.Sprintf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]", amount, memo))
+	fmt.Printf("Sending [%v] Tokens to the Bridge. Transaction Memo: [%s]\n", amount, memo)
 
 	res, err := hedera.NewTransferTransaction().
 		SetTransactionMemo(memo).
@@ -63,7 +63,7 @@ func TokensToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.Acc
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err
@@ -73,7 +73,7 @@ func NFTWithFeeToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera
 	hbarSendAmount := hedera.HbarFromTinybar(fee)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-fee)
 
-	fmt.Println(fmt.Sprintf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]", token, serialNum, memo))
+	fmt.Printf("Sending NFT [%s], Serial num [%d] through the Portal. Transaction Memo: [%s]\n", token, serialNum, memo)
 	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNum, token))
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func NFTWithFeeToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera
 		return nil, err
 	}
 
-	fmt.Println(fmt.Sprintf("TX broadcasted. ID [%s], Status: [%s]", res.TransactionID, rec.Status))
+	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
 	time.Sleep(1 * time.Second)
 
 	return &res, err
