@@ -132,66 +132,6 @@ func TokenTransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bri
 	return *transactionResponse, wrappedBalanceBefore
 }
 
-func TopicMessages(t *testing.T, hederaClient *hedera.Client, topicId hedera.TopicID, expectedValidatorsCount int, txId string) []string {
-	t.Helper()
-	ethSignaturesCollected := 0
-	var receivedSignatures []string
-
-	fmt.Printf("Waiting for Signatures & TX Hash to be published to Topic [%v]\n", topicId.String())
-
-	// Subscribe to Topic
-	subscription, err := hedera.NewTopicMessageQuery().
-		SetStartTime(time.Unix(0, time.Now().UnixNano())).
-		SetTopicID(topicId).
-		Subscribe(
-			hederaClient,
-			func(response hedera.TopicMessage) {
-				msg := &model.TopicMessage{}
-				err := proto.Unmarshal(response.Contents, msg)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				var transferID string
-				var signature string
-				switch msg.Message.(type) {
-				case *model.TopicMessage_FungibleSignatureMessage:
-					message := msg.GetFungibleSignatureMessage()
-					transferID = message.TransferID
-					signature = message.Signature
-					break
-				case *model.TopicMessage_NftSignatureMessage:
-					message := msg.GetNftSignatureMessage()
-					transferID = message.TransferID
-					signature = message.Signature
-				}
-
-				//Verify that all the submitted messages have signed the same transaction
-				if transferID != txId {
-					fmt.Printf("Expected signature message to contain the transaction id: [%s]\n", txId)
-				} else {
-					receivedSignatures = append(receivedSignatures, signature)
-					ethSignaturesCollected++
-					fmt.Printf("Received Auth Signature [%s]\n", signature)
-				}
-			},
-		)
-	if err != nil {
-		t.Fatalf("Unable to subscribe to Topic [%s]", topicId)
-	}
-
-	select {
-	case <-time.After(120 * time.Second):
-		if ethSignaturesCollected != expectedValidatorsCount {
-			t.Fatalf("Expected the count of collected signatures to equal the number of validators: [%v], but was: [%v]", expectedValidatorsCount, ethSignaturesCollected)
-		}
-		subscription.Unsubscribe()
-		return receivedSignatures
-	}
-	// Not possible end-case
-	return nil
-}
-
 func NftOwner(t *testing.T, hederaClient *hedera.Client, tokenID string, serialNumber int64, expectedOwner hedera.AccountID) {
 	t.Helper()
 	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNumber, tokenID))

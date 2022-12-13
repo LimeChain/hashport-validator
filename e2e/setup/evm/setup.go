@@ -17,7 +17,6 @@
 package evm
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -85,7 +84,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", errors.New(fmt.Sprintf("EvmFungibleToken [%s] is not supported", nativeAsset))
+		return "", fmt.Errorf("EvmFungibleToken [%s] is not supported", nativeAsset)
 	}
 
 	return wrappedAsset, nil
@@ -94,7 +93,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
 	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
 	if targetAsset == nil {
-		return nil, errors.New(fmt.Sprintf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId))
+		return nil, fmt.Errorf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId)
 	}
 
 	return targetAsset, nil
