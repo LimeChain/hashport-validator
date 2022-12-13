@@ -78,7 +78,7 @@ func Test_HBAR(t *testing.T) {
 	transactionResponse, wrappedBalanceBefore := verify.TransferToBridgeAccount(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, targetAsset, evm, memo, receiver, amount)
 
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), now.UnixNano())
 
 	// Step 3 - Validate fee scheduled transaction
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, constants.Hbar, fee)
@@ -185,7 +185,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	transactionResponse, wrappedBalanceBefore := verify.TokenTransferToBridgeAccount(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, targetAsset, setupEnv.TokenID, evm, memo, evm.Receiver, amount)
 
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), now.UnixNano())
 
 	// Step 3 - Validate fee scheduled transaction
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, setupEnv.TokenID.String(), fee)
@@ -579,7 +579,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	}
 
 	// Step 2 - Verify the submitted topic messages
-	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String())
+	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), now.UnixNano())
 
 	// Step 3 - Validate burn scheduled transaction
 	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
@@ -720,7 +720,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	lockEventId := verify.LockEvent(t, receipt, expectedLockEventLog)
 
 	// Step 4 - Verify the submitted topic messages
-	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, lockEventId)
+	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, lockEventId, now.UnixNano())
 
 	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset)
@@ -812,7 +812,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	burnEventId := verify.BurnEvent(t, receipt, expectedLockEventLog)
 
 	// Step 4 - Verify the submitted topic messages
-	receivedSignatures := verify.TopicMessages(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, burnEventId)
+	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, burnEventId, now.UnixNano())
 
 	// Step 5 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, nativeEvm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken)
