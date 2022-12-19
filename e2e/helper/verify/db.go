@@ -404,26 +404,6 @@ func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bo
 		comparable.Timestamp == comparing.Timestamp
 }
 
-// func transferIsAsExpected(expected, actual *entity.Transfer) bool {
-// 	if expected.TransactionID != actual.TransactionID ||
-// 		expected.SourceChainID != actual.SourceChainID ||
-// 		expected.TargetChainID != actual.TargetChainID ||
-// 		expected.NativeChainID != actual.NativeChainID ||
-// 		expected.SourceAsset != actual.SourceAsset ||
-// 		expected.TargetAsset != actual.TargetAsset ||
-// 		expected.NativeAsset != actual.NativeAsset ||
-// 		expected.Receiver != actual.Receiver ||
-// 		expected.Amount != actual.Amount ||
-// 		expected.Status != actual.Status ||
-// 		expected.SerialNumber != actual.SerialNumber ||
-// 		expected.Metadata != actual.Metadata ||
-// 		expected.IsNft != actual.IsNft ||
-// 		expected.Timestamp != actual.Timestamp {
-// 		return false
-// 	}
-// 	return true
-// }
-
 func (s *Service) scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
 	if expected.TransactionID != actual.TransactionID ||
 		expected.ScheduleID != actual.ScheduleID ||

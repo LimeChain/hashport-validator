@@ -313,15 +313,21 @@ func newScenario(config Config) (*ScenarioConfig, error) {
 		DatabaseRetryTimeout:    config.Scenario.DatabaseRetryTimeout,
 		WebRetryCount:           config.Scenario.WebRetryCount,
 		WebRetryTimeout:         config.Scenario.WebRetryTimeout,
+		AmountHederaHbar:        config.Scenario.AmountHederaHbar,
+		AmountHederaNative:      config.Scenario.AmountHederaNative,
+		AmountEvmWrappedHbar:    config.Scenario.AmountEvmWrappedHbar,
+		AmountEvmWrapped:        config.Scenario.AmountEvmWrapped,
+		AmountEvmNative:         config.Scenario.AmountEvmNative,
+		AmountHederaWrapped:     config.Scenario.AmountHederaWrapped,
 	}
 
 	// apply default scenario values if not set in yml or set with invalid values
 	if scenario.DatabaseRetryCount <= 0 {
-		scenario.DatabaseRetryCount = 10
+		scenario.DatabaseRetryCount = 5
 	}
 
 	if scenario.DatabaseRetryTimeout <= 0 {
-		scenario.DatabaseRetryTimeout = 5
+		scenario.DatabaseRetryTimeout = 10
 	}
 
 	if scenario.WebRetryCount <= 0 {
@@ -329,7 +335,27 @@ func newScenario(config Config) (*ScenarioConfig, error) {
 	}
 
 	if scenario.WebRetryTimeout <= 0 {
-		scenario.WebRetryTimeout = 5
+		scenario.WebRetryTimeout = 10
+	}
+
+	// amounts
+	if scenario.AmountHederaHbar <= 0 {
+		scenario.AmountHederaHbar = 1000000000
+	}
+	if scenario.AmountHederaNative <= 0 {
+		scenario.AmountHederaNative = 1000000000
+	}
+	if scenario.AmountEvmWrappedHbar <= 0 {
+		scenario.AmountEvmWrappedHbar = 100000000
+	}
+	if scenario.AmountEvmWrapped <= 0 {
+		scenario.AmountEvmWrapped = 100000000
+	}
+	if scenario.AmountEvmNative <= 0 {
+		scenario.AmountEvmNative = 1000000000000
+	}
+	if scenario.AmountHederaWrapped <= 0 {
+		scenario.AmountHederaWrapped = 10
 	}
 
 	return &scenario, nil
@@ -407,4 +433,10 @@ type ScenarioConfig struct {
 	DatabaseRetryTimeout    time.Duration
 	WebRetryCount           int
 	WebRetryTimeout         time.Duration
+	AmountHederaHbar        int64
+	AmountHederaNative      int64
+	AmountEvmWrappedHbar    int64
+	AmountEvmWrapped        int64
+	AmountEvmNative         int64
+	AmountHederaWrapped     int64
 }

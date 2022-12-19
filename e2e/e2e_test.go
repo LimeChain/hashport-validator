@@ -21,11 +21,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 	"math/big"
 	"strconv"
 	"testing"
 	"time"
+
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -60,7 +61,7 @@ func Test_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(1000000000) // 10 HBAR
+	amount := setupEnv.Scenario.AmountHederaHbar
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -170,7 +171,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(1000000000) // 10 HBAR
+	amount := setupEnv.Scenario.AmountHederaNative
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -277,7 +278,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(100000000) // 1 HBAR
+	amount := setupEnv.Scenario.AmountEvmWrappedHbar
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -347,7 +348,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(100000000) // 1 HBAR
+	amount := setupEnv.Scenario.AmountEvmWrapped
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -417,7 +418,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(1000000000000) // 1 000 gwei
+	amount := setupEnv.Scenario.AmountEvmNative
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -532,10 +533,11 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
+	unlockAmount := setupEnv.Scenario.AmountHederaWrapped
+
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	unlockAmount := int64(10) // Amount, which converted to 18 decimals is 100000000000 (100 gwei)
 
 	// Step 1 - Verify the transfer of HTS to the Bridge Account
 	wrappedAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, constants.HederaNetworkId, setupEnv.NativeEvmToken)
@@ -662,7 +664,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(1000000000000) // 1000 gwei
+	amount := setupEnv.Scenario.AmountEvmNative
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -756,7 +758,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	setupEnv := setup.Load()
 	now := time.Now()
 
-	amount := int64(100000000000) // 100 gwei
+	amount := setupEnv.Scenario.AmountEvmWrapped
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	sourceChain := setupEnv.Scenario.SecondEvmChainId
