@@ -48,10 +48,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-// var (
-// 	now time.Time
-// )
-
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
 	if testing.Short() {

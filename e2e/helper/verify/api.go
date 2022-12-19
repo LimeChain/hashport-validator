@@ -45,14 +45,6 @@ func EventTransactionIDFromValidatorAPI(t *testing.T, validatorClient *e2eClient
 
 func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId, tokenID, expectedSendAmount, targetAsset string) *service.FungibleTransferData {
 	t.Helper()
-	// bytes, err := validatorClient.GetTransferData(txId)
-	// if err != nil {
-	// 	t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
-	// }
-	// var transferDataResponse *service.FungibleTransferData
-	// err = json.Unmarshal(bytes, &transferDataResponse)
-
-	// check signature count - if less than xxx - retry
 
 	transferDataResponse, err := getFungibleTransferData(t, validatorClient, txId)
 
@@ -81,15 +73,6 @@ func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.
 
 func NonFungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId string, tokenID string, metadata string, tokenIdOrSerialNum int64, targetAsset string) *service.NonFungibleTransferData {
 	t.Helper()
-	// bytes, err := validatorClient.GetTransferData(txId)
-	// if err != nil {
-	// 	t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
-	// }
-	// var transferDataResponse *service.NonFungibleTransferData
-	// err = json.Unmarshal(bytes, &transferDataResponse)
-	// if err != nil {
-	// 	t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
-	// }
 
 	transferDataResponse, err := getNonFungibleTransferData(t, validatorClient, txId)
 
