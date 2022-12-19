@@ -23,10 +23,10 @@ import (
 	"time"
 
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/util"
 
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/fetch"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/submit"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/utilities"
 
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
@@ -211,7 +211,7 @@ func SubmittedScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeC
 	return receiverTransactionID, receiverScheduleID
 }
 
-func ScheduledMintTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
+func ScheduledMintTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
 	timeLeft := 180
 	for {
@@ -242,7 +242,7 @@ func ScheduledMintTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient
 	return "", ""
 }
 
-func ScheduledBurnTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
+func ScheduledBurnTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
 	timeLeft := 180
 	for {
@@ -360,12 +360,12 @@ func MembersScheduledTxs(t *testing.T, hederaClient *hedera.Client, mirrorNodeCl
 		txID, scheduleID := ScheduledTx(t, hederaClient, mirrorNodeClient, member, asset, expectedTransfers, now)
 		transactions = append(transactions, txID)
 
-		if !util.AllSame(transactions) {
+		if !utilities.AllSame(transactions) {
 			t.Fatalf("Transaction [%s] does not match with previously added transactions.", txID)
 		}
 		scheduleIDs = append(scheduleIDs, scheduleID)
 
-		if !util.AllSame(scheduleIDs) {
+		if !utilities.AllSame(scheduleIDs) {
 			t.Fatalf("ScheduleID [%s] does not match with previously added ids", scheduleID)
 		}
 	}
@@ -376,7 +376,7 @@ func MembersScheduledTxs(t *testing.T, hederaClient *hedera.Client, mirrorNodeCl
 func ListenForTx(t *testing.T, response *transaction.Response, mirrorNode *mirror_node.Client, expectedTransfers []transaction.Transfer, asset string) (string, string) {
 	t.Helper()
 	for _, transaction := range response.Transactions {
-		if transaction.Scheduled == true {
+		if transaction.Scheduled {
 			scheduleCreateTx, err := mirrorNode.GetTransaction(transaction.TransactionID)
 			if err != nil {
 				t.Fatal(err)
@@ -474,7 +474,7 @@ func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topic
 					signature = message.Signature
 				}
 
-				//Verify that all the submitted messages have signed the same transaction
+				// Verify that all the submitted messages have signed the same transaction
 				if transferID != txId {
 					fmt.Printf("Expected signature message to contain the transaction id: [%s]\n", txId)
 				} else {
@@ -487,7 +487,7 @@ func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topic
 		t.Fatalf("Unable to subscribe to Topic [%s]", topicId)
 	}
 
-	timeoutTimer := time.NewTimer(120 * time.Second)
+	timeoutTimer := time.NewTimer(480 * time.Second)
 
 signatureLoop:
 	for ethSignaturesCollected < expectedValidatorsCount {
@@ -509,7 +509,7 @@ signatureLoop:
 	return receivedSignatures
 }
 
-func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, bridgeAccount hedera.AccountID, payerAccount hedera.AccountID, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
+func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, payerAccount hedera.AccountID, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
 	timeLeft := 180
 	receiver := hederaClient.GetOperatorAccountID()
 

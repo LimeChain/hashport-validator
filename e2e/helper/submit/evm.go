@@ -192,8 +192,6 @@ func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup
 	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
 
 	expectedRouterBurn := &router.RouterBurn{
-		//Account:      common.HexToAddress(evm.Signer.Address()),
-		//WrappedAsset: *wrappedAsset,
 		Amount:   approvedValue,
 		Receiver: receiver,
 	}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
@@ -30,11 +31,9 @@ import (
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
 	fee "github.com/limechain/hedera-eth-bridge-validator/app/services/fee/calculator"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/fee/distributor"
@@ -59,6 +58,7 @@ func Load() *Setup {
 	if err := config.GetConfig(&e2eConfig, e2eConfigPath); err != nil {
 		panic(err)
 	}
+
 	if err := config.GetConfig(&e2eConfig, e2eBridgeConfigPath); err != nil {
 		panic(err)
 	}
@@ -100,12 +100,13 @@ func Load() *Setup {
 	for key, value := range e2eConfig.EVM {
 		configuration.EVM[key] = config.Evm(value)
 	}
+
 	setup, err := newSetup(configuration)
 	if err != nil {
 		panic(err)
 	}
 
-	routerClients, evmFungibleTokenClients, evmNftClients := routerAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	routerClients, evmFungibleTokenClients, evmNftClients := evmSetup.RouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
 	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients, evmNftClients)
 
 	return setup
@@ -136,10 +137,12 @@ func newSetup(config Config) (*Setup, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	payerAccount, err := hederaSDK.AccountIDFromString(config.Hedera.PayerAccount)
 	if err != nil {
 		return nil, err
 	}
+
 	topicID, err := hederaSDK.TopicIDFromString(config.Hedera.TopicID)
 	if err != nil {
 		return nil, err
@@ -174,17 +177,24 @@ func newSetup(config Config) (*Setup, error) {
 		members = append(members, account)
 	}
 
+	scenario, err := newScenario(config)
+	if err != nil {
+		return nil, err
+	}
+
 	clients, err := newClients(config)
 	if err != nil {
 		return nil, err
 	}
 
-	dbValidator := verify.NewService(config.Hedera.DbValidationProps)
+	clients.ValidatorClient.ExpectedValidatorsCount = scenario.ExpectedValidatorsCount
+	clients.ValidatorClient.WebRetryCount = scenario.WebRetryCount
+	clients.ValidatorClient.WebRetryTimeout = scenario.WebRetryTimeout
 
-	scenario, err := newScenario(config)
-	if err != nil {
-		return nil, err
-	}
+	dbValidator := verify.NewService(config.Hedera.DbValidationProps)
+	dbValidator.DatabaseRetryCount = scenario.DatabaseRetryCount
+	dbValidator.DatabaseRetryTimeout = scenario.DatabaseRetryTimeout
+	dbValidator.ExpectedValidatorsCount = scenario.ExpectedValidatorsCount
 
 	return &Setup{
 		BridgeAccount:   bridgeAccount,
@@ -215,31 +225,6 @@ type clients struct {
 	Distributor     service.Distributor
 }
 
-func routerAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]evmSetup.Utils) (
-	routerClients map[uint64]client.DiamondRouter,
-	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNftClients map[uint64]map[string]client.EvmNft,
-) {
-	routerClients = make(map[uint64]client.DiamondRouter)
-	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
-	evmNftClients = make(map[uint64]map[string]client.EvmNft)
-	for networkId, evmUtil := range evmUtils {
-		routerClients[networkId] = evmUtil.RouterContract
-
-		evmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
-		for tokenAddress, evmTokenClient := range evmUtil.EVMFungibleTokenClients {
-			evmFungibleTokenClients[networkId][tokenAddress] = evmTokenClient
-		}
-
-		evmNftClients[networkId] = make(map[string]client.EvmNft)
-		for tokenAddress, evmTokenClient := range evmUtil.EVMNftClients {
-			evmNftClients[networkId][tokenAddress] = evmTokenClient
-		}
-	}
-
-	return routerClients, evmFungibleTokenClients, evmNftClients
-}
-
 // newClients instantiates the clients for the e2e tests
 func newClients(config Config) (*clients, error) {
 	hederaClient, err := initHederaClient(config.Hedera.Sender, config.Hedera.NetworkType)
@@ -252,19 +237,23 @@ func newClients(config Config) (*clients, error) {
 	for configChainId, conf := range config.EVM {
 		evmClient := evm.NewClient(conf, configChainId)
 		evmClients[configChainId] = evmClient
-		clientChainId, e := evmClient.ChainID(context.Background())
-		if e != nil {
+
+		clientChainId, err := evmClient.ChainID(context.Background())
+		if err != nil {
 			return nil, errors.New("failed to retrieve chain ID on new client")
 		}
+
 		if configChainId == clientChainId.Uint64() {
 			evmClient.SetChainID(clientChainId.Uint64())
 		} else {
 			return nil, errors.New("chain IDs mismatch config and actual")
 		}
+
 		network, ok := config.Bridge.Networks[configChainId]
 		if !ok || network.RouterContractAddress == "" {
 			continue
 		}
+
 		routerContractAddress := common.HexToAddress(network.RouterContractAddress)
 		routerInstance, _ := router.NewRouter(routerContractAddress, evmClient)
 
@@ -300,6 +289,7 @@ func newClients(config Config) (*clients, error) {
 			EVM[networkId].EVMNftClients[tokenAddress] = tokenClient
 		}
 	}
+
 	validatorClient := e2eClients.NewValidatorClient(config.ValidatorUrl)
 
 	mirrorNode := mirror_node.NewClient(config.Hedera.MirrorNode)
@@ -319,41 +309,30 @@ func newScenario(config Config) (*ScenarioConfig, error) {
 		ExpectedValidatorsCount: config.Scenario.ExpectedValidatorsCount,
 		FirstEvmChainId:         config.Scenario.FirstEvmChainId,
 		SecondEvmChainId:        config.Scenario.SecondEvmChainId,
+		DatabaseRetryCount:      config.Scenario.DatabaseRetryCount,
+		DatabaseRetryTimeout:    config.Scenario.DatabaseRetryTimeout,
+		WebRetryCount:           config.Scenario.WebRetryCount,
+		WebRetryTimeout:         config.Scenario.WebRetryTimeout,
+	}
+
+	// apply default scenario values if not set in yml or set with invalid values
+	if scenario.DatabaseRetryCount <= 0 {
+		scenario.DatabaseRetryCount = 10
+	}
+
+	if scenario.DatabaseRetryTimeout <= 0 {
+		scenario.DatabaseRetryTimeout = 5
+	}
+
+	if scenario.WebRetryCount <= 0 {
+		scenario.WebRetryCount = 5
+	}
+
+	if scenario.WebRetryTimeout <= 0 {
+		scenario.WebRetryTimeout = 5
 	}
 
 	return &scenario, nil
-}
-
-func InitWrappedAssetContract(nativeAsset string, assetsService service.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := NativeToWrappedAsset(assetsService, sourceChain, targetChain, nativeAsset)
-	if err != nil {
-		return nil, err
-	}
-
-	return InitAssetContract(wTokenContractAddress, evmClient)
-}
-
-func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.GetClient())
-}
-
-func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain uint64, nativeAsset string) (string, error) {
-	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
-
-	if wrappedAsset == "" {
-		return "", fmt.Errorf("EvmFungibleToken [%s] is not supported", nativeAsset)
-	}
-
-	return wrappedAsset, nil
-}
-
-func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
-	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
-	if targetAsset == nil {
-		return nil, fmt.Errorf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId)
-	}
-
-	return targetAsset, nil
 }
 
 func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, error) {
@@ -368,14 +347,17 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 	default:
 		panic(fmt.Sprintf("Invalid Client NetworkType provided: [%s]", networkType))
 	}
+
 	senderAccount, err := hederaSDK.AccountIDFromString(sender.Account)
 	if err != nil {
 		return nil, err
 	}
+
 	privateKey, err := hederaSDK.PrivateKeyFromString(sender.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
+
 	client.SetOperator(senderAccount, privateKey)
 
 	return client, nil
@@ -421,4 +403,8 @@ type ScenarioConfig struct {
 	ExpectedValidatorsCount int
 	FirstEvmChainId         uint64
 	SecondEvmChainId        uint64
+	DatabaseRetryCount      int
+	DatabaseRetryTimeout    time.Duration
+	WebRetryCount           int
+	WebRetryTimeout         time.Duration
 }

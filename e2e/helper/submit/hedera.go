@@ -99,11 +99,11 @@ func NFTWithFeeToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera
 	return &res, err
 }
 
-func FeeForNFTToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.AccountID, memo string, chainId uint64, nftID hedera.NftID, fee int64) (*hedera.TransactionResponse, error) {
+func FeeForNFTToBridgeAccount(hederaClient *hedera.Client, bridgeAccount hedera.AccountID, memo string, nftID hedera.NftID, fee int64) (*hedera.TransactionResponse, error) {
 	hbarSendAmount := hedera.HbarFromTinybar(fee)
 	hbarRemovalAmount := hedera.HbarFromTinybar(-fee)
 
-	fmt.Printf("Sending Fungible Fee for NFT [%s] through the Portal. Transaction Memo: [%s]\n", nftID.String(), memo)
+	fmt.Printf("Sending Fungible Fee from [%s] for NFT [%s] through the Portal. Transaction Memo: [%s]\n", hederaClient.GetOperatorAccountID(), nftID.String(), memo)
 
 	res, err := hedera.NewTransferTransaction().
 		AddHbarTransfer(hederaClient.GetOperatorAccountID(), hbarRemovalAmount).

@@ -26,7 +26,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	evm_signer "github.com/limechain/hedera-eth-bridge-validator/app/services/signer/evm"
 )
 
@@ -67,15 +66,6 @@ func RouterAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]Utils) (
 	return routerClients, evmFungibleTokenClients, evmNftClients
 }
 
-func InitWrappedAssetContract(nativeAsset string, assetsService service.Assets, sourceChain, targetChain uint64, evmClient *evm.Client) (*wtoken.Wtoken, error) {
-	wTokenContractAddress, err := NativeToWrappedAsset(assetsService, sourceChain, targetChain, nativeAsset)
-	if err != nil {
-		return nil, err
-	}
-
-	return InitAssetContract(wTokenContractAddress, evmClient)
-}
-
 func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
 	return wtoken.NewWtoken(common.HexToAddress(asset), evmClient.GetClient())
 }
@@ -88,13 +78,4 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	}
 
 	return wrappedAsset, nil
-}
-
-func WrappedToNativeAsset(assetsService service.Assets, sourceChainId uint64, asset string) (*asset.NativeAsset, error) {
-	targetAsset := assetsService.WrappedToNative(asset, sourceChainId)
-	if targetAsset == nil {
-		return nil, fmt.Errorf("Wrapped token [%s] on [%d] is not supported", asset, sourceChainId)
-	}
-
-	return targetAsset, nil
 }

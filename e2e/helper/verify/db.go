@@ -18,6 +18,7 @@ package verify
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 	"time"
 
@@ -42,8 +43,11 @@ type dbVerifier struct {
 }
 
 type Service struct {
-	verifiers []dbVerifier
-	logger    *log.Entry
+	verifiers               []dbVerifier
+	logger                  *log.Entry
+	DatabaseRetryCount      int
+	DatabaseRetryTimeout    time.Duration
+	ExpectedValidatorsCount int
 }
 
 func NewService(dbConfigs []config.Database) *Service {
@@ -70,7 +74,7 @@ func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *enti
 		return false, err
 	}
 	if !valid {
-		return false, nil
+		return false, fmt.Errorf("transaction record is not valid")
 	}
 
 	valid, err = s.validSignatureMessages(record, authMsgBytes, signatures)
@@ -78,7 +82,7 @@ func (s *Service) VerifyTransferAndSignatureRecords(expectedTransferRecord *enti
 		return false, err
 	}
 	if !valid {
-		return false, nil
+		return false, fmt.Errorf("signature message is not valid")
 	}
 	return true, nil
 }
@@ -89,7 +93,7 @@ func (s *Service) VerifyTransferRecord(expectedTransferRecord *entity.Transfer) 
 		return false, err
 	}
 	if !valid {
-		return false, nil
+		return false, fmt.Errorf("transaction record is not valid")
 	}
 
 	return true, nil
@@ -101,24 +105,29 @@ func (s *Service) VerifyScheduleRecord(expectedRecord *entity.Schedule) (bool, e
 		return false, err
 	}
 	if !valid {
-		return false, nil
+		return false, fmt.Errorf("schedule record is not valid")
 	}
 
 	return true, nil
 }
 
-func (s *Service) validTransactionRecord(expectedTransferRecord *entity.Transfer) (bool, *entity.Transfer, error) {
+func (s *Service) validTransactionRecord(expectedRecord *entity.Transfer) (bool, *entity.Transfer, error) {
 	for _, verifier := range s.verifiers {
-		actualDbTx, err := s.getTransactionById(verifier, expectedTransferRecord)
+		actualDbTx, err := s.getTransactionById(verifier, expectedRecord)
 		if err != nil {
 			return false, nil, err
 		}
-		if !transferIsAsExpected(expectedTransferRecord, actualDbTx) {
-			s.logger.Infof("expected transaction: [%+v]; actual: [%+v]", expectedTransferRecord, actualDbTx)
-			return false, nil, nil
+
+		if actualDbTx == nil {
+			return false, nil, fmt.Errorf("database transaction record [%s] not found", expectedRecord.TransactionID)
+		}
+
+		if !s.transfersFieldsMatch(*expectedRecord, *actualDbTx) {
+			s.logger.Infof("expected transaction: [%+v]; actual: [%+v]", expectedRecord, actualDbTx)
+			return false, nil, fmt.Errorf("database transaction record [%s] not expected", expectedRecord.TransactionID)
 		}
 	}
-	return true, expectedTransferRecord, nil
+	return true, expectedRecord, nil
 }
 
 func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, error) {
@@ -127,9 +136,14 @@ func (s *Service) validScheduleRecord(expectedRecord *entity.Schedule) (bool, er
 		if err != nil {
 			return false, err
 		}
-		if !scheduleIsAsExpected(expectedRecord, actualDbTx) {
+
+		if actualDbTx == nil {
+			return false, fmt.Errorf("database schedule record [%s] not found", expectedRecord.TransactionID)
+		}
+
+		if !s.scheduleIsAsExpected(expectedRecord, actualDbTx) {
 			s.logger.Infof("expected schedule: [%+v]; actual: [%+v]", expectedRecord, actualDbTx)
-			return false, nil
+			return false, fmt.Errorf("database schedule record [%s] not expected", expectedRecord.TransactionID)
 		}
 	}
 	return true, nil
@@ -158,37 +172,75 @@ func (s *Service) validSignatureMessages(record *entity.Transfer, authMsgBytes [
 	}
 
 	for _, verifier := range s.verifiers {
-		messages, err := verifier.messages.Get(record.TransactionID)
+		actualMessages, err := s.getMessageListByTransactionId(record, verifier) // TODO : Check if retry is needed
 		if err != nil {
 			return false, err
 		}
 
-		for _, m := range expectedMessageRecords {
-			if !contains(m, messages) {
-				return false, nil
+		if actualMessages == nil {
+			return false, fmt.Errorf("database message records [%s] not found", record.TransactionID)
+
+		}
+
+		messagesLength := len(actualMessages)
+		expectedMessagesLength := len(expectedMessageRecords)
+		if messagesLength != expectedMessagesLength {
+			return false, fmt.Errorf("expected database message records [%s] length go be [%d], but was [%d]", record.TransactionID, expectedMessagesLength, messagesLength)
+		}
+
+		for _, ele := range expectedMessageRecords {
+			if !s.messageListContains(ele, actualMessages) {
+				s.logger.Infof("expected message: [%+v]; actual database message records: [%+v]", ele, actualMessages)
+				return false, fmt.Errorf("unexpected message")
 			}
 		}
-		if len(messages) != len(expectedMessageRecords) {
-			return false, nil
-		}
+
 	}
 	return true, nil
 }
 
 func (s *Service) VerifyFeeRecord(expectedRecord *entity.Fee) (bool, error) {
 	for _, verifier := range s.verifiers {
-		actual, err := s.getFeeByTransactionId(verifier, expectedRecord)
+		actualDbTx, err := s.getFeeByTransactionId(verifier, expectedRecord)
 		if err != nil {
 			return false, err
 		}
 
-		if !feeIsAsExpected(expectedRecord, actual) {
-			s.logger.Infof("expected fee: [%+v]; actual: [%+v]", expectedRecord, actual)
-			return false, nil
+		if actualDbTx == nil {
+			return false, fmt.Errorf("database fee record [%s] not found", expectedRecord.TransactionID)
+		}
+
+		if !s.feeIsAsExpected(expectedRecord, actualDbTx) {
+			s.logger.Infof("expected fee record: [%+v]; actual: [%+v]", expectedRecord, actualDbTx)
+			return false, fmt.Errorf("database fee record [%s] not expected", expectedRecord.TransactionID)
 		}
 	}
 
 	return true, nil
+}
+
+func (s *Service) getMessageListByTransactionId(expectedTransferRecord *entity.Transfer, verifier dbVerifier) ([]entity.Message, error) {
+	var result []entity.Message
+	var err error
+
+	currentCount := 0
+
+	for currentCount < s.DatabaseRetryCount {
+		currentCount++
+
+		result, err = verifier.messages.Get(expectedTransferRecord.TransactionID)
+
+		// if result == nil && err == nil - the record is not found in the database - retry
+		if (result != nil && len(result) == s.ExpectedValidatorsCount) || err != nil {
+			return result, err
+		}
+
+		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		s.logger.Infof("Database Message records [%s] retry %d", expectedTransferRecord.TransactionID, currentCount)
+	}
+
+	s.logger.Errorf("Database Message records [%s] not found after %d retries", expectedTransferRecord.TransactionID, currentCount)
+	return result, err
 }
 
 // getTransactionById returns a record from the validator database. The method will retry few times to get completed record.
@@ -196,25 +248,24 @@ func (s *Service) getTransactionById(verifier dbVerifier, expectedTransferRecord
 	var result *entity.Transfer
 	var err error
 
-	retryAttempts := 6
-	current := 0
+	currentCount := 0
 
-	for current < retryAttempts {
-		current++
+	for currentCount < s.DatabaseRetryCount {
+		currentCount++
 
 		result, err = verifier.transactions.GetByTransactionId(expectedTransferRecord.TransactionID)
 
-		// if result == nil && err == nil - the record is not found in the database
-		// if status != COMPLETED - the record processing is not finished
+		// if result == nil && err == nil - the record is not found in the database - retry
+		// if status != COMPLETED - the record processing is not finished - retry
 		if (result != nil && result.Status == "COMPLETED") || err != nil {
 			return result, err
 		}
 
-		time.Sleep(10 * time.Second)
-		s.logger.Infof("Database Transaction record [%s] retry %d", expectedTransferRecord.TransactionID, current)
+		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		s.logger.Infof("Database Transaction record [%s] retry %d", expectedTransferRecord.TransactionID, currentCount)
 	}
 
-	s.logger.Errorf("Database Transaction record [%s] not found after %d retries", expectedTransferRecord.TransactionID, current)
+	s.logger.Errorf("Database Transaction record [%s] not found after %d retries", expectedTransferRecord.TransactionID, currentCount)
 	return result, err
 }
 
@@ -223,25 +274,24 @@ func (s *Service) getScheduleByTransactionId(verifier dbVerifier, expectedRecord
 	var result *entity.Schedule
 	var err error
 
-	retryAttempts := 6
-	current := 0
+	currentCount := 0
 
-	for current < retryAttempts {
-		current++
+	for currentCount < s.DatabaseRetryCount {
+		currentCount++
 
 		result, err = verifier.schedule.Get(expectedRecord.TransactionID)
 
-		// if result == nil && err == nil - the record is not found in the database
-		// if status != COMPLETED - the record processing is not finished
+		// if result == nil && err == nil - the record is not found in the database - retry
+		// if status != COMPLETED - the record processing is not finished - retry
 		if (result != nil && result.Status == "COMPLETED") || err != nil {
 			return result, err
 		}
 
-		time.Sleep(10 * time.Second)
-		s.logger.Infof("Database Schedule record [%s] retry %d", expectedRecord.TransactionID, current)
+		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		s.logger.Infof("Database Schedule record [%s] retry %d", expectedRecord.TransactionID, currentCount)
 	}
 
-	s.logger.Errorf("Database Schedule record [%s] not found after %d retries", expectedRecord.TransactionID, current)
+	s.logger.Errorf("Database Schedule record [%s] not found after %d retries", expectedRecord.TransactionID, currentCount)
 	return result, err
 }
 
@@ -250,25 +300,24 @@ func (s *Service) getFeeByTransactionId(verifier dbVerifier, expectedRecord *ent
 	var result *entity.Fee
 	var err error
 
-	retryAttempts := 6
-	current := 0
+	currentCount := 0
 
-	for current < retryAttempts {
-		current++
+	for currentCount < s.DatabaseRetryCount {
+		currentCount++
 
 		result, err = verifier.fee.Get(expectedRecord.TransactionID)
 
-		// if result == nil && err == nil - the record is not found in the database
-		// if status != COMPLETED - the record processing is not finished
+		// if result == nil && err == nil - the record is not found in the database - retry
+		// if status != COMPLETED - the record processing is not finished - retry
 		if (result != nil && result.Status == "COMPLETED") || err != nil {
 			return result, err
 		}
 
-		time.Sleep(10 * time.Second)
-		s.logger.Infof("Database Fee record [%s] retry %d", expectedRecord.TransactionID, current)
+		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		s.logger.Infof("Database Fee record [%s] retry %d", expectedRecord.TransactionID, currentCount)
 	}
 
-	s.logger.Errorf("Database Fee record [%s] not found after %d retries", expectedRecord.TransactionID, current)
+	s.logger.Errorf("Database Fee record [%s] not found after %d retries", expectedRecord.TransactionID, currentCount)
 	return result, err
 }
 
@@ -289,6 +338,7 @@ func TransferRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
+
 	if !exist {
 		t.Fatalf("[%s] - Database does not contain expected transfer records", expectedRecord.TransactionID)
 	}
@@ -300,6 +350,7 @@ func ScheduleRecord(t *testing.T, dbValidation *Service, expectedRecord *entity.
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
+
 	if !exist {
 		t.Fatalf("[%s] - Database does not contain expected schedule records", expectedRecord.TransactionID)
 	}
@@ -311,29 +362,31 @@ func TransferRecordAndSignatures(t *testing.T, dbValidation *Service, expectedRe
 	if err != nil {
 		t.Fatalf("[%s] - Verification of database records failed - Error: [%s].", expectedRecord.TransactionID, err)
 	}
+
 	if !exist {
 		t.Fatalf("[%s] - Database does not contain expected records", expectedRecord.TransactionID)
 	}
 }
 
-func contains(m entity.Message, array []entity.Message) bool {
-	for _, a := range array {
-		if messagesFieldsMatch(a, m) {
+func (s *Service) messageListContains(message entity.Message, actualMessages []entity.Message) bool {
+	for _, a := range actualMessages {
+		if s.messagesFieldsMatch(a, message) {
 			return true
 		}
 	}
+
 	return false
 }
 
-func messagesFieldsMatch(comparing, comparable entity.Message) bool {
+func (s *Service) messagesFieldsMatch(comparing, comparable entity.Message) bool {
 	return comparable.TransferID == comparing.TransferID &&
 		comparable.Signature == comparing.Signature &&
 		comparable.Hash == comparing.Hash &&
-		transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
+		s.transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
 		comparable.Signer == comparing.Signer
 }
 
-func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
+func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 	return comparable.TransactionID == comparing.TransactionID &&
 		comparable.SourceChainID == comparing.SourceChainID &&
 		comparable.TargetChainID == comparing.TargetChainID &&
@@ -351,27 +404,27 @@ func transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
 		comparable.Timestamp == comparing.Timestamp
 }
 
-func transferIsAsExpected(expected, actual *entity.Transfer) bool {
-	if expected.TransactionID != actual.TransactionID ||
-		expected.SourceChainID != actual.SourceChainID ||
-		expected.TargetChainID != actual.TargetChainID ||
-		expected.NativeChainID != actual.NativeChainID ||
-		expected.SourceAsset != actual.SourceAsset ||
-		expected.TargetAsset != actual.TargetAsset ||
-		expected.NativeAsset != actual.NativeAsset ||
-		expected.Receiver != actual.Receiver ||
-		expected.Amount != actual.Amount ||
-		expected.Status != actual.Status ||
-		expected.SerialNumber != actual.SerialNumber ||
-		expected.Metadata != actual.Metadata ||
-		expected.IsNft != actual.IsNft ||
-		expected.Timestamp != actual.Timestamp {
-		return false
-	}
-	return true
-}
+// func transferIsAsExpected(expected, actual *entity.Transfer) bool {
+// 	if expected.TransactionID != actual.TransactionID ||
+// 		expected.SourceChainID != actual.SourceChainID ||
+// 		expected.TargetChainID != actual.TargetChainID ||
+// 		expected.NativeChainID != actual.NativeChainID ||
+// 		expected.SourceAsset != actual.SourceAsset ||
+// 		expected.TargetAsset != actual.TargetAsset ||
+// 		expected.NativeAsset != actual.NativeAsset ||
+// 		expected.Receiver != actual.Receiver ||
+// 		expected.Amount != actual.Amount ||
+// 		expected.Status != actual.Status ||
+// 		expected.SerialNumber != actual.SerialNumber ||
+// 		expected.Metadata != actual.Metadata ||
+// 		expected.IsNft != actual.IsNft ||
+// 		expected.Timestamp != actual.Timestamp {
+// 		return false
+// 	}
+// 	return true
+// }
 
-func scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
+func (s *Service) scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
 	if expected.TransactionID != actual.TransactionID ||
 		expected.ScheduleID != actual.ScheduleID ||
 		expected.HasReceiver != actual.HasReceiver ||
@@ -383,7 +436,7 @@ func scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
 	return true
 }
 
-func feeIsAsExpected(expected, actual *entity.Fee) bool {
+func (s *Service) feeIsAsExpected(expected, actual *entity.Fee) bool {
 	if expected.TransactionID != actual.TransactionID ||
 		expected.ScheduleID != actual.ScheduleID ||
 		expected.Amount != actual.Amount ||

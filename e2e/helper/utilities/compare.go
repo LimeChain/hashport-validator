@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package util
+package utilities
 
 func AllSame(arr []string) bool {
 	for i := 1; i < len(arr); i++ {

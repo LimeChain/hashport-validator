@@ -21,12 +21,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 	"math/big"
 	"strconv"
 	"testing"
 	"time"
-
-	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	hederahelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/hedera"
@@ -36,10 +35,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/schedule"
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence/entity/status"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/compat"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/fetch"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/submit"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/utilities"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 
@@ -48,9 +47,9 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-var (
-	now time.Time
-)
+// var (
+// 	now time.Time
+// )
 
 // Test_HBAR recreates a real life situation of a user who wants to bridge a Hedera HBARs to the EVM Network infrastructure. The wrapped token on the EVM network(corresponding to the native Hedera Hashgraph's HBARs) gets minted, then transferred to the recipient account on the EVM network.
 func Test_HBAR(t *testing.T) {
@@ -58,9 +57,10 @@ func Test_HBAR(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now := time.Now()
+
+	amount := int64(1000000000) // 10 HBAR
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -167,9 +167,10 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(1000000000) // 10 HBAR
 	setupEnv := setup.Load()
 	now := time.Now()
+
+	amount := int64(1000000000) // 10 HBAR
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
@@ -261,9 +262,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorization signature. Error: [%s]", expectedTxRecord.TransactionID, err)
 	}
 
-	// 8. Wait for validators to update DB state after Scheduled TX is mined
-
-	// Step 9 - Verify Database Records
+	// Step 8 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedTxRecord, authMsgBytes, receivedSignatures)
 	// and:
 	verify.FeeRecord(t, setupEnv.DbValidator, expectedFeeRecord)
@@ -275,12 +274,13 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
+	now := time.Now()
+
+	amount := int64(100000000) // 1 HBAR
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
-	now := time.Now()
 	accountBalanceBefore := fetch.HederaAccountBalance(t, setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID())
 
 	targetAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, constants.Hbar)
@@ -288,33 +288,33 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
 
-	// 1. Calculate Expected Receive And Fee Amounts
+	// Step 1 - Calculate Expected Receive And Fee Amounts
 	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount)
 
-	// 2. Submit burn transaction to the bridge contract
+	// Step 2 - Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(t, setupEnv.AssetMappings, evm, constants.Hbar, constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
 
-	// 2.1 Get the block timestamp of burn event
+	// Step 2.1 - Get the block timestamp of burn event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
 	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
-	// 3. Validate that the burn transaction went through and emitted the correct events
+	// Step 3 - Validate that the burn transaction went through and emitted the correct events
 	expectedId := verify.BurnEvent(t, burnTxReceipt, expectedRouterBurn)
 
-	// 4. Validate that a scheduled transaction was submitted
+	// Step 4 - Validate that a scheduled transaction was submitted
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForBurnEvent(setupEnv.Members, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, constants.Hbar, expectedReceiveAmount, fee)
 	transactionID, scheduleID := verify.SubmittedScheduledTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar, expectedTransfers, now)
 
-	// 5. Validate Event Transaction ID retrieved from Validator API
+	// Step 5 - Validate Event Transaction ID retrieved from Validator API
 	verify.EventTransactionIDFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, expectedId, transactionID)
 
-	// 6. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	// Step 6 - Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	verify.ReceiverAccountBalance(t, setupEnv.Clients.Hedera, uint64(expectedReceiveAmount), accountBalanceBefore, constants.Hbar, setupEnv.TokenID)
 
-	// 7. Prepare Expected Database Records
+	// Step 7 - Prepare Expected Database Records
 	expectedBurnEventRecord := expected.FungibleTransferRecord(
 		chainId,
 		constants.HederaNetworkId,
@@ -332,9 +332,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	// and:
 	expectedFeeRecord := expected.FeeRecord(transactionID, scheduleID, fee, expectedId)
 
-	// 8. Wait for validators to update DB state after Scheduled TX is mined
-
-	// 9. Validate Database Records
+	// Step 8 - Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedBurnEventRecord)
 	// and:
 	verify.FeeRecord(t, setupEnv.DbValidator, expectedFeeRecord)
@@ -346,12 +344,13 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(100000000) // 1 HBAR
 	setupEnv := setup.Load()
+	now := time.Now()
+
+	amount := int64(100000000) // 1 HBAR
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
-	now := time.Now()
 	accountBalanceBefore := fetch.HederaAccountBalance(t, setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID())
 
 	targetAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, setupEnv.TokenID.String())
@@ -359,33 +358,33 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.TokenID.String(), err)
 	}
 
-	// 1. Calculate Expected Receive Amount
+	// Step 1 - Calculate Expected Receive Amount
 	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, setupEnv.TokenID.String(), amount)
 
-	// 2. Submit burn transaction to the bridge contract
+	// Step 2 - Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(t, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
 
-	// 2.1 Get the block timestamp of burn event
+	// Step 2.1 - Get the block timestamp of burn event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), burnTxReceipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
 	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
-	// 3. Validate that the burn transaction went through and emitted the correct events
+	// Step 3 - Validate that the burn transaction went through and emitted the correct events
 	expectedId := verify.BurnEvent(t, burnTxReceipt, expectedRouterBurn)
 
-	// 4. Validate that a scheduled transaction was submitted
+	// Step 4 - Validate that a scheduled transaction was submitted
 	expectedTransfers := expected.MirrorNodeExpectedTransfersForBurnEvent(setupEnv.Members, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, setupEnv.TokenID.String(), expectedReceiveAmount, fee)
 	transactionID, scheduleID := verify.SubmittedScheduledTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, setupEnv.TokenID.String(), expectedTransfers, now)
 
-	// 5. Validate Event Transaction ID retrieved from Validator API
+	// Step 5 - Validate Event Transaction ID retrieved from Validator API
 	verify.EventTransactionIDFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, expectedId, transactionID)
 
-	// 6. Validate that the balance of the receiver account (hedera) was changed with the correct amount
+	// Step 6 - Validate that the balance of the receiver account (hedera) was changed with the correct amount
 	verify.ReceiverAccountBalance(t, setupEnv.Clients.Hedera, uint64(expectedReceiveAmount), accountBalanceBefore, setupEnv.TokenID.String(), setupEnv.TokenID)
 
-	// 7. Prepare Expected Database Records
+	// Step 7 - Prepare Expected Database Records
 	expectedBurnEventRecord := expected.FungibleTransferRecord(
 		chainId,
 		constants.HederaNetworkId,
@@ -403,9 +402,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	// and:
 	expectedFeeRecord := expected.FeeRecord(transactionID, scheduleID, fee, expectedId)
 
-	// 8. Wait for validators to update DB state after Scheduled TX is mined
-
-	// 9. Validate Database Records
+	// Step 8 - Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedBurnEventRecord)
 	// and:
 	verify.FeeRecord(t, setupEnv.DbValidator, expectedFeeRecord)
@@ -417,13 +414,13 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(1000000000000) // 1 000 gwei
-	// Step 1: Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
+	now := time.Now()
+
+	amount := int64(1000000000000) // 1 000 gwei
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
-	now := time.Now()
 
 	bridgeAccountBalanceBefore := fetch.HederaAccountBalance(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount)
 	receiverAccountBalanceBefore := fetch.HederaAccountBalance(t, setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID())
@@ -433,28 +430,21 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// feeData, err := evm.RouterContract.TokenFeeData(nil, common.HexToAddress(setupEnv.NativeEvmToken))
-	// if err != nil {
-	// 	t.Fatalf("failed to get token fee data: %v", err)
-	// }
-
-	// fee := amount * (feeData.ServiceFeePercentage.Int64() / constants.FeeMaxPercentage)
-
-	// Step 2: Submit Lock Txn from a deployed smart contract
+	// Step 1: Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := submit.LockEthTransaction(t, evm, setupEnv.NativeEvmToken, constants.HederaNetworkId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
 
-	// Step 2.1 - Get the block timestamp of lock event
+	// Step 1.1 - Get the block timestamp of lock event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
 	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
-	// Step 3: Validate Lock Event was emitted with correct data
+	// Step 2: Validate Lock Event was emitted with correct data
 	lockEventId := verify.LockEvent(t, receipt, expectedLockEventLog)
 
 	bridgedAmount := new(big.Int).Sub(expectedLockEventLog.Amount, expectedLockEventLog.ServiceFee)
-	expectedAmount, err := compat.RemoveDecimals(bridgedAmount.Int64(), common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	expectedAmount, err := utilities.RemoveDecimals(bridgedAmount.Int64(), common.HexToAddress(setupEnv.NativeEvmToken), evm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -467,12 +457,10 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		},
 	}
 
-	// Step 4: Validate that a scheduled token mint txn was submitted successfully
-	bridgeMintTransactionID, bridgeMintScheduleID := verify.ScheduledMintTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, now)
+	// Step 3: Validate that a scheduled token mint txn was submitted successfully
+	bridgeMintTransactionID, bridgeMintScheduleID := verify.ScheduledMintTx(t, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), mintTransfer, now)
 
-	// Wait for validators to update DB state after Scheduled TX is mined
-
-	// Step 5: Validate that Database statuses were changed correctly
+	// Step 4: Validate that Database statuses were changed correctly
 	expectedLockEventRecord := expected.FungibleTransferRecord(
 		chainId,
 		constants.HederaNetworkId,
@@ -500,13 +488,11 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		},
 	)
 
-	// Wait for validators to update DB state after Scheduled TX is mined
-
-	// Step 6: Verify that records have been created successfully
+	// Step 5: Verify that records have been created successfully
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedLockEventRecord)
 	verify.ScheduleRecord(t, setupEnv.DbValidator, expectedScheduleMintRecord)
 
-	// Step 7: Validate that a scheduled transfer txn was submitted successfully
+	// Step 6: Validate that a scheduled transfer txn was submitted successfully
 	bridgeTransferTransactionID, bridgeTransferScheduleID := verify.ScheduledTx(
 		t,
 		setupEnv.Clients.Hedera,
@@ -517,9 +503,7 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 		now,
 	)
 
-	// Wait for validators to update DB state after Scheduled TX is mined
-
-	// Step 8: Validate that database statuses were updated correctly for the Schedule Transfer
+	// Step 7: Validate that database statuses were updated correctly for the Schedule Transfer
 	expectedScheduleTransferRecord := &entity.Schedule{
 		TransactionID: bridgeTransferTransactionID,
 		ScheduleID:    bridgeTransferScheduleID,
@@ -533,7 +517,8 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	}
 
 	verify.ScheduleRecord(t, setupEnv.DbValidator, expectedScheduleTransferRecord)
-	// Step 9: Validate Treasury(BridgeAccount) Balance and Receiver Balance
+
+	// Step 8 Validate Treasury(BridgeAccount) Balance and Receiver Balance
 	verify.AccountBalance(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, 0, bridgeAccountBalanceBefore, targetAsset)
 	verify.AccountBalance(t, setupEnv.Clients.Hedera, setupEnv.Clients.Hedera.GetOperatorAccountID(), uint64(expectedAmount), receiverAccountBalanceBefore, targetAsset)
 }
@@ -563,7 +548,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedSubmitUnlockAmount, err := compat.AddDecimals(unlockAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	expectedSubmitUnlockAmount, err := utilities.AddDecimals(unlockAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -582,7 +567,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), now.UnixNano())
 
 	// Step 3 - Validate burn scheduled transaction
-	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
+	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
 
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
@@ -674,24 +659,19 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(1000000000000) // 1000 gwei
-	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
+	now := time.Now()
+
+	amount := int64(1000000000000) // 1000 gwei
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
-	now = time.Now()
 	targetChainID := setupEnv.Scenario.SecondEvmChainId
 
 	wrappedAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, chainId, targetChainID, setupEnv.NativeEvmToken)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// feeData, err := evm.RouterContract.TokenFeeData(nil, common.HexToAddress(setupEnv.NativeEvmToken))
-	// if err != nil {
-	// 	t.Fatalf("failed to get token fee data: %v", err)
-	// }
-	// fee := amount * (feeData.ServiceFeePercentage.Int64() / constants.FeeMaxPercentage)
 
 	wrappedEvm := setupEnv.Clients.EVM[targetChainID]
 	wrappedInstance, err := evmSetup.InitAssetContract(wrappedAsset, wrappedEvm.EVMClient)
@@ -704,37 +684,37 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Step 2 - Submit Lock Txn from a deployed smart contract
+	// Step 1 - Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := submit.LockEthTransaction(t, evm, setupEnv.NativeEvmToken, targetChainID, evm.Receiver.Bytes(), amount)
 
 	expectedAmount := new(big.Int).Sub(expectedLockEventLog.Amount, expectedLockEventLog.ServiceFee)
 
-	// Step 2.1 - Get the block timestamp of the lock event
+	// Step 1.1 - Get the block timestamp of the lock event
 	block, err := evm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
 	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
-	// Step 3 - Validate Lock Event was emitted with correct data
+	// Step 2 - Validate Lock Event was emitted with correct data
 	lockEventId := verify.LockEvent(t, receipt, expectedLockEventLog)
 
-	// Step 4 - Verify the submitted topic messages
+	// Step 3 - Verify the submitted topic messages
 	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, lockEventId, now.UnixNano())
 
-	// Step 5 - Verify Transfer retrieved from Validator API
+	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, lockEventId, setupEnv.NativeEvmToken, expectedAmount.String(), wrappedAsset)
 
-	// Step 6 - Submit Mint transaction
+	// Step 5 - Submit Mint transaction
 	txHash := submit.MintTransaction(t, wrappedEvm, lockEventId, transactionData, common.HexToAddress(wrappedAsset))
 
-	// Step 7 - Wait for transaction to be mined
+	// Step 6 - Wait for transaction to be mined
 	submit.WaitForTransaction(t, wrappedEvm, txHash)
 
-	// Step 8 - Validate Token balances
+	// Step 7 - Validate Token balances
 	verify.WrappedAssetBalance(t, wrappedEvm, wrappedAsset, expectedAmount, wrappedBalanceBefore, evm.Receiver)
 
-	// Step 9 - Prepare expected Transfer record
+	// Step 8 - Prepare expected Transfer record
 	expectedLockEventRecord := expected.FungibleTransferRecord(
 		chainId,
 		targetChainID,
@@ -763,7 +743,7 @@ func Test_EVM_Native_to_EVM_Token(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedLockEventRecord.TransactionID, err)
 	}
 
-	// Step 10 - Verify Database Records
+	// Step 9 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedLockEventRecord, authMsgBytes, receivedSignatures)
 }
 
@@ -773,9 +753,10 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	amount := int64(100000000000) // 100 gwei
-	// Step 1 - Initialize setup, smart contracts, etc.
 	setupEnv := setup.Load()
+	now := time.Now()
+
+	amount := int64(100000000000) // 100 gwei
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	sourceChain := setupEnv.Scenario.SecondEvmChainId
@@ -798,23 +779,23 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Step 2 - Submit Lock Txn from a deployed smart contract
+	// Step 1 - Submit Lock Txn from a deployed smart contract
 	receipt, expectedLockEventLog := submit.BurnEthTransaction(t, setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, nativeEvm.Receiver.Bytes(), amount)
 
-	// Step 2.1 - Get the block timestamp of the burn event
+	// Step 1.1 - Get the block timestamp of the burn event
 	block, err := wrappedEvm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
 	if err != nil {
 		t.Fatal("failed to get block by number", err)
 	}
 	blockTimestamp := time.Unix(int64(block.Time()), 0).UTC()
 
-	// Step 3 - Validate Burn Event was emitted with correct data
+	// Step 2 - Validate Burn Event was emitted with correct data
 	burnEventId := verify.BurnEvent(t, receipt, expectedLockEventLog)
 
-	// Step 4 - Verify the submitted topic messages
+	// Step 3 - Verify the submitted topic messages
 	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, burnEventId, now.UnixNano())
 
-	// Step 5 - Verify Transfer retrieved from Validator API
+	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, nativeEvm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken)
 
 	// Get fee amount from wrapped network Router
@@ -826,18 +807,18 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	// Add Fee to transactionData so that UnlockWithFee will be executed
 	transactionData.Fee = feeAmount.String()
 
-	// Step 6 - Submit Mint transaction
+	// Step 5 - Submit Mint transaction
 	txHash := submit.UnlockTransaction(t, nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
 
-	// Step 7 - Wait for transaction to be mined
+	// Step 6 - Wait for transaction to be mined
 	submit.WaitForTransaction(t, nativeEvm, txHash)
 
 	expectedUnlockedAmount := amount - feeAmount.Int64()
 
-	// Step 8 - Validate Token balances
+	// Step 7 - Validate Token balances
 	verify.WrappedAssetBalance(t, nativeEvm, setupEnv.NativeEvmToken, big.NewInt(expectedUnlockedAmount), nativeBalanceBefore, nativeEvm.Receiver)
 
-	// Step 9 - Prepare expected Transfer record
+	// Step 8 - Prepare expected Transfer record
 	expectedLockEventRecord := expected.FungibleTransferRecord(
 		sourceChain,
 		chainId,
@@ -866,8 +847,6 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		t.Fatalf("[%s] - Failed to encode the authorisation signature. Error: [%s]", expectedLockEventRecord.TransactionID, err)
 	}
 
-	// Wait for validators to update DB state after Scheduled TX is mined
-
 	// Step 9 - Verify Database Records
 	verify.TransferRecordAndSignatures(t, setupEnv.DbValidator, expectedLockEventRecord, authMsgBytes, receivedSignatures)
 }
@@ -878,8 +857,9 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	now = time.Now()
 	setupEnv := setup.Load()
+	now := time.Now()
+
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
@@ -887,12 +867,13 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	evm := setupEnv.Clients.EVM[chainId]
 	receiver := evm.Receiver
 
-	targetAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
+	targetAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", setupEnv.NftTokenID.String(), err)
 	}
 
 	transferFee := setupEnv.NftConstantFees[nftToken]
+
 	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
 
 	// Step 1 - Get Token Metadata
@@ -930,7 +911,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 
 	// Step 3 - Send the NFT transfer, including the fee to the Bridge Account
 	memo := fmt.Sprintf("%d-%s-%s", chainId, receiver, nftID.String())
-	feeResponse, err := submit.FeeForNFTToBridgeAccount(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, memo, chainId, nftID, transferFee)
+	feeResponse, err := submit.FeeForNFTToBridgeAccount(setupEnv.Clients.Hedera, setupEnv.BridgeAccount, memo, nftID, transferFee)
 	if err != nil {
 		t.Fatalf("Failed to send Fee and allowance for NFT transfer. Error: [%s]", err)
 	}
@@ -998,6 +979,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		Originator:    setupEnv.Clients.Hedera.GetOperatorAccountID().String(),
 		Timestamp:     entity.NanoTime{Time: ts},
 	}
+
 	// and:
 	expectedFeeRecord := expected.FeeRecord(
 		scheduledTxID,
@@ -1043,15 +1025,15 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		t.Skip("test skipped in short mode")
 	}
 
-	now = time.Now()
 	setupEnv := setup.Load()
+
 	nftToken := setupEnv.NftTokenID.String()
 	serialNumber := setupEnv.NftSerialNumber
 
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 
-	wrappedAsset, err := setup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
+	wrappedAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, nftToken)
 	if err != nil {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", nftToken, err)
 	}
@@ -1073,7 +1055,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 	expectedTxId := verify.BurnERC721Event(t, burnTxReceipt, expectedRouterBurnERC721)
 
 	// 4. Validate that a scheduled NFT transaction was submitted
-	scheduledTxID, scheduleID := verify.ScheduledNftAllowanceApprove(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.PayerAccount, expectedTxId, blockTimestamp.UnixNano())
+	scheduledTxID, scheduleID := verify.ScheduledNftAllowanceApprove(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.PayerAccount, expectedTxId, blockTimestamp.UnixNano())
 
 	// 5. Validate Event Transaction ID retrieved from Validator API
 	verify.EventTransactionIDFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, expectedTxId, scheduledTxID)
@@ -1128,9 +1110,7 @@ func Test_Hedera_EVM_BurnERC721_Transfer(t *testing.T) {
 		},
 	}
 
-	// 10. Wait for validators to update DB state after Scheduled TX is mined
-
-	// 11. Validate Database Records
+	// 10. Validate Database Records
 	verify.TransferRecord(t, setupEnv.DbValidator, expectedTxRecord)
 	// and:
 	verify.ScheduleRecord(t, setupEnv.DbValidator, expectedScheduleTransferRecord)

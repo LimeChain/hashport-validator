@@ -50,8 +50,6 @@ func BurnEvent(t *testing.T, txReceipt *types.Receipt, expectedRouterBurn *route
 			continue
 		}
 
-		//account := log.Topics[1]
-		//wrappedAsset := log.Topics[2]
 		err := parsedAbi.UnpackIntoInterface(&routerBurn, "Burn", log.Data)
 		if err != nil {
 			t.Fatal(err)
@@ -61,17 +59,9 @@ func BurnEvent(t *testing.T, txReceipt *types.Receipt, expectedRouterBurn *route
 			t.Fatalf("Expected Burn Event Amount [%v], but actually was [%v]", expectedRouterBurn.Amount, routerBurn.Amount)
 		}
 
-		//if wrappedAsset != expectedRouterBurn.WrappedAsset.Hash() {
-		//	t.Fatalf("Expected Burn Event Wrapped Token [%v], but actually was [%v]", expectedRouterBurn.WrappedAsset, routerBurn.WrappedAsset)
-		//}
-
 		if !reflect.DeepEqual(routerBurn.Receiver, expectedRouterBurn.Receiver) {
 			t.Fatalf("Expected Burn Event Receiver [%v], but actually was [%v]", expectedRouterBurn.Receiver, routerBurn.Receiver)
 		}
-
-		//if account != expectedRouterBurn.Account.Hash() {
-		//	t.Fatalf("Expected Burn Event Account [%v], but actually was [%v]", expectedRouterBurn.Account, routerBurn.Account)
-		//}
 
 		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
 		return expectedId

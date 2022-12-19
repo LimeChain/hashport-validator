@@ -41,6 +41,10 @@ Configuration for `e2e/setup/application.yml`:
 | `scenario.expectedValidatorsCount`    | Test scenario option describing the expected number of collected signatures                                                                                                                                       |
 | `scenario.firstEvmChainId`            | Test scenario option describing the first chain Id                                                                                                                                                                |
 | `scenario.secondEvmChainId`           | Test scenario option describing the second (target) chain Id                                                                                                                                                      |
+| `scenario.databaseRetryCount`         | Test scenario option describing the number of retries to get a database result                                                                                                                                    |
+| `scenario.databaseRetryTimeout`       | Test scenario option describing the timeout between database retries                                                                                                                                              |
+| `scenario.webRetryCount`              | Test scenario option describing the number of retries to get a web/API result                                                                                                                                     |
+| `scenario.webRetryTimeout`            | Test scenario option describing the timeout between web/API retries                                                                                                                                               |
 
 Configuration for `e2e/setup/bridge.yml`:
 

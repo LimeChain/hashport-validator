@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"time"
+
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 )
 
@@ -26,9 +28,13 @@ type HederaParser struct {
 }
 
 type ScenarioParser struct {
-	ExpectedValidatorsCount int    `yaml:"expectedValidatorsCount"`
-	FirstEvmChainId         uint64 `yaml:"firstEvmChainId"`
-	SecondEvmChainId        uint64 `yaml:"secondEvmChainId"`
+	ExpectedValidatorsCount int           `yaml:"expectedValidatorsCount"`
+	FirstEvmChainId         uint64        `yaml:"firstEvmChainId"`
+	SecondEvmChainId        uint64        `yaml:"secondEvmChainId"`
+	DatabaseRetryCount      int           `yaml:"databaseRetryCount"`
+	DatabaseRetryTimeout    time.Duration `yaml:"databaseRetryTimeout"`
+	WebRetryCount           int           `yaml:"webRetryCount"`
+	WebRetryTimeout         time.Duration `yaml:"webRetryTimeout"`
 }
 
 type Sender struct {

@@ -56,40 +56,6 @@ func FungibleTransferRecord(
 	}
 }
 
-func NonFungibleTransferRecord(
-	sourceChainId,
-	targetChainId,
-	nativeChainId uint64,
-	transactionID,
-	sourceAsset,
-	targetAsset,
-	nativeAsset,
-	receiver string,
-	status string,
-	fee string,
-	serialNumber int64,
-	metadata string,
-	originator string,
-	timestamp entity.NanoTime) *entity.Transfer {
-	return &entity.Transfer{
-		TransactionID: transactionID,
-		SourceChainID: sourceChainId,
-		TargetChainID: targetChainId,
-		NativeChainID: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		Fee:           fee,
-		Status:        status,
-		SerialNumber:  serialNumber,
-		Metadata:      metadata,
-		IsNft:         true,
-		Timestamp:     timestamp,
-		Originator:    originator,
-	}
-}
-
 func ScheduleRecord(txId, scheduleId, operation string, hasReceiver bool, status string, transferId sql.NullString) *entity.Schedule {
 	return &entity.Schedule{
 		TransactionID: txId,

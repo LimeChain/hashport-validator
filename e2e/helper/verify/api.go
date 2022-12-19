@@ -18,7 +18,9 @@ package verify
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 
@@ -43,14 +45,19 @@ func EventTransactionIDFromValidatorAPI(t *testing.T, validatorClient *e2eClient
 
 func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId, tokenID, expectedSendAmount, targetAsset string) *service.FungibleTransferData {
 	t.Helper()
-	bytes, err := validatorClient.GetTransferData(txId)
+	// bytes, err := validatorClient.GetTransferData(txId)
+	// if err != nil {
+	// 	t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
+	// }
+	// var transferDataResponse *service.FungibleTransferData
+	// err = json.Unmarshal(bytes, &transferDataResponse)
+
+	// check signature count - if less than xxx - retry
+
+	transferDataResponse, err := getFungibleTransferData(t, validatorClient, txId)
+
 	if err != nil {
-		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
-	}
-	var transferDataResponse *service.FungibleTransferData
-	err = json.Unmarshal(bytes, &transferDataResponse)
-	if err != nil {
-		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
+		t.Fatalf("Failed to parse transaction data. Error: [%s]", err)
 	}
 
 	if transferDataResponse.IsNft {
@@ -74,14 +81,20 @@ func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.
 
 func NonFungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId string, tokenID string, metadata string, tokenIdOrSerialNum int64, targetAsset string) *service.NonFungibleTransferData {
 	t.Helper()
-	bytes, err := validatorClient.GetTransferData(txId)
+	// bytes, err := validatorClient.GetTransferData(txId)
+	// if err != nil {
+	// 	t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
+	// }
+	// var transferDataResponse *service.NonFungibleTransferData
+	// err = json.Unmarshal(bytes, &transferDataResponse)
+	// if err != nil {
+	// 	t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
+	// }
+
+	transferDataResponse, err := getNonFungibleTransferData(t, validatorClient, txId)
+
 	if err != nil {
-		t.Fatalf("Cannot fetch transaction data - Error: [%s].", err)
-	}
-	var transferDataResponse *service.NonFungibleTransferData
-	err = json.Unmarshal(bytes, &transferDataResponse)
-	if err != nil {
-		t.Fatalf("Failed to parse JSON transaction data [%s]. Error: [%s]", bytes, err)
+		t.Fatalf("Failed to parse transaction data. Error: [%s]", err)
 	}
 
 	if !transferDataResponse.IsNft {
@@ -104,4 +117,54 @@ func NonFungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClien
 	}
 
 	return transferDataResponse
+}
+
+func getFungibleTransferData(t *testing.T, validatorClient *e2eClients.Validator, transactionID string) (*service.FungibleTransferData, error) {
+	current := 0
+
+	for current < validatorClient.WebRetryCount {
+		current++
+
+		bytes, err := validatorClient.GetTransferData(transactionID)
+		if err != nil {
+			return nil, err
+		}
+
+		var transferDataResponse *service.FungibleTransferData
+		err = json.Unmarshal(bytes, &transferDataResponse)
+
+		if len(transferDataResponse.Signatures) == validatorClient.ExpectedValidatorsCount {
+			return transferDataResponse, err
+		}
+
+		time.Sleep(validatorClient.WebRetryTimeout * time.Second)
+		t.Logf("Get fungible transaction data [%s] retry %d", transactionID, current)
+	}
+
+	return nil, fmt.Errorf("fungible transaction data [%s] not found after %d retries", transactionID, current)
+}
+
+func getNonFungibleTransferData(t *testing.T, validatorClient *e2eClients.Validator, transactionID string) (*service.NonFungibleTransferData, error) {
+	current := 0
+
+	for current < validatorClient.WebRetryCount {
+		current++
+
+		bytes, err := validatorClient.GetTransferData(transactionID)
+		if err != nil {
+			return nil, err
+		}
+
+		var transferDataResponse *service.NonFungibleTransferData
+		err = json.Unmarshal(bytes, &transferDataResponse)
+
+		if len(transferDataResponse.Signatures) == validatorClient.ExpectedValidatorsCount {
+			return transferDataResponse, err
+		}
+
+		time.Sleep(validatorClient.WebRetryTimeout * time.Second)
+		t.Logf("Get non-fungible data [%s] retry %d", transactionID, current)
+	}
+
+	return nil, fmt.Errorf("non-fungible transaction data [%s] not found after %d retries", transactionID, current)
 }
