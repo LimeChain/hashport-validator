@@ -8,14 +8,16 @@ The network consists of **three** validator nodes, which process incoming transf
 Example uses `Docker Compose`.
 
 ## Terminology
+
 * HTS - Hedera token service.
 * HCS - Hedera contract service.
 * Native Token - In the sense of the Hashport Bridge, this is a token, that is deployed on the EVM or HTS and is the original version of that token. It is Native to the specific EVM. For example [Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7) is Native to Ethereum but has been `bridged` to other EVMs. [WETH](https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2) is also Native to Ethereum.
 * Wrapped Token - In the sense of the Hashport Bridge, a wrapped token is a token that is deployed to EVM or HTS BY the bridge itself. For example [Theter USD](https://bscscan.com/token/0x55d398326f99059ff775485246999027b3197955) on BSC has been `bridged` by Binance and actually represents the value of the native [Ethereum Native Tether USD](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7).
 * EVM - Ethereum Virtual Machine.
 
-## Onboarding in depth guide:
-   To get a general idea for the whole hashport system it will be best to start with setting up the bridge.yml for the 
+## Onboarding in depth guide
+
+   To get a general idea for the whole hashport system it will be best to start with setting up the bridge.yml for the
    "Three Validators".
 
    ! Hedera scripts are found in the [Validator repo](https://github.com/LimeChain/hashport-validator)
@@ -26,23 +28,25 @@ Example uses `Docker Compose`.
       ```
       go run ./scripts/bridge/setup/cmd/setup.go \
          --privateKey=__ED25519_PRIVATE_KEY__ \
-         --accountID=__ED25519_ACC__ --adminKey=__ED25519_PUB_KEY__ \
+         --accountID=__ED25519_ACC__ \
+         --adminKey=__ED25519_PUB_KEY__ \
          --network=testnet --members=3
       ```
 
-      This script will generate 
+      This script will generate
       - Alice, Bob and Carl accounts  
-      - Bridge Account 
-      - Scheduled Tx Payer Account. 
+      - Bridge Account
+      - Scheduled Tx Payer Account.
       ! Save it all.
 
    - 3 Create a Hedera Native token (save the output)
       ```
       go run ./scripts/token/native/create/cmd/create.go \
          --privateKey = __ED25519_PRIVATE_KEY__ \
-         --accountID=__ED25519_ACC__ --network=testnet \
+         --accountID=__ED25519_ACC__ \
+         --network=testnet \
          --memberPrKeys = __Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topick_ID__
+         --bridgeID=__Bridge_Topic_ID__
       ```
 
    Now set up the EVM Routers. We will need at least 2 EVM networks, because this system can bridge directly from EVM to EVM.
@@ -70,11 +74,11 @@ Example uses `Docker Compose`.
       ```
       ! Save the router address
 
-   - 5 To bridge native HBAR from Hedera we will need a wrapped version on the EVM network. The flow is Hedeera HBAR --> Wrapped HBAR. To deploay a wrapped version of HBAR we will use:
+   - 5 To bridge native HBAR from Hedera we will need a wrapped version on the EVM network. The flow is Hedera HBAR --> Wrapped HBAR. To deploy a wrapped version of HBAR we will use:
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
-         --router __EVM_ROUTER_ADDRES__ \
+         --router __EVM_ROUTER_ADDRESS__ \
          --source __EVM_CHAIN_ID__ \
          --native HBAR \
          --name "HBAR[__EVM_CHAIN_ID__]" \
@@ -83,30 +87,43 @@ Example uses `Docker Compose`.
       ```
 
    - 6 To bridge a native token from the EVM to Hedera we will need to transfer the ownership of that token to the Router. This is a script that `Creates` a token and thenwe will `Transfers` ownership.
-   ```
-   npx hardhat deploy-token --decimals 18 --name "Some Native Toekn Name" --symbol "SNTN" --network __EVM_NETWORK__
+      ```
+      npx hardhat deploy-token \
+         --decimals 18 \
+         --name "Some Native Token Name" \
+         --symbol "SNTN" \
+         --network __EVM_NETWORK__
 
-   npx hardhat update-native-token --fee-percentage 5 --native-token __TOKEN_ADDRES__ --router __EVM_ROUTER_ADDRES__ --status true --network __EVM_NETWORK__
-   ```
+      npx hardhat update-native-token \
+         --fee-percentage 5 \
+         --native-token __TOKEN_ADDRESS__ \
+         --router __EVM_ROUTER_ADDRESS__ \
+         --status true \
+         --network __EVM_NETWORK__
+      ```
  
    - 7 To pay fees for bridging from this EVM we will set a payment token.
       ```
-      npx hardhat deploy-token --decimals 6 --name "USDC" --symbol USDC --network __EVM_NETWORK__
+      npx hardhat deploy-token \
+         --decimals 6 \
+         --name "USDC" \
+         --symbol USDC \
+         --network __EVM_NETWORK__
 
       npx hardhat set-payment-token \
          --network __EVM_NETWORK__ \
-         --router __EVM_ROUTER_ADDRES__ \
-         --payment-token __TOKEN_ADDRES__ \
+         --router __EVM_ROUTER_ADDRESS__ \
+         --payment-token __TOKEN_ADDRESS__ \
          --status true
       ```
 
-   - 8 Create a wrapped version of the Hedera token (from step 3) so we can brigde it. Native Hedeera Token --> Wrapped EVM token
+   - 8 Create a wrapped version of the Hedera token (from step 3) so we can bridge it. Native Hedera Token --> Wrapped EVM token
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
-         --router __EVM_ROUTER_ADDRES__ \
+         --router __EVM_ROUTER_ADDRESS__ \
          --source __EVM_CHAIN_ID__ \
-         --native __Token_Topick_ID__ \
+         --native __Token_Topic_ID__ \
          --name "__Name__" \
          --symbol "__SYMBOL__" \
          --decimals 8
@@ -115,14 +132,14 @@ Example uses `Docker Compose`.
       ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
    - 10 Use steps from 4 to 9 to deploy router to one more EVM network
-   - 11 Create Wrapped versions for EVM to EVM bridging on both EVMS ( For Native Token on EVM we need coresponding Wrapped token on the Other EVM )
+   - 11 Create Wrapped versions for EVM to EVM bridging on both EVMs ( For Native Token on EVM we need corresponding Wrapped token on the Other EVM )
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
-         --router __EVM_ROUTER_ADDRES__ \
+         --router __EVM_ROUTER_ADDRESS__ \
          --source __SOURCE_EVM_NETWORK_ID__ \
          --native __SOURCE_EVM_NATIVE_TOKEN_ADDRESS__ \
-         --name "Wraped __SOURCE_EVM_NATIVE_TOKEN_NAME__" \
+         --name "Wrapped __SOURCE_EVM_NATIVE_TOKEN_NAME__" \
          --symbol "W_ __SOURCE_EVM_NATIVE_TOKEN_SYMBOL__" \
          --decimals 18
       ```
@@ -136,7 +153,7 @@ Example uses `Docker Compose`.
          --adminKey = __ED25519_PUB_KEY__ \
          --network = testnet \
          --memberPrKeys = __Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topick_ID__ \
+         --bridgeID=__Bridge_Topic_ID__ \
          --generateSupplyKeysFromMemberPrKeys = true
       ```
 
@@ -148,7 +165,7 @@ Example uses `Docker Compose`.
          --accountID=__ED25519_ACC__ \
          --network=testnet \
          --memberPrKeys=__Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topick_ID__
+         --bridgeID=__Bridge_Topic_ID__
       ```
 
       * Mint the NFT on hedera
@@ -166,12 +183,21 @@ Example uses `Docker Compose`.
       npx hardhat deploy-wrapped-erc721-transfer-ownership \
          --network __EVM_NETWORK__ \
          --name "__WRAPPED_NFT_NAME__" \
-         --router __EVM_ROUTER_ADDRES__ \
+         --router __EVM_ROUTER_ADDRESS__ \
          --symbol "__WRAPPED_NFT_SYMBOL__"
       ```
 
-!!! Make sure to have enoug Tokens for paying fees and enoug gas to use in each EVM Wallet. 
+      * Set payment token the Hedera NFT to the EVMs
+      ```
+      npx hardhat set-payment-token \
+         --network __EVM_NETWORK__ \
+         --router __EVM_ROUTER_ADDRESS__ \
+         --payment-token __TOKEN_ADDRESS__
+      ```
+
+!!! Make sure to have enough Tokens for paying fees and enough gas to use in each EVM Wallet.
 !!! Make sure to associate all tokens with all hedera accounts
+
    ```
    go run ./scripts/token/associate/cmd/associate.go \
       --privateKey=__Wallet_PK__ \
@@ -181,6 +207,7 @@ Example uses `Docker Compose`.
    ```
 
 The structure of the three validators
+
 ```
 examples
    |-- three-validators
@@ -201,6 +228,7 @@ examples
 ```
 
 ## Validator Node YML setup
+
 ```YML
 #Example Node
 node:
@@ -215,15 +243,15 @@ node:
       __EVM_CHAIN_ID_1__:
         block_confirmations: 5
         node_url: __EVM_RPC__
-        private_key: __WALLET_PK__ # This line will be different for Allice, Bob and Carl. Dave can use Allice config
+        private_key: __WALLET_PK__ # This line will be different for Alice, Bob and Carl. Dave can use Alice config
       __EVM_CHAIN_ID_2__:
         block_confirmations: 5
         node_url: __EVM_RPC__
-        private_key: __WALLET_PK__ # This line will be different for Allice, Bob and Carl. Dave can use Allice config
+        private_key: __WALLET_PK__ # This line will be different for Alice, Bob and Carl. Dave can use Alice config
    hedera:
       operator:
-        account_id: __NODE_ACC__ # from the scripts. This line will be different for Allice, Bob and Carl. Dave can use Allice config
-        private_key: __NODE_PK__ # from the scripts. This line will be different for Allice, Bob and Carl. Dave can use Allice config
+        account_id: __NODE_ACC__ # from the scripts. This line will be different for Alice, Bob and Carl. Dave can use Alice config
+        private_key: __NODE_PK__ # from the scripts. This line will be different for Alice, Bob and Carl. Dave can use Alice config
       network: testnet
     mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
@@ -234,7 +262,7 @@ node:
     coingecko:
       api_address: https://api.coingecko.com/api/v3/
     coin_market_cap:
-      api_key: __KEY__ # ask someone or get one from Coinmarcetcap
+      api_key: __KEY__ # ask someone or get one from CoinMarketCap
       api_address: https://pro-api.coinmarketcap.com/v2/cryptocurrency/
   log_level: debug
   port: 5200
@@ -245,6 +273,7 @@ node:
 ```
 
 ## Bridge YML setup
+
 ```YML
 bridge:
    use_local_config: true # set to true, because the validators will use this bridge yml config
@@ -267,7 +296,7 @@ bridge:
                networks:
                   __EVM_CHAIN_ID_1__: "__Wrapped_HBAR_Address__"
                   __EVM_CHAIN_ID_2__: "__Wrapped_HBAR_Address__"
-            "__HEDERA_NATIVE_TOKEN_TOPICK_ID__":
+            "__HEDERA_NATIVE_TOKEN_TOPIC_ID__":
                fee_percentage: 10000
                coin_gecko_id: "tune-fm"
                coin_market_cap_id: "11420"
@@ -275,7 +304,7 @@ bridge:
                   __EVM_CHAIN_ID_1__: "__Wrapped_HBAR_Address__"
                   __EVM_CHAIN_ID_2__: "__Wrapped_HBAR_Address__"
          nft:
-            "__HEDERA_NATIVE_NFT_TOPICK_ID__":
+            "__HEDERA_NATIVE_NFT_TOPIC_ID__":
                fee: 20000
                networks:
                   __EVM_CHAIN_ID_1__: "__Wrapped_NFT_Address__"
@@ -304,8 +333,8 @@ bridge:
                __EVM_CHAIN_ID_1__: "__Wrapped_Token_Address__"
 ```
 
-
 ## More documentation
+
 1. Create a bridge configuration for Hedera using the [scripts](../../scripts/README.md).
 2. Using the reference and the scripts for the Smart Contracts from [repository](https://github.com/LimeChain/hedera-eth-bridge-contracts/blob/main/README.md#scripts). Do the following: 
 3. Set necessary [bridge](./bridge.yml) configuration for the nodes.
