@@ -23,11 +23,15 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type Validator struct {
 	http.Client
-	baseUrl string
+	baseUrl                 string
+	ExpectedValidatorsCount int
+	WebRetryCount           int
+	WebRetryTimeout         time.Duration
 }
 
 // NewValidatorClient returns new instance of validator client

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package util
+package fetch
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"testing"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-func GetHederaAccountBalance(client *hedera.Client, account hedera.AccountID, t *testing.T) hedera.AccountBalance {
+func HederaAccountBalance(t *testing.T, client *hedera.Client, account hedera.AccountID) hedera.AccountBalance {
+	t.Helper()
 	// Get bridge account hbar balance before transfer
 	receiverBalance, err := hedera.NewAccountBalanceQuery().
 		SetAccountID(account).

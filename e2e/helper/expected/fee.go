@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package util
+package expected
 
-func AllSame(arr []string) bool {
-	for i := 1; i < len(arr); i++ {
-		if arr[i] != arr[0] {
-			return false
-		}
+import (
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+)
+
+func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
+	fee, remainder := feeCalc.CalculateFee(token, amount)
+	validFee := distributor.ValidAmount(fee)
+	if validFee != fee {
+		remainder += fee - validFee
 	}
 
-	return true
+	return remainder, validFee
 }
