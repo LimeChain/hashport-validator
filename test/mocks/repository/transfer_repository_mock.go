@@ -73,11 +73,9 @@ func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 }
 
 func (m *MockTransferRepository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
-	//TODO implement me
 	panic("implement me")
 }
 
 func (m *MockTransferRepository) Count() (int64, error) {
-	//TODO implement me
 	panic("implement me")
 }

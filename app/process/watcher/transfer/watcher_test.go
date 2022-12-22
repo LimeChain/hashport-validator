@@ -19,12 +19,13 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -177,12 +178,6 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
-func Test_UpdateStatusTimestamp_Works(t *testing.T) {
-	w := initializeWatcher()
-	mocks.MStatusRepository.On("Update", txAccountId, int64(100)).Return(nil)
-	w.updateStatusTimestamp(100)
-}
-
 func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
@@ -203,6 +198,113 @@ func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 	mocks.MTransferService.AssertNotCalled(t, "SanityCheckTransfer", mock.Anything)
+}
+
+func Test_validateFeeSent_ShouldNotValidateFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateFeeSent_ShouldValidateFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(10), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_validateFeeSent_ShouldValidatePrevFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		20,
+	)
+	assert.Equal(t, int64(20), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_validateFeeSent_ShouldNotValidateAnyFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		20,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateFeeSent_ShouldNotValidateFeeWithOriginator(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"different originator",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateFeeSent_ShouldValidateLargerFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		30,
+	)
+	assert.Equal(t, int64(30), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_UpdateStatusTimestamp_Works(t *testing.T) {
+	w := initializeWatcher()
+	mocks.MStatusRepository.On("Update", txAccountId, int64(100)).Return(nil)
+	w.updateStatusTimestamp(100)
 }
 
 func Test_ConsensusTimestamp_Fails(t *testing.T) {

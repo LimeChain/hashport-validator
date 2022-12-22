@@ -29,6 +29,8 @@ type Pricing interface {
 	GetMinAmountsForAPI() map[uint64]map[string]string
 	// GetHederaNftFee returns the nft fee for Hedera NFTs based on token id
 	GetHederaNftFee(token string) (int64, bool)
+	// GetHederaNftPrevFee returns the previous nft fee for Hedera NFTs based on token id
+	GetHederaNftPrevFee(token string) (int64, bool)
 
 	NftFees() map[uint64]map[string]pricing.NonFungibleFee
 }
