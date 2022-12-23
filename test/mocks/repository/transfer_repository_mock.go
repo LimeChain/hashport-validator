@@ -36,15 +36,27 @@ func (m *MockTransferRepository) UpdateStatusFailed(txId string) error {
 }
 
 func (m *MockTransferRepository) GetByTransactionId(txId string) (*entity.Transfer, error) {
-	panic("implement me")
+	args := m.Called(txId)
+	if args.Get(1) == nil {
+		return args.Get(0).(*entity.Transfer), nil
+	}
+	return nil, args.Get(1).(error)
 }
 
 func (m *MockTransferRepository) GetWithFee(txId string) (*entity.Transfer, error) {
-	panic("implement me")
+	args := m.Called(txId)
+	if args.Get(1) == nil {
+		return args.Get(0).(*entity.Transfer), nil
+	}
+	return nil, args.Get(1).(error)
 }
 
 func (m *MockTransferRepository) GetWithPreloads(txId string) (*entity.Transfer, error) {
-	panic("implement me")
+	args := m.Called(txId)
+	if args.Get(1) == nil {
+		return args.Get(0).(*entity.Transfer), nil
+	}
+	return nil, args.Get(1).(error)
 }
 
 func (m *MockTransferRepository) Create(ct *payload.Transfer) (*entity.Transfer, error) {
