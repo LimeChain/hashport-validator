@@ -20,19 +20,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/message"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"testing"
-	"time"
 )
 
 var (
@@ -63,6 +67,12 @@ var (
 		Shard:    0,
 		Realm:    0,
 		Schedule: 3,
+	}
+
+	tokenId = hedera.TokenID{
+		Shard: 0,
+		Realm: 0,
+		Token: 4,
 	}
 
 	c *Client
@@ -245,7 +255,7 @@ func Test_GetAccountDebitTransactionsAfterTimestampString(t *testing.T) {
 	assert.Nil(t, response)
 }
 
-func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
+func Test_GetAccountCreditTransactionsBetween_HttpErr(t *testing.T) {
 	setup()
 	now := time.Now()
 	then := now.Add(time.Hour * 2)
@@ -253,6 +263,31 @@ func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
 	response, err := c.GetAccountCreditTransactionsBetween(accountId, now.UnixNano(), then.UnixNano())
 	assert.Error(t, errors.New("some-error"), err)
 	assert.Nil(t, response)
+}
+
+func Test_GetAccountCreditTransactionsBetween(t *testing.T) {
+	setup()
+
+	expected := transaction.Response{
+		Transactions: []transaction.Transaction{
+			{
+				ConsensusTimestamp: "1631092491.483966000",
+				EntityId:           "1",
+				Result:             hedera.StatusSuccess.String(),
+			},
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+
+	response, err := c.GetAccountCreditTransactionsBetween(accountId, 0, time.Now().UnixNano())
+	assert.Nil(t, err)
+	assert.Equal(t, expected.Transactions[0].ConsensusTimestamp, response[0].ConsensusTimestamp)
 }
 
 func Test_QueryDefaultLimit(t *testing.T) {
@@ -367,10 +402,273 @@ func Test_GetHBARUsdPrice(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func Test_GetTransactionsAfterTimestamp(t *testing.T) {
+func Test_GetTransactionsAfterTimestamp_HttpErr(t *testing.T) {
 	setup()
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
 	response, err := c.GetTransactionsAfterTimestamp(accountId, time.Now().UnixNano(), "CryptoTransfer")
 	assert.Error(t, errors.New("some-error"), err)
 	assert.Nil(t, response)
+}
+
+func Test_GetAccountTokenMintTransactionsAfterTimestampString_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetAccountTokenMintTransactionsAfterTimestampString(accountId, "42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetAccountTokenMintTransactionsAfterTimestamp_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetAccountTokenMintTransactionsAfterTimestamp(accountId, int64(42))
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetAccountTokenBurnTransactionsAfterTimestampString_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetAccountTokenBurnTransactionsAfterTimestampString(accountId, "42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetAccountCreditTransactionsAfterTimestampString_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetAccountCreditTransactionsAfterTimestampString(accountId, "42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetMessagesForTopicBetween_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetMessagesForTopicBetween(topicId, 0, 0)
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetMessagesForTopicBetween(t *testing.T) {
+	setup()
+	expectedMsg := message.Message{
+		ConsensusTimestamp: "1631092491.483966000",
+		TopicId:            "1",
+		Contents:           "1",
+		RunningHash:        "1",
+		SequenceNumber:     1,
+		ChunkInfo:          nil,
+	}
+
+	content := message.Messages{
+		Messages: []message.Message{expectedMsg},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+
+	response, err := c.GetMessagesForTopicBetween(topicId, 0, time.Now().UnixNano())
+	assert.Equal(t, expectedMsg, response[0])
+	assert.Len(t, response, 1)
+	assert.Nil(t, err)
+}
+
+func Test_GetNftTransactions_HttpErr(t *testing.T) {
+	setup()
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetNftTransactions("0.0.42", sequenceNumber)
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Equal(t, transaction.NftTransactionsResponse{}, response)
+}
+
+func Test_GetNftTransactions(t *testing.T) {
+	setup()
+
+	expected := transaction.NftTransactionsResponse{
+		Transactions: []transaction.NftTransaction{
+			{
+				TransactionID:     "TransactionID",
+				Type:              "Type",
+				SenderAccountID:   "SenderAccountID",
+				ReceiverAccountID: "ReceiverAccountID",
+			},
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetNftTransactions("0.0.42", sequenceNumber)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, response)
+}
+
+func Test_GetSuccessfulTransaction_HttpErr(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetSuccessfulTransaction("0.0.42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Equal(t, transaction.Transaction{}, response)
+}
+
+func Test_GetSuccessfulTransaction(t *testing.T) {
+	setup()
+
+	expected := transaction.Response{
+		Transactions: []transaction.Transaction{
+			{
+				ConsensusTimestamp: "1",
+				EntityId:           "1",
+				Result:             hedera.StatusSuccess.String(),
+			},
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetSuccessfulTransaction("0.0.42")
+	assert.Nil(t, err)
+	assert.Equal(t, hedera.StatusSuccess.String(), response.Result)
+}
+
+func Test_GetSchedule_HttpErr(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetSchedule("0.0.42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetSchedule(t *testing.T) {
+	setup()
+
+	expected := transaction.Schedule{
+		ConsensusTimestamp: "1",
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetSchedule("0.0.42")
+	assert.Nil(t, err)
+	assert.Equal(t, expected.ConsensusTimestamp, response.ConsensusTimestamp)
+}
+
+func Test_GetNft_HttpErr(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetNft("0.0.42", 42)
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetNft(t *testing.T) {
+	setup()
+
+	expected := transaction.Nft{
+		CreatedTimestamp: "1",
+		SerialNumber:     42,
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetNft("0.0.42", 42)
+	assert.Nil(t, err)
+	assert.Equal(t, expected.SerialNumber, response.SerialNumber)
+}
+
+func Test_AccountExists_ShouldNotExists(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response := c.AccountExists(accountId)
+	assert.False(t, response)
+}
+
+func Test_GetAccount_HttpErr(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetAccount("0.0.42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetAccount(t *testing.T) {
+	setup()
+
+	expected := account.AccountsResponse{
+		Account: "0.0.42",
+		Balance: account.Balance{
+			Balance: 42,
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetAccount("0.0.42")
+	assert.Nil(t, err)
+	assert.Equal(t, expected.Account, response.Account)
+	assert.Equal(t, expected.Balance.Balance, response.Balance.Balance)
+}
+
+func Test_GetToken_HttpErr(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response, err := c.GetToken("0.0.42")
+	assert.Error(t, errors.New("some-error"), err)
+	assert.Nil(t, response)
+}
+
+func Test_GetToken(t *testing.T) {
+	setup()
+
+	expected := token.TokenResponse{
+		TokenID: "0.0.42",
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetToken("0.0.42")
+	assert.Nil(t, err)
+	assert.Equal(t, expected.TokenID, response.TokenID)
+}
+
+func Test_TopicExists_ShouldNotExists(t *testing.T) {
+	setup()
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
+	response := c.TopicExists(topicId)
+	assert.False(t, response)
 }
