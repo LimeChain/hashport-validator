@@ -200,12 +200,12 @@ func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	mocks.MTransferService.AssertNotCalled(t, "SanityCheckTransfer", mock.Anything)
 }
 
-func Test_validateFeeSent_ShouldNotValidateFee(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldNotValidateFee(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"",
@@ -216,13 +216,13 @@ func Test_validateFeeSent_ShouldNotValidateFee(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func Test_validateFeeSent_ShouldValidateFee(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldValidateFee(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
 	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"",
@@ -233,13 +233,13 @@ func Test_validateFeeSent_ShouldValidateFee(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func Test_validateFeeSent_ShouldValidatePrevFee(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldValidatePrevFee(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
 	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"",
@@ -250,13 +250,13 @@ func Test_validateFeeSent_ShouldValidatePrevFee(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func Test_validateFeeSent_ShouldNotValidateAnyFee(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldNotValidateAnyFee(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
 	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"",
@@ -267,13 +267,13 @@ func Test_validateFeeSent_ShouldNotValidateAnyFee(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func Test_validateFeeSent_ShouldNotValidateFeeWithOriginator(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldNotValidateFeeWithOriginator(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
 	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"different originator",
@@ -284,13 +284,13 @@ func Test_validateFeeSent_ShouldNotValidateFeeWithOriginator(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func Test_validateFeeSent_ShouldValidateLargerFee(t *testing.T) {
+func Test_validateNFTFeeSent_ShouldValidateLargerFee(t *testing.T) {
 	w := initializeWatcher()
 
 	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
 	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
 
-	feeForValidators, ok := w.validateFeeSent(
+	feeForValidators, ok := w.validateNFTFeeSent(
 		testConstants.NetworkHederaNonFungibleNativeToken,
 		tx,
 		"",

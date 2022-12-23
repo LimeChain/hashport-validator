@@ -231,7 +231,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		feeForValidators, ok := ctw.validateFeeSent(sourceAsset, tx, originator, nftAssetInfo, feeSent)
+		feeForValidators, ok := ctw.validateNFTFeeSent(sourceAsset, tx, originator, nftAssetInfo, feeSent)
 		if !ok {
 			return
 		}
@@ -291,7 +291,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
 }
 
-func (ctw Watcher) validateFeeSent(sourceAsset string, tx transaction.Transaction, originator string, nftAssetInfo *asset.NonFungibleAssetInfo, feeSent int64) (int64, bool) {
+func (ctw Watcher) validateNFTFeeSent(sourceAsset string, tx transaction.Transaction, originator string, nftAssetInfo *asset.NonFungibleAssetInfo, feeSent int64) (int64, bool) {
 	fee, feeIsFound := ctw.pricingService.GetHederaNftFee(sourceAsset)
 	if !feeIsFound {
 		ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
@@ -324,9 +324,9 @@ func (ctw Watcher) validateFeeSent(sourceAsset string, tx transaction.Transactio
 		ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
 
 		if prevFeeFound && fee != prevFee {
-			ctw.logger.Infof("[%s] - Try to validate NFT Fee for [%s] in HBARs with prevrous price.", tx.TransactionID, sourceAsset)
+			ctw.logger.Infof("[%s] - Trying to validate NFT Fee for [%s] in HBARs with previous price.", tx.TransactionID, sourceAsset)
 			if feeSent < totalHbarFeeExpectedWithPrev {
-				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs with prevrous price. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, prevFee, feeSent)
+				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs with previous price. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, prevFee, feeSent)
 				return 0, false
 			}
 		} else {
