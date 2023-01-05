@@ -17,9 +17,10 @@
 package constants
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"math/big"
 	"strconv"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
 
@@ -388,6 +389,10 @@ var (
 
 	HederaNftFees = map[string]int64{
 		NetworkHederaNonFungibleNativeToken: 1000,
+	}
+
+	HederaNftDynamicFees = map[string]decimal.Decimal{
+		NetworkHederaNonFungibleNativeToken: decimal.NewFromInt(2000),
 	}
 
 	PaymentTokens = map[uint64]string{

@@ -231,38 +231,15 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 			return
 		}
 
-		fee, ok := ctw.pricingService.GetHederaNftFee(sourceAsset)
+		feeForValidators, ok := ctw.validateNFTFeeSent(sourceAsset, tx, originator, nftAssetInfo, feeSent)
 		if !ok {
-			ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
 			return
 		}
 
-		totalHbarFeeExpected := fee
-
-		feeForValidators := feeSent
-		if originator != nftAssetInfo.TreasuryAccountId { // Custom Fees are expected only for Non-Treasury Account ID
-			totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
-			// Validate that the required Custom fees by Token ID are sent
-			if len(nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId) > 0 {
-				if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
-					return
-				}
-			}
-			feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
-		}
-
-		// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
-		if feeSent < totalHbarFeeExpected {
-			ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
-			return
-		}
-
-		transferMessage, err = ctw.createNonFungiblePayload(
-			tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, checkResult.NftId.SerialNumber, targetChainId, targetChainAsset, feeForValidators)
+		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, checkResult.NftId.SerialNumber, targetChainId, targetChainAsset, feeForValidators)
 
 	} else {
-		transferMessage, err = ctw.createFungiblePayload(
-			tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
+		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
 	}
 
 	if err != nil {
@@ -312,6 +289,52 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
+}
+
+func (ctw Watcher) validateNFTFeeSent(sourceAsset string, tx transaction.Transaction, originator string, nftAssetInfo *asset.NonFungibleAssetInfo, feeSent int64) (int64, bool) {
+	fee, feeIsFound := ctw.pricingService.GetHederaNftFee(sourceAsset)
+	if !feeIsFound {
+		ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
+		return 0, false
+	}
+
+	prevFee, prevFeeFound := ctw.pricingService.GetHederaNftPrevFee(sourceAsset)
+
+	totalHbarFeeExpected := fee
+	totalHbarFeeExpectedWithPrev := prevFee
+
+	feeForValidators := feeSent
+	if originator != nftAssetInfo.TreasuryAccountId {
+		// Custom Fees are expected only for Non-Treasury Account ID
+		totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
+		totalHbarFeeExpectedWithPrev += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
+
+		// Validate that the required Custom fees by Token ID are sent
+		if len(nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId) > 0 {
+			if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
+				return 0, false
+			}
+		}
+
+		feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
+	}
+
+	// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
+	if feeSent < totalHbarFeeExpected {
+		ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
+
+		if prevFeeFound && fee != prevFee {
+			ctw.logger.Infof("[%s] - Trying to validate NFT Fee for [%s] in HBARs with previous price.", tx.TransactionID, sourceAsset)
+			if feeSent < totalHbarFeeExpectedWithPrev {
+				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs with previous price. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, prevFee, feeSent)
+				return 0, false
+			}
+		} else {
+			return 0, false
+		}
+	}
+
+	return feeForValidators, true
 }
 
 func (ctw Watcher) validateNftTokenCustomFees(nftAssetInfo *asset.NonFungibleAssetInfo, tx transaction.Transaction, sourceAsset string) bool {
@@ -388,7 +411,7 @@ func (ctw Watcher) createNonFungiblePayload(
 	if err != nil {
 		return nil, err
 	}
-	
+
 	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
 	if e != nil {
 		return nil, fmt.Errorf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e)
