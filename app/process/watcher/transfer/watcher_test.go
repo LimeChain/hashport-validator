@@ -23,6 +23,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
@@ -41,18 +45,21 @@ var (
 	wrappedTokenAddressNetwork3 = "0x0000000000000000000000000000000000000001"
 	network0                    = constants.HederaNetworkId
 	network3                    = uint64(3)
+	evmAddress                  = "0xaiskdjakdjakl"
 	emptyString                 = ""
 	nilNativeAsset              *asset.NativeAsset
 	nativeAssetNetwork0         = &asset.NativeAsset{ChainId: constants.HederaNetworkId, Asset: nativeTokenAddressNetwork0}
 	fungibleAssetInfoNetwork0   = &asset.FungibleAssetInfo{Decimals: 8}
 	fungibleAssetInfoNetwork3   = &asset.FungibleAssetInfo{Decimals: 18}
 	tokenPriceInfo              = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
+	txAccountId                 = "0.0.444444"
+	txAmount                    = int64(10)
 
 	tx = transaction.Transaction{
 		TokenTransfers: []transaction.Transfer{
 			{
-				Account: "0.0.444444",
-				Amount:  10,
+				Account: txAccountId,
+				Amount:  txAmount,
 				Token:   nativeTokenAddressNetwork0,
 			},
 		},
@@ -77,7 +84,7 @@ var (
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(network3, emptyString, nil)
+	mocks.MTransferService.On("SanityCheckTransfer", mock.Anything).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: emptyString})
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(emptyString)
 	mocks.MAssetsService.On("WrappedToNative", nativeTokenAddressNetwork0, network0).Return(nilNativeAsset)
@@ -95,7 +102,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 	NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		0,
@@ -105,17 +112,17 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		mocks.MPrometheusService,
 		mocks.MPricingService)
 
-	mocks.MStatusRepository.AssertCalled(t, "Create", "0.0.444444", mock.Anything)
+	mocks.MStatusRepository.AssertCalled(t, "Create", txAccountId, mock.Anything)
 }
 
 func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 	setup()
-	mocks.MStatusRepository.On("Update", "0.0.444444", mock.Anything).Return(nil)
+	mocks.MStatusRepository.On("Update", txAccountId, mock.Anything).Return(nil)
 
 	NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		1,
@@ -125,7 +132,7 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		mocks.MPrometheusService,
 		mocks.MPricingService)
 
-	mocks.MStatusRepository.AssertCalled(t, "Update", "0.0.444444", mock.Anything)
+	mocks.MStatusRepository.AssertCalled(t, "Update", txAccountId, mock.Anything)
 }
 
 func Test_Watch_AccountNotExist(t *testing.T) {
@@ -142,7 +149,7 @@ func Test_Watch_AccountNotExist(t *testing.T) {
 func Test_ProcessTransaction(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
@@ -159,7 +166,7 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = fmt.Sprintf("%d.0", time.Now().Add(time.Hour).Unix())
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
 	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
@@ -171,16 +178,10 @@ func Test_ProcessTransaction_WithTS(t *testing.T) {
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
 }
 
-func Test_UpdateStatusTimestamp_Works(t *testing.T) {
-	w := initializeWatcher()
-	mocks.MStatusRepository.On("Update", "0.0.444444", int64(100)).Return(nil)
-	w.updateStatusTimestamp(100)
-}
-
 func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(uint64(0), "", errors.New("some-error"))
+	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(transfer.SanityCheckResult{ChainId: network0, EvmAddress: "", Err: errors.New("some-error")})
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
 
@@ -199,12 +200,119 @@ func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	mocks.MTransferService.AssertNotCalled(t, "SanityCheckTransfer", mock.Anything)
 }
 
+func Test_validateNFTFeeSent_ShouldNotValidateFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateNFTFeeSent_ShouldValidateFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(10), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_validateNFTFeeSent_ShouldValidatePrevFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		20,
+	)
+	assert.Equal(t, int64(20), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_validateNFTFeeSent_ShouldNotValidateAnyFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(0), false)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		20,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateNFTFeeSent_ShouldNotValidateFeeWithOriginator(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"different originator",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		10,
+	)
+	assert.Equal(t, int64(0), feeForValidators)
+	assert.False(t, ok)
+}
+
+func Test_validateNFTFeeSent_ShouldValidateLargerFee(t *testing.T) {
+	w := initializeWatcher()
+
+	mocks.MPricingService.On("GetHederaNftFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(10), true)
+	mocks.MPricingService.On("GetHederaNftPrevFee", testConstants.NetworkHederaNonFungibleNativeToken).Return(int64(20), true)
+
+	feeForValidators, ok := w.validateNFTFeeSent(
+		testConstants.NetworkHederaNonFungibleNativeToken,
+		tx,
+		"",
+		testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken],
+		30,
+	)
+	assert.Equal(t, int64(30), feeForValidators)
+	assert.True(t, ok)
+}
+
+func Test_UpdateStatusTimestamp_Works(t *testing.T) {
+	w := initializeWatcher()
+	mocks.MStatusRepository.On("Update", txAccountId, int64(100)).Return(nil)
+	w.updateStatusTimestamp(100)
+}
+
 func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
 	anotherTx.ConsensusTimestamp = "asd"
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", anotherTx.TransactionID).Return(anotherTx, nil)
-	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(uint64(3), "0xaiskdjakdjakl", nil)
+	mocks.MTransferService.On("SanityCheckTransfer", anotherTx).Return(transfer.SanityCheckResult{ChainId: network3, EvmAddress: evmAddress})
 	mocks.MQueue.On("Push", mock.Anything).Return()
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 	mocks.MAssetsService.On("NativeToWrapped", nativeTokenAddressNetwork0, network0, network3).Return(wrappedTokenAddressNetwork3)
@@ -214,6 +322,34 @@ func Test_ConsensusTimestamp_Fails(t *testing.T) {
 	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
 
 	w.processTransaction(anotherTx.TransactionID, mocks.MQueue)
+}
+
+func Test_validateNftTokenCustomFees(t *testing.T) {
+	w := initializeWatcher()
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+
+	assert.True(t, ok)
+}
+
+func Test_validateNftTokenCustomFees_ErrOnTransferForAccountNotFound(t *testing.T) {
+	w := initializeWatcher()
+	tx.TokenTransfers[0].Account = txAccountId + "1"
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+	tx.TokenTransfers[0].Account = txAccountId
+
+	assert.False(t, ok)
+}
+
+func Test_validateNftTokenCustomFees_ErrOnTransferForFeeLessThanExpected(t *testing.T) {
+	w := initializeWatcher()
+	tx.TokenTransfers[0].Amount = txAmount - 1
+
+	ok := w.validateNftTokenCustomFees(testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken], tx, testConstants.NetworkHederaNonFungibleNativeToken)
+	tx.TokenTransfers[0].Amount = txAmount
+
+	assert.False(t, ok)
 }
 
 func setup() {
@@ -229,7 +365,7 @@ func initializeWatcher() *Watcher {
 	return NewWatcher(
 		mocks.MTransferService,
 		mocks.MHederaMirrorClient,
-		"0.0.444444",
+		txAccountId,
 		5,
 		mocks.MStatusRepository,
 		0,

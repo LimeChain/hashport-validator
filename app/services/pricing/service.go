@@ -54,6 +54,7 @@ type Service struct {
 	hbarNativeAsset       *asset.NativeAsset
 	hederaNftDynamicFees  map[string]decimal.Decimal
 	hederaNftFees         map[string]int64
+	hederaNftPrevFees     map[string]int64
 	nftFeesForApi         map[uint64]map[string]pricing.NonFungibleFee
 	diamondRouters        map[uint64]client.DiamondRouter
 	logger                *log.Entry
@@ -123,7 +124,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 			}
 
 			if networkId == constants.HederaNetworkId {
-				fee, err := s.hederaNativeNftFee(id, networkId)
+				fee, err := s.hederaNativeNftFee(id, networkId, *assetInfo)
 				if err != nil {
 					return err
 				}
@@ -207,7 +208,7 @@ func (s *Service) evmWrappedNftFee(id string, diamondRouter client.DiamondRouter
 	}, nil
 }
 
-func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonFungibleFee, error) {
+func (s *Service) hederaNativeNftFee(id string, networkId uint64, asset asset.NonFungibleAssetInfo) (*pricing.NonFungibleFee, error) {
 	fee, ok := s.hederaNftFees[id]
 	if !ok {
 		errMsg := fmt.Sprintf("No fee found for NFT [%s] on network [%d]", id, networkId)
@@ -215,10 +216,26 @@ func (s *Service) hederaNativeNftFee(id string, networkId uint64) (*pricing.NonF
 		return nil, errors.New(errMsg)
 	}
 
+	var customFees []pricing.CustomFee
+	if asset.CustomFeeTotalAmounts.FallbackFeeAmountInHbar > 0 {
+		customFees = append(customFees, pricing.CustomFee{
+			PaymentToken: constants.Hbar,
+			Fee:          decimal.NewFromInt(asset.CustomFeeTotalAmounts.FallbackFeeAmountInHbar),
+		})
+	}
+
+	for token, fee := range asset.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId {
+		customFees = append(customFees, pricing.CustomFee{
+			PaymentToken: token,
+			Fee:          decimal.NewFromInt(fee),
+		})
+	}
+
 	return &pricing.NonFungibleFee{
 		IsNative:     true,
 		Fee:          decimal.NewFromInt(fee),
 		PaymentToken: constants.Hbar,
+		CustomFees:   customFees,
 	}, nil
 }
 
@@ -235,6 +252,14 @@ func (s *Service) GetHederaNftFee(token string) (int64, bool) {
 
 	fee, exists := s.hederaNftFees[token]
 	return fee, exists
+}
+
+func (s *Service) GetHederaNftPrevFee(token string) (int64, bool) {
+	s.tokenPriceInfoMutex.RLock()
+	defer s.tokenPriceInfoMutex.RUnlock()
+
+	prevFee, exists := s.hederaNftPrevFees[token]
+	return prevFee, exists
 }
 
 func (s *Service) loadStaticMinAmounts(bridgeConfig *config.Bridge) {
@@ -408,6 +433,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 func (s *Service) updateHederaNftDynamicFeesBasedOnHbar(priceInUsd decimal.Decimal, decimals uint8) {
 	for token, feeAmount := range s.hederaNftDynamicFees {
 		nftDynamicFee := decimalHelper.ToLowestDenomination(feeAmount.Div(priceInUsd), decimals).Int64()
+		s.hederaNftPrevFees[token] = s.hederaNftFees[token]
 		s.hederaNftFees[token] = nftDynamicFee
 
 		s.logger.Infof("Updating NFT Dynamic fee for [%s] to HBAR [%d], based on USD constant fee [%s] and HBAR/USD rate [%s]", token, nftDynamicFee, feeAmount, priceInUsd)
@@ -479,6 +505,7 @@ func initialize(bridgeConfig *config.Bridge, assetsService service.Assets, mirro
 		hbarFungibleAssetInfo: hbarFungibleAssetInfo,
 		hbarNativeAsset:       hbarNativeAsset,
 		hederaNftFees:         bridgeConfig.Hedera.NftConstantFees,
+		hederaNftPrevFees:     make(map[string]int64),
 		hederaNftDynamicFees:  bridgeConfig.Hedera.NftDynamicFees,
 		diamondRouters:        diamondRouters,
 		logger:                logger,

@@ -227,10 +227,11 @@ func (hc Node) SubmitScheduledNftTransferTransaction(
 	payerAccount hedera.AccountID,
 	sender hedera.AccountID,
 	receiving hedera.AccountID,
-	memo string) (*hedera.TransactionResponse, error) {
-	transferTransaction := hedera.NewTransferTransaction().
-		AddNftTransfer(nftID, sender, receiving).
-		SetMaxRetry(hc.maxRetry)
+	memo string, approved bool) (*hedera.TransactionResponse, error) {
+
+	transferTransaction := hedera.
+		NewTransferTransaction().
+		AddApprovedNftTransfer(nftID, sender, receiving, approved)
 
 	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
 }
@@ -241,6 +242,32 @@ func (hc Node) TransactionReceiptQuery(transactionID hedera.TransactionID, nodeA
 		SetNodeAccountIDs(nodeAccIds).
 		SetMaxRetry(hc.maxRetry).
 		Execute(hc.GetClient())
+}
+
+func (hc Node) SubmitScheduledNftApproveTransaction(
+	payer hedera.AccountID,
+	memo string,
+	nftId hedera.NftID,
+	owner hedera.AccountID,
+	spender hedera.AccountID) (*hedera.TransactionResponse, error) {
+	tx := hedera.NewAccountAllowanceApproveTransaction().
+		ApproveTokenNftAllowance(nftId, owner, spender)
+
+	return hc.submitScheduledAllowTransaction(payer, memo, tx)
+}
+
+func (hc Node) submitScheduledAllowTransaction(payer hedera.AccountID, memo string, tx *hedera.AccountAllowanceApproveTransaction) (*hedera.TransactionResponse, error) {
+	tx, err := tx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	signedTx, err := tx.SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTx, payer, memo)
 }
 
 // submitScheduledTransferTransaction freezes the input transaction, signs with operator and submits it

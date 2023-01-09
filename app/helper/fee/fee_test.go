@@ -18,6 +18,7 @@ package fee
 
 import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	model "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -70,4 +71,49 @@ func Test_TotalFeeFromTransfers_ReceiverNotFound(t *testing.T) {
 	actualFee, actualReceiverFound := TotalFeeFromTransfers(transfers, receiver2)
 	assert.Equal(t, expectedFee, actualFee)
 	assert.Equal(t, expectedReceiverFound, actualReceiverFound)
+}
+
+func Test_SumFallbackFeeAmounts(t *testing.T) {
+	hbarFee := asset.FixedFee{
+		Amount:              50,
+		DenominatingTokenId: nil, // HBAR
+	}
+	token1Name := "token1"
+	token1Fee := asset.FixedFee{
+		Amount:              150,
+		DenominatingTokenId: &token1Name,
+	}
+	token2Name := "token2"
+	token2Fee1 := asset.FixedFee{
+		Amount:              30,
+		DenominatingTokenId: &token2Name,
+	}
+	token2Fee2 := asset.FixedFee{
+		Amount:              60,
+		DenominatingTokenId: &token2Name,
+	}
+	customFees := asset.CustomFees{
+		RoyaltyFees: []asset.RoyaltyFee{
+			{
+				FallbackFee: hbarFee,
+			},
+			{
+				FallbackFee: token1Fee,
+			},
+			{
+				FallbackFee: token2Fee1,
+			},
+			{
+				FallbackFee: token2Fee2,
+			},
+		},
+	}
+
+	result := SumFallbackFeeAmounts(customFees)
+
+	assert.Equal(t, result.FallbackFeeAmountInHbar, hbarFee.Amount)
+	assert.Equal(t, result.FallbackFeeAmountsByTokenId[token1Name], token1Fee.Amount)
+
+	token2TotalFee := token2Fee1.Amount + token2Fee2.Amount
+	assert.Equal(t, result.FallbackFeeAmountsByTokenId[token2Name], token2TotalFee)
 }

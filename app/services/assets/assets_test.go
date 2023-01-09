@@ -17,6 +17,7 @@
 package assets
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/account"
@@ -317,6 +318,8 @@ func setup() {
 		bridgeAccountId:          testConstants.BridgeAccountId,
 		logger:                   config.GetLoggerFor("Assets Service"),
 	}
+	fmt.Printf("%#v", testConstants.NonFungibleAssetInfos[constants.HederaNetworkId][testConstants.NetworkHederaNonFungibleNativeToken])
+	fmt.Println(serviceInstance)
 }
 
 func setupClientMocks() {
@@ -397,7 +400,34 @@ func setupClientMocks() {
 					Name:        asset,
 					Symbol:      asset,
 					TotalSupply: testConstants.ReserveAmountStr,
-					Decimals:    "0",
+					CustomFees: token.CustomFees{
+						CreatedTimestamp: "",
+						RoyaltyFees: []token.RoyaltyFee{
+							{
+								Amount: token.Fraction{
+									Numerator:   100,
+									Denominator: 100,
+								},
+								FallbackFee: token.FixedFee{
+									Amount:              testConstants.NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount,
+									DenominatingTokenId: &testConstants.NetworkHederaFungibleNativeToken,
+								},
+								CollectorAccountID: "",
+							},
+							{
+								Amount: token.Fraction{
+									Numerator:   100,
+									Denominator: 100,
+								},
+								FallbackFee: token.FixedFee{
+									Amount:              testConstants.NetworkHederaNFTRoyaltyFeeHbarFallback.FallbackFee.Amount,
+									DenominatingTokenId: nil,
+								},
+								CollectorAccountID: "",
+							},
+						},
+					},
+					Decimals: "0",
 				}
 				mocks.MHederaMirrorClient.On("GetToken", asset).Return(&tokenResponse, nil)
 				continue

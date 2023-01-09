@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	validatorClient "github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
@@ -55,6 +56,9 @@ func Test_New(t *testing.T) {
 	setup(true, true)
 
 	actualService := NewService(test_config.TestConfig.Bridge, mocks.MAssetsService, diamondRouters, mocks.MHederaMirrorClient, coinGeckoClient, coinMarketCapClient)
+
+	// reset fields
+	serviceInstance.hederaNftDynamicFees = nil
 
 	assert.Equal(t, serviceInstance, actualService)
 }
@@ -107,7 +111,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	// Use cached price
 	FetchResults.AllPrices[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = pricing.TokenPriceInfo{
-		UsdPrice: decimal.NewFromFloat(100),
+		UsdPrice:         decimal.NewFromFloat(100),
 		MinAmountWithFee: big.NewInt(1250000000000000),
 	}
 	err := serviceInstance.updatePricesWithoutHbar(FetchResults.AllPrices)
@@ -116,7 +120,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	// Use DefaultMinAmount (min_amount from yaml)
 	FetchResults.AllPrices[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = pricing.TokenPriceInfo{
-		UsdPrice: decimal.NewFromFloat(0),
+		UsdPrice:         decimal.NewFromFloat(0),
 		MinAmountWithFee: big.NewInt(1250000000000000),
 		DefaultMinAmount: big.NewInt(1250000000000000),
 	}
@@ -126,13 +130,12 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	// Throw if no cached price and no DefaultMinAmount (min_amount from yaml) is set
 	FetchResults.AllPrices[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = pricing.TokenPriceInfo{
-		UsdPrice: decimal.NewFromFloat(0),
+		UsdPrice:         decimal.NewFromFloat(0),
 		MinAmountWithFee: big.NewInt(1250000000000000),
 		DefaultMinAmount: big.NewInt(0),
 	}
 	err = serviceInstance.updatePricesWithoutHbar(FetchResults.AllPrices)
 	assert.Error(t, err)
-	
 
 	// Check updateHbarPrice() function
 	FetchResults2 := fetchResults{
@@ -142,7 +145,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 
 	// Use cached price
 	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
-		UsdPrice:decimal.NewFromFloat(0.2),
+		UsdPrice:         decimal.NewFromFloat(0.2),
 		MinAmountWithFee: big.NewInt(5000000000),
 	}
 	err = serviceInstance.updateHbarPrice(FetchResults2)
@@ -151,7 +154,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	// Throw if no fetched price and no cache price
 	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
-		UsdPrice:decimal.NewFromFloat(0),
+		UsdPrice:         decimal.NewFromFloat(0),
 		MinAmountWithFee: big.NewInt(5000000000),
 	}
 
@@ -228,6 +231,48 @@ func Test_updatePricesWithoutHbar_NonExistingAddress(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+func Test_GetHederaNftFee(t *testing.T) {
+	setup(true, true)
+
+	priceInUsd := decimal.NewFromInt(400)
+	expectedFee := decimalHelper.ToLowestDenomination(testConstants.HederaNftDynamicFees[testConstants.NetworkHederaNonFungibleNativeToken].Div(priceInUsd), serviceInstance.hbarFungibleAssetInfo.Decimals).Int64()
+
+	serviceInstance.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, serviceInstance.hbarFungibleAssetInfo.Decimals)
+
+	fee, ok := serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
+	assert.Equal(t, expectedFee, fee)
+	assert.True(t, ok)
+}
+
+func Test_GetHederaNftPrevFee_ShouldExists(t *testing.T) {
+	setup(true, true)
+
+	priceInUsd := decimal.NewFromInt(400)
+	expectedPrevFee := testConstants.HederaNftFees[testConstants.NetworkHederaNonFungibleNativeToken]
+	expectedFee := decimalHelper.ToLowestDenomination(testConstants.HederaNftDynamicFees[testConstants.NetworkHederaNonFungibleNativeToken].Div(priceInUsd), serviceInstance.hbarFungibleAssetInfo.Decimals).Int64()
+
+	fee, ok := serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
+	assert.Equal(t, testConstants.HederaNftFees[testConstants.NetworkHederaNonFungibleNativeToken], fee)
+	assert.True(t, ok)
+
+	serviceInstance.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, serviceInstance.hbarFungibleAssetInfo.Decimals)
+
+	fee, ok = serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
+	assert.Equal(t, expectedFee, fee)
+	assert.True(t, ok)
+
+	prevFee, ok := serviceInstance.GetHederaNftPrevFee(testConstants.NetworkHederaNonFungibleNativeToken)
+	assert.Equal(t, expectedPrevFee, prevFee)
+	assert.True(t, ok)
+}
+
+func Test_GetHederaNftPrevFee_ShouldNotExists(t *testing.T) {
+	setup(true, true)
+
+	prevFee, ok := serviceInstance.GetHederaNftPrevFee(testConstants.NetworkHederaNonFungibleNativeToken)
+	assert.Equal(t, int64(0), prevFee)
+	assert.False(t, ok)
+}
 
 func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 	mocks.Setup()
@@ -296,7 +341,9 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		minAmountsForApi:      minAmountsForApi,
 		hbarFungibleAssetInfo: testConstants.NetworkHederaFungibleNativeTokenFungibleAssetInfo,
 		hbarNativeAsset:       testConstants.NetworkHederaFungibleNativeAsset,
+		hederaNftDynamicFees:  testConstants.HederaNftDynamicFees,
 		hederaNftFees:         testConstants.HederaNftFees,
+		hederaNftPrevFees:     make(map[string]int64),
 		diamondRouters:        diamondRouters,
 		nftFeesForApi:         testConstants.NftFeesForApi,
 		logger:                config.GetLoggerFor("Pricing Service"),
