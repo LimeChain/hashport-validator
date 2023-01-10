@@ -50,6 +50,7 @@ type Service struct {
 	ethClients         map[uint64]client.EVM
 	logger             *log.Entry
 	assetsService      service.Assets
+	retryAttempts      int
 }
 
 func NewService(
@@ -77,6 +78,7 @@ func NewService(
 		mirrorClient:       mirrorClient,
 		ethClients:         ethClients,
 		assetsService:      assetsService,
+		retryAttempts:      30,
 	}
 }
 
@@ -309,7 +311,7 @@ func (ss *Service) verifySignature(authMsgBytes []byte, signatureBytes []byte, t
 // awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	i := 0
-    for i < 30 {
+    for i < ss.retryAttempts {
 		t, err := ss.transferRepository.GetByTransactionId(transferID)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
