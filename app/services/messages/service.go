@@ -308,7 +308,8 @@ func (ss *Service) verifySignature(authMsgBytes []byte, signatureBytes []byte, t
 
 // awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
-	for {
+	i := 0
+    for i < 30 {
 		t, err := ss.transferRepository.GetByTransactionId(transferID)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)
@@ -326,5 +327,9 @@ func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 
 		ss.logger.Debugf("[%s] - Transfer not yet added. Querying after 5 seconds", transferID)
 		time.Sleep(5 * time.Second)
+		i++
 	}
+
+	err := fmt.Errorf("[%s] - Failed to retrieve Transaction Record, dropping transaction", transferID)
+	return nil, err
 }
