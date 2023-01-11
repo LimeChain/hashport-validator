@@ -99,9 +99,9 @@ func Test_NewService(t *testing.T) {
 		"0.0.1",
 		mocks.MAssetsService,
 	)
-
+	actualService.retryAttempts = 1
+	
 	assert.Equal(t, serviceInstance, actualService)
-
 }
 
 func Test_SanityCheckFungibleSignature_ShouldReturnError(t *testing.T) {
@@ -111,6 +111,14 @@ func Test_SanityCheckFungibleSignature_ShouldReturnError(t *testing.T) {
 
 	ok, err := serviceInstance.SanityCheckFungibleSignature(topicFungibleMessage.GetFungibleSignatureMessage())
 	assert.False(t, ok)
+	assert.NotNil(t, err)
+}
+
+func Test_awaitTransfer_ShouldDropTransfer(t *testing.T){
+	setup()
+
+	mocks.MTransferRepository.On("GetByTransactionId", topicEthFungibleMessage.TransferID).Return((*entity.Transfer)(nil), nil)
+	_ , err := serviceInstance.awaitTransfer(topicFungibleMessage.GetFungibleSignatureMessage().TransferID)
 	assert.NotNil(t, err)
 }
 
@@ -342,5 +350,6 @@ func setup() {
 		ethClients:         ethClients,
 		logger:             config.GetLoggerFor(fmt.Sprintf("Messages Service")),
 		assetsService:      mocks.MAssetsService,
+		retryAttempts:      1,
 	}
 }
