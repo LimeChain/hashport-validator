@@ -111,9 +111,7 @@ func Test_GetBlockTimestamp(t *testing.T) {
 	setup()
 	now := uint64(time.Now().Unix())
 	blockNumber := big.NewInt(1)
-	mocks.MEVMCoreClient.On("BlockByNumber", context.Background(), blockNumber).Return(types.NewBlockWithHeader(
-		&types.Header{Time: now},
-	), nil)
+	mocks.MEVMCoreClient.On("HeaderByNumber", context.Background(), blockNumber).Return(&types.Header{Time: now}, nil)
 	ts := c.GetBlockTimestamp(blockNumber)
 	assert.Equal(t, now, ts)
 }
@@ -122,10 +120,8 @@ func Test_GetBlockTimestamp_Fails(t *testing.T) {
 	setup()
 	blockNumber := big.NewInt(1)
 	now := uint64(time.Now().Unix())
-	mocks.MEVMCoreClient.On("BlockByNumber", context.Background(), blockNumber).Return(nil, errors.New("some-error")).Once()
-	mocks.MEVMCoreClient.On("BlockByNumber", context.Background(), blockNumber).Return(types.NewBlockWithHeader(
-		&types.Header{Time: now},
-	), nil)
+	mocks.MEVMCoreClient.On("HeaderByNumber", context.Background(), blockNumber).Return(nil, errors.New("some-error")).Once()
+	mocks.MEVMCoreClient.On("HeaderByNumber", context.Background(), blockNumber).Return(&types.Header{Time: now}, nil)
 	res := c.GetBlockTimestamp(blockNumber)
 	assert.Equal(t, now, res)
 }
