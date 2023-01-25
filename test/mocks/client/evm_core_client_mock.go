@@ -155,8 +155,19 @@ func (m *MockEVMCore) CallContract(ctx context.Context, call ethereum.CallMsg, b
 	return args[0].([]byte), args[1].(error)
 }
 func (m *MockEVMCore) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
-	panic("implement me")
+	args := m.Called(ctx, number)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(*types.Header), nil
+	}
+	return args[0].(*types.Header), args[1].(error)
 }
+
 func (m *MockEVMCore) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
 	args := m.Called(ctx, account)
 	if args[0] == nil && args[1] == nil {
