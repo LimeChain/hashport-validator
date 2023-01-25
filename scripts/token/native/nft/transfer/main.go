@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Extract into iterable function
-	nftID, _ := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNum, tokenIDFromString.String()))
+	nftID, _ := hedera.NftIDFromString(fmt.Sprintf("%d@%s", *serialNum, tokenIDFromString.String()))
 	res, err := hedera.NewTransferTransaction().
 		AddNftTransfer(nftID, client.GetOperatorAccountID(), receiverAcc).
 		Execute(client)
