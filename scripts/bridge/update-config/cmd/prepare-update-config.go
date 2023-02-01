@@ -43,6 +43,7 @@ func main() {
 	transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
 	frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicIdParsed).
+		SetMaxChunks(30).
 		SetMessage(content).
 		SetTransactionID(transactionID).
 		SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).

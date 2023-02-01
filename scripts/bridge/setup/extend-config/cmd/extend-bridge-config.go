@@ -48,10 +48,13 @@ var (
 	// FILL THE EVM NODE URLS BEFORE RUN //
 	///////////////////////////////////////
 	evmNodeUrls = map[uint64]string{
-		80001: "https://rpc-mumbai.maticvigil.com/",
-		5:     "https://goerli-light.eth.linkpool.io/",
-		97:    "https://data-seed-prebsc-1-s1.binance.org:8545/",
-		43113: "https://api.avax-test.network/ext/bc/C/rpc",
+		80001:    "https://rpc-mumbai.maticvigil.com/",
+		5:        "https://goerli-light.eth.linkpool.io/",
+		97:       "https://rpc.ankr.com/bsc_testnet_chapel",
+		43113:    "https://api.avax-test.network/ext/bc/C/rpc",
+		420:      "https://opt-goerli.g.alchemy.com/v2/McY6yyjUU46TVxt17axE02_h0OP7uvzA",
+		421613:   "https://goerli-rollup.arbitrum.io/rpc",
+		11155111: "https://sepolia.infura.io/v3/a7a16c9d849b40358e75f95161d5e843",
 	}
 	evmClients = make(map[uint64]client.EVM)
 
@@ -60,7 +63,7 @@ var (
 	mirrorNodeConfigByNetwork = map[uint64]config.MirrorNode{
 		HederaMainnetNetworkId: {
 			ClientAddress: "mainnet-public.mirrornode.hedera.com/:443",
-			ApiAddress:    "https://mainnet.mirrornode.hedera.com/api/v1/",
+			ApiAddress:    "https://mainnet-public.mirrornode.hedera.com/api/v1/",
 		},
 		HederaTestnetNetworkId: {
 			ClientAddress: "hcs.testnet.mirrornode.hedera.com:5600",

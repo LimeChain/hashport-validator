@@ -43,6 +43,10 @@ func main() {
 	// Generate supplyKeys from members privateKeys
 	generateSupplyKeysFromMemberPrKeys := flag.Bool("generateSupplyKeysFromMemberPrKeys", false, "Flag to generate the supplyKeys (public keys) from members private keys.")
 
+	tokenName := flag.String("name", "Wrapped Generic", "token name")
+	tokenSymbol := flag.String("symbol", "WG", "token symbol")
+	decimals := flag.Uint("decimals", 8, "decimals")
+
 	flag.Parse()
 
 	if *privateKey == "0x0" {
@@ -106,9 +110,9 @@ func main() {
 		adminPublicKey,
 		supplyKey,
 		custodianKey,
-		"e2e-test-token",
-		"ett",
-		8,
+		*tokenName,
+		*tokenSymbol,
+		*decimals,
 		100000000000000,
 	)
 	if err != nil {

@@ -20,18 +20,26 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-func CreateNativeFungibleToken(client *hedera.Client, treasuryAccountId hedera.AccountID, name, symbol string, decimals uint, supply uint64, maxTransactionFee hedera.Hbar) (*hedera.TokenID, error) {
-	createTokenTX, err := hedera.NewTokenCreateTransaction().
+func CreateNativeFungibleToken(client *hedera.Client, treasuryAccountId hedera.AccountID, name, symbol string, decimals uint, supply uint64, maxTransactionFee hedera.Hbar, setSupplyKey bool) (*hedera.TokenID, error) {
+
+	prepareTx := hedera.NewTokenCreateTransaction().
+		SetAdminKey(client.GetOperatorPublicKey()).
 		SetTreasuryAccountID(treasuryAccountId).
 		SetTokenName(name).
 		SetTokenSymbol(symbol).
 		SetDecimals(decimals).
 		SetInitialSupply(supply).
-		SetMaxTransactionFee(maxTransactionFee).
-		Execute(client)
+		SetMaxTransactionFee(maxTransactionFee)
+	if setSupplyKey {
+		prepareTx.SetSupplyKey(client.GetOperatorPublicKey())
+	}
+
+	createTokenTX, err := prepareTx.Execute(client)
+
 	if err != nil {
 		return nil, err
 	}
+
 	receipt, err := createTokenTX.GetReceipt(client)
 	if err != nil {
 		return nil, err

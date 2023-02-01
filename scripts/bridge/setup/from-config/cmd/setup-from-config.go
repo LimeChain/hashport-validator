@@ -175,6 +175,7 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			tokenInfo.Decimals,
 			tokenInfo.Supply,
 			hedera.HbarFrom(20, "hbar"),
+			true,
 		)
 		if err != nil {
 			fmt.Printf("[ERROR] Failed to Created Hedera Native Fungible Token based on info of token [%s]. Error: [%s]\n", tokenAddress, err)
