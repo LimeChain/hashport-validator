@@ -43,8 +43,23 @@ func main() {
 		panic("Bridge id was not provided")
 	}
 
+	tokenName := flag.String("name", "Hedera Native Generic Token", "token name")
+	tokenSymbol := flag.String("symbol", "HNT", "token symbol")
+	decimals := flag.Uint("decimals", 8, "decimals")
+	setSupplyKey := flag.Bool("setSupplyKey", true, "Sets supply key to be the deployer")
+
 	fmt.Println("-----------Start-----------")
 	client := client.Init(*privateKey, *accountID, *network)
+
+	if *network != "testnet" && *setSupplyKey {
+		var confirmation string
+		fmt.Printf("Network is set to [%s] and setSupplyKey is set to [%v]. Are you sure you what to proceed?\n", *network, *setSupplyKey)
+		fmt.Println("Y/N:")
+		fmt.Scanln(&confirmation)
+		if confirmation != "Y" {
+			panic("Exiting")
+		}
+	}
 
 	membersSlice := strings.Split(*memberPrKeys, ",")
 
@@ -60,11 +75,12 @@ func main() {
 	tokenId, err := create.CreateNativeFungibleToken(
 		client,
 		client.GetOperatorAccountID(),
-		"e2e-test-token",
-		"ett",
-		8,
+		*tokenName,
+		*tokenSymbol,
+		*decimals,
 		100000000000000,
 		hedera.HbarFrom(20, "hbar"),
+		*setSupplyKey,
 	)
 	if err != nil {
 		panic(err)

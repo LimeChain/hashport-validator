@@ -20,18 +20,39 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-func CreateNativeFungibleToken(client *hedera.Client, treasuryAccountId hedera.AccountID, name, symbol string, decimals uint, supply uint64, maxTransactionFee hedera.Hbar) (*hedera.TokenID, error) {
-	createTokenTX, err := hedera.NewTokenCreateTransaction().
-		SetTreasuryAccountID(treasuryAccountId).
-		SetTokenName(name).
-		SetTokenSymbol(symbol).
-		SetDecimals(decimals).
-		SetInitialSupply(supply).
-		SetMaxTransactionFee(maxTransactionFee).
-		Execute(client)
+func CreateNativeFungibleToken(client *hedera.Client, treasuryAccountId hedera.AccountID, name, symbol string, decimals uint, supply uint64, maxTransactionFee hedera.Hbar, setSupplyKey bool) (*hedera.TokenID, error) {
+
+	var (
+		createTokenTX hedera.TransactionResponse
+		err           error
+	)
+
+	if setSupplyKey {
+		createTokenTX, err = hedera.NewTokenCreateTransaction().
+			SetTreasuryAccountID(treasuryAccountId).
+			SetSupplyKey(client.GetOperatorPublicKey()).
+			SetAdminKey(client.GetOperatorPublicKey()).
+			SetTokenName(name).
+			SetTokenSymbol(symbol).
+			SetDecimals(decimals).
+			SetInitialSupply(supply).
+			SetMaxTransactionFee(maxTransactionFee).
+			Execute(client)
+	} else {
+		createTokenTX, err = hedera.NewTokenCreateTransaction().
+			SetTreasuryAccountID(treasuryAccountId).
+			SetTokenName(name).
+			SetTokenSymbol(symbol).
+			SetDecimals(decimals).
+			SetInitialSupply(supply).
+			SetMaxTransactionFee(maxTransactionFee).
+			Execute(client)
+	}
+
 	if err != nil {
 		return nil, err
 	}
+
 	receipt, err := createTokenTX.GetReceipt(client)
 	if err != nil {
 		return nil, err
