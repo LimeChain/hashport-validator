@@ -22,32 +22,19 @@ import (
 
 func CreateNativeFungibleToken(client *hedera.Client, treasuryAccountId hedera.AccountID, name, symbol string, decimals uint, supply uint64, maxTransactionFee hedera.Hbar, setSupplyKey bool) (*hedera.TokenID, error) {
 
-	var (
-		createTokenTX hedera.TransactionResponse
-		err           error
-	)
-
+	prepareTx := hedera.NewTokenCreateTransaction().
+		SetAdminKey(client.GetOperatorPublicKey()).
+		SetTreasuryAccountID(treasuryAccountId).
+		SetTokenName(name).
+		SetTokenSymbol(symbol).
+		SetDecimals(decimals).
+		SetInitialSupply(supply).
+		SetMaxTransactionFee(maxTransactionFee)
 	if setSupplyKey {
-		createTokenTX, err = hedera.NewTokenCreateTransaction().
-			SetTreasuryAccountID(treasuryAccountId).
-			SetSupplyKey(client.GetOperatorPublicKey()).
-			SetAdminKey(client.GetOperatorPublicKey()).
-			SetTokenName(name).
-			SetTokenSymbol(symbol).
-			SetDecimals(decimals).
-			SetInitialSupply(supply).
-			SetMaxTransactionFee(maxTransactionFee).
-			Execute(client)
-	} else {
-		createTokenTX, err = hedera.NewTokenCreateTransaction().
-			SetTreasuryAccountID(treasuryAccountId).
-			SetTokenName(name).
-			SetTokenSymbol(symbol).
-			SetDecimals(decimals).
-			SetInitialSupply(supply).
-			SetMaxTransactionFee(maxTransactionFee).
-			Execute(client)
+		prepareTx.SetSupplyKey(client.GetOperatorPublicKey())
 	}
+
+	createTokenTX, err := prepareTx.Execute(client)
 
 	if err != nil {
 		return nil, err
