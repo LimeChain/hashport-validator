@@ -34,6 +34,7 @@ type fungibleBridgeDetails struct {
 	*asset.FungibleAssetInfo
 	FeePercentage    feePercentageInfo `json:"feePercentage"`
 	MinAmount        string            `json:"minAmount"`
+	UsdPrice         string            `json:"usdPrice"`
 	Networks         map[uint64]string `json:"networks"`
 	ReserveAmount    string            `json:"reserveAmount"`
 	ReleaseTimestamp uint64            `json:"releaseTimestamp,omitempty"`
@@ -101,6 +102,7 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 					FungibleAssetInfo: fungibleAssetInfo,
 					FeePercentage:     feePercentageInfo{feePercentage, constants.FeeMaxPercentage},
 					MinAmount:         minAmount.MinAmountWithFee.String(),
+					UsdPrice:          minAmount.UsdPrice.String(),
 					Networks:          bridgeTokenInfo.Networks,
 					ReserveAmount:     fungibleAssetInfo.ReserveAmount.String(),
 					ReleaseTimestamp:  bridgeTokenInfo.ReleaseTimestamp,
