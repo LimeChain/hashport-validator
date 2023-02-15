@@ -91,7 +91,7 @@ func (c Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 }
 
 func (c Client) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&type=credit&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&type=credit&timestamp=gt:%s&order=asc&transactiontype=tokenmint",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
@@ -102,7 +102,7 @@ func (c Client) GetAccountTokenMintTransactionsAfterTimestamp(accountId hedera.A
 }
 
 func (c Client) GetAccountTokenBurnTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
-	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&scheduled=true&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
+	transactionsDownloadQuery := fmt.Sprintf("?account.id=%s&timestamp=gt:%s&order=asc&transactiontype=tokenburn",
 		accountId.String(),
 		from)
 	return c.getTransactionsByQuery(transactionsDownloadQuery)
