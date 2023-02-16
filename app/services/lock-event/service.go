@@ -134,8 +134,8 @@ statusBlocker:
 		},
 	}
 
-	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.TRANSFER, &status, true)
-	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.TransactionId, &status, event, schedule.TRANSFER)
+	onExecutionTransferSuccess, onExecutionTransferFail := s.scheduledTxExecutionCallbacks(event.TransactionId, schedule.TRANSFER, nil, true)
+	onTransferSuccess, onTransferFail := s.scheduledTxMinedCallbacks(event.TransactionId, nil, event, schedule.TRANSFER)
 
 	s.scheduledService.ExecuteScheduledTransferTransaction(
 		event.TransactionId,
@@ -179,7 +179,9 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 			},
 		})
 		if err != nil {
-			*blocker <- syncHelper.FAIL
+			if blocker != nil {
+				*blocker <- syncHelper.FAIL
+			}
 			s.logger.Errorf(
 				"[%s] - Failed to update submitted scheduled status with TransactionID [%s], ScheduleID [%s]. Error [%s].",
 				id, transactionID, scheduleID, err)
@@ -188,7 +190,9 @@ func (s *Service) scheduledTxExecutionCallbacks(id, operation string, blocker *c
 	}
 
 	onExecutionFail = func(transactionID string) {
-		*blocker <- syncHelper.FAIL
+		if blocker != nil {
+			*blocker <- syncHelper.FAIL
+		}
 		err := s.scheduleRepository.Create(&entity.Schedule{
 			TransactionID: transactionID,
 			Status:        status.Failed,
@@ -234,16 +238,22 @@ func (s *Service) scheduledTxMinedCallbacks(id string, status *chan string, even
 		}
 
 		if err != nil {
-			*status <- syncHelper.FAIL
+			if status != nil {
+				*status <- syncHelper.FAIL
+			}
 			s.logger.Errorf("[%s] - Failed to update scheduled [%s] status completed. Error [%s].", id, transactionID, err)
 			return
 		}
-		*status <- syncHelper.DONE
+		if status != nil {
+			*status <- syncHelper.DONE
+		}
 	}
 
 	onFail = func(transactionID string) {
 
-		*status <- syncHelper.FAIL
+		if status != nil {
+			*status <- syncHelper.FAIL
+		}
 		s.logger.Debugf("[%s] - Scheduled TX execution has failed.", id)
 		err := s.scheduleRepository.UpdateStatusFailed(id)
 		if err != nil {
