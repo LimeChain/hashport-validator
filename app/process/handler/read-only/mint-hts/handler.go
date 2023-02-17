@@ -37,24 +37,24 @@ import (
 // Handler is transfers event handler
 type Handler struct {
 	scheduleRepository repository.Schedule
+	transferRepository repository.Transfer
 	mirrorNode         client.MirrorNode
 	bridgeAccount      hedera.AccountID
 	payerAccount       hedera.AccountID
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
-	transferRepository repository.Transfer
 	prometheusService  service.Prometheus
 	logger             *log.Entry
 }
 
 func NewHandler(
 	scheduleRepository repository.Schedule,
+	transferRepository repository.Transfer,
 	bridgeAccount string,
 	payerAccount string,
 	mirrorNode client.MirrorNode,
 	transfersService service.Transfers,
 	readOnlyService service.ReadOnly,
-	transferRepository repository.Transfer,
 	prometheusService service.Prometheus) *Handler {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
