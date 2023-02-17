@@ -39,8 +39,10 @@ type Handler struct {
 	scheduleRepository repository.Schedule
 	mirrorNode         client.MirrorNode
 	bridgeAccount      hedera.AccountID
+	payerAccount       hedera.AccountID
 	transfersService   service.Transfers
 	readOnlyService    service.ReadOnly
+	transferRepository repository.Transfer
 	prometheusService  service.Prometheus
 	logger             *log.Entry
 }
@@ -48,9 +50,11 @@ type Handler struct {
 func NewHandler(
 	scheduleRepository repository.Schedule,
 	bridgeAccount string,
+	payerAccount string,
 	mirrorNode client.MirrorNode,
 	transfersService service.Transfers,
 	readOnlyService service.ReadOnly,
+	transferRepository repository.Transfer,
 	prometheusService service.Prometheus) *Handler {
 
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
@@ -58,13 +62,20 @@ func NewHandler(
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
 	}
 
+	payerAcc, err := hedera.AccountIDFromString(payerAccount)
+	if err != nil {
+		log.Fatalf("Invalid account id [%s]. Error: [%s]", payerAccount, err)
+	}
+
 	return &Handler{
 		scheduleRepository: scheduleRepository,
 		bridgeAccount:      bridgeAcc,
+		payerAccount:       payerAcc,
 		mirrorNode:         mirrorNode,
 		logger:             config.GetLoggerFor("Hedera Mint and Transfer Handler"),
 		transfersService:   transfersService,
 		readOnlyService:    readOnlyService,
+		transferRepository: transferRepository,
 		prometheusService:  prometheusService,
 	}
 }
@@ -87,7 +98,8 @@ func (fmh *Handler) Handle(p interface{}) {
 		return
 	}
 
-	fmh.readOnlyService.FindTransfer(transferMsg.TransactionId,
+	fmh.readOnlyService.FindTransfer(
+		transferMsg.TransactionId,
 		func() (*mirrorNode.Response, error) {
 			return fmh.mirrorNode.GetAccountTokenMintTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
 		},
@@ -107,7 +119,7 @@ func (fmh *Handler) Handle(p interface{}) {
 	fmh.readOnlyService.FindTransfer(
 		transferMsg.TransactionId,
 		func() (*mirrorNode.Response, error) {
-			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.bridgeAccount, transferMsg.NetworkTimestamp)
+			return fmh.mirrorNode.GetAccountDebitTransactionsAfterTimestampString(fmh.payerAccount, transferMsg.NetworkTimestamp)
 		},
 		func(transactionID, scheduleID, status string) error {
 
@@ -120,6 +132,18 @@ func (fmh *Handler) Handle(p interface{}) {
 					fmh.prometheusService,
 					fmh.logger,
 				)
+
+				err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+				if err != nil {
+					fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
+				}
+
+			} else {
+
+				err = fmh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId)
+				if err != nil {
+					fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
+				}
 			}
 
 			return fmh.scheduleRepository.Create(&entity.Schedule{
