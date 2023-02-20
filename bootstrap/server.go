@@ -285,7 +285,9 @@ func registerReadOnlyHandlers(server *server.Server, services *Services, reposit
 	// ReadOnlyHederaMintHts
 	server.AddHandler(constants.ReadOnlyHederaMintHtsTransfer, rmth.NewHandler(
 		repositories.Schedule,
+		repositories.Transfer,
 		configuration.Bridge.Hedera.BridgeAccount,
+		configuration.Bridge.Hedera.PayerAccount,
 		clients.MirrorNode,
 		services.transfers,
 		services.ReadOnly,
