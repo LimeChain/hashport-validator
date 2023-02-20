@@ -54,7 +54,7 @@ var (
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h, NewHandler(accountId.String(), mocks.MHederaMirrorClient, mocks.MScheduleRepository, mocks.MTransferService, mocks.MReadOnlyService))
+	assert.Equal(t, h, NewHandler(accountId.String(), mocks.MHederaMirrorClient, mocks.MScheduleRepository, mocks.MTransferRepository, mocks.MTransferService, mocks.MReadOnlyService))
 }
 
 func Test_Handle(t *testing.T) {
@@ -89,6 +89,7 @@ func setup() {
 	h = &Handler{
 		bridgeAccount:      accountId,
 		transfersService:   mocks.MTransferService,
+		transferRepository: mocks.MTransferRepository,
 		scheduleRepository: mocks.MScheduleRepository,
 		mirrorNode:         mocks.MHederaMirrorClient,
 		readOnlyService:    mocks.MReadOnlyService,
