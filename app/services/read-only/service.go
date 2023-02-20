@@ -281,15 +281,6 @@ func (s Service) FindTransfer(
 						break
 					}
 
-					if isSuccessful {
-						err = s.transferRepository.UpdateStatusCompleted(transferID)
-					} else {
-						err = s.transferRepository.UpdateStatusFailed(transferID)
-					}
-					if err != nil {
-						s.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferID, err)
-						break
-					}
 					break
 				}
 			}
