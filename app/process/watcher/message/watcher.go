@@ -137,7 +137,7 @@ func (cmw Watcher) beginWatching(q qi.Queue) {
 }
 
 func (cmw Watcher) processMessage(topicMsg mirrorNodeMsg.Message, q qi.Queue) {
-	cmw.logger.Debug("New Message Received")
+	cmw.logger.Debugf("New Message Received")
 
 	msg, err := message.FromString(topicMsg.Contents, topicMsg.ConsensusTimestamp)
 	if err != nil {
