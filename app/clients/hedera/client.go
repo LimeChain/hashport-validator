@@ -44,26 +44,26 @@ func NewNodeClient(cfg config.Hedera) *Node {
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
-		log.Fatalf("Invalid Client Network provided: [%s]", cfg.Network)
+		log.Debugf("Invalid Client Network provided: [%s]", cfg.Network)
 	}
 	if len(cfg.Rpc) > 0 {
-		log.Infof("Setting provided RPC nodes for [%s].", cfg.Network)
+		log.Debugf("Setting provided RPC nodes for [%s].", cfg.Network)
 		err := client.SetNetwork(cfg.Rpc)
 		if err != nil {
-			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
+			log.Debugf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
 		}
 	} else {
-		log.Infof("Setting default node rpc urls for [%s].", cfg.Network)
+		log.Debugf("Setting default node rpc urls for [%s].", cfg.Network)
 	}
 
 	accID, err := hedera.AccountIDFromString(cfg.Operator.AccountId)
 	if err != nil {
-		log.Fatalf("Invalid Operator AccountId provided: [%s]", cfg.Operator.AccountId)
+		log.Debugf("Invalid Operator AccountId provided: [%s]", cfg.Operator.AccountId)
 	}
 
 	privateKey, err := hedera.PrivateKeyFromString(cfg.Operator.PrivateKey)
 	if err != nil {
-		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", cfg.Operator.PrivateKey)
+		log.Debugf("Invalid Operator PrivateKey provided: [%s]", cfg.Operator.PrivateKey)
 	}
 
 	client.SetOperator(accID, privateKey)
@@ -92,7 +92,7 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -113,7 +113,7 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -277,7 +277,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {

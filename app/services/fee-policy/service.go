@@ -82,7 +82,7 @@ func (s *Service) ProcessLatestConfig(topicID hedera.TopicID) (*parser.FeePolicy
 	lastMessage := latestMessages[0]
 	latestConsensusTimestamp, _ := timestamp.FromString(lastMessage.ConsensusTimestamp)
 	if latestConsensusTimestamp == s.milestoneTimestamp {
-		s.logger.Infof("No new Fee Policy Config messages to process.")
+		s.logger.Debugf("No new Fee Policy Config messages to process.")
 		return nil, nil
 	}
 

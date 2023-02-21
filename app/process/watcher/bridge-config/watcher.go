@@ -52,7 +52,7 @@ func (w *Watcher) Watch(q qi.Queue) {
 }
 
 func (w *Watcher) watchIteration() {
-	w.logger.Infof("Checking for new bridge config ...")
+	w.logger.Debugf("Checking for new bridge config ...")
 	parsedBridge, err := w.svc.ProcessLatestConfig(w.topicID)
 
 	if err != nil {
