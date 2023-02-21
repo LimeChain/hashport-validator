@@ -89,18 +89,13 @@ func (mhh Handler) Handle(p interface{}) {
 		func(transactionID, scheduleID, s string) error {
 
 			if s == status.Completed {
-
 				err = mhh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-				if err != nil {
-					mhh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-				}
-
 			} else {
-
 				err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId)
-				if err != nil {
-					mhh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-				}
+			}
+
+			if err != nil {
+				mhh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
 			}
 
 			return mhh.scheduleRepository.Create(&entity.Schedule{

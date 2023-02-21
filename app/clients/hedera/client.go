@@ -44,13 +44,13 @@ func NewNodeClient(cfg config.Hedera) *Node {
 	case "previewnet":
 		client = hedera.ClientForPreviewnet()
 	default:
-		log.Debugf("Invalid Client Network provided: [%s]", cfg.Network)
+		log.Fatalf("Invalid Client Network provided: [%s]", cfg.Network)
 	}
 	if len(cfg.Rpc) > 0 {
 		log.Debugf("Setting provided RPC nodes for [%s].", cfg.Network)
 		err := client.SetNetwork(cfg.Rpc)
 		if err != nil {
-			log.Debugf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
+			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
 		}
 	} else {
 		log.Debugf("Setting default node rpc urls for [%s].", cfg.Network)
@@ -58,12 +58,12 @@ func NewNodeClient(cfg config.Hedera) *Node {
 
 	accID, err := hedera.AccountIDFromString(cfg.Operator.AccountId)
 	if err != nil {
-		log.Debugf("Invalid Operator AccountId provided: [%s]", cfg.Operator.AccountId)
+		log.Fatalf("Invalid Operator AccountId provided: [%s]", cfg.Operator.AccountId)
 	}
 
 	privateKey, err := hedera.PrivateKeyFromString(cfg.Operator.PrivateKey)
 	if err != nil {
-		log.Debugf("Invalid Operator PrivateKey provided: [%s]", cfg.Operator.PrivateKey)
+		log.Fatalf("Invalid Operator PrivateKey provided: [%s]", cfg.Operator.PrivateKey)
 	}
 
 	client.SetOperator(accID, privateKey)
