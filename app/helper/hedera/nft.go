@@ -37,7 +37,7 @@ func ScheduledNftTxExecutionCallbacks(
 	wg *sync.WaitGroup,
 ) (onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail func(transactionID string)) {
 	onExecutionSuccess = func(transactionID, scheduleID string) {
-		logger.Debugf("[%s] - Updating db status to Submitted with TransactionID [%s].",
+		logger.Infof("[%s] - Updating db status to Submitted with TransactionID [%s].",
 			id,
 			transactionID)
 		err := scheduleRepository.Create(&entity.Schedule{
