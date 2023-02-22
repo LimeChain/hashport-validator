@@ -53,7 +53,7 @@ func (w *Watcher) Watch(q qi.Queue) {
 }
 
 func (w *Watcher) watchIteration() {
-	w.logger.Infof("Checking for new Fee Policy Config ...")
+	w.logger.Debugf("Checking for new Fee Policy Config ...")
 	_, err := w.feePolicyHandler.ProcessLatestConfig(w.topicID)
 
 	if err != nil {
