@@ -46,6 +46,7 @@ type Clients struct {
 	RouterClients           map[uint64]client.DiamondRouter
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
 	EvmNFTClients           map[uint64]map[string]client.EvmNft
+	ClientsConfig           config.Clients
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
@@ -60,6 +61,7 @@ func PrepareClients(clientsCfg config.Clients, bridgeEvmsCfgs map[uint64]config.
 		RouterClients:           InitRouterClients(bridgeEvmsCfgs, EvmClients),
 		EvmFungibleTokenClients: InitEvmFungibleTokenClients(networks, EvmClients),
 		EvmNFTClients:           InitEvmNftClients(networks, EvmClients),
+		ClientsConfig:           clientsCfg,
 	}
 
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
@@ -74,6 +76,7 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 	if err != nil {
 		return err
 	}
+	instance.EvmClients = InitEVMClients(instance.ClientsConfig, params.ParsedBridge.Networks)
 	evmFungibleTokenClients := InitEvmFungibleTokenClients(params.ParsedBridge.Networks, instance.EvmClients)
 	evmNFTClients := InitEvmNftClients(params.ParsedBridge.Networks, instance.EvmClients)
 	routerClients := InitRouterClients(params.Bridge.EVMs, instance.EvmClients)
