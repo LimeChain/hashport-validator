@@ -51,11 +51,11 @@ func (pw *Watcher) Watch(q qi.Queue) {
 }
 
 func (pw *Watcher) watchIteration() {
-	pw.logger.Infof("Fetching and updating USD prices ...")
+	pw.logger.Debugf("Fetching and updating USD prices ...")
 	err := pw.pricingService.FetchAndUpdateUsdPrices()
 	if err != nil {
 		pw.logger.Errorf(err.Error())
 	} else {
-		pw.logger.Infof("Fetching and updating USD prices finished successfully!")
+		pw.logger.Debugf("Fetching and updating USD prices finished successfully!")
 	}
 }

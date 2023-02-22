@@ -51,14 +51,19 @@ func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r *Repository) updateStatus(txId string, status string) error {
+func (r *Repository) updateStatus(txId string, s string) error {
 	err := r.db.
 		Model(entity.Schedule{}).
 		Where("transaction_id = ?", txId).
-		UpdateColumn("status", status).
+		UpdateColumn("status", s).
 		Error
+
 	if err == nil {
-		r.logger.Debugf("[%s] - Updated Status to [%s]", txId, status)
+		if s == status.Failed {
+			r.logger.Errorf("[%s] - Updated Status to [%s]", txId, s)
+			return err
+		}
+		r.logger.Infof("[%s] - Updated Status to [%s]", txId, s)
 	}
 	return err
 }

@@ -263,6 +263,7 @@ func registerReadOnlyHandlers(server *server.Server, services *Services, reposit
 		configuration.Bridge.Hedera.BridgeAccount,
 		clients.MirrorNode,
 		repositories.Schedule,
+		repositories.Transfer,
 		services.transfers,
 		services.ReadOnly))
 

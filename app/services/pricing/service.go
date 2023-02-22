@@ -110,7 +110,7 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 func (s *Service) fetchAndUpdateNftFeesForApi() error {
 	s.nftFeesForApiMutex.Lock()
 	defer s.nftFeesForApiMutex.Unlock()
-	s.logger.Infof("Populating NFT fees for API")
+	s.logger.Debugf("Populating NFT fees for API")
 
 	res := make(map[uint64]map[string]pricing.NonFungibleFee)
 	assets := s.assetsService.NonFungibleNetworkAssets()
@@ -153,7 +153,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 		}
 	}
 
-	s.logger.Infof("fetched all NFT fees and payment tokens successfully")
+	s.logger.Debugf("fetched all NFT fees and payment tokens successfully")
 	s.nftFeesForApi = res
 
 	return nil
@@ -347,7 +347,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee.String()
 
 	msgTemplate := "Updating UsdPrice [%s] and MinAmountWithFee [%s] for %s asset [%s]"
-	s.logger.Infof(msgTemplate, tokenPriceInfo.UsdPrice.String(), tokenPriceInfo.MinAmountWithFee.String(), "native", nativeAsset.Asset)
+	s.logger.Debugf(msgTemplate, tokenPriceInfo.UsdPrice.String(), tokenPriceInfo.MinAmountWithFee.String(), "native", nativeAsset.Asset)
 
 	for networkId := range constants.NetworksById {
 		if networkId == nativeAsset.ChainId {
@@ -368,14 +368,14 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 			if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 				return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", wrappedToken, err)
 			}
-			s.logger.Infof("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", wrappedToken)
+			s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", wrappedToken)
 			wrappedMinAmountWithFee = defaultMinAmount
 		}
 
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee.String()
-		s.logger.Infof(msgTemplate, tokenPriceInfo.UsdPrice.String(), wrappedMinAmountWithFee.String(), "wrapped", wrappedToken)
+		s.logger.Debugf(msgTemplate, tokenPriceInfo.UsdPrice.String(), wrappedMinAmountWithFee.String(), "wrapped", wrappedToken)
 	}
 
 	return nil
@@ -409,7 +409,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 				if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 					return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", assetAddress, err)
 				}
-				s.logger.Infof("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", assetAddress)
+				s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", assetAddress)
 				minAmountWithFee = defaultMinAmount
 			}
 
@@ -436,7 +436,7 @@ func (s *Service) updateHederaNftDynamicFeesBasedOnHbar(priceInUsd decimal.Decim
 		s.hederaNftPrevFees[token] = s.hederaNftFees[token]
 		s.hederaNftFees[token] = nftDynamicFee
 
-		s.logger.Infof("Updating NFT Dynamic fee for [%s] to HBAR [%d], based on USD constant fee [%s] and HBAR/USD rate [%s]", token, nftDynamicFee, feeAmount, priceInUsd)
+		s.logger.Debugf("Updating NFT Dynamic fee for [%s] to HBAR [%d], based on USD constant fee [%s] and HBAR/USD rate [%s]", token, nftDynamicFee, feeAmount, priceInUsd)
 	}
 }
 
@@ -456,7 +456,7 @@ func (s *Service) fetchUsdPricesFromAPIs() (fetchResults fetchResults) {
 	}
 
 	if fetchResults.AllPricesErr != nil { // Fetch from CoinMarketCap if CoinGecko fetch fails
-		s.logger.Infof("Fallback to fetching prices from Coin Market Cap ...")
+		s.logger.Debugf("Fallback to fetching prices from Coin Market Cap ...")
 		fetchResults.AllPrices, fetchResults.AllPricesErr = s.coinMarketCapClient.GetUsdPrices(s.coinMarketCapIds)
 		if fetchResults.AllPricesErr != nil { // If CoinMarketCap fetch fails this means the whole update failed
 			msg := fmt.Sprintf("Couldn't fetch prices from Coin Market Cap Web API. Error: [%s]", fetchResults.AllPricesErr)

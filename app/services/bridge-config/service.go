@@ -78,7 +78,7 @@ func (s *Service) ProcessLatestConfig(topicID hedera.TopicID) (*parser.Bridge, e
 	lastMessage := latestMessages[0]
 	latestConsensusTimestamp, _ := timestamp.FromString(lastMessage.ConsensusTimestamp)
 	if latestConsensusTimestamp == s.milestoneTimestamp {
-		s.logger.Infof("No new bridge config messages to process.")
+		s.logger.Debugf("No new bridge config messages to process.")
 		return nil, nil
 	}
 
