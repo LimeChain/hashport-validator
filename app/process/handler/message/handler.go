@@ -209,6 +209,6 @@ func (cmh *Handler) setParticipationRate(signatureMessages []entity.Message, mem
 	}
 
 	participationRate := math.Round(percent.PercentOf(len(signatureMessages), membersCount)*100) / 100
-	cmh.logger.Infof("Percentage callc [%f]", participationRate)
+	cmh.logger.Debugf("Percentage callc [%f]", participationRate)
 	cmh.participationRateGauge.Set(participationRate)
 }

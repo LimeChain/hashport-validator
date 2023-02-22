@@ -47,13 +47,13 @@ func NewNodeClient(cfg config.Hedera) *Node {
 		log.Fatalf("Invalid Client Network provided: [%s]", cfg.Network)
 	}
 	if len(cfg.Rpc) > 0 {
-		log.Infof("Setting provided RPC nodes for [%s].", cfg.Network)
+		log.Debugf("Setting provided RPC nodes for [%s].", cfg.Network)
 		err := client.SetNetwork(cfg.Rpc)
 		if err != nil {
 			log.Fatalf("Could not set rpc nodes [%s]. Error: [%s]", cfg.Rpc, err)
 		}
 	} else {
-		log.Infof("Setting default node rpc urls for [%s].", cfg.Network)
+		log.Debugf("Setting default node rpc urls for [%s].", cfg.Network)
 	}
 
 	accID, err := hedera.AccountIDFromString(cfg.Operator.AccountId)
@@ -92,7 +92,7 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -113,7 +113,7 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -277,7 +277,7 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
-	hc.logger.Infof("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {

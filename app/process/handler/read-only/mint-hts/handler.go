@@ -134,16 +134,12 @@ func (fmh *Handler) Handle(p interface{}) {
 				)
 
 				err = fmh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
-				if err != nil {
-					fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-				}
-
 			} else {
-
 				err = fmh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId)
-				if err != nil {
-					fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
-				}
+			}
+
+			if err != nil {
+				fmh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
 			}
 
 			return fmh.scheduleRepository.Create(&entity.Schedule{

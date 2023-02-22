@@ -318,7 +318,7 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 }
 
 func (ew *Watcher) handleMintLog(eventLog *router.RouterMint) {
-	ew.logger.Infof("[%s] - New Mint Event Log received.", eventLog.Raw.TxHash)
+	ew.logger.Infof("[%s] - New Mint Event Log received [%s]", eventLog.TransactionId, eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -656,7 +656,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 }
 
 func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
-	ew.logger.Debugf("[%s] - New Unlock Event Log received.", eventLog.Raw.TxHash)
+	ew.logger.Infof("[%s] - New Unlock Event Log received [%s].",eventLog.TransactionId, eventLog.Raw.TxHash )
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)

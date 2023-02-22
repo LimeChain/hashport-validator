@@ -2,6 +2,7 @@ package scheduled
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -248,6 +249,12 @@ func (s *Service) handleScheduleSign(id string, scheduleID hedera.ScheduleID) {
 
 	receipt, err := txResponse.GetReceipt(s.hederaNodeClient.GetClient())
 	if err != nil {
+		// check for SCHEDULE_ALREADY_EXECUTED that should not be logged as error
+		str_error := fmt.Sprintf("%v", err)
+		if strings.Contains(str_error, "SCHEDULE_ALREADY_EXECUTED") {
+			s.logger.Debugf("[%s] - Failed to get transaction receipt for schedule sign [%s]. Error: [%s].", id, scheduleID, err)
+			return
+		}
 		s.logger.Errorf("[%s] - Failed to get transaction receipt for schedule sign [%s]. Error: [%s].", id, scheduleID, err)
 		return
 	}
