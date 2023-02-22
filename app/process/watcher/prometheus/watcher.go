@@ -334,7 +334,7 @@ func (pw *Watcher) getAccount(accountId string) (*account.AccountsResponse, erro
 
 func (pw *Watcher) getAccountBalance(account *account.AccountsResponse) float64 {
 	balance := metrics.ConvertToHbar(account.Balance.Balance)
-	pw.logger.Infof("The Account with ID [%s] has balance = %f", account.Account, balance)
+	pw.logger.Debugf("The Account with ID [%s] has balance = %f", account.Account, balance)
 	return balance
 }
 
@@ -398,7 +398,7 @@ func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 		logString = constants.BalanceAssetMetricHelpPrefix
 	}
 	assetMetric.Set(value)
-	pw.logger.Infof("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
+	pw.logger.Debugf("The Assets with ID [%s] has %s = %f", assetAddress, logString, value)
 }
 
 func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {

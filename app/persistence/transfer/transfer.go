@@ -236,7 +236,11 @@ func (r *Repository) updateStatus(txId string, s string) error {
 		UpdateColumn("status", s).
 		Error
 	if err == nil {
-		r.logger.Debugf("Updated Status of TX [%s] to [%s]", txId, s)
+		if s == status.Failed {
+			r.logger.Errorf("Updated Status of TX [%s] to [%s]", txId, s)
+			return err
+		}
+		r.logger.Infof("Updated Status of TX [%s] to [%s]", txId, s)
 	}
 	return err
 }

@@ -36,6 +36,7 @@ type Handler struct {
 	bridgeAccount      hedera.AccountID
 	transfersService   service.Transfers
 	scheduleRepository repository.Schedule
+	transferRepository repository.Transfer
 	mirrorNode         client.MirrorNode
 	readOnlyService    service.ReadOnly
 	logger             *log.Entry
@@ -45,6 +46,7 @@ func NewHandler(
 	bridgeAccount string,
 	mirrorNode client.MirrorNode,
 	scheduleRepository repository.Schedule,
+	transferRepository repository.Transfer,
 	transferService service.Transfers,
 	readOnlyService service.ReadOnly) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
@@ -56,6 +58,7 @@ func NewHandler(
 		mirrorNode:         mirrorNode,
 		transfersService:   transferService,
 		scheduleRepository: scheduleRepository,
+		transferRepository: transferRepository,
 		readOnlyService:    readOnlyService,
 		logger:             config.GetLoggerFor("Hedera Burn and Topic Message Read-only Handler"),
 	}
@@ -83,12 +86,23 @@ func (mhh Handler) Handle(p interface{}) {
 		func() (*mirrorNodeTransaction.Response, error) {
 			return mhh.mirrorNode.GetAccountTokenBurnTransactionsAfterTimestampString(mhh.bridgeAccount, transferMsg.NetworkTimestamp)
 		},
-		func(transactionID, scheduleID, status string) error {
+		func(transactionID, scheduleID, s string) error {
+
+			if s == status.Completed {
+				err = mhh.transferRepository.UpdateStatusCompleted(transferMsg.TransactionId)
+			} else {
+				err = mhh.transferRepository.UpdateStatusFailed(transferMsg.TransactionId)
+			}
+
+			if err != nil {
+				mhh.logger.Errorf("[%s] - Failed to update status. Error: [%s]", transferMsg.TransactionId, err)
+			}
+
 			return mhh.scheduleRepository.Create(&entity.Schedule{
 				TransactionID: transactionID,
 				ScheduleID:    scheduleID,
 				Operation:     schedule.BURN,
-				Status:        status,
+				Status:        s,
 				TransferID: sql.NullString{
 					String: transferMsg.TransactionId,
 					Valid:  true,

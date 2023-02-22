@@ -25,3 +25,5 @@ testscenario/
 coverage.txt
 
 scripts/**/*.yml
+
+.vscode
