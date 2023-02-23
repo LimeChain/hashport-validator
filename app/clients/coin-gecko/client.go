@@ -61,8 +61,15 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 
 	urlWithIds := fmt.Sprintf(c.fullGetSimplePriceUrl, strings.Join(ids, ","))
 	var parsedResponse coinGeckoModel.SimplePriceResponse
-	err = httpHelper.Get(c.httpClient, urlWithIds, GetSimplePriceHeaders, &parsedResponse, c.logger)
+
+	var statusCode int
+	err = httpHelper.Get(c.httpClient, urlWithIds, GetSimplePriceHeaders, &parsedResponse, c.logger, &statusCode)
 	if err != nil {
+		return pricesByNetworkAndAddress, err
+	}
+
+	if statusCode != http.StatusOK {
+		err = fmt.Errorf("Coin Gecko responded with [%v]", statusCode)
 		return pricesByNetworkAndAddress, err
 	}
 

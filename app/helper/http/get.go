@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-func Get(client client.HttpClient, url string, headers map[string]string, responseStruct interface{}, log *log.Entry) (err error) {
+func Get(client client.HttpClient, url string, headers map[string]string, responseStruct interface{}, log *log.Entry, statusCode *int) (err error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Errorf("Error while creating http request struct. Error: [%v]", err)
@@ -38,6 +38,10 @@ func Get(client client.HttpClient, url string, headers map[string]string, respon
 	if err != nil {
 		log.Errorf("Error while sending request to server. Error: [%v]", err)
 		return err
+	}
+
+	if statusCode != nil {
+		*statusCode = resp.StatusCode
 	}
 	err = json.NewDecoder(resp.Body).Decode(responseStruct)
 

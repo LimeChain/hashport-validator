@@ -66,8 +66,15 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 	urlWithIds := fmt.Sprintf(c.fullGetLatestQuotesUrl, strings.Join(ids, ","))
 	getLatestQuotesHeaders[apiKeyHeaderName] = c.apiCfg.ApiKey
 	var parsedResponse coinMarketCapModel.CoinMarketCapResponse
-	err = httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, &parsedResponse, c.logger)
+
+	var statusCode int
+	err = httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, &parsedResponse, c.logger, &statusCode)
 	if err != nil {
+		return pricesByNetworkAndAddress, err
+	}
+
+	if statusCode != http.StatusOK {
+		err = fmt.Errorf("Coin Market Cap responded with [%v]", statusCode)
 		return pricesByNetworkAndAddress, err
 	}
 
