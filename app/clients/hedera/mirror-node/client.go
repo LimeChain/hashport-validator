@@ -77,7 +77,7 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 
 func (c Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 	var parsedResponse mirrorNodeModel.TransactionsResponse
-	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger)
+	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger, nil)
 	if err != nil {
 		return decimal.Decimal{}, err
 	}
@@ -454,7 +454,7 @@ func (c Client) query(query, entityID string) bool {
 		return false
 	}
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != http.StatusOK {
 		c.logger.Errorf("[%s] - query ended with [%d]. Response body: [%s]. ", entityID, response.StatusCode, body)
 		return false
 	}
