@@ -17,6 +17,7 @@
 package coin_market_cap
 
 import (
+	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
@@ -66,8 +67,16 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 	urlWithIds := fmt.Sprintf(c.fullGetLatestQuotesUrl, strings.Join(ids, ","))
 	getLatestQuotesHeaders[apiKeyHeaderName] = c.apiCfg.ApiKey
 	var parsedResponse coinMarketCapModel.CoinMarketCapResponse
-	err = httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, &parsedResponse, c.logger)
+
+	var statusCode int
+	err = httpHelper.Get(c.httpClient, urlWithIds, getLatestQuotesHeaders, &parsedResponse, c.logger, &statusCode)
 	if err != nil {
+		return pricesByNetworkAndAddress, err
+	}
+
+	if statusCode != 200 {
+		formatedError := fmt.Sprintf("CoinGecko responded with [%v]", statusCode)
+		err = errors.New(formatedError)
 		return pricesByNetworkAndAddress, err
 	}
 

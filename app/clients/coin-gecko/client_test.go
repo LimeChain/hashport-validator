@@ -59,6 +59,20 @@ func Test_GetUsdPrices(t *testing.T) {
 	assert.Equal(t, testConstants.UsdPrices, result)
 }
 
+func Test_ErrorCode(t *testing.T) {
+	setup()
+
+	encodedContent, encodeErr := httpHelper.EncodeBodyContent(testConstants.CoinMarketCapResponse)
+	if encodeErr != nil {
+		t.Fatal(encodeErr)
+	}
+
+	mocks.MHTTPClient.On("Do", mock.Anything).Return(&http.Response{StatusCode: 400, Body: encodedContent}, nilErr)
+	_, err := c.GetUsdPrices(testConstants.CoinMarketCapIds)
+
+	assert.NotNil(t, err)
+}
+
 func Test_GetUsdPrices_Err(t *testing.T) {
 	setup()
 

@@ -77,7 +77,7 @@ func NewClient(mirrorNode config.MirrorNode) *Client {
 
 func (c Client) GetHBARUsdPrice() (price decimal.Decimal, err error) {
 	var parsedResponse mirrorNodeModel.TransactionsResponse
-	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger)
+	err = httpHelper.Get(c.httpClient, c.fullHederaGetHbarUsdPriceUrl, GetHbarPriceHeaders, &parsedResponse, c.logger, nil)
 	if err != nil {
 		return decimal.Decimal{}, err
 	}
