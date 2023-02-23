@@ -17,7 +17,6 @@
 package coin_gecko
 
 import (
-	"errors"
 	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	httpHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/http"
@@ -70,8 +69,7 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 	}
 
 	if statusCode != http.StatusOK {
-		formatedError := fmt.Sprintf("CoinGecko responded with [%v]", statusCode)
-		err = errors.New(formatedError)
+		err = fmt.Errorf("Coin Gecko responded with [%v]", statusCode)
 		return pricesByNetworkAndAddress, err
 	}
 
