@@ -69,7 +69,7 @@ func (c *Client) GetUsdPrices(idsByNetworkAndAddress map[uint64]map[string]strin
 		return pricesByNetworkAndAddress, err
 	}
 
-	if statusCode != 200 {
+	if statusCode != http.StatusOK {
 		formatedError := fmt.Sprintf("CoinGecko responded with [%v]", statusCode)
 		err = errors.New(formatedError)
 		return pricesByNetworkAndAddress, err
