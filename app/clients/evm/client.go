@@ -197,7 +197,7 @@ func (ec Client) RetryBlockNumber() (uint64, error) {
 
 	result, err := service.Retry(blockNumberFunc, executionRetries)
 	if err != nil {
-		ec.logger.Errorf("Error in [RetryBlockNumber] Retry [%s]", err)
+		ec.logger.Warnf("Error in [RetryBlockNumber] Retry [%s]", err)
 		return 0, err
 	}
 
@@ -229,7 +229,7 @@ func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error
 
 	result, err := service.Retry(filterLogsFunc, executionRetries)
 	if err != nil {
-		ec.logger.Errorf("Error in [RetryFilterLogs] Retry [%s]", err)
+		ec.logger.Warnf("Error in [RetryFilterLogs] Retry [%s]", err)
 		return nil, err
 	}
 
@@ -296,7 +296,7 @@ func (ec *Client) RetryTransactionByHash(hash common.Hash) (*types.Transaction, 
 		return r
 	}, executionRetries)
 	if err != nil {
-		ec.logger.Errorf("Error in [RetryTransactionByHash - [%s]] Retry [%s]", hash, err)
+		ec.logger.Warnf("Error in [RetryTransactionByHash - [%s]] Retry [%s]", hash, err)
 		return nil, err
 	}
 	return res.(*types.Transaction), nil
