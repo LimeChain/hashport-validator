@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"syscall"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -150,6 +151,12 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 			_, isPending, err = ec.TransactionByHash(context.Background(), hash)
 		}
 
+		if errors.Is(err, syscall.ECONNRESET) {
+			ec.logger.Warn(err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -190,6 +197,7 @@ func (ec Client) RetryBlockNumber() (uint64, error) {
 
 	result, err := service.Retry(blockNumberFunc, executionRetries)
 	if err != nil {
+		ec.logger.Errorf("Error in [RetryBlockNumber] Retry [%s]", err)
 		return 0, err
 	}
 
@@ -221,6 +229,7 @@ func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error
 
 	result, err := service.Retry(filterLogsFunc, executionRetries)
 	if err != nil {
+		ec.logger.Errorf("Error in [RetryFilterLogs] Retry [%s]", err)
 		return nil, err
 	}
 
@@ -287,6 +296,7 @@ func (ec *Client) RetryTransactionByHash(hash common.Hash) (*types.Transaction, 
 		return r
 	}, executionRetries)
 	if err != nil {
+		ec.logger.Errorf("Error in [RetryTransactionByHash - [%s]] Retry [%s]", hash, err)
 		return nil, err
 	}
 	return res.(*types.Transaction), nil
