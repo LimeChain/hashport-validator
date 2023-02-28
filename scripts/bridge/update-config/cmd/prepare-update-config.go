@@ -45,6 +45,7 @@ func main() {
 		SetTopicID(topicIdParsed).
 		SetMaxChunks(30).
 		SetMessage(content).
+		SetMaxChunks(60).
 		SetTransactionID(transactionID).
 		SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).
 		FreezeWith(client)
@@ -95,8 +96,5 @@ func validatePrepareUpdateConfigParams(executorId *string, topicId *string, netw
 	}
 	if *configPath == "" {
 		panic("configPath not provided")
-	}
-	if *validStartMinutes == 0 {
-		panic("validStartMinutes not provided")
 	}
 }
