@@ -300,7 +300,7 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 		if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 			return fmt.Errorf("default min_amount for asset: [HBAR] is not set. Error: [%v]", err)
 		}
-		s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", s.hbarNativeAsset)
+		s.logger.Debugf("Updating MinAmountWithFee for [HBAR] to equal the defaultMinAmount")
 		minAmountWithFee = defaultMinAmount
 	}
 
