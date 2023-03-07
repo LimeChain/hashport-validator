@@ -93,14 +93,14 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 	if results.AllPricesErr == nil {
 		err := s.updatePricesWithoutHbar(results.AllPrices)
 		if err != nil {
-			err = fmt.Errorf("Failed to update prices for all tokens without HBAR. Error [%s]", err)
+			err = fmt.Errorf("failed to update prices for all tokens without HBAR. Error [%s]", err)
 			return err
 		}
 	}
 
 	err := s.updateHbarPrice(results)
 	if err != nil {
-		err = fmt.Errorf("Failed to fetch price for HBAR. Error [%s]", err)
+		err = fmt.Errorf("failed to fetch price for HBAR. Error [%s]", err)
 		return err
 	}
 
@@ -120,7 +120,7 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 			assetInfo, ok := s.assetsService.NonFungibleAssetInfo(networkId, id)
 			if !ok {
 				s.logger.Errorf("Failed to get asset info for [%s]", id)
-				return fmt.Errorf("Failed to get asset info for [%s]", id)
+				return fmt.Errorf("failed to get asset info for [%s]", id)
 			}
 
 			if networkId == constants.HederaNetworkId {
@@ -296,15 +296,13 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 
 	minAmountWithFee, err := s.calculateMinAmountWithFee(s.hbarNativeAsset, s.hbarFungibleAssetInfo.Decimals, priceInUsd)
 	if err != nil || minAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
-		s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", s.hbarNativeAsset, err)
+		s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [HBAR]. Error: [%v]", err)
 		if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
-			return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", s.hbarNativeAsset, err)
+			return fmt.Errorf("default min_amount for asset: [HBAR] is not set. Error: [%v]", err)
 		}
 		s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", s.hbarNativeAsset)
 		minAmountWithFee = defaultMinAmount
 	}
-
-
 
 	tokenPriceInfo := pricing.TokenPriceInfo{
 		UsdPrice:         priceInUsd,
@@ -314,7 +312,7 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 
 	err = s.updatePriceInfoContainers(s.hbarNativeAsset, tokenPriceInfo)
 	if err != nil {
-		return fmt.Errorf("Failed to update price info containers. Error: [%s]", err)
+		return fmt.Errorf("failed to update price info containers. Error: [%s]", err)
 	}
 
 	s.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, s.hbarFungibleAssetInfo.Decimals)
@@ -371,9 +369,9 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		defaultMinAmount := tokenPriceInfo.DefaultMinAmount
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
 		if err != nil || wrappedMinAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
-			s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", wrappedToken, err)
+			s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%v]", wrappedToken, err)
 			if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
-				return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", wrappedToken, err)
+				return fmt.Errorf("default min_amount for asset: [%s] is not set. Error: [%v]", wrappedToken, err)
 			}
 			s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", wrappedToken)
 			wrappedMinAmountWithFee = defaultMinAmount
@@ -412,9 +410,9 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 
 			minAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, usdPrice)
 			if err != nil || minAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
-				s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err)
+				s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%v]", assetAddress, err)
 				if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
-					return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", assetAddress, err)
+					return fmt.Errorf("default min_amount for asset: [%s] is not set. Error: [%v]", assetAddress, err)
 				}
 				s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", assetAddress)
 				minAmountWithFee = defaultMinAmount
@@ -428,7 +426,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 
 			err = s.updatePriceInfoContainers(nativeAsset, _tokenPriceInfo)
 			if err != nil {
-				err = fmt.Errorf("Failed to update price info containers. Error: [%s]", err)
+				err = fmt.Errorf("failed to update price info containers. Error: [%s]", err)
 				return err
 			}
 		}
