@@ -295,9 +295,16 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 	}
 
 	minAmountWithFee, err := s.calculateMinAmountWithFee(s.hbarNativeAsset, s.hbarFungibleAssetInfo.Decimals, priceInUsd)
-	if err != nil {
-		return err
+	if err != nil || minAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
+		s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", s.hbarNativeAsset, err)
+		if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
+			return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", s.hbarNativeAsset, err)
+		}
+		s.logger.Debugf("Updating MinAmountWithFee for [%s] to equal the defaultMinAmount", s.hbarNativeAsset)
+		minAmountWithFee = defaultMinAmount
 	}
+
+
 
 	tokenPriceInfo := pricing.TokenPriceInfo{
 		UsdPrice:         priceInUsd,
