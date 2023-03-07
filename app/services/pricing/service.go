@@ -363,7 +363,7 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		wrappedAssetInfo, _ := s.assetsService.FungibleAssetInfo(networkId, wrappedToken)
 		defaultMinAmount := tokenPriceInfo.DefaultMinAmount
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
-		if err != nil {
+		if err != nil || wrappedMinAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
 			s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", wrappedToken, err)
 			if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 				return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", wrappedToken, err)
@@ -404,7 +404,7 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 			}
 
 			minAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, fungibleAssetInfo.Decimals, usdPrice)
-			if err != nil {
+			if err != nil || minAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
 				s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%s]", assetAddress, err)
 				if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 					return fmt.Errorf("Default min_amount for asset: [%s] is not set. Error: [%s]", assetAddress, err)
@@ -413,13 +413,13 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 				minAmountWithFee = defaultMinAmount
 			}
 
-			tokenPriceInfo := pricing.TokenPriceInfo{
+			_tokenPriceInfo := pricing.TokenPriceInfo{
 				UsdPrice:         usdPrice,
 				MinAmountWithFee: minAmountWithFee,
 				DefaultMinAmount: defaultMinAmount,
 			}
 
-			err = s.updatePriceInfoContainers(nativeAsset, tokenPriceInfo)
+			err = s.updatePriceInfoContainers(nativeAsset, _tokenPriceInfo)
 			if err != nil {
 				err = fmt.Errorf("Failed to update price info containers. Error: [%s]", err)
 				return err
