@@ -116,7 +116,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	}
 	err := serviceInstance.updatePricesWithoutHbar(FetchResults.AllPrices)
 	assert.Nil(t, err)
-
+	
 	// Use DefaultMinAmount (min_amount from yaml)
 	FetchResults.AllPrices[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = pricing.TokenPriceInfo{
@@ -151,16 +151,29 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	err = serviceInstance.updateHbarPrice(FetchResults2)
 	assert.Nil(t, err)
 
+	// Use min_amounts
+	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
+	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
+		UsdPrice:         decimal.NewFromFloat(0.1),
+		MinAmountWithFee: big.NewInt(5000000000),
+		DefaultMinAmount: big.NewInt(1000),
+	}
+
+	err = serviceInstance.updateHbarPrice(FetchResults2)
+	assert.Nil(t, err)
+
+
 	// Throw if no fetched price and no cache price
 	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
 		UsdPrice:         decimal.NewFromFloat(0),
-		MinAmountWithFee: big.NewInt(5000000000),
+		MinAmountWithFee: big.NewInt(0),
+		DefaultMinAmount: big.NewInt(0),
 	}
 
+	//Throws error since HBAR UsdPrice is used for a lot of calculations ( exmpl NFTs )
 	err = serviceInstance.updateHbarPrice(FetchResults2)
 	assert.Error(t, err)
-
 }
 
 func Test_GetTokenPriceInfo(t *testing.T) {
