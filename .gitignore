@@ -27,3 +27,7 @@ coverage.txt
 scripts/**/*.yml
 
 .vscode
+
+# Ignore data persistence
+prometheus_data
+grafana_data
