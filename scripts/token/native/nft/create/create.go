@@ -21,14 +21,37 @@ import (
 )
 
 func Nft(client *hedera.Client, adminKey hedera.Key, treasuryAccountId hedera.AccountID, name, symbol string, supplyKey hedera.Key) (*hedera.TokenID, error) {
+
+	customFee := hedera.CustomFee{
+		FeeCollectorAccountID:  &treasuryAccountId,
+		AllCollectorsAreExempt: false,
+	}
+
+	hbar := hedera.HbarUnit("hbar")
+
+	falbackFee := hedera.CustomFixedFee{
+		CustomFee: customFee,
+		Amount: hedera.HbarFrom(20, hbar).AsTinybar(),
+	}
+
+	nftCustomFee := hedera.CustomRoyaltyFee{
+		CustomFee:   customFee,
+		Numerator:   1,
+		Denominator: 20,
+		FallbackFee: &falbackFee,
+	}
+
+	feeArr := []hedera.Fee{nftCustomFee}
+
 	createTokenTX, err := hedera.NewTokenCreateTransaction().
 		SetAdminKey(adminKey).
 		SetTreasuryAccountID(treasuryAccountId).
 		SetTokenType(hedera.TokenTypeNonFungibleUnique).
 		SetTokenName(name).
 		SetTokenSymbol(symbol).
-		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
+		// SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
 		SetSupplyKey(supplyKey).
+		SetCustomFees(feeArr).
 		Execute(client)
 	if err != nil {
 		return nil, err
