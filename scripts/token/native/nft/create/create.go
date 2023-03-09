@@ -49,7 +49,6 @@ func Nft(client *hedera.Client, adminKey hedera.Key, treasuryAccountId hedera.Ac
 		SetTokenType(hedera.TokenTypeNonFungibleUnique).
 		SetTokenName(name).
 		SetTokenSymbol(symbol).
-		// SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
 		SetSupplyKey(supplyKey).
 		SetCustomFees(feeArr).
 		Execute(client)
