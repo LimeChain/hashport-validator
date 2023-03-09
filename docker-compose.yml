@@ -42,7 +42,7 @@ services:
       - --web.enable-lifecycle
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
-      - prometheus_data:/monitoring/prometheus
+      - ./monitoring/prometheus_data:/prometheus
     links:
       - alertmanager:alertmanager
 
@@ -66,10 +66,6 @@ services:
       - 3000:3000
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning/
-      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
-
-volumes:
-  prometheus_data: {}
-  grafana_data: {}
