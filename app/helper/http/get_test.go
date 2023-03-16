@@ -42,7 +42,7 @@ func Test_Get(t *testing.T) {
 	request, response := setup(t)
 
 	mocks.MHTTPClient.On("Do", request).Return(response, nilErr)
-	err := Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"))
+	err := Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"), nil)
 
 	assert.Nil(t, err)
 }
@@ -52,9 +52,22 @@ func Test_Get_ErrorOnSendingRequest(t *testing.T) {
 	expectedErr := errors.New("something failed")
 	mocks.MHTTPClient.On("Do", request).Return(response, expectedErr)
 
-	err := Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"))
+	err := Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"), nil)
 
 	assert.Equal(t, expectedErr, err)
+	mocks.MHTTPClient.AssertCalled(t, "Do", request)
+}
+
+
+func Test_Get_RequestCodeErr(t *testing.T) {
+	request, response := setup(t)
+	response.StatusCode = 400
+	mocks.MHTTPClient.On("Do", request).Return(response, nil)
+
+	var statusCode int 
+	_ = Get(mocks.MHTTPClient, urlPath, headers, respData, config.GetLoggerFor("Http"), &statusCode)
+
+	assert.Equal(t, response.StatusCode, statusCode)
 	mocks.MHTTPClient.AssertCalled(t, "Do", request)
 }
 
@@ -64,7 +77,7 @@ func Test_Get_RequestErr(t *testing.T) {
 	request, _ := http.NewRequest("GET", brokenUrlPath, nil)
 	expectedErr := &url.Error{Op: "parse", URL: brokenUrlPath, Err: url.EscapeError("%")}
 
-	err := Get(mocks.MHTTPClient, brokenUrlPath, headers, respData, config.GetLoggerFor("Http"))
+	err := Get(mocks.MHTTPClient, brokenUrlPath, headers, respData, config.GetLoggerFor("Http"), nil)
 
 	assert.Equal(t, expectedErr, err)
 	mocks.MHTTPClient.AssertNotCalled(t, "Do", request)
