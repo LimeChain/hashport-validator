@@ -32,6 +32,8 @@ func main() {
 	network := flag.String("network", "", "Hedera Network Type")
 	bridgeID := flag.String("bridgeID", "0.0", "Bridge account ID")
 	memberPrKeys := flag.String("memberPrKeys", "", "The count of the members")
+	setRoyaltyFees := flag.Bool("setRoyaltyFees", true, "Toggle set standard royalty fees")
+
 	flag.Parse()
 	if *privateKey == "0x0" {
 		panic("Private key was not provided")
@@ -64,6 +66,7 @@ func main() {
 		"Test NFT Token",
 		"Test_NFT_T",
 		client.GetOperatorPublicKey(),
+		*setRoyaltyFees,
 	)
 	if err != nil {
 		panic(err)
