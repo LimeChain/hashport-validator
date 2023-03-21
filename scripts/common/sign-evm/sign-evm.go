@@ -35,12 +35,12 @@ type Transfer struct {
 func main() {
 	privateKeys := flag.String("privateKeys", "", "private keys with which the message will be signed")
 
-	transactionId := flag.String("transactionId", "", "0.0.1320-1679317679-373659593")
-	sourceChainId := flag.Uint64("sourceChainId", 0, "296")
-	targetChainId := flag.Uint64("targetChainId", 0, "80001")
-	targetAsset := flag.String("targetAsset", "", "0xaA6844fBb7Df9f90FC135f9BCd6F592550e2Fef5")
-	receiver := flag.String("receiver", "", "0xB075D644d3C46735C8c34AD61a1dEa146950a3F5")
-	amount := flag.String("amount", "", "84772370487")
+	transactionId := flag.String("transactionId", "", "The unique identifier for the Hedera transaction")
+	sourceChainId := flag.Uint64("sourceChainId", 0, "The identifier of the source blockchain network")
+	targetChainId := flag.Uint64("targetChainId", 0, "The identifier of the target blockchain network")
+	targetAsset := flag.String("targetAsset", "", "The asset being transferred between chains")
+	receiver := flag.String("receiver", "", "The recipient account on the target chain")
+	amount := flag.String("amount", "", "The amount of the asset being transferred")
 
 	flag.Parse()
 	if *privateKeys == "" {
