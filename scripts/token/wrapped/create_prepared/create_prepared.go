@@ -15,7 +15,7 @@ import (
 
 /* -Run the script like:
 
-go run ./scripts/token/wrapped/tx_bytes/create_tx.go \
+go run ./scripts/token/wrapped/create_prepared/create_prepared.go \
     --executorAccountID 0.0.540286 \
     --network mainnet \
     --bridgeID 0.0.540219 \
