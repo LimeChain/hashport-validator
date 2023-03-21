@@ -1,8 +1,8 @@
 package main
 
 /*
-go run ./scripts/common/unstuck-hedera-evm/unstuck-hedera-evm.go \
-	--privateKey "" \
+go run ./scripts/common/sign-evm/sign-evm.go \
+	--privateKeys "" \
 	--transactionId "0.0.1320-1679324186-455906340" \
 	--sourceChainId 296 \
 	--targetChainId 80001 \
@@ -10,6 +10,7 @@ go run ./scripts/common/unstuck-hedera-evm/unstuck-hedera-evm.go \
 	--receiver 0xB075D644d3C46735C8c34AD61a1dEa146950a3F5 \
 	--amount 28169014087
 
+// privateKeys - array of private keys, seperated by comma
 */
 
 import (
@@ -43,7 +44,7 @@ func main() {
 
 	flag.Parse()
 	if *privateKeys == "" {
-		panic("no private key provided")
+		panic("no private keys provided")
 	}
 	if *transactionId == "" {
 		panic("no transactionId provided")
