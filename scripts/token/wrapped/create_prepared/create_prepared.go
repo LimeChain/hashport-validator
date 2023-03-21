@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	// utils "github.com/limechain/hedera-eth-bridge-validator/scripts"
 	utils "github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
@@ -26,7 +25,7 @@ go run ./scripts/token/wrapped/create_prepared/create_prepared.go \
     --initialSupply 0 \
     --decimals 8 \
     --nodeAccountID 0.0.3
-	
+
 */
 
 func main() {
