@@ -20,15 +20,40 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
-func Nft(client *hedera.Client, adminKey hedera.Key, treasuryAccountId hedera.AccountID, name, symbol string, supplyKey hedera.Key) (*hedera.TokenID, error) {
+func Nft(client *hedera.Client, adminKey hedera.Key, treasuryAccountId hedera.AccountID, name, symbol string, supplyKey hedera.Key, setRoyaltyFees bool) (*hedera.TokenID, error) {
+
+	feeArr := []hedera.Fee{}
+	if setRoyaltyFees {
+		customFee := hedera.CustomFee{
+			FeeCollectorAccountID:  &treasuryAccountId,
+			AllCollectorsAreExempt: false,
+		}
+
+		hbar := hedera.HbarUnit("hbar")
+
+		falbackFee := hedera.CustomFixedFee{
+			CustomFee: customFee,
+			Amount:    hedera.HbarFrom(20, hbar).AsTinybar(),
+		}
+
+		nftCustomFee := hedera.CustomRoyaltyFee{
+			CustomFee:   customFee,
+			Numerator:   1,
+			Denominator: 20,
+			FallbackFee: &falbackFee,
+		}
+
+		feeArr = append(feeArr, nftCustomFee)
+	}
+
 	createTokenTX, err := hedera.NewTokenCreateTransaction().
 		SetAdminKey(adminKey).
 		SetTreasuryAccountID(treasuryAccountId).
 		SetTokenType(hedera.TokenTypeNonFungibleUnique).
 		SetTokenName(name).
 		SetTokenSymbol(symbol).
-		SetMaxTransactionFee(hedera.HbarFrom(20, "hbar")).
 		SetSupplyKey(supplyKey).
+		SetCustomFees(feeArr).
 		Execute(client)
 	if err != nil {
 		return nil, err

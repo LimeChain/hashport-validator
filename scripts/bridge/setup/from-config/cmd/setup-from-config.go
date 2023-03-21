@@ -198,6 +198,7 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			tokenInfo.Name,
 			tokenInfo.Symbol,
 			client.GetOperatorPublicKey(),
+			true,
 		)
 		if err != nil {
 			fmt.Printf("[ERROR] Failed to Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s]. Error: [%s]\n", tokenId.String(), tokenAddress, err)
