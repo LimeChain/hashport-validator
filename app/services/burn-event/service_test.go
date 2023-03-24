@@ -99,7 +99,7 @@ func Test_ProcessEvent(t *testing.T) {
 	}
 
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(entityTransfer, nil)
-	mocks.MFeeService.On("CalculateFee", tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
+	mocks.MFeeService.On("CalculateFee", tr.TargetChainId, tr.Originator, tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return([]transfer.Hedera{}, nil)
 	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, strconv.FormatInt(mockValidFee, 10)).Return(nil)
@@ -152,7 +152,7 @@ func Test_ProcessEventCalculateMemberDistributionFails(t *testing.T) {
 	}
 
 	mocks.MTransferService.On("InitiateNewTransfer", tr).Return(entityTransfer, nil)
-	mocks.MFeeService.On("CalculateFee", tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
+	mocks.MFeeService.On("CalculateFee", tr.TargetChainId, tr.Originator, tr.NativeAsset, burnEventAmount).Return(mockFee, mockRemainder)
 	mocks.MDistributorService.On("ValidAmount", mockFee).Return(mockValidFee)
 	mocks.MDistributorService.On("CalculateMemberDistribution", mockValidFee).Return(nil, errors.New("invalid-result"))
 	mocks.MScheduledService.AssertNotCalled(t, "ExecuteScheduledTransferTransaction", tr.TransactionId, tr.NativeAsset, mockTransfersAfterPreparation)

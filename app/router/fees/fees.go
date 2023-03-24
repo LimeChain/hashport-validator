@@ -32,10 +32,10 @@ import (
 
 const Route = "/fees"
 
-func NewRouter(pricingService service.Pricing, feeService service.Fee, feePolicyHandler service.FeePolicyHandler) http.Handler {
+func NewRouter(pricingService service.Pricing, feeService service.Fee) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/nft", feesNftResponse(pricingService))
-	r.Get("/calculate-for", calculateForResponse(feeService, feePolicyHandler))
+	r.Get("/calculate-for", calculateForResponse(feeService))
 	return r
 }
 
@@ -53,7 +53,7 @@ func feesNftResponse(pricingService service.Pricing) func(w http.ResponseWriter,
 	}
 }
 
-func calculateForResponse(feeService service.Fee, feePolicyHandler service.FeePolicyHandler) func(w http.ResponseWriter, r *http.Request) {
+func calculateForResponse(feeService service.Fee) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		targetChainIdStr := r.URL.Query().Get("targetChain")
 		account := r.URL.Query().Get("account")
@@ -80,11 +80,7 @@ func calculateForResponse(feeService service.Fee, feePolicyHandler service.FeePo
 			return
 		}
 
-		feeAmount, exist := feePolicyHandler.FeeAmountFor(targetChainId, account, token, amount)
-
-		if !exist {
-			feeAmount, _ = feeService.CalculateFee(token, amount)
-		}
+		feeAmount, _ := feeService.CalculateFee(targetChainId, account, token, amount)
 
 		render.JSON(w, r, feeAmount)
 	}

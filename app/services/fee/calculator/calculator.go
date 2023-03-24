@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gookit/event"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -27,19 +28,22 @@ import (
 )
 
 type Service struct {
-	feePercentages map[string]int64
-	logger         *log.Entry
+	feePercentages   map[string]int64
+	feePolicyService service.FeePolicyHandler
+	logger           *log.Entry
 }
 
-func New(feePercentages map[string]int64) *Service {
+func New(feePercentages map[string]int64, feePolicyService service.FeePolicyHandler) *Service {
 	for token, fee := range feePercentages {
 		if fee < constants.FeeMinPercentage || fee > constants.FeeMaxPercentage {
 			log.Fatalf("[%s] Invalid fee percentage: [%d]", token, fee)
 		}
 	}
+
 	instance := &Service{
-		feePercentages: feePercentages,
-		logger:         config.GetLoggerFor("Fee Service"),
+		feePercentages:   feePercentages,
+		logger:           config.GetLoggerFor("Fee Service"),
+		feePolicyService: feePolicyService,
 	}
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
 		return bridgeCfgUpdateEventHandler(e, instance)
@@ -49,7 +53,18 @@ func New(feePercentages map[string]int64) *Service {
 }
 
 // CalculateFee calculates the fee and remainder of a given token and amount
-func (s Service) CalculateFee(token string, amount int64) (fee, remainder int64) {
+func (s Service) CalculateFee(networkId uint64, account string, token string, amount int64) (fee, remainder int64) {
+	// If a fee policy is found - use it. Otherwise - use the standard fee
+	if s.feePolicyService != nil {
+		feeAmount, exist := s.feePolicyService.FeeAmountFor(networkId, account, token, amount)
+
+		if exist {
+			fee = feeAmount
+			remainder = amount - fee
+			return
+		}
+	}
+
 	feePercentage := s.feePercentages[token]
 
 	return s.CalculatePercentageFee(amount, feePercentage)

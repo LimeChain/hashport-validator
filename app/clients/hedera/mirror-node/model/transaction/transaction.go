@@ -111,6 +111,7 @@ type (
 // getIncomingAmountFor returns the amount that is credited to the specified
 // account for the given transaction
 func (t Transaction) getIncomingAmountFor(account string) (int64, string, error) {
+
 	for _, tr := range t.Transfers {
 		if tr.Account == account {
 			return tr.Amount, constants.Hbar, nil

@@ -28,7 +28,7 @@ import (
 )
 
 func Test_NewRouter(t *testing.T) {
-	router := NewRouter(mocks.MPricingService, mocks.MFeeService, mocks.MBFeePolicyHandler)
+	router := NewRouter(mocks.MPricingService, mocks.MFeeService)
 
 	assert.NotNil(t, router)
 }
@@ -75,7 +75,7 @@ func Test_calculateForResponse(t *testing.T) {
 	mocks.MResponseWriter.On("Header").Return(http.Header{})
 	mocks.MResponseWriter.On("Write", bridgeConfigAsBytes).Return(len(bridgeConfigAsBytes), nil)
 
-	bridgeResponseHandler := calculateForResponse(mocks.MFeeService, mocks.MBFeePolicyHandler)
+	bridgeResponseHandler := calculateForResponse(mocks.MFeeService)
 	bridgeResponseHandler(mocks.MResponseWriter, new(http.Request))
 
 	assert.NotNil(t, bridgeResponseHandler)

@@ -21,10 +21,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 )
 
-// Service for processing topic message that contains Fee Policy Config
+// FeePolicyHandler Service for processing topic message that contains Fee Policy Config
 type FeePolicyHandler interface {
-	// Processes the latest topic Fee Policy Config
+	// ProcessLatestConfig Processes the latest topic Fee Policy Config
 	ProcessLatestConfig(topicID hedera.TopicID) (*parser.FeePolicy, error)
-	// Returns fee policy amount for specific combination
+
+	// FeeAmountFor Returns fee policy amount for specific combination
 	FeeAmountFor(networkId uint64, account string, token string, amount int64) (feeAmount int64, exist bool)
 }

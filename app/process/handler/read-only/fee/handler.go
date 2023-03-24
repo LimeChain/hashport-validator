@@ -107,7 +107,7 @@ func (fmh Handler) Handle(p interface{}) {
 		return
 	}
 
-	calculatedFee, _ := fmh.feeService.CalculateFee(transferMsg.SourceAsset, intAmount)
+	calculatedFee, _ := fmh.feeService.CalculateFee(transferMsg.TargetChainId, transferMsg.Originator, transferMsg.SourceAsset, intAmount)
 	validFee := fmh.distributor.ValidAmount(calculatedFee)
 
 	err = fmh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(validFee, 10))

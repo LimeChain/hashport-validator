@@ -106,7 +106,7 @@ func (s Service) ProcessEvent(event payload.Transfer) {
 		return
 	}
 
-	fee, splitTransfers, err := s.prepareTransfers(event.NativeAsset, amount, receiver)
+	fee, splitTransfers, err := s.prepareTransfers(event.TargetChainId, event.Originator, event.NativeAsset, amount, receiver)
 	if err != nil {
 		s.logger.Errorf("[%s] - Failed to prepare transfers. Error [%s].", event.TransactionId, err)
 		return
@@ -203,8 +203,8 @@ func (s *Service) onMinedUserTransactionSetMetrics(sourceChainId, targetChainId 
 	metrics.SetUserGetHisTokens(sourceChainId, targetChainId, nativeAsset, transactionId, s.prometheusService, s.logger)
 }
 
-func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (fee int64, splitTransfers [][]transfer.Hedera, err error) {
-	fee, remainder := s.feeService.CalculateFee(token, amount)
+func (s *Service) prepareTransfers(targetChainId uint64, originator string, token string, amount int64, receiver hedera.AccountID) (fee int64, splitTransfers [][]transfer.Hedera, err error) {
+	fee, remainder := s.feeService.CalculateFee(targetChainId, originator, token, amount)
 
 	validFee := s.distributorService.ValidAmount(fee)
 	if validFee != fee {
