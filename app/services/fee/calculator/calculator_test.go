@@ -16,7 +16,7 @@ var feePercentages = map[string]int64{
 }
 
 func Test_New(t *testing.T) {
-	newService := New(feePercentages)
+	newService := New(feePercentages, nil)
 
 	expectedService := &Service{
 		feePercentages: feePercentages,
@@ -27,9 +27,9 @@ func Test_New(t *testing.T) {
 }
 
 func Test_CalculateFee(t *testing.T) {
-	service := New(feePercentages)
+	service := New(feePercentages, nil)
 
-	fee, remainder := service.CalculateFee("hbar", 20)
+	fee, remainder := service.CalculateFee(296, "0.0.1", "hbar", 20)
 
 	expectedFee := int64(2)
 	expectedRemainder := int64(18)
@@ -39,7 +39,7 @@ func Test_CalculateFee(t *testing.T) {
 }
 
 func Test_CalculatePercentageFee(t *testing.T) {
-	service := New(feePercentages)
+	service := New(feePercentages, nil)
 
 	fee, remainder := service.CalculatePercentageFee(20, 10000)
 
@@ -51,7 +51,7 @@ func Test_CalculatePercentageFee(t *testing.T) {
 }
 
 func Test_bridgeCfgUpdateEventHandler(t *testing.T) {
-	service := New(feePercentages)
+	service := New(feePercentages, nil)
 
 	newFeePercentages := make(map[string]int64)
 	for tokenName, feeAmount := range service.feePercentages {

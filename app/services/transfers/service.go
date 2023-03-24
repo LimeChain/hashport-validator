@@ -181,17 +181,8 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 		return err
 	}
 
-	var fee, remainder int64
-
 	// If a fee policy is found - use it. Otherwise - use the standard fee
-	feeAmount, exist := ts.feePolicyHandler.FeeAmountFor(tm.TargetChainId, tm.Originator, tm.TargetAsset, intAmount)
-
-	if exist {
-		fee = feeAmount
-		remainder = intAmount - fee
-	} else {
-		fee, remainder = ts.feeService.CalculateFee(tm.NativeAsset, intAmount)
-	}
+	fee, remainder  := ts.feeService.CalculateFee(tm.TargetChainId, tm.Originator, tm.TargetAsset, intAmount)
 
 	validFee := ts.distributor.ValidAmount(fee)
 	if validFee != fee {
@@ -452,7 +443,6 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(transferID string, si
 }
 
 func (ts *Service) processFeeTransfer(totalFee int64, sourceChainId, targetChainId uint64, transferID string, nativeAsset string) {
-
 	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
 	if err != nil {
 		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)

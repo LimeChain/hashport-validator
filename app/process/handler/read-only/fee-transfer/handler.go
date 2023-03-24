@@ -114,7 +114,7 @@ func (fmh *Handler) Handle(p interface{}) {
 		return
 	}
 
-	calculatedFee, remainder := fmh.feeService.CalculateFee(transferMsg.TargetAsset, intAmount)
+	calculatedFee, remainder := fmh.feeService.CalculateFee(transferMsg.TargetChainId, transferMsg.Originator, transferMsg.TargetAsset, intAmount)
 
 	validFee := fmh.distributorService.ValidAmount(calculatedFee)
 	if validFee != calculatedFee {

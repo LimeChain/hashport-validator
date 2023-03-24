@@ -299,7 +299,7 @@ func newClients(config Config) (*clients, error) {
 		EVM:             EVM,
 		ValidatorClient: validatorClient,
 		MirrorNode:      mirrorNode,
-		FeeCalculator:   fee.New(config.FeePercentages),
+		FeeCalculator:   fee.New(config.FeePercentages, nil),
 		Distributor:     distributor.New(config.Hedera.Members),
 	}, nil
 }

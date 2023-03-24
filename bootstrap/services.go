@@ -97,13 +97,13 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 		}
 	}
 
-	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
-
 	feePolicyService := fee_policy.NewService(c, clients.MirrorNode)
 	_, errFeePolicyCfgService := feePolicyService.ProcessLatestConfig(parsedFeePolicyTopicId)
 	if errFeePolicyCfgService != nil {
 		panic(fmt.Sprintf("failed to process latest bridge config from topic. Err: [%s]", errFeePolicyCfgService))
 	}
+
+	fees := calculator.New(c.Bridge.Hedera.FeePercentages, feePolicyService)
 
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)

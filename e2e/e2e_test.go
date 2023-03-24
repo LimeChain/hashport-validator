@@ -69,7 +69,7 @@ func Test_HBAR(t *testing.T) {
 		t.Fatalf("Expecting Token [%s] is not supported. - Error: [%s]", constants.Hbar, err)
 	}
 
-	mintAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount)
+	mintAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().String())
 
 	// Step 1 - Verify the transfer of Hbars to the Bridge Account
 	transactionResponse, wrappedBalanceBefore := verify.TransferToBridgeAccount(t, setupEnv.Clients.Hedera, setupEnv.BridgeAccount, targetAsset, evm, memo, receiver, amount)
@@ -172,7 +172,7 @@ func Test_E2E_Token_Transfer(t *testing.T) {
 	chainId := setupEnv.Scenario.FirstEvmChainId
 	evm := setupEnv.Clients.EVM[chainId]
 	memo := fmt.Sprintf("%d-%s", chainId, evm.Receiver.String())
-	mintAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, setupEnv.TokenID.String(), amount)
+	mintAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().String())
 
 	targetAsset, err := evmSetup.NativeToWrappedAsset(setupEnv.AssetMappings, constants.HederaNetworkId, chainId, setupEnv.TokenID.String())
 	if err != nil {
@@ -286,7 +286,7 @@ func Test_EVM_Hedera_HBAR(t *testing.T) {
 	}
 
 	// Step 1 - Calculate Expected Receive And Fee Amounts
-	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount)
+	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().String())
 
 	// Step 2 - Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(t, setupEnv.AssetMappings, evm, constants.Hbar, constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)
@@ -356,7 +356,7 @@ func Test_EVM_Hedera_Token(t *testing.T) {
 	}
 
 	// Step 1 - Calculate Expected Receive Amount
-	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, setupEnv.TokenID.String(), amount)
+	expectedReceiveAmount, fee := expected.ReceiverAndFeeAmounts(setupEnv.Clients.FeeCalculator, setupEnv.Clients.Distributor, constants.Hbar, amount, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().String())
 
 	// Step 2 - Submit burn transaction to the bridge contract
 	burnTxReceipt, expectedRouterBurn := submit.BurnEthTransaction(t, setupEnv.AssetMappings, evm, setupEnv.TokenID.String(), constants.HederaNetworkId, chainId, setupEnv.Clients.Hedera.GetOperatorAccountID().ToBytes(), amount)

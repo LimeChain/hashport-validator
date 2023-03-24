@@ -96,7 +96,7 @@ func Test_Handle(t *testing.T) {
 func Test_Handle_FindTransfer(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: status.Initial}, nil)
-	mocks.MFeeService.On("CalculateFee", tr.SourceAsset, int64(100)).Return(int64(10), int64(0))
+	mocks.MFeeService.On("CalculateFee", tr.TargetChainId, tr.Originator, tr.SourceAsset, int64(100)).Return(int64(10), int64(0))
 	mocks.MDistributorService.On("ValidAmount", int64(10)).Return(int64(3))
 	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, "3").Return(nil)
 	mocks.MDistributorService.On("CalculateMemberDistribution", int64(3)).Return([]model.Hedera{}, nil)
