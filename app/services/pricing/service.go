@@ -84,11 +84,6 @@ func (s *Service) GetTokenPriceInfo(networkId uint64, tokenAddressOrId string) (
 }
 
 func (s *Service) FetchAndUpdateUsdPrices() error {
-	s.minAmountsForApiMutex.Lock()
-	defer s.minAmountsForApiMutex.Unlock()
-	s.tokenPriceInfoMutex.Lock()
-	defer s.tokenPriceInfoMutex.Unlock()
-
 	results := s.fetchUsdPricesFromAPIs()
 	if results.AllPricesErr == nil {
 		err := s.updatePricesWithoutHbar(results.AllPrices)
@@ -108,8 +103,6 @@ func (s *Service) FetchAndUpdateUsdPrices() error {
 }
 
 func (s *Service) fetchAndUpdateNftFeesForApi() error {
-	s.nftFeesForApiMutex.Lock()
-	defer s.nftFeesForApiMutex.Unlock()
 	s.logger.Debugf("Populating NFT fees for API")
 
 	res := make(map[uint64]map[string]pricing.NonFungibleFee)
@@ -154,7 +147,10 @@ func (s *Service) fetchAndUpdateNftFeesForApi() error {
 	}
 
 	s.logger.Debugf("fetched all NFT fees and payment tokens successfully")
+
+	s.nftFeesForApiMutex.Lock()
 	s.nftFeesForApi = res
+	s.nftFeesForApiMutex.Unlock()
 
 	return nil
 }
@@ -263,6 +259,13 @@ func (s *Service) GetHederaNftPrevFee(token string) (int64, bool) {
 }
 
 func (s *Service) loadStaticMinAmounts(bridgeConfig *config.Bridge) {
+	// This lock is used for more time than others to speed up things
+	// as here, there is no other polling/locking operation
+	s.tokenPriceInfoMutex.Lock()
+	s.minAmountsForApiMutex.Lock()
+	defer s.minAmountsForApiMutex.Unlock()
+	defer s.tokenPriceInfoMutex.Unlock()
+
 	for networkId, minAmountsByTokenAddress := range bridgeConfig.MinAmounts {
 		for tokenAddress, minAmount := range minAmountsByTokenAddress {
 			s.tokensPriceInfo[networkId][tokenAddress] = pricing.TokenPriceInfo{
@@ -285,8 +288,10 @@ func (s *Service) updateHbarPrice(results fetchResults) error {
 		priceInUsd = results.HbarPrice
 	}
 
+	s.tokenPriceInfoMutex.RLock()
 	defaultMinAmount := s.tokensPriceInfo[constants.HederaNetworkId][constants.Hbar].DefaultMinAmount
 	previousUsdPrice := s.tokensPriceInfo[constants.HederaNetworkId][constants.Hbar].UsdPrice
+	s.tokenPriceInfoMutex.RUnlock()
 
 	// Use the cached priceInUsd in case the price fetching failed
 	if priceInUsd.Cmp(decimal.NewFromFloat(0.0)) == 0 {
@@ -343,8 +348,14 @@ func (s *Service) calculateMinAmountWithFee(nativeAsset *asset.NativeAsset, deci
 }
 
 func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, tokenPriceInfo pricing.TokenPriceInfo) error {
-	s.tokensPriceInfo[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo
+
+	s.minAmountsForApiMutex.Lock()
 	s.minAmountsForApi[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo.MinAmountWithFee.String()
+	s.minAmountsForApiMutex.Unlock()
+
+	s.tokenPriceInfoMutex.Lock()
+	s.tokensPriceInfo[nativeAsset.ChainId][nativeAsset.Asset] = tokenPriceInfo
+	s.tokenPriceInfoMutex.Unlock()
 
 	msgTemplate := "Updating UsdPrice [%s] and MinAmountWithFee [%s] for %s asset [%s]"
 	s.logger.Debugf(msgTemplate, tokenPriceInfo.UsdPrice.String(), tokenPriceInfo.MinAmountWithFee.String(), "native", nativeAsset.Asset)
@@ -373,8 +384,15 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		}
 
 		tokenPriceInfo.MinAmountWithFee = wrappedMinAmountWithFee
+
+		s.tokenPriceInfoMutex.Lock()
 		s.tokensPriceInfo[networkId][wrappedToken] = tokenPriceInfo
+		s.tokenPriceInfoMutex.Unlock()
+
+		s.minAmountsForApiMutex.Lock()
 		s.minAmountsForApi[networkId][wrappedToken] = wrappedMinAmountWithFee.String()
+		s.minAmountsForApiMutex.Unlock()
+
 		s.logger.Debugf(msgTemplate, tokenPriceInfo.UsdPrice.String(), wrappedMinAmountWithFee.String(), "wrapped", wrappedToken)
 	}
 
@@ -394,8 +412,10 @@ func (s *Service) updatePricesWithoutHbar(pricesByNetworkAndAddress map[uint64]m
 				continue
 			}
 			nativeAsset := s.assetsService.FungibleNativeAsset(networkId, assetAddress)
+			s.tokenPriceInfoMutex.RLock()
 			defaultMinAmount := s.tokensPriceInfo[networkId][assetAddress].DefaultMinAmount
 			previousUsdPrice := s.tokensPriceInfo[networkId][assetAddress].UsdPrice
+			s.tokenPriceInfoMutex.RUnlock()
 
 			// Use the cached priceInUsd in case the price fetching failed
 			if usdPrice.Cmp(decimal.NewFromFloat(0.0)) == 0 {

@@ -18,9 +18,11 @@ package pricing
 
 import (
 	"errors"
+	"github.com/stretchr/testify/mock"
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -116,7 +118,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	}
 	err := serviceInstance.updatePricesWithoutHbar(FetchResults.AllPrices)
 	assert.Nil(t, err)
-	
+
 	// Use DefaultMinAmount (min_amount from yaml)
 	FetchResults.AllPrices[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[1]["0xb083879B1e10C8476802016CB12cd2F25a896691"] = pricing.TokenPriceInfo{
@@ -162,7 +164,6 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	err = serviceInstance.updateHbarPrice(FetchResults2)
 	assert.Nil(t, err)
 
-
 	// Throw if no fetched price and no cache price
 	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
 	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
@@ -194,6 +195,22 @@ func Test_GetTokenPriceInfo_NotExist(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func Test_GetTokenPriceInfo_WhileUpdating(t *testing.T) {
+	setup(true, true)
+
+	ExecuteWithUpdatingService(t, func() {
+		serviceInstance.GetTokenPriceInfo(92919929912, "")
+	})
+}
+
+func Test_NftFees_WhileUpdating(t *testing.T) {
+	setup(true, true)
+
+	ExecuteWithUpdatingService(t, func() {
+		serviceInstance.NftFees()
+	})
+}
+
 func Test_GetMinAmountsForAPI(t *testing.T) {
 	setup(true, true)
 
@@ -202,6 +219,14 @@ func Test_GetMinAmountsForAPI(t *testing.T) {
 	assert.Equal(t, len(constants.NetworksById), len(minAmountsForApi))
 	assert.Equal(t, testConstants.HbarMinAmountWithFee.String(), serviceInstance.minAmountsForApi[constants.HederaNetworkId][constants.Hbar])
 	assert.Equal(t, testConstants.EthereumNativeTokenMinAmountWithFee.String(), serviceInstance.minAmountsForApi[testConstants.EthereumNetworkId][testConstants.NetworkEthereumFungibleNativeToken])
+}
+
+func Test_GetMinAmountsForAPI_WhileUpdating(t *testing.T) {
+	setup(true, true)
+
+	ExecuteWithUpdatingService(t, func() {
+		serviceInstance.GetMinAmountsForAPI()
+	})
 }
 
 func Test_calculateMinAmountWithFee(t *testing.T) {
@@ -285,6 +310,36 @@ func Test_GetHederaNftPrevFee_ShouldNotExists(t *testing.T) {
 	prevFee, ok := serviceInstance.GetHederaNftPrevFee(testConstants.NetworkHederaNonFungibleNativeToken)
 	assert.Equal(t, int64(0), prevFee)
 	assert.False(t, ok)
+}
+
+func ExecuteWithUpdatingService(t *testing.T, serviceCall func()) {
+	expectedTime := time.Millisecond * 200
+	waitTime := time.Second * 1
+
+	// Clear the mocks
+	mocks.MDiamondRouter.ExpectedCalls = []*mock.Call{}
+	mocks.MDiamondRouter.
+		On("Erc721Payment", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).
+		After(waitTime).
+		Return(common.HexToAddress(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].PaymentToken), nil).
+		On("Erc721Fee", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).
+		Return(big.NewInt(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].Fee.IntPart()), nil)
+
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		_ = serviceInstance.FetchAndUpdateUsdPrices()
+		wg.Done()
+	}()
+
+	time.Sleep(time.Millisecond * 200)
+	startTime := time.Now()
+	serviceCall()
+	elapsedTime := time.Since(startTime)
+
+	assert.Less(t, elapsedTime, expectedTime, "Service call took too long to return")
+	wg.Wait()
 }
 
 func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
