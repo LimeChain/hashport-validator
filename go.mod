@@ -1,6 +1,6 @@
 module github.com/limechain/hedera-eth-bridge-validator
 
-go 1.17
+go 1.18
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
@@ -24,6 +24,8 @@ require (
 	gorm.io/driver/postgres v1.0.5
 	gorm.io/gorm v1.20.6
 )
+
+replace google.golang.org/protobuf v1.30.0 => google.golang.org/protobuf v1.26.1-0.20210525005349-febffdd88e85
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
