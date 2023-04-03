@@ -596,7 +596,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	// Step 6 - Wait for transaction to be mined
 	submit.WaitForTransaction(t, evm, txHash)
 
-	expectedUnlockedAmount, _ := expected.UnlockAmount(evm.RouterContract, setupEnv.NativeEvmToken, unlockAmount, t)
+	expectedUnlockedAmount, _ := expected.EvmAmoundAndFee(evm.RouterContract, setupEnv.NativeEvmToken, expectedSubmitUnlockAmount, t)
 
 	// Step 7 - Validate Token balances
 	verify.WrappedAssetBalance(t, evm, setupEnv.NativeEvmToken, expectedUnlockedAmount, nativeBalanceBefore, evm.Receiver)
@@ -795,7 +795,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken)
 
 	// Get fee amount from wrapped network Router
-	_, feeAmount := expected.UnlockAmount(evm.RouterContract, setupEnv.NativeEvmToken, amount, t)
+	_, feeAmount := expected.EvmAmoundAndFee(evm.RouterContract, setupEnv.NativeEvmToken, amount, t)
 
 	// Step 5 - Submit Mint transaction
 	txHash := submit.UnlockTransaction(t, evm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
