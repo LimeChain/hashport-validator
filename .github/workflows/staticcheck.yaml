@@ -5,15 +5,27 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  ci:
+    name: "Run CI"
+    strategy:
+      fail-fast: false
+      matrix:
+        os:  ["windows-latest", "ubuntu-latest", "macOS-latest"]
+        go:  ["1.18.x"]
+        dir: ["server", "client"]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: WillAbides/setup-go-faster@v1.8.0
-        with:
-          go-version: 1.18
-      - uses: dominikh/staticcheck-action@v1.3.0
-        with:
-          checks: "all,-ST*,-S1002,-S1005,-S1008,-S1023,-S1039,-U1000"
-          version: "2022.1.3"
-          min-go-version: 1.18.10
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - uses: WillAbides/setup-go-faster@v1.8.0
+      with:
+        go-version: ${{ matrix.go }}
+    - run: "go test ./..."
+    - run: "go vet ./..."
+    - uses: dominikh/staticcheck-action@v1.3.0
+      with:
+        version: "2022.1.3"
+        install-go: false
+        cache-key: ${{ matrix.go }}
+        working-directory: ${{ matrix.dir }}
