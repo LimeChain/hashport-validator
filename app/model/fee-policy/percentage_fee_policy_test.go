@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-package expected
+package fee_policy
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
-	fee, remainder := feeCalc.CalculateFee(token, amount)
-	validFee := distributor.ValidAmount(fee)
-	if validFee != fee {
-		remainder += fee - validFee
+var (
+	testingPercentageFeePolicyPolicy = PercentageFeePolicy{
+		Networks: []uint64{10, 20, 30, 40, 50},
+		Value:    2000,
 	}
+)
 
-	return remainder, validFee
+func Test_ParseNewPercentageFeePolicy_Works(t *testing.T) {
+	policy, err := ParseNewPercentageFeePolicy(nil, 10)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, policy)
+}
+
+func Test_PercentageFeePolicy_FeeAmountFor_ShouldReturnFeePolicy(t *testing.T) {
+	feeAmount, exist := testingPercentageFeePolicyPolicy.FeeAmountFor(10, "", 3000000)
+
+	assert.Equal(t, true, exist)
+	assert.Equal(t, int64(60000), feeAmount)
 }

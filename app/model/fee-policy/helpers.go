@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,18 +14,33 @@
  * limitations under the License.
  */
 
-package expected
+package fee_policy
 
-import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-)
-
-func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
-	fee, remainder := feeCalc.CalculateFee(token, amount)
-	validFee := distributor.ValidAmount(fee)
-	if validFee != fee {
-		remainder += fee - validFee
+func getInterfaceValue(input interface{}, key string) (interface{}, bool) {
+	mapObject, ok := input.(map[interface{}]interface{})
+	if !ok {
+		return nil, false
 	}
 
-	return remainder, validFee
+	for eleKey, eleValue := range mapObject {
+		if eleKey.(string) == key {
+			return eleValue, true
+		}
+	}
+
+	return nil, false
+}
+
+func networkAllowed(networks []uint64, networkId uint64) bool {
+	if networks == nil {
+		return true
+	}
+
+	for _, ele := range networks {
+		if ele == networkId {
+			return true
+		}
+	}
+
+	return false
 }

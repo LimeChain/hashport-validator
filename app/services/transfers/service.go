@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"strings"
@@ -63,6 +64,7 @@ type Service struct {
 	assetsService      service.Assets
 	topicID            hedera.TopicID
 	bridgeAccountID    hedera.AccountID
+	feePolicyHandler   service.FeePolicyHandler
 }
 
 func NewService(
@@ -80,6 +82,7 @@ func NewService(
 	messageService service.Messages,
 	prometheusService service.Prometheus,
 	assetsService service.Assets,
+	feePolicyHandler service.FeePolicyHandler,
 ) *Service {
 	tID, e := hedera.TopicIDFromString(topicID)
 	if e != nil {
@@ -106,6 +109,7 @@ func NewService(
 		messageService:     messageService,
 		prometheusService:  prometheusService,
 		assetsService:      assetsService,
+		feePolicyHandler:   feePolicyHandler,
 	}
 
 	return instance
@@ -177,7 +181,18 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 		return err
 	}
 
-	fee, remainder := ts.feeService.CalculateFee(tm.NativeAsset, intAmount)
+	var fee, remainder int64
+
+	// If a fee policy is found - use it. Otherwise - use the standard fee
+	feeAmount, exist := ts.feePolicyHandler.FeeAmountFor(tm.TargetChainId, tm.Originator, tm.TargetAsset, intAmount)
+
+	if exist {
+		fee = feeAmount
+		remainder = intAmount - fee
+	} else {
+		fee, remainder = ts.feeService.CalculateFee(tm.NativeAsset, intAmount)
+	}
+
 	validFee := ts.distributor.ValidAmount(fee)
 	if validFee != fee {
 		remainder += fee - validFee
@@ -289,7 +304,29 @@ statusBlocker:
 		}
 	}
 
-	signatureMessage, err := ts.messageService.SignFungibleMessage(tm)
+	// If a fee policy is found - use it. Otherwise - use the standard fee
+	serviceFee, exist := ts.feePolicyHandler.FeeAmountFor(tm.TargetChainId, tm.Originator, tm.TargetAsset, amount.Int64())
+
+	if !exist {
+		// Call contract to get the service fee
+		tokenFeeData, err := ts.contractServices[tm.TargetChainId].TokenFeeData(common.HexToAddress(tm.TargetAsset))
+		if err != nil {
+			return err
+		}
+
+		serviceFeePercentage := tokenFeeData.ServiceFeePercentage
+		serviceFee, _ = ts.feeService.CalculatePercentageFee(amount.Int64(), serviceFeePercentage.Int64())
+	}
+
+	// save fee in the database
+	err = ts.transferRepository.UpdateFee(tm.TransactionId, strconv.FormatInt(serviceFee, 10))
+	if err != nil {
+		return err
+	}
+
+	tm.Fee = serviceFee
+
+	signatureMessage, err := ts.messageService.SignFungibleMessageWithFee(tm)
 	if err != nil {
 		return err
 	}
@@ -335,8 +372,7 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	}
 
 	bnSignaturesLength := big.NewInt(int64(len(t.Messages)))
-	reachedMajority, err := ts.contractServices[t.TargetChainID].
-		HasValidSignaturesLength(bnSignaturesLength)
+	reachedMajority, err := ts.contractServices[t.TargetChainID].HasValidSignaturesLength(bnSignaturesLength)
 	if err != nil {
 		ts.logger.Errorf("[%s] - Failed to check has valid signatures length. Error [%s]", t.TransactionID, err)
 		return nil, err
@@ -364,6 +400,7 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 		return service.FungibleTransferData{
 			TransferData: transferData,
 			Amount:       signedAmount,
+			Fee:          t.Fee,
 		}, nil
 	}
 

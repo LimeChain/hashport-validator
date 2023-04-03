@@ -27,6 +27,7 @@ Structs used to parse the bridge YAML configuration
 type Bridge struct {
 	UseLocalConfig    bool                `yaml:"use_local_config,omitempty" json:"useLocalConfig,omitempty"`
 	ConfigTopicId     string              `yaml:"config_topic_id,omitempty" json:"configTopicId,omitempty"`
+	FeePolicyTopicId  string              `yaml:"fee_policy_topic_id,omitempty" json:"feePolicyTopicId,omitempty"`
 	PollingInterval   time.Duration       `yaml:"polling_interval,omitempty" json:"pollingInterval,omitempty"`
 	TopicId           string              `yaml:"topic_id,omitempty" json:"topicId,omitempty"`
 	Networks          map[uint64]*Network `yaml:"networks,omitempty" json:"networks,omitempty"`
@@ -36,6 +37,7 @@ type Bridge struct {
 func (b *Bridge) Update(from *Bridge) {
 	b.UseLocalConfig = from.UseLocalConfig
 	b.ConfigTopicId = from.ConfigTopicId
+	b.FeePolicyTopicId = from.FeePolicyTopicId
 	b.PollingInterval = from.PollingInterval
 	b.TopicId = from.TopicId
 	b.Networks = from.Networks

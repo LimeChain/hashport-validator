@@ -14,13 +14,34 @@
  * limitations under the License.
  */
 
-package service
+package fee_policy
 
-// Fee interface is implemented by the Calculator Service
-type Fee interface {
-	// CalculateFee calculates the fee and remainder of a given amount, based on a specified token fee percentage
-	CalculateFee(token string, amount int64) (fee, remainder int64)
+import "errors"
 
-	// CalculatePercentageFee performs the actual percentage calculation with provided params using constants.FeeMaxPercentage
-	CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64)
+type FlatFeePolicy struct {
+	Networks []uint64
+	Value    int64
+}
+
+func ParseNewFlatFeePolicy(networks []uint64, parsingValue interface{}) (*FlatFeePolicy, error) {
+	value, ok := parsingValue.(int)
+
+	if !ok {
+		return nil, errors.New("value is not integer")
+	}
+
+	return &FlatFeePolicy{
+		Networks: networks,
+		Value:    int64(value),
+	}, nil
+}
+
+func (policy *FlatFeePolicy) FeeAmountFor(networkId uint64, _ string, _ int64) (int64, bool) {
+	var found bool = networkAllowed(policy.Networks, networkId)
+
+	if found {
+		return policy.Value, true
+	}
+
+	return 0, false
 }

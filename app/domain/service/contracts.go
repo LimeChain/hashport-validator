@@ -17,13 +17,14 @@
 package service
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	abi "github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"math/big"
 )
 
 // Contracts interface is implemented by the Contracts Service providing business logic access to the EVM SmartContracts and other related utility functions
@@ -54,4 +55,14 @@ type Contracts interface {
 	WatchBurnEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterBurn) (event.Subscription, error)
 	// WatchLockEventLogs creates a subscription for Lock Events emitted in the Bridge contract
 	WatchLockEventLogs(opts *bind.WatchOpts, sink chan<- *abi.RouterLock) (event.Subscription, error)
+	// FeeAmountFor returns fee data for specific bridge operation
+	FeeAmountFor(targetChain *big.Int, userAddress common.Address, tokenAddress common.Address, amount *big.Int) (*big.Int, error)
+
+	// TokenFeeData Returns all data for a specific fee calculator
+	TokenFeeData(token common.Address) (struct {
+		ServiceFeePercentage *big.Int
+		FeesAccrued          *big.Int
+		PreviousAccrued      *big.Int
+		Accumulator          *big.Int
+	}, error)
 }

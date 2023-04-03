@@ -19,6 +19,7 @@ package fees
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi"
 	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ import (
 )
 
 func Test_NewRouter(t *testing.T) {
-	router := NewRouter(mocks.MPricingService)
+	router := NewRouter(mocks.MPricingService, mocks.MFeeService, mocks.MBFeePolicyHandler)
 
 	assert.NotNil(t, router)
 }
@@ -52,6 +53,31 @@ func Test_feesNftResponse(t *testing.T) {
 	bridgeResponseHandler(mocks.MResponseWriter, new(http.Request))
 
 	assert.Nil(t, err)
+	assert.NotNil(t, bridgeResponseHandler)
+	assert.NotNil(t, bridgeConfigAsBytes)
+}
+
+func Test_calculateForResponse(t *testing.T) {
+	mocks.Setup()
+
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(true)
+
+	bridgeConfigAsBytes := buf.Bytes()
+
+	routeParams := chi.RouteParams{}
+	routeParams.Add("network", "8001")
+	routeParams.Add("account", "0.0.101")
+	routeParams.Add("token", "0.0.3001")
+	routeParams.Add("amount", "100")
+
+	mocks.MResponseWriter.On("Header").Return(http.Header{})
+	mocks.MResponseWriter.On("Write", bridgeConfigAsBytes).Return(len(bridgeConfigAsBytes), nil)
+
+	bridgeResponseHandler := calculateForResponse(mocks.MFeeService, mocks.MBFeePolicyHandler)
+	bridgeResponseHandler(mocks.MResponseWriter, new(http.Request))
+
 	assert.NotNil(t, bridgeResponseHandler)
 	assert.NotNil(t, bridgeConfigAsBytes)
 }
