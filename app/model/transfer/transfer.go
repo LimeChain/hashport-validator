@@ -65,3 +65,10 @@ type SanityCheckResult struct {
 	NftId      *hedera.NftID
 	Err        error
 }
+
+type TransferReset struct {
+	TransactionId string `json:"transactionId"`
+	SourceChainId uint64 `json:"sourceChainId"`
+	TargetChainId uint64 `json:"targetChainId"`
+	OppositeToken string `json:"oppositeToken"`
+}
