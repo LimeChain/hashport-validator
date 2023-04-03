@@ -21,9 +21,7 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 // Node struct holding the hedera.Client. Used to interact with Hedera consensus nodes
@@ -126,69 +124,52 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 // SubmitTopicConsensusMessage submits the provided message bytes to the
 // specified HCS `topicId`
 func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byte) (*hedera.TransactionID, error) {
-	attempt := 0
-	for attempt <= hc.maxRetry {
-		attempt++
-		tx, err := hedera.NewTopicMessageSubmitTransaction().
-			SetTopicID(topicId).
-			SetMessage(message).
-			SetMaxRetry(hc.maxRetry).
-			FreezeWith(hc.client)
+	tx, err := hedera.NewTopicMessageSubmitTransaction().
+		SetTopicID(topicId).
+		SetMessage(message).
+		SetMaxRetry(hc.maxRetry).
+		FreezeWith(hc.client)
 
-		if err != nil {
-			return nil, err
-		}
-
-		hc.logger.Debugf("Submit Topic Consensus Message, with transaction ID [%s] and Node Account IDs: %v",
-			tx.GetTransactionID(),
-			tx.GetNodeAccountIDs(),
-		)
-
-		response, err := tx.Execute(hc.GetClient())
-		if shouldRetryTransaction(err) {
-			continue
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = hc.checkTransactionReceipt(response)
-
-		return &response.TransactionID, err
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("Too many retries to submit topic message to %s", topicId.String())
+	hc.logger.Debugf("Submit Topic Consensus Message, with transaction ID [%s] and Node Account IDs: %v",
+		tx.GetTransactionID(),
+		tx.GetNodeAccountIDs(),
+	)
+
+	response, err := tx.Execute(hc.GetClient())
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = hc.checkTransactionReceipt(response)
+
+	return &response.TransactionID, err
+
 }
 
 // SubmitScheduleSign submits a ScheduleSign transaction for a given ScheduleID
 func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.TransactionResponse, error) {
-	attempt := 0
-	for attempt <= hc.maxRetry {
-		attempt++
-		tx, err := hedera.NewScheduleSignTransaction().
-			SetScheduleID(scheduleID).
-			SetMaxRetry(hc.maxRetry).
-			FreezeWith(hc.GetClient())
+	tx, err := hedera.NewScheduleSignTransaction().
+		SetScheduleID(scheduleID).
+		SetMaxRetry(hc.maxRetry).
+		FreezeWith(hc.GetClient())
 
-		if err != nil {
-			return nil, err
-		}
-
-		hc.logger.Debugf("Submit Schedule Sign, with transaction ID [%s], schedule ID: [%s] and Node Account IDs: %v",
-			tx.GetTransactionID(),
-			tx.GetScheduleID(),
-			tx.GetNodeAccountIDs(),
-		)
-		response, err := tx.Execute(hc.GetClient())
-		if shouldRetryTransaction(err) {
-			continue
-		}
-
-		return &response, err
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("[%s] Too many retries", scheduleID)
+	hc.logger.Debugf("Submit Schedule Sign, with transaction ID [%s], schedule ID: [%s] and Node Account IDs: %v",
+		tx.GetTransactionID(),
+		tx.GetScheduleID(),
+		tx.GetNodeAccountIDs(),
+	)
+	response, err := tx.Execute(hc.GetClient())
+
+	return &response, err
 }
 
 // SubmitScheduledTokenTransferTransaction creates a token transfer transaction and submits it as a scheduled transaction
@@ -288,27 +269,18 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 }
 
 func (hc Node) submitScheduledTransaction(signedTransaction hedera.ITransaction, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
-	attempt := 0
-	for attempt <= hc.maxRetry {
-		attempt++
-		scheduledTx, err := hedera.NewScheduleCreateTransaction().
-			SetScheduledTransaction(signedTransaction)
-		if err != nil {
-			return nil, err
-		}
-		scheduledTx = scheduledTx.
-			SetPayerAccountID(payerAccountID).
-			SetScheduleMemo(memo)
-
-		response, err := scheduledTx.Execute(hc.GetClient())
-		if shouldRetryTransaction(err) {
-			continue
-		}
-
-		return &response, err
+	scheduledTx, err := hedera.NewScheduleCreateTransaction().
+		SetScheduledTransaction(signedTransaction)
+	if err != nil {
+		return nil, err
 	}
+	scheduledTx = scheduledTx.
+		SetPayerAccountID(payerAccountID).
+		SetScheduleMemo(memo)
 
-	return nil, fmt.Errorf("[%s] Too many retries", memo)
+	response, err := scheduledTx.Execute(hc.GetClient())
+
+	return &response, err
 }
 
 func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*hedera.TransactionReceipt, error) {
@@ -322,21 +294,4 @@ func (hc Node) checkTransactionReceipt(txResponse hedera.TransactionResponse) (*
 	}
 
 	return &receipt, err
-}
-
-func shouldRetryTransaction(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	preCheckError, ok := err.(*hedera.ErrHederaPreCheckStatus)
-	if ok && preCheckError.Status == hedera.StatusInvalidNodeAccount {
-		return true
-	}
-
-	if strings.Contains(err.Error(), constants.InvalidNodeAccount) {
-		return true
-	}
-
-	return false
 }
