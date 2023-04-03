@@ -22,7 +22,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/handlers"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/http"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/queue"
-	rate_provider "github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/rate-provider"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/service"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/watchers"
@@ -65,7 +65,6 @@ var MHandler *handlers.MockHandler
 var MHttpHandler *http.MockHandler
 var MUtilsService *service.MockUtilsService
 var MBridgeConfigService *service.MockBridgeConfigService
-var MBFeePolicyHandler *service.MockFeePolicyHandler
 
 func Setup() {
 	MDatabase = &database.MockDatabase{}
@@ -105,5 +104,4 @@ func Setup() {
 	MHttpHandler = &http.MockHandler{}
 	MUtilsService = &service.MockUtilsService{}
 	MBridgeConfigService = &service.MockBridgeConfigService{}
-	MBFeePolicyHandler = &service.MockFeePolicyHandler{}
 }

@@ -18,9 +18,6 @@ package bootstrap
 
 import (
 	"fmt"
-
-	fee_policy "github.com/limechain/hedera-eth-bridge-validator/app/services/fee-policy"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
@@ -59,11 +56,10 @@ type Services struct {
 	Assets           service.Assets
 	Utils            service.Utils
 	BridgeConfig     service.BridgeConfig
-	FeePolicyHandler service.FeePolicyHandler
 }
 
 // PrepareServices instantiates all the necessary services with their required context and parameters
-func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Clients, repositories Repositories, parsedBridgeConfigTopicId hedera.TopicID, parsedFeePolicyTopicId hedera.TopicID) *Services {
+func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Clients, repositories Repositories, parsedBridgeConfigTopicId hedera.TopicID) *Services {
 
 	bridgeCfgService := bridge_config.NewService(c, parsedBridge, clients.MirrorNode)
 	if !parsedBridge.UseLocalConfig {
@@ -98,13 +94,6 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
-
-	feePolicyService := fee_policy.NewService(c, clients.MirrorNode)
-	_, errFeePolicyCfgService := feePolicyService.ProcessLatestConfig(parsedFeePolicyTopicId)
-	if errFeePolicyCfgService != nil {
-		panic(fmt.Sprintf("failed to process latest bridge config from topic. Err: [%s]", errFeePolicyCfgService))
-	}
-
 	distributor := distributor.New(c.Bridge.Hedera.Members)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
@@ -133,8 +122,7 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 		scheduled,
 		messages,
 		prometheus,
-		assetsService,
-		feePolicyService)
+		assetsService)
 
 	burnEvent := burn_event.NewService(
 		c.Bridge.Hedera.BridgeAccount,
@@ -183,6 +171,5 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 		Assets:           assetsService,
 		Utils:            utilsService,
 		BridgeConfig:     bridgeCfgService,
-		FeePolicyHandler: feePolicyService,
 	}
 }

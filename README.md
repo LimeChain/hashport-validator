@@ -48,7 +48,6 @@ docker-compose up
  - [Mainnet Deployment](docs/mainnet-deployment.md)
  - [Metrics](docs/metrics.md)
  - [API](docs/api.md)
- - [Fee Policies](docs/fee-policies.md)
 
 ## Examples
 * [Three Validators Bridge Network](./examples/three-validators/README.md)

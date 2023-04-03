@@ -84,7 +84,6 @@ func Test_Handle(t *testing.T) {
 		Messages:      nil,
 		Fees:          []entity.Fee{},
 		Schedules:     nil,
-		Fee:           "5",
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(tr, nil)
 	mocks.MFeeService.On("CalculateFee", tr.SourceAsset, int64(100)).Return(int64(10), int64(0))

@@ -50,13 +50,7 @@ func New(feePercentages map[string]int64) *Service {
 
 // CalculateFee calculates the fee and remainder of a given token and amount
 func (s Service) CalculateFee(token string, amount int64) (fee, remainder int64) {
-	feePercentage := s.feePercentages[token]
-
-	return s.CalculatePercentageFee(amount, feePercentage)
-}
-
-func (s Service) CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64) {
-	fee = amount * feePercentage / constants.FeeMaxPercentage
+	fee = amount * s.feePercentages[token] / constants.FeeMaxPercentage
 	remainder = amount - fee
 
 	totalAmount := remainder + fee

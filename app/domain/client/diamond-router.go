@@ -45,6 +45,4 @@ type DiamondRouter interface {
 	}, error)
 	Erc721Fee(opts *bind.CallOpts, _erc721 common.Address) (*big.Int, error)
 	Erc721Payment(opts *bind.CallOpts, _erc721 common.Address) (common.Address, error)
-	FeeAmountFor(opts *bind.CallOpts, _targetChain *big.Int, _userAddress common.Address, _tokenAddress common.Address, _amount *big.Int) (*big.Int, error)
-	ServiceFeePrecision(opts *bind.CallOpts) (*big.Int, error)
 }
