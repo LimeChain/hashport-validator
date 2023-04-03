@@ -19,6 +19,7 @@ package submit
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
 	"math/big"
 	"testing"
 
@@ -173,6 +174,8 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 	t.Helper()
 	approvedValue := big.NewInt(amount)
 
+	_, fee := expected.EvmAmoundAndFee(evm.RouterContract, asset, amount, t)
+
 	instance, err := evmSetup.InitAssetContract(asset, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
@@ -207,6 +210,7 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 		Receiver:    receiver,
 		Amount:      approvedValue,
 		Raw:         types.Log{},
+		ServiceFee:  fee,
 	}
 
 	lockTxHash := lockTx.Hash()

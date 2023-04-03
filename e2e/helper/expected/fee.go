@@ -34,7 +34,7 @@ func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor,
 	return remainder, validFee
 }
 
-func UnlockAmount(router *router.Router, token string, amount int64, t *testing.T) (*big.Int, *big.Int) {
+func EvmAmoundAndFee(router *router.Router, token string, amount int64, t *testing.T) (*big.Int, *big.Int) {
 	t.Helper()
 	amountBn := big.NewInt(amount)
 
