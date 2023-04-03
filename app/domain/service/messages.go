@@ -32,8 +32,6 @@ type Messages interface {
 	ProcessSignature(transferID, signature string, targetChainId uint64, timestamp int64, authMsg []byte) error
 	// SignFungibleMessage signs a Fungible message based on Transfer
 	SignFungibleMessage(transfer payload.Transfer) ([]byte, error)
-	// SignFungibleMessageWithFee signs a Fungible message with fee based on Transfer
-	SignFungibleMessageWithFee(transfer payload.Transfer) ([]byte, error)
 	// SignNftMessage signs an NFT messaged based on Transfer
 	SignNftMessage(transfer payload.Transfer) ([]byte, error)
 }

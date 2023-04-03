@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 )
 
@@ -59,30 +57,6 @@ func (v *Validator) GetEventTransactionID(eventId string) (string, error) {
 	}
 
 	return txID, nil
-}
-
-func (v *Validator) GetCalculatedFeeFor(targetChainId uint64, account string, token string, amount int64) (int64, error) {
-	params := url.Values{
-		"targetChain": {strconv.FormatUint(targetChainId, 10)},
-		"account":     {account},
-		"token":       {token},
-		"amount":      {strconv.FormatInt(amount, 10)},
-	}
-
-	url := v.baseUrl + "/api/v1/fees/calculate-for?" + params.Encode()
-
-	bodyBytes, err := v.get(url)
-	if err != nil {
-		return 0, err
-	}
-
-	var result int64
-	err = json.Unmarshal(bodyBytes, &result)
-	if err != nil {
-		return 0, err
-	}
-
-	return result, nil
 }
 
 func (v *Validator) get(url string) ([]byte, error) {

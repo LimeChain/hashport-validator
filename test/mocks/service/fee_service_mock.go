@@ -26,7 +26,3 @@ func (mfs *MockFeeService) CalculateFee(token string, amount int64) (fee, remain
 	args := mfs.Called(token, amount)
 	return args.Get(0).(int64), args.Get(1).(int64)
 }
-
-func (mfs *MockFeeService) CalculatePercentageFee(amount int64, feePercentage int64) (fee, remainder int64) {
-	panic("implement me")
-}

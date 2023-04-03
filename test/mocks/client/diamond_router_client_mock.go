@@ -106,13 +106,3 @@ func (m *MockDiamondRouter) Erc721Payment(opts *bind.CallOpts, _erc721 common.Ad
 	args := m.Called(opts, _erc721)
 	return args.Get(0).(common.Address), args.Error(1)
 }
-
-func (m *MockDiamondRouter) FeeAmountFor(opts *bind.CallOpts, targetChain *big.Int, userAddress common.Address, tokenAddress common.Address, amount *big.Int) (*big.Int, error) {
-	args := m.Called(opts, targetChain, userAddress, tokenAddress, amount)
-	return args.Get(0).(*big.Int), args.Error(1)
-}
-
-func (m *MockDiamondRouter) ServiceFeePrecision(opts *bind.CallOpts) (*big.Int, error) {
-	args := m.Called(opts)
-	return args.Get(0).(*big.Int), args.Error(1)
-}

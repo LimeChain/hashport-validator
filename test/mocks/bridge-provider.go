@@ -17,8 +17,6 @@
 package mocks
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -26,19 +24,11 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/stretchr/testify/mock"
+	"math/big"
 )
 
 type MockBridgeContract struct {
 	mock.Mock
-}
-
-func (m *MockBridgeContract) TokenFeeData(token common.Address) (struct {
-	ServiceFeePercentage *big.Int
-	FeesAccrued          *big.Int
-	PreviousAccrued      *big.Int
-	Accumulator          *big.Int
-}, error) {
-	panic("implement me")
 }
 
 func (m *MockBridgeContract) GetClient() client.Core {
@@ -149,8 +139,4 @@ func (m *MockBridgeContract) GetMembers() []string {
 
 func (m *MockBridgeContract) ReloadMembers() {
 	m.Called()
-}
-
-func (m *MockBridgeContract) FeeAmountFor(targetChain *big.Int, userAddress common.Address, tokenAddress common.Address, amount *big.Int) (*big.Int, error) {
-	return big.NewInt(5), nil
 }

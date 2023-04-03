@@ -108,12 +108,13 @@ func (ss *Service) SanityCheckFungibleSignature(topicMessage *proto_models.Topic
 		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
 
-	match := topicMessage.Recipient == t.Receiver &&
-		topicMessage.Amount == signedAmount &&
-		topicMessage.Asset == t.TargetAsset &&
-		topicMessage.TargetChainId == t.TargetChainID &&
-		topicMessage.SourceChainId == t.SourceChainID &&
-		topicMessage.TransferID == t.TransactionID
+	match :=
+		topicMessage.Recipient == t.Receiver &&
+			topicMessage.Amount == signedAmount &&
+			topicMessage.Asset == t.TargetAsset &&
+			topicMessage.TargetChainId == t.TargetChainID &&
+			topicMessage.SourceChainId == t.SourceChainID &&
+			topicMessage.TransferID == t.TransactionID
 
 	return match, nil
 }
@@ -128,19 +129,19 @@ func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNf
 		return false, err
 	}
 
-	match := topicMessage.Recipient == t.Receiver &&
-		int64(topicMessage.TokenId) == t.SerialNumber &&
-		topicMessage.Metadata == t.Metadata &&
-		topicMessage.Asset == t.TargetAsset &&
-		topicMessage.TargetChainId == t.TargetChainID &&
-		topicMessage.SourceChainId == t.SourceChainID &&
-		topicMessage.TransferID == t.TransactionID
+	match :=
+		topicMessage.Recipient == t.Receiver &&
+			int64(topicMessage.TokenId) == t.SerialNumber &&
+			topicMessage.Metadata == t.Metadata &&
+			topicMessage.Asset == t.TargetAsset &&
+			topicMessage.TargetChainId == t.TargetChainID &&
+			topicMessage.SourceChainId == t.SourceChainID &&
+			topicMessage.TransferID == t.TransactionID
 	return match, nil
 }
 
 func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 	authMsgHash, err := auth_message.EncodeFungibleBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
-
 	if err != nil {
 		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
 		return nil, err
@@ -161,41 +162,6 @@ func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 		Recipient:     tm.Receiver,
 		Amount:        tm.Amount,
 		Signature:     signature,
-	}
-	msg := message.NewFungibleSignature(topicMsg)
-
-	bytes, err := msg.ToBytes()
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func (ss Service) SignFungibleMessageWithFee(tm payload.Transfer) ([]byte, error) {
-	authMsgHash, err := auth_message.EncodeFungibleBytesFromWithFee(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount, strconv.FormatInt(tm.Fee, 10))
-
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-
-	signatureBytes, err := ss.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	topicMsg := &proto_models.TopicEthSignatureMessage{
-		SourceChainId: tm.SourceChainId,
-		TargetChainId: tm.TargetChainId,
-		TransferID:    tm.TransactionId,
-		Asset:         tm.TargetAsset,
-		Recipient:     tm.Receiver,
-		Amount:        tm.Amount,
-		Signature:     signature,
-		Fee:           strconv.FormatInt(tm.Fee, 10),
 	}
 	msg := message.NewFungibleSignature(topicMsg)
 
@@ -311,7 +277,7 @@ func (ss *Service) verifySignature(authMsgBytes []byte, signatureBytes []byte, t
 // awaitTransfer checks until given transfer is found
 func (ss *Service) awaitTransfer(transferID string) (*entity.Transfer, error) {
 	i := 0
-    for i < ss.retryAttempts {
+	for i < ss.retryAttempts {
 		t, err := ss.transferRepository.GetByTransactionId(transferID)
 		if err != nil {
 			ss.logger.Errorf("[%s] - Failed to retrieve Transaction Record. Error: [%s]", transferID, err)

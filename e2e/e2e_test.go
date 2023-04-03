@@ -591,16 +591,15 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	ts := timestamp.FromNanos(nanos)
 
 	// Step 5 - Submit Unlock transaction
-	txHash := submit.UnlockWithFeeTransaction(t, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
+	txHash := submit.UnlockTransaction(t, evm, hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(), transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
 
 	// Step 6 - Wait for transaction to be mined
 	submit.WaitForTransaction(t, evm, txHash)
 
-	feeAmount, _ := strconv.ParseInt(transactionData.Fee, 10, 64)
-	expectedUnlockedAmount := expectedSubmitUnlockAmount - feeAmount
+	expectedUnlockedAmount, _ := expected.UnlockAmount(evm.RouterContract, setupEnv.NativeEvmToken, unlockAmount, t)
 
 	// Step 7 - Validate Token balances
-	verify.WrappedAssetBalance(t, evm, setupEnv.NativeEvmToken, big.NewInt(expectedUnlockedAmount), nativeBalanceBefore, evm.Receiver)
+	verify.WrappedAssetBalance(t, evm, setupEnv.NativeEvmToken, expectedUnlockedAmount, nativeBalanceBefore, evm.Receiver)
 
 	// Step 8 - Verify Database records
 	expectedTxRecord := expected.FungibleTransferRecord(
@@ -631,14 +630,13 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		},
 	)
 
-	authMsgBytes, err := auth_message.EncodeFungibleBytesFromWithFee(
+	authMsgBytes, err := auth_message.EncodeFungibleBytesFrom(
 		expectedTxRecord.SourceChainID,
 		expectedTxRecord.TargetChainID,
 		expectedTxRecord.TransactionID,
 		expectedTxRecord.TargetAsset,
 		expectedTxRecord.Receiver,
 		strconv.FormatInt(expectedSubmitUnlockAmount, 10),
-		strconv.FormatInt(feeAmount, 10),
 	)
 
 	if err != nil {
@@ -765,20 +763,20 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nativeEvm := setupEnv.Clients.EVM[chainId]
+	evm := setupEnv.Clients.EVM[chainId]
 
-	nativeInstance, err := evmSetup.InitAssetContract(setupEnv.NativeEvmToken, nativeEvm.EVMClient)
+	nativeInstance, err := evmSetup.InitAssetContract(setupEnv.NativeEvmToken, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nativeBalanceBefore, err := nativeInstance.BalanceOf(&bind.CallOpts{}, nativeEvm.Receiver)
+	nativeBalanceBefore, err := nativeInstance.BalanceOf(&bind.CallOpts{}, evm.Receiver)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Step 1 - Submit Lock Txn from a deployed smart contract
-	receipt, expectedLockEventLog := submit.BurnEthTransaction(t, setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, nativeEvm.Receiver.Bytes(), amount)
+	receipt, expectedLockEventLog := submit.BurnEthTransaction(t, setupEnv.AssetMappings, wrappedEvm, setupEnv.NativeEvmToken, chainId, sourceChain, evm.Receiver.Bytes(), amount)
 
 	// Step 1.1 - Get the block timestamp of the burn event
 	block, err := wrappedEvm.EVMClient.BlockByNumber(context.Background(), receipt.BlockNumber)
@@ -794,27 +792,21 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, burnEventId, now.UnixNano())
 
 	// Step 4 - Verify Transfer retrieved from Validator API
-	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, nativeEvm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken)
+	transactionData := verify.FungibleTransferFromValidatorAPI(t, setupEnv.Clients.ValidatorClient, setupEnv.TokenID, evm, burnEventId, setupEnv.NativeEvmToken, fmt.Sprint(amount), setupEnv.NativeEvmToken)
 
 	// Get fee amount from wrapped network Router
-	feeAmount, err := nativeEvm.RouterContract.FeeAmountFor(nil, new(big.Int).SetUint64(sourceChain), nativeEvm.Receiver, common.HexToAddress(setupEnv.NativeEvmToken), new(big.Int).SetInt64(amount))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Add Fee to transactionData so that UnlockWithFee will be executed
-	transactionData.Fee = feeAmount.String()
+	_, feeAmount := expected.UnlockAmount(evm.RouterContract, setupEnv.NativeEvmToken, amount, t)
 
 	// Step 5 - Submit Mint transaction
-	txHash := submit.UnlockTransaction(t, nativeEvm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
+	txHash := submit.UnlockTransaction(t, evm, burnEventId, transactionData, common.HexToAddress(setupEnv.NativeEvmToken))
 
 	// Step 6 - Wait for transaction to be mined
-	submit.WaitForTransaction(t, nativeEvm, txHash)
+	submit.WaitForTransaction(t, evm, txHash)
 
 	expectedUnlockedAmount := amount - feeAmount.Int64()
 
 	// Step 7 - Validate Token balances
-	verify.WrappedAssetBalance(t, nativeEvm, setupEnv.NativeEvmToken, big.NewInt(expectedUnlockedAmount), nativeBalanceBefore, nativeEvm.Receiver)
+	verify.WrappedAssetBalance(t, evm, setupEnv.NativeEvmToken, big.NewInt(expectedUnlockedAmount), nativeBalanceBefore, evm.Receiver)
 
 	// Step 8 - Prepare expected Transfer record
 	expectedLockEventRecord := expected.FungibleTransferRecord(
@@ -826,7 +818,7 @@ func Test_EVM_Wrapped_to_EVM_Token(t *testing.T) {
 		setupEnv.NativeEvmToken,
 		setupEnv.NativeEvmToken,
 		strconv.FormatInt(amount, 10),
-		nativeEvm.Receiver.String(),
+		evm.Receiver.String(),
 		status.Completed,
 		wrappedEvm.Signer.Address(),
 		entity.NanoTime{Time: blockTimestamp},
