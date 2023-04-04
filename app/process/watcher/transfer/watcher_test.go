@@ -231,7 +231,7 @@ func Test_ProcessNFTTransaction_Blacklist_Fails(t *testing.T) {
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
-func Test_ProcessHbarransaction_Blacklist_Fails(t *testing.T) {
+func Test_ProcessHbarTransaction_Blacklist_Fails(t *testing.T) {
 	tx_blacklist := transaction.Transaction{
 		ConsensusTimestamp: "1631092491.483966000",
 		TransactionID:      "0.0.111-1631092491-483966000",

@@ -41,7 +41,7 @@ func createTransferWatcher(
 	pricingService service.Pricing,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
-	black_listed_accounts := configuration.Bridge.BlackListedAccounts
+	blacklisted_accounts := configuration.Bridge.BlacklistedAccounts
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
@@ -56,7 +56,7 @@ func createTransferWatcher(
 		configuration.Node.Validator,
 		prometheusService,
 		pricingService,
-		black_listed_accounts,
+		blacklisted_accounts,
 	)
 }
 

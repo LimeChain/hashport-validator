@@ -29,7 +29,6 @@ func Test_IsBlacklistedAccount(t *testing.T) {
 }
 
 func Test_CheckTxForBlacklistedAccounts(t *testing.T) {
-	// tx :=
 	blacklist := []string{"0.0.1", "0.0.333"}
 
 	tx := transaction.Transaction{
@@ -44,7 +43,6 @@ func Test_CheckTxForBlacklistedAccounts(t *testing.T) {
 		},
 	}
 
-
 	assert.Nil(t, CheckTxForBlacklistedAccounts(blacklist, tx))
 
 	tx.NftTransfers = []transaction.NftTransfer{
@@ -53,8 +51,6 @@ func Test_CheckTxForBlacklistedAccounts(t *testing.T) {
 			SerialNumber:    1,
 			Token:           "0.0.21241241"},
 	}
-
-
 
 	assert.Error(t, CheckTxForBlacklistedAccounts(blacklist, tx))
 

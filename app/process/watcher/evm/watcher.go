@@ -181,7 +181,7 @@ func NewWatcher(
 		targetBlock = uint64(startBlock)
 		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", dbIdentifier, timestamp.ToHumanReadable(startBlock))
 	}
-	istance := &Watcher{
+	return &Watcher{
 		repository:          repository,
 		dbIdentifier:        dbIdentifier,
 		contracts:           contracts,
@@ -196,8 +196,6 @@ func NewWatcher(
 		filterConfig:        filterConfig,
 		blackListedAccounts: blackListedAccounts,
 	}
-
-	return istance
 }
 
 func (ew *Watcher) Watch(queue qi.Queue) {
@@ -258,11 +256,13 @@ func (ew Watcher) CheckBlacklistedOriginator(hash common.Hash) (*string, error) 
 		err := fmt.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", hash, err)
 		return nil, err
 	}
+
 	originator, err := evm.OriginatorFromTx(tx)
 	if err != nil {
 		err := fmt.Errorf("[%s] - Failed to get originator. Error: [%s]", hash, err)
 		return nil, err
 	}
+
 	if blacklist.IsBlacklistedAccount(ew.blackListedAccounts, originator) {
 		err := fmt.Errorf("[%s] - Found blacklisted transfer receiver [%s]", hash, originator)
 		return nil, err
@@ -620,7 +620,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	
+
 	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
 		ew.logger.Error(err)

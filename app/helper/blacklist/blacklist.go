@@ -33,21 +33,18 @@ func IsBlacklistedAccount(blackListedAccounts []string, account string) bool {
 // Checks if the transaction contains any blacklisted accounts in any transfer
 func CheckTxForBlacklistedAccounts(blackListedAccounts []string, tx transaction.Transaction) error {
 	for i := range tx.Transfers {
-		fmt.Printf("\nAcc: %v", tx.Transfers[i].Account)
 		if IsBlacklistedAccount(blackListedAccounts, tx.Transfers[i].Account) {
 			return fmt.Errorf("[%s], Acc:[%v] - Found blacklisted transfer", tx.TransactionID, tx.Transfers[i].Account)
 		}
 	}
 
 	for i := range tx.TokenTransfers {
-		fmt.Printf("\nTokenTransfers Acc: %v", tx.TokenTransfers[i].Account)
 		if IsBlacklistedAccount(blackListedAccounts, tx.TokenTransfers[i].Account) {
 			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.TokenTransfers[i].Account)
 		}
 	}
 
 	for i := range tx.NftTransfers {
-		fmt.Printf("\nNftTransfers Acc: %v", tx.NftTransfers[i].SenderAccountID)
 		if IsBlacklistedAccount(blackListedAccounts, tx.NftTransfers[i].SenderAccountID) {
 			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.NftTransfers[i].SenderAccountID)
 		}
