@@ -22,29 +22,28 @@ import (
 	"testing"
 )
 
+var blacklist = []string{"0.0.999", "0.0.333"}
+
 func Test_IsBlacklistedAccount(t *testing.T) {
 	blacklist := []string{"0x000000", "0x000001"}
 	assert.True(t, IsBlacklistedAccount(blacklist, "0x000000"))
 	assert.False(t, IsBlacklistedAccount(blacklist, "0x000002"))
 }
 
-func Test_CheckTxForBlacklistedAccounts(t *testing.T) {
-	blacklist := []string{"0.0.1", "0.0.333"}
-
-	tx := transaction.Transaction{
-		ConsensusTimestamp: "1631092491.483966000",
-		TransactionID:      "0.0.111-1631092491-483966000",
-		TokenTransfers: []transaction.Transfer{
-			{
-				Account: "0.0.3231",
-				Amount:  10,
-				Token:   "0.0.699",
-			},
-		},
+func Test_CheckNFTTxForBlacklistedAccounts(t *testing.T) {
+	tx := setupTX()
+	tx.NftTransfers = []transaction.NftTransfer{
+		{ReceiverAccountID: "0.0.111",
+			SenderAccountID: "0.0.233",
+			SerialNumber:    1,
+			Token:           "0.0.21241241"},
 	}
 
-	assert.Nil(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+	assert.NoError(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
 
+func Test_CheckNFTTxForBlacklistedAccounts_Fails(t *testing.T) {
+	tx := setupTX()
 	tx.NftTransfers = []transaction.NftTransfer{
 		{ReceiverAccountID: "0.0.111",
 			SenderAccountID: "0.0.333",
@@ -53,14 +52,60 @@ func Test_CheckTxForBlacklistedAccounts(t *testing.T) {
 	}
 
 	assert.Error(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
 
-	tx.NftTransfers = []transaction.NftTransfer{}
+func Test_CheckTokenTxForBlacklistedAccounts(t *testing.T) {
+	tx := setupTX()
+	assert.NoError(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
+
+func Test_CheckTokenTxForBlacklistedAccounts_Fails(t *testing.T) {
+	tx := setupTX()
+	tx.Transfers = []transaction.Transfer{
+		{
+			Account: "0.0.333",
+			Amount:  303030303030303030,
+			Token:   "0.0.21312",
+		},
+	}
+
+	assert.Error(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
+
+func Test_CheckHBARTxForBlacklistedAccounts(t *testing.T) {
+	tx := setupTX()
+	tx.TokenTransfers = []transaction.Transfer{
+		{
+			Account: "0.0.233",
+			Amount:  303030303030303030,
+			Token:   "0.0.21312",
+		},
+	}
+	assert.NoError(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
+
+func Test_CheckHBARTxForBlacklistedAccounts_Fails(t *testing.T) {
+	tx := setupTX()
 	tx.TokenTransfers = []transaction.Transfer{
 		{
 			Account: "0.0.333",
 			Amount:  303030303030303030,
-			Token:   "HBAR",
+			Token:   "0.0.21312",
 		},
 	}
 	assert.Error(t, CheckTxForBlacklistedAccounts(blacklist, tx))
+}
+
+func setupTX() transaction.Transaction {
+	return transaction.Transaction{
+		ConsensusTimestamp: "1631092491.483966000",
+		TransactionID:      "0.0.111-1631092491-483966000",
+		Transfers: []transaction.Transfer{
+			{
+				Account: "0.0.3231",
+				Amount:  10,
+				Token:   "HBAR",
+			},
+		},
+	}
 }
