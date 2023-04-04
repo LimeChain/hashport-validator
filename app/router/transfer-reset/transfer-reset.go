@@ -38,6 +38,8 @@ func getTransfer(transferService service.Transfers, prometheusService service.Pr
 
 		metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, prometheusService, logger)
 		transferService.UpdateTransferStatusCompleted(transactionId)
+
+		render.JSON(w, r, "OK")
 	}
 }
 
