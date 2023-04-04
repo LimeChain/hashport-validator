@@ -19,10 +19,10 @@ package submit
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
 	"math/big"
 	"testing"
 
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -124,44 +124,6 @@ func UnlockTransaction(t *testing.T, evm evmSetup.Utils, txId string, transactio
 	return res.Hash()
 }
 
-func UnlockWithFeeTransaction(t *testing.T, evm evmSetup.Utils, txId string, transactionData *service.FungibleTransferData, tokenAddress common.Address) common.Hash {
-	t.Helper()
-	var signatures [][]byte
-	for i := 0; i < len(transactionData.Signatures); i++ {
-		signature, err := hex.DecodeString(transactionData.Signatures[i])
-		if err != nil {
-			t.Fatalf("Failed to decode signature with error: [%s]", err)
-		}
-		signatures = append(signatures, signature)
-	}
-
-	mintAmount, ok := new(big.Int).SetString(transactionData.Amount, 10)
-	if !ok {
-		t.Fatalf("Could not convert mint amount [%s] to big int", transactionData.Amount)
-	}
-
-	feeAmount, ok := new(big.Int).SetString(transactionData.Fee, 10)
-	if !ok {
-		t.Fatalf("Could not convert fee amount [%s] to big int", transactionData.Fee)
-	}
-
-	res, err := evm.RouterContract.UnlockWithFee(
-		evm.KeyTransactor,
-		new(big.Int).SetUint64(transactionData.SourceChainId),
-		[]byte(txId),
-		tokenAddress,
-		mintAmount,
-		evm.Receiver,
-		feeAmount,
-		signatures,
-	)
-
-	if err != nil {
-		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
-	}
-	return res.Hash()
-}
-
 func BurnEthTransaction(t *testing.T, assetsService service.Assets, evm evmSetup.Utils, asset string, sourceChainId, targetChainId uint64, receiver []byte, amount int64) (*types.Receipt, *router.RouterBurn) {
 	t.Helper()
 	wrappedAsset, err := evmSetup.NativeToWrappedAsset(assetsService, sourceChainId, targetChainId, asset)
@@ -212,6 +174,8 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 	t.Helper()
 	approvedValue := big.NewInt(amount)
 
+	_, fee := expected.EvmAmoundAndFee(evm.RouterContract, asset, amount, t)
+
 	instance, err := evmSetup.InitAssetContract(asset, evm.EVMClient)
 	if err != nil {
 		t.Fatal(err)
@@ -220,8 +184,6 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	serviceFee, err := evm.RouterContract.FeeAmountFor(nil, new(big.Int).SetUint64(constants.HederaNetworkId), evm.Receiver, common.HexToAddress(asset), approvedValue)
 
 	if err != nil {
 		t.Fatal(err)
@@ -236,7 +198,6 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 		common.HexToAddress(asset),
 		approvedValue,
 		receiver,
-		serviceFee,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -248,8 +209,8 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 		Token:       common.HexToAddress(asset),
 		Receiver:    receiver,
 		Amount:      approvedValue,
-		ServiceFee:  serviceFee,
 		Raw:         types.Log{},
+		ServiceFee:  fee,
 	}
 
 	lockTxHash := lockTx.Hash()

@@ -61,18 +61,8 @@ func main() {
 			panic(fmt.Sprintf("failed to parse bridge config topic id [%s]. Err: [%s]", parsedBridgeConfigTopicId, err))
 		}
 	}
-
-	var parsedFeePolicyTopicId hedera.TopicID
-	if parsedBridge.FeePolicyTopicId != "" {
-		var err error
-		parsedFeePolicyTopicId, err = hedera.TopicIDFromString(parsedBridge.FeePolicyTopicId)
-		if err != nil {
-			panic(fmt.Sprintf("failed to parse fee policy topic id [%s]. Err: [%s]", parsedBridge.FeePolicyTopicId, err))
-		}
-	}
-
-	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId, parsedFeePolicyTopicId)
-	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge, parsedBridgeConfigTopicId, parsedFeePolicyTopicId)
+	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
+	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge, parsedBridgeConfigTopicId)
 
 	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge)
 

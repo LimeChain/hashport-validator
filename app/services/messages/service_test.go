@@ -19,7 +19,6 @@ package messages
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -56,7 +55,6 @@ var (
 		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Amount:        "95",
 		Signature:     "custom-signature",
-		Fee:           "5",
 	}
 
 	topicFungibleMessage = message.Message{
@@ -100,7 +98,7 @@ func Test_NewService(t *testing.T) {
 		mocks.MAssetsService,
 	)
 	actualService.retryAttempts = 1
-	
+
 	assert.Equal(t, serviceInstance, actualService)
 }
 
@@ -114,11 +112,11 @@ func Test_SanityCheckFungibleSignature_ShouldReturnError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func Test_awaitTransfer_ShouldDropTransfer(t *testing.T){
+func Test_awaitTransfer_ShouldDropTransfer(t *testing.T) {
 	setup()
 
 	mocks.MTransferRepository.On("GetByTransactionId", topicEthFungibleMessage.TransferID).Return((*entity.Transfer)(nil), nil)
-	_ , err := serviceInstance.awaitTransfer(topicFungibleMessage.GetFungibleSignatureMessage().TransferID)
+	_, err := serviceInstance.awaitTransfer(topicFungibleMessage.GetFungibleSignatureMessage().TransferID)
 	assert.NotNil(t, err)
 }
 
@@ -213,54 +211,6 @@ func Test_SignFungibleMessage(t *testing.T) {
 	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{}, nil)
 
 	bytes, err := serviceInstance.SignFungibleMessage(tm)
-	assert.NotNil(t, bytes)
-	assert.Nil(t, err)
-}
-
-func Test_SignFungibleMessageWithFee_ShouldReturnError(t *testing.T) {
-	setup()
-
-	tm := payload.Transfer{}
-
-	bytes, err := serviceInstance.SignFungibleMessageWithFee(tm)
-	assert.Nil(t, bytes)
-	assert.NotNil(t, err)
-
-	fee, _ := strconv.ParseInt(topicEthFungibleMessage.Fee, 10, 64)
-	tm = payload.Transfer{
-		SourceChainId: topicEthFungibleMessage.SourceChainId,
-		TargetChainId: topicEthFungibleMessage.TargetChainId,
-		TransactionId: topicEthFungibleMessage.TransferID,
-		TargetAsset:   topicEthFungibleMessage.Asset,
-		Receiver:      topicEthFungibleMessage.Recipient,
-		Amount:        topicEthFungibleMessage.Amount,
-		Fee:           fee,
-	}
-
-	mocks.MSignerService.On("Sign", mock.Anything).Return(nil, errors.New("some-error"))
-
-	bytes, err = serviceInstance.SignFungibleMessageWithFee(tm)
-	assert.Nil(t, bytes)
-	assert.NotNil(t, err)
-}
-
-func Test_SignFungibleMessageWithFee(t *testing.T) {
-	setup()
-
-	fee, _ := strconv.ParseInt(topicEthFungibleMessage.Fee, 10, 64)
-	tm := payload.Transfer{
-		SourceChainId: topicEthFungibleMessage.SourceChainId,
-		TargetChainId: topicEthFungibleMessage.TargetChainId,
-		TransactionId: topicEthFungibleMessage.TransferID,
-		TargetAsset:   topicEthFungibleMessage.Asset,
-		Receiver:      topicEthFungibleMessage.Recipient,
-		Amount:        topicEthFungibleMessage.Amount,
-		Fee:           fee,
-	}
-
-	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{}, nil)
-
-	bytes, err := serviceInstance.SignFungibleMessageWithFee(tm)
 	assert.NotNil(t, bytes)
 	assert.Nil(t, err)
 }

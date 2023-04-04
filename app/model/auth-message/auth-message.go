@@ -17,22 +17,20 @@
 package auth_message
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	big_numbers "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"math/big"
 )
 
 // EncodeFungibleBytesFrom returns the array of bytes representing an
 // authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
 func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string) ([]byte, error) {
-	args, err := generateFungibleArguments(false)
+	args, err := generateFungibleArguments()
 	if err != nil {
 		return nil, err
 	}
-
 	amountBn, err := big_numbers.ToBigInt(amount)
 	if err != nil {
 		return nil, err
@@ -45,46 +43,9 @@ func EncodeFungibleBytesFrom(sourceChainId, targetChainId uint64, txId, asset, r
 		common.HexToAddress(asset),
 		common.HexToAddress(receiverEthAddress),
 		amountBn)
-
 	if err != nil {
 		return nil, err
 	}
-
-	return keccak(bytesToHash), nil
-}
-
-// EncodeFungibleBytesFromWithFee returns the array of bytes representing an
-// authorisation ERC-20 Mint signature ready to be signed by EVM Private Key
-func EncodeFungibleBytesFromWithFee(sourceChainId, targetChainId uint64, txId, asset, receiverEthAddress, amount string, fee string) ([]byte, error) {
-
-	args, err := generateFungibleArguments(true)
-	if err != nil {
-		return nil, err
-	}
-
-	amountBn, err := big_numbers.ToBigInt(amount)
-	if err != nil {
-		return nil, err
-	}
-
-	feeBn, err := big_numbers.ToBigInt(fee)
-	if err != nil {
-		return nil, err
-	}
-
-	bytesToHash, err := args.Pack(
-		new(big.Int).SetUint64(sourceChainId),
-		new(big.Int).SetUint64(targetChainId),
-		[]byte(txId),
-		common.HexToAddress(asset),
-		common.HexToAddress(receiverEthAddress),
-		amountBn,
-		feeBn)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return keccak(bytesToHash), nil
 }
 
@@ -156,7 +117,7 @@ func generateNftArguments() (abi.Arguments, error) {
 	}, nil
 }
 
-func generateFungibleArguments(withFee bool) (abi.Arguments, error) {
+func generateFungibleArguments() (abi.Arguments, error) {
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, err
@@ -172,7 +133,7 @@ func generateFungibleArguments(withFee bool) (abi.Arguments, error) {
 		return nil, err
 	}
 
-	result := abi.Arguments{
+	return abi.Arguments{
 		{
 			Type: uint256Type,
 		},
@@ -190,14 +151,7 @@ func generateFungibleArguments(withFee bool) (abi.Arguments, error) {
 		},
 		{
 			Type: uint256Type,
-		},
-	}
-
-	if withFee {
-		result = append(result, abi.Argument{Type: uint256Type})
-	}
-
-	return result, nil
+		}}, nil
 }
 
 func keccak(encodedData []byte) []byte {

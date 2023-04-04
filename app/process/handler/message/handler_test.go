@@ -19,9 +19,6 @@ package message
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"testing"
-
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	auth_message "github.com/limechain/hedera-eth-bridge-validator/app/model/auth-message"
@@ -33,6 +30,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"math/big"
+	"testing"
 )
 
 var (
@@ -53,7 +52,6 @@ var (
 		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
 		Amount:        "100",
 		Signature:     "custom-signature",
-		Fee:           "5",
 	}
 	tsm = message.Message{
 		TopicMessage: &proto.TopicMessage{
@@ -63,21 +61,12 @@ var (
 		},
 	}
 	transactionTimestamp = int64(0)
-	authMsgBytes, _      = auth_message.EncodeFungibleBytesFromWithFee(tesm.SourceChainId, tesm.TargetChainId, tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount, tesm.Fee)
+	authMsgBytes, _      = auth_message.EncodeFungibleBytesFrom(tesm.SourceChainId, tesm.TargetChainId, tesm.TransferID, tesm.Asset, tesm.Recipient, tesm.Amount)
 )
 
 func Test_NewHandler(t *testing.T) {
 	setup()
-	assert.Equal(t, h,
-		NewHandler(
-			topicId.String(),
-			mocks.MTransferRepository,
-			mocks.MMessageRepository,
-			map[uint64]service.Contracts{1: mocks.MBridgeContractService},
-			mocks.MMessageService,
-			mocks.MPrometheusService,
-			mocks.MAssetsService,
-		))
+	assert.Equal(t, h, NewHandler(topicId.String(), mocks.MTransferRepository, mocks.MMessageRepository, map[uint64]service.Contracts{1: mocks.MBridgeContractService}, mocks.MMessageService, mocks.MPrometheusService, mocks.MAssetsService))
 }
 
 func Test_Handle_Fails(t *testing.T) {

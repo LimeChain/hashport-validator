@@ -39,7 +39,6 @@ import (
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
 	bridge_config "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/bridge-config"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
-	fee_policy "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/fee-policy-config"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/price"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
@@ -47,15 +46,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitializeServerPairs(
-	server *server.Server,
-	services *Services,
-	repositories *Repositories,
-	clients *Clients,
-	configuration *config.Config,
-	parsedBridge *parser.Bridge,
-	bridgeCfgTopicId hedera.TopicID,
-	parsedFeePolicyTopicId hedera.TopicID) {
+func InitializeServerPairs(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config, parsedBridge *parser.Bridge, bridgeCfgTopicId hedera.TopicID) {
 	// Transfer Message Watcher
 	registerTransferWatcher(server, services, repositories, clients, configuration)
 
@@ -88,20 +79,13 @@ func InitializeServerPairs(
 
 	// Bridge Config Watcher
 	registerBridgeConfigWatcher(server, services, parsedBridge.UseLocalConfig, bridgeCfgTopicId, parsedBridge.PollingInterval)
-
-	// Fee policy watcher
-	registerFeePolicyWatcher(server, services, parsedFeePolicyTopicId, parsedBridge.PollingInterval)
 }
 
-func registerFeePolicyWatcher(server *server.Server, services *Services, parsedFeePolicyTopicId hedera.TopicID, pollingInterval time.Duration) {
-	server.AddWatcher(fee_policy.NewWatcher(services.FeePolicyHandler, parsedFeePolicyTopicId, pollingInterval))
-}
-
-func registerBridgeConfigWatcher(server *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID, pollingInterval time.Duration) {
+func registerBridgeConfigWatcher(s *server.Server, services *Services, useLocalConfig bool, bridgeCfgTopicId hedera.TopicID, pollingInterval time.Duration) {
 	if useLocalConfig {
 		log.Infoln("Using local bridge config. Skipping initialization of BridgeConfigWatcher ...")
 	} else {
-		server.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId, pollingInterval))
+		s.AddWatcher(bridge_config.NewWatcher(services.BridgeConfig, bridgeCfgTopicId, pollingInterval))
 	}
 }
 
@@ -294,6 +278,6 @@ func registerReadOnlyHandlers(server *server.Server, services *Services, reposit
 		services.ReadOnly,
 		services.Prometheus))
 
-	// ReadOnlyTransferSave
+	//ReadOnlyTransferSave
 	server.AddHandler(constants.ReadOnlyTransferSave, rthh.NewHandler(services.transfers))
 }
