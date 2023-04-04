@@ -223,9 +223,6 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	stringified_tx := fmt.Sprintf("%v %v %v", tx.TokenTransfers, tx.NftTransfers, tx.Transfers)
-	fmt.Println(stringified_tx)
-
 	parsedTransfer, err := tx.GetIncomingTransfer(ctw.accountID.String())
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Could not extract incoming transfer. Error: [%s]", tx.TransactionID, err)
