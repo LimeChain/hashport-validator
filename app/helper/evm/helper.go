@@ -78,10 +78,10 @@ func switchSignatureValueV(decodedSig []byte) (decodedSignature []byte, ethSigna
 }
 
 func OriginatorFromTx(tx *types.Transaction) (string, error) {
-	msg, err := tx.AsMessage(types.LatestSignerForChainID(tx.ChainId()), nil)
+	sender, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 	if err != nil {
 		return "", err
 	}
 
-	return msg.From().String(), nil
+	return sender.String(), nil
 }

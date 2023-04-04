@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	evmhelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"strconv"
 	"strings"
 	"time"
@@ -39,7 +40,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/persistence"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	validatorCfg "github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -259,12 +259,12 @@ func (m *migrator) evmFields(transfer *tempTransfer) error {
 		return err
 	}
 
-	msg, err := tx.AsMessage(types.LatestSignerForChainID(tx.ChainId()), nil)
+	originator, err := evmhelper.OriginatorFromTx(tx)
 	if err != nil {
 		return err
 	}
 
-	transfer.Originator = sql.NullString{String: msg.From().String()}
+	transfer.Originator = sql.NullString{String: originator}
 
 	return nil
 }
