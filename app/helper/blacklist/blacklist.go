@@ -18,11 +18,12 @@ package blacklist
 
 import (
 	"fmt"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 )
 
-func IsBlacklistedAccount(blackListedAccounts []string, account string) bool {
-	for _, blacklisted := range blackListedAccounts {
+func IsBlacklistedAccount(blacklistedAccounts []string, account string) bool {
+	for _, blacklisted := range blacklistedAccounts {
 		if blacklisted == account {
 			return true
 		}
@@ -31,21 +32,21 @@ func IsBlacklistedAccount(blackListedAccounts []string, account string) bool {
 }
 
 // Checks if the transaction contains any blacklisted accounts in any transfer
-func CheckTxForBlacklistedAccounts(blackListedAccounts []string, tx transaction.Transaction) error {
+func CheckTxForBlacklistedAccounts(blacklistedAccounts []string, tx transaction.Transaction) error {
 	for i := range tx.Transfers {
-		if IsBlacklistedAccount(blackListedAccounts, tx.Transfers[i].Account) {
+		if IsBlacklistedAccount(blacklistedAccounts, tx.Transfers[i].Account) {
 			return fmt.Errorf("[%s], Acc:[%v] - Found blacklisted transfer", tx.TransactionID, tx.Transfers[i].Account)
 		}
 	}
 
 	for i := range tx.TokenTransfers {
-		if IsBlacklistedAccount(blackListedAccounts, tx.TokenTransfers[i].Account) {
+		if IsBlacklistedAccount(blacklistedAccounts, tx.TokenTransfers[i].Account) {
 			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.TokenTransfers[i].Account)
 		}
 	}
 
 	for i := range tx.NftTransfers {
-		if IsBlacklistedAccount(blackListedAccounts, tx.NftTransfers[i].SenderAccountID) {
+		if IsBlacklistedAccount(blacklistedAccounts, tx.NftTransfers[i].SenderAccountID) {
 			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.NftTransfers[i].SenderAccountID)
 		}
 	}

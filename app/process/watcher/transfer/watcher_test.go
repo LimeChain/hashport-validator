@@ -196,7 +196,7 @@ func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 
 func Test_ProcessTransaction_Blacklist_Fails(t *testing.T) {
 	w := initializeWatcher()
-	w.blackListedAccounts = append(w.blackListedAccounts, tx.TokenTransfers[0].Account)
+	w.blacklistedAccounts = append(w.blacklistedAccounts, tx.TokenTransfers[0].Account)
 	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)

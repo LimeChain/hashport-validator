@@ -58,7 +58,7 @@ type Watcher struct {
 	validator           bool
 	prometheusService   service.Prometheus
 	pricingService      service.Pricing
-	blackListedAccounts []string
+	blacklistedAccounts []string
 }
 
 func NewWatcher(
@@ -73,7 +73,7 @@ func NewWatcher(
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
-	blackListedAccounts []string,
+	blacklistedAccounts []string,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -116,7 +116,7 @@ func NewWatcher(
 		validator:           validator,
 		pricingService:      pricingService,
 		prometheusService:   prometheusService,
-		blackListedAccounts: blackListedAccounts,
+		blacklistedAccounts: blacklistedAccounts,
 	}
 
 	return instance
@@ -184,7 +184,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	blackListError := blacklist.CheckTxForBlacklistedAccounts(ctw.blackListedAccounts, tx)
+	blackListError := blacklist.CheckTxForBlacklistedAccounts(ctw.blacklistedAccounts, tx)
 	if blackListError != nil {
 		ctw.logger.Errorf(blackListError.Error())
 		return

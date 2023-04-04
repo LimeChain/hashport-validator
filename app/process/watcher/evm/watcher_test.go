@@ -94,11 +94,11 @@ var (
 		memberUpdatedHash: membersHash,
 	}
 
-	nilNativeAsset        *asset.NativeAsset
-	hbarNativeAsset       = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
-	fungibleAssetInfo     = &asset.FungibleAssetInfo{Decimals: 8}
-	evmFungibleAssetInfo  = &asset.FungibleAssetInfo{Decimals: 18}
-	tokenPriceInfo        = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
+	nilNativeAsset       *asset.NativeAsset
+	hbarNativeAsset      = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
+	fungibleAssetInfo    = &asset.FungibleAssetInfo{Decimals: 8}
+	evmFungibleAssetInfo = &asset.FungibleAssetInfo{Decimals: 18}
+	tokenPriceInfo       = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -535,7 +535,7 @@ func TestNewWatcher(t *testing.T) {
 		targetBlock:         5,
 		sleepDuration:       defaultSleepDuration,
 		filterConfig:        filterCfg,
-		blackListedAccounts: blacklist,
+		blacklistedAccounts: blacklist,
 	}
 
 	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MPricingService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220, blacklist)
@@ -663,6 +663,6 @@ func setup() {
 		validator:           true,
 		sleepDuration:       defaultSleepDuration,
 		filterConfig:        filterConfig,
-		blackListedAccounts: []string{"0x0123", "0x4567"},
+		blacklistedAccounts: []string{"0x0123", "0x4567"},
 	}
 }

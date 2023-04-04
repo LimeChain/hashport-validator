@@ -65,7 +65,7 @@ type Watcher struct {
 	sleepDuration       time.Duration
 	validator           bool
 	filterConfig        FilterConfig
-	blackListedAccounts []string
+	blacklistedAccounts []string
 }
 
 // Certain node providers (Alchemy, Infura) have a limitation on how many blocks
@@ -103,7 +103,7 @@ func NewWatcher(
 	validator bool,
 	pollingInterval time.Duration,
 	maxLogsBlocks int64,
-	blackListedAccounts []string) *Watcher {
+	blacklistedAccounts []string) *Watcher {
 	currentBlock, err := evmClient.RetryBlockNumber()
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
@@ -194,7 +194,7 @@ func NewWatcher(
 		validator:           validator,
 		sleepDuration:       pollingInterval,
 		filterConfig:        filterConfig,
-		blackListedAccounts: blackListedAccounts,
+		blacklistedAccounts: blacklistedAccounts,
 	}
 }
 
@@ -263,7 +263,7 @@ func (ew Watcher) CheckBlacklistedOriginator(hash common.Hash) (*string, error) 
 		return nil, err
 	}
 
-	if blacklist.IsBlacklistedAccount(ew.blackListedAccounts, originator) {
+	if blacklist.IsBlacklistedAccount(ew.blacklistedAccounts, originator) {
 		err := fmt.Errorf("[%s] - Found blacklisted transfer receiver [%s]", hash, originator)
 		return nil, err
 	}
