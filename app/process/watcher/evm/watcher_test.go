@@ -94,11 +94,11 @@ var (
 		memberUpdatedHash: membersHash,
 	}
 
-	nilNativeAsset       *asset.NativeAsset
-	hbarNativeAsset      = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
-	fungibleAssetInfo    = &asset.FungibleAssetInfo{Decimals: 8}
-	evmFungibleAssetInfo = &asset.FungibleAssetInfo{Decimals: 18}
-	tokenPriceInfo       = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
+	nilNativeAsset        *asset.NativeAsset
+	hbarNativeAsset       = &asset.NativeAsset{ChainId: targetChainId, Asset: constants.Hbar}
+	fungibleAssetInfo     = &asset.FungibleAssetInfo{Decimals: 8}
+	evmFungibleAssetInfo  = &asset.FungibleAssetInfo{Decimals: 18}
+	tokenPriceInfo        = pricing.TokenPriceInfo{decimal.NewFromFloat(20), big.NewInt(10000), big.NewInt(10000)}
 )
 
 func Test_HandleLockLog_Removed_Fails(t *testing.T) {
@@ -521,7 +521,7 @@ func TestNewWatcher(t *testing.T) {
 	}
 
 	assets := mocks.MAssetsService
-	blacklist := []string{"0.0.333", "0.0.444"}
+	blacklist := []string{"0.0.444", "0x0123"}
 	w = &Watcher{
 		repository:          mocks.MStatusRepository,
 		contracts:           mocks.MBridgeContractService,
@@ -652,16 +652,17 @@ func setup() {
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	w = &Watcher{
-		repository:        mocks.MStatusRepository,
-		contracts:         mocks.MBridgeContractService,
-		prometheusService: mocks.MPrometheusService,
-		pricingService:    mocks.MPricingService,
-		evmClient:         mocks.MEVMClient,
-		dbIdentifier:      dbIdentifier,
-		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		assetsService:     mocks.MAssetsService,
-		validator:         true,
-		sleepDuration:     defaultSleepDuration,
-		filterConfig:      filterConfig,
+		repository:          mocks.MStatusRepository,
+		contracts:           mocks.MBridgeContractService,
+		prometheusService:   mocks.MPrometheusService,
+		pricingService:      mocks.MPricingService,
+		evmClient:           mocks.MEVMClient,
+		dbIdentifier:        dbIdentifier,
+		logger:              config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		assetsService:       mocks.MAssetsService,
+		validator:           true,
+		sleepDuration:       defaultSleepDuration,
+		filterConfig:        filterConfig,
+		blackListedAccounts: []string{"0x0123", "0x4567"},
 	}
 }

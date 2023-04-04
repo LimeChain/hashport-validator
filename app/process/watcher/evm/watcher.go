@@ -37,6 +37,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/blacklist"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
@@ -251,6 +252,25 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 	}
 }
 
+func (ew Watcher) CheckBlacklistedOriginator(hash common.Hash) (*string, error) {
+	tx, err := ew.evmClient.RetryTransactionByHash(hash)
+	if err != nil {
+		err := fmt.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", hash, err)
+		return nil, err
+	}
+	originator, err := evm.OriginatorFromTx(tx)
+	if err != nil {
+		err := fmt.Errorf("[%s] - Failed to get originator. Error: [%s]", hash, err)
+		return nil, err
+	}
+	if blacklist.IsBlacklistedAccount(ew.blackListedAccounts, originator) {
+		err := fmt.Errorf("[%s] - Found blacklisted transfer receiver [%s]", hash, originator)
+		return nil, err
+	}
+
+	return &originator, nil
+}
+
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 	query := ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetInt64(fromBlock),
@@ -387,14 +407,6 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			return
 		}
 		recipientAccount = recipient.String()
-
-		// TX like: [WHBAR -> HBAR || WHTS -> HTS] (EVM to Hedera)
-		for _, blackListedAccount := range ew.blackListedAccounts {
-			if blackListedAccount == recipientAccount {
-				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
-				return
-			}
-		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
@@ -417,14 +429,9 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -438,7 +445,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 
@@ -497,14 +504,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			return
 		}
 		recipientAccount = recipient.String()
-
-		// TX like: [EVM -> WEVM] (EVM to Hedera)
-		for _, blackListedAccount := range ew.blackListedAccounts  {
-			if blackListedAccount == recipientAccount {
-				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
-				return
-			}
-		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
@@ -535,14 +534,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -556,7 +550,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		NativeAsset:   token,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 
@@ -621,26 +615,15 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		}
 		recipientAccount = recipient.String()
 
-		// TX EVM to Hedera
-		for _, blackListedAccount := range ew.blackListedAccounts  {
-			if blackListedAccount == recipientAccount {
-				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
-				return
-			}
-		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+	
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -655,7 +638,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		Receiver:      recipientAccount,
 		IsNft:         true,
 		SerialNum:     eventLog.TokenId.Int64(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 

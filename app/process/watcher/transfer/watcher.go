@@ -41,6 +41,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/blacklist"
 )
 
 type Watcher struct {
@@ -172,41 +174,6 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 	}
 }
 
-func isBlacklistedAccount(blackListedAccounts []string, account string) bool {
-	for _, blacklisted := range blackListedAccounts {
-		if blacklisted == account {
-			return true
-		}
-	}
-	return false
-}
-
-// Checks if the transaction contains any blacklisted accounts in any transfer
-func checkTxForBlacklistedAccounts(blackListedAccounts []string, tx transaction.Transaction) error {
-	for i := range tx.Transfers {
-		fmt.Printf("\nAcc: %v", tx.Transfers[i].Account)
-		if isBlacklistedAccount(blackListedAccounts, tx.Transfers[i].Account) {
-			return fmt.Errorf("[%s], Acc:[%v] - Found blacklisted transfer", tx.TransactionID, tx.Transfers[i].Account)
-		}
-	}
-
-	for i := range tx.TokenTransfers {
-		fmt.Printf("\nTokenTransfers Acc: %v", tx.TokenTransfers[i].Account)
-		if isBlacklistedAccount(blackListedAccounts, tx.TokenTransfers[i].Account) {
-			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.TokenTransfers[i].Account)
-		}
-	}
-
-	for i := range tx.NftTransfers {
-		fmt.Printf("\nNftTransfers Acc: %v", tx.NftTransfers[i].SenderAccountID)
-		if isBlacklistedAccount(blackListedAccounts, tx.NftTransfers[i].SenderAccountID) {
-			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.NftTransfers[i].SenderAccountID)
-		}
-	}
-
-	return nil
-}
-
 func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", txID)
 
@@ -217,7 +184,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 		return
 	}
 
-	blackListError := checkTxForBlacklistedAccounts(ctw.blackListedAccounts, tx)
+	blackListError := blacklist.CheckTxForBlacklistedAccounts(ctw.blackListedAccounts, tx)
 	if blackListError != nil {
 		ctw.logger.Errorf(blackListError.Error())
 		return
