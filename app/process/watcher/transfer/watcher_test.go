@@ -194,6 +194,69 @@ func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
 
+func Test_ProcessTransaction_Blacklist_Fails(t *testing.T) {
+	w := initializeWatcher()
+	w.blackListedAccounts = append(w.blackListedAccounts, tx.TokenTransfers[0].Account)
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
+
+	w.processTransaction(tx.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessNFTTransaction_Blacklist_Fails(t *testing.T) {
+	tx_blacklist := transaction.Transaction{
+		ConsensusTimestamp: "1631092491.483966000",
+		TransactionID:      "0.0.111-1631092491-483966000",
+	}
+
+	nftTransfer := transaction.NftTransfer{
+		ReceiverAccountID: "0.0.111",
+		SenderAccountID:   "0.0.333",
+		SerialNumber:      1,
+		Token:             "0.0.21241241",
+	}
+
+	tx_blacklist.NftTransfers = []transaction.NftTransfer{
+		nftTransfer,
+	}
+	tx_blacklist.Transfers = []transaction.Transfer{}
+	tx_blacklist.TokenTransfers = []transaction.Transfer{}
+
+	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx_blacklist.TransactionID).Return(tx_blacklist, nil)
+
+	w.processTransaction(tx_blacklist.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessHbarransaction_Blacklist_Fails(t *testing.T) {
+	tx_blacklist := transaction.Transaction{
+		ConsensusTimestamp: "1631092491.483966000",
+		TransactionID:      "0.0.111-1631092491-483966000",
+	}
+
+	transfer := transaction.Transfer{
+		Account: "0.0.333",
+		Amount:  303030303030303030,
+		Token:   "HBAR",
+	}
+
+	tx_blacklist.Transfers = []transaction.Transfer{
+		transfer,
+	}
+	tx_blacklist.NftTransfers = []transaction.NftTransfer{}
+	tx_blacklist.TokenTransfers = []transaction.Transfer{}
+
+	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx_blacklist.TransactionID).Return(tx_blacklist, nil)
+
+	w.processTransaction(tx_blacklist.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
 func Test_ProcessTransaction_GetIncomingTransfer_Fails(t *testing.T) {
 	w := initializeWatcher()
 	anotherTx := tx
