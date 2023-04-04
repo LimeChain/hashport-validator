@@ -152,6 +152,7 @@ func registerEvmClients(server *server.Server, services *Services, repositories 
 		// EVM networks might be the same, a concatenation between
 		// <chain-id>-<contract-address> removes possible duplication.
 		dbIdentifier := fmt.Sprintf("%d-%s", chain, contractService.Address().String())
+		black_listed := configuration.Bridge.BlackListedAccounts
 
 		server.AddWatcher(
 			evm.NewWatcher(
@@ -166,6 +167,7 @@ func registerEvmClients(server *server.Server, services *Services, repositories 
 				configuration.Node.Validator,
 				configuration.Node.Clients.Evm[chain].PollingInterval,
 				configuration.Node.Clients.Evm[chain].MaxLogsBlocks,
+				black_listed,
 			))
 	}
 }

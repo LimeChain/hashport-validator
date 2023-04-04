@@ -53,17 +53,18 @@ type Watcher struct {
 	// of the given EVM watcher. Given that addresses between different
 	// EVM networks might be the same, a concatenation between
 	// <chain-id>-<contract-address> removes possible duplication.
-	dbIdentifier      string
-	contracts         service.Contracts
-	prometheusService service.Prometheus
-	pricingService    service.Pricing
-	evmClient         client.EVM
-	logger            *log.Entry
-	assetsService     service.Assets
-	targetBlock       uint64
-	sleepDuration     time.Duration
-	validator         bool
-	filterConfig      FilterConfig
+	dbIdentifier        string
+	contracts           service.Contracts
+	prometheusService   service.Prometheus
+	pricingService      service.Pricing
+	evmClient           client.EVM
+	logger              *log.Entry
+	assetsService       service.Assets
+	targetBlock         uint64
+	sleepDuration       time.Duration
+	validator           bool
+	filterConfig        FilterConfig
+	blackListedAccounts []string
 }
 
 // Certain node providers (Alchemy, Infura) have a limitation on how many blocks
@@ -100,7 +101,8 @@ func NewWatcher(
 	startBlock int64,
 	validator bool,
 	pollingInterval time.Duration,
-	maxLogsBlocks int64) *Watcher {
+	maxLogsBlocks int64,
+	blackListedAccounts []string) *Watcher {
 	currentBlock, err := evmClient.RetryBlockNumber()
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
@@ -178,20 +180,23 @@ func NewWatcher(
 		targetBlock = uint64(startBlock)
 		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", dbIdentifier, timestamp.ToHumanReadable(startBlock))
 	}
-	return &Watcher{
-		repository:        repository,
-		dbIdentifier:      dbIdentifier,
-		contracts:         contracts,
-		prometheusService: prometheusService,
-		pricingService:    pricingService,
-		evmClient:         evmClient,
-		logger:            c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		assetsService:     assetsService,
-		targetBlock:       targetBlock,
-		validator:         validator,
-		sleepDuration:     pollingInterval,
-		filterConfig:      filterConfig,
+	istance := &Watcher{
+		repository:          repository,
+		dbIdentifier:        dbIdentifier,
+		contracts:           contracts,
+		prometheusService:   prometheusService,
+		pricingService:      pricingService,
+		evmClient:           evmClient,
+		logger:              c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		assetsService:       assetsService,
+		targetBlock:         targetBlock,
+		validator:           validator,
+		sleepDuration:       pollingInterval,
+		filterConfig:        filterConfig,
+		blackListedAccounts: blackListedAccounts,
 	}
+
+	return istance
 }
 
 func (ew *Watcher) Watch(queue qi.Queue) {
@@ -382,6 +387,14 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 			return
 		}
 		recipientAccount = recipient.String()
+
+		// TX like: [WHBAR -> HBAR || WHTS -> HTS] (EVM to Hedera)
+		for _, blackListedAccount := range ew.blackListedAccounts {
+			if blackListedAccount == recipientAccount {
+				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
+				return
+			}
+		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
@@ -484,6 +497,14 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			return
 		}
 		recipientAccount = recipient.String()
+
+		// TX like: [EVM -> WEVM] (EVM to Hedera)
+		for _, blackListedAccount := range ew.blackListedAccounts  {
+			if blackListedAccount == recipientAccount {
+				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
+				return
+			}
+		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
@@ -599,6 +620,14 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 			return
 		}
 		recipientAccount = recipient.String()
+
+		// TX EVM to Hedera
+		for _, blackListedAccount := range ew.blackListedAccounts  {
+			if blackListedAccount == recipientAccount {
+				ew.logger.Errorf("[%s] - Found blacklisted transfer receiver [%s].", eventLog.Raw.TxHash, blackListedAccount)
+				return
+			}
+		}
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
@@ -656,7 +685,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 }
 
 func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
-	ew.logger.Infof("[%s] - New Unlock Event Log received [%s].",eventLog.TransactionId, eventLog.Raw.TxHash )
+	ew.logger.Infof("[%s] - New Unlock Event Log received [%s].", eventLog.TransactionId, eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -674,17 +703,17 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 func (ew *Watcher) convertTargetAmount(sourceChainId, targetChainId uint64, sourceAsset, targetAsset string, amount *big.Int) (*big.Int, error) {
 	sourceAssetInfo, exists := ew.assetsService.FungibleAssetInfo(sourceChainId, sourceAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", sourceAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", sourceAsset)
 	}
 
 	targetAssetInfo, exists := ew.assetsService.FungibleAssetInfo(targetChainId, targetAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", targetAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", targetAsset)
 	}
 
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return nil, fmt.Errorf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount)
+		return nil, fmt.Errorf("insufficient amount provided: Event Amount [%s] and Target Amount [%s]", amount, targetAmount)
 	}
 
 	return targetAmount, nil

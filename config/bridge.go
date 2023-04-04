@@ -30,13 +30,14 @@ import (
 )
 
 type Bridge struct {
-	TopicId           string
-	Hedera            *BridgeHedera
-	EVMs              map[uint64]BridgeEvm
-	CoinMarketCapIds  map[uint64]map[string]string
-	CoinGeckoIds      map[uint64]map[string]string
-	MinAmounts        map[uint64]map[string]*big.Int
-	MonitoredAccounts map[string]string
+	TopicId             string
+	Hedera              *BridgeHedera
+	EVMs                map[uint64]BridgeEvm
+	CoinMarketCapIds    map[uint64]map[string]string
+	CoinGeckoIds        map[uint64]map[string]string
+	MinAmounts          map[uint64]map[string]*big.Int
+	MonitoredAccounts   map[string]string
+	BlackListedAccounts []string
 }
 
 func (b *Bridge) Update(from *Bridge) {
@@ -47,6 +48,7 @@ func (b *Bridge) Update(from *Bridge) {
 	b.CoinGeckoIds = from.CoinGeckoIds
 	b.MinAmounts = from.MinAmounts
 	b.MonitoredAccounts = from.MonitoredAccounts
+	b.BlackListedAccounts = from.BlackListedAccounts
 }
 
 type BridgeHedera struct {
@@ -92,10 +94,11 @@ type BridgeEvm struct {
 
 func NewBridge(bridge parser.Bridge) *Bridge {
 	config := Bridge{
-		TopicId:           bridge.TopicId,
-		Hedera:            nil,
-		EVMs:              make(map[uint64]BridgeEvm),
-		MonitoredAccounts: bridge.MonitoredAccounts,
+		TopicId:             bridge.TopicId,
+		Hedera:              nil,
+		EVMs:                make(map[uint64]BridgeEvm),
+		MonitoredAccounts:   bridge.MonitoredAccounts,
+		BlackListedAccounts: bridge.BlackListedAccounts,
 	}
 
 	config.CoinGeckoIds = make(map[uint64]map[string]string)

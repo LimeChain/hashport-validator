@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
@@ -44,18 +45,19 @@ import (
 )
 
 type Watcher struct {
-	transfers         service.Transfers
-	client            client.MirrorNode
-	accountID         hedera.AccountID
-	pollingInterval   time.Duration
-	statusRepository  repository.Status
-	targetTimestamp   int64
-	logger            *log.Entry
-	contractServices  map[uint64]service.Contracts
-	assetsService     service.Assets
-	validator         bool
-	prometheusService service.Prometheus
-	pricingService    service.Pricing
+	transfers           service.Transfers
+	client              client.MirrorNode
+	accountID           hedera.AccountID
+	pollingInterval     time.Duration
+	statusRepository    repository.Status
+	targetTimestamp     int64
+	logger              *log.Entry
+	contractServices    map[uint64]service.Contracts
+	assetsService       service.Assets
+	validator           bool
+	prometheusService   service.Prometheus
+	pricingService      service.Pricing
+	blackListedAccounts []string
 }
 
 func NewWatcher(
@@ -70,6 +72,7 @@ func NewWatcher(
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
+	blackListedAccounts []string,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -100,18 +103,19 @@ func NewWatcher(
 		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
 	}
 	instance := &Watcher{
-		transfers:         transfers,
-		client:            client,
-		accountID:         id,
-		pollingInterval:   pollingInterval,
-		statusRepository:  repository,
-		targetTimestamp:   targetTimestamp,
-		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices:  contractServices,
-		assetsService:     assetsService,
-		validator:         validator,
-		pricingService:    pricingService,
-		prometheusService: prometheusService,
+		transfers:           transfers,
+		client:              client,
+		accountID:           id,
+		pollingInterval:     pollingInterval,
+		statusRepository:    repository,
+		targetTimestamp:     targetTimestamp,
+		logger:              config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:    contractServices,
+		assetsService:       assetsService,
+		validator:           validator,
+		pricingService:      pricingService,
+		prometheusService:   prometheusService,
+		blackListedAccounts: blackListedAccounts,
 	}
 
 	return instance
@@ -171,6 +175,16 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 
 func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", txID)
+
+	splitTx := strings.Split(txID, "-")
+
+	// TX like: [HBAR -> WHBAR || HTS -> WHTS || WEVM -> EVM] (Hereda to EVM)
+	for _, funny := range ctw.blackListedAccounts {
+		if splitTx[0] == funny {
+			ctw.logger.Errorf("[%s] - Found blacklisted transfer", txID)
+			return
+		}
+	}
 
 	tx, err := ctw.client.GetSuccessfulTransaction(txID)
 	if err != nil {

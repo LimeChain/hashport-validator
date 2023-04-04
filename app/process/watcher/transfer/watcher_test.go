@@ -98,6 +98,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
 	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	NewWatcher(
 		mocks.MTransferService,
@@ -110,7 +111,9 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", txAccountId, mock.Anything)
 }
@@ -118,6 +121,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Update", txAccountId, mock.Anything).Return(nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	NewWatcher(
 		mocks.MTransferService,
@@ -130,7 +134,9 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", txAccountId, mock.Anything)
 }
@@ -361,6 +367,7 @@ func initializeWatcher() *Watcher {
 	setup()
 	mocks.Setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	return NewWatcher(
 		mocks.MTransferService,
@@ -373,5 +380,7 @@ func initializeWatcher() *Watcher {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 }

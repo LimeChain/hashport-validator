@@ -25,12 +25,13 @@ import (
 Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
-	UseLocalConfig    bool                `yaml:"use_local_config,omitempty" json:"useLocalConfig,omitempty"`
-	ConfigTopicId     string              `yaml:"config_topic_id,omitempty" json:"configTopicId,omitempty"`
-	PollingInterval   time.Duration       `yaml:"polling_interval,omitempty" json:"pollingInterval,omitempty"`
-	TopicId           string              `yaml:"topic_id,omitempty" json:"topicId,omitempty"`
-	Networks          map[uint64]*Network `yaml:"networks,omitempty" json:"networks,omitempty"`
-	MonitoredAccounts map[string]string   `yaml:"monitored_accounts,omitempty" json:"monitoredAccounts,omitempty"`
+	UseLocalConfig      bool                `yaml:"use_local_config,omitempty" json:"useLocalConfig,omitempty"`
+	ConfigTopicId       string              `yaml:"config_topic_id,omitempty" json:"configTopicId,omitempty"`
+	PollingInterval     time.Duration       `yaml:"polling_interval,omitempty" json:"pollingInterval,omitempty"`
+	TopicId             string              `yaml:"topic_id,omitempty" json:"topicId,omitempty"`
+	Networks            map[uint64]*Network `yaml:"networks,omitempty" json:"networks,omitempty"`
+	MonitoredAccounts   map[string]string   `yaml:"monitored_accounts,omitempty" json:"monitoredAccounts,omitempty"`
+	BlackListedAccounts []string            `yaml:"black_list,omitempty" json:"blackListedAccounts,omitempty"`
 }
 
 func (b *Bridge) Update(from *Bridge) {
@@ -40,6 +41,7 @@ func (b *Bridge) Update(from *Bridge) {
 	b.TopicId = from.TopicId
 	b.Networks = from.Networks
 	b.MonitoredAccounts = from.MonitoredAccounts
+	b.BlackListedAccounts = from.BlackListedAccounts
 }
 
 type Network struct {
