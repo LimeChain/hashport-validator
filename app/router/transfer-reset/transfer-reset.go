@@ -19,10 +19,15 @@ var (
 	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
+func NewRouter(transferService service.Transfers, prometheusService service.Prometheus) chi.Router {
+	r := chi.NewRouter()
+	r.Post("/", transferReset(transferService, prometheusService))
+	return r
+}
+
 // POST: .../transfer-reset
-func getTransfer(transferService service.Transfers, prometheusService service.Prometheus) func(w http.ResponseWriter, r *http.Request) {
+func transferReset(transferService service.Transfers, prometheusService service.Prometheus) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// transferID := chi.URLParam(r, "id")
 		req := new(transferModel.TransferReset)
 		err := json.NewDecoder(r.Body).Decode(req)
 		if err != nil {
@@ -31,20 +36,10 @@ func getTransfer(transferService service.Transfers, prometheusService service.Pr
 			return
 		}
 
-		transactionId := req.TransactionId
-		sourceChainId := req.SourceChainId
-		targetChainId := req.TargetChainId
-		oppositeToken := req.OppositeToken
+		metrics.SetUserGetHisTokens(req.SourceChainId, req.TargetChainId, req.TargetToken, req.TransactionId, prometheusService, logger)
+		transferService.UpdateTransferStatusCompleted(req.TransactionId)
 
-		metrics.SetUserGetHisTokens(sourceChainId, targetChainId, oppositeToken, transactionId, prometheusService, logger)
-		transferService.UpdateTransferStatusCompleted(transactionId)
-
-		render.JSON(w, r, "OK")
+		render.Status(r, http.StatusOK)
+		render.PlainText(w, r, "OK")
 	}
-}
-
-func NewRouter(transferService service.Transfers, prometheusService service.Prometheus) chi.Router {
-	r := chi.NewRouter()
-	r.Post("/", getTransfer(transferService, prometheusService))
-	return r
 }
