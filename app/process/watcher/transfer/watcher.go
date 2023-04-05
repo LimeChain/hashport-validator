@@ -41,21 +41,24 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/blacklist"
 )
 
 type Watcher struct {
-	transfers         service.Transfers
-	client            client.MirrorNode
-	accountID         hedera.AccountID
-	pollingInterval   time.Duration
-	statusRepository  repository.Status
-	targetTimestamp   int64
-	logger            *log.Entry
-	contractServices  map[uint64]service.Contracts
-	assetsService     service.Assets
-	validator         bool
-	prometheusService service.Prometheus
-	pricingService    service.Pricing
+	transfers           service.Transfers
+	client              client.MirrorNode
+	accountID           hedera.AccountID
+	pollingInterval     time.Duration
+	statusRepository    repository.Status
+	targetTimestamp     int64
+	logger              *log.Entry
+	contractServices    map[uint64]service.Contracts
+	assetsService       service.Assets
+	validator           bool
+	prometheusService   service.Prometheus
+	pricingService      service.Pricing
+	blacklistedAccounts []string
 }
 
 func NewWatcher(
@@ -70,6 +73,7 @@ func NewWatcher(
 	validator bool,
 	prometheusService service.Prometheus,
 	pricingService service.Pricing,
+	blacklistedAccounts []string,
 ) *Watcher {
 	id, err := hedera.AccountIDFromString(accountID)
 	if err != nil {
@@ -100,18 +104,19 @@ func NewWatcher(
 		log.Tracef("Updated Transfer Watcher timestamp to [%s]", timestamp.ToHumanReadable(timeStamp))
 	}
 	instance := &Watcher{
-		transfers:         transfers,
-		client:            client,
-		accountID:         id,
-		pollingInterval:   pollingInterval,
-		statusRepository:  repository,
-		targetTimestamp:   targetTimestamp,
-		logger:            config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
-		contractServices:  contractServices,
-		assetsService:     assetsService,
-		validator:         validator,
-		pricingService:    pricingService,
-		prometheusService: prometheusService,
+		transfers:           transfers,
+		client:              client,
+		accountID:           id,
+		pollingInterval:     pollingInterval,
+		statusRepository:    repository,
+		targetTimestamp:     targetTimestamp,
+		logger:              config.GetLoggerFor(fmt.Sprintf("[%s] Transfer Watcher", accountID)),
+		contractServices:    contractServices,
+		assetsService:       assetsService,
+		validator:           validator,
+		pricingService:      pricingService,
+		prometheusService:   prometheusService,
+		blacklistedAccounts: blacklistedAccounts,
 	}
 
 	return instance
@@ -172,9 +177,16 @@ func (ctw Watcher) beginWatching(q qi.Queue) {
 func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	ctw.logger.Infof("New Transaction with ID: [%s]", txID)
 
+	// TX like: [HBAR -> WHBAR || HTS -> WHTS || WEVM -> EVM] (Hereda to EVM)
 	tx, err := ctw.client.GetSuccessfulTransaction(txID)
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to get Transaction. Error: [%s]", txID, err)
+		return
+	}
+
+	blackListError := blacklist.CheckTxForBlacklistedAccounts(ctw.blacklistedAccounts, tx)
+	if blackListError != nil {
+		ctw.logger.Errorf(blackListError.Error())
 		return
 	}
 
@@ -362,27 +374,27 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 
 	sourceAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", sourceAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", sourceAsset)
 	}
 
 	targetAssetInfo, exists := ctw.assetsService.FungibleAssetInfo(targetChainId, targetChainAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", targetChainAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", targetChainAsset)
 	}
 
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return nil, fmt.Errorf("Insufficient amount provided: Amount [%d] and Target Amount [%s].", amount, targetAmount)
+		return nil, fmt.Errorf("insufficient amount provided: Amount [%d] and Target Amount [%s]", amount, targetAmount)
 	}
 
 	tokenPriceInfo, exist := ctw.pricingService.GetTokenPriceInfo(asset.ChainId, nativeAsset.Asset)
 	if !exist {
-		errMsg := fmt.Sprintf("[%s] - Couldn't get price info in USD for asset [%s].", transactionID, nativeAsset.Asset)
+		errMsg := fmt.Sprintf("[%s] - Couldn't get price info in USD for asset [%s]", transactionID, nativeAsset.Asset)
 		return nil, errors.New(errMsg)
 	}
 
 	if targetAmount.Cmp(tokenPriceInfo.MinAmountWithFee) < 0 {
-		return nil, fmt.Errorf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s].", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee)
+		return nil, fmt.Errorf("[%s] - Transfer Amount [%s] is less than Minimum Amount [%s]", transactionID, targetAmount, tokenPriceInfo.MinAmountWithFee)
 	}
 
 	return payload.New(

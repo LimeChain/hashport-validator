@@ -37,6 +37,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/repository"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	bigNumbersHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/big-numbers"
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/blacklist"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/metrics"
@@ -53,17 +54,18 @@ type Watcher struct {
 	// of the given EVM watcher. Given that addresses between different
 	// EVM networks might be the same, a concatenation between
 	// <chain-id>-<contract-address> removes possible duplication.
-	dbIdentifier      string
-	contracts         service.Contracts
-	prometheusService service.Prometheus
-	pricingService    service.Pricing
-	evmClient         client.EVM
-	logger            *log.Entry
-	assetsService     service.Assets
-	targetBlock       uint64
-	sleepDuration     time.Duration
-	validator         bool
-	filterConfig      FilterConfig
+	dbIdentifier        string
+	contracts           service.Contracts
+	prometheusService   service.Prometheus
+	pricingService      service.Pricing
+	evmClient           client.EVM
+	logger              *log.Entry
+	assetsService       service.Assets
+	targetBlock         uint64
+	sleepDuration       time.Duration
+	validator           bool
+	filterConfig        FilterConfig
+	blacklistedAccounts []string
 }
 
 // Certain node providers (Alchemy, Infura) have a limitation on how many blocks
@@ -100,7 +102,8 @@ func NewWatcher(
 	startBlock int64,
 	validator bool,
 	pollingInterval time.Duration,
-	maxLogsBlocks int64) *Watcher {
+	maxLogsBlocks int64,
+	blacklistedAccounts []string) *Watcher {
 	currentBlock, err := evmClient.RetryBlockNumber()
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
@@ -179,18 +182,19 @@ func NewWatcher(
 		log.Tracef("[%s] - Updated Transfer Watcher timestamp to [%s]", dbIdentifier, timestamp.ToHumanReadable(startBlock))
 	}
 	return &Watcher{
-		repository:        repository,
-		dbIdentifier:      dbIdentifier,
-		contracts:         contracts,
-		prometheusService: prometheusService,
-		pricingService:    pricingService,
-		evmClient:         evmClient,
-		logger:            c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		assetsService:     assetsService,
-		targetBlock:       targetBlock,
-		validator:         validator,
-		sleepDuration:     pollingInterval,
-		filterConfig:      filterConfig,
+		repository:          repository,
+		dbIdentifier:        dbIdentifier,
+		contracts:           contracts,
+		prometheusService:   prometheusService,
+		pricingService:      pricingService,
+		evmClient:           evmClient,
+		logger:              c.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		assetsService:       assetsService,
+		targetBlock:         targetBlock,
+		validator:           validator,
+		sleepDuration:       pollingInterval,
+		filterConfig:        filterConfig,
+		blacklistedAccounts: blacklistedAccounts,
 	}
 }
 
@@ -244,6 +248,27 @@ func (ew Watcher) beginWatching(queue qi.Queue) {
 
 		time.Sleep(ew.sleepDuration)
 	}
+}
+
+func (ew Watcher) CheckBlacklistedOriginator(hash common.Hash) (*string, error) {
+	tx, err := ew.evmClient.RetryTransactionByHash(hash)
+	if err != nil {
+		err := fmt.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", hash, err)
+		return nil, err
+	}
+
+	originator, err := evm.OriginatorFromTx(tx)
+	if err != nil {
+		err := fmt.Errorf("[%s] - Failed to get originator. Error: [%s]", hash, err)
+		return nil, err
+	}
+
+	if blacklist.IsBlacklistedAccount(ew.blacklistedAccounts, originator) {
+		err := fmt.Errorf("[%s] - Found blacklisted transfer receiver [%s]", hash, originator)
+		return nil, err
+	}
+
+	return &originator, nil
 }
 
 func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
@@ -404,14 +429,9 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -425,7 +445,7 @@ func (ew *Watcher) handleBurnLog(eventLog *router.RouterBurn, q qi.Queue) {
 		NativeAsset:   nativeAsset.Asset,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 
@@ -514,14 +534,9 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -535,7 +550,7 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 		NativeAsset:   token,
 		Receiver:      recipientAccount,
 		Amount:        targetAmount.String(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 
@@ -599,19 +614,16 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 			return
 		}
 		recipientAccount = recipient.String()
+
 	} else {
 		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
 	}
 
 	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-	tx, err := ew.evmClient.RetryTransactionByHash(eventLog.Raw.TxHash)
+
+	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
 	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get transaction by hash. Error: [%s]", eventLog.Raw.TxHash, err)
-		return
-	}
-	originator, err := evm.OriginatorFromTx(tx)
-	if err != nil {
-		ew.logger.Errorf("[%s] - Failed to get originator. Error: [%s]", eventLog.Raw.TxHash, err)
+		ew.logger.Error(err)
 		return
 	}
 
@@ -626,7 +638,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 		Receiver:      recipientAccount,
 		IsNft:         true,
 		SerialNum:     eventLog.TokenId.Int64(),
-		Originator:    originator,
+		Originator:    *originator,
 		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
 	}
 
@@ -656,7 +668,7 @@ func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queu
 }
 
 func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
-	ew.logger.Infof("[%s] - New Unlock Event Log received [%s].",eventLog.TransactionId, eventLog.Raw.TxHash )
+	ew.logger.Infof("[%s] - New Unlock Event Log received [%s].", eventLog.TransactionId, eventLog.Raw.TxHash)
 
 	if eventLog.Raw.Removed {
 		ew.logger.Errorf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
@@ -674,17 +686,17 @@ func (ew *Watcher) handleUnlockLog(eventLog *router.RouterUnlock) {
 func (ew *Watcher) convertTargetAmount(sourceChainId, targetChainId uint64, sourceAsset, targetAsset string, amount *big.Int) (*big.Int, error) {
 	sourceAssetInfo, exists := ew.assetsService.FungibleAssetInfo(sourceChainId, sourceAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", sourceAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", sourceAsset)
 	}
 
 	targetAssetInfo, exists := ew.assetsService.FungibleAssetInfo(targetChainId, targetAsset)
 	if !exists {
-		return nil, fmt.Errorf("Failed to retrieve fungible asset info of [%s].", targetAsset)
+		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", targetAsset)
 	}
 
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, amount)
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
-		return nil, fmt.Errorf("Insufficient amount provided: Event Amount [%s] and Target Amount [%s].", amount, targetAmount)
+		return nil, fmt.Errorf("insufficient amount provided: Event Amount [%s] and Target Amount [%s]", amount, targetAmount)
 	}
 
 	return targetAmount, nil

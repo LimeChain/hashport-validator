@@ -30,7 +30,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func createTransferWatcher(configuration *config.Config,
+func createTransferWatcher(
+	configuration *config.Config,
 	transferService service.Transfers,
 	assetsService service.Assets,
 	mirrorNode client.MirrorNode,
@@ -40,6 +41,7 @@ func createTransferWatcher(configuration *config.Config,
 	pricingService service.Pricing,
 ) *tw.Watcher {
 	account := configuration.Bridge.Hedera.BridgeAccount
+	blacklisted_accounts := configuration.Bridge.BlacklistedAccounts
 
 	log.Debugf("Added Transfer Watcher for account [%s]", account)
 	return tw.NewWatcher(
@@ -54,6 +56,7 @@ func createTransferWatcher(configuration *config.Config,
 		configuration.Node.Validator,
 		prometheusService,
 		pricingService,
+		blacklisted_accounts,
 	)
 }
 

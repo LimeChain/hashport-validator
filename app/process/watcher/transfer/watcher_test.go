@@ -98,6 +98,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), gorm.ErrRecordNotFound)
 	mocks.MStatusRepository.On("Create", mock.Anything, mock.Anything).Return(nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	NewWatcher(
 		mocks.MTransferService,
@@ -110,7 +111,9 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 
 	mocks.MStatusRepository.AssertCalled(t, "Create", txAccountId, mock.Anything)
 }
@@ -118,6 +121,7 @@ func Test_NewWatcher_RecordNotFound_Creates(t *testing.T) {
 func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 	setup()
 	mocks.MStatusRepository.On("Update", txAccountId, mock.Anything).Return(nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	NewWatcher(
 		mocks.MTransferService,
@@ -130,7 +134,9 @@ func Test_NewWatcher_NotNilTS_Works(t *testing.T) {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 
 	mocks.MStatusRepository.AssertCalled(t, "Update", txAccountId, mock.Anything)
 }
@@ -184,6 +190,69 @@ func Test_ProcessTransaction_SanityCheckTransfer_Fails(t *testing.T) {
 	mocks.MTransferService.On("SanityCheckTransfer", tx).Return(transfer.SanityCheckResult{ChainId: network0, EvmAddress: "", Err: errors.New("some-error")})
 
 	w.processTransaction(tx.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessTransaction_Blacklist_Fails(t *testing.T) {
+	w := initializeWatcher()
+	w.blacklistedAccounts = append(w.blacklistedAccounts, tx.TokenTransfers[0].Account)
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx.TransactionID).Return(tx, nil)
+
+	w.processTransaction(tx.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessNFTTransaction_Blacklist_Fails(t *testing.T) {
+	tx_blacklist := transaction.Transaction{
+		ConsensusTimestamp: "1631092491.483966000",
+		TransactionID:      "0.0.111-1631092491-483966000",
+	}
+
+	nftTransfer := transaction.NftTransfer{
+		ReceiverAccountID: "0.0.111",
+		SenderAccountID:   "0.0.333",
+		SerialNumber:      1,
+		Token:             "0.0.21241241",
+	}
+
+	tx_blacklist.NftTransfers = []transaction.NftTransfer{
+		nftTransfer,
+	}
+	tx_blacklist.Transfers = []transaction.Transfer{}
+	tx_blacklist.TokenTransfers = []transaction.Transfer{}
+
+	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx_blacklist.TransactionID).Return(tx_blacklist, nil)
+
+	w.processTransaction(tx_blacklist.TransactionID, mocks.MQueue)
+
+	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
+}
+
+func Test_ProcessHbarTransaction_Blacklist_Fails(t *testing.T) {
+	tx_blacklist := transaction.Transaction{
+		ConsensusTimestamp: "1631092491.483966000",
+		TransactionID:      "0.0.111-1631092491-483966000",
+	}
+
+	transfer := transaction.Transfer{
+		Account: "0.0.333",
+		Amount:  303030303030303030,
+		Token:   "HBAR",
+	}
+
+	tx_blacklist.Transfers = []transaction.Transfer{
+		transfer,
+	}
+	tx_blacklist.NftTransfers = []transaction.NftTransfer{}
+	tx_blacklist.TokenTransfers = []transaction.Transfer{}
+
+	w := initializeWatcher()
+	mocks.MHederaMirrorClient.On("GetSuccessfulTransaction", tx_blacklist.TransactionID).Return(tx_blacklist, nil)
+
+	w.processTransaction(tx_blacklist.TransactionID, mocks.MQueue)
 
 	mocks.MQueue.AssertNotCalled(t, "Push", mock.Anything)
 }
@@ -361,6 +430,7 @@ func initializeWatcher() *Watcher {
 	setup()
 	mocks.Setup()
 	mocks.MStatusRepository.On("Get", mock.Anything).Return(int64(0), nil)
+	blacklist := []string{"0.0.333", "0.0.444"}
 
 	return NewWatcher(
 		mocks.MTransferService,
@@ -373,5 +443,7 @@ func initializeWatcher() *Watcher {
 		mocks.MAssetsService,
 		true,
 		mocks.MPrometheusService,
-		mocks.MPricingService)
+		mocks.MPricingService,
+		blacklist,
+	)
 }

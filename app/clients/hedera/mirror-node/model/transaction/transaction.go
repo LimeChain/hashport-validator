@@ -18,6 +18,7 @@ package transaction
 
 import (
 	"errors"
+
 	mirrorNodeErr "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/error"
 	"github.com/limechain/hedera-eth-bridge-validator/app/helper/timestamp"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -162,6 +163,7 @@ func (t Transaction) GetTokenTransfer(account string) (amount int64, isFound boo
 	return 0, false
 }
 
+// Process Hedera -> EVM TX
 // GetIncomingTransfer returns the transfer to an account in the following order:
 // 1. Checks if there is an NFT transfer
 // 2. Checks if there is a Fungible Token transfer

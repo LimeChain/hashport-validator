@@ -521,22 +521,24 @@ func TestNewWatcher(t *testing.T) {
 	}
 
 	assets := mocks.MAssetsService
+	blacklist := []string{"0.0.444", "0x0123"}
 	w = &Watcher{
-		repository:        mocks.MStatusRepository,
-		contracts:         mocks.MBridgeContractService,
-		prometheusService: mocks.MPrometheusService,
-		pricingService:    mocks.MPricingService,
-		evmClient:         mocks.MEVMClient,
-		dbIdentifier:      dbIdentifier,
-		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		assetsService:     mocks.MAssetsService,
-		validator:         true,
-		targetBlock:       5,
-		sleepDuration:     defaultSleepDuration,
-		filterConfig:      filterCfg,
+		repository:          mocks.MStatusRepository,
+		contracts:           mocks.MBridgeContractService,
+		prometheusService:   mocks.MPrometheusService,
+		pricingService:      mocks.MPricingService,
+		evmClient:           mocks.MEVMClient,
+		dbIdentifier:        dbIdentifier,
+		logger:              config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		assetsService:       mocks.MAssetsService,
+		validator:           true,
+		targetBlock:         5,
+		sleepDuration:       defaultSleepDuration,
+		filterConfig:        filterCfg,
+		blacklistedAccounts: blacklist,
 	}
 
-	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MPricingService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220)
+	actual := NewWatcher(mocks.MStatusRepository, mocks.MBridgeContractService, mocks.MPrometheusService, mocks.MPricingService, mocks.MEVMClient, assets, dbIdentifier, 0, true, 15, 220, blacklist)
 	assert.Equal(t, w, actual)
 }
 
@@ -650,16 +652,17 @@ func setup() {
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
 	w = &Watcher{
-		repository:        mocks.MStatusRepository,
-		contracts:         mocks.MBridgeContractService,
-		prometheusService: mocks.MPrometheusService,
-		pricingService:    mocks.MPricingService,
-		evmClient:         mocks.MEVMClient,
-		dbIdentifier:      dbIdentifier,
-		logger:            config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
-		assetsService:     mocks.MAssetsService,
-		validator:         true,
-		sleepDuration:     defaultSleepDuration,
-		filterConfig:      filterConfig,
+		repository:          mocks.MStatusRepository,
+		contracts:           mocks.MBridgeContractService,
+		prometheusService:   mocks.MPrometheusService,
+		pricingService:      mocks.MPricingService,
+		evmClient:           mocks.MEVMClient,
+		dbIdentifier:        dbIdentifier,
+		logger:              config.GetLoggerFor(fmt.Sprintf("EVM Router Watcher [%s]", dbIdentifier)),
+		assetsService:       mocks.MAssetsService,
+		validator:           true,
+		sleepDuration:       defaultSleepDuration,
+		filterConfig:        filterConfig,
+		blacklistedAccounts: []string{"0x0123", "0x4567"},
 	}
 }
