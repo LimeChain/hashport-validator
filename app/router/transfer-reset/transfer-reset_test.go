@@ -10,16 +10,20 @@ import (
 	"testing"
 
 	transferModel "github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	transferId = "123"
+	node       = config.Node{
+		GaugeResetPassword: "password",
+	}
 )
 
 func Test_NewRouter(t *testing.T) {
-	router := NewRouter(mocks.MTransferService, mocks.MPrometheusService)
+	router := NewRouter(mocks.MTransferService, mocks.MPrometheusService, node)
 
 	assert.NotNil(t, router)
 }
@@ -33,13 +37,14 @@ func Test_GetTransferSuccess(t *testing.T) {
 		SourceChainId: 1,
 		TargetChainId: 2,
 		SourceToken:   "token",
+		Password:      "password",
 	}
 	reqBody, _ := json.Marshal(body)
 
 	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService)
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
 
 	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
@@ -62,13 +67,14 @@ func Test_GetTransferSuccess_FailsWithDB(t *testing.T) {
 		SourceChainId: 1,
 		TargetChainId: 2,
 		SourceToken:   "token",
+		Password:      "password",
 	}
 	reqBody, _ := json.Marshal(body)
 
 	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(errors.New("error"))
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService)
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
 
 	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
@@ -87,6 +93,7 @@ func Test_GetTransferSuccess_FailsWithWrongParams(t *testing.T) {
 		"SourceChainId": 1,
 		"TargetChainId": "2",
 		"SourceToken":   "token",
+		"Password":      "password",
 	}
 
 	reqBody, _ := json.Marshal(body)
@@ -94,7 +101,7 @@ func Test_GetTransferSuccess_FailsWithWrongParams(t *testing.T) {
 	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
 	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
 
-	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService)
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
 
 	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
@@ -103,4 +110,84 @@ func Test_GetTransferSuccess_FailsWithWrongParams(t *testing.T) {
 	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func Test_GetTransferSuccess_FailsWithNoPassword(t *testing.T) {
+	mocks.Setup()
+
+	body := map[string]interface{}{
+		"TransactionId": transferId,
+		"SourceChainId": 1,
+		"TargetChainId": 2,
+		"SourceToken":   "token",
+	}
+
+	reqBody, _ := json.Marshal(body)
+
+	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
+
+	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+	handler(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+}
+
+func Test_GetTransferSuccess_FailsWithEmptyPassword(t *testing.T) {
+	mocks.Setup()
+
+	body := map[string]interface{}{
+		"TransactionId": transferId,
+		"SourceChainId": 1,
+		"TargetChainId": 2,
+		"SourceToken":   "token",
+		"Password": 	"",
+	}
+
+	reqBody, _ := json.Marshal(body)
+
+	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
+
+	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+	handler(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+}
+
+func Test_GetTransferSuccess_FailsWithWrongPassword(t *testing.T) {
+	mocks.Setup()
+
+	body := map[string]interface{}{
+		"TransactionId": transferId,
+		"SourceChainId": 1,
+		"TargetChainId": 2,
+		"SourceToken":   "token",
+		"Password":      "wrongPassword",
+	}
+
+	reqBody, _ := json.Marshal(body)
+
+	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService, node)
+
+	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+	handler(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }

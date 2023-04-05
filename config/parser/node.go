@@ -19,7 +19,7 @@ package parser
 import "time"
 
 /*
-	Structs used to parse the node YAML configuration
+Structs used to parse the node YAML configuration
 */
 type Node struct {
 	Database            Database   `yaml:"database"`
@@ -30,6 +30,7 @@ type Node struct {
 	Validator           bool       `yaml:"validator"`
 	Monitoring          Monitoring `yaml:"monitoring"`
 	BridgeConfigTopicId Monitoring `yaml:"bridge_config_topic_id"`
+	GaugeResetPassword  string     `yaml:"gauge_reset_pass"`
 }
 
 type Database struct {

@@ -64,7 +64,7 @@ func main() {
 	services = bootstrap.PrepareServices(configuration, parsedBridge, clients, *repositories, parsedBridgeConfigTopicId)
 	bootstrap.InitializeServerPairs(server, services, repositories, clients, configuration, parsedBridge, parsedBridgeConfigTopicId)
 
-	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge)
+	apiRouter := bootstrap.InitializeAPIRouter(services, parsedBridge, configuration.Node)
 
 	executeRecovery(repositories.Fee, repositories.Schedule, clients.MirrorNode)
 

@@ -62,3 +62,16 @@ Example:
   ...
   }
   ```
+
+- `POST /transfer-reset`: Updates the stuck transfers to `COMPLETE` and `user_get_his_token` to 1
+- ```bash
+  curl --location --request POST 'http://localhost:9200/api/v1/transfer-reset' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+      "transactionId": "0.0.3121456-1680613460-129693178",
+      "sourceChainId": 296,
+      "targetChainId": 80001,
+      "sourceToken": "HBAR",
+      "Password": "passwordTestValidator"
+  }'
+  ```

@@ -72,4 +72,5 @@ type TransferReset struct {
 	SourceChainId uint64 `json:"sourceChainId"`
 	TargetChainId uint64 `json:"targetChainId"`
 	SourceToken   string `json:"sourceToken"`
+	Password string `json:"password"`
 }
