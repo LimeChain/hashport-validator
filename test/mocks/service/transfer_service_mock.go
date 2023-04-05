@@ -109,3 +109,7 @@ func (mts *MockTransferService) TransferData(txId string) (interface{}, error) {
 func (mts *MockTransferService) Paged(filter *transfer.PagedRequest) (*transfer.Paged, error) {
 	panic("implement me")
 }
+
+func (mts *MockTransferService) UpdateTransferStatusCompleted(txId string) error {
+	panic("implement me")
+}

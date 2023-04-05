@@ -661,3 +661,7 @@ func (ts *Service) scheduledFeeTxMinedCallbacks(feeOutParams *hederaHelper.FeeOu
 	}
 	return onSuccess, onFail
 }
+
+func (ts *Service) UpdateTransferStatusCompleted(transferID string) error {
+	return ts.transferRepository.UpdateStatusCompleted(transferID)
+}
