@@ -115,8 +115,8 @@ func (mts *MockTransferService) Paged(filter *transfer.PagedRequest) (*transfer.
 func (mts *MockTransferService) UpdateTransferStatusCompleted(txId string) error {
 	args := mts.Called(txId)
 	if args.Get(0) == nil {
-		return fmt.Errorf("error")
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("error")
 }

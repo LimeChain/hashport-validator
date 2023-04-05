@@ -36,8 +36,14 @@ func transferReset(transferService service.Transfers, prometheusService service.
 			return
 		}
 
-		metrics.SetUserGetHisTokens(req.SourceChainId, req.TargetChainId, req.TargetToken, req.TransactionId, prometheusService, logger)
-		transferService.UpdateTransferStatusCompleted(req.TransactionId)
+		err = transferService.UpdateTransferStatusCompleted(req.TransactionId)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ErrorResponse(err))
+			return
+		}
+
+		metrics.SetUserGetHisTokens(req.SourceChainId, req.TargetChainId, req.SourceToken, req.TransactionId, prometheusService, logger)
 
 		render.Status(r, http.StatusOK)
 		render.PlainText(w, r, "OK")

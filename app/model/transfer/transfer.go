@@ -17,8 +17,9 @@
 package transfer
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"time"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 // Transfer serves as a data transfer object and response model
@@ -70,5 +71,5 @@ type TransferReset struct {
 	TransactionId string `json:"transactionId"`
 	SourceChainId uint64 `json:"sourceChainId"`
 	TargetChainId uint64 `json:"targetChainId"`
-	TargetToken string `json:"targetToken"`
+	SourceToken   string `json:"sourceToken"`
 }

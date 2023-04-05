@@ -3,6 +3,7 @@ package transfer_reset
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,7 @@ func Test_NewRouter(t *testing.T) {
 	assert.NotNil(t, router)
 }
 
-func TestGetTransferSuccess(t *testing.T) {
+func Test_GetTransferSuccess(t *testing.T) {
 	mocks.Setup()
 
 	// Set up request body
@@ -31,7 +32,7 @@ func TestGetTransferSuccess(t *testing.T) {
 		TransactionId: transferId,
 		SourceChainId: 1,
 		TargetChainId: 2,
-		TargetToken:   "token",
+		SourceToken:   "token",
 	}
 	reqBody, _ := json.Marshal(body)
 
@@ -50,4 +51,56 @@ func TestGetTransferSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "OK", string(data))
 
+}
+
+func Test_GetTransferSuccess_FailsWithDB(t *testing.T) {
+	mocks.Setup()
+
+	// Set up request body
+	body := transferModel.TransferReset{
+		TransactionId: transferId,
+		SourceChainId: 1,
+		TargetChainId: 2,
+		SourceToken:   "token",
+	}
+	reqBody, _ := json.Marshal(body)
+
+	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(errors.New("error"))
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService)
+
+	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+	handler(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func Test_GetTransferSuccess_FailsWithWrongParams(t *testing.T) {
+	mocks.Setup()
+
+	body := map[string]interface{}{
+		"TransactionId": transferId,
+		"SourceChainId": 1,
+		"TargetChainId": "2",
+		"SourceToken":   "token",
+	}
+
+	reqBody, _ := json.Marshal(body)
+
+	mocks.MTransferService.On("UpdateTransferStatusCompleted", transferId).Return(nil)
+	mocks.MPrometheusService.On("GetIsMonitoringEnabled").Return(false)
+
+	handler := transferReset(mocks.MTransferService, mocks.MPrometheusService)
+
+	req := httptest.NewRequest(http.MethodPost, "/transfer-reset", bytes.NewBuffer(reqBody))
+	w := httptest.NewRecorder()
+	handler(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
