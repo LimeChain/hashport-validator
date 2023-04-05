@@ -27,8 +27,8 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer-reset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/utils"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
+	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
