@@ -8,8 +8,7 @@ jobs:
   deploy_testnet:
     runs-on: ubuntu-latest
     if: |
-      contains(github.event.release.tag_name, '-rc-') &&
-      github.event.release.target_commitish == 'testnet'
+      contains(github.event.release.tag_name, '-rc-')
     steps:
       - uses: actions/checkout@v2
 
