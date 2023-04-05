@@ -37,7 +37,11 @@ import (
 
 // Used as a maximum amount of retries that need to be done when executing
 // RetryBlockNumber, RetryFilterLogs
-const executionRetries = 10
+const (
+	executionRetries = 10
+	retryAfterTimer  = 10 * time.Second
+)
+
 
 // Client EVM JSON RPC Client
 type Client struct {
@@ -147,13 +151,13 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 
 		// try again mechanism in case transaction is not validated for tx mempool yet
 		if errors.Is(ethereum.NotFound, err) {
-			time.Sleep(5 * time.Second)
+			time.Sleep(retryAfterTimer)
 			_, isPending, err = ec.TransactionByHash(context.Background(), hash)
 		}
 
 		if errors.Is(err, syscall.ECONNRESET) {
 			ec.logger.Warn(err)
-			time.Sleep(5 * time.Second)
+			time.Sleep(retryAfterTimer)
 			continue
 		}
 
@@ -163,7 +167,7 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 		if !isPending {
 			break
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(retryAfterTimer)
 	}
 
 	return ec.TransactionReceipt(context.Background(), hash)
