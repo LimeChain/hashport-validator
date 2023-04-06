@@ -113,7 +113,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 
 	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
-		SetKey(custodialKey). // bug here, treshold is set to max
+		SetKey(custodialKey).
 		Execute(client)
 	if err != nil {
 		result.Error = fmt.Errorf("failed to create bridge account. Err: [%s]", err)
