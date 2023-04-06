@@ -230,19 +230,23 @@ func (r *Repository) updateStatus(txId string, s string) error {
 		return errors.New("invalid status")
 	}
 
-	err := r.db.
+	result := r.db.
 		Model(entity.Transfer{}).
 		Where("transaction_id = ?", txId).
-		UpdateColumn("status", s).
-		Error
-	if err == nil {
+		UpdateColumn("status", s)
+	if result.Error == nil {
 		if s == status.Failed {
 			r.logger.Errorf("Updated Status of TX [%s] to [%s]", txId, s)
-			return err
+			return nil
 		}
 		r.logger.Infof("Updated Status of TX [%s] to [%s]", txId, s)
 	}
-	return err
+
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("updated %d rows, expected 1", result.RowsAffected)
+	}
+
+	return result.Error
 }
 
 func (r *Repository) updateHederaChainId(tx *entity.Transfer) {
