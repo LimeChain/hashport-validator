@@ -19,6 +19,7 @@ package setup
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 
@@ -37,8 +38,10 @@ type DeployResult struct {
 	Error              error
 }
 
-func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, topicThreshold *uint) DeployResult {
+func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, cachedPrivateKeys []hedera.PrivateKey, topicThreshold *uint) DeployResult {
 	result := DeployResult{}
+
+	fmt.Printf("%v", cachedPrivateKeys)
 
 	err := ValidateArguments(privateKey, accountID, adminKey, topicThreshold, members)
 	if err != nil {
@@ -51,12 +54,19 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 
 	result.MembersPrivateKeys = make([]hedera.PrivateKey, 0, *members)
 	result.MembersAccountIDs = make([]hedera.AccountID, 0, *members)
+
+	var privKey hedera.PrivateKey
 	for i := 0; i < *members; i++ {
-		privKey, err := cryptoCreate(client, &result)
+		if i < len(cachedPrivateKeys) {
+			privKey, err = cryptoCreate(client, &result, &cachedPrivateKeys[i])
+		} else {
+			privKey, err = cryptoCreate(client, &result, nil)
+		}
 		if err != nil {
-			result.Error = fmt.Errorf("Failed to create member Private Key. Err: [%s]", err)
+			result.Error = fmt.Errorf("failed to create member Private Key. Err: [%s]", err)
 			return result
 		}
+
 		result.MembersPrivateKeys = append(result.MembersPrivateKeys, privKey)
 	}
 	fmt.Println("Members Private keys array:", result.MembersPrivateKeys)
@@ -72,7 +82,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 
 	adminPublicKey, err := hedera.PublicKeyFromString(*adminKey)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to parse admin Public Key. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to parse admin Public Key. Err: [%s]", err)
 		return result
 	}
 
@@ -81,36 +91,38 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 		SetSubmitKey(topicKey).
 		Execute(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to create topic. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to create topic. Err: [%s]", err)
 		return result
 	}
 
 	topicReceipt, err := txID.GetReceipt(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to get topic receipt. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to get topic receipt. Err: [%s]", err)
 		return result
 	}
 	result.TopicId = topicReceipt.TopicID
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
-	custodialKey := hedera.KeyListWithThreshold(uint(*members))
+	treshold := math.Ceil(float64(*members) / float64(2))
+	custodialKey := hedera.KeyListWithThreshold(uint(treshold))
 	for i := 0; i < *members; i++ {
 		custodialKey.Add(result.MembersPublicKeys[i])
 	}
 
+
 	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
-		SetKey(custodialKey).
+		SetKey(custodialKey). // bug here, treshold is set to max
 		Execute(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to create bridge account. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to create bridge account. Err: [%s]", err)
 		return result
 	}
 
 	bridgeAccountReceipt, err := bridgeAccount.GetReceipt(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to get bridge account receipt. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to get bridge account receipt. Err: [%s]", err)
 		return result
 	}
 	result.BridgeAccountID = bridgeAccountReceipt.AccountID
@@ -123,12 +135,12 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 		SetInitialBalance(balance).
 		Execute(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to create payer account. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to create payer account. Err: [%s]", err)
 		return result
 	}
 	scheduledTxPayerAccountReceipt, err := scheduledTxPayerAccount.GetReceipt(client)
 	if err != nil {
-		result.Error = fmt.Errorf("Failed to get payer account receipt. Err: [%s]", err)
+		result.Error = fmt.Errorf("failed to get payer account receipt. Err: [%s]", err)
 		return result
 	}
 	result.PayerAccountID = scheduledTxPayerAccountReceipt.AccountID
@@ -156,8 +168,11 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 	return nil
 }
 
-func cryptoCreate(client *hedera.Client, result *DeployResult) (hedera.PrivateKey, error) {
+func cryptoCreate(client *hedera.Client, result *DeployResult, cachedPrivateKey *hedera.PrivateKey) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.PrivateKeyGenerateEd25519()
+	if cachedPrivateKey != nil {
+		privateKey = *cachedPrivateKey
+	}
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
 	fmt.Printf("Hedera Public Key: %v\n", privateKey.PublicKey().String())
 	publicKey := privateKey.PublicKey()

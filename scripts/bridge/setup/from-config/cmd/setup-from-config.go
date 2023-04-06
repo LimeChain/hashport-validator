@@ -50,11 +50,26 @@ func main() {
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "testnet", "Hedera Network Type")
 	members := flag.Int("members", 1, "The count of the members")
+	memberPrivateKeys := flag.String("memberPrivateKeys", "", "Member private keys array, seperated by ','")
 	adminKey := flag.String("adminKey", "", "The admin key")
 	topicThreshold := flag.Uint("topicThreshold", 1, "Topic member keys sign threshold")
 	wrappedFungibleThreshold := flag.Uint("wrappedTokenThreshold", 1, "The desired threshold of n/m keys required for supply key of wrapped tokens")
 	configPath := flag.String("configPath", "scripts/bridge/setup/extend-config/extended-bridge.yml", "Path to the 'bridge.yaml' config file")
 	flag.Parse()
+
+	prKeysSlice := strings.Split(*memberPrivateKeys, ",")
+	var hederaPrivateKeys []hedera.PrivateKey
+	for i := 0; i < len(prKeysSlice); i++ {
+		// element [0] can be empty string if the user does not provide any private keys
+		if prKeysSlice[0] == "" {
+			break
+		}
+		privateKeyFromStr, err := hedera.PrivateKeyFromString(prKeysSlice[i])
+		if err != nil {
+			panic(err)
+		}
+		hederaPrivateKeys = append(hederaPrivateKeys, privateKeyFromStr)
+	}
 
 	validateArguments(privateKey, accountID, adminKey, topicThreshold, members, configPath, network)
 	if *network == "testnet" {
@@ -63,7 +78,7 @@ func main() {
 		hederaNetworkId = HederaMainnetNetworkId
 	}
 	parsedBridgeCfgForDeploy := parseExtendedBridge(configPath)
-	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, members, topicThreshold, parsedBridgeCfgForDeploy)
+	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold, parsedBridgeCfgForDeploy)
 	createAndAssociateTokens(
 		wrappedFungibleThreshold,
 		bridgeDeployResult,
@@ -103,9 +118,9 @@ func createAndAssociateTokens(wrappedFungibleThreshold *uint, bridgeDeployResult
 	fmt.Println("====================================")
 }
 
-func deployBridge(privateKey *string, accountID *string, adminKey *string, network *string, members *int, topicThreshold *uint, parsedBridgeCfgForDeploy *parser.ExtendedBridge) bridgeSetup.DeployResult {
+func deployBridge(privateKey *string, accountID *string, adminKey *string, network *string, members *int, hederaPrivateKeys []hedera.PrivateKey, topicThreshold *uint, parsedBridgeCfgForDeploy *parser.ExtendedBridge) bridgeSetup.DeployResult {
 	printTitle("Starting Deployment of Bridge ...")
-	bridgeDeployResult := bridgeSetup.Deploy(privateKey, accountID, adminKey, network, members, topicThreshold)
+	bridgeDeployResult := bridgeSetup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold)
 	if bridgeDeployResult.Error != nil {
 		panic(bridgeDeployResult.Error)
 	}

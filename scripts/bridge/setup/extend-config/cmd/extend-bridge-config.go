@@ -49,12 +49,15 @@ var (
 	///////////////////////////////////////
 	evmNodeUrls = map[uint64]string{
 		80001:    "https://rpc-mumbai.maticvigil.com/",
-		5:        "https://goerli-light.eth.linkpool.io/",
+		5:        "https://goerli.blockpi.network/v1/rpc/public",
 		97:       "https://rpc.ankr.com/bsc_testnet_chapel",
 		43113:    "https://api.avax-test.network/ext/bc/C/rpc",
-		420:      "https://opt-goerli.g.alchemy.com/v2/McY6yyjUU46TVxt17axE02_h0OP7uvzA",
+		420:      "https://optimism-goerli.public.blastapi.io",
 		421613:   "https://goerli-rollup.arbitrum.io/rpc",
-		11155111: "https://sepolia.infura.io/v3/a7a16c9d849b40358e75f95161d5e843",
+		11155111: "https://rpc2.sepolia.org",
+		338:      "https://evm-t3.cronos.org/",
+		4002:     "https://rpcapi-tracing.testnet.fantom.network",
+		84531:    "https://goerli.base.org",
 	}
 	evmClients = make(map[uint64]client.EVM)
 
