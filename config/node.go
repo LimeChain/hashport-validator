@@ -32,6 +32,7 @@ type Node struct {
 	Port       string
 	Validator  bool
 	Monitoring Monitoring
+	GaugeResetPassword string
 }
 
 type Database struct {
@@ -236,6 +237,7 @@ func New(node parser.Node) Node {
 			Enable:           node.Monitoring.Enable,
 			DashboardPolling: node.Monitoring.DashboardPolling,
 		},
+		GaugeResetPassword: node.GaugeResetPassword,
 	}
 
 	for key, value := range node.Clients.Evm {

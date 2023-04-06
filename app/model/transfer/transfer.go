@@ -17,8 +17,9 @@
 package transfer
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"time"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 // Transfer serves as a data transfer object and response model
@@ -64,4 +65,12 @@ type SanityCheckResult struct {
 	EvmAddress string
 	NftId      *hedera.NftID
 	Err        error
+}
+
+type TransferReset struct {
+	TransactionId string `json:"transactionId"`
+	SourceChainId uint64 `json:"sourceChainId"`
+	TargetChainId uint64 `json:"targetChainId"`
+	SourceToken   string `json:"sourceToken"`
+	Password string `json:"password"`
 }

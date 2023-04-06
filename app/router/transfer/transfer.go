@@ -26,6 +26,13 @@ var (
 
 const maxHistoryPageSize = 50
 
+func NewRouter(service service.Transfers) chi.Router {
+	r := chi.NewRouter()
+	r.Get("/{id}", getTransfer(service))
+	r.Post("/history", history(service))
+	return r
+}
+
 // GET: .../transfers/:id
 func getTransfer(transfersService service.Transfers) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -84,11 +91,4 @@ func history(transferService service.Transfers) func(w http.ResponseWriter, r *h
 
 		render.JSON(w, r, res)
 	}
-}
-
-func NewRouter(service service.Transfers) chi.Router {
-	r := chi.NewRouter()
-	r.Get("/{id}", getTransfer(service))
-	r.Post("/history", history(service))
-	return r
 }

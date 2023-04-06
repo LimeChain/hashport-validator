@@ -16,6 +16,12 @@ var (
 	logger = config.GetLoggerFor(fmt.Sprintf("Router [%s]", Route))
 )
 
+func NewRouter(service service.BurnEvent) chi.Router {
+	r := chi.NewRouter()
+	r.Get("/{id}/tx", getTxID(service))
+	return r
+}
+
 // GET: .../events/:id/tx
 func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -30,10 +36,4 @@ func getTxID(burnService service.BurnEvent) func(w http.ResponseWriter, r *http.
 
 		render.JSON(w, r, txID)
 	}
-}
-
-func NewRouter(service service.BurnEvent) chi.Router {
-	r := chi.NewRouter()
-	r.Get("/{id}/tx", getTxID(service))
-	return r
 }

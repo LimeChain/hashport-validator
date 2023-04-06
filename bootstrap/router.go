@@ -25,13 +25,15 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	min_amounts "github.com/limechain/hedera-eth-bridge-validator/app/router/min-amounts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer-reset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/utils"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge) *apirouter.APIRouter {
+func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge, nodeConfig config.Node) *apirouter.APIRouter {
 	apiRouter := apirouter.NewAPIRouter()
 	apiRouter.AddV1Router(healthcheck.Route, healthcheck.NewRouter())
 	apiRouter.AddV1Router(transfer.Route, transfer.NewRouter(services.transfers))
@@ -42,5 +44,6 @@ func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge) *apiro
 	apiRouter.AddV1Router(assets.Route, assets.NewRouter(bridgeConfig, services.Assets, services.Pricing))
 	apiRouter.AddV1Router(utils.Route, utils.NewRouter(services.Utils))
 	apiRouter.AddV1Router(fees.Route, fees.NewRouter(services.Pricing))
+	apiRouter.AddV1Router(transfer_reset.Route, transfer_reset.NewRouter(services.transfers, services.Prometheus, nodeConfig))
 	return apiRouter
 }

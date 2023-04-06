@@ -17,6 +17,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -108,4 +110,13 @@ func (mts *MockTransferService) TransferData(txId string) (interface{}, error) {
 
 func (mts *MockTransferService) Paged(filter *transfer.PagedRequest) (*transfer.Paged, error) {
 	panic("implement me")
+}
+
+func (mts *MockTransferService) UpdateTransferStatusCompleted(txId string) error {
+	args := mts.Called(txId)
+	if args.Get(0) == nil {
+		return nil
+	}
+
+	return fmt.Errorf("error")
 }

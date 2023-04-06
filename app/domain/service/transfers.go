@@ -45,6 +45,8 @@ type Transfers interface {
 	TransferData(txId string) (interface{}, error)
 	// Paged returns a paginated list of all transfers
 	Paged(filter *model.PagedRequest) (*model.Paged, error)
+	// UpdateTransferStatusCompleted updates the transfer status to completed
+	UpdateTransferStatusCompleted(txId string) error
 }
 
 type TransferData struct {
