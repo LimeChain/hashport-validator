@@ -38,10 +38,8 @@ type DeployResult struct {
 	Error              error
 }
 
-func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, cachedPrivateKeys []hedera.PrivateKey, topicThreshold *uint) DeployResult {
+func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, previousPrivateKeys []hedera.PrivateKey, topicThreshold *uint) DeployResult {
 	result := DeployResult{}
-
-	fmt.Printf("%v", cachedPrivateKeys)
 
 	err := ValidateArguments(privateKey, accountID, adminKey, topicThreshold, members)
 	if err != nil {
@@ -57,8 +55,8 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 
 	var privKey hedera.PrivateKey
 	for i := 0; i < *members; i++ {
-		if i < len(cachedPrivateKeys) {
-			privKey, err = cryptoCreate(client, &result, &cachedPrivateKeys[i])
+		if i < len(previousPrivateKeys) {
+			privKey, err = cryptoCreate(client, &result, &previousPrivateKeys[i])
 		} else {
 			privKey, err = cryptoCreate(client, &result, nil)
 		}
@@ -168,10 +166,10 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 	return nil
 }
 
-func cryptoCreate(client *hedera.Client, result *DeployResult, cachedPrivateKey *hedera.PrivateKey) (hedera.PrivateKey, error) {
+func cryptoCreate(client *hedera.Client, result *DeployResult, previousPrivateKey *hedera.PrivateKey) (hedera.PrivateKey, error) {
 	privateKey, _ := hedera.PrivateKeyGenerateEd25519()
-	if cachedPrivateKey != nil {
-		privateKey = *cachedPrivateKey
+	if previousPrivateKey != nil {
+		privateKey = *previousPrivateKey
 	}
 	fmt.Printf("Hedera Private Key: %v\n", privateKey.String())
 	fmt.Printf("Hedera Public Key: %v\n", privateKey.PublicKey().String())

@@ -59,16 +59,16 @@ func main() {
 
 	prKeysSlice := strings.Split(*memberPrivateKeys, ",")
 	var hederaPrivateKeys []hedera.PrivateKey
-	for i := 0; i < len(prKeysSlice); i++ {
-		// element [0] can be empty string if the user does not provide any private keys
-		if prKeysSlice[0] == "" {
-			break
+
+	// element [0] can be empty string if the user does not provide any private keys
+	if prKeysSlice[0] != "" {
+		for i := 0; i < len(prKeysSlice); i++ {
+			privateKeyFromStr, err := hedera.PrivateKeyFromString(prKeysSlice[i])
+			if err != nil {
+				panic(err)
+			}
+			hederaPrivateKeys = append(hederaPrivateKeys, privateKeyFromStr)
 		}
-		privateKeyFromStr, err := hedera.PrivateKeyFromString(prKeysSlice[i])
-		if err != nil {
-			panic(err)
-		}
-		hederaPrivateKeys = append(hederaPrivateKeys, privateKeyFromStr)
 	}
 
 	validateArguments(privateKey, accountID, adminKey, topicThreshold, members, configPath, network)
