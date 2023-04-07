@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
 )
 
-var balance = hedera.NewHbar(100)
 
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
@@ -32,7 +31,10 @@ func main() {
 	adminKey := flag.String("adminKey", "", "The admin key")
 	topicThreshold := flag.Uint("topicThreshold", 1, "Topic member keys sign threshold")
 	flag.Parse()
-	result := setup.Deploy(privateKey, accountID, adminKey, network, members, topicThreshold)
+
+	// pass empty array of private keys since we are using this script for new accounts
+	hederaPrivateKeys := make([]hedera.PrivateKey, 0)
+	result := setup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold)
 	if result.Error != nil {
 		panic(result.Error)
 	}
