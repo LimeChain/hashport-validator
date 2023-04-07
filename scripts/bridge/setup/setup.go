@@ -104,7 +104,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
-	treshold := math.Ceil(float64(*members) / float64(2))
+	treshold := math.Ceil(float64(*members) * float64(0.51))
 	custodialKey := hedera.KeyListWithThreshold(uint(treshold))
 	for i := 0; i < *members; i++ {
 		custodialKey.Add(result.MembersPublicKeys[i])
