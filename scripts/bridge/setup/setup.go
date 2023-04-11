@@ -19,7 +19,6 @@ package setup
 import (
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 
@@ -38,10 +37,10 @@ type DeployResult struct {
 	Error              error
 }
 
-func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, previousPrivateKeys []hedera.PrivateKey, topicThreshold *uint) DeployResult {
+func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, previousPrivateKeys []hedera.PrivateKey, treshold uint) DeployResult {
 	result := DeployResult{}
 
-	err := ValidateArguments(privateKey, accountID, adminKey, topicThreshold, members)
+	err := ValidateArguments(privateKey, accountID, adminKey, members)
 	if err != nil {
 		result.Error = err
 		return result
@@ -70,7 +69,9 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	fmt.Println("Members Private keys array:", result.MembersPrivateKeys)
 
 	result.MembersPublicKeys = make([]hedera.PublicKey, 0, *members)
-	topicKey := hedera.KeyListWithThreshold(*topicThreshold)
+
+	// treshold is 1 because each validator should be able to post to the gossip topic
+	topicKey := hedera.KeyListWithThreshold(1)
 	for i := 0; i < *members; i++ {
 		pubKey := result.MembersPrivateKeys[i].PublicKey()
 		result.MembersPublicKeys = append(result.MembersPublicKeys, pubKey)
@@ -102,12 +103,10 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
-	treshold := math.Ceil(float64(*members) * float64(0.51))
-	custodialKey := hedera.KeyListWithThreshold(uint(treshold))
+	custodialKey := hedera.KeyListWithThreshold(treshold)
 	for i := 0; i < *members; i++ {
 		custodialKey.Add(result.MembersPublicKeys[i])
 	}
-
 
 	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
@@ -149,7 +148,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	return result
 }
 
-func ValidateArguments(privateKey *string, accountID *string, adminKey *string, topicThreshold *uint, members *int) error {
+func ValidateArguments(privateKey *string, accountID *string, adminKey *string, members *int) error {
 	if *privateKey == "0x0" {
 		return errors.New("private key was not provided")
 	}
@@ -158,9 +157,6 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 	}
 	if *adminKey == "" {
 		return errors.New("admin key not provided")
-	}
-	if *topicThreshold > uint(*members) {
-		return errors.New("threshold can't be more than the members count")
 	}
 
 	return nil

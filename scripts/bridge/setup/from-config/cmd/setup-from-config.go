@@ -19,9 +19,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	cfgParser "github.com/limechain/hedera-eth-bridge-validator/config/parser"
+
+	"io/ioutil"
+	"strings"
+
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	bridgeSetup "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
@@ -31,8 +36,6 @@ import (
 	nativeNftCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/nft/create"
 	wrappedFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/wrapped/create"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"strings"
 )
 
 const (
@@ -52,8 +55,6 @@ func main() {
 	members := flag.Int("members", 1, "The count of the members")
 	memberPrivateKeys := flag.String("memberPrivateKeys", "", "Member private keys array, seperated by ','")
 	adminKey := flag.String("adminKey", "", "The admin key")
-	topicThreshold := flag.Uint("topicThreshold", 1, "Topic member keys sign threshold")
-	wrappedFungibleThreshold := flag.Uint("wrappedTokenThreshold", 1, "The desired threshold of n/m keys required for supply key of wrapped tokens")
 	configPath := flag.String("configPath", "scripts/bridge/setup/extend-config/extended-bridge.yml", "Path to the 'bridge.yaml' config file")
 	flag.Parse()
 
@@ -71,16 +72,18 @@ func main() {
 		}
 	}
 
-	validateArguments(privateKey, accountID, adminKey, topicThreshold, members, configPath, network)
+	treshold := uint(math.Ceil(float64(*members) * float64(0.51)))
+
+	validateArguments(privateKey, accountID, adminKey, members, configPath, network)
 	if *network == "testnet" {
 		hederaNetworkId = HederaTestnetNetworkId
 	} else {
 		hederaNetworkId = HederaMainnetNetworkId
 	}
 	parsedBridgeCfgForDeploy := parseExtendedBridge(configPath)
-	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold, parsedBridgeCfgForDeploy)
+	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, treshold, parsedBridgeCfgForDeploy)
 	createAndAssociateTokens(
-		wrappedFungibleThreshold,
+		&treshold,
 		bridgeDeployResult,
 		privateKey,
 		accountID,
@@ -89,7 +92,7 @@ func main() {
 	)
 
 	printTitle("Updated Bridge yaml config:")
-	newBridgeYml, err := yaml.Marshal(cfgParser.Config{Bridge: *parsedBridgeCfgForDeploy.ToBridgeParser()})
+	newBridgeYml, err := yaml.Marshal(*parsedBridgeCfgForDeploy.ToBridgeParser())
 	if err != nil {
 		panic(fmt.Sprintf("Failed to marshal updated bridge config to yaml. Err: [%s]", err))
 	}
@@ -118,9 +121,9 @@ func createAndAssociateTokens(wrappedFungibleThreshold *uint, bridgeDeployResult
 	fmt.Println("====================================")
 }
 
-func deployBridge(privateKey *string, accountID *string, adminKey *string, network *string, members *int, hederaPrivateKeys []hedera.PrivateKey, topicThreshold *uint, parsedBridgeCfgForDeploy *parser.ExtendedBridge) bridgeSetup.DeployResult {
+func deployBridge(privateKey *string, accountID *string, adminKey *string, network *string, members *int, hederaPrivateKeys []hedera.PrivateKey, treshold uint, parsedBridgeCfgForDeploy *parser.ExtendedBridge) bridgeSetup.DeployResult {
 	printTitle("Starting Deployment of Bridge ...")
-	bridgeDeployResult := bridgeSetup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold)
+	bridgeDeployResult := bridgeSetup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, treshold)
 	if bridgeDeployResult.Error != nil {
 		panic(bridgeDeployResult.Error)
 	}
@@ -130,6 +133,17 @@ func deployBridge(privateKey *string, accountID *string, adminKey *string, netwo
 	for index, accountId := range bridgeDeployResult.MembersAccountIDs {
 		parsedBridgeCfgForDeploy.Networks[hederaNetworkId].Members[index] = accountId.String()
 	}
+	monitored_accounts := map[string]string{}
+	var index_of_monitored_account int = 0
+	for key, _ := range parsedBridgeCfgForDeploy.MonitoredAccounts {
+		monitored_accounts[key] = bridgeDeployResult.MembersAccountIDs[index_of_monitored_account].String()
+		index_of_monitored_account++
+	}
+	parsedBridgeCfgForDeploy.MonitoredAccounts = monitored_accounts
+	parsedBridgeCfgForDeploy.TopicId = bridgeDeployResult.TopicId.String()
+
+	// TODO: redeploy the config topic and assign the new topic id to the config
+	parsedBridgeCfgForDeploy.ConfigTopicId = "0.0.0"
 
 	fmt.Println("====================================")
 	return bridgeDeployResult
@@ -150,6 +164,9 @@ func createAndAssociateWrappedTokens(network uint64, networkInfo *parser.Network
 	for tokenAddress, tokenInfo := range networkInfo.Tokens.Fungible {
 		if _, ok := tokenInfo.Networks[hederaNetworkId]; !ok {
 			continue
+		}
+		if tokenInfo.Decimals > 8 {
+			tokenInfo.Decimals = 8
 		}
 		fmt.Printf("Creating Hedera Wrapped Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := wrappedFungibleCreate.WrappedFungibleToken(
@@ -261,8 +278,8 @@ func associateToken(tokenId *hedera.TokenID, client *hedera.Client, accountId he
 	return err
 }
 
-func validateArguments(privateKey *string, accountID *string, adminKey *string, topicThreshold *uint, members *int, configPath *string, network *string) {
-	err := bridgeSetup.ValidateArguments(privateKey, accountID, adminKey, topicThreshold, members)
+func validateArguments(privateKey *string, accountID *string, adminKey *string, members *int, configPath *string, network *string) {
+	err := bridgeSetup.ValidateArguments(privateKey, accountID, adminKey, members)
 	if err != nil {
 		panic(err)
 	}
