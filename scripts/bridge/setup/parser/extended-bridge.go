@@ -62,7 +62,7 @@ func (b *ExtendedBridge) Validate(hederaNetworkId uint64) {
 
 func (b *ExtendedBridge) ToBridgeParser() *parser.Bridge {
 	parsedBridge := new(parser.Bridge)
-	parsedBridge.UseLocalConfig = b.UseLocalConfig
+	parsedBridge.UseLocalConfig = false
 	parsedBridge.ConfigTopicId = b.ConfigTopicId
 	parsedBridge.PollingInterval = b.PollingInterval
 	parsedBridge.TopicId = b.TopicId

@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
 	clientScript "github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"io/ioutil"
 	"time"
@@ -40,23 +41,26 @@ func main() {
 
 	client := clientScript.GetClientForNetwork(*network)
 	additionTime := time.Minute * time.Duration(*validStartMinutes)
-	transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
-	frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
-		SetTopicID(topicIdParsed).
-		SetMaxChunks(30).
-		SetMessage(content).
-		SetMaxChunks(60).
-		SetTransactionID(transactionID).
-		SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).
-		FreezeWith(client)
-	if err != nil {
-		panic(err)
-	}
+	// transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
 
-	bytes, err := frozenTx.ToBytes()
-	if err != nil {
-		panic(err)
-	}
+	// frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
+	// 	SetTopicID(topicIdParsed).
+	// 	SetMaxChunks(30).
+	// 	SetMessage(content).
+	// 	SetMaxChunks(60).
+	// 	SetTransactionID(transactionID).
+	// 	SetNodeAccountIDs([]hedera.AccountID{nodeAccount}).
+	// 	FreezeWith(client)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// bytes, err := frozenTx.ToBytes()
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	bytes := update_config.CreateNewTopicFroxenTx(client, content, topicIdParsed, executor, nodeAccount, additionTime)
 	fmt.Println(hex.EncodeToString(bytes))
 }
 
