@@ -223,12 +223,32 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 
 		errBridge := associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
 		errPayer := associateToken(tokenId, client, *bridgeDeployResult.PayerAccountID, "Payer", bridgeDeployResult.MembersPrivateKeys)
+		errMembersAcc := associateMembersToToken(client, *tokenId, bridgeDeployResult.MembersAccountIDs, bridgeDeployResult.MembersPrivateKeys)
 
-		if errBridge == nil && errPayer == nil {
+		if errBridge == nil && errPayer == nil && errMembersAcc == nil {
 			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft, tokenAddress)
 			ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft[tokenId.String()] = tokenInfo
 		}
 	}
+}
+
+func associateMembersToToken(
+	client *hedera.Client,
+	tokenId hedera.TokenID,
+	memberAccIDs []hedera.AccountID,
+	memberPrivKeys []hedera.PrivateKey,
+) error {
+	var err error
+	for i, memberAccID := range memberAccIDs {
+		var singlePKArray = []hedera.PrivateKey{memberPrivKeys[i]}
+		_, err = associate.TokenToAccountWithCustodianKey(client, tokenId, memberAccID, singlePKArray)
+		if err != nil {
+			fmt.Printf("[ERROR] Failed to associate Hedera Native Fungible Token [%s] with %s Member Account. Error: [%s]\n", tokenId.String(), memberAccID, err)
+			break
+		}
+		fmt.Printf("Successfully Associated Hedera Native Fungible Token [%s] with %s Member Account.\n", tokenId.String(), memberAccID)
+	}
+	return err
 }
 
 func associateToken(tokenId *hedera.TokenID, client *hedera.Client, accountId hedera.AccountID, accountName string, custodianKey []hedera.PrivateKey) error {
