@@ -34,7 +34,7 @@ func main() {
 
 	// pass empty array of private keys since we are using this script for new accounts
 	hederaPrivateKeys := make([]hedera.PrivateKey, 0)
-	result := setup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, topicThreshold)
+	result := setup.Deploy(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, *topicThreshold)
 	if result.Error != nil {
 		panic(result.Error)
 	}
