@@ -19,7 +19,6 @@ package setup
 import (
 	"errors"
 	"fmt"
-	// "math"
 
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 
@@ -69,7 +68,6 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	}
 	fmt.Println("Members Private keys array:", result.MembersPrivateKeys)
 
-	//
 	result.MembersPublicKeys = make([]hedera.PublicKey, 0, *members)
 
 	// treshold is 1 because each validator should be able to post to the gossip topic
@@ -105,12 +103,10 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
-	// treshold := uint(math.Ceil(float64(*members) * float64(0.51)))
 	custodialKey := hedera.KeyListWithThreshold(treshold)
 	for i := 0; i < *members; i++ {
 		custodialKey.Add(result.MembersPublicKeys[i])
 	}
-
 
 	// Creating Bridge threshold account
 	bridgeAccount, err := hedera.NewAccountCreateTransaction().
@@ -162,9 +158,6 @@ func ValidateArguments(privateKey *string, accountID *string, adminKey *string, 
 	if *adminKey == "" {
 		return errors.New("admin key not provided")
 	}
-	// if *topicThreshold > uint(*members) {
-	// 	return errors.New("threshold can't be more than the members count")
-	// }
 
 	return nil
 }

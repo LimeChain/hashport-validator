@@ -24,7 +24,6 @@ import (
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 
-	// cfgParser "github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"io/ioutil"
 	"strings"
 
@@ -56,8 +55,6 @@ func main() {
 	members := flag.Int("members", 1, "The count of the members")
 	memberPrivateKeys := flag.String("memberPrivateKeys", "", "Member private keys array, seperated by ','")
 	adminKey := flag.String("adminKey", "", "The admin key")
-	// topicThreshold := flag.Uint("topicThreshold", 1, "Topic member keys sign threshold")
-	// wrappedFungibleThreshold := flag.Uint("wrappedTokenThreshold", 1, "The desired threshold of n/m keys required for supply key of wrapped tokens")
 	configPath := flag.String("configPath", "scripts/bridge/setup/extend-config/extended-bridge.yml", "Path to the 'bridge.yaml' config file")
 	flag.Parse()
 
@@ -142,10 +139,10 @@ func deployBridge(privateKey *string, accountID *string, adminKey *string, netwo
 		monitored_accounts[key] = bridgeDeployResult.MembersAccountIDs[index_of_monitored_account].String()
 		index_of_monitored_account++
 	}
-	parsedBridgeCfgForDeploy.MonitoredAccounts  = monitored_accounts
+	parsedBridgeCfgForDeploy.MonitoredAccounts = monitored_accounts
 	parsedBridgeCfgForDeploy.TopicId = bridgeDeployResult.TopicId.String()
 
-	// TODO: redeplo the config topic and assign the new topic id to the config
+	// TODO: redeploy the config topic and assign the new topic id to the config
 	parsedBridgeCfgForDeploy.ConfigTopicId = "0.0.0"
 
 	fmt.Println("====================================")

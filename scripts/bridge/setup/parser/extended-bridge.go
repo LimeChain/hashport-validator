@@ -66,7 +66,6 @@ func (b *ExtendedBridge) ToBridgeParser() *parser.Bridge {
 	parsedBridge.ConfigTopicId = b.ConfigTopicId
 	parsedBridge.PollingInterval = b.PollingInterval
 	parsedBridge.TopicId = b.TopicId
-	// parsedBridge.
 	parsedBridge.MonitoredAccounts = b.MonitoredAccounts
 	parsedBridge.Networks = make(map[uint64]*parser.Network)
 

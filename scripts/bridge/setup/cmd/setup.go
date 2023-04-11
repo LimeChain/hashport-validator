@@ -22,7 +22,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
 )
 
-
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
