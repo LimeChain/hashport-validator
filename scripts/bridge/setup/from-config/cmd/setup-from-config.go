@@ -20,18 +20,18 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 
-	"io/ioutil"
 	"strings"
 
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	bridgeSetup "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
 
-	// "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/associate"
 	nativeFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/create"
@@ -93,27 +93,36 @@ func main() {
 		parsedBridgeCfgForDeploy,
 	)
 
-	// here create config_topic_id and push to hedera, then update the final bridge
-	// extend-bridge-config.go
-
 	newParsedBridge := parsedBridgeCfgForDeploy.ToBridgeParser()
 	newBridgeBytes, err := yaml.Marshal(*newParsedBridge)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to marshal updated bridge config to yaml. Err: [%s]", err))
 	}
 
-	// nodeAccId := "0.0.3"
-	// content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.TopicId, accountID, &nodeAccId)
-	// client := hedera.ClientForTestnet()
-	// configBytes := update_config.CreateNewTopicFroxenTx(client ,content, topicIdParsed, executor, nodeAccount, 0)
+	nodeAccId := "0.0.3"
+	content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.TopicId, accountID, &nodeAccId)
+	client := hedera.ClientForTestnet()
+	operatorKey, _ := hedera.PrivateKeyFromString(*privateKey)
+	operatorId, _ := hedera.AccountIDFromString(*accountID)
+	client.SetOperator(operatorId, operatorKey)
+	frozenTopicTx := update_config.CreateNewTopicFroxenTx(client, content, topicIdParsed, executor, nodeAccount, 0)
+	for _, key := range bridgeDeployResult.MembersPrivateKeys {
+		frozenTopicTx.Sign(key)
+	}
+	tx, err := frozenTopicTx.Execute(client)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to execute frozen topic tx. Err: [%s]", err))
+	}
 
-	// deserialized, err := hedera.TransactionFromBytes(configBytes)
-	// if err != nil {
-	// 	panic(fmt.Sprintf("failed to parse transaction. err [%s]", err))
-	// }
+	txReceipt, err := tx.GetReceipt(client)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get receipt for frozen topic tx. Err: [%s]", err))
+	}
+
+	fmt.Printf("Update new config topic - Status: %v \n", txReceipt.Status)
 
 	// finally write the file
-	err = ioutil.WriteFile(outputFilePath, newBridgeBytes, 0644)
+	err = os.WriteFile(outputFilePath, newBridgeBytes, 0644)
 	if err != nil {
 		panic(fmt.Sprintf("failed to write new-bridge.yml file. Err: [%s]", err))
 	}

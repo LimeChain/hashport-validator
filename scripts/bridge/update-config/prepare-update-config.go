@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func CreateNewTopicFroxenTx(client *hedera.Client, content []byte, topicIdParsed hedera.TopicID, executor hedera.AccountID, nodeAccount hedera.AccountID, additionTime time.Duration) []byte {
+func CreateNewTopicFroxenTx(client *hedera.Client, content []byte, topicIdParsed hedera.TopicID, executor hedera.AccountID, nodeAccount hedera.AccountID, additionTime time.Duration) *hedera.TopicMessageSubmitTransaction {
 	transactionID := hedera.NewTransactionIDWithValidStart(executor, time.Now().Add(additionTime))
 	frozenTx, err := hedera.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicIdParsed).
@@ -18,10 +18,5 @@ func CreateNewTopicFroxenTx(client *hedera.Client, content []byte, topicIdParsed
 		panic(err)
 	}
 
-	bytes, err := frozenTx.ToBytes()
-	if err != nil {
-		panic(err)
-	}
-
-	return bytes
+	return frozenTx
 }
