@@ -32,6 +32,7 @@ type DeployResult struct {
 	MembersPublicKeys  []hedera.PublicKey
 	MembersAccountIDs  []hedera.AccountID
 	TopicId            *hedera.TopicID
+	ConfigTopicId      *hedera.TopicID
 	BridgeAccountID    *hedera.AccountID
 	PayerAccountID     *hedera.AccountID
 	Error              error
@@ -101,6 +102,24 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	}
 	result.TopicId = topicReceipt.TopicID
 	fmt.Printf("TopicID: %v\n", topicReceipt.TopicID)
+	fmt.Println("--------------------------")
+
+	configTxID, err := hedera.NewTopicCreateTransaction().
+		SetAdminKey(adminPublicKey).
+		SetSubmitKey(topicKey).
+		Execute(client)
+	if err != nil {
+		result.Error = fmt.Errorf("failed to create topic. Err: [%s]", err)
+		return result
+	}
+
+	configTopicReceipt, err := configTxID.GetReceipt(client)
+	if err != nil {
+		result.Error = fmt.Errorf("failed to get topic receipt. Err: [%s]", err)
+		return result
+	}
+	result.ConfigTopicId = configTopicReceipt.TopicID
+	fmt.Printf("Config TopicID: %v\n", topicReceipt.TopicID)
 	fmt.Println("--------------------------")
 
 	custodialKey := hedera.KeyListWithThreshold(treshold)

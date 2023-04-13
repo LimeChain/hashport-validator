@@ -20,16 +20,18 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 
-	"io/ioutil"
 	"strings"
 
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	bridgeSetup "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
+
+	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/associate"
 	nativeFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/create"
@@ -91,12 +93,36 @@ func main() {
 		parsedBridgeCfgForDeploy,
 	)
 
-	printTitle("Updated Bridge yaml config:")
-	newBridgeYml, err := yaml.Marshal(*parsedBridgeCfgForDeploy.ToBridgeParser())
+	newParsedBridge := parsedBridgeCfgForDeploy.ToBridgeParser()
+	newBridgeBytes, err := yaml.Marshal(*newParsedBridge)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to marshal updated bridge config to yaml. Err: [%s]", err))
 	}
-	err = ioutil.WriteFile(outputFilePath, newBridgeYml, 0644)
+
+	nodeAccId := "0.0.3"
+	content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.TopicId, accountID, &nodeAccId)
+	client := hedera.ClientForTestnet()
+	operatorKey, _ := hedera.PrivateKeyFromString(*privateKey)
+	operatorId, _ := hedera.AccountIDFromString(*accountID)
+	client.SetOperator(operatorId, operatorKey)
+	frozenTopicTx := update_config.CreateNewTopicFroxenTx(client, content, topicIdParsed, executor, nodeAccount, 0)
+	for _, key := range bridgeDeployResult.MembersPrivateKeys {
+		frozenTopicTx.Sign(key)
+	}
+	tx, err := frozenTopicTx.Execute(client)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to execute frozen topic tx. Err: [%s]", err))
+	}
+
+	txReceipt, err := tx.GetReceipt(client)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get receipt for frozen topic tx. Err: [%s]", err))
+	}
+
+	fmt.Printf("Update new config topic - Status: %v \n", txReceipt.Status)
+
+	// finally write the file
+	err = os.WriteFile(outputFilePath, newBridgeBytes, 0644)
 	if err != nil {
 		panic(fmt.Sprintf("failed to write new-bridge.yml file. Err: [%s]", err))
 	}
@@ -142,8 +168,7 @@ func deployBridge(privateKey *string, accountID *string, adminKey *string, netwo
 	parsedBridgeCfgForDeploy.MonitoredAccounts = monitored_accounts
 	parsedBridgeCfgForDeploy.TopicId = bridgeDeployResult.TopicId.String()
 
-	// TODO: redeploy the config topic and assign the new topic id to the config
-	parsedBridgeCfgForDeploy.ConfigTopicId = "0.0.0"
+	parsedBridgeCfgForDeploy.ConfigTopicId = bridgeDeployResult.ConfigTopicId.String()
 
 	fmt.Println("====================================")
 	return bridgeDeployResult
@@ -276,6 +301,26 @@ func associateToken(tokenId *hedera.TokenID, client *hedera.Client, accountId he
 	}
 	fmt.Printf("Successfully Associated Hedera Native Fungible Token [%s] with %s Account.\n", tokenId.String(), accountName)
 	return err
+}
+
+func parseParams(content []byte, topicId *string, executorId *string, nodeAccountId *string) ([]byte, hedera.TopicID, hedera.AccountID, hedera.AccountID) {
+	contentLength := len(content)
+	if contentLength == 0 {
+		panic("config file is empty")
+	}
+	topicIdParsed, err := hedera.TopicIDFromString(*topicId)
+	if err != nil {
+		panic(err)
+	}
+	executor, err := hedera.AccountIDFromString(*executorId)
+	if err != nil {
+		panic(err)
+	}
+	nodeAccount, err := hedera.AccountIDFromString(*nodeAccountId)
+	if err != nil {
+		panic(fmt.Sprintf("Invalid Node Account Id. Err: %s", err))
+	}
+	return content, topicIdParsed, executor, nodeAccount
 }
 
 func validateArguments(privateKey *string, accountID *string, adminKey *string, members *int, configPath *string, network *string) {
