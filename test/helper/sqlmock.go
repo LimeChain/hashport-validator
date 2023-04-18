@@ -41,7 +41,7 @@ func SetupSqlMock() (dbConnection *gorm.DB, sqlMock sqlmock.Sqlmock, db *sql.DB)
 		panic("failed to initialize 'sqlmock'")
 	}
 
-	dbConnection, err = gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	dbConnection, err = gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{SkipDefaultTransaction: true})
 	if err != nil {
 		panic("failed to open 'gorm.Db' connection")
 	}
