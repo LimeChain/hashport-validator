@@ -54,6 +54,7 @@ func (c *pgConnector) tryConnection() *gorm.DB {
 		postgres.Open(c.connString),
 		&gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
+			SkipDefaultTransaction: true,
 		},
 	)
 
