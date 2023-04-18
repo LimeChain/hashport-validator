@@ -8,8 +8,7 @@ jobs:
   deploy_mainnet:
     runs-on: ubuntu-latest
     if: |
-      contains(github.event.release.tag_name, '-alpha-') &&
-      github.event.release.target_commitish == 'mainnet'
+      ! contains(github.event.release.tag_name, '-rc-')
     steps:
       - uses: actions/checkout@v2
 
