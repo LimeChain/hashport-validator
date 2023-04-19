@@ -19,6 +19,7 @@ package verify
 import (
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -387,42 +388,13 @@ func (s *Service) messagesFieldsMatch(comparing, comparable entity.Message) bool
 }
 
 func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
-	return comparable.TransactionID == comparing.TransactionID &&
-		comparable.SourceChainID == comparing.SourceChainID &&
-		comparable.TargetChainID == comparing.TargetChainID &&
-		comparable.NativeChainID == comparing.NativeChainID &&
-		comparable.SourceAsset == comparing.SourceAsset &&
-		comparable.TargetAsset == comparing.TargetAsset &&
-		comparable.NativeAsset == comparing.NativeAsset &&
-		comparable.Receiver == comparing.Receiver &&
-		comparable.Amount == comparing.Amount &&
-		comparable.Status == comparing.Status &&
-		comparable.Metadata == comparing.Metadata &&
-		comparable.SerialNumber == comparing.SerialNumber &&
-		comparable.IsNft == comparing.IsNft &&
-		comparable.Originator == comparing.Originator &&
-		comparable.Timestamp == comparing.Timestamp
+	return reflect.DeepEqual(comparable, comparing)
 }
 
 func (s *Service) scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
-	if expected.TransactionID != actual.TransactionID ||
-		expected.ScheduleID != actual.ScheduleID ||
-		expected.HasReceiver != actual.HasReceiver ||
-		expected.Operation != actual.Operation ||
-		expected.Status != actual.Status ||
-		expected.TransferID.String != actual.TransferID.String {
-		return false
-	}
-	return true
+	return reflect.DeepEqual(expected, actual)
 }
 
 func (s *Service) feeIsAsExpected(expected, actual *entity.Fee) bool {
-	if expected.TransactionID != actual.TransactionID ||
-		expected.ScheduleID != actual.ScheduleID ||
-		expected.Amount != actual.Amount ||
-		expected.Status != actual.Status ||
-		expected.TransferID.String != actual.TransferID.String {
-		return false
-	}
-	return true
+	return reflect.DeepEqual(expected, actual)
 }
