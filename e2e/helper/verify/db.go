@@ -380,11 +380,7 @@ func (s *Service) messageListContains(message entity.Message, actualMessages []e
 }
 
 func (s *Service) messagesFieldsMatch(comparing, comparable entity.Message) bool {
-	return comparable.TransferID == comparing.TransferID &&
-		comparable.Signature == comparing.Signature &&
-		comparable.Hash == comparing.Hash &&
-		s.transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
-		comparable.Signer == comparing.Signer
+	return reflect.DeepEqual(comparable, comparing)
 }
 
 func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bool {

@@ -51,7 +51,7 @@ func FungibleTransferRecord(
 		TargetAsset:   targetAsset,
 		NativeAsset:   nativeAsset,
 		Amount:        amount,
-		Fee:		   fee,
+		Fee:           fee,
 		Status:        status,
 		Originator:    originator,
 		Timestamp:     timestamp,
