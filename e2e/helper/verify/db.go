@@ -380,7 +380,11 @@ func (s *Service) messageListContains(message entity.Message, actualMessages []e
 }
 
 func (s *Service) messagesFieldsMatch(comparing, comparable entity.Message) bool {
-	return reflect.DeepEqual(comparable, comparing)
+	return comparable.TransferID == comparing.TransferID &&
+		comparable.Signature == comparing.Signature &&
+		comparable.Hash == comparing.Hash &&
+		s.transfersFieldsMatch(comparable.Transfer, comparing.Transfer) &&
+		comparable.Signer == comparing.Signer
 }
 
 func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bool {
@@ -388,24 +392,9 @@ func (s *Service) transfersFieldsMatch(comparing, comparable entity.Transfer) bo
 }
 
 func (s *Service) scheduleIsAsExpected(expected, actual *entity.Schedule) bool {
-	if expected.TransactionID != actual.TransactionID ||
-		expected.ScheduleID != actual.ScheduleID ||
-		expected.HasReceiver != actual.HasReceiver ||
-		expected.Operation != actual.Operation ||
-		expected.Status != actual.Status ||
-		expected.TransferID.String != actual.TransferID.String {
-		return false
-	}
-	return true
+	return reflect.DeepEqual(expected, actual)
 }
 
 func (s *Service) feeIsAsExpected(expected, actual *entity.Fee) bool {
-	if expected.TransactionID != actual.TransactionID ||
-		expected.ScheduleID != actual.ScheduleID ||
-		expected.Amount != actual.Amount ||
-		expected.Status != actual.Status ||
-		expected.TransferID.String != actual.TransferID.String {
-		return false
-	}
-	return true
+	return reflect.DeepEqual(expected, actual)
 }
