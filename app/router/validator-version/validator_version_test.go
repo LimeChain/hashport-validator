@@ -26,39 +26,38 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
 )
- 
- func Test_NewRouter(t *testing.T) {
-	 router := NewRouter()
- 
-	 assert.NotNil(t, router)
- }
- 
- func Test_configBridgeResponse(t *testing.T) {
-	 mocks.Setup()
 
-	 os.Setenv("VTAG", "1.0.0")
- 
-	 buf := &bytes.Buffer{}
-	 enc := json.NewEncoder(buf)
- 
-	 versionResp := &VersionResponse{
-		 Version: "1.0.0",
-	 }
- 
-	 var err error
-	 if err := enc.Encode(versionResp); err != nil {
-		 t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
-	 }
- 
-	 versionResponseAsBytes := buf.Bytes()
-	 mocks.MResponseWriter.On("Header").Return(http.Header{})
-	 mocks.MResponseWriter.On("Write", versionResponseAsBytes).Return(len(versionResponseAsBytes), nil)
- 
-	 versionResponseHandler := versionResponse()
-	 versionResponseHandler(mocks.MResponseWriter, new(http.Request))
- 
-	 assert.Nil(t, err)
-	 assert.NotNil(t, versionResponseHandler)
-	 assert.NotNil(t, versionResponseAsBytes)
- }
- 
+func Test_NewRouter(t *testing.T) {
+	router := NewRouter()
+
+	assert.NotNil(t, router)
+}
+
+func Test_configBridgeResponse(t *testing.T) {
+	mocks.Setup()
+
+	os.Setenv("VTAG", "1.0.0")
+
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+
+	versionResp := &VersionResponse{
+		Version: "1.0.0",
+	}
+
+	var err error
+	if err := enc.Encode(versionResp); err != nil {
+		t.Fatalf("Failed to encode response for ResponseWriter. Err: [%s]", err.Error())
+	}
+
+	versionResponseAsBytes := buf.Bytes()
+	mocks.MResponseWriter.On("Header").Return(http.Header{})
+	mocks.MResponseWriter.On("Write", versionResponseAsBytes).Return(len(versionResponseAsBytes), nil)
+
+	versionResponseHandler := versionResponse()
+	versionResponseHandler(mocks.MResponseWriter, new(http.Request))
+
+	assert.Nil(t, err)
+	assert.NotNil(t, versionResponseHandler)
+	assert.NotNil(t, versionResponseAsBytes)
+}
