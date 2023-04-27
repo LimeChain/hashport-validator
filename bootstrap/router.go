@@ -22,6 +22,7 @@ import (
 	burn_event "github.com/limechain/hedera-eth-bridge-validator/app/router/burn-event"
 	config_bridge "github.com/limechain/hedera-eth-bridge-validator/app/router/config-bridge"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/fees"
+	"github.com/limechain/hedera-eth-bridge-validator/app/router/validator-version"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/healthcheck"
 	min_amounts "github.com/limechain/hedera-eth-bridge-validator/app/router/min-amounts"
 	"github.com/limechain/hedera-eth-bridge-validator/app/router/transfer"
@@ -45,5 +46,6 @@ func InitializeAPIRouter(services *Services, bridgeConfig *parser.Bridge, nodeCo
 	apiRouter.AddV1Router(utils.Route, utils.NewRouter(services.Utils))
 	apiRouter.AddV1Router(fees.Route, fees.NewRouter(services.Pricing))
 	apiRouter.AddV1Router(transfer_reset.Route, transfer_reset.NewRouter(services.transfers, services.Prometheus, nodeConfig))
+	apiRouter.AddV1Router(validator_version.Route, validator_version.NewRouter())
 	return apiRouter
 }
