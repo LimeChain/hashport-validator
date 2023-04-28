@@ -64,14 +64,13 @@ func Test_versionResponse(t *testing.T) {
 	assert.NotNil(t, versionResponseHandler)
 	assert.NotNil(t, versionResponseAsBytes)
 
+	var versionResponse VersionResponse
+	err = json.Unmarshal(versionResponseAsBytes, &versionResponse)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
-    var versionResponse VersionResponse
-    err = json.Unmarshal(versionResponseAsBytes, &versionResponse)
-    if err != nil {
-        fmt.Println("Error:", err)
-        return
-    }
-    
-	assert.Equal(t, &versionResponse, versionResp)	
+	assert.Equal(t, &versionResponse, versionResp)
 	assert.Equal(t, versionResponse.Version, "1.0.0")
 }
