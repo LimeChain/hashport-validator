@@ -18,7 +18,7 @@ services:
   validator:
     image: gcr.io/hedera-eth-bridge-test/hedera-eth-bridge-validator:${TAG}
     environment:
-      VTAG: ${TAG}
+      VERSION_TAG: ${TAG}
       VALIDATOR_DATABASE_HOST: db
     restart: always
     tty: true

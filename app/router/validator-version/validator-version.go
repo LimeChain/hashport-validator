@@ -41,7 +41,7 @@ func NewRouter() http.Handler {
 // GET: .../version
 func versionResponse() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		version := os.Getenv("VTAG")
+		version := os.Getenv("VERSION_TAG")
 		render.JSON(w, r, &VersionResponse{Version: version})
 	}
 }

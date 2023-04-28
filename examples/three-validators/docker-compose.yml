@@ -66,7 +66,7 @@ services:
       context: ../..
       dockerfile: ./build/Dockerfile
     environment:
-      VTAG: ${TAG}
+      VERSION_TAG: ${TAG}
       VALIDATOR_DATABASE_HOST: alice_db
     volumes:
       - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml

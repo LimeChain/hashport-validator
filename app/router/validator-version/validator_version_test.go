@@ -19,6 +19,9 @@ package validator_version
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	// "net/http/httptest"
+
 	"net/http"
 	"os"
 	"testing"
@@ -33,10 +36,10 @@ func Test_NewRouter(t *testing.T) {
 	assert.NotNil(t, router)
 }
 
-func Test_configBridgeResponse(t *testing.T) {
+func Test_versionResponse(t *testing.T) {
 	mocks.Setup()
 
-	os.Setenv("VTAG", "1.0.0")
+	os.Setenv("VERSION_TAG", "1.0.0")
 
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -60,4 +63,15 @@ func Test_configBridgeResponse(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, versionResponseHandler)
 	assert.NotNil(t, versionResponseAsBytes)
+
+
+    var versionResponse VersionResponse
+    err = json.Unmarshal(versionResponseAsBytes, &versionResponse)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    
+	assert.Equal(t, &versionResponse, versionResp)	
+	assert.Equal(t, versionResponse.Version, "1.0.0")
 }
