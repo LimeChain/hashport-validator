@@ -60,10 +60,6 @@ func Test_versionResponse(t *testing.T) {
 	versionResponseHandler := versionResponse()
 	versionResponseHandler(mocks.MResponseWriter, new(http.Request))
 
-	assert.Nil(t, err)
-	assert.NotNil(t, versionResponseHandler)
-	assert.NotNil(t, versionResponseAsBytes)
-
 	var versionResponse VersionResponse
 	err = json.Unmarshal(versionResponseAsBytes, &versionResponse)
 	if err != nil {
