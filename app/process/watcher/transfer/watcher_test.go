@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
 
@@ -419,6 +420,108 @@ func Test_validateNftTokenCustomFees_ErrOnTransferForFeeLessThanExpected(t *test
 	tx.TokenTransfers[0].Amount = txAmount
 
 	assert.False(t, ok)
+}
+
+func Test_createFungiblePayload(t *testing.T) {
+	w := initializeWatcher()
+
+	transactionID := "0.0.111-1-1"
+	receiver := "0.0.111"
+	sourceAsset := nativeTokenAddressNetwork0
+	assetNative := nativeAssetNetwork0
+	amount := int64(10000)
+	targetChainId := network3
+	targetChainAsset := wrappedTokenAddressNetwork3
+
+	fungibleAssetInfoNetwork0 := &asset.FungibleAssetInfo{Decimals: 8}
+	fungibleAssetInfoNetwork3 := &asset.FungibleAssetInfo{Decimals: 8}
+
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+
+	payload, err := w.createFungiblePayload(
+		transactionID,
+		receiver,
+		sourceAsset,
+		*assetNative,
+		amount,
+		targetChainId,
+		targetChainAsset,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, transactionID, payload.TransactionId)
+	assert.Equal(t, strconv.FormatInt(amount, 10), payload.Amount)
+	assert.Equal(t, receiver, payload.Receiver)
+}
+
+func Test_createFungiblePayload_ErrorWrongDecimals(t *testing.T) {
+	w := initializeWatcher()
+
+	transactionID := "0.0.111-1-1"
+	receiver := "0.0.111"
+	sourceAsset := nativeTokenAddressNetwork0
+	assetNative := nativeAssetNetwork0
+	amount := int64(10000)
+	targetChainId := network3
+	targetChainAsset := wrappedTokenAddressNetwork3
+
+	fungibleAssetInfoNetwork0 := &asset.FungibleAssetInfo{Decimals: 8}
+	fungibleAssetInfoNetwork3 := &asset.FungibleAssetInfo{Decimals: 18}
+
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+
+	_, err := w.createFungiblePayload(
+		transactionID,
+		receiver,
+		sourceAsset,
+		*assetNative,
+		amount,
+		targetChainId,
+		targetChainAsset,
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "decimals of source asset")
+}
+
+// insufficient amount
+func Test_createFungiblePayload_ErrorInsufficientAmount(t *testing.T) {
+	w := initializeWatcher()
+
+	transactionID := "0.0.111-1-1"
+	receiver := "0.0.111"
+	sourceAsset := nativeTokenAddressNetwork0
+	assetNative := nativeAssetNetwork0
+	amount := int64(256)
+	targetChainId := network3
+	targetChainAsset := wrappedTokenAddressNetwork3
+
+	fungibleAssetInfoNetwork0 := &asset.FungibleAssetInfo{Decimals: 8}
+	fungibleAssetInfoNetwork3 := &asset.FungibleAssetInfo{Decimals: 8}
+
+	mocks.MAssetsService.On("FungibleNativeAsset", network0, nativeTokenAddressNetwork0).Return(nativeAssetNetwork0)
+	mocks.MAssetsService.On("FungibleAssetInfo", network0, nativeTokenAddressNetwork0).Return(fungibleAssetInfoNetwork0, true)
+	mocks.MAssetsService.On("FungibleAssetInfo", network3, wrappedTokenAddressNetwork3).Return(fungibleAssetInfoNetwork3, true)
+	mocks.MPricingService.On("GetTokenPriceInfo", network0, nativeTokenAddressNetwork0).Return(tokenPriceInfo, true)
+
+	_, err := w.createFungiblePayload(
+		transactionID,
+		receiver,
+		sourceAsset,
+		*assetNative,
+		amount,
+		targetChainId,
+		targetChainAsset,
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "is less than Minimum Amount")
 }
 
 func setup() {
