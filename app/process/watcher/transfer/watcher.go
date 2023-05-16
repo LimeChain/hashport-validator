@@ -382,6 +382,10 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		return nil, fmt.Errorf("failed to retrieve fungible asset info of [%s]", targetChainAsset)
 	}
 
+	if (nativeAsset.ChainId == constants.HederaNetworkId) && (sourceAssetInfo.Decimals != targetAssetInfo.Decimals) {
+		return nil, fmt.Errorf("decimals of source asset [%s] and target asset [%s] are not equal", sourceAsset, targetChainAsset)
+	}
+
 	targetAmount := decimal.TargetAmount(sourceAssetInfo.Decimals, targetAssetInfo.Decimals, big.NewInt(amount))
 	if targetAmount.Cmp(big.NewInt(0)) == 0 {
 		return nil, fmt.Errorf("insufficient amount provided: Amount [%d] and Target Amount [%s]", amount, targetAmount)
