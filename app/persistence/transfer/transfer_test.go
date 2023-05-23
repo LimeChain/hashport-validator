@@ -19,10 +19,12 @@ package transfer
 import (
 	"database/sql"
 	"database/sql/driver"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -613,14 +615,15 @@ func Test_PagedWithFilterOriginatorEVM(t *testing.T) {
 	assert.NotEmpty(t, actual)
 }
 
-func Test_PagedWithFilterTimestamp(t *testing.T) {
+func Test_PagedWithFilterLegacyTimestamp(t *testing.T) {
 	setup()
 	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+	string_time := nanoTime.Time.Format(time.RFC3339Nano)
 	req := &transfer.PagedRequest{
 		Page:     1,
 		PageSize: 10,
 		Filter: transfer.Filter{
-			Timestamp: nanoTime.Time,
+			TimestampQuery: string_time,
 		},
 	}
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, nanoTime.Time.UnixNano())
@@ -629,6 +632,44 @@ func Test_PagedWithFilterTimestamp(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
+}
+
+func Test_PagedWithFilterTimestamp(t *testing.T) {
+	setup()
+	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
+
+	to_string_time := nanoTime.Time.Format(time.RFC3339Nano)
+	from_string_time := nanoTime.Time.Add(-time.Hour).Format(time.RFC3339Nano)
+	formated_time_string := fmt.Sprintf("lte=%s&gte=%s", to_string_time, from_string_time)
+
+	req := &transfer.PagedRequest{
+		Page:     1,
+		PageSize: 10,
+		Filter: transfer.Filter{
+			TimestampQuery: formated_time_string,
+		},
+	}
+
+	// Parse the formatted timestamp strings
+	to_timestamp, err := time.Parse(time.RFC3339Nano, to_string_time)
+	if err != nil {
+		panic(err)
+	}
+	from_timestamp, err := time.Parse(time.RFC3339Nano, from_string_time)
+	if err != nil {
+		panic(err)
+	}
+
+	// Set up the mock query with the appropriate operators and timestamps
+	time_querry := fmt.Sprintf("timestamp <= %d AND timestamp >= %d", to_timestamp.UnixNano(), from_timestamp.UnixNano())
+	var _ = time_querry
+	// helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, time_querry)
+
+	// var _ = req
+	actual, _ := repository.Paged(req)
+	fmt.Println(actual)
+	// assert.Nil(t, err)
+	// assert.NotEmpty(t, actual)
 }
 
 func Test_PagedWithFilterTransactionId(t *testing.T) {

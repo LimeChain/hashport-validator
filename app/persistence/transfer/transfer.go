@@ -20,8 +20,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"strings"
+	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -135,6 +137,54 @@ func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
+func formatTimestampFilter(q *gorm.DB, ts_query string) (*gorm.DB, error) {
+	q_params := strings.Split(ts_query, "&")
+
+	// This if statement handles legacy timestamp filter like:
+	// "timestamp": "2023-04-19T04:41:47.104114905Z"
+	if len(q_params) == 1 && !strings.Contains(ts_query, "=") {
+		timestamp, err := time.Parse(time.RFC3339Nano, q_params[0])
+		if err != nil {
+			return q, err
+		}
+
+		q = q.Where("timestamp = ?", timestamp.UnixNano())
+		return q, nil
+	}
+
+	// This for loop handles new timestamp filter like:
+	// "timestamp": "lte=2023-05-19T04:41:47.104114905Z&gte=2023-04-19T04:41:47.104114905Z"
+	// "timestamp": "eq=2023-04-19T04:41:47.104114905Z"
+	for _, param := range q_params {
+		parts := strings.Split(param, "=")
+
+		operator := parts[0]
+		datetime, err := time.Parse(time.RFC3339Nano, parts[1])
+		if err != nil {
+			return q, err
+		}
+
+		timestamp := datetime.UnixNano()
+
+		switch operator {
+		case "eq":
+			q = q.Where("timestamp = ?", timestamp)
+		case "gt":
+			q = q.Where("timestamp > ?", timestamp)
+		case "lt":
+			q = q.Where("timestamp < ?", timestamp)
+		case "gte":
+			q = q.Where("timestamp >= ?", timestamp)
+		case "lte":
+			q = q.Where("timestamp <= ?", timestamp)
+		default:
+			return q, fmt.Errorf("invalid operator: %s", operator)
+		}
+	}
+
+	return q, nil
+}
+
 func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
 	offset := (req.Page - 1) * req.PageSize
 	res := make([]*entity.Transfer, 0, req.PageSize)
@@ -153,8 +203,14 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 			q = q.Where("originator = ?", f.Originator)
 		}
 	}
-	if !f.Timestamp.IsZero() {
-		q = q.Where("timestamp = ?", f.Timestamp.UnixNano())
+	if f.TimestampQuery != "" {
+		q_, err := formatTimestampFilter(q, f.TimestampQuery)
+		if err != nil {
+			r.logger.Errorf("Failed to get paged transfers: [%s]", err)
+			return nil, err
+		}
+
+		q = q_
 	}
 	if f.TokenId != "" {
 		if strings.Contains(f.TokenId, "0x") {
