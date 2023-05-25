@@ -80,7 +80,7 @@ services:
   bob:
     image: eth-hedera-validator
     environment:
-      VTAG: ${TAG}
+      VERSION_TAG: ${TAG}
       VALIDATOR_DATABASE_HOST: bob_db
     volumes:
       - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
@@ -94,7 +94,7 @@ services:
   carol:
     image: eth-hedera-validator
     environment:
-      VTAG: ${TAG}
+      VERSION_TAG: ${TAG}
       VALIDATOR_DATABASE_HOST: carol_db
     volumes:
     - ./bridge.yml:/src/hedera-eth-bridge-validator/config/bridge.yml
