@@ -54,10 +54,10 @@ type PagedRequest struct {
 }
 
 type Filter struct {
-	Originator    string    `json:"originator"`
-	Timestamp     time.Time `json:"timestamp"`
-	TokenId       string    `json:"tokenId"`
-	TransactionId string    `json:"transactionId"`
+	Originator     string `json:"originator"`
+	TimestampQuery string `json:"timestamp"`
+	TokenId        string `json:"tokenId"`
+	TransactionId  string `json:"transactionId"`
 }
 
 type SanityCheckResult struct {
@@ -72,5 +72,5 @@ type TransferReset struct {
 	SourceChainId uint64 `json:"sourceChainId"`
 	TargetChainId uint64 `json:"targetChainId"`
 	SourceToken   string `json:"sourceToken"`
-	Password string `json:"password"`
+	Password      string `json:"password"`
 }

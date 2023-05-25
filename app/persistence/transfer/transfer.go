@@ -20,10 +20,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"strings"
+	"time"
+
+	"github.com/limechain/hedera-eth-bridge-validator/constants"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/payload"
 
@@ -135,15 +138,66 @@ func (r *Repository) UpdateStatusFailed(txId string) error {
 	return r.updateStatus(txId, status.Failed)
 }
 
-func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+func formatTimestampFilter(q *gorm.DB, ts_query string) (*gorm.DB, error) {
+	qParams := strings.Split(ts_query, "&")
+	operators := map[string]string{
+		"eq":  "=",
+		"gt":  ">",
+		"lt":  "<",
+		"gte": ">=",
+		"lte": "<=",
+	}
+
+	// This if statement handles legacy timestamp filter like:
+	// "timestamp": "2023-04-19T04:41:47.104114905Z"
+	if len(qParams) == 1 && !strings.Contains(ts_query, "=") {
+		timestamp, err := time.Parse(time.RFC3339Nano, qParams[0])
+		if err != nil {
+			return q, err
+		}
+
+		q = q.Where("timestamp = ?", timestamp.UnixNano())
+		return q, nil
+	}
+
+	// This for loop handles new timestamp filter like:
+	// "timestamp": "lte=2023-05-19T04:41:47.104114905Z&gte=2023-04-19T04:41:47.104114905Z"
+	// "timestamp": "eq=2023-04-19T04:41:47.104114905Z"
+	for _, param := range qParams {
+		parts := strings.Split(param, "=")
+
+		operator := parts[0]
+		datetime, err := time.Parse(time.RFC3339Nano, parts[1])
+		if err != nil {
+			return q, err
+		}
+
+		timestamp := datetime.UnixNano()
+
+		op, exists := operators[operator]
+		if !exists {
+			return q, service.ErrWrongQuery
+		}
+
+		q = q.Where("timestamp "+op+" ?", timestamp)
+
+	}
+
+	return q, nil
+}
+
+func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, int64, error) {
+	var (
+		err   error
+		count int64
+	)
+
 	offset := (req.Page - 1) * req.PageSize
 	res := make([]*entity.Transfer, 0, req.PageSize)
 	f := req.Filter
 	q := r.db.
 		Model(entity.Transfer{}).
-		Order("timestamp desc, status asc").
-		Offset(int(offset)).
-		Limit(int(req.PageSize))
+		Order("timestamp desc, status asc")
 
 	if f.Originator != "" {
 		if strings.Contains(f.Originator, "0x") {
@@ -153,8 +207,14 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 			q = q.Where("originator = ?", f.Originator)
 		}
 	}
-	if !f.Timestamp.IsZero() {
-		q = q.Where("timestamp = ?", f.Timestamp.UnixNano())
+
+	if f.TimestampQuery != "" {
+		q, err = formatTimestampFilter(q, f.TimestampQuery)
+		if err != nil {
+			r.logger.Errorf("Failed to get paged transfers: [%s]", err)
+			return nil, 0, err
+		}
+
 	}
 	if f.TokenId != "" {
 		if strings.Contains(f.TokenId, "0x") {
@@ -168,35 +228,17 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, erro
 		q = q.Where("transaction_id LIKE ?", fmt.Sprintf(`%s%%`, f.TransactionId))
 	}
 
-	err := q.Find(&res).Error
+	q = q.Count(&count).
+		Offset(int(offset)).
+		Limit(int(req.PageSize))
+
+	err = q.Find(&res).Error
 	if err != nil {
 		r.logger.Errorf("Failed to get paged transfers: [%s]", err)
-		return nil, err
+		return nil, 0, err
 	}
 
-	return res, nil
-}
-
-func (r *Repository) Count() (int64, error) {
-	db, err := r.db.DB()
-	if err != nil {
-		return 0, err
-	}
-
-	cur, err := db.Query(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
-	if err != nil {
-		return 0, err
-	}
-	defer cur.Close()
-
-	var res int64
-	if cur.Next() {
-		if err := cur.Scan(&res); err != nil {
-			return 0, err
-		}
-	}
-
-	return res, nil
+	return res, count, nil
 }
 
 func (r *Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {

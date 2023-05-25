@@ -375,7 +375,7 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 }
 
 func (ts *Service) Paged(req *model.PagedRequest) (*model.Paged, error) {
-	items, err := ts.transferRepository.Paged(req)
+	items, count, err := ts.transferRepository.Paged(req)
 	if err != nil {
 		ts.logger.Errorf("Failed to get paged transfers. Error: [%s]", err)
 		return nil, err
@@ -384,12 +384,6 @@ func (ts *Service) Paged(req *model.PagedRequest) (*model.Paged, error) {
 	res := make([]*model.Transfer, 0, len(items))
 	for _, t := range items {
 		res = append(res, t.ToDto())
-	}
-
-	count, err := ts.transferRepository.Count()
-	if err != nil {
-		ts.logger.Errorf("Failed to count transfers. Error: [%s]", err)
-		return nil, err
 	}
 
 	return &model.Paged{

@@ -32,6 +32,9 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	case service.ErrNotFound:
 		render.Status(r, http.StatusNotFound)
 		render.JSON(w, r, response.ErrorResponse(err))
+	case service.ErrWrongQuery:
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.ErrorResponse(err))
 	default:
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, response.ErrorResponse(response.ErrorInternalServerError))
