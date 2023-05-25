@@ -735,26 +735,3 @@ func Test_PagedWithFilterTokenId(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
 }
-
-func Test_Count(t *testing.T) {
-	setup()
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	expected := int64(1)
-	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
-
-	actual, err := repository.Count()
-
-	assert.Nil(t, err)
-	assert.Equal(t, expected, actual)
-}
-
-func Test_CountWithErr(t *testing.T) {
-	setup()
-	defer helper.CheckSqlMockExpectationsMet(sqlMock, t)
-	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, countQuery)
-
-	actual, err := repository.Count()
-
-	assert.NotNil(t, err)
-	assert.Equal(t, int64(0), actual)
-}

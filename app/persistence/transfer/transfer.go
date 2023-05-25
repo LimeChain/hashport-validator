@@ -242,28 +242,6 @@ func (r *Repository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, int6
 	return res, count, nil
 }
 
-func (r *Repository) Count() (int64, error) {
-	db, err := r.db.DB()
-	if err != nil {
-		return 0, err
-	}
-
-	cur, err := db.Query(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
-	if err != nil {
-		return 0, err
-	}
-	defer cur.Close()
-
-	var res int64
-	if cur.Next() {
-		if err := cur.Scan(&res); err != nil {
-			return 0, err
-		}
-	}
-
-	return res, nil
-}
-
 func (r *Repository) create(ct *payload.Transfer, status string) (*entity.Transfer, error) {
 	tx := &entity.Transfer{
 		TransactionID: ct.TransactionId,
