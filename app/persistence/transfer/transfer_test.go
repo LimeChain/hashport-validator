@@ -190,12 +190,14 @@ var (
 	updateFeeQuery    = regexp.QuoteMeta(`UPDATE "transfers" SET "fee"=$1 WHERE transaction_id = $2`)
 	updateStatusQuery = regexp.QuoteMeta(`UPDATE "transfers" SET "status"=$1 WHERE transaction_id = $2`)
 
-	countQuery                    = regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT DISTINCT transaction_id FROM transfers) AS t`)
-	pagedQuery                    = regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
-	pagedFilterOriginatorQuery    = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	pagedFilterTimestampQuery     = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	pagedFilterTransactionIdQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1 ORDER BY timestamp desc, status asc LIMIT 10`)
-	pagedFilterTokenIdQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE (source_asset = $1 OR target_asset = $2) ORDER BY timestamp desc, status asc LIMIT 10`)
+	// "SELECT count(*) FROM \"transfers\"\"
+	countQuery                      = regexp.QuoteMeta(`SELECT count(*) FROM "transfers"`)
+	pagedQuery                      = regexp.QuoteMeta(`SELECT * FROM "transfers" ORDER BY timestamp desc, status asc LIMIT 10 OFFSET 10`)
+	pagedFilterOriginatorQuery      = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE originator = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTimestampQuery       = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp = $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterFromToTimestampQuery = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE timestamp <= $1 AND timestamp >= $2 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTransactionIdQuery   = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE transaction_id LIKE $1 ORDER BY timestamp desc, status asc LIMIT 10`)
+	pagedFilterTokenIdQuery         = regexp.QuoteMeta(`SELECT * FROM "transfers" WHERE (source_asset = $1 OR target_asset = $2) ORDER BY timestamp desc, status asc LIMIT 10`)
 )
 
 func setup() {
@@ -556,9 +558,13 @@ func Test_Paged(t *testing.T) {
 		Page:     2,
 		PageSize: 10,
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedQuery)
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
@@ -571,9 +577,13 @@ func Test_PagedWithErr(t *testing.T) {
 		Page:     2,
 		PageSize: 10,
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	_ = helper.SqlMockPrepareQueryWithErrInvalidData(sqlMock, pagedQuery)
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.NotNil(t, err)
 	assert.Empty(t, actual)
@@ -589,9 +599,13 @@ func Test_PagedWithFilterOriginatorHedera(t *testing.T) {
 			Originator: originator,
 		},
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, originator)
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
@@ -607,9 +621,13 @@ func Test_PagedWithFilterOriginatorEVM(t *testing.T) {
 			Originator: originatorEVM,
 		},
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterOriginatorQuery, common.HexToAddress(originatorEVM).String())
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
@@ -626,9 +644,13 @@ func Test_PagedWithFilterLegacyTimestamp(t *testing.T) {
 			TimestampQuery: string_time,
 		},
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, nanoTime.Time.UnixNano())
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
@@ -660,16 +682,15 @@ func Test_PagedWithFilterTimestamp(t *testing.T) {
 		panic(err)
 	}
 
-	// Set up the mock query with the appropriate operators and timestamps
-	time_querry := fmt.Sprintf("timestamp <= %d AND timestamp >= %d", to_timestamp.UnixNano(), from_timestamp.UnixNano())
-	var _ = time_querry
-	// helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTimestampQuery, time_querry)
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
 
-	// var _ = req
-	actual, _ := repository.Paged(req)
+	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterFromToTimestampQuery, to_timestamp.UnixNano(), from_timestamp.UnixNano())
+
+	actual, _, _ := repository.Paged(req)
 	fmt.Println(actual)
-	// assert.Nil(t, err)
-	// assert.NotEmpty(t, actual)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, actual)
 }
 
 func Test_PagedWithFilterTransactionId(t *testing.T) {
@@ -682,9 +703,13 @@ func Test_PagedWithFilterTransactionId(t *testing.T) {
 			TransactionId: transactionId,
 		},
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
+
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTransactionIdQuery, txIdWithPlaceholder)
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)
@@ -700,9 +725,12 @@ func Test_PagedWithFilterTokenId(t *testing.T) {
 			TokenId: sourceAsset,
 		},
 	}
+
+	expected := int64(1)
+	helper.SqlMockPrepareQuery(sqlMock, []string{"count"}, []driver.Value{expected}, countQuery)
 	helper.SqlMockPrepareQuery(sqlMock, transferColumns, transferRowArgs, pagedFilterTokenIdQuery, sourceAsset, sourceAsset)
 
-	actual, err := repository.Paged(req)
+	actual, _, err := repository.Paged(req)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, actual)

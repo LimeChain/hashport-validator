@@ -84,7 +84,7 @@ func (m *MockTransferRepository) UpdateStatusCompleted(txId string) error {
 	return args.Get(0).(error)
 }
 
-func (m *MockTransferRepository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error) {
+func (m *MockTransferRepository) Paged(req *transfer.PagedRequest) ([]*entity.Transfer, int64, error) {
 	panic("implement me")
 }
 

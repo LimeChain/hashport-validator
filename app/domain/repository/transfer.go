@@ -33,6 +33,6 @@ type Transfer interface {
 	Create(ct *payload.Transfer) (*entity.Transfer, error)
 	UpdateStatusCompleted(txId string) error
 	UpdateStatusFailed(txId string) error
-	Paged(req *transfer.PagedRequest) ([]*entity.Transfer, error)
+	Paged(req *transfer.PagedRequest) ([]*entity.Transfer, int64, error)
 	Count() (int64, error)
 }
