@@ -140,6 +140,13 @@ func (r *Repository) UpdateStatusFailed(txId string) error {
 
 func formatTimestampFilter(q *gorm.DB, ts_query string) (*gorm.DB, error) {
 	qParams := strings.Split(ts_query, "&")
+	operators := map[string]string{
+		"eq":  "=",
+		"gt":  ">",
+		"lt":  "<",
+		"gte": ">=",
+		"lte": "<=",
+	}
 
 	// This if statement handles legacy timestamp filter like:
 	// "timestamp": "2023-04-19T04:41:47.104114905Z"
@@ -166,14 +173,6 @@ func formatTimestampFilter(q *gorm.DB, ts_query string) (*gorm.DB, error) {
 		}
 
 		timestamp := datetime.UnixNano()
-
-		operators := map[string]string{
-			"eq":  "=",
-			"gt":  ">",
-			"lt":  "<",
-			"gte": ">=",
-			"lte": "<=",
-		}
 
 		op, exists := operators[operator]
 		if !exists {
