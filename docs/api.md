@@ -30,13 +30,14 @@ Example:
 ```
 - `POST /api/v1/transfers/history`: Accepts a request body in the form (`*` is required) and returns:
   - Maximum page size is 50. Pages start from 1.
+  - Parameter timestamp supports query params like `gt`, `lt`, `gte`, `lte`, `eq` to filter by range.
   - ```json
     {
       *"page": 1,
       *"pageSize": 20,
       "filter": {
         "originator": "Hedera account ID or EVM address",
-        "timestamp": "VALID RFC3339(Nano) DATE",
+        "timestamp": "VALID RFC3339(Nano) DATE. Supports query params. Ex: 2021-08-31T00:00:00.000000000Z. Ex-2: gte=2023-05-25T07:43:08.650830003Z&lte=2023-05-25T08:11:10.058833356Z",
         "tokenId": "Hedera Token ID or EVM address",
         "transactionId": "Hedera Transaction ID or EVM transaction hash"
       }
