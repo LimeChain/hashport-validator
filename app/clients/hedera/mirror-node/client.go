@@ -562,7 +562,7 @@ func (c Client) getAndParse(query string) (*transaction.Response, error) {
 	var response *transaction.Response
 	e = json.Unmarshal(bodyBytes, &response)
 	if e != nil {
-		return nil, e
+		return nil, fmt.Errorf("failed to unmarshal response body: [%s]. Error: [%s]", string(bodyBytes), e.Error())
 	}
 	if httpResponse.StatusCode >= 400 {
 		return response, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String())

@@ -672,3 +672,42 @@ func Test_TopicExists_ShouldNotExists(t *testing.T) {
 	response := c.TopicExists(topicId)
 	assert.False(t, response)
 }
+
+func Test_GetAndParse(t *testing.T) {
+	setup()
+
+	expected := transaction.Response{
+		Transactions: []transaction.Transaction{
+			{
+				ConsensusTimestamp: "1",
+				EntityId:           "1",
+				Result:             hedera.StatusSuccess.String(),
+			},
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.getAndParse("example.com")
+	assert.Nil(t, err)
+	assert.Equal(t, hedera.StatusSuccess.String(), response.Transactions[0].Result)
+}
+
+func Test_GetAndParseOnJsonError(t *testing.T) {
+	setup()
+
+	encodedContent, err := httpHelper.EncodeBodyContent("not-json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.getAndParse("example.com")
+	assert.Error(t, err)
+	assert.Nil(t, response)
+
+}
