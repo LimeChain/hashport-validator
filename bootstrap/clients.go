@@ -113,12 +113,12 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 
 func InitEVMClients(clientsCfg config.Clients, networks map[uint64]*parser.Network) map[uint64]client.EVM {
 	EVMClients := make(map[uint64]client.EVM)
-	for configChainId, ec := range clientsCfg.Evm {
+	for configChainId, ec := range clientsCfg.EvmPool {
 		network, ok := networks[configChainId]
 		if !ok || network.RouterContractAddress == "" {
 			continue
 		}
-		EVMClients[configChainId] = evm.NewClient(ec, configChainId)
+		EVMClients[configChainId] = evm.NewClientPool(ec, configChainId)
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
 			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare. Error: [%s]", configChainId, e)

@@ -163,10 +163,10 @@ func registerEvmClients(server *server.Server, services *Services, repositories 
 				evmClient,
 				services.Assets,
 				dbIdentifier,
-				configuration.Node.Clients.Evm[chain].StartBlock,
+				configuration.Node.Clients.EvmPool[chain].StartBlock,
 				configuration.Node.Validator,
-				configuration.Node.Clients.Evm[chain].PollingInterval,
-				configuration.Node.Clients.Evm[chain].MaxLogsBlocks,
+				configuration.Node.Clients.EvmPool[chain].PollingInterval,
+				configuration.Node.Clients.EvmPool[chain].MaxLogsBlocks,
 				blacklisted,
 			))
 	}

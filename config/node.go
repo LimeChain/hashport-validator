@@ -25,13 +25,13 @@ import (
 )
 
 type Node struct {
-	Database   Database
-	Clients    Clients
-	LogLevel   string
-	LogFormat  string
-	Port       string
-	Validator  bool
-	Monitoring Monitoring
+	Database           Database
+	Clients            Clients
+	LogLevel           string
+	LogFormat          string
+	Port               string
+	Validator          bool
+	Monitoring         Monitoring
 	GaugeResetPassword string
 }
 
@@ -44,7 +44,7 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm           map[uint64]Evm
+	EvmPool       map[uint64]EvmPool
 	Hedera        Hedera
 	MirrorNode    MirrorNode
 	CoinGecko     CoinGecko
@@ -52,8 +52,17 @@ type Clients struct {
 }
 
 type Evm struct {
+	BlockConfirmations uint64        `yaml:"block_confirmations"`
+	NodeUrl            string        `yaml:"node_url"`
+	PrivateKey         string        `yaml:"private_key"`
+	StartBlock         int64         `yaml:"start_block"`
+	PollingInterval    time.Duration `yaml:"polling_interval"`
+	MaxLogsBlocks      int64         `yaml:"max_logs_blocks"`
+}
+
+type EvmPool struct {
 	BlockConfirmations uint64
-	NodeUrl            string
+	NodeUrls           []string
 	PrivateKey         string
 	StartBlock         int64
 	PollingInterval    time.Duration
@@ -220,7 +229,7 @@ func New(node parser.Node) Node {
 		Clients: Clients{
 			MirrorNode: *new(MirrorNode).DefaultOrConfig(&node.Clients.MirrorNode),
 			Hedera:     *new(Hedera).DefaultOrConfig(&node.Clients.Hedera),
-			Evm:        make(map[uint64]Evm),
+			EvmPool:    make(map[uint64]EvmPool),
 			CoinGecko: CoinGecko{
 				ApiAddress: node.Clients.CoinGecko.ApiAddress,
 			},
@@ -240,8 +249,8 @@ func New(node parser.Node) Node {
 		GaugeResetPassword: node.GaugeResetPassword,
 	}
 
-	for key, value := range node.Clients.Evm {
-		config.Clients.Evm[key] = Evm(value)
+	for key, value := range node.Clients.EvmPool {
+		config.Clients.EvmPool[key] = EvmPool(value)
 	}
 
 	return config

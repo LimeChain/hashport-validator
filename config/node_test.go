@@ -25,6 +25,8 @@ import (
 )
 
 func Test_New(t *testing.T) {
+	nodeUrls := []string{"node-url"}
+
 	in := parser.Node{
 		Database: parser.Database{
 			Host:     "db-host",
@@ -34,10 +36,10 @@ func Test_New(t *testing.T) {
 			Username: "db-user",
 		},
 		Clients: parser.Clients{
-			Evm: map[uint64]parser.Evm{
+			EvmPool: map[uint64]parser.EvmPool{
 				80001: {
 					BlockConfirmations: 1,
-					NodeUrl:            "node-url",
+					NodeUrls:           nodeUrls,
 					PrivateKey:         "private-key",
 					StartBlock:         0,
 					PollingInterval:    0,
@@ -75,10 +77,10 @@ func Test_New(t *testing.T) {
 			Username: "db-user",
 		},
 		Clients: Clients{
-			Evm: map[uint64]Evm{
+			EvmPool: map[uint64]EvmPool{
 				80001: {
 					BlockConfirmations: 1,
-					NodeUrl:            "node-url",
+					NodeUrls:           nodeUrls,
 					PrivateKey:         "private-key",
 					StartBlock:         0,
 					PollingInterval:    0,
