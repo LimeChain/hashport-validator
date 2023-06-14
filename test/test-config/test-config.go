@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	nodeUrls   = []string{"wss://ropsten.infura.io/ws/v3/64364afbcf794ff9a00deabde636b7e1"}
 	TestConfig = config.Config{
 		Node: config.Node{
 			LogLevel:  "debug",
@@ -37,9 +38,9 @@ var (
 				Username: "validator",
 			},
 			Clients: config.Clients{
-				Evm: map[uint64]config.Evm{
+				EvmPool: map[uint64]config.EvmPool{
 					3: {
-						NodeUrl:            "wss://ropsten.infura.io/ws/v3/64364afbcf794ff9a00deabde636b7e1",
+						NodeUrls:           nodeUrls,
 						BlockConfirmations: 5,
 						PrivateKey:         "9f6da11eecc0fd7cb081d2aee88092ee3436397916c894ad6cd80a79009c0ded",
 					},

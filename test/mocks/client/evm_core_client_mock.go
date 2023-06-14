@@ -181,21 +181,78 @@ func (m *MockEVMCore) PendingCodeAt(ctx context.Context, account common.Address)
 	}
 	return args[0].([]byte), args[1].(error)
 }
+
 func (m *MockEVMCore) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
-	panic("implement me")
+	args := m.Called(ctx, account)
+	if args[0] == nil && args[1] == nil {
+		return 0, nil
+	}
+	if args[0] == nil {
+		return 0, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(uint64), nil
+	}
+	return args[0].(uint64), args[1].(error)
 }
+
 func (m *MockEVMCore) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
-	panic("implement me")
+	args := m.Called(ctx)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(*big.Int), nil
+	}
+	return args[0].(*big.Int), args[1].(error)
 }
+
 func (m *MockEVMCore) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
-	panic("implement me")
+	args := m.Called(ctx)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(*big.Int), nil
+	}
+	return args[0].(*big.Int), args[1].(error)
 }
+
 func (m *MockEVMCore) EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error) {
-	panic("implement me")
+	args := m.Called(ctx, call)
+	if args[0] == nil && args[1] == nil {
+		return 0, nil
+	}
+	if args[0] == nil {
+		return 0, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(uint64), nil
+	}
+	return args[0].(uint64), args[1].(error)
 }
+
 func (m *MockEVMCore) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	panic("implement me")
+	args := m.Called(ctx, tx)
+	return args.Error(0)
 }
+
 func (m *MockEVMCore) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-	panic("implement me")
+	args := m.Called(ctx, query, ch)
+	if args[0] == nil && args[1] == nil {
+		return nil, nil
+	}
+	if args[0] == nil {
+		return nil, args[1].(error)
+	}
+	if args[1] == nil {
+		return args[0].(ethereum.Subscription), nil
+	}
+	return args[0].(ethereum.Subscription), args[1].(error)
 }

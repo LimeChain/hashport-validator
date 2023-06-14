@@ -42,11 +42,11 @@ type Database struct {
 }
 
 type Clients struct {
-	Evm           map[uint64]Evm `yaml:"evm"`
-	Hedera        Hedera         `yaml:"hedera"`
-	MirrorNode    MirrorNode     `yaml:"mirror_node"`
-	CoinGecko     CoinGecko      `yaml:"coingecko"`
-	CoinMarketCap CoinMarketCap  `yaml:"coin_market_cap"`
+	EvmPool       map[uint64]EvmPool `yaml:"evm"`
+	Hedera        Hedera             `yaml:"hedera"`
+	MirrorNode    MirrorNode         `yaml:"mirror_node"`
+	CoinGecko     CoinGecko          `yaml:"coingecko"`
+	CoinMarketCap CoinMarketCap      `yaml:"coin_market_cap"`
 }
 
 // Evm //
@@ -54,6 +54,15 @@ type Clients struct {
 type Evm struct {
 	BlockConfirmations uint64        `yaml:"block_confirmations"`
 	NodeUrl            string        `yaml:"node_url"`
+	PrivateKey         string        `yaml:"private_key"`
+	StartBlock         int64         `yaml:"start_block"`
+	PollingInterval    time.Duration `yaml:"polling_interval"`
+	MaxLogsBlocks      int64         `yaml:"max_logs_blocks"`
+}
+
+type EvmPool struct {
+	BlockConfirmations uint64        `yaml:"block_confirmations"`
+	NodeUrls           []string      `yaml:"node_url"`
 	PrivateKey         string        `yaml:"private_key"`
 	StartBlock         int64         `yaml:"start_block"`
 	PollingInterval    time.Duration `yaml:"polling_interval"`
