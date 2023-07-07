@@ -18,6 +18,7 @@ package burn
 
 import (
 	"database/sql"
+	"strconv"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -39,6 +40,7 @@ type Handler struct {
 	transferRepository repository.Transfer
 	mirrorNode         client.MirrorNode
 	readOnlyService    service.ReadOnly
+	feeService         service.Fee
 	logger             *log.Entry
 }
 
@@ -48,7 +50,9 @@ func NewHandler(
 	scheduleRepository repository.Schedule,
 	transferRepository repository.Transfer,
 	transferService service.Transfers,
-	readOnlyService service.ReadOnly) *Handler {
+	readOnlyService service.ReadOnly,
+	feeService service.Fee,
+) *Handler {
 	bridgeAcc, err := hedera.AccountIDFromString(bridgeAccount)
 	if err != nil {
 		log.Fatalf("Invalid account id [%s]. Error: [%s]", bridgeAccount, err)
@@ -60,6 +64,7 @@ func NewHandler(
 		scheduleRepository: scheduleRepository,
 		transferRepository: transferRepository,
 		readOnlyService:    readOnlyService,
+		feeService:         feeService,
 		logger:             config.GetLoggerFor("Hedera Burn and Topic Message Read-only Handler"),
 	}
 }
@@ -81,6 +86,14 @@ func (mhh Handler) Handle(p interface{}) {
 		mhh.logger.Debugf("[%s] - Previously added with status [%s]. Skipping further execution.", transactionRecord.TransactionID, transactionRecord.Status)
 		return
 	}
+
+	intAmount, err := strconv.ParseInt(transferMsg.Amount, 10, 64)
+	if err != nil {
+		mhh.logger.Errorf("[%s] - Failed to parse amount. Error: [%s]", transferMsg.TransactionId, err)
+	}
+
+	calculatedFee, _ := mhh.feeService.CalculateFee(transferMsg.TargetChainId, transferMsg.Originator, transferMsg.TargetAsset, intAmount)
+	err = mhh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(calculatedFee, 10))
 
 	mhh.readOnlyService.FindTransfer(transferMsg.TransactionId,
 		func() (*mirrorNodeTransaction.Response, error) {

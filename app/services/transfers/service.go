@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"strings"
@@ -182,7 +181,7 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 	}
 
 	// If a fee policy is found - use it. Otherwise - use the standard fee
-	fee, remainder  := ts.feeService.CalculateFee(tm.TargetChainId, tm.Originator, tm.TargetAsset, intAmount)
+	fee, remainder := ts.feeService.CalculateFee(tm.TargetChainId, tm.Originator, tm.TargetAsset, intAmount)
 
 	validFee := ts.distributor.ValidAmount(fee)
 	if validFee != fee {
@@ -295,27 +294,15 @@ statusBlocker:
 		}
 	}
 
-	// If a fee policy is found - use it. Otherwise - use the standard fee
-	serviceFee, exist := ts.feePolicyHandler.FeeAmountFor(tm.TargetChainId, tm.Originator, tm.TargetAsset, amount.Int64())
-
-	if !exist {
-		// Call contract to get the service fee
-		tokenFeeData, err := ts.contractServices[tm.TargetChainId].TokenFeeData(common.HexToAddress(tm.TargetAsset))
-		if err != nil {
-			return err
-		}
-
-		serviceFeePercentage := tokenFeeData.ServiceFeePercentage
-		serviceFee, _ = ts.feeService.CalculatePercentageFee(amount.Int64(), serviceFeePercentage.Int64())
-	}
+	calculatedFee, _ := ts.feeService.CalculateFee(tm.TargetChainId, tm.Originator, tm.TargetAsset, amount.Int64())
 
 	// save fee in the database
-	err = ts.transferRepository.UpdateFee(tm.TransactionId, strconv.FormatInt(serviceFee, 10))
+	err = ts.transferRepository.UpdateFee(tm.TransactionId, strconv.FormatInt(calculatedFee, 10))
 	if err != nil {
 		return err
 	}
 
-	tm.Fee = serviceFee
+	tm.Fee = calculatedFee
 
 	signatureMessage, err := ts.messageService.SignFungibleMessageWithFee(tm)
 	if err != nil {
