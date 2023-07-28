@@ -100,12 +100,12 @@ func main() {
 	}
 
 	nodeAccId := "0.0.3"
-	content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.TopicId, accountID, &nodeAccId)
+	content, configTopicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.ConfigTopicId, accountID, &nodeAccId)
 	client := hedera.ClientForTestnet()
 	operatorKey, _ := hedera.PrivateKeyFromString(*privateKey)
 	operatorId, _ := hedera.AccountIDFromString(*accountID)
 	client.SetOperator(operatorId, operatorKey)
-	frozenTopicTx := update_config.CreateNewTopicFroxenTx(client, content, topicIdParsed, executor, nodeAccount, 0)
+	frozenTopicTx := update_config.CreateNewTopicFroxenTx(client, content, configTopicIdParsed, executor, nodeAccount, 0)
 	for _, key := range bridgeDeployResult.MembersPrivateKeys {
 		frozenTopicTx.Sign(key)
 	}
@@ -239,8 +239,11 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 			continue
 		}
 		fmt.Printf("Successfully Created Hedera Native Fungible Token with address [%s] based on info of token [%s]\n", tokenId.String(), tokenAddress)
-		err = associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
-		if err == nil {
+		errBridge := associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
+		errPayer := associateToken(tokenId, client, *bridgeDeployResult.PayerAccountID, "Payer", bridgeDeployResult.MembersPrivateKeys)
+		errMembersAcc := associateMembersToToken(client, *tokenId, bridgeDeployResult.MembersAccountIDs, bridgeDeployResult.MembersPrivateKeys)
+
+		if errBridge == nil || errPayer == nil || errMembersAcc == nil {
 			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Fungible, tokenAddress)
 			ExtendedBridge.Networks[hederaNetworkId].Tokens.Fungible[tokenId.String()] = tokenInfo
 		}
@@ -263,11 +266,9 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 		}
 		fmt.Printf("Successfully Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s] ...\n", tokenId.String(), tokenAddress)
 
-		errBridge := associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
-		errPayer := associateToken(tokenId, client, *bridgeDeployResult.PayerAccountID, "Payer", bridgeDeployResult.MembersPrivateKeys)
-		errMembersAcc := associateMembersToToken(client, *tokenId, bridgeDeployResult.MembersAccountIDs, bridgeDeployResult.MembersPrivateKeys)
+		err = associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
 
-		if errBridge == nil && errPayer == nil && errMembersAcc == nil {
+		if err == nil {
 			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft, tokenAddress)
 			ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft[tokenId.String()] = tokenInfo
 		}

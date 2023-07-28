@@ -26,13 +26,17 @@ import (
 )
 
 // parser.Bridge struct but without omit empty
-type newBridgeConfig struct {
+type newBridge struct {
 	UseLocalConfig    bool                       `yaml:"use_local_config" json:"useLocalConfig"`
 	ConfigTopicId     string                     `yaml:"config_topic_id" json:"configTopicId"`
 	PollingInterval   time.Duration              `yaml:"polling_interval" json:"pollingInterval"`
 	TopicId           string                     `yaml:"topic_id" json:"topicId"`
 	Networks          map[uint64]*parser.Network `yaml:"networks" json:"networks"`
 	MonitoredAccounts map[string]string          `yaml:"monitored_accounts" json:"monitoredAccounts"`
+}
+
+type BridgeConfig struct {
+	Bridge newBridge `yaml:"bridge"`
 }
 
 type ExtendedConfig struct {
@@ -71,7 +75,7 @@ func (b *ExtendedBridge) Validate(hederaNetworkId uint64) {
 	}
 }
 
-func (b *ExtendedBridge) ToBridgeParser() *newBridgeConfig {
+func (b *ExtendedBridge) ToBridgeParser() *BridgeConfig {
 	parsedBridge := new(parser.Bridge)
 	parsedBridge.UseLocalConfig = b.UseLocalConfig
 	parsedBridge.ConfigTopicId = b.ConfigTopicId
@@ -121,13 +125,15 @@ func (b *ExtendedBridge) ToBridgeParser() *newBridgeConfig {
 		}
 	}
 
-	return &newBridgeConfig{
-		UseLocalConfig:    parsedBridge.UseLocalConfig,
-		ConfigTopicId:     parsedBridge.ConfigTopicId,
-		PollingInterval:   parsedBridge.PollingInterval,
-		TopicId:           parsedBridge.TopicId,
-		MonitoredAccounts: parsedBridge.MonitoredAccounts,
-		Networks:          parsedBridge.Networks,
+	return &BridgeConfig{
+		Bridge: newBridge{
+			UseLocalConfig:    parsedBridge.UseLocalConfig,
+			ConfigTopicId:     parsedBridge.ConfigTopicId,
+			PollingInterval:   parsedBridge.PollingInterval,
+			TopicId:           parsedBridge.TopicId,
+			MonitoredAccounts: parsedBridge.MonitoredAccounts,
+			Networks:          parsedBridge.Networks,
+		},
 	}
 	// return parsedBridge
 }

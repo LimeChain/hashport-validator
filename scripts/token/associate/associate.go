@@ -55,6 +55,7 @@ func TokenToAccountWithCustodianKey(client *hedera.Client, token hedera.TokenID,
 		NewTokenAssociateTransaction().
 		SetAccountID(accountID).
 		SetTokenIDs(token).
+		SetMaxTransactionFee(hedera.NewHbar(10)).
 		FreezeWith(client)
 	if err != nil {
 		return nil, err
