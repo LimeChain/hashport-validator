@@ -22,9 +22,9 @@ Example uses `Docker Compose`.
 
    ! Hedera scripts are found in the [Validator repo](https://github.com/LimeChain/hashport-validator)
    ! EVM scripts are found in [Contracts repo](https://github.com/LimeChain/hashport-contracts)
-
-   - 1 go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
-   - 2 run the script to create the bridge topic (the network will be testnet and we will have 3 members):
+   
+   1 go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
+   2 run the script to create the bridge topic (the network will be testnet and we will have 3 members):
       ```
       go run ./scripts/bridge/setup/cmd/setup.go \
          --privateKey=__ED25519_PRIVATE_KEY__ \
