@@ -23,8 +23,8 @@ Example uses `Docker Compose`.
    ! Hedera scripts are found in the [Validator repo](https://github.com/LimeChain/hashport-validator)
    ! EVM scripts are found in [Contracts repo](https://github.com/LimeChain/hashport-contracts)
    
-   1 go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
-   2 run the script to create the bridge topic (the network will be testnet and we will have 3 members):
+   1. go to [Hedera portal](https://portal.hedera.com/) and create a ED25519 Testnet ACCOUNT
+   2. run the script to create the bridge topic (the network will be testnet and we will have 3 members):
       ```
       go run ./scripts/bridge/setup/cmd/setup.go \
          --privateKey=__ED25519_PRIVATE_KEY__ \
@@ -39,7 +39,7 @@ Example uses `Docker Compose`.
       - Scheduled Tx Payer Account.
       ! Save it all.
 
-   - 3 Create a Hedera Native token (save the output)
+   3. Create a Hedera Native token (save the output)
       ```
       go run ./scripts/token/native/create/cmd/create.go \
          --privateKey = __ED25519_PRIVATE_KEY__ \
@@ -52,7 +52,7 @@ Example uses `Docker Compose`.
    Now set up the EVM Routers. We will need at least 2 EVM networks, because this system can bridge directly from EVM to EVM.
    Possible bridging combinations include Hedera <-> EVM, EVM <-> EVM
 
-   - 4 Setup EVM Router by running the [EVM deployment scripts](https://github.com/LimeChain/hashport-contracts) from the [hashport-contracts](https://github.com/LimeChain/hedera-eth-bridge-contracts/blob/main/README.md#scripts) repo. You will need 4 EVM Wallets: Owner, Alice, Bob and Carl accounts
+   4. Setup EVM Router by running the [EVM deployment scripts](https://github.com/LimeChain/hashport-contracts) from the [hashport-contracts](https://github.com/LimeChain/hedera-eth-bridge-contracts/blob/main/README.md#scripts) repo. You will need 4 EVM Wallets: Owner, Alice, Bob and Carl accounts
    Deploy the router:
       ```
       npx hardhat deploy-router --help
@@ -74,7 +74,7 @@ Example uses `Docker Compose`.
       ```
       ! Save the router address
 
-   - 5 To bridge native HBAR from Hedera we will need a wrapped version on the EVM network. The flow is Hedera HBAR --> Wrapped HBAR. To deploy a wrapped version of HBAR we will use:
+   5. To bridge native HBAR from Hedera we will need a wrapped version on the EVM network. The flow is Hedera HBAR --> Wrapped HBAR. To deploy a wrapped version of HBAR we will use:
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
@@ -86,7 +86,7 @@ Example uses `Docker Compose`.
          --decimals 8
       ```
 
-   - 6 To bridge a native token from the EVM to Hedera we will need to transfer the ownership of that token to the Router. This is a script that `Creates` a token and thenwe will `Transfers` ownership.
+   6. To bridge a native token from the EVM to Hedera we will need to transfer the ownership of that token to the Router. This is a script that `Creates` a token and thenwe will `Transfers` ownership.
       ```
       npx hardhat deploy-token \
          --decimals 18 \
@@ -102,7 +102,7 @@ Example uses `Docker Compose`.
          --network __EVM_NETWORK__
       ```
  
-   - 7 To pay fees for bridging from this EVM we will set a payment token.
+   7. To pay fees for bridging from this EVM we will set a payment token.
       ```
       npx hardhat deploy-token \
          --decimals 6 \
@@ -117,7 +117,7 @@ Example uses `Docker Compose`.
          --status true
       ```
 
-   - 8 Create a wrapped version of the Hedera token (from step 3) so we can bridge it. Native Hedera Token --> Wrapped EVM token
+   8. Create a wrapped version of the Hedera token (from step 3) so we can bridge it. Native Hedera Token --> Wrapped EVM token
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
@@ -131,8 +131,8 @@ Example uses `Docker Compose`.
 
       ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
-   - 10 Use steps from 4 to 9 to deploy router to one more EVM network
-   - 11 Create Wrapped versions for EVM to EVM bridging on both EVMs ( For Native Token on EVM we need corresponding Wrapped token on the Other EVM )
+   10. Use steps from 4 to 9 to deploy router to one more EVM network
+   11. Create Wrapped versions for EVM to EVM bridging on both EVMs ( For Native Token on EVM we need corresponding Wrapped token on the Other EVM )
       ```
       npx hardhat deploy-router-wrapped-token \
          --network __EVM_NETWORK__ \
@@ -144,7 +144,7 @@ Example uses `Docker Compose`.
          --decimals 18
       ```
 
-   - 12 To enable bridging from EVM ---> Hedera. We will need to create a "Wrapped" versions of "EVM native token" on Hedera.
+   12. To enable bridging from EVM ---> Hedera. We will need to create a "Wrapped" versions of "EVM native token" on Hedera.
    Run wrapped-token-create.go to create custom wrapped token with a bridge account treasury and associate it with hedera (save the output)
       ```
       go run ./scripts/token/wrapped/create/cmd/create.go \
@@ -157,7 +157,7 @@ Example uses `Docker Compose`.
          --generateSupplyKeysFromMemberPrKeys = true
       ```
 
-   - 13 NFT setup. For now we can only bridge Hedera `Native` NFTs to other EVMs and those EVM wrapped versions back to the `Native` Hedera NFT.
+   13. NFT setup. For now we can only bridge Hedera `Native` NFTs to other EVMs and those EVM wrapped versions back to the `Native` Hedera NFT.
       * Deploy NFT on Hedera
       ```
       go run ./scripts/token/native/nft/create/cmd/create.go \
