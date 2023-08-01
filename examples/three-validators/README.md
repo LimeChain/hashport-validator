@@ -153,7 +153,7 @@ Example uses `Docker Compose`.
          --adminKey = __ED25519_PUB_KEY__ \
          --network = testnet \
          --memberPrKeys = __Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topic_ID__ \
+         --bridgeID=__Bridge_ID__ \
          --generateSupplyKeysFromMemberPrKeys = true
       ```
 
@@ -165,7 +165,7 @@ Example uses `Docker Compose`.
          --accountID=__ED25519_ACC__ \
          --network=testnet \
          --memberPrKeys=__Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topic_ID__
+         --bridgeID=__Bridge_ID__
       ```
 
       * Mint the NFT on hedera
