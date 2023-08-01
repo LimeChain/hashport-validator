@@ -123,7 +123,7 @@ Example uses `Docker Compose`.
          --network __EVM_NETWORK__ \
          --router __EVM_ROUTER_ADDRESS__ \
          --source __EVM_CHAIN_ID__ \
-         --native __Token_Topic_ID__ \
+         --native __Token_ID__ \
          --name "__Name__" \
          --symbol "__SYMBOL__" \
          --decimals 8
@@ -203,7 +203,7 @@ Example uses `Docker Compose`.
       --privateKey=__Wallet_PK__ \
       --accountID=__Wallet_ID__ \
       --network=testnet \
-      --tokenID=__TOKEN_TOPIC_ID__
+      --tokenID=__TOKEN_ID__
    ```
 
 The structure of the three validators
@@ -297,7 +297,7 @@ bridge:
                networks:
                   __EVM_CHAIN_ID_1__: "__Wrapped_HBAR_Address__"
                   __EVM_CHAIN_ID_2__: "__Wrapped_HBAR_Address__"
-            "__HEDERA_NATIVE_TOKEN_TOPIC_ID__":
+            "__HEDERA_NATIVE_TOKEN_ID__":
                fee_percentage: 10000
                coin_gecko_id: "tune-fm"
                coin_market_cap_id: "11420"
@@ -305,7 +305,7 @@ bridge:
                   __EVM_CHAIN_ID_1__: "__Wrapped_HBAR_Address__"
                   __EVM_CHAIN_ID_2__: "__Wrapped_HBAR_Address__"
          nft:
-            "__HEDERA_NATIVE_NFT_TOPIC_ID__":
+            "__HEDERA_NATIVE_NFT_ID__":
                fee: 20000
                networks:
                   __EVM_CHAIN_ID_1__: "__Wrapped_NFT_Address__"
@@ -319,7 +319,7 @@ bridge:
             coin_gecko_id: "matic-network"
             coin_market_cap_id: "3890"
             networks:
-               296: "__Wrapped_Token_Topic_ID__"
+               296: "__Wrapped_Token_ID__"
                __EVM_CHAIN_ID_2__: "__Wrapped_Token_Address__"
    __EVM_CHAIN_ID_2__:
       name: "__EVM_CHAIN_NAME__"
@@ -330,7 +330,7 @@ bridge:
             coin_gecko_id: "matic-network"
             coin_market_cap_id: "3890"
             networks:
-               296: "__Wrapped_Token_Topic_ID__"
+               296: "__Wrapped_Token_ID__"
                __EVM_CHAIN_ID_1__: "__Wrapped_Token_Address__"
 ```
 
