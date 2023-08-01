@@ -46,7 +46,7 @@ Example uses `Docker Compose`.
          --accountID=__ED25519_ACC__ \
          --network=testnet \
          --memberPrKeys = __Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topic_ID__
+         --bridgeID=__Bridge_ID__
       ```
 
    Now set up the EVM Routers. We will need at least 2 EVM networks, because this system can bridge directly from EVM to EVM.
