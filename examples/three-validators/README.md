@@ -242,7 +242,8 @@ node:
     evm:
       __EVM_CHAIN_ID_1__:
         block_confirmations: 5
-        node_url: __EVM_RPC__
+        node_url:
+          - __EVM_RPC__
         private_key: __WALLET_PK__ # This line will be different for Alice, Bob and Carl. Dave can use Alice config
       __EVM_CHAIN_ID_2__:
         block_confirmations: 5
@@ -253,16 +254,16 @@ node:
         account_id: __NODE_ACC__ # from the scripts. This line will be different for Alice, Bob and Carl. Dave can use Alice config
         private_key: __NODE_PK__ # from the scripts. This line will be different for Alice, Bob and Carl. Dave can use Alice config
       network: testnet
-    mirror_node:
+   mirror_node:
       api_address: https://testnet.mirrornode.hedera.com/api/v1/
       client_address: hcs.testnet.mirrornode.hedera.com:5600
       polling_interval: 5
       query_default_limit: 25
       query_max_limit: 100
-    coingecko:
+   coingecko:
       api_address: https://api.coingecko.com/api/v3/
-    coin_market_cap:
-      api_key: __KEY__ # ask someone or get one from CoinMarketCap
+   coin_market_cap:
+      api_key: 81c414c6-376f-4cd5-8e91-a426417d6a5b # ask someone or get one from CoinMarketCap
       api_address: https://pro-api.coinmarketcap.com/v2/cryptocurrency/
   log_level: debug
   port: 5200
