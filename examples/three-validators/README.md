@@ -293,7 +293,6 @@ bridge:
             "HBAR":
                fee_percentage: 10000 # 10.000%
                min_amount: 100
-               min_fee_amount_in_usd: 0.2
                coin_gecko_id: "hedera-hashgraph"
                coin_market_cap_id: "4642"
                networks:
@@ -302,7 +301,6 @@ bridge:
             "__HEDERA_NATIVE_TOKEN_ID__":
                fee_percentage: 10000
                min_amount: 100
-               min_fee_amount_in_usd: 0.2
                coin_gecko_id: "tune-fm"
                coin_market_cap_id: "11420"
                networks:
@@ -321,7 +319,6 @@ bridge:
         fungible:
           "__EVM_Native_Token_address__":
             min_amount: 100
-            min_fee_amount_in_usd: 0.2
             coin_gecko_id: "matic-network"
             coin_market_cap_id: "3890"
             networks:
@@ -334,7 +331,6 @@ bridge:
         fungible:
           "__EVM_Native_Token_address__":
             min_amount: 100
-            min_fee_amount_in_usd: 0.2
             coin_gecko_id: "matic-network"
             coin_market_cap_id: "3890"
             networks:
