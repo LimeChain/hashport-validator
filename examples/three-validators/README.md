@@ -128,6 +128,17 @@ Example uses `Docker Compose`.
          --symbol "__SYMBOL__" \
          --decimals 8
       ```
+   9. Create a wrapped version of HBAR token
+      ```
+      npx hardhat deploy-router-wrapped-token \
+         --network __EVM_NETWORK__ \
+         --router __EVM_ROUTER_ADDRESS__ \
+         --source __EVM_CHAIN_ID__ \
+         --native HBAR \
+         --name "HBAR[__Name__]" \
+         --symbol "HBAR[__SYMBOL__]" \
+         --decimals 8
+      ```
 
       ! [Hedera NAtive HBAR use 8 decimals, Tokens divide into 10 decimals pieces](https://docs.hedera.com/guides/docs/hedera-api/basic-types/tokenbalance). The `go run ./scripts/token/native/create/cmd/create.go` is set to create tokens with 8 decimals
 
