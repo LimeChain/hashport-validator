@@ -1,5 +1,6 @@
 # Three Validators Bridge Network
 
+
 ## Overview
 
 The goal of `Three Validators Bridge Network` is to showcase how validators configured for similar HCS topics and threshold accounts operate simultaneously.
