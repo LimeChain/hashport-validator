@@ -466,7 +466,6 @@ func (c Client) query(query, entityID string) bool {
 			"entityId":   entityID,
 			"statusCode": response.StatusCode,
 			"body":       body,
-			"err":        err.Error(),
 		}).Error("query failed")
 		return false
 	}
