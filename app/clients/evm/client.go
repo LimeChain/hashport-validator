@@ -42,7 +42,6 @@ const (
 	retryAfterTimer  = 10 * time.Second
 )
 
-
 // Client EVM JSON RPC Client
 type Client struct {
 	config config.Evm
@@ -55,13 +54,16 @@ type Client struct {
 func NewClient(c config.Evm, chainId uint64) *Client {
 	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client"))
 	if c.BlockConfirmations < 1 {
-		logger.Fatalf("BlockConfirmations should be a positive number")
+		logger.Fatal("BlockConfirmations should be a positive number")
 	}
 
 	var client client.Core
 	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
-		logger.Fatalf("Failed to initialize Client with Chain Id [%v]. Error [%s]", chainId, err)
+		logger.WithFields(log.Fields{
+			"chainId": chainId,
+			"err":     err.Error(),
+		}).Fatal("Failed to initialize Client with Chain Id")
 	}
 
 	return &Client{
@@ -109,7 +111,10 @@ func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	block, err := ec.HeaderByNumber(context.Background(), blockNumber)
 
 	if err != nil {
-		ec.logger.Errorf("Failed to get block [%s]. Error: [%s]. Retrying...", blockNumber, err)
+		ec.logger.WithFields(log.Fields{
+			"blockNumber": blockNumber.String(),
+			"err":         err.Error(),
+		}).Error("Failed to get block, retrying....")
 		time.Sleep(5 * time.Second)
 		return ec.GetBlockTimestamp(blockNumber)
 	}
@@ -123,22 +128,23 @@ func (ec *Client) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 // onError is called if an error occurs while waiting for TX to go into one of the other 2 states
 func (ec *Client) WaitForTransactionCallback(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	go ec.checkTransactionReceipt(hex, onSuccess, onRevert, onError)
-	ec.logger.Debugf("Added new Transaction [%s] for monitoring", hex)
+	ec.logger.WithField("hex", hex).Debug("Added new Transaction for monitoring")
 }
 
 func (ec *Client) checkTransactionReceipt(hex string, onSuccess, onRevert func(), onError func(err error)) {
 	receipt, err := ec.WaitForTransactionReceipt(common.HexToHash(hex))
 	if err != nil {
-		ec.logger.Errorf("[%s] - Error occurred while monitoring. Error: [%s]", hex, err)
+		ec.logger.WithFields(log.Fields{"hex": hex, "err": err.Error()}).
+			Error("Error occurred while monitoring")
 		onError(err)
 		return
 	}
 
 	if receipt.Status == 1 {
-		ec.logger.Debugf("TX [%s] was successfully mined", hex)
+		ec.logger.WithField("hex", hex).Debug("TX was successfully mined")
 		onSuccess()
 	} else {
-		ec.logger.Debugf("TX [%s] reverted", hex)
+		ec.logger.WithField("hex", hex).Debug("TX was reverted")
 		onRevert()
 	}
 	return
@@ -156,7 +162,7 @@ func (ec *Client) WaitForTransactionReceipt(hash common.Hash) (txReceipt *types.
 		}
 
 		if errors.Is(err, syscall.ECONNRESET) {
-			ec.logger.Warn(err)
+			ec.logger.WithError(err).Warn("ECONNRESET")
 			time.Sleep(retryAfterTimer)
 			continue
 		}
@@ -201,7 +207,7 @@ func (ec Client) RetryBlockNumber() (uint64, error) {
 
 	result, err := service.Retry(blockNumberFunc, executionRetries)
 	if err != nil {
-		ec.logger.Warnf("Error in [RetryBlockNumber] Retry [%s]", err)
+		ec.logger.WithError(err).Warn("Error in [RetryBlockNumber]")
 		return 0, err
 	}
 
@@ -233,7 +239,7 @@ func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error
 
 	result, err := service.Retry(filterLogsFunc, executionRetries)
 	if err != nil {
-		ec.logger.Warnf("Error in [RetryFilterLogs] Retry [%s]", err)
+		ec.logger.WithError(err).Warn("Error in [RetryFilterLogs]")
 		return nil, err
 	}
 
@@ -250,23 +256,32 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 	for {
 		currentBlockNumber, err := ec.BlockNumber(context.Background())
 		if err != nil {
-			ec.logger.Errorf("[%s] Failed retrieving block number.", raw.TxHash.String())
+			ec.logger.WithFields(log.Fields{
+				"tx":  raw.TxHash.String(),
+				"err": err.Error(),
+			}).Error("Failed retrieving block number")
 			return err
 		}
 
 		if target <= currentBlockNumber {
 			receipt, err := ec.TransactionReceipt(context.Background(), raw.TxHash)
 			if errors.Is(ethereum.NotFound, err) {
-				ec.logger.Infof("[%s] EVM TX went into an uncle block.", raw.TxHash.String())
+				ec.logger.WithFields(log.Fields{
+					"tx":  raw.TxHash.String(),
+					"err": err.Error(),
+				}).Info("EVM TX went into an uncle block")
 				return err
 			}
 			if err != nil {
-				ec.logger.Infof("[%s] Failed to get Transaction receipt - Error: [%s]", raw.TxHash.String(), err)
+				ec.logger.WithFields(log.Fields{
+					"tx":  raw.TxHash.String(),
+					"err": err.Error(),
+				}).Info("Failed to get Transaction receipt")
 				return err
 			}
 
 			if receipt.BlockNumber.Uint64() != raw.BlockNumber {
-				ec.logger.Debugf("[%s] has been moved from original block", raw.TxHash.String())
+				ec.logger.WithField("tx", raw.TxHash.String()).Debug("moved from original block")
 				return errors.New("moved from original block")
 			}
 
@@ -300,7 +315,10 @@ func (ec *Client) RetryTransactionByHash(hash common.Hash) (*types.Transaction, 
 		return r
 	}, executionRetries)
 	if err != nil {
-		ec.logger.Warnf("Error in [RetryTransactionByHash - [%s]] Retry [%s]", hash, err)
+		ec.logger.WithFields(log.Fields{
+			"hash": hash,
+			"err":  err.Error(),
+		}).Warn("Error in RetryTransactionByHash")
 		return nil, err
 	}
 	return res.(*types.Transaction), nil

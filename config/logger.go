@@ -34,7 +34,7 @@ func InitLogger(level string, format string) {
 
 	switch strings.ToLower(format) {
 	case "gcp":
-	log.SetFormatter(NewGCEFormatter(true))
+		log.SetFormatter(NewGCEFormatter(true))
 	case "default", "":
 		log.SetFormatter(&log.TextFormatter{
 			FullTimestamp:   true,
@@ -45,6 +45,7 @@ func InitLogger(level string, format string) {
 	}
 
 	log.SetOutput(os.Stdout)
+	log.SetReportCaller(true)
 
 	switch strings.ToLower(level) {
 	case "trace":

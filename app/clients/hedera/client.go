@@ -90,7 +90,10 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.WithFields(log.Fields{
+		"memo": memo,
+		"tId":  tx.GetTransactionID().String(),
+	}).Debugf("Signing transaction with ID and Node Account IDs: %v", tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -111,7 +114,10 @@ func (hc Node) SubmitScheduledTokenBurnTransaction(tokenID hedera.TokenID, amoun
 		return nil, err
 	}
 
-	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.WithFields(log.Fields{
+		"memo": memo,
+		"tId":  tx.GetTransactionID().String(),
+	}).Debugf("Signing transaction with ID and Node Account IDs: %v", tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {
@@ -134,10 +140,9 @@ func (hc Node) SubmitTopicConsensusMessage(topicId hedera.TopicID, message []byt
 		return nil, err
 	}
 
-	hc.logger.Debugf("Submit Topic Consensus Message, with transaction ID [%s] and Node Account IDs: %v",
-		tx.GetTransactionID(),
-		tx.GetNodeAccountIDs(),
-	)
+	hc.logger.WithFields(log.Fields{
+		"tId": tx.GetTransactionID().String(),
+	}).Debugf("Submit Topic Consensus Message, with transaction ID and Node Account IDs: %v", tx.GetNodeAccountIDs())
 
 	response, err := tx.Execute(hc.GetClient())
 
@@ -162,11 +167,10 @@ func (hc Node) SubmitScheduleSign(scheduleID hedera.ScheduleID) (*hedera.Transac
 		return nil, err
 	}
 
-	hc.logger.Debugf("Submit Schedule Sign, with transaction ID [%s], schedule ID: [%s] and Node Account IDs: %v",
-		tx.GetTransactionID(),
-		tx.GetScheduleID(),
-		tx.GetNodeAccountIDs(),
-	)
+	hc.logger.WithFields(log.Fields{
+		"tId":        tx.GetTransactionID().String(),
+		"scheduleId": tx.GetScheduleID(),
+	}).Debugf("Submit Schedule Sign, with transaction ID, schedule ID and Node Account IDs: %v", tx.GetNodeAccountIDs())
 	response, err := tx.Execute(hc.GetClient())
 
 	return &response, err
@@ -258,7 +262,10 @@ func (hc Node) submitScheduledTransferTransaction(payerAccountID hedera.AccountI
 		return nil, err
 	}
 
-	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	hc.logger.WithFields(log.Fields{
+		"memo": memo,
+		"tId":  tx.GetTransactionID().String(),
+	}).Debugf("Signing transaction with ID and Node Account IDs: %v", tx.GetNodeAccountIDs())
 	signedTransaction, err := tx.
 		SignWithOperator(hc.GetClient())
 	if err != nil {

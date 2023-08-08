@@ -444,18 +444,30 @@ func (c Client) GetTransactionsAfterTimestamp(accountId hedera.AccountID, startT
 func (c Client) query(query, entityID string) bool {
 	response, err := c.httpClient.Get(query)
 	if err != nil {
-		c.logger.Errorf("[%s] - failed to query account. Error [%s].", entityID, err)
+		c.logger.WithFields(log.Fields{
+			"entityId": entityID,
+			"err":      err.Error(),
+		}).Error("failed to query account")
 		return false
 	}
 
 	body, err := readResponseBody(response)
 	if err != nil {
-		c.logger.Errorf("[%s] - failed to read response body. Error [%s].", entityID, err)
+		c.logger.WithFields(log.Fields{
+			"entityId": entityID,
+			"err":      err.Error(),
+		}).Error("failed to read response body")
 		return false
 	}
 
 	if response.StatusCode != http.StatusOK {
-		c.logger.Errorf("[%s] - query ended with [%d]. Response body: [%s]. ", entityID, response.StatusCode, body)
+		c.logger.WithFields(log.Fields{
+			"query":      query,
+			"entityId":   entityID,
+			"statusCode": response.StatusCode,
+			"body":       body,
+			"err":        err.Error(),
+		}).Error("query failed")
 		return false
 	}
 
@@ -472,7 +484,10 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				continue
 			}
 			if err != nil {
-				c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err.Error())
+				c.logger.WithFields(log.Fields{
+					"txId": txId,
+					"err":  err.Error(),
+				}).Error("Error while trying to get tx")
 				return
 			}
 
@@ -486,32 +501,35 @@ func (c Client) WaitForTransaction(txId string, onSuccess, onFailure func()) {
 				}
 
 				if success {
-					c.logger.Debugf("TX [%s] was successfully mined", txId)
+					c.logger.WithField("txId", txId).Debug("TX was successfully mined")
 					onSuccess()
 				} else {
-					c.logger.Debugf("TX [%s] has failed", txId)
+					c.logger.WithField("txId", txId).Debug("TX has failed")
 					onFailure()
 				}
 				return
 			}
-			c.logger.Tracef("Pinged Mirror Node for TX [%s]. No update", txId)
+			c.logger.WithField("txId", txId).Trace("Pinged Mirror Node for TX. No update")
 			time.Sleep(c.pollingInterval * time.Second)
 		}
 	}()
-	c.logger.Debugf("Added new TX [%s] for monitoring", txId)
+	c.logger.WithField("txId", txId).Debug("Added new TX for monitoring")
 }
 
 // WaitForScheduledTransaction Polls the transaction at intervals. Depending on the
 // result, the corresponding `onSuccess` and `onFailure` functions are called
 func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure func()) {
-	c.logger.Debugf("Added new Scheduled TX [%s] for monitoring", txId)
+	c.logger.WithField("txId", txId).Debug("Added new Scheduled TX for monitoring")
 	for {
 		response, err := c.GetTransaction(txId)
 		if response != nil && response.IsNotFound() {
 			continue
 		}
 		if err != nil {
-			c.logger.Errorf("[%s] Error while trying to get tx. Error: [%s].", txId, err)
+			c.logger.WithFields(log.Fields{
+				"txId": txId,
+				"err":  err.Error(),
+			}).Error("Error while trying to get tx")
 			return
 		}
 
@@ -525,15 +543,15 @@ func (c Client) WaitForScheduledTransaction(txId string, onSuccess, onFailure fu
 			}
 
 			if success {
-				c.logger.Debugf("Scheduled TX [%s] was successfully mined", txId)
+				c.logger.WithField("txId", txId).Debug("Scheduled TX was successfully mined")
 				onSuccess()
 			} else {
-				c.logger.Debugf("Scheduled TX [%s] has failed", txId)
+				c.logger.WithField("txId", txId).Debug("Scheduled TX has failed")
 				onFailure()
 			}
 			return
 		}
-		c.logger.Tracef("Pinged Mirror Node for Scheduled TX [%s]. No update", txId)
+		c.logger.WithField("txId", txId).Trace("Pinged Mirror Node for Scheduled TX. No update")
 		time.Sleep(c.pollingInterval * time.Second)
 	}
 }
