@@ -375,7 +375,10 @@ func (s *Service) updatePriceInfoContainers(nativeAsset *asset.NativeAsset, toke
 		defaultMinAmount := tokenPriceInfo.DefaultMinAmount
 		wrappedMinAmountWithFee, err := s.calculateMinAmountWithFee(nativeAsset, wrappedAssetInfo.Decimals, tokenPriceInfo.UsdPrice)
 		if err != nil || wrappedMinAmountWithFee.Cmp(big.NewInt(0)) <= 0 {
-			s.logger.Errorf("Failed to calculate 'MinAmountWithFee' for asset: [%s]. Error: [%v]", wrappedToken, err)
+			s.logger.WithFields(log.Fields{
+				"token": wrappedToken,
+				"err":   err,
+			}).Error("Failed to calculate 'MinAmountWithFee' for asset")
 			if defaultMinAmount.Cmp(big.NewInt(0)) <= 0 {
 				return fmt.Errorf("default min_amount for asset: [%s] is not set. Error: [%v]", wrappedToken, err)
 			}

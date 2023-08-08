@@ -17,7 +17,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"path"
+	"runtime"
 	"strings"
 	"time"
 
@@ -39,6 +42,13 @@ func InitLogger(level string, format string) {
 		log.SetFormatter(&log.TextFormatter{
 			FullTimestamp:   true,
 			TimestampFormat: time.RFC3339Nano,
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				base := path.Base(f.File)
+				s := strings.Split(f.Function, ".")
+				funcname := s[len(s)-1]
+				fileAndLine := fmt.Sprintf("(%s).%s:%d", funcname, base, f.Line)
+				return "", fileAndLine
+			},
 		})
 	default:
 		log.Fatalf("Unsupported log format: %s", format)
