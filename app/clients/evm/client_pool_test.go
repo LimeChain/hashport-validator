@@ -44,11 +44,14 @@ var (
 func setupCP() {
 	setup()
 	evmList := make([]client.EVM, 0)
+	clientConfigs := []config.Evm{config.Evm{NodeUrl: "testurl"}}
 	evmList = append(evmList, c)
 
 	cp = &ClientPool{
-		clients: evmList,
-		retries: retries,
+		clients:        evmList,
+		clientsConfigs: clientConfigs,
+		logger:         config.GetLoggerFor("client_pool_test_logger"),
+		retries:        retries,
 	}
 }
 

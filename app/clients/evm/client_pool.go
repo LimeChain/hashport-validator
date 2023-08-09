@@ -18,6 +18,8 @@ package evm
 
 import (
 	"context"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -28,13 +30,17 @@ import (
 )
 
 type ClientPool struct {
-	clients []client.EVM
-	retries int
+	clients        []client.EVM
+	clientsConfigs []config.Evm
+	retries        int
+	logger         *log.Entry
 }
 
 func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
+	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client Pool"))
 	nodeURLs := c.NodeUrls
 	clients := make([]client.EVM, 0, len(nodeURLs))
+	clientsConfigs := make([]config.Evm, 0, len(nodeURLs))
 	for _, nodeURL := range nodeURLs {
 		configEvm := config.Evm{
 			BlockConfirmations: c.BlockConfirmations,
@@ -45,28 +51,38 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
 		clients = append(clients, NewClient(configEvm, chainId))
+		clientsConfigs = append(clientsConfigs, configEvm)
 	}
 
 	retry := len(clients) * 3
 
 	return &ClientPool{
-		clients: clients,
-		retries: retry,
+		clients:        clients,
+		clientsConfigs: clientsConfigs,
+		retries:        retry,
+		logger:         logger,
 	}
 }
 
-func (cp *ClientPool) getClient(idx int) client.EVM {
-	return cp.clients[idx%len(cp.clients)]
+func (cp *ClientPool) getClient(idx int) (client.EVM, config.Evm) {
+	clientIndex := idx % len(cp.clients)
+	configIndex := idx % len(cp.clientsConfigs)
+	return cp.clients[clientIndex], cp.clientsConfigs[configIndex]
 }
 
 func (cp *ClientPool) retryOperation(operation func(client.EVM) (interface{}, error)) (interface{}, error) {
 	var err error
 	for i := 0; i < cp.retries; i++ {
-		client := cp.getClient(i)
+		client, clientConfig := cp.getClient(i)
 		result, e := operation(client)
 		if e == nil {
 			return result, nil
 		}
+
+		cp.logger.WithFields(log.Fields{
+			"nodeUrl": clientConfig.NodeUrl,
+			"retries": i,
+		}).Warn("retry operation failed")
 		err = e
 	}
 
