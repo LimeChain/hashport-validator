@@ -13,6 +13,7 @@ require (
 	github.com/hashgraph/hedera-sdk-go/v2 v2.23.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/profile v1.7.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rs/cors v1.8.3
 	github.com/shopspring/decimal v1.3.1
@@ -35,10 +36,12 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashgraph/hedera-protobufs-go v0.2.1-0.20230222133122-6549ac627de9 // indirect
