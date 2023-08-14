@@ -638,6 +638,30 @@ func Test_GetAccount(t *testing.T) {
 	assert.Equal(t, expected.Balance.Balance, response.Balance.Balance)
 }
 
+func Test_GetAccountByPublicKey(t *testing.T) {
+	setup()
+
+	expected := account.AccountsQueryResponse{
+		Accounts: []struct {
+			Account string `json:"account"`
+		}{
+			{
+				Account: "0.0.1",
+			},
+		},
+	}
+
+	encodedContent, err := httpHelper.EncodeBodyContent(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetAccountByPublicKey("1234")
+	assert.Nil(t, err)
+	assert.Equal(t, expected.Accounts[0].Account, response.Accounts[0].Account)
+}
+
 func Test_GetToken_HttpErr(t *testing.T) {
 	setup()
 
