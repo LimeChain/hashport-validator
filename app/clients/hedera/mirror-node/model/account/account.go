@@ -25,6 +25,14 @@ type (
 		Account string  `json:"account"`
 		Balance Balance `json:"balance"`
 	}
+
+	// AccountsQueryResponse struct used by the Hedera Mirror node REST API to return information regarding a given Account
+	AccountsQueryResponse struct {
+		Accounts []struct {
+			Account string `json:"account"`
+		} `json:"accounts"`
+	}
+
 	// Balance struct used by the Hedera Mirror node REST API to return information
 	// regarding a given Account
 	Balance struct {
