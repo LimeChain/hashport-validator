@@ -662,6 +662,34 @@ func Test_GetAccountByPublicKey(t *testing.T) {
 	assert.Equal(t, expected.Accounts[0].Account, response.Accounts[0].Account)
 }
 
+func Test_GetAccountByPublicKey_UnmarshalErr(t *testing.T) {
+	setup()
+
+	encodedContent, err := httpHelper.EncodeBodyContent("123")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
+	response, err := c.GetAccountByPublicKey("1234")
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "json: cannot unmarshal string into Go value of type")
+}
+
+func Test_GetAccountByPublicKey_Err(t *testing.T) {
+	setup()
+
+	encodedContent, err := httpHelper.EncodeBodyContent(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 400, Body: encodedContent}, nil)
+	response, err := c.GetAccountByPublicKey("1234")
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "Failed to execute query")
+}
+
 func Test_GetToken_HttpErr(t *testing.T) {
 	setup()
 
