@@ -56,7 +56,7 @@ func main() {
 	setSupplyKey := flag.Bool("setSupplyKey", true, "Sets supply key to be the deployer")
 
 	fmt.Println("-----------Start-----------")
-	client := client.Init(*privateKey, *accountID, *network)
+	cl := client.Init(*privateKey, *accountID, *network)
 
 	mirrorNodeConfigByNetwork := map[uint64]config.MirrorNode{
 		HederaMainnetNetworkId: {
@@ -99,8 +99,8 @@ func main() {
 	}
 
 	tokenId, err := create.CreateNativeFungibleToken(
-		client,
-		client.GetOperatorAccountID(),
+		cl,
+		cl.GetOperatorAccountID(),
 		*tokenName,
 		*tokenSymbol,
 		*decimals,
@@ -117,7 +117,7 @@ func main() {
 		panic(err)
 	}
 
-	receipt, err := associate.TokenToAccountWithCustodianKey(client, *tokenId, bridgeIDFromString, custodianKey)
+	receipt, err := associate.TokenToAccountWithCustodianKey(cl, *tokenId, bridgeIDFromString, custodianKey)
 	if err != nil {
 		panic(err)
 	}
@@ -125,8 +125,8 @@ func main() {
 	fmt.Println("Associate transaction status:", receipt.Status)
 
 	// associate token with members
-	for _, memberPrKey := range membersPublicKey {
-		accounts, err := mirrorNodeClient.GetAccountByPublicKey(memberPrKey.String())
+	for memberPubKeyIndex, memberPubKey := range membersPublicKey {
+		accounts, err := mirrorNodeClient.GetAccountByPublicKey(memberPubKey.String())
 		if err != nil {
 			panic(fmt.Errorf("cannot obtain account by public key: %w", err))
 		}
@@ -134,7 +134,7 @@ func main() {
 		if len(accounts.Accounts) == 0 {
 			panic("cannot find account by public key")
 		} else if len(accounts.Accounts) != 1 {
-			panic("multiple accounts found for public key - " + memberPrKey.String())
+			panic("multiple accounts found for public key - " + memberPubKey.String())
 		}
 
 		hAccount, err := hedera.AccountIDFromString(accounts.Accounts[0].Account)
@@ -142,11 +142,12 @@ func main() {
 			panic(fmt.Errorf("cannot convert string to hedera account: %w", err))
 		}
 
-		receipt, err := associate.TokenToAccount(client, *tokenId, hAccount)
+		hClient := client.Init(membersSlice[memberPubKeyIndex], hAccount.String(), *network)
+		tokenToAccountReceipt, err := associate.TokenToAccount(hClient, *tokenId, hAccount)
 		if err != nil {
 			panic(fmt.Errorf("failed to associate token to account: %w", err))
 		}
 		fmt.Printf("Account[%s] associated with token[%s], tx status: %s\n",
-			hAccount.String(), tokenId.String(), receipt.Status)
+			hAccount.String(), tokenId.String(), tokenToAccountReceipt.Status)
 	}
 }
