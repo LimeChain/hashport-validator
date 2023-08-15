@@ -26,26 +26,15 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/recovery"
 	"github.com/limechain/hedera-eth-bridge-validator/bootstrap"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-	"github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-
 	_ "net/http/pprof"
 )
 
 func main() {
 	// Config
-	defer profile.Start(profile.MemProfile).Stop()
-
 	configuration, parsedBridge, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
-	}
-
-	if !configuration.Node.Validator {
-		go func() {
-			http.ListenAndServe(":8080", nil)
-		}()
 	}
 
 	config.InitLogger(configuration.Node.LogLevel, configuration.Node.LogFormat)

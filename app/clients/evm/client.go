@@ -42,7 +42,6 @@ const (
 	retryAfterTimer  = 10 * time.Second
 )
 
-
 // Client EVM JSON RPC Client
 type Client struct {
 	config config.Evm
@@ -184,19 +183,12 @@ func (ec Client) BlockConfirmations() uint64 {
 // RetryBlockNumber returns the most recent block number
 // Uses a retry mechanism in case the filter query is stuck
 func (ec Client) RetryBlockNumber() (uint64, error) {
-	blockNumberFunc := func() <-chan retry.Result {
-		r := make(chan retry.Result)
-		go func() {
-			defer close(r)
-
-			block, err := ec.BlockNumber(context.Background())
-			r <- retry.Result{
-				Value: block,
-				Error: err,
-			}
-		}()
-
-		return r
+	blockNumberFunc := func(ctx context.Context) retry.Result {
+		block, err := ec.BlockNumber(ctx)
+		return retry.Result{
+			Value: block,
+			Error: err,
+		}
 	}
 
 	result, err := service.Retry(blockNumberFunc, executionRetries)
@@ -216,19 +208,12 @@ func (ec Client) RetryBlockNumber() (uint64, error) {
 // RetryFilterLogs returns the logs from the input query
 // Uses a retry mechanism in case the filter query is stuck
 func (ec Client) RetryFilterLogs(query ethereum.FilterQuery) ([]types.Log, error) {
-	filterLogsFunc := func() <-chan retry.Result {
-		r := make(chan retry.Result)
-		go func() {
-			defer close(r)
-
-			logs, err := ec.FilterLogs(context.Background(), query)
-			r <- retry.Result{
-				Value: logs,
-				Error: err,
-			}
-		}()
-
-		return r
+	filterLogsFunc := func(ctx context.Context) retry.Result {
+		logs, err := ec.FilterLogs(ctx, query)
+		return retry.Result{
+			Value: logs,
+			Error: err,
+		}
 	}
 
 	result, err := service.Retry(filterLogsFunc, executionRetries)
@@ -277,31 +262,28 @@ func (ec *Client) WaitForConfirmations(raw types.Log) error {
 }
 
 func (ec *Client) RetryTransactionByHash(hash common.Hash) (*types.Transaction, error) {
-	res, err := service.Retry(func() <-chan retry.Result {
-		r := make(chan retry.Result)
-		go func() {
-			defer close(r)
-
-			tx, _, err := ec.TransactionByHash(context.Background(), hash)
+	res, err := service.Retry(
+		func(ctx context.Context) retry.Result {
+			tx, _, err := ec.TransactionByHash(ctx, hash)
 			if err != nil {
-				r <- retry.Result{
+				return retry.Result{
 					Value: nil,
 					Error: err,
 				}
-				return
 			}
 
-			r <- retry.Result{
+			return retry.Result{
 				Value: tx,
 				Error: nil,
 			}
-		}()
+		},
+		executionRetries,
+	)
 
-		return r
-	}, executionRetries)
 	if err != nil {
 		ec.logger.Warnf("Error in [RetryTransactionByHash - [%s]] Retry [%s]", hash, err)
 		return nil, err
 	}
+
 	return res.(*types.Transaction), nil
 }
