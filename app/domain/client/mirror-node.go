@@ -71,6 +71,8 @@ type MirrorNode interface {
 	AccountExists(accountID hedera.AccountID) bool
 	// GetAccount gets the account data by ID.
 	GetAccount(accountID string) (*account.AccountsResponse, error)
+	// GetAccountByPublicKey gets the account data by public key
+	GetAccountByPublicKey(publicKey string) (*account.AccountsQueryResponse, error)
 	// GetToken gets the token data by ID.
 	GetToken(tokenID string) (*token.TokenResponse, error)
 	// TopicExists sends a query to check whether a specific topic exists. If the query returns a status != 200, the function returns a false value

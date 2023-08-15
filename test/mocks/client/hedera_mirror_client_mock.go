@@ -181,6 +181,15 @@ func (m *MockHederaMirror) AccountExists(accountID hedera.AccountID) bool {
 	return args.Get(0).(bool)
 }
 
+func (m *MockHederaMirror) GetAccountByPublicKey(publicKey string) (*account.AccountsQueryResponse, error) {
+	args := m.Called(publicKey)
+
+	if args.Get(1) == nil {
+		return args.Get(0).(*account.AccountsQueryResponse), nil
+	}
+	return args.Get(0).(*account.AccountsQueryResponse), args.Get(1).(error)
+}
+
 func (m *MockHederaMirror) GetAccount(accountID string) (*account.AccountsResponse, error) {
 	args := m.Called(accountID)
 

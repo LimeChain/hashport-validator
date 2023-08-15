@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"math/big"
 	"strconv"
 	"testing"
@@ -43,7 +44,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashgraph/hedera-sdk-go/v2"
 )

@@ -20,10 +20,17 @@ import (
 	"flag"
 	"fmt"
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	mirrorNode "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
+	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/associate"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/create"
 	"strings"
+)
+
+const (
+	HederaMainnetNetworkId = 295
+	HederaTestnetNetworkId = 296
 )
 
 func main() {
@@ -51,6 +58,18 @@ func main() {
 	fmt.Println("-----------Start-----------")
 	client := client.Init(*privateKey, *accountID, *network)
 
+	mirrorNodeConfigByNetwork := map[uint64]config.MirrorNode{
+		HederaMainnetNetworkId: {
+			ClientAddress: "mainnet-public.mirrornode.hedera.com/:443",
+			ApiAddress:    "https://mainnet-public.mirrornode.hedera.com/api/v1/",
+		},
+		HederaTestnetNetworkId: {
+			ClientAddress: "hcs.testnet.mirrornode.hedera.com:5600",
+			ApiAddress:    "https://testnet.mirrornode.hedera.com/api/v1/",
+		},
+	}
+
+	var hederaNetworkId uint64
 	if *network != "testnet" && *setSupplyKey {
 		var confirmation string
 		fmt.Printf("Network is set to [%s] and setSupplyKey is set to [%v]. Are you sure you what to proceed?\n", *network, *setSupplyKey)
@@ -59,16 +78,23 @@ func main() {
 		if confirmation != "Y" {
 			panic("Exiting")
 		}
+		hederaNetworkId = HederaMainnetNetworkId
+	} else {
+		hederaNetworkId = HederaTestnetNetworkId
 	}
 
+	mirrorNodeClient := mirrorNode.NewClient(mirrorNodeConfigByNetwork[hederaNetworkId])
 	membersSlice := strings.Split(*memberPrKeys, ",")
 
 	var custodianKey []hedera.PrivateKey
+	var membersPublicKey []hedera.PublicKey
 	for i := 0; i < len(membersSlice); i++ {
 		privateKeyFromStr, err := hedera.PrivateKeyFromString(membersSlice[i])
 		if err != nil {
 			panic(err)
 		}
+
+		membersPublicKey = append(membersPublicKey, privateKeyFromStr.PublicKey())
 		custodianKey = append(custodianKey, privateKeyFromStr)
 	}
 
@@ -97,4 +123,30 @@ func main() {
 	}
 	fmt.Println("Token ID:", tokenId)
 	fmt.Println("Associate transaction status:", receipt.Status)
+
+	// associate token with members
+	for _, memberPrKey := range membersPublicKey {
+		accounts, err := mirrorNodeClient.GetAccountByPublicKey(memberPrKey.String())
+		if err != nil {
+			panic(fmt.Errorf("cannot obtain account by public key: %w", err))
+		}
+
+		if len(accounts.Accounts) == 0 {
+			panic("cannot find account by public key")
+		} else if len(accounts.Accounts) != 1 {
+			panic("multiple accounts found for public key - " + memberPrKey.String())
+		}
+
+		hAccount, err := hedera.AccountIDFromString(accounts.Accounts[0].Account)
+		if err != nil {
+			panic(fmt.Errorf("cannot convert string to hedera account: %w", err))
+		}
+
+		receipt, err := associate.TokenToAccount(client, *tokenId, hAccount)
+		if err != nil {
+			panic(fmt.Errorf("failed to associate token to account: %w", err))
+		}
+		fmt.Printf("Account[%s] associated with token[%s], tx status: %s\n",
+			hAccount.String(), tokenId.String(), receipt.Status)
+	}
 }
