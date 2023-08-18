@@ -17,8 +17,8 @@
 package service
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/retry"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -28,62 +28,36 @@ const (
 	sleepPeriod = 5 * time.Second
 )
 
-var (
-	timeoutError = fmt.Errorf("Timeout after [%d]", sleepPeriod)
-)
-
-// timeout is a function that returns an error after sleepPeriod.
-func timeout() <-chan retry.Result {
-	r := make(chan retry.Result)
-
-	go func() {
-		defer close(r)
-
-		time.Sleep(sleepPeriod)
-		r <- retry.Result{
-			Value: nil,
-			Error: timeoutError,
-		}
-	}()
-
-	return r
-}
-
-// Retry executes two functions in race condition ({@param executionFunction} and timeout function).
-// It takes the first result from both functions.
-// If timeout function finishes first, it will retry the same mechanism {@param retries} times.
-// If {@param executionFunction} finishes first, it will directly resolve its result.
+// Retry executes the given function with a timeout of {@param sleepPeriod}.
+// If the function timeouts, it will retry the execution until the given {@param retries} is reached.
+// If the function returns an error, this will return the error.
+// If the function is executed successfully, this will return the result.
 // This function finds usability in the execution of EVM queries, which from time to time do not return response -
 // the query is stuck forever and breaks the business logic. This way, if the query takes more than sleepPeriod, it will
 // retry the query {@param retries} times.
 // If {@param retries} is reached, it will return an error.
-func Retry(executionFunction func() <-chan retry.Result, retries int) (interface{}, error) {
+func Retry(executionFunction func(context.Context) retry.Result, retries int) (interface{}, error) {
 	times := 0
-	var retryFunction func() (interface{}, error)
 
-	retryFunction = func() (interface{}, error) {
-		var executionResult retry.Result
-		select {
-		case executionResult = <-timeout():
-		case executionResult = <-executionFunction():
-		}
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), sleepPeriod)
+		executionResult := executionFunction(ctx)
+		cancel()
 
 		if executionResult.Error != nil {
-			if errors.Is(executionResult.Error, timeoutError) {
+			if errors.Is(executionResult.Error, context.DeadlineExceeded) {
 				times++
 				if times >= retries {
 					log.Warnf("Function execution timeouted. [%d/%d] tries.", times, retries)
-					return 0, errors.New("too many retries")
+					return nil, ErrTooManyRetires
 				}
 
 				log.Warnf("Function execution timeout. [%d/%d] tries.", times, retries)
-				return retryFunction()
+				continue
 			}
 			return nil, executionResult.Error
 		}
 
 		return executionResult.Value, executionResult.Error
 	}
-
-	return retryFunction()
 }

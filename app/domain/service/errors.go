@@ -16,8 +16,12 @@
 
 package service
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var ErrNotFound = errors.New("not found")
 var ErrBadRequestTransferTargetNetworkNoSignaturesRequired = errors.New("transfer target network does not require signatures")
 var ErrWrongQuery = errors.New("wrong query parameter")
+var ErrTooManyRetires = fmt.Errorf("too many retries")

@@ -17,6 +17,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -25,11 +26,14 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
+	"github.com/limechain/hedera-eth-bridge-validator/app/model/retry"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -184,4 +188,106 @@ func Test_ConvertEvmHashToBridgeTxId_WithInvalidChainId(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Nil(t, actual)
+}
+
+func Test_Retry_HappyPath(t *testing.T) {
+	setup()
+
+	expectedValue := 1
+
+	res, err := service.Retry(func(ctx context.Context) retry.Result {
+		select {
+		case <-time.After(1 * time.Second): // Simulate work
+		case <-ctx.Done():
+			return retry.Result{
+				Value: nil,
+				Error: ctx.Err(),
+			}
+		}
+		return retry.Result{
+			Value: expectedValue,
+			Error: nil,
+		}
+	}, 1)
+
+	require.NoError(t, err)
+	require.Equal(t, expectedValue, res)
+}
+
+func Test_Retry_SuccessAfterRetry(t *testing.T) {
+	setup()
+
+	expectedValue := 1
+	currentRun := 0
+
+	res, err := service.Retry(func(ctx context.Context) retry.Result {
+		currentRun++
+
+		waitTime := 10 * time.Second
+		if currentRun > 1 {
+			waitTime = 1 * time.Second
+		}
+
+		select {
+		case <-time.After(waitTime): // Simulate work
+		case <-ctx.Done():
+			return retry.Result{
+				Value: nil,
+				Error: ctx.Err(),
+			}
+		}
+		return retry.Result{
+			Value: expectedValue,
+			Error: nil,
+		}
+	}, 2)
+
+	require.NoError(t, err)
+	require.Equal(t, expectedValue, res)
+	require.Equal(t, currentRun, 2)
+}
+
+func Test_Retry_Timeout(t *testing.T) {
+	setup()
+
+	expectedValue := 1
+
+	res, err := service.Retry(func(ctx context.Context) retry.Result {
+		waitTime := 10 * time.Second
+
+		select {
+		case <-time.After(waitTime): // Simulate work
+		case <-ctx.Done():
+			return retry.Result{
+				Value: nil,
+				Error: ctx.Err(),
+			}
+		}
+		return retry.Result{
+			Value: expectedValue,
+			Error: nil,
+		}
+	}, 1)
+
+	require.Error(t, err)
+	require.Nil(t, res)
+	require.ErrorIs(t, err, service.ErrTooManyRetires)
+}
+
+func Test_Retry_ReturnError(t *testing.T) {
+	setup()
+
+	currentRun := 0
+	res, err := service.Retry(func(ctx context.Context) retry.Result {
+		currentRun++
+		return retry.Result{
+			Value: nil,
+			Error: errors.New("some error"),
+		}
+	}, 3)
+
+	require.Error(t, err)
+	require.Nil(t, res)
+	require.Equal(t, err.Error(), "some error")
+	require.Equal(t, currentRun, 1)
 }
