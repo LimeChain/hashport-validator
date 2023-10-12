@@ -54,7 +54,6 @@ func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
 	network := flag.String("network", "testnet", "Hedera Network Type")
-	members := flag.Int("members", 1, "The count of the members")
 	memberPrivateKeys := flag.String("memberPrivateKeys", "", "Member private keys array, seperated by ','")
 	adminKey := flag.String("adminKey", "", "The admin key")
 	configPath := flag.String("configPath", "scripts/bridge/setup/extend-config/extended-bridge.yml", "Path to the 'bridge.yaml' config file")
@@ -62,6 +61,8 @@ func main() {
 
 	prKeysSlice := strings.Split(*memberPrivateKeys, ",")
 	var hederaPrivateKeys []hedera.PrivateKey
+
+	members := len(prKeysSlice)
 
 	// element [0] can be empty string if the user does not provide any private keys
 	if prKeysSlice[0] != "" {
@@ -74,16 +75,16 @@ func main() {
 		}
 	}
 
-	treshold := uint(math.Ceil(float64(*members) * float64(0.51)))
+	treshold := uint(math.Ceil(float64(members) * 0.51))
 
-	validateArguments(privateKey, accountID, adminKey, members, configPath, network)
+	validateArguments(privateKey, accountID, adminKey, configPath, network)
 	if *network == "testnet" {
 		hederaNetworkId = HederaTestnetNetworkId
 	} else {
 		hederaNetworkId = HederaMainnetNetworkId
 	}
 	parsedBridgeCfgForDeploy := parseExtendedBridge(configPath)
-	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, members, hederaPrivateKeys, treshold, parsedBridgeCfgForDeploy)
+	bridgeDeployResult := deployBridge(privateKey, accountID, adminKey, network, &members, hederaPrivateKeys, treshold, parsedBridgeCfgForDeploy)
 	createAndAssociateTokens(
 		&treshold,
 		bridgeDeployResult,
@@ -196,24 +197,21 @@ func createAndAssociateWrappedTokens(network uint64, networkInfo *parser.Network
 		fmt.Printf("Creating Hedera Wrapped Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
 		tokenId, err := wrappedFungibleCreate.WrappedFungibleToken(
 			client,
-			client.GetOperatorAccountID(),
+			*bridgeDeployResult.BridgeAccountID,
 			client.GetOperatorPublicKey(),
 			supplyKey,
 			bridgeDeployResult.MembersPrivateKeys,
 			tokenInfo.Name,
 			tokenInfo.Symbol,
 			tokenInfo.Decimals,
-			tokenInfo.Supply,
+			0,
 		)
 		if err != nil {
 			fmt.Printf("[ERROR] Failed to Create Hedera Wrapped Fungible Token based on info of token [%s]. Error: [%s]\n", tokenAddress, err)
 			continue
 		}
 		fmt.Printf("Successfully Created Hedera Wrapped Fungible Token with address [%s] based on info of token [%s]\n", tokenId.String(), tokenAddress)
-		err = associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
-		if err == nil {
-			ExtendedBridge.Networks[network].Tokens.Fungible[tokenAddress].Networks[hederaNetworkId] = tokenId.String()
-		}
+		ExtendedBridge.Networks[network].Tokens.Fungible[tokenAddress].Networks[hederaNetworkId] = tokenId.String()
 	}
 }
 
@@ -323,8 +321,8 @@ func parseParams(content []byte, topicId *string, executorId *string, nodeAccoun
 	return content, topicIdParsed, executor, nodeAccount
 }
 
-func validateArguments(privateKey *string, accountID *string, adminKey *string, members *int, configPath *string, network *string) {
-	err := bridgeSetup.ValidateArguments(privateKey, accountID, adminKey, members)
+func validateArguments(privateKey *string, accountID *string, adminKey *string, configPath *string, network *string) {
+	err := bridgeSetup.ValidateArguments(privateKey, accountID, adminKey)
 	if err != nil {
 		panic(err)
 	}

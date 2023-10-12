@@ -41,7 +41,7 @@ type DeployResult struct {
 func Deploy(privateKey *string, accountID *string, adminKey *string, network *string, members *int, previousPrivateKeys []hedera.PrivateKey, treshold uint) DeployResult {
 	result := DeployResult{}
 
-	err := ValidateArguments(privateKey, accountID, adminKey, members)
+	err := ValidateArguments(privateKey, accountID, adminKey)
 	if err != nil {
 		result.Error = err
 		return result
@@ -167,7 +167,7 @@ func Deploy(privateKey *string, accountID *string, adminKey *string, network *st
 	return result
 }
 
-func ValidateArguments(privateKey *string, accountID *string, adminKey *string, members *int) error {
+func ValidateArguments(privateKey *string, accountID *string, adminKey *string) error {
 	if *privateKey == "0x0" {
 		return errors.New("private key was not provided")
 	}
