@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -61,18 +61,6 @@ var (
 		Shard: 0,
 		Realm: 0,
 		Topic: 2,
-	}
-
-	scheduleId = hedera.ScheduleID{
-		Shard:    0,
-		Realm:    0,
-		Schedule: 3,
-	}
-
-	tokenId = hedera.TokenID{
-		Shard: 0,
-		Realm: 0,
-		Token: 4,
 	}
 
 	c *Client
@@ -128,7 +116,7 @@ func Test_GetSchedule_Fails(t *testing.T) {
 func Test_AccountExists_Status400(t *testing.T) {
 	setup()
 	stringReader := strings.NewReader("error")
-	stringReadCloser := ioutil.NopCloser(stringReader)
+	stringReadCloser := io.NopCloser(stringReader)
 	response := &http.Response{
 		StatusCode: 400,
 		Body:       stringReadCloser,
@@ -179,7 +167,7 @@ func Test_GetToken_Fails(t *testing.T) {
 func Test_TopicExists_Status400(t *testing.T) {
 	setup()
 	stringReader := strings.NewReader("error")
-	stringReadCloser := ioutil.NopCloser(stringReader)
+	stringReadCloser := io.NopCloser(stringReader)
 	response := &http.Response{
 		StatusCode: 400,
 		Body:       stringReadCloser,
@@ -687,7 +675,7 @@ func Test_GetAccountByPublicKey_Err(t *testing.T) {
 	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 400, Body: encodedContent}, nil)
 	response, err := c.GetAccountByPublicKey("1234")
 	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "Failed to execute query")
+	assert.Contains(t, err.Error(), "failed to execute query")
 }
 
 func Test_GetToken_HttpErr(t *testing.T) {
