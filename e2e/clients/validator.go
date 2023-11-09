@@ -19,7 +19,7 @@ package clients
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -68,5 +68,5 @@ func (v *Validator) get(url string) ([]byte, error) {
 		return nil, fmt.Errorf("GET resolved with status [%d].", response.StatusCode)
 	}
 
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(response.Body)
 }

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 )
 
 func EncodeBodyContent(content interface{}) (io.ReadCloser, error) {
@@ -30,7 +29,7 @@ func EncodeBodyContent(content interface{}) (io.ReadCloser, error) {
 		return nil, encodeErr
 	}
 	encodedResponseReader := bytes.NewReader(encodedResponseBuffer.Bytes())
-	encodedResponseReaderCloser := ioutil.NopCloser(encodedResponseReader)
+	encodedResponseReaderCloser := io.NopCloser(encodedResponseReader)
 
 	return encodedResponseReaderCloser, nil
 }

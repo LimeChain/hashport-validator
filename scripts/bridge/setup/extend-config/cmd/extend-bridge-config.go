@@ -19,6 +19,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
+	"os"
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
@@ -30,9 +34,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup/parser"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"math"
-	"strconv"
 )
 
 const (
@@ -101,7 +102,7 @@ func createOutputFile(extendedBridgeCfg *parser.ExtendedBridge) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to marshal extended bridge config to yaml. Err: [%s]", err))
 	}
-	err = ioutil.WriteFile(outputFilePath, extendedBridgeYml, 0644)
+	err = os.WriteFile(outputFilePath, extendedBridgeYml, 0644)
 	if err != nil {
 		panic(fmt.Sprintf("failed to write new-bridge.yml file. Err: [%s]", err))
 	}

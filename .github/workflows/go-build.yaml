@@ -6,11 +6,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         name: Setup GO Env
         with:
-          go-version: '1.18'
+          go-version: '1.20'
       - name: Cache Go modules
         uses: actions/cache@v2
         with:
@@ -19,7 +19,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Build hedera-eth-bridge-validator
-        run: go build -i -o validator cmd/*
+        run: go build -o validator cmd/*
       - name: Upload Binary as artifact
         uses: actions/upload-artifact@master
         with:

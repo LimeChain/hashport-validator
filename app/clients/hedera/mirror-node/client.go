@@ -19,7 +19,7 @@ package mirror_node
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -622,5 +622,5 @@ func (c Client) getTopicMessagesByQuery(query string) ([]message.Message, error)
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(response.Body)
 }

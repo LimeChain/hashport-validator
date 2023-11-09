@@ -20,11 +20,12 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go/v2"
-	"github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
-	clientScript "github.com/limechain/hedera-eth-bridge-validator/scripts/client"
-	"io/ioutil"
+	"os"
 	"time"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
+	update_config "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/update-config"
+	clientScript "github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 )
 
 func main() {
@@ -51,7 +52,7 @@ func main() {
 }
 
 func parseParams(configPath *string, topicId *string, executorId *string, nodeAccountId *string) ([]byte, hedera.TopicID, hedera.AccountID, hedera.AccountID) {
-	content, err := ioutil.ReadFile(*configPath)
+	content, err := os.ReadFile(*configPath)
 	if err != nil {
 		panic(err)
 	}
