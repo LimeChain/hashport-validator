@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -51,7 +51,7 @@ func Test_GetTransferSuccess(t *testing.T) {
 	handler(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	data, _ := ioutil.ReadAll(res.Body)
+	data, _ := io.ReadAll(res.Body)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "OK", string(data))
@@ -146,7 +146,7 @@ func Test_GetTransferSuccess_FailsWithEmptyPassword(t *testing.T) {
 		"SourceChainId": 1,
 		"TargetChainId": 2,
 		"SourceToken":   "token",
-		"Password": 	"",
+		"Password":      "",
 	}
 
 	reqBody, _ := json.Marshal(body)

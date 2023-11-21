@@ -1,4 +1,4 @@
-FROM golang:1.18 as build
+FROM golang:1.20 as build
 WORKDIR /tmp/src/hedera-eth-bridge-validator
 COPY . .
 RUN go build -o main ./cmd

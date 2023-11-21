@@ -13,7 +13,7 @@ jobs:
   deploy_testnet_alice:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0
@@ -47,7 +47,7 @@ jobs:
   deploy_testnet_bob:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0
@@ -81,7 +81,7 @@ jobs:
   deploy_testnet_carol:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0
@@ -115,7 +115,7 @@ jobs:
   deploy_testnet_dave:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.0

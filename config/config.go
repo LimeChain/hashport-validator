@@ -17,7 +17,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -64,7 +63,7 @@ func GetConfig(config interface{}, path string) error {
 		log.Fatal(err)
 	}
 
-	yamlFile, err := ioutil.ReadFile(filename)
+	yamlFile, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
 	}

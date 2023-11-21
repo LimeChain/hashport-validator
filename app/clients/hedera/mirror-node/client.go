@@ -19,7 +19,7 @@ package mirror_node
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -242,7 +242,7 @@ func (c Client) GetNftTransactions(tokenID string, serialNum int64) (transaction
 	}
 
 	if httpResponse.StatusCode != http.StatusOK {
-		return transaction.NftTransactionsResponse{}, fmt.Errorf("Mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes)
+		return transaction.NftTransactionsResponse{}, fmt.Errorf("mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes)
 	}
 
 	var response *transaction.NftTransactionsResponse
@@ -291,7 +291,7 @@ func (c Client) GetSchedule(scheduleID string) (*transaction.Schedule, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
+		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -318,7 +318,7 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("State Proof HTTP GET for TransactionID [%s] ended with Status Code [%d].", transactionID, response.StatusCode)
+		return nil, fmt.Errorf("state Proof HTTP GET for TransactionID [%s] ended with Status Code [%d]", transactionID, response.StatusCode)
 	}
 
 	return readResponseBody(response)
@@ -333,7 +333,7 @@ func (c Client) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
+		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -372,7 +372,7 @@ func (c Client) GetAccountByPublicKey(publicKey string) (*account.AccountsQueryR
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
+		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -400,7 +400,7 @@ func (c Client) GetAccount(accountID string) (*account.AccountsResponse, error) 
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
+		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -429,7 +429,7 @@ func (c Client) GetToken(tokenID string) (*token.TokenResponse, error) {
 		return nil, e
 	}
 	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, query)
+		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
 	}
 
 	bodyBytes, e := readResponseBody(httpResponse)
@@ -594,7 +594,7 @@ func (c Client) getAndParse(query string) (*transaction.Response, error) {
 		return nil, fmt.Errorf("failed to unmarshal response body: [%s]. Error: [%s]", string(bodyBytes), e.Error())
 	}
 	if httpResponse.StatusCode >= 400 {
-		return response, fmt.Errorf(`Failed to execute query: [%s]. Error: [%s]`, query, response.Status.String())
+		return response, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, response.Status.String())
 	}
 
 	return response, nil
@@ -622,5 +622,5 @@ func (c Client) getTopicMessagesByQuery(query string) ([]message.Message, error)
 func readResponseBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
 
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(response.Body)
 }
