@@ -49,16 +49,19 @@ var (
 	// FILL THE EVM NODE URLS BEFORE RUN //
 	///////////////////////////////////////
 	evmNodeUrls = map[uint64]string{
-		80001:    "https://rpc-mumbai.maticvigil.com/",
-		5:        "https://goerli.blockpi.network/v1/rpc/public",
-		97:       "https://rpc.ankr.com/bsc_testnet_chapel",
-		43113:    "https://api.avax-test.network/ext/bc/C/rpc",
-		420:      "https://optimism-goerli.public.blastapi.io",
-		421613:   "https://goerli-rollup.arbitrum.io/rpc",
-		11155111: "https://rpc2.sepolia.org",
-		338:      "https://evm-t3.cronos.org/",
-		4002:     "https://rpcapi-tracing.testnet.fantom.network",
-		84531:    "https://goerli.base.org",
+		80001:      "https://rpc-mumbai.maticvigil.com/",
+		5:          "https://goerli.blockpi.network/v1/rpc/public",
+		97:         "https://rpc.ankr.com/bsc_testnet_chapel",
+		43113:      "https://api.avax-test.network/ext/bc/C/rpc",
+		420:        "https://optimism-goerli.public.blastapi.io",
+		421613:     "https://goerli-rollup.arbitrum.io/rpc",
+		11155111:   "https://rpc2.sepolia.org",
+		338:        "https://evm-t3.cronos.org/",
+		4002:       "https://rpcapi-tracing.testnet.fantom.network",
+		84531:      "https://goerli.base.org",
+		1313161555: "https://testnet.aurora.dev",
+		1287:       "https://rpc.api.moonbase.moonbeam.network",
+		1442:       "https://rpc.public.zkevm-test.net/",
 	}
 	evmClients = make(map[uint64]client.EVM)
 

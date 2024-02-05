@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
-
-	"strings"
 
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	bridgeSetup "github.com/limechain/hedera-eth-bridge-validator/scripts/bridge/setup"
@@ -101,7 +100,7 @@ func main() {
 	}
 
 	nodeAccId := "0.0.3"
-	content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.TopicId, accountID, &nodeAccId)
+	content, topicIdParsed, executor, nodeAccount := parseParams(newBridgeBytes, &parsedBridgeCfgForDeploy.ConfigTopicId, accountID, &nodeAccId)
 	client := hedera.ClientForTestnet()
 	operatorKey, _ := hedera.PrivateKeyFromString(*privateKey)
 	operatorId, _ := hedera.AccountIDFromString(*accountID)
