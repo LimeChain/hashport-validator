@@ -33,3 +33,16 @@
 2. Run setup-from-config.go with privateKey, accountID, network, members, adminKey, topicThreshold, wrappedTokenThreshold, configPath to fully deploy bridge with all Hedera Tokens from specified extended bridge config.
    `go run ./scripts/bridge/setup/from-config/cmd/setup-from-config.go --privateKey=/your private key/ --accountID=/your account id/ --network=/previewnet|testnet|mainnet/ --members=/int, the count of the wanted bridge custodians/ --adminKey=/your admin key/ --topicThreshold=/topic threshold of signs needed to submit a message/ --wrappedTokenThreshold=/threshold of signs needed to manage a wrapped token/ --configPath=/the path to the extended bridge config/`
    
+
+## Transfer tokens
+Param Name | Description
+ --- | --- 
+privateKey | Private Key of the `Sender`
+senderAccountId | `Sender` Account id.
+recipientAccountId | `Recipient` Account id.
+network | Hedera network: `mainet` or `testnet`.
+tokenIDs | IDs of the tokens that will be transfered. They must be seperated by coma.
+hbarAmount | Amount of `HBAR`'s that will be transfered to the `Recipient`
+
+1. Run `transfer.go`
+`go run ./scripts/token/transfer/transfer.go -senderAccountId=/your sender account id/ --privateKey=/your private key/ --network=/testnet|mainnet/ --recipientAccountId=/recipient account id/  --tokenIds=/ids of the tokens you want to transfer (separated by coma)/ --hbarAmount=/amount of HBARs that will be send to the user/`
