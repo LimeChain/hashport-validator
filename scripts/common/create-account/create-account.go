@@ -69,21 +69,10 @@ func main() {
 	newPublicKey := newPrivateKey.PublicKey()
 
 	// Create the new account transaction
-	// Create account
-	// The only required property here is `key`
 	transactionResponse, err := hedera.NewAccountCreateTransaction().
-		// The key that must sign each transfer out of the account.
 		SetKey(newPrivateKey.PublicKey()).
-		// If true, this account's key must sign any transaction depositing into this account (in
-		// addition to all withdrawals)
-		SetReceiverSignatureRequired(false).
-		// The maximum number of tokens that an Account can be implicitly associated with. Defaults to 0
-		// and up to a maximum value of 1000.
 		SetMaxAutomaticTokenAssociations(100).
 		SetInitialBalance(hedera.HbarFrom(*hbarAmount, hedera.HbarUnits.Hbar)).
-		// The account is charged to extend its expiration date every this many seconds. If it doesn't
-		// have enough balance, it extends as long as possible. If it is empty when it expires, then it
-		// is deleted.
 		Execute(client)
 
 	if err != nil {
