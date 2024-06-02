@@ -46,3 +46,14 @@ hbarAmount | Amount of `HBAR`'s that will be transfered to the `Recipient`
 
 1. Run `transfer.go`
 `go run ./scripts/token/transfer/transfer.go -senderAccountId=/your sender account id/ --privateKey=/your private key/ --network=/testnet|mainnet/ --recipientAccountId=/recipient account id/  --tokenIds=/ids of the tokens you want to transfer (separated by coma)/ --hbarAmount=/amount of HBARs that will be send to the user/`
+
+## Create Account
+Param Name | Description
+ --- | ---
+privateKey | Private Key of the account creator
+senderAccountId | Account id of the account creator
+network | Hedera network: `mainet` or `testnet`
+initialBalance | Initial balance of the account
+
+1. Run `create-account.go`
+`go run ./scripts/common/create-account/create-account.go --privateKey=/your private key/ --senderAccountId=/your account id/ --network=/testnet|mainnet/ --initialBalance=/initial balance of the account in HBARs/`
