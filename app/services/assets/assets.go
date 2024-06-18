@@ -19,10 +19,11 @@ package assets
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"math/big"
 	"regexp"
 	"strconv"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -550,7 +551,7 @@ func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, Hed
 				if exist {
 					tokenFeeData, err := routerClient.TokenFeeData(&bind.CallOpts{}, common.HexToAddress(nativeAsset))
 					if err != nil {
-						log.Fatalf("Failed to get fee persentage from router contact for asset [%s]. Error: [%s]", nativeAsset, err)
+						log.Fatalf("Failed to get fee percentage from router contact for asset [%s]. Error: [%s]", nativeAsset, err)
 					}
 					feePercentage = tokenFeeData.ServiceFeePercentage.Int64()
 				}

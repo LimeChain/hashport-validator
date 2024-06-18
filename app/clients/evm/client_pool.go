@@ -19,8 +19,12 @@ package evm
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"math/big"
+	"reflect"
+	"runtime"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -72,6 +76,7 @@ func (cp *ClientPool) getClient(idx int) (client.EVM, config.Evm) {
 
 func (cp *ClientPool) retryOperation(operation func(client.EVM) (interface{}, error)) (interface{}, error) {
 	var err error
+	operationName := getOperationName(operation)
 	for i := 0; i < cp.retries; i++ {
 		client, clientConfig := cp.getClient(i)
 		result, e := operation(client)
@@ -82,7 +87,7 @@ func (cp *ClientPool) retryOperation(operation func(client.EVM) (interface{}, er
 		cp.logger.WithFields(log.Fields{
 			"nodeUrl": clientConfig.NodeUrl,
 			"retries": i,
-		}).Warn("retry operation failed")
+		}).Warnf("retry operation [%s] failed", operationName)
 		err = e
 	}
 
@@ -356,4 +361,14 @@ func (cp *ClientPool) BlockConfirmations() uint64 {
 
 func (cp *ClientPool) GetBlockTimestamp(blockNumber *big.Int) uint64 {
 	return cp.clients[0].GetBlockTimestamp(blockNumber)
+}
+
+// getOperationName finds function name using reflexion
+func getOperationName(operation func(client.EVM) (interface{}, error)) string {
+	rv := reflect.ValueOf(operation)
+	operationPtr := rv.Pointer()
+	operationObj := runtime.FuncForPC(operationPtr)
+	operationNameArgs := strings.Split(operationObj.Name(), ".")
+	operationName := operationNameArgs[len(operationNameArgs)-2]
+	return operationName
 }
