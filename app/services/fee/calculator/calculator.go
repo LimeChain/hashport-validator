@@ -19,6 +19,7 @@ package calculator
 import (
 	"errors"
 	"fmt"
+
 	"github.com/gookit/event"
 	bridge_config_event "github.com/limechain/hedera-eth-bridge-validator/app/model/bridge-config-event"
 	"github.com/limechain/hedera-eth-bridge-validator/config"

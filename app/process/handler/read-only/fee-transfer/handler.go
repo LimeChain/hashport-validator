@@ -116,7 +116,8 @@ func (fmh *Handler) Handle(p interface{}) {
 
 	calculatedFee, remainder := fmh.feeService.CalculateFee(transferMsg.TargetAsset, intAmount)
 
-	validFee := fmh.distributorService.ValidAmount(calculatedFee)
+	validTreasuryFee, validValidatorFee := fmh.distributorService.ValidAmounts(calculatedFee)
+	validFee := validTreasuryFee + validValidatorFee
 	if validFee != calculatedFee {
 		remainder += calculatedFee - validFee
 	}
@@ -127,7 +128,12 @@ func (fmh *Handler) Handle(p interface{}) {
 		return
 	}
 
-	transfers, _ := fmh.distributorService.CalculateMemberDistribution(validFee)
+	transfers, err := fmh.distributorService.CalculateMemberDistribution(validTreasuryFee, validValidatorFee)
+	if err != nil {
+		fmh.logger.Errorf("Failed to prepare members and treasury fee transfers. Error: [%s]", err)
+		return
+	}
+
 	transfers = append(transfers,
 		model.Hedera{
 			AccountID: receiver,

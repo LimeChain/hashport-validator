@@ -206,12 +206,13 @@ func (s *Service) onMinedUserTransactionSetMetrics(sourceChainId, targetChainId 
 func (s *Service) prepareTransfers(token string, amount int64, receiver hedera.AccountID) (fee int64, splitTransfers [][]transfer.Hedera, err error) {
 	fee, remainder := s.feeService.CalculateFee(token, amount)
 
-	validFee := s.distributorService.ValidAmount(fee)
+	validTreasuryFee, validValidatorFee := s.distributorService.ValidAmounts(fee)
+	validFee := validTreasuryFee + validValidatorFee
 	if validFee != fee {
 		remainder += fee - validFee
 	}
 
-	transfers, err := s.distributorService.CalculateMemberDistribution(validFee)
+	transfers, err := s.distributorService.CalculateMemberDistribution(validTreasuryFee, validValidatorFee)
 	if err != nil {
 		return 0, nil, err
 	}

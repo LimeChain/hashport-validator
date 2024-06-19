@@ -18,6 +18,7 @@ package distributor
 
 import (
 	"errors"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
@@ -27,17 +28,27 @@ import (
 )
 
 type Service struct {
-	accountIDs []hedera.AccountID
-	logger     *log.Entry
+	accountIDs        []hedera.AccountID
+	treasuryID        hedera.AccountID
+	rewardPercentages map[string]int
+	logger            *log.Entry
 }
+
+const (
+	TreasuryReward  = "treasury"
+	ValidatorReward = "validator"
+	totalPercentage = 100
+)
 
 const TotalPositiveTransfersPerTransaction = 9
 
-func New(members []string) *Service {
+func New(members []string, treasuryID string, treasuryRewardPercentage int, validatorRewardPercentage int) *Service {
 	if len(members) == 0 {
 		log.Fatal("No members accounts provided")
 	}
-
+	if treasuryRewardPercentage+validatorRewardPercentage != totalPercentage {
+		log.Fatalf("Rewards percentage total must be %d", totalPercentage)
+	}
 	var accountIDs []hedera.AccountID
 	for _, v := range members {
 		accountID, err := hedera.AccountIDFromString(v)
@@ -47,18 +58,29 @@ func New(members []string) *Service {
 		accountIDs = append(accountIDs, accountID)
 	}
 
+	rewardPercentages := map[string]int{
+		ValidatorReward: validatorRewardPercentage,
+		TreasuryReward:  treasuryRewardPercentage,
+	}
+
+	treasuryAccountID, err := hedera.AccountIDFromString(treasuryID)
+	if err != nil {
+		log.Fatalf("Invalid treasury account: [%s].", treasuryID)
+	}
 	return &Service{
-		accountIDs: accountIDs,
-		logger:     config.GetLoggerFor("Fee Service")}
+		accountIDs:        accountIDs,
+		treasuryID:        treasuryAccountID,
+		rewardPercentages: rewardPercentages,
+		logger:            config.GetLoggerFor("Fee Service")}
 }
 
-// CalculateMemberDistribution Returns an equally divided to each member
-func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, error) {
-	feePerAccount := amount / int64(len(s.accountIDs))
+// CalculateMemberDistribution Returns the transactions to the members and the treasury
+func (s Service) CalculateMemberDistribution(validTreasuryFee int64, validValdiatorFee int64) ([]transfer.Hedera, error) {
+	feePerAccount := validValdiatorFee / int64(len(s.accountIDs))
 
-	totalAmount := feePerAccount * int64(len(s.accountIDs))
-	if totalAmount != amount {
-		s.logger.Errorf("Provided fee [%d] is not divisible.", amount)
+	totalValidatorAmount := feePerAccount * int64(len(s.accountIDs))
+	if totalValidatorAmount != validValdiatorFee {
+		s.logger.Errorf("Provided validator fee [%d] is not divisible.", validValdiatorFee)
 		return nil, errors.New("amount not divisible")
 	}
 
@@ -69,6 +91,12 @@ func (s Service) CalculateMemberDistribution(amount int64) ([]transfer.Hedera, e
 			Amount:    feePerAccount,
 		})
 	}
+
+	treasuryTransfer := transfer.Hedera{
+		AccountID: s.treasuryID,
+		Amount:    validTreasuryFee,
+	}
+	transfers = append(transfers, treasuryTransfer)
 
 	return transfers, nil
 }
@@ -133,16 +161,14 @@ func (s Service) PrepareTransfers(amount int64, token string) ([]transaction.Tra
 	return transfers, nil
 }
 
-// ValidAmount Returns the closest amount, which can be equally divided to members
-func (s Service) ValidAmount(amount int64) int64 {
-	feePerAccount := amount / int64(len(s.accountIDs))
+// ValidAmounts Returns the closest amounts, which can be equally divided to members and treasury
+func (s Service) ValidAmounts(amount int64) (int64, int64) {
+	treasuryAmount := (amount * int64(s.rewardPercentages[TreasuryReward])) / 100
+	feeForMembers := (amount * int64(s.rewardPercentages[ValidatorReward])) / 100
 
-	totalAmount := feePerAccount * int64(len(s.accountIDs))
-	if totalAmount != amount {
-		return totalAmount
-	}
-
-	return amount
+	feePerMember := feeForMembers / int64(len(s.accountIDs))
+	validatorsAmount := feePerMember * int64(len(s.accountIDs))
+	return treasuryAmount, validatorsAmount
 }
 
 // Sums the amounts and returns the opposite

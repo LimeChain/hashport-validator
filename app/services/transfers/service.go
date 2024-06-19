@@ -178,12 +178,13 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 	}
 
 	fee, remainder := ts.feeService.CalculateFee(tm.NativeAsset, intAmount)
-	validFee := ts.distributor.ValidAmount(fee)
+	validTreasuryFee, validValidatorFee := ts.distributor.ValidAmounts(fee)
+	validFee := validTreasuryFee + validValidatorFee
 	if validFee != fee {
 		remainder += fee - validFee
 	}
 
-	go ts.processFeeTransfer(validFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.NativeAsset)
+	go ts.processFeeTransfer(validValidatorFee, validTreasuryFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.NativeAsset)
 
 	wrappedAmount := strconv.FormatInt(remainder, 10)
 
@@ -211,8 +212,9 @@ func (ts *Service) ProcessNativeNftTransfer(tm payload.Transfer) error {
 		return errors.New("failed-scheduled-nft-transfer")
 	}
 
-	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
-	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
+	validTreasuryFee, validValidatorFee := ts.distributor.ValidAmounts(tm.Fee)
+
+	go ts.processFeeTransfer(validValidatorFee, validTreasuryFee, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
 
 	signatureMessage, err := ts.messageService.SignNftMessage(tm)
 	if err != nil {
@@ -408,11 +410,11 @@ func (ts *Service) submitTopicMessageAndWaitForTransaction(transferID string, si
 	return nil
 }
 
-func (ts *Service) processFeeTransfer(totalFee int64, sourceChainId, targetChainId uint64, transferID string, nativeAsset string) {
-
-	transfers, err := ts.distributor.CalculateMemberDistribution(totalFee)
+func (ts *Service) processFeeTransfer(validatorFee, treasuryFee int64, sourceChainId, targetChainId uint64, transferID string, nativeAsset string) {
+	totalFee := validatorFee + treasuryFee
+	transfers, err := ts.distributor.CalculateMemberDistribution(treasuryFee, validatorFee)
 	if err != nil {
-		ts.logger.Errorf("[%s] Fee - Failed to Distribute to Members. Error: [%s].", transferID, err)
+		ts.logger.Errorf("Failed to prepare members and treasury fee transfers. Error: [%s]", err)
 		return
 	}
 
