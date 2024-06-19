@@ -953,12 +953,12 @@ func (_Router *RouterCaller) TokenFeeData(opts *bind.CallOpts, _token common.Add
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	})
-	if out != nil{
+
 	outstruct.ServiceFeePercentage = out[0].(*big.Int)
 	outstruct.FeesAccrued = out[1].(*big.Int)
 	outstruct.PreviousAccrued = out[2].(*big.Int)
 	outstruct.Accumulator = out[3].(*big.Int)
-	}
+
 	return *outstruct, err
 
 }
