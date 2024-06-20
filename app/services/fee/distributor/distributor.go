@@ -27,11 +27,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type Logger interface {
+	Errorf(format string, args ...interface{})
+}
+
 type Service struct {
 	accountIDs        []hedera.AccountID
 	treasuryID        hedera.AccountID
 	rewardPercentages map[string]int
-	logger            *log.Entry
+	logger            Logger
 }
 
 const (
@@ -75,7 +79,7 @@ func New(members []string, treasuryID string, treasuryRewardPercentage int, vali
 }
 
 // CalculateMemberDistribution Returns the transactions to the members and the treasury
-func (s Service) CalculateMemberDistribution(validTreasuryFee int64, validValdiatorFee int64) ([]transfer.Hedera, error) {
+func (s Service) CalculateMemberDistribution(validTreasuryFee, validValdiatorFee int64) ([]transfer.Hedera, error) {
 	feePerAccount := validValdiatorFee / int64(len(s.accountIDs))
 
 	totalValidatorAmount := feePerAccount * int64(len(s.accountIDs))

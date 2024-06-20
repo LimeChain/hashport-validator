@@ -34,15 +34,15 @@ func (mds *MockDistrubutorService) PrepareTransfers(amount int64, token string) 
 	return nil, args.Get(1).(error)
 }
 
-func (mds *MockDistrubutorService) CalculateMemberDistribution(validFee int64) ([]transfer.Hedera, error) {
-	args := mds.Called(validFee)
+func (mds *MockDistrubutorService) CalculateMemberDistribution(validTreasuryFee, validValidatorFee int64) ([]transfer.Hedera, error) {
+	args := mds.Called(validTreasuryFee, validValidatorFee)
 	if args.Get(1) == nil {
 		return args.Get(0).([]transfer.Hedera), nil
 	}
 	return nil, args.Get(1).(error)
 }
 
-func (mds *MockDistrubutorService) ValidAmount(amount int64) int64 {
+func (mds *MockDistrubutorService) ValidAmounts(amount int64) (int64, int64) {
 	args := mds.Called(amount)
-	return args.Get(0).(int64)
+	return args.Get(0).(int64), args.Get(1).(int64)
 }

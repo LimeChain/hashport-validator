@@ -21,11 +21,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"math/big"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
@@ -872,8 +873,8 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 
 	transferFee := setupEnv.NftConstantFees[nftToken]
 
-	validatorsFee := setupEnv.Clients.Distributor.ValidAmount(transferFee)
-
+	treasuryFee, validatorsFee := setupEnv.Clients.Distributor.ValidAmounts(transferFee)
+	validFee := treasuryFee + validatorsFee
 	// Step 1 - Get Token Metadata
 	nftData, err := setupEnv.Clients.MirrorNode.GetNft(nftToken, serialNumber)
 
@@ -922,7 +923,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	receivedSignatures := verify.TopicMessagesWithStartTime(t, setupEnv.Clients.Hedera, setupEnv.TopicID, setupEnv.Scenario.ExpectedValidatorsCount, hederahelper.FromHederaTransactionID(feeResponse.TransactionID).String(), signaturesStartTime)
 
 	// Step 6 - Validate members fee scheduled transaction
-	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, constants.Hbar, validatorsFee)
+	expectedTransfers := expected.MirrorNodeExpectedTransfersForHederaTransfer(setupEnv.Members, setupEnv.BridgeAccount, constants.Hbar, validFee)
 	scheduledTxID, scheduleID := verify.MembersScheduledTxs(t, setupEnv.Clients.Hedera, setupEnv.Clients.MirrorNode, setupEnv.Members, constants.Hbar, expectedTransfers, now)
 
 	// Step 7 - Verify Non-Fungible Transfer retrieved from Validator API
@@ -969,7 +970,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 		NativeAsset:   nftToken,
 		Receiver:      receiver.String(),
 		Amount:        "",
-		Fee:           strconv.FormatInt(validatorsFee, 10),
+		Fee:           strconv.FormatInt(validFee, 10),
 		Status:        status.Completed,
 		SerialNumber:  serialNumber,
 		Metadata:      string(decodedMetadata),
@@ -981,7 +982,7 @@ func Test_Hedera_Native_EVM_NFT_Transfer(t *testing.T) {
 	// and:
 	expectedFeeRecord := expected.FeeRecord(
 		scheduledTxID,
-		scheduleID, validatorsFee,
+		scheduleID, validFee,
 		transactionID)
 	// and:
 	expectedScheduleTransferRecord := &entity.Schedule{
