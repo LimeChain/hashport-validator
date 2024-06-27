@@ -67,14 +67,17 @@ func Load() *Setup {
 
 	configuration := Config{
 		Hedera: Hedera{
-			NetworkType:       e2eConfig.Hedera.NetworkType,
-			BridgeAccount:     e2eConfig.Hedera.BridgeAccount,
-			PayerAccount:      e2eConfig.Hedera.PayerAccount,
-			Members:           e2eConfig.Hedera.Members,
-			TopicID:           e2eConfig.Hedera.TopicID,
-			Sender:            Sender(e2eConfig.Hedera.Sender),
-			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
-			MirrorNode:        *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
+			NetworkType:               e2eConfig.Hedera.NetworkType,
+			BridgeAccount:             e2eConfig.Hedera.BridgeAccount,
+			PayerAccount:              e2eConfig.Hedera.PayerAccount,
+			Members:                   e2eConfig.Hedera.Members,
+			TopicID:                   e2eConfig.Hedera.TopicID,
+			Treasury:                  e2eConfig.Hedera.Treasury,
+			ValidatorRewardPercentage: e2eConfig.Hedera.ValidatorRewardPercentage,
+			TreasuryRewardPercentage:  e2eConfig.Hedera.TreasuryRewardPercentage,
+			Sender:                    Sender(e2eConfig.Hedera.Sender),
+			DbValidationProps:         make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
+			MirrorNode:                *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
 		},
 		EVM:             make(map[uint64]config.Evm),
 		Tokens:          e2eConfig.Tokens,
@@ -114,21 +117,24 @@ func Load() *Setup {
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount   hederaSDK.AccountID
-	PayerAccount    hederaSDK.AccountID
-	TopicID         hederaSDK.TopicID
-	TokenID         hederaSDK.TokenID
-	NativeEvmToken  string
-	NftTokenID      hederaSDK.TokenID
-	NftSerialNumber int64
-	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]decimal.Decimal
-	FeePercentages  map[string]int64
-	Members         []hederaSDK.AccountID
-	Clients         *clients
-	DbValidator     *verify.Service
-	AssetMappings   service.Assets
-	Scenario        *ScenarioConfig
+	BridgeAccount             hederaSDK.AccountID
+	PayerAccount              hederaSDK.AccountID
+	Treasury                  hederaSDK.AccountID
+	ValidatorRewardPercentage int
+	TreasuryRewardPercentage  int
+	TopicID                   hederaSDK.TopicID
+	TokenID                   hederaSDK.TokenID
+	NativeEvmToken            string
+	NftTokenID                hederaSDK.TokenID
+	NftSerialNumber           int64
+	NftConstantFees           map[string]int64
+	NftDynamicFees            map[string]decimal.Decimal
+	FeePercentages            map[string]int64
+	Members                   []hederaSDK.AccountID
+	Clients                   *clients
+	DbValidator               *verify.Service
+	AssetMappings             service.Assets
+	Scenario                  *ScenarioConfig
 }
 
 // newSetup instantiates new Setup struct
@@ -144,6 +150,11 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	topicID, err := hederaSDK.TopicIDFromString(config.Hedera.TopicID)
+	if err != nil {
+		return nil, err
+	}
+
+	treasuryID, err := hederaSDK.AccountIDFromString(config.Hedera.Treasury)
 	if err != nil {
 		return nil, err
 	}
@@ -197,21 +208,24 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator.ExpectedValidatorsCount = scenario.ExpectedValidatorsCount
 
 	return &Setup{
-		BridgeAccount:   bridgeAccount,
-		PayerAccount:    payerAccount,
-		TopicID:         topicID,
-		TokenID:         tokenID,
-		NftTokenID:      nftTokenID,
-		NftSerialNumber: config.Tokens.NftSerialNumber,
-		NativeEvmToken:  config.Tokens.EvmNativeToken,
-		NftConstantFees: config.NftConstantFees,
-		NftDynamicFees:  config.NftDynamicFees,
-		FeePercentages:  config.FeePercentages,
-		Members:         members,
-		Clients:         clients,
-		DbValidator:     dbValidator,
-		AssetMappings:   config.AssetMappings,
-		Scenario:        scenario,
+		BridgeAccount:             bridgeAccount,
+		PayerAccount:              payerAccount,
+		TopicID:                   topicID,
+		TokenID:                   tokenID,
+		Treasury:                  treasuryID,
+		ValidatorRewardPercentage: config.Hedera.ValidatorRewardPercentage,
+		TreasuryRewardPercentage:  config.Hedera.TreasuryRewardPercentage,
+		NftTokenID:                nftTokenID,
+		NftSerialNumber:           config.Tokens.NftSerialNumber,
+		NativeEvmToken:            config.Tokens.EvmNativeToken,
+		NftConstantFees:           config.NftConstantFees,
+		NftDynamicFees:            config.NftDynamicFees,
+		FeePercentages:            config.FeePercentages,
+		Members:                   members,
+		Clients:                   clients,
+		DbValidator:               dbValidator,
+		AssetMappings:             config.AssetMappings,
+		Scenario:                  scenario,
 	}, nil
 }
 
@@ -300,7 +314,7 @@ func newClients(config Config) (*clients, error) {
 		ValidatorClient: validatorClient,
 		MirrorNode:      mirrorNode,
 		FeeCalculator:   fee.New(config.FeePercentages),
-		Distributor:     distributor.New(config.Hedera.Members),
+		Distributor:     distributor.New(config.Hedera.Members, config.Hedera.Treasury, config.Hedera.TreasuryRewardPercentage, config.Hedera.ValidatorRewardPercentage),
 	}, nil
 }
 
@@ -405,14 +419,17 @@ type Config struct {
 
 // Hedera props from the application.yml
 type Hedera struct {
-	NetworkType       string
-	BridgeAccount     string
-	PayerAccount      string
-	Members           []string
-	TopicID           string
-	Sender            Sender
-	DbValidationProps []config.Database
-	MirrorNode        config.MirrorNode
+	NetworkType               string
+	BridgeAccount             string
+	PayerAccount              string
+	Members                   []string
+	Treasury                  string
+	ValidatorRewardPercentage int
+	TreasuryRewardPercentage  int
+	TopicID                   string
+	Sender                    Sender
+	DbValidationProps         []config.Database
+	MirrorNode                config.MirrorNode
 }
 
 // Sender props from the application.yml

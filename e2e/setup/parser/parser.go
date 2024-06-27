@@ -17,14 +17,17 @@ type Config struct {
 }
 
 type HederaParser struct {
-	NetworkType       string            `yaml:"network_type"`
-	BridgeAccount     string            `yaml:"bridge_account"`
-	PayerAccount      string            `yaml:"payer_account"`
-	Members           []string          `yaml:"members"`
-	TopicID           string            `yaml:"topic_id"`
-	Sender            Sender            `yaml:"sender"`
-	DbValidationProps []parser.Database `yaml:"dbs"`
-	MirrorNode        parser.MirrorNode `yaml:"mirror_node"`
+	NetworkType               string            `yaml:"network_type"`
+	BridgeAccount             string            `yaml:"bridge_account"`
+	PayerAccount              string            `yaml:"payer_account"`
+	Members                   []string          `yaml:"members"`
+	TopicID                   string            `yaml:"topic_id"`
+	Treasury                  string            `yaml:"treasury"`
+	ValidatorRewardPercentage int               `yaml:"validator_reward_percentage"`
+	TreasuryRewardPercentage  int               `yaml:"treasury_reward_percentage"`
+	Sender                    Sender            `yaml:"sender"`
+	DbValidationProps         []parser.Database `yaml:"dbs"`
+	MirrorNode                parser.MirrorNode `yaml:"mirror_node"`
 }
 
 type ScenarioParser struct {
