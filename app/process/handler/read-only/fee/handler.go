@@ -108,7 +108,8 @@ func (fmh Handler) Handle(p interface{}) {
 	}
 
 	calculatedFee, _ := fmh.feeService.CalculateFee(transferMsg.SourceAsset, intAmount)
-	validFee := fmh.distributor.ValidAmount(calculatedFee)
+	validTreasuryFee, validValidatorFee := fmh.distributor.ValidAmounts(calculatedFee)
+	validFee := validTreasuryFee + validValidatorFee
 
 	err = fmh.transferRepository.UpdateFee(transferMsg.TransactionId, strconv.FormatInt(validFee, 10))
 	if err != nil {
@@ -116,8 +117,11 @@ func (fmh Handler) Handle(p interface{}) {
 		return
 	}
 
-	transfers, _ := fmh.distributor.CalculateMemberDistribution(validFee)
-
+	transfers, err := fmh.distributor.CalculateMemberDistribution(validTreasuryFee, validValidatorFee)
+	if err != nil {
+		fmh.logger.Errorf("Failed to prepare members and treasury fee transfers. Error: [%s]", err)
+		return
+	}
 	splitTransfers := distributor.SplitAccountAmounts(transfers,
 		model.Hedera{
 			AccountID: fmh.bridgeAccount,

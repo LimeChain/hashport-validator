@@ -22,9 +22,9 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 )
 
-func MirrorNodeExpectedTransfersForBurnEvent(members []hedera.AccountID, hederaClient *hedera.Client, bridgeAccount hedera.AccountID, asset string, amount, fee int64) []transaction.Transfer {
-	total := amount + fee
-	feePerMember := fee / int64(len(members))
+func MirrorNodeExpectedTransfersForBurnEvent(members []hedera.AccountID, treasury hedera.AccountID, hederaClient *hedera.Client, bridgeAccount hedera.AccountID, asset string, amount, validatorFee, treasuryFee int64) []transaction.Transfer {
+	total := amount + validatorFee + treasuryFee
+	feePerMember := validatorFee / int64(len(members))
 
 	var expectedTransfers []transaction.Transfer
 	expectedTransfers = append(expectedTransfers, transaction.Transfer{
@@ -48,6 +48,16 @@ func MirrorNodeExpectedTransfersForBurnEvent(members []hedera.AccountID, hederaC
 			expectedTransfers[i].Token = asset
 		}
 	}
+	treasuryTransfer := transaction.Transfer{
+		Account: treasury.String(),
+		Amount:  treasuryFee,
+	}
+
+	if asset != constants.Hbar {
+
+		treasuryTransfer.Token = asset
+	}
+	expectedTransfers = append(expectedTransfers, treasuryTransfer)
 
 	return expectedTransfers
 }
@@ -69,9 +79,10 @@ func MirrorNodeExpectedTransfersForLockEvent(hederaClient *hedera.Client, bridge
 	return expectedTransfers
 }
 
-func MirrorNodeExpectedTransfersForHederaTransfer(members []hedera.AccountID, bridgeAccount hedera.AccountID, asset string, fee int64) []transaction.Transfer {
-	feePerMember := fee / int64(len(members))
+func MirrorNodeExpectedTransfersForHederaTransfer(members []hedera.AccountID, treasury hedera.AccountID, bridgeAccount hedera.AccountID, asset string, validatorsFee, treasuryFee int64) []transaction.Transfer {
 
+	feePerMember := validatorsFee / int64(len(members))
+	fee := validatorsFee + treasuryFee
 	var expectedTransfers []transaction.Transfer
 	expectedTransfers = append(expectedTransfers, transaction.Transfer{
 		Account: bridgeAccount.String(),
@@ -90,6 +101,17 @@ func MirrorNodeExpectedTransfersForHederaTransfer(members []hedera.AccountID, br
 			expectedTransfers[i].Token = asset
 		}
 	}
+
+	treasuryTransfer := transaction.Transfer{
+		Account: treasury.String(),
+		Amount:  treasuryFee,
+	}
+
+	if asset != constants.Hbar {
+		treasuryTransfer.Token = asset
+	}
+
+	expectedTransfers = append(expectedTransfers, treasuryTransfer)
 
 	return expectedTransfers
 }

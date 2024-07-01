@@ -17,21 +17,23 @@
 package expected
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
-	"math/big"
-	"testing"
 )
 
-func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, fee int64) {
+func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, valdiatorsFee, treasuryFee int64) {
 	fee, remainder := feeCalc.CalculateFee(token, amount)
-	validFee := distributor.ValidAmount(fee)
+	validTreasuryFee, validValidatorsFee := distributor.ValidAmounts(fee)
+	validFee := validTreasuryFee + validValidatorsFee
 	if validFee != fee {
 		remainder += fee - validFee
 	}
 
-	return remainder, validFee
+	return remainder, validValidatorsFee, validTreasuryFee
 }
 
 func EvmAmoundAndFee(router *router.Router, token string, amount int64, t *testing.T) (*big.Int, *big.Int) {

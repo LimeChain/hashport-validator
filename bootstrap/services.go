@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/services/assets"
@@ -94,7 +95,7 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 	}
 
 	fees := calculator.New(c.Bridge.Hedera.FeePercentages)
-	distributor := distributor.New(c.Bridge.Hedera.Members)
+	distributor := distributor.New(c.Bridge.Hedera.Members, c.Bridge.Hedera.Treasury, c.Bridge.Hedera.TreasuryRewardPercentage, c.Bridge.Hedera.ValidatorRewardPercentage)
 	scheduled := scheduled.New(c.Bridge.Hedera.PayerAccount, clients.HederaNode, clients.MirrorNode)
 
 	prometheus := prometheusServices.NewService(assetsService, c.Node.Monitoring.Enable)

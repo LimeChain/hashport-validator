@@ -27,7 +27,7 @@ type Distributor interface {
 	// PrepareTransfers Returns an equally divided array of transfers to each member
 	PrepareTransfers(fee int64, token string) ([]transaction.Transfer, error)
 	// CalculateMemberDistribution Returns an equally divided to each member
-	CalculateMemberDistribution(validFee int64) ([]transfer.Hedera, error)
-	// ValidAmount Returns the closest amount, which can be equally divided to members
-	ValidAmount(amount int64) int64
+	CalculateMemberDistribution(validTreasuryFee int64, validValidatorFee int64) ([]transfer.Hedera, error)
+	// ValidAmounts Returns the closest amounts, which can be equally divided to members and treasury
+	ValidAmounts(amount int64) (int64, int64)
 }

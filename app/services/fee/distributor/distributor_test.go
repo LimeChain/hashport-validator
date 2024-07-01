@@ -17,10 +17,13 @@
 package distributor
 
 import (
+	"testing"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
+	"github.com/limechain/hedera-eth-bridge-validator/test/mocks/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/mock"
 )
 
 func Test_SplitTransfersBelowTotal(t *testing.T) {
@@ -173,4 +176,164 @@ func Test_SplitTransfersAboveTotalTransfersEquallyDivided(t *testing.T) {
 		AccountID: negativeAccountAmount.AccountID,
 		Amount:    int64(-9),
 	}, result[1][expectedChunkTwoLength-1])
+}
+
+func Test_ValidAmounts(t *testing.T) {
+	accountID1, _ := hedera.AccountIDFromString("0.0.1")
+	accountID2, _ := hedera.AccountIDFromString("0.0.2")
+	accountID3, _ := hedera.AccountIDFromString("0.0.3")
+	tests := []struct {
+		name               string
+		service            Service
+		amount             int64
+		expectedTreasury   int64
+		expectedValidators int64
+	}{
+		{
+			name: "Case 1: Valid distribution",
+			service: Service{
+				rewardPercentages: map[string]int{
+					TreasuryReward:  10,
+					ValidatorReward: 90,
+				},
+				accountIDs: []hedera.AccountID{
+					accountID1,
+					accountID2,
+					accountID3,
+				},
+			},
+			amount:             1111,
+			expectedTreasury:   111,
+			expectedValidators: 999,
+		},
+		{
+			name: "Case 2: Single account",
+			service: Service{
+				rewardPercentages: map[string]int{
+					TreasuryReward:  85,
+					ValidatorReward: 15,
+				},
+				accountIDs: []hedera.AccountID{
+					accountID1,
+				},
+			},
+			amount:             2000,
+			expectedTreasury:   1700,
+			expectedValidators: 300,
+		},
+		{
+			name: "Case 3: No Amount",
+			service: Service{
+				rewardPercentages: map[string]int{
+					TreasuryReward:  50,
+					ValidatorReward: 50,
+				},
+				accountIDs: []hedera.AccountID{
+					accountID1,
+					accountID2,
+					accountID3,
+				},
+			},
+			amount:             0,
+			expectedTreasury:   0,
+			expectedValidators: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			treasuryAmount, validatorsAmount := tt.service.ValidAmounts(tt.amount)
+			if treasuryAmount != tt.expectedTreasury {
+				t.Errorf("expected treasury amount %d, got %d", tt.expectedTreasury, treasuryAmount)
+			}
+			if validatorsAmount != tt.expectedValidators {
+				t.Errorf("expected validators amount %d, got %d", tt.expectedValidators, validatorsAmount)
+			}
+		})
+	}
+}
+
+func Test_CalculateMemberDistribution(t *testing.T) {
+	mockLogger := common.MockLogger{}
+	accountID1, _ := hedera.AccountIDFromString("0.0.1")
+	accountID2, _ := hedera.AccountIDFromString("0.0.2")
+	accountID3, _ := hedera.AccountIDFromString("0.0.3")
+	treasuryID, _ := hedera.AccountIDFromString("0.0.4")
+
+	tests := []struct {
+		name                  string
+		service               Service
+		validTreasuryFee      int64
+		validValidatorFee     int64
+		expectedTransfers     []transfer.Hedera
+		expectedError         string
+		expectedLoggerEntries []string
+	}{
+		{
+			name: "Case 1: Valid distribution",
+			service: Service{
+				accountIDs: []hedera.AccountID{
+					accountID1,
+					accountID2,
+					accountID3,
+				},
+				treasuryID: treasuryID,
+				logger:     &mockLogger,
+			},
+			validTreasuryFee:  100,
+			validValidatorFee: 300,
+			expectedTransfers: []transfer.Hedera{
+				{AccountID: accountID1, Amount: 100},
+				{AccountID: accountID2, Amount: 100},
+				{AccountID: accountID3, Amount: 100},
+				{AccountID: treasuryID, Amount: 100},
+			},
+			expectedError: "",
+		},
+		{
+			name: "Case 2: Non-divisible validator fee",
+			service: Service{
+				accountIDs: []hedera.AccountID{accountID1, accountID2},
+				treasuryID: treasuryID,
+				logger:     &mockLogger,
+			},
+			validTreasuryFee:  50,
+			validValidatorFee: 101,
+			expectedTransfers: nil,
+			expectedError:     "amount not divisible",
+			expectedLoggerEntries: []string{
+				"Provided validator fee [%d] is not divisible.",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockLogger.On("Errorf", "Provided validator fee [%d] is not divisible.", mock.Anything).Maybe()
+			transfers, err := tt.service.CalculateMemberDistribution(tt.validTreasuryFee, tt.validValidatorFee)
+
+			if err != nil && err.Error() != tt.expectedError {
+				t.Errorf("expected error '%s', got '%s'", tt.expectedError, err.Error())
+			}
+
+			if err == nil && tt.expectedError != "" {
+				t.Errorf("expected error '%s', got nil", tt.expectedError)
+			}
+
+			if len(transfers) != len(tt.expectedTransfers) {
+				t.Errorf("expected transfers length %d, got %d", len(tt.expectedTransfers), len(transfers))
+			}
+
+			loggerEntries := tt.service.logger.(*common.MockLogger).Entries
+			if len(loggerEntries) != len(tt.expectedLoggerEntries) {
+				t.Errorf("expected logger entries length %d, got %d", len(tt.expectedLoggerEntries), len(loggerEntries))
+			}
+
+			for i, transfer := range transfers {
+				if transfer.AccountID != tt.expectedTransfers[i].AccountID || transfer.Amount != tt.expectedTransfers[i].Amount {
+					t.Errorf("expected transfer %v, got %v", tt.expectedTransfers[i], transfer)
+				}
+			}
+		})
+	}
 }

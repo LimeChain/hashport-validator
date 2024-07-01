@@ -45,12 +45,15 @@ func (b *Bridge) Update(from *Bridge) {
 }
 
 type Network struct {
-	Name                  string   `yaml:"name,omitempty" json:"name,omitempty"`
-	BridgeAccount         string   `yaml:"bridge_account,omitempty" json:"bridgeAccount,omitempty"`
-	PayerAccount          string   `yaml:"payer_account,omitempty" json:"payerAccount,omitempty"`
-	RouterContractAddress string   `yaml:"router_contract_address,omitempty" json:"routerContractAddress,omitempty"`
-	Members               []string `yaml:"members,omitempty" json:"members,omitempty"`
-	Tokens                Tokens   `yaml:"tokens,omitempty" json:"tokens,omitempty"`
+	Name                      string   `yaml:"name,omitempty" json:"name,omitempty"`
+	BridgeAccount             string   `yaml:"bridge_account,omitempty" json:"bridgeAccount,omitempty"`
+	PayerAccount              string   `yaml:"payer_account,omitempty" json:"payerAccount,omitempty"`
+	RouterContractAddress     string   `yaml:"router_contract_address,omitempty" json:"routerContractAddress,omitempty"`
+	Members                   []string `yaml:"members,omitempty" json:"members,omitempty"`
+	Treasury                  string   `yaml:"treasury_account,omitempty" json:"treasuryAccount,omitempty"`
+	ValidatorRewardPercentage int      `yaml:"validator_reward_percentage,omitempty" json:"validatorRewardPercentage,omitempty"`
+	TreasuryRewardPercentage  int      `yaml:"treasury_reward_percentage,omitempty" json:"treasuryRewardPercentage,omitempty"`
+	Tokens                    Tokens   `yaml:"tokens,omitempty" json:"tokens,omitempty"`
 }
 
 type Tokens struct {

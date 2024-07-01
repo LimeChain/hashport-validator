@@ -194,11 +194,11 @@ func AccountBalance(t *testing.T, hederaClient *hedera.Client, hederaID hedera.A
 	}
 }
 
-func SubmittedScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, members []hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
+func SubmittedScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, members []hedera.AccountID, treasury hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
 	receiverTransactionID, receiverScheduleID := ScheduledTx(t, hederaClient, mirrorNodeClient, hederaClient.GetOperatorAccountID(), asset, expectedTransfers, now)
 
-	membersTransactionID, membersScheduleID := MembersScheduledTxs(t, hederaClient, mirrorNodeClient, members, asset, expectedTransfers, now)
+	membersTransactionID, membersScheduleID := ScheduledTxs(t, hederaClient, mirrorNodeClient, members, treasury, asset, expectedTransfers, now)
 
 	if receiverTransactionID != membersTransactionID {
 		t.Fatalf("Scheduled Transactions between members are different. Receiver [%s], Member [%s]", receiverTransactionID, membersTransactionID)
@@ -319,7 +319,7 @@ func ScheduledNftTransfer(t *testing.T, hederaClient *hedera.Client, mirrorNodeC
 
 func ScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
-	timeLeft := 180
+	timeLeft := 20
 	for {
 		response, err := mirrorNodeClient.GetAccountCreditTransactionsAfterTimestamp(account, now.UnixNano())
 		if err != nil {
@@ -336,9 +336,9 @@ func ScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mi
 		}
 
 		if timeLeft > 0 {
-			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", hederaClient.GetOperatorAccountID(), timeLeft)
-			timeLeft -= 10
-			time.Sleep(10 * time.Second)
+			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] minutes\n", hederaClient.GetOperatorAccountID(), timeLeft)
+			timeLeft--
+			time.Sleep(time.Minute)
 			continue
 		}
 		break
@@ -348,7 +348,7 @@ func ScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mi
 	return "", ""
 }
 
-func MembersScheduledTxs(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, members []hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
+func ScheduledTxs(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, members []hedera.AccountID, treasury hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
 	if len(members) == 0 {
 		return "", ""
@@ -356,8 +356,10 @@ func MembersScheduledTxs(t *testing.T, hederaClient *hedera.Client, mirrorNodeCl
 
 	var transactions []string
 	var scheduleIDs []string
-	for _, member := range members {
-		txID, scheduleID := ScheduledTx(t, hederaClient, mirrorNodeClient, member, asset, expectedTransfers, now)
+	var accountIDs []hedera.AccountID
+	accountIDs = append(accountIDs, append(members, treasury)...)
+	for _, accountID := range accountIDs {
+		txID, scheduleID := ScheduledTx(t, hederaClient, mirrorNodeClient, accountID, asset, expectedTransfers, now)
 		transactions = append(transactions, txID)
 
 		if !utilities.AllSame(transactions) {
@@ -467,7 +469,6 @@ func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topic
 					message := msg.GetFungibleSignatureMessage()
 					transferID = message.TransferID
 					signature = message.Signature
-					break
 				case *model.TopicMessage_NftSignatureMessage:
 					message := msg.GetNftSignatureMessage()
 					transferID = message.TransferID
@@ -484,10 +485,10 @@ func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topic
 			},
 		)
 	if err != nil {
-		t.Fatalf("Unable to subscribe to Topic [%s]", topicId)
+		t.Fatalf("Unable to subscribe to Topic [%s]: [%s]", topicId, err)
 	}
 
-	timeoutTimer := time.NewTimer(480 * time.Second)
+	timeoutTimer := time.NewTimer(15 * time.Minute)
 
 signatureLoop:
 	for ethSignaturesCollected < expectedValidatorsCount {

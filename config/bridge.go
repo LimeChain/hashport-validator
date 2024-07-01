@@ -52,13 +52,16 @@ func (b *Bridge) Update(from *Bridge) {
 }
 
 type BridgeHedera struct {
-	BridgeAccount   string
-	PayerAccount    string
-	Members         []string
-	Tokens          map[string]HederaToken
-	FeePercentages  map[string]int64
-	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]decimal.Decimal
+	BridgeAccount             string
+	PayerAccount              string
+	Members                   []string
+	Treasury                  string
+	ValidatorRewardPercentage int
+	TreasuryRewardPercentage  int
+	Tokens                    map[string]HederaToken
+	FeePercentages            map[string]int64
+	NftConstantFees           map[string]int64
+	NftDynamicFees            map[string]decimal.Decimal
 }
 
 type HederaToken struct {
@@ -116,10 +119,13 @@ func NewBridge(bridge parser.Bridge) *Bridge {
 
 		if networkId == constants.HederaNetworkId { // Hedera
 			config.Hedera = &BridgeHedera{
-				BridgeAccount: networkInfo.BridgeAccount,
-				PayerAccount:  networkInfo.PayerAccount,
-				Members:       networkInfo.Members,
-				Tokens:        make(map[string]HederaToken),
+				BridgeAccount:             networkInfo.BridgeAccount,
+				PayerAccount:              networkInfo.PayerAccount,
+				Members:                   networkInfo.Members,
+				Treasury:                  networkInfo.Treasury,
+				ValidatorRewardPercentage: networkInfo.ValidatorRewardPercentage,
+				TreasuryRewardPercentage:  networkInfo.TreasuryRewardPercentage,
+				Tokens:                    make(map[string]HederaToken),
 			}
 
 			for name, tokenInfo := range networkInfo.Tokens.Nft {

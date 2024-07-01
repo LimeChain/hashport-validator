@@ -87,7 +87,7 @@ func Test_Handle(t *testing.T) {
 	}
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(tr, nil)
 	mocks.MFeeService.On("CalculateFee", tr.TargetAsset, int64(100)).Return(int64(10), int64(0))
-	mocks.MDistributorService.On("ValidAmount", 10).Return(int64(3))
+	mocks.MDistributorService.On("ValidAmounts", 10).Return(int64(3))
 	mocks.MReadOnlyService.On("FindAssetTransfer", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	h.Handle(tr)
 }
@@ -96,7 +96,7 @@ func Test_Handle_FindTransfer(t *testing.T) {
 	setup()
 	mocks.MTransferService.On("InitiateNewTransfer", *tr).Return(&entity.Transfer{Status: status.Initial}, nil)
 	mocks.MFeeService.On("CalculateFee", tr.TargetAsset, int64(100)).Return(int64(10), int64(0))
-	mocks.MDistributorService.On("ValidAmount", int64(10)).Return(int64(3))
+	mocks.MDistributorService.On("ValidAmounts", int64(10)).Return(int64(3))
 	mocks.MTransferRepository.On("UpdateFee", tr.TransactionId, "3").Return(nil)
 	mocks.MDistributorService.On("CalculateMemberDistribution", int64(3)).Return([]model.Hedera{})
 	mocks.MReadOnlyService.On("FindAssetTransfer", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
@@ -109,7 +109,7 @@ func Test_Handle_NotInitialFails(t *testing.T) {
 	h.Handle(tr)
 	mocks.MReadOnlyService.AssertNotCalled(t, "FindTransfer", mock.Anything, mock.Anything, mock.Anything)
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", mock.Anything, mock.Anything)
-	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mock.Anything)
+	mocks.MDistributorService.AssertNotCalled(t, "ValidAmounts", mock.Anything)
 }
 
 func Test_Handle_InvalidPayload(t *testing.T) {
@@ -118,7 +118,7 @@ func Test_Handle_InvalidPayload(t *testing.T) {
 	mocks.MTransferService.AssertNotCalled(t, "InitiateNewTransfer", *tr)
 	mocks.MReadOnlyService.AssertNotCalled(t, "FindTransfer", mock.Anything, mock.Anything, mock.Anything)
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", mock.Anything, mock.Anything)
-	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mock.Anything)
+	mocks.MDistributorService.AssertNotCalled(t, "ValidAmounts", mock.Anything)
 }
 
 func Test_Handle_InitiateNewTransferFails(t *testing.T) {
@@ -127,7 +127,7 @@ func Test_Handle_InitiateNewTransferFails(t *testing.T) {
 	h.Handle(tr)
 	mocks.MReadOnlyService.AssertNotCalled(t, "FindTransfer", mock.Anything, mock.Anything, mock.Anything)
 	mocks.MFeeService.AssertNotCalled(t, "CalculateFee", mock.Anything, mock.Anything)
-	mocks.MDistributorService.AssertNotCalled(t, "ValidAmount", mock.Anything)
+	mocks.MDistributorService.AssertNotCalled(t, "ValidAmounts", mock.Anything)
 }
 
 func setup() {

@@ -236,7 +236,7 @@ func (s *Service) getMessageListByTransactionId(expectedTransferRecord *entity.T
 			return result, err
 		}
 
-		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		time.Sleep(s.DatabaseRetryTimeout * time.Minute)
 		s.logger.Infof("Database Message records [%s] retry %d", expectedTransferRecord.TransactionID, currentCount)
 	}
 
@@ -262,7 +262,7 @@ func (s *Service) getTransactionById(verifier dbVerifier, expectedTransferRecord
 			return result, err
 		}
 
-		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		time.Sleep(s.DatabaseRetryTimeout * time.Minute)
 		s.logger.Infof("Database Transaction record [%s] retry %d", expectedTransferRecord.TransactionID, currentCount)
 	}
 
@@ -288,7 +288,7 @@ func (s *Service) getScheduleByTransactionId(verifier dbVerifier, expectedRecord
 			return result, err
 		}
 
-		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		time.Sleep(s.DatabaseRetryTimeout * time.Minute)
 		s.logger.Infof("Database Schedule record [%s] retry %d", expectedRecord.TransactionID, currentCount)
 	}
 
@@ -314,7 +314,7 @@ func (s *Service) getFeeByTransactionId(verifier dbVerifier, expectedRecord *ent
 			return result, err
 		}
 
-		time.Sleep(s.DatabaseRetryTimeout * time.Second)
+		time.Sleep(s.DatabaseRetryTimeout * time.Minute)
 		s.logger.Infof("Database Fee record [%s] retry %d", expectedRecord.TransactionID, currentCount)
 	}
 
