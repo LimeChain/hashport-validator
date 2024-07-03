@@ -25,7 +25,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 )
 
-func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, valdiatorsFee, treasuryFee int64) {
+func ReceiverAndFeeAmounts(feeCalc service.Fee, distributor service.Distributor, token string, amount int64) (receiverAmount, validatorsFee, treasuryFee int64) {
 	fee, remainder := feeCalc.CalculateFee(token, amount)
 	validTreasuryFee, validValidatorsFee := distributor.ValidAmounts(fee)
 	validFee := validTreasuryFee + validValidatorsFee

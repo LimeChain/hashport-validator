@@ -79,12 +79,12 @@ func New(members []string, treasuryID string, treasuryRewardPercentage int, vali
 }
 
 // CalculateMemberDistribution Returns the transactions to the members and the treasury
-func (s Service) CalculateMemberDistribution(validTreasuryFee, validValdiatorFee int64) ([]transfer.Hedera, error) {
-	feePerAccount := validValdiatorFee / int64(len(s.accountIDs))
+func (s Service) CalculateMemberDistribution(validTreasuryFee, validValidatorFee int64) ([]transfer.Hedera, error) {
+	feePerAccount := validValidatorFee / int64(len(s.accountIDs))
 
 	totalValidatorAmount := feePerAccount * int64(len(s.accountIDs))
-	if totalValidatorAmount != validValdiatorFee {
-		s.logger.Errorf("Provided validator fee [%d] is not divisible.", validValdiatorFee)
+	if totalValidatorAmount != validValidatorFee {
+		s.logger.Errorf("Provided validator fee [%d] is not divisible.", validValidatorFee)
 		return nil, errors.New("amount not divisible")
 	}
 
