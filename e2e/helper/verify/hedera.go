@@ -213,7 +213,7 @@ func SubmittedScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeC
 
 func ScheduledMintTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
-	timeLeft := 180
+	timeLeft := 20
 	for {
 		response, err := mirrorNodeClient.GetAccountTokenMintTransactionsAfterTimestamp(account, now.UnixNano())
 		if err != nil {
@@ -231,8 +231,8 @@ func ScheduledMintTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account
 
 		if timeLeft > 0 {
 			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
-			timeLeft -= 10
-			time.Sleep(10 * time.Second)
+			timeLeft--
+			time.Sleep(time.Minute)
 			continue
 		}
 		break
@@ -244,7 +244,7 @@ func ScheduledMintTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account
 
 func ScheduledBurnTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
-	timeLeft := 180
+	timeLeft := 20
 	for {
 		response, err := mirrorNodeClient.GetAccountTokenBurnTransactionsAfterTimestamp(account, now.UnixNano())
 		if err != nil {
@@ -262,8 +262,8 @@ func ScheduledBurnTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account
 
 		if timeLeft > 0 {
 			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", account, timeLeft)
-			timeLeft -= 10
-			time.Sleep(10 * time.Second)
+			timeLeft--
+			time.Sleep(time.Minute)
 			continue
 		}
 		break
@@ -275,7 +275,7 @@ func ScheduledBurnTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account
 
 func ScheduledNftTransfer(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, bridgeAccount hedera.AccountID, token string, serialNum int64) (transactionID, scheduleID string) {
 	sender := hederaClient.GetOperatorAccountID()
-	timeLeft := 180
+	timeLeft := 20
 
 	for {
 		response, err := mirrorNodeClient.GetNftTransactions(token, serialNum)
@@ -306,8 +306,8 @@ func ScheduledNftTransfer(t *testing.T, hederaClient *hedera.Client, mirrorNodeC
 
 		if timeLeft > 0 {
 			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", bridgeAccount, timeLeft)
-			timeLeft -= 10
-			time.Sleep(10 * time.Second)
+			timeLeft--
+			time.Sleep(time.Minute)
 			continue
 		}
 		break
@@ -510,7 +510,7 @@ signatureLoop:
 }
 
 func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, payerAccount hedera.AccountID, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
-	timeLeft := 180
+	timeLeft := 20
 	receiver := hederaClient.GetOperatorAccountID()
 
 	for {
@@ -539,8 +539,8 @@ func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mir
 
 		if timeLeft > 0 {
 			fmt.Printf("Could not find any scheduled transactions for NFT Transfer for account [%s]. Trying again. Time left: ~[%d] seconds\n", receiver, timeLeft)
-			timeLeft -= 10
-			time.Sleep(10 * time.Second)
+			timeLeft--
+			time.Sleep(time.Minute)
 			continue
 		}
 		break
