@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - fix/pipelines
   pull_request:
 
 concurrency: e2e
