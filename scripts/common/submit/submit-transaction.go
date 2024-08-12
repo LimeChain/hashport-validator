@@ -20,6 +20,8 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"time"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 )
@@ -42,37 +44,29 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse transaction. err [%s]", err))
 	}
-
+	waitForTransactionStart(deserialized)
 	var transactionResponse hedera.TransactionResponse
 	switch tx := deserialized.(type) {
 	case hedera.TransferTransaction:
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TopicUpdateTransaction:
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TokenUpdateTransaction:
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.AccountUpdateTransaction:
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TokenCreateTransaction:
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TokenMintTransaction:
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TokenAssociateTransaction:
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
-		break
 	case hedera.TopicMessageSubmitTransaction:
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
-		break
 	default:
 		panic("invalid tx type provided")
 	}
@@ -99,4 +93,12 @@ func validateParams(transaction *string, privateKey *string, accountID *string) 
 	if *accountID == "0.0" {
 		panic("Account id was not provided")
 	}
+}
+
+func waitForTransactionStart(deserializedTx interface{}) {
+	tx := deserializedTx.(hedera.TransferTransaction)
+	validStart := tx.Transaction.GetTransactionID().ValidStart
+	waitTime := time.Until(*validStart)
+	fmt.Printf("Transaction will be excuted after: %v\n", waitTime)
+	time.Sleep(waitTime)
 }
