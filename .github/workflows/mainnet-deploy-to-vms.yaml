@@ -5,7 +5,7 @@ on:
     types: [trigger-mainnet-image-release]
 
 env:
-  refresh_metrics_containers_command: docker-compose stop && docker-compose rm -f && docker-compose pull && docker-compose up -d
+  refresh_metrics_containers_command: docker compose stop && docker compose rm -f && docker compose pull && docker compose up -d
   copy_logs_command: docker logs runner_validator_1 > logs-$(date +'%d-%m-%Y_%H:%M:%S').log
 
 jobs:
