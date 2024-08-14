@@ -26,6 +26,10 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 )
 
+type Transactioner interface {
+	GetTransactionID() hedera.TransactionID
+}
+
 func main() {
 	privateKey := flag.String("privateKey", "0x0", "Hedera Private Key")
 	accountID := flag.String("accountID", "0.0", "Hedera Account ID")
@@ -44,28 +48,39 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse transaction. err [%s]", err))
 	}
-	waitForTransactionStart(deserialized)
+
 	var transactionResponse hedera.TransactionResponse
 	switch tx := deserialized.(type) {
 	case hedera.TransferTransaction:
+		waitForTransactionStart(&tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TopicUpdateTransaction:
+		waitForTransactionStart(&tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TokenUpdateTransaction:
+		waitForTransactionStart(&tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.AccountUpdateTransaction:
+		waitForTransactionStart(&tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TokenCreateTransaction:
+		waitForTransactionStart(&tx)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TokenMintTransaction:
+		waitForTransactionStart(&tx)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TokenAssociateTransaction:
+		waitForTransactionStart(&tx)
 		fmt.Println(tx)
 		transactionResponse, err = tx.Execute(client)
 	case hedera.TopicMessageSubmitTransaction:
+		waitForTransactionStart(&tx)
 		fmt.Println(tx)
+		transactionResponse, err = tx.Execute(client)
+	case hedera.TokenBurnTransaction:
+		waitForTransactionStart(&tx)
 		transactionResponse, err = tx.Execute(client)
 	default:
 		panic("invalid tx type provided")
@@ -95,9 +110,8 @@ func validateParams(transaction *string, privateKey *string, accountID *string) 
 	}
 }
 
-func waitForTransactionStart(deserializedTx interface{}) {
-	tx := deserializedTx.(hedera.TransferTransaction)
-	validStart := tx.Transaction.GetTransactionID().ValidStart
+func waitForTransactionStart(tx Transactioner) {
+	validStart := tx.GetTransactionID().ValidStart
 	waitTime := time.Until(*validStart)
 	fmt.Printf("Transaction will be excuted after: %v\n", waitTime)
 	time.Sleep(waitTime)
