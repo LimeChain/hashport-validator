@@ -20,8 +20,9 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"strings"
+
+	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 func main() {
@@ -127,6 +128,16 @@ func main() {
 		}
 		fmt.Println(hex.EncodeToString(bytes))
 	case hedera.TopicMessageSubmitTransaction:
+		ref := &tx
+		for _, key := range keys {
+			ref = ref.Sign(key)
+		}
+		bytes, err := ref.ToBytes()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(hex.EncodeToString(bytes))
+	case hedera.TokenBurnTransaction:
 		ref := &tx
 		for _, key := range keys {
 			ref = ref.Sign(key)
