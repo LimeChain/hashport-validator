@@ -18,9 +18,11 @@ package evm
 
 import (
 	"context"
-	"fmt"
-	log "github.com/sirupsen/logrus"
 	"math/big"
+	"net/http"
+	"slices"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -36,11 +38,33 @@ type ClientPool struct {
 	logger         *log.Entry
 }
 
+func checkIfNodeURLIsValid(nodeURL string) bool {
+	faultyStatusCodes := []int{404, 500}
+	logger := config.GetLoggerFor("EVM Client Pool")
+	resp, err := http.Get(nodeURL)
+	if err != nil || resp == nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl":    nodeURL,
+			"statusCode": 0,
+		}).Warnf("Node URL is not reachable!")
+		return false
+	}
+	if slices.Contains(faultyStatusCodes, resp.StatusCode) {
+		logger.WithFields(log.Fields{
+			"nodeUrl":    nodeURL,
+			"statusCode": resp.StatusCode,
+		}).Warnf("Testing Node URL failed!")
+		return false
+	}
+	return true
+}
+
 func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
-	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client Pool"))
+	logger := config.GetLoggerFor("EVM Client Pool")
 	nodeURLs := c.NodeUrls
 	clients := make([]client.EVM, 0, len(nodeURLs))
 	clientsConfigs := make([]config.Evm, 0, len(nodeURLs))
+
 	for _, nodeURL := range nodeURLs {
 		configEvm := config.Evm{
 			BlockConfirmations: c.BlockConfirmations,
@@ -50,8 +74,14 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			PollingInterval:    c.PollingInterval,
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
-		clients = append(clients, NewClient(configEvm, chainId))
-		clientsConfigs = append(clientsConfigs, configEvm)
+		isNodeURLValid := checkIfNodeURLIsValid(nodeURL)
+		if isNodeURLValid {
+			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
+			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)
+		} else {
+			clients = append(clients, NewClient(configEvm, chainId))
+			clientsConfigs = append(clientsConfigs, configEvm)
+		}
 	}
 
 	retry := len(clients) * 3
