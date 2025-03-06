@@ -17,17 +17,20 @@ package evm
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 
 	"errors"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -137,6 +140,16 @@ func TestClientPool_ValidateContractDeployedAt_NotASmartContract(t *testing.T) {
 	result, err := cp.ValidateContractDeployedAt(address)
 	assert.NotNil(t, err)
 	assert.Nil(t, result)
+}
+
+func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
+	result := CheckIfNodeURLIsValid("https://google.com")
+	assert.Equal(t, true, result)
+}
+
+func TestClientPool_CheckIfNodeURLIsValid_Invalid(t *testing.T) {
+	result := CheckIfNodeURLIsValid("//google.com")
+	assert.Equal(t, false, result)
 }
 
 func TestClientPool_GetClient(t *testing.T) {

@@ -20,7 +20,6 @@ import (
 	"context"
 	"math/big"
 	"net/http"
-	"slices"
 
 	log "github.com/sirupsen/logrus"
 
@@ -38,8 +37,7 @@ type ClientPool struct {
 	logger         *log.Entry
 }
 
-func checkIfNodeURLIsValid(nodeURL string) bool {
-	faultyStatusCodes := []int{404, 500}
+func CheckIfNodeURLIsValid(nodeURL string) bool {
 	logger := config.GetLoggerFor("EVM Client Pool")
 	resp, err := http.Get(nodeURL)
 	if err != nil || resp == nil {
@@ -49,7 +47,7 @@ func checkIfNodeURLIsValid(nodeURL string) bool {
 		}).Warnf("Node URL is not reachable!")
 		return false
 	}
-	if slices.Contains(faultyStatusCodes, resp.StatusCode) {
+	if resp.StatusCode == 404 || resp.StatusCode == 500 {
 		logger.WithFields(log.Fields{
 			"nodeUrl":    nodeURL,
 			"statusCode": resp.StatusCode,
@@ -74,7 +72,7 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			PollingInterval:    c.PollingInterval,
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
-		isNodeURLValid := checkIfNodeURLIsValid(nodeURL)
+		isNodeURLValid := CheckIfNodeURLIsValid(nodeURL)
 		if isNodeURLValid {
 			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
 			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)

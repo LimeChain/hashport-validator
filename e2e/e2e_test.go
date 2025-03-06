@@ -28,8 +28,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
