@@ -62,7 +62,7 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 	nodeURLs := c.NodeUrls
 	clients := make([]client.EVM, 0, len(nodeURLs))
 	clientsConfigs := make([]config.Evm, 0, len(nodeURLs))
-
+	invalidUrls := 0
 	for _, nodeURL := range nodeURLs {
 		configEvm := config.Evm{
 			BlockConfirmations: c.BlockConfirmations,
@@ -77,9 +77,14 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
 			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)
 		} else {
+			invalidUrls++
 			clients = append(clients, NewClient(configEvm, chainId))
 			clientsConfigs = append(clientsConfigs, configEvm)
 		}
+	}
+
+	if invalidUrls == len(nodeURLs) {
+		panic("evm client pool creation failed: no working urls found in nodeURLs")
 	}
 
 	retry := len(clients) * 3

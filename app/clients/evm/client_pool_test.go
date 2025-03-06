@@ -59,7 +59,7 @@ func setupCP() {
 }
 
 func TestNewClientPool(t *testing.T) {
-	nodeUrls := []string{"http://localhost:8545", "http://localhost:8546"}
+	nodeUrls := []string{"https://google.com", "https://www.wikipedia.org"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -84,6 +84,36 @@ func TestNewClientPool(t *testing.T) {
 
 	assert.Equal(t, client.GetChainID(), clientPool.GetChainID())
 	assert.Equal(t, client.GetPrivateKey(), clientPool.GetPrivateKey())
+}
+
+func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
+	nodeUrls := []string{"http://localhost:8546", "https://google.com"}
+	configEvmPool := config.EvmPool{
+		BlockConfirmations: 3,
+		NodeUrls:           nodeUrls,
+		PrivateKey:         "0x000000000",
+		StartBlock:         88,
+		PollingInterval:    5,
+		MaxLogsBlocks:      10,
+	}
+
+	clientPool := NewClientPool(configEvmPool, 256)
+	// Note: NewClientPool has check inside that pings each one of the provided Urls
+	// and shifts the working ones at the beginning of the slice
+	assert.Equal(t, clientPool.clientsConfigs[0].NodeUrl, nodeUrls[1])
+}
+
+func TestNewClientPool_PanicsWhenNoWorkingURLIsFound(t *testing.T) {
+	nodeUrls := []string{"http://localhost:8546", "http://localhost:8000"}
+	configEvmPool := config.EvmPool{
+		BlockConfirmations: 3,
+		NodeUrls:           nodeUrls,
+		PrivateKey:         "0x000000000",
+		StartBlock:         88,
+		PollingInterval:    5,
+		MaxLogsBlocks:      10,
+	}
+	assert.Panics(t, func() { NewClientPool(configEvmPool, 256) }, "It should panic because there are no working URLs")
 }
 
 func TestClientPool_SetChainID(t *testing.T) {
