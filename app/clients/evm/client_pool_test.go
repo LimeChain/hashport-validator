@@ -152,6 +152,11 @@ func TestClientPool_CheckIfNodeURLIsValid_Invalid(t *testing.T) {
 	assert.Equal(t, false, result)
 }
 
+func TestClientPool_CheckIfNodeURLIsValid_Invalid_404(t *testing.T) {
+	result := CheckIfNodeURLIsValid("https://google.com/404")
+	assert.Equal(t, false, result)
+}
+
 func TestClientPool_GetClient(t *testing.T) {
 	setupCP()
 	// assert.Equal(t, cp.Core, cp.GetClient())
