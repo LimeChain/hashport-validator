@@ -19,13 +19,13 @@ package evm
 import (
 	"context"
 	"math/big"
-	"net/http"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
@@ -37,21 +37,21 @@ type ClientPool struct {
 	logger         *log.Entry
 }
 
-func CheckIfNodeURLIsValid(nodeURL string) bool {
+func checkIfNodeURLIsValid(nodeURL string) bool {
 	logger := config.GetLoggerFor("EVM Client Pool")
-	resp, err := http.Get(nodeURL)
-	if err != nil || resp == nil {
+	client, err := rpc.DialHTTP(nodeURL)
+	if err != nil {
 		logger.WithFields(log.Fields{
-			"nodeUrl":    nodeURL,
-			"statusCode": 0,
-		}).Warnf("Node URL is not reachable!")
+			"nodeUrl": nodeURL,
+		}).Warnf("RPC URL is not reachable!")
 		return false
 	}
-	if resp.StatusCode == 404 || resp.StatusCode == 500 {
+	var lastBlock types.Block
+	err = client.Call(&lastBlock, "eth_getBlockByNumber", "latest", true)
+	if err != nil {
 		logger.WithFields(log.Fields{
-			"nodeUrl":    nodeURL,
-			"statusCode": resp.StatusCode,
-		}).Warnf("Testing Node URL failed!")
+			"nodeUrl": nodeURL,
+		}).Warnf("Testing RPC URL failed!")
 		return false
 	}
 	return true
@@ -72,7 +72,7 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			PollingInterval:    c.PollingInterval,
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
-		isNodeURLValid := CheckIfNodeURLIsValid(nodeURL)
+		isNodeURLValid := checkIfNodeURLIsValid(nodeURL)
 		if isNodeURLValid {
 			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
 			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)

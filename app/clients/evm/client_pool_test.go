@@ -59,7 +59,7 @@ func setupCP() {
 }
 
 func TestNewClientPool(t *testing.T) {
-	nodeUrls := []string{"https://google.com", "https://www.wikipedia.org"}
+	nodeUrls := []string{"https://rpc.ankr.com/eth", "https://www.wikipedia.org"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -87,7 +87,7 @@ func TestNewClientPool(t *testing.T) {
 }
 
 func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
-	nodeUrls := []string{"http://localhost:8546", "https://google.com"}
+	nodeUrls := []string{"http://localhost:8546", "https://rpc.ankr.com/eth"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -173,17 +173,17 @@ func TestClientPool_ValidateContractDeployedAt_NotASmartContract(t *testing.T) {
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
-	result := CheckIfNodeURLIsValid("https://google.com")
+	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth")
 	assert.Equal(t, true, result)
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Invalid(t *testing.T) {
-	result := CheckIfNodeURLIsValid("//google.com")
+	result := checkIfNodeURLIsValid("//google.com")
 	assert.Equal(t, false, result)
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Invalid_404(t *testing.T) {
-	result := CheckIfNodeURLIsValid("https://google.com/404")
+	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth/404")
 	assert.Equal(t, false, result)
 }
 
