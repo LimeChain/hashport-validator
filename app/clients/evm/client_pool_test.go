@@ -172,6 +172,16 @@ func TestClientPool_ValidateContractDeployedAt_NotASmartContract(t *testing.T) {
 	assert.Nil(t, result)
 }
 
+func TestClientPool_ValidateWebsocketUrl_Valid(t *testing.T) {
+	result := checkIfNodeURLIsValid("wss://polygon-amoy-bor-rpc.publicnode.com/")
+	assert.Equal(t, true, result)
+}
+
+func TestClientPool_ValidateWebsocketUrl_Invalid(t *testing.T) {
+	result := checkIfNodeURLIsValid("wss://publicnode.com/")
+	assert.Equal(t, false, result)
+}
+
 func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
 	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth")
 	assert.Equal(t, true, result)

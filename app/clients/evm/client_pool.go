@@ -19,7 +19,9 @@ package evm
 import (
 	"context"
 	"math/big"
+	"strings"
 
+	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
@@ -37,8 +39,31 @@ type ClientPool struct {
 	logger         *log.Entry
 }
 
+func validateWebsocketUrl(wsUrl string, logger *log.Entry) bool {
+	ws, _, err := websocket.DefaultDialer.Dial(wsUrl, nil)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": wsUrl,
+		}).Warnf("Websocket URL is not reachable!")
+		return false
+	}
+
+	defer ws.Close()
+	err = ws.WriteMessage(websocket.PingMessage, []byte{})
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": wsUrl,
+		}).Warnf("Unable to retrieve message from websocket URL!")
+		return false
+	}
+	return true
+}
+
 func checkIfNodeURLIsValid(nodeURL string) bool {
 	logger := config.GetLoggerFor("EVM Client Pool")
+	if strings.Contains(nodeURL, "wss://") || strings.Contains(nodeURL, "ws://") {
+		return validateWebsocketUrl(nodeURL, logger)
+	}
 	client, err := rpc.DialHTTP(nodeURL)
 	if err != nil {
 		logger.WithFields(log.Fields{
