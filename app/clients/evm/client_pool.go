@@ -21,12 +21,12 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
@@ -40,7 +40,7 @@ type ClientPool struct {
 }
 
 func validateWebsocketUrl(wsUrl string, logger *log.Entry) bool {
-	ws, _, err := websocket.DefaultDialer.Dial(wsUrl, nil)
+	client, err := ethclient.Dial(wsUrl)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"nodeUrl": wsUrl,
@@ -48,8 +48,7 @@ func validateWebsocketUrl(wsUrl string, logger *log.Entry) bool {
 		return false
 	}
 
-	defer ws.Close()
-	err = ws.WriteMessage(websocket.PingMessage, []byte{})
+	_, err = client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"nodeUrl": wsUrl,
