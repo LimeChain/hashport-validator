@@ -61,7 +61,7 @@ func validateWebsocketUrl(wsUrl string, logger *log.Entry) error {
 
 func checkIfNodeURLIsValid(nodeURL string) error {
 	logger := config.GetLoggerFor("EVM Client Pool")
-	if strings.HasPrefix(nodeURL, "wss://") || strings.Contains(nodeURL, "ws://") {
+	if strings.HasPrefix(nodeURL, "wss://") || strings.HasPrefix(nodeURL, "ws://") {
 		return validateWebsocketUrl(nodeURL, logger)
 	}
 	client, err := rpc.DialHTTP(nodeURL)

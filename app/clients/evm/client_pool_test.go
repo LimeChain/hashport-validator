@@ -176,28 +176,28 @@ func TestClientPool_ValidateContractDeployedAt_NotASmartContract(t *testing.T) {
 }
 
 func TestClientPool_ValidateWebsocketUrl_Valid(t *testing.T) {
-	result := checkIfNodeURLIsValid("wss://polygon-amoy-bor-rpc.publicnode.com/")
-	assert.Equal(t, true, result)
+	result := checkIfNodeURLIsValid("wss://ethereum-rpc.publicnode.com")
+	assert.NoError(t, result)
 }
 
 func TestClientPool_ValidateWebsocketUrl_Invalid(t *testing.T) {
 	result := checkIfNodeURLIsValid("wss://publicnode.com/")
-	assert.Equal(t, false, result)
+	assert.Error(t, result)
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
 	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth")
-	assert.Equal(t, true, result)
+	assert.NoError(t, result)
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Invalid(t *testing.T) {
 	result := checkIfNodeURLIsValid("//google.com")
-	assert.Equal(t, false, result)
+	assert.Error(t, result)
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Invalid_404(t *testing.T) {
 	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth/404")
-	assert.Equal(t, false, result)
+	assert.Error(t, result)
 }
 
 func TestClientPool_GetClient(t *testing.T) {
