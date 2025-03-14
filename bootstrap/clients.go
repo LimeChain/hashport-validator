@@ -18,6 +18,7 @@ package bootstrap
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gookit/event"
 	coin_gecko "github.com/limechain/hedera-eth-bridge-validator/app/clients/coin-gecko"
@@ -118,7 +119,11 @@ func InitEVMClients(clientsCfg config.Clients, networks map[uint64]*parser.Netwo
 		if !ok || network.RouterContractAddress == "" {
 			continue
 		}
-		EVMClients[configChainId] = evm.NewClientPool(ec, configChainId)
+		evmClient, e := evm.NewClientPool(ec, configChainId)
+		if e != nil {
+			log.Fatalf("[%d] - Failed to initialize EVM Client. Error: [%s]", configChainId, e)
+		}
+		EVMClients[configChainId] = evmClient
 		clientChainId, e := EVMClients[configChainId].ChainID(context.Background())
 		if e != nil {
 			log.Fatalf("[%d] - Failed to retrieve chain ID on client prepare. Error: [%s]", configChainId, e)

@@ -79,7 +79,8 @@ func TestNewClientPool(t *testing.T) {
 	}
 
 	client := NewClient(configEvm, 256)
-	clientPool := NewClientPool(configEvmPool, 256)
+	clientPool, err := NewClientPool(configEvmPool, 256)
+	assert.NoError(t, err)
 	assert.Equal(t, 6, clientPool.retries)
 
 	assert.Equal(t, client.GetChainID(), clientPool.GetChainID())
@@ -97,7 +98,8 @@ func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
 		MaxLogsBlocks:      10,
 	}
 
-	clientPool := NewClientPool(configEvmPool, 256)
+	clientPool, err := NewClientPool(configEvmPool, 256)
+	assert.NoError(t, err)
 	// Note: NewClientPool has check inside that pings each one of the provided Urls
 	// and shifts the working ones at the beginning of the slice
 	assert.Equal(t, clientPool.clientsConfigs[0].NodeUrl, nodeUrls[1])
@@ -113,7 +115,8 @@ func TestNewClientPool_PanicsWhenNoWorkingURLIsFound(t *testing.T) {
 		PollingInterval:    5,
 		MaxLogsBlocks:      10,
 	}
-	assert.Panics(t, func() { NewClientPool(configEvmPool, 256) }, "It should panic because there are no working URLs")
+	_, err := NewClientPool(configEvmPool, 256)
+	assert.Error(t, err)
 }
 
 func TestClientPool_SetChainID(t *testing.T) {
