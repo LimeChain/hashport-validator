@@ -359,7 +359,7 @@ func (c Client) AccountExists(accountID hedera.AccountID) bool {
 	return c.query(accountQuery, accountID.String())
 }
 
-// GetAccount retrieves an account entity by its id or public key
+// GetAccountByPublicKey retrieves an account entity by its id or public key
 func (c Client) GetAccountByPublicKey(publicKey string) (*account.AccountsQueryResponse, error) {
 	mirrorNodeApiTransactionAddress := fmt.Sprintf("%s%s", c.mirrorAPIAddress, "accounts")
 
