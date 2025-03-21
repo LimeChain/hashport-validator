@@ -59,7 +59,7 @@ func setupCP() {
 }
 
 func TestNewClientPool(t *testing.T) {
-	nodeUrls := []string{"https://rpc.ankr.com/eth", "https://www.wikipedia.org"}
+	nodeUrls := []string{"https://ethereum-holesky-rpc.publicnode.com", "https://www.wikipedia.org"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -88,7 +88,7 @@ func TestNewClientPool(t *testing.T) {
 }
 
 func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
-	nodeUrls := []string{"http://localhost:8546", "https://rpc.ankr.com/eth"}
+	nodeUrls := []string{"http://localhost:8546", "https://ethereum-holesky-rpc.publicnode.com"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
