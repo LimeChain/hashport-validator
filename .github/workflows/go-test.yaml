@@ -6,13 +6,13 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         name: Setup GO Env
         with:
           go-version: '1.20'
       - name: Cache Go Test modules
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}

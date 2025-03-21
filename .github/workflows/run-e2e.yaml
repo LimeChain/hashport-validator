@@ -11,13 +11,13 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         name: Setup GO Env
         with:
           go-version: '1.20'
       - name: Cache Go E2E Test modules
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-e2e-test-${{ secrets.CACHE_VERSION }}-${{ hashFiles('./go.sum') }}
@@ -51,7 +51,7 @@ jobs:
             start=`date +%s` ;
             ports=("6200" "7200" "8200" "9200") ;
             for port in "${ports[@]}" ; do
-            MAX_TIMEOUT=60;
+            MAX_TIMEOUT=300;
             while [[ "$(curl -s 127.0.0.1:"$port"/api/v1/health)" != "{\"status\":\"OK\"}" ]]; do
             sleep 5; ((MAX_TIMEOUT-=5));
             if [ "$MAX_TIMEOUT" -eq "0" ]; then break; fi ;
@@ -67,7 +67,7 @@ jobs:
           echo "${{ secrets.E2E_TEST_CONFIG }}" > ./e2e/setup/application.yml
           echo "${{ secrets.E2E_BRIDGE_CONFIG }}" > ./e2e/setup/bridge.yml
       - name: Run E2E Tests
-        run: go test ./e2e/ -timeout 0
+        run: go test ./e2e/ -v -timeout 0
       - name: Prepare container logs
         if: ${{ always() }}
         run: |
@@ -78,7 +78,7 @@ jobs:
           touch ./logs/dave.log && docker compose logs dave_read_only > ./logs/dave.log
       - name: Upload Logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: validator-logs
           path: ./examples/three-validators/logs

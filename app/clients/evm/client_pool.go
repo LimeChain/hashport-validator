@@ -19,12 +19,16 @@ package evm
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"math/big"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 )
@@ -36,11 +40,54 @@ type ClientPool struct {
 	logger         *log.Entry
 }
 
-func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
-	logger := config.GetLoggerFor(fmt.Sprintf("EVM Client Pool"))
+func validateWebsocketUrl(wsUrl string, logger *log.Entry) error {
+	client, err := ethclient.Dial(wsUrl)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": wsUrl,
+		}).Warnf("Websocket URL is not reachable!")
+		return fmt.Errorf("websocket URL is not valid: %w", err)
+	}
+
+	_, err = client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": wsUrl,
+		}).Warnf("Unable to retrieve message from websocket URL!")
+		return fmt.Errorf("websocket URL is not valid: %w", err)
+	}
+	return nil
+}
+
+func checkIfNodeURLIsValid(nodeURL string) error {
+	logger := config.GetLoggerFor("EVM Client Pool")
+	if strings.HasPrefix(nodeURL, "wss://") || strings.HasPrefix(nodeURL, "ws://") {
+		return validateWebsocketUrl(nodeURL, logger)
+	}
+	client, err := rpc.DialHTTP(nodeURL)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": nodeURL,
+		}).Warnf("RPC URL is not reachable!")
+		return fmt.Errorf("RPC URL is not valid: %w", err)
+	}
+	var lastBlock types.Block
+	err = client.Call(&lastBlock, "eth_getBlockByNumber", "latest", true)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"nodeUrl": nodeURL,
+		}).Warnf("Testing RPC URL failed!")
+		return fmt.Errorf("RPC URL is not valid: %w", err)
+	}
+	return nil
+}
+
+func NewClientPool(c config.EvmPool, chainId uint64) (*ClientPool, error) {
+	logger := config.GetLoggerFor("EVM Client Pool")
 	nodeURLs := c.NodeUrls
 	clients := make([]client.EVM, 0, len(nodeURLs))
 	clientsConfigs := make([]config.Evm, 0, len(nodeURLs))
+	invalidUrls := 0
 	for _, nodeURL := range nodeURLs {
 		configEvm := config.Evm{
 			BlockConfirmations: c.BlockConfirmations,
@@ -50,8 +97,19 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 			PollingInterval:    c.PollingInterval,
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
-		clients = append(clients, NewClient(configEvm, chainId))
-		clientsConfigs = append(clientsConfigs, configEvm)
+		err := checkIfNodeURLIsValid(nodeURL)
+		if err == nil {
+			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
+			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)
+		} else {
+			invalidUrls++
+			clients = append(clients, NewClient(configEvm, chainId))
+			clientsConfigs = append(clientsConfigs, configEvm)
+		}
+	}
+
+	if invalidUrls == len(nodeURLs) {
+		return nil, fmt.Errorf("evm client pool creation failed: no working urls found in nodeURLs")
 	}
 
 	retry := len(clients) * 3
@@ -61,7 +119,7 @@ func NewClientPool(c config.EvmPool, chainId uint64) *ClientPool {
 		clientsConfigs: clientsConfigs,
 		retries:        retry,
 		logger:         logger,
-	}
+	}, nil
 }
 
 func (cp *ClientPool) getClient(idx int) (client.EVM, config.Evm) {

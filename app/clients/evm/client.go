@@ -60,7 +60,7 @@ func NewClient(c config.Evm, chainId uint64) *Client {
 	var client client.Core
 	client, err := ethclient.Dial(c.NodeUrl)
 	if err != nil {
-		logger.Fatalf("Failed to initialize Client with Chain Id [%v]. Error [%s]", chainId, err)
+		logger.Warnf("Failed to initialize Client with Chain Id [%v]. Error [%s]", chainId, err)
 	}
 
 	return &Client{

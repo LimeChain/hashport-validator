@@ -28,8 +28,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -43,6 +41,7 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/expected"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/fetch"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/submit"
+	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/utilities"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/setup"
 
@@ -446,11 +445,10 @@ func Test_EVM_Hedera_Native_Token(t *testing.T) {
 	lockEventId := verify.LockEvent(t, receipt, expectedLockEventLog)
 
 	bridgedAmount := new(big.Int).Sub(expectedLockEventLog.Amount, expectedLockEventLog.ServiceFee)
-	// expectedAmount, err := utilities.RemoveDecimals(bridgedAmount.Int64(), common.HexToAddress(setupEnv.NativeEvmToken), evm)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	expectedAmount := bridgedAmount.Int64()
+	expectedAmount, err := utilities.RemoveDecimals(bridgedAmount.Int64(), common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	mintTransfer := []transaction.Transfer{
 		{
@@ -574,6 +572,11 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	// Step 3 - Validate burn scheduled transaction
 	burnTransactionID, burnScheduleID := verify.ScheduledBurnTx(t, setupEnv.Clients.MirrorNode, setupEnv.BridgeAccount, setupEnv.TokenID.String(), burnTransfer, now)
 
+	expectedSubmitUnlockAmount, err := utilities.AddDecimals(unlockAmount, common.HexToAddress(setupEnv.NativeEvmToken), evm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
 		t,
@@ -582,7 +585,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		evm,
 		hederahelper.FromHederaTransactionID(transactionResponse.TransactionID).String(),
 		setupEnv.NativeEvmToken,
-		fmt.Sprint(unlockAmount),
+		fmt.Sprint(expectedSubmitUnlockAmount),
 		setupEnv.NativeEvmToken,
 	)
 
@@ -603,7 +606,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 	// Step 6 - Wait for transaction to be mined
 	submit.WaitForTransaction(t, evm, txHash)
 
-	expectedUnlockedAmount, _ := expected.EvmAmoundAndFee(evm.RouterContract, setupEnv.NativeEvmToken, unlockAmount, t)
+	expectedUnlockedAmount, _ := expected.EvmAmoundAndFee(evm.RouterContract, setupEnv.NativeEvmToken, expectedSubmitUnlockAmount, t)
 
 	// Step 7 - Validate Token balances
 	verify.WrappedAssetBalance(t, evm, setupEnv.NativeEvmToken, expectedUnlockedAmount, nativeBalanceBefore, evm.Receiver)
@@ -617,7 +620,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		wrappedAsset,
 		setupEnv.NativeEvmToken,
 		setupEnv.NativeEvmToken,
-		strconv.FormatInt(unlockAmount, 10),
+		fmt.Sprint(expectedSubmitUnlockAmount),
 		"",
 		evm.Receiver.String(),
 		status.Completed,
@@ -644,7 +647,7 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 		expectedTxRecord.TransactionID,
 		expectedTxRecord.TargetAsset,
 		expectedTxRecord.Receiver,
-		strconv.FormatInt(unlockAmount, 10),
+		fmt.Sprint(expectedSubmitUnlockAmount),
 	)
 
 	if err != nil {

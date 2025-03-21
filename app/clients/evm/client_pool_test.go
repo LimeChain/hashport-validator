@@ -17,17 +17,20 @@ package evm
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 
-	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 
 	"errors"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -56,7 +59,7 @@ func setupCP() {
 }
 
 func TestNewClientPool(t *testing.T) {
-	nodeUrls := []string{"http://localhost:8545", "http://localhost:8546"}
+	nodeUrls := []string{"https://ethereum-holesky-rpc.publicnode.com", "https://www.wikipedia.org"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -76,11 +79,44 @@ func TestNewClientPool(t *testing.T) {
 	}
 
 	client := NewClient(configEvm, 256)
-	clientPool := NewClientPool(configEvmPool, 256)
+	clientPool, err := NewClientPool(configEvmPool, 256)
+	assert.NoError(t, err)
 	assert.Equal(t, 6, clientPool.retries)
 
 	assert.Equal(t, client.GetChainID(), clientPool.GetChainID())
 	assert.Equal(t, client.GetPrivateKey(), clientPool.GetPrivateKey())
+}
+
+func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
+	nodeUrls := []string{"http://localhost:8546", "https://ethereum-holesky-rpc.publicnode.com"}
+	configEvmPool := config.EvmPool{
+		BlockConfirmations: 3,
+		NodeUrls:           nodeUrls,
+		PrivateKey:         "0x000000000",
+		StartBlock:         88,
+		PollingInterval:    5,
+		MaxLogsBlocks:      10,
+	}
+
+	clientPool, err := NewClientPool(configEvmPool, 256)
+	assert.NoError(t, err)
+	// Note: NewClientPool has check inside that pings each one of the provided Urls
+	// and shifts the working ones at the beginning of the slice
+	assert.Equal(t, clientPool.clientsConfigs[0].NodeUrl, nodeUrls[1])
+}
+
+func TestNewClientPool_PanicsWhenNoWorkingURLIsFound(t *testing.T) {
+	nodeUrls := []string{"http://localhost:8546", "http://localhost:8000"}
+	configEvmPool := config.EvmPool{
+		BlockConfirmations: 3,
+		NodeUrls:           nodeUrls,
+		PrivateKey:         "0x000000000",
+		StartBlock:         88,
+		PollingInterval:    5,
+		MaxLogsBlocks:      10,
+	}
+	_, err := NewClientPool(configEvmPool, 256)
+	assert.Error(t, err)
 }
 
 func TestClientPool_SetChainID(t *testing.T) {
@@ -137,6 +173,31 @@ func TestClientPool_ValidateContractDeployedAt_NotASmartContract(t *testing.T) {
 	result, err := cp.ValidateContractDeployedAt(address)
 	assert.NotNil(t, err)
 	assert.Nil(t, result)
+}
+
+func TestClientPool_ValidateWebsocketUrl_Valid(t *testing.T) {
+	result := checkIfNodeURLIsValid("wss://ethereum-rpc.publicnode.com")
+	assert.NoError(t, result)
+}
+
+func TestClientPool_ValidateWebsocketUrl_Invalid(t *testing.T) {
+	result := checkIfNodeURLIsValid("wss://publicnode.com/")
+	assert.Error(t, result)
+}
+
+func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
+	result := checkIfNodeURLIsValid("https://ethereum-holesky-rpc.publicnode.com")
+	assert.NoError(t, result)
+}
+
+func TestClientPool_CheckIfNodeURLIsValid_Invalid(t *testing.T) {
+	result := checkIfNodeURLIsValid("//google.com")
+	assert.Error(t, result)
+}
+
+func TestClientPool_CheckIfNodeURLIsValid_Invalid_404(t *testing.T) {
+	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth/404")
+	assert.Error(t, result)
 }
 
 func TestClientPool_GetClient(t *testing.T) {
