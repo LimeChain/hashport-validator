@@ -186,7 +186,7 @@ func TestClientPool_ValidateWebsocketUrl_Invalid(t *testing.T) {
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
-	result := checkIfNodeURLIsValid("https://rpc.ankr.com/eth")
+	result := checkIfNodeURLIsValid("https://ethereum-holesky-rpc.publicnode.com")
 	assert.NoError(t, result)
 }
 
