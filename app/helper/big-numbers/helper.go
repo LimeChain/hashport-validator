@@ -30,11 +30,3 @@ func ToBigInt(value string) (*big.Int, error) {
 
 	return amount, nil
 }
-
-// Max returns the larger of x or y.
-func Max(x, y uint64) uint64 {
-	if x < y {
-		return y
-	}
-	return x
-}
