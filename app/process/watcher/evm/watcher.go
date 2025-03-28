@@ -108,7 +108,7 @@ func NewWatcher(
 	if err != nil {
 		log.Fatalf("Could not retrieve latest block. Error: [%s].", err)
 	}
-	targetBlock := bigNumbersHelper.Max(0, currentBlock-evmClient.BlockConfirmations())
+	targetBlock := max(0, currentBlock-evmClient.BlockConfirmations())
 
 	abi, err := abi.JSON(strings.NewReader(router.RouterABI))
 	if err != nil {
