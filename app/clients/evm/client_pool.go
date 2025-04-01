@@ -85,8 +85,10 @@ func checkIfNodeURLIsValid(nodeURL string) error {
 func NewClientPool(c config.EvmPool, chainId uint64) (*ClientPool, error) {
 	logger := config.GetLoggerFor("EVM Client Pool")
 	nodeURLs := c.NodeUrls
-	clients := make([]client.EVM, 0, len(nodeURLs))
-	clientsConfigs := make([]config.Evm, 0, len(nodeURLs))
+	workingClients := []client.EVM{}
+	faultyClients := []client.EVM{}
+	workingClientConfigs := []config.Evm{}
+	faultyClientConfigs := []config.Evm{}
 	invalidUrls := 0
 	for _, nodeURL := range nodeURLs {
 		configEvm := config.Evm{
@@ -98,13 +100,14 @@ func NewClientPool(c config.EvmPool, chainId uint64) (*ClientPool, error) {
 			MaxLogsBlocks:      c.MaxLogsBlocks,
 		}
 		err := checkIfNodeURLIsValid(nodeURL)
+		client := NewClient(configEvm, chainId)
 		if err == nil {
-			clients = append([]client.EVM{NewClient(configEvm, chainId)}, clients...)
-			clientsConfigs = append([]config.Evm{configEvm}, clientsConfigs...)
+			workingClients = append(workingClients, client)
+			workingClientConfigs = append(workingClientConfigs, configEvm)
 		} else {
 			invalidUrls++
-			clients = append(clients, NewClient(configEvm, chainId))
-			clientsConfigs = append(clientsConfigs, configEvm)
+			faultyClients = append(faultyClients, client)
+			faultyClientConfigs = append(faultyClientConfigs, configEvm)
 		}
 	}
 
@@ -112,6 +115,8 @@ func NewClientPool(c config.EvmPool, chainId uint64) (*ClientPool, error) {
 		return nil, fmt.Errorf("evm client pool creation failed: no working urls found in nodeURLs")
 	}
 
+	clients := append(workingClients, faultyClients...)
+	clientsConfigs := append(workingClientConfigs, faultyClientConfigs...)
 	retry := len(clients) * 3
 
 	return &ClientPool{
