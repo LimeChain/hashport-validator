@@ -165,6 +165,19 @@ func (s *Service) executeScheduledTokenMintTransaction(id, asset string, amount 
 	var tokenID hedera.TokenID
 	var transactionResponse *hedera.TransactionResponse
 	var err error
+	fmt.Println(asset)
+	if asset == "0.0.5820001" {
+		contractId, err := hedera.ContractIDFromString(asset)
+		fmt.Println(contractId)
+		if err != nil {
+			s.logger.Errorf("[%s] - Failed to parse contract [%s] to ContractID. Error [%s].", id, asset, err)
+			return nil, err
+		}
+		transactionResponse, err = s.hederaNodeClient.
+			SubmitScheduledContractMintTransaction(contractId, amount, s.payerAccount, id)
+
+		return transactionResponse, err
+	}
 
 	tokenID, err = hedera.TokenIDFromString(asset)
 	if err != nil {

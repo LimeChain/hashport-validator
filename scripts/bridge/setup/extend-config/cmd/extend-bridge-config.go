@@ -181,6 +181,13 @@ func updateHederaFungibleAssetInfo(
 
 		return nil
 	}
+	if assetId == "0.0.5820001" {
+		assetInfo.Name = "Test Wrapped Token Hedera"
+		assetInfo.Decimals = uint(8)
+		assetInfo.Symbol = "TWTH"
+		assetInfo.Supply = 10_000_00
+		return nil
+	}
 
 	assetInfoResponse, err := mirrorNode.GetToken(assetId)
 	if err != nil {

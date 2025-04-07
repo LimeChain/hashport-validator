@@ -18,7 +18,9 @@ package hedera
 
 import (
 	"fmt"
+
 	"github.com/hashgraph/hedera-sdk-go/v2"
+	"github.com/holiman/uint256"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 	"github.com/limechain/hedera-eth-bridge-validator/config"
 	log "github.com/sirupsen/logrus"
@@ -86,6 +88,33 @@ func (hc Node) SubmitScheduledTokenMintTransaction(tokenID hedera.TokenID, amoun
 		SetMaxRetry(hc.maxRetry)
 
 	tx, err := tokenMintTx.FreezeWith(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	hc.logger.Debugf("[%s] - Signing transaction with ID: [%s] and Node Account IDs: %v", memo, tx.GetTransactionID().String(), tx.GetNodeAccountIDs())
+	signedTransaction, err := tx.
+		SignWithOperator(hc.GetClient())
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.submitScheduledTransaction(signedTransaction, payerAccountID, memo)
+}
+
+// SubmitScheduledTokenMintTransaction creates a token mint transaction and submits it as a scheduled mint transaction
+func (hc Node) SubmitScheduledContractMintTransaction(contractID hedera.ContractID, amount int64, payerAccountID hedera.AccountID, memo string) (*hedera.TransactionResponse, error) {
+	contractFunctionParams := hedera.NewContractFunctionParameters()
+	contractFunctionParams.AddAddress(memo)
+	contractFunctionParams.AddUint256(uint256.NewInt(uint64(amount)).Bytes())
+	//Create the transaction
+	transaction := hedera.NewContractExecuteTransaction().
+		SetContractID(contractID).
+		SetGas(100000000).
+		SetFunction("mint", contractFunctionParams).
+		SetMaxRetry(hc.maxRetry)
+
+	tx, err := transaction.FreezeWith(hc.GetClient())
 	if err != nil {
 		return nil, err
 	}
