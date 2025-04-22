@@ -18,11 +18,12 @@ package pricing
 
 import (
 	"errors"
-	"github.com/stretchr/testify/mock"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -146,7 +147,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 	}
 
 	// Use cached price
-	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
+	serviceInstance.tokensPriceInfo[0]["HBAR"] = pricing.TokenPriceInfo{
 		UsdPrice:         decimal.NewFromFloat(0.2),
 		MinAmountWithFee: big.NewInt(5000000000),
 	}
@@ -155,7 +156,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 
 	// Use min_amounts
 	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
-	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
+	serviceInstance.tokensPriceInfo[0]["HBAR"] = pricing.TokenPriceInfo{
 		UsdPrice:         decimal.NewFromFloat(0.1),
 		MinAmountWithFee: big.NewInt(5000000000),
 		DefaultMinAmount: big.NewInt(1000),
@@ -166,7 +167,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 
 	// Throw if no fetched price and no cache price
 	FetchResults2.HbarPrice = decimal.NewFromFloat(0)
-	serviceInstance.tokensPriceInfo[296]["HBAR"] = pricing.TokenPriceInfo{
+	serviceInstance.tokensPriceInfo[0]["HBAR"] = pricing.TokenPriceInfo{
 		UsdPrice:         decimal.NewFromFloat(0),
 		MinAmountWithFee: big.NewInt(0),
 		DefaultMinAmount: big.NewInt(0),
@@ -324,7 +325,6 @@ func ExecuteWithUpdatingService(t *testing.T, serviceCall func()) {
 		Return(common.HexToAddress(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].PaymentToken), nil).
 		On("Erc721Fee", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).
 		Return(big.NewInt(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].Fee.IntPart()), nil)
-
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
