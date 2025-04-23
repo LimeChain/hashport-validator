@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	HederaNetworkId = uint64(296) // Default Testnet
+	HederaNetworkId = uint64(0) // Set to 0 cause Hedera EVM will use 296 and 295
 )
 
 // Handler topics

@@ -162,6 +162,7 @@ func Test_SanityCheckNftSignature(t *testing.T) {
 		TargetChainID: topicEthNftMessage.TargetChainId,
 		SourceChainID: topicEthNftMessage.SourceChainId,
 		TransactionID: topicEthNftMessage.TransferID,
+		NativeChainID: uint64(296296), // set to not existent chainID in order to not be set to default 0
 	}
 
 	mocks.MTransferRepository.On("GetByTransactionId", topicEthNftMessage.TransferID).Return(transfer, nil)
