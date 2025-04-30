@@ -17,7 +17,6 @@
 package constants
 
 import (
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
 	"math/big"
 	"strconv"
 

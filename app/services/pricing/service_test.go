@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
 
 	"github.com/ethereum/go-ethereum/common"
 

@@ -19,9 +19,6 @@ package cryptotransfer
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
-	testConstants "github.com/limechain/hedera-eth-bridge-validator/test/constants"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"strconv"
 	"testing"
