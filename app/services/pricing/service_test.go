@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"

@@ -579,6 +579,8 @@ func Test_E2E_Hedera_EVM_Native_Token(t *testing.T) {
 
 	time.Sleep(30 * time.Second)
 
+	time.Sleep(30 * time.Second)
+
 	// Step 4 - Verify Transfer retrieved from Validator API
 	transactionData := verify.FungibleTransferFromValidatorAPI(
 		t,
