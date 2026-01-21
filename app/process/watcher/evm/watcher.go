@@ -86,7 +86,6 @@ type FilterConfig struct {
 	burnHash          common.Hash
 	lockHash          common.Hash
 	unlockHash        common.Hash
-	burnERC721Hash    common.Hash
 	memberUpdatedHash common.Hash
 	maxLogsBlocks     int64
 }
@@ -120,7 +119,6 @@ func NewWatcher(
 	lockHash := abi.Events["Lock"].ID
 	unlockHash := abi.Events["Unlock"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
-	burnERC721Hash := abi.Events["BurnERC721"].ID
 
 	topics := [][]common.Hash{
 		{
@@ -129,7 +127,6 @@ func NewWatcher(
 			lockHash,
 			unlockHash,
 			memberUpdatedHash,
-			burnERC721Hash,
 		},
 	}
 
@@ -149,7 +146,6 @@ func NewWatcher(
 		burnHash:          burnHash,
 		lockHash:          lockHash,
 		unlockHash:        unlockHash,
-		burnERC721Hash:    burnERC721Hash,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     maxLogsBlocks,
 	}
@@ -317,13 +313,6 @@ func (ew Watcher) processLogs(fromBlock, endBlock int64, queue qi.Queue) error {
 				ew.handleBurnLog(burn, queue)
 			} else if log.Topics[0] == ew.filterConfig.memberUpdatedHash {
 				go ew.contracts.ReloadMembers()
-			} else if log.Topics[0] == ew.filterConfig.burnERC721Hash {
-				event, err := ew.contracts.ParseBurnERC721Log(log)
-				if err != nil {
-					ew.logger.Errorf("Could not parse burn ERC-721 log [%s]. Error [%s].", event.Raw.TxHash.String(), err)
-					continue
-				}
-				ew.handleBurnERC721(event, queue)
 			}
 		}
 	}
@@ -575,94 +564,6 @@ func (ew *Watcher) handleLockLog(eventLog *router.RouterLock, q qi.Queue) {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyHederaMintHtsTransfer})
 		} else {
 			q.Push(&queue.Message{Payload: tr, Topic: constants.ReadOnlyTransferSave})
-		}
-	}
-}
-
-func (ew *Watcher) handleBurnERC721(eventLog *router.RouterBurnERC721, q qi.Queue) {
-	ew.logger.Debugf("[%s] - New Burn ERC-721 Event Log received.", eventLog.Raw.TxHash)
-
-	if eventLog.Raw.Removed {
-		ew.logger.Debugf("[%s] - Uncle block transaction was removed.", eventLog.Raw.TxHash)
-		return
-	}
-
-	if len(eventLog.Receiver) == 0 {
-		ew.logger.Errorf("[%s] - Empty receiver account.", eventLog.Raw.TxHash)
-		return
-	}
-
-	sourceChainId := ew.evmClient.GetChainID()
-	nativeAsset := ew.assetsService.WrappedToNative(eventLog.WrappedToken.String(), sourceChainId)
-	if nativeAsset == nil {
-		ew.logger.Errorf("[%s] - Failed to retrieve native asset of [%s].", eventLog.Raw.TxHash, eventLog.WrappedToken)
-		return
-	}
-
-	targetAsset := nativeAsset.Asset
-	// This is the case when you are bridging wrapped to wrapped
-	if eventLog.TargetChain.Uint64() != nativeAsset.ChainId {
-		ew.logger.Errorf("[%s] - Wrapped to Wrapped transfers currently not supported [%s] - [%d] for [%d]", eventLog.Raw.TxHash, nativeAsset.Asset, nativeAsset.ChainId, eventLog.TargetChain.Int64())
-		return
-	}
-
-	recipientAccount := ""
-	if eventLog.TargetChain.Uint64() == constants.HederaNetworkId {
-		recipient, err := hedera.AccountIDFromBytes(eventLog.Receiver)
-		if err != nil {
-			ew.logger.Errorf("[%s] - Failed to parse account from bytes [%v]. Error: [%s].", eventLog.Raw.TxHash, eventLog.Receiver, err)
-			return
-		}
-		recipientAccount = recipient.String()
-
-	} else {
-		recipientAccount = common.BytesToAddress(eventLog.Receiver).String()
-	}
-
-	blockTimestamp := ew.evmClient.GetBlockTimestamp(big.NewInt(int64(eventLog.Raw.BlockNumber)))
-
-	originator, err := ew.CheckBlacklistedOriginator(eventLog.Raw.TxHash)
-	if err != nil {
-		ew.logger.Error(err)
-		return
-	}
-
-	transfer := &payload.Transfer{
-		TransactionId: fmt.Sprintf("%s-%d", eventLog.Raw.TxHash, eventLog.Raw.Index),
-		SourceChainId: sourceChainId,
-		TargetChainId: eventLog.TargetChain.Uint64(),
-		NativeChainId: nativeAsset.ChainId,
-		SourceAsset:   eventLog.WrappedToken.String(),
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset.Asset,
-		Receiver:      recipientAccount,
-		IsNft:         true,
-		SerialNum:     eventLog.TokenId.Int64(),
-		Originator:    *originator,
-		Timestamp:     time.Unix(int64(blockTimestamp), 0).UTC(),
-	}
-
-	ew.logger.Infof("[%s] - New ERC-721Burn ERC-721 Event Log with TokenId [%d], Receiver Address [%s] has been found.",
-		eventLog.Raw.TxHash.String(),
-		eventLog.TokenId.Int64(),
-		recipientAccount)
-
-	currentBlockNumber := eventLog.Raw.BlockNumber
-
-	if ew.validator && currentBlockNumber >= ew.targetBlock {
-		if transfer.TargetChainId == constants.HederaNetworkId {
-			q.Push(&queue.Message{Payload: transfer, Topic: constants.HederaNftTransfer})
-		} else {
-			ew.logger.Errorf("[%s] - NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
-			return
-		}
-	} else {
-		transfer.NetworkTimestamp = strconv.FormatUint(blockTimestamp, 10)
-		if transfer.TargetChainId == constants.HederaNetworkId {
-			q.Push(&queue.Message{Payload: transfer, Topic: constants.ReadOnlyHederaUnlockNftTransfer})
-		} else {
-			ew.logger.Errorf("[%s] - Read-only NFT Transfer to TargetChain different than [%d]. Not supported.", transfer.TransactionId, constants.HederaNetworkId)
-			return
 		}
 	}
 }

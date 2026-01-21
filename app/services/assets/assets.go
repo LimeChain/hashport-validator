@@ -19,7 +19,6 @@ package assets
 import (
 	"errors"
 	"fmt"
-	"github.com/limechain/hedera-eth-bridge-validator/app/helper/fee"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -49,10 +48,6 @@ type Service struct {
 	fungibleNativeAssets map[uint64]map[string]*assetModel.NativeAsset
 	// A mapping, storing name and symbol for fungible asset per network
 	fungibleAssetInfos map[uint64]map[string]*assetModel.FungibleAssetInfo
-	// A mapping, storing all non-fungible tokens per network
-	nonFungibleNetworkAssets map[uint64][]string
-	// A mapping, storing name and symbol for non-fungible asset per network
-	nonFungibleAssetInfos map[uint64]map[string]*assetModel.NonFungibleAssetInfo
 
 	bridgeAccountId string
 	logger          *log.Entry
@@ -60,10 +55,6 @@ type Service struct {
 
 func (a *Service) FungibleNetworkAssets() map[uint64][]string {
 	return a.fungibleNetworkAssets
-}
-
-func (a *Service) NonFungibleNetworkAssets() map[uint64][]string {
-	return a.nonFungibleNetworkAssets
 }
 
 func (a *Service) NativeToWrappedAssets() map[uint64]map[string]map[uint64]string {
@@ -119,12 +110,6 @@ func (a *Service) FungibleAssetInfo(networkId uint64, assetAddressOrId string) (
 	return assetInfo, exist
 }
 
-func (a *Service) NonFungibleAssetInfo(networkId uint64, assetAddressOrId string) (assetInfo *assetModel.NonFungibleAssetInfo, exist bool) {
-	assetInfo, exist = a.nonFungibleAssetInfos[networkId][assetAddressOrId]
-
-	return assetInfo, exist
-}
-
 func (a *Service) FetchEvmFungibleReserveAmount(
 	networkId uint64,
 	assetAddress string,
@@ -144,31 +129,6 @@ func (a *Service) FetchEvmFungibleReserveAmount(
 			a.logger.Errorf("EVM with networkId [%d] for asset [%s], and method TotalSupply - Error: [%s]", networkId, assetAddress, err)
 			return nil, err
 		}
-	}
-	return inLowestDenomination, err
-}
-
-func (a *Service) FetchEvmNonFungibleReserveAmount(
-	networkId uint64,
-	assetAddress string,
-	isNative bool,
-	evmTokenClient client.EvmNft,
-	routerContractAddress string,
-) (inLowestDenomination *big.Int, err error) {
-	if isNative {
-		inLowestDenomination, err = evmTokenClient.BalanceOf(&bind.CallOpts{}, common.HexToAddress(routerContractAddress))
-		if err != nil {
-			a.logger.Errorf("EVM with networkId [%d] for asset [%s], and method BalanceOf - Error: [%s]", networkId, assetAddress, err)
-			return nil, err
-		}
-	} else {
-		// TODO: Remove the line below and uncomment the next one when we update the NFTs to extend ERC721Enumerable
-		inLowestDenomination = big.NewInt(0)
-		//inLowestDenomination, err = evmTokenClient.TotalSupply(&bind.CallOpts{})
-		//if err != nil {
-		//	a.logger.Errorf("EVM with networkId [%d] for asset [%s], and method TotalSupply - Error: [%s]", networkId, assetAddress, err)
-		//	return nil, err
-		//}
 	}
 	return inLowestDenomination, err
 }
@@ -236,34 +196,6 @@ func (a *Service) fetchEvmFungibleAssetInfo(
 	return assetInfo, err
 }
 
-func (a *Service) fetchEvmNonFungibleAssetInfo(
-	networkId uint64,
-	assetAddress string,
-	evmTokenClients map[uint64]map[string]client.EvmNft,
-	isNative bool,
-	routerContractAddress string,
-) (assetInfo *assetModel.NonFungibleAssetInfo, err error) {
-	assetInfo = &assetModel.NonFungibleAssetInfo{}
-	evmTokenClient := evmTokenClients[networkId][assetAddress]
-	name, err := evmTokenClient.Name(&bind.CallOpts{})
-	if err != nil {
-		a.logger.Errorf("Failed to get Name for Asset [%s] for EVM with networkId [%d]  - Error: [%s]", assetAddress, networkId, err)
-		return assetInfo, err
-	}
-	assetInfo.Name = name
-
-	symbol, err := evmTokenClient.Symbol(&bind.CallOpts{})
-	if err != nil {
-		a.logger.Errorf("EVM with networkId [%d] for Asset [%s], and method Symbol - Error: [%s]", networkId, assetAddress, err)
-		return assetInfo, err
-	}
-	assetInfo.Symbol = symbol
-
-	assetInfo.ReserveAmount, err = a.FetchEvmNonFungibleReserveAmount(networkId, assetAddress, isNative, evmTokenClient, routerContractAddress)
-
-	return assetInfo, err
-}
-
 func (a *Service) fetchHederaFungibleAssetInfo(
 	assetId string,
 	mirrorNode client.MirrorNode,
@@ -293,29 +225,6 @@ func (a *Service) fetchHederaFungibleAssetInfo(
 	assetInfo.ReserveAmount, _ = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
 
 	return assetInfo, nil
-}
-
-func (a *Service) fetchHederaNonFungibleAssetInfo(
-	assetId string,
-	mirrorNode client.MirrorNode,
-	isNative bool,
-	hederaTokenBalances map[string]int,
-) (assetInfo *assetModel.NonFungibleAssetInfo, err error) {
-
-	assetInfo = &assetModel.NonFungibleAssetInfo{}
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		a.logger.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-		assetInfo.ReserveAmount, err = a.getHederaTokenReserveAmount(assetId, isNative, hederaTokenBalances, assetInfoResponse)
-		assetInfo.CustomFees.InitFromResponse(assetInfoResponse.CustomFees)
-		assetInfo.CustomFeeTotalAmounts = fee.SumFallbackFeeAmounts(assetInfo.CustomFees)
-		assetInfo.TreasuryAccountId = assetInfoResponse.TreasuryAccountId
-	}
-
-	return assetInfo, err
 }
 
 func (a *Service) loadFungibleAssetInfos(
@@ -411,81 +320,6 @@ func (a *Service) fetchFungibleAssetInfo(
 	return assetInfo, assetAddress, err
 }
 
-func (a *Service) loadNonFungibleAssetInfos(
-	networks map[uint64]*parser.Network,
-	mirrorNode client.MirrorNode,
-	evmTokenClients map[uint64]map[string]client.EvmNft,
-	hederaTokenBalances map[string]int,
-) {
-	a.nonFungibleAssetInfos = make(map[uint64]map[string]*assetModel.NonFungibleAssetInfo)
-
-	for nativeChainId, networkInfo := range networks {
-		if len(networkInfo.Tokens.Nft) == 0 {
-			continue
-		}
-
-		if _, ok := a.nonFungibleAssetInfos[nativeChainId]; !ok {
-			a.nonFungibleAssetInfos[nativeChainId] = make(map[string]*assetModel.NonFungibleAssetInfo)
-		}
-
-		for nativeAsset, nativeAssetMapping := range networkInfo.Tokens.Nft {
-			assetInfo, nativeAsset, err := a.fetchNonFungibleAssetInfo(nativeChainId, nativeAsset, mirrorNode, evmTokenClients, true, hederaTokenBalances, networks[nativeChainId].RouterContractAddress)
-			if err != nil {
-				a.logger.Fatal(err)
-			}
-			a.nonFungibleAssetInfos[nativeChainId][nativeAsset] = assetInfo
-
-			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
-				if _, ok := a.nonFungibleAssetInfos[wrappedChainId]; !ok {
-					a.nonFungibleAssetInfos[wrappedChainId] = make(map[string]*assetModel.NonFungibleAssetInfo)
-				}
-				assetInfo, wrappedAsset, err = a.fetchNonFungibleAssetInfo(wrappedChainId, wrappedAsset, mirrorNode, evmTokenClients, false, hederaTokenBalances, networks[wrappedChainId].RouterContractAddress)
-				if err != nil {
-					a.logger.Fatal(err)
-				}
-				a.nonFungibleAssetInfos[wrappedChainId][wrappedAsset] = assetInfo
-			}
-		}
-	}
-}
-
-func (a *Service) fetchNonFungibleAssetInfo(
-	chainId uint64,
-	assetAddress string,
-	mirrorNode client.MirrorNode,
-	evmTokenClients map[uint64]map[string]client.EvmNft,
-	isNative bool,
-	hederaTokenBalances map[string]int,
-	routerContractAddress string,
-) (*assetModel.NonFungibleAssetInfo, string, error) {
-	var (
-		err       error
-		assetInfo *assetModel.NonFungibleAssetInfo
-	)
-
-	if chainId == constants.HederaNetworkId { // Hedera
-		assetInfo, err = a.fetchHederaNonFungibleAssetInfo(assetAddress, mirrorNode, isNative, hederaTokenBalances)
-		if err != nil {
-			err = fmt.Errorf("Failed to load Hedera Non-Fungible Asset Info. Error [%v]", err)
-			return assetInfo, assetAddress, err
-		}
-	} else { // EVM
-		re := regexp.MustCompile(constants.EvmCompatibleAddressPattern)
-		if isMatch := re.MatchString(assetAddress); isMatch {
-			assetAddress = common.HexToAddress(assetAddress).String()
-		}
-		assetAddress = common.HexToAddress(assetAddress).String()
-		assetInfo, err = a.fetchEvmNonFungibleAssetInfo(chainId, assetAddress, evmTokenClients, isNative, routerContractAddress)
-		if err != nil {
-			err = fmt.Errorf("Failed to load EVM NetworkId [%v] Non-Fungible Asset Info. Error [%v]", chainId, err)
-			return assetInfo, assetAddress, err
-		}
-	}
-	assetInfo.IsNative = isNative
-
-	return assetInfo, assetAddress, err
-}
-
 func NewService(
 	networks map[uint64]*parser.Network,
 	bridgeAccountId string,
@@ -493,7 +327,6 @@ func NewService(
 	routerClients map[uint64]client.DiamondRouter,
 	mirrorNode client.MirrorNode,
 	evmTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNftClients map[uint64]map[string]client.EvmNft,
 ) *Service {
 	instance := initialize(
 		networks,
@@ -502,7 +335,6 @@ func NewService(
 		routerClients,
 		mirrorNode,
 		evmTokenClients,
-		evmNftClients,
 	)
 
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
@@ -512,11 +344,10 @@ func NewService(
 	return instance
 }
 
-func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, HederaFeePercentages map[string]int64, routerClients map[uint64]client.DiamondRouter, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmFungibleToken, evmNftClients map[uint64]map[string]client.EvmNft) *Service {
+func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, HederaFeePercentages map[string]int64, routerClients map[uint64]client.DiamondRouter, mirrorNode client.MirrorNode, evmTokenClients map[uint64]map[string]client.EvmFungibleToken) *Service {
 	nativeToWrapped := make(map[uint64]map[string]map[uint64]string)
 	wrappedToNative := make(map[uint64]map[string]*assetModel.NativeAsset)
 	fungibleNetworkAssets := make(map[uint64][]string)
-	nonFungibleNetworkAssets := make(map[uint64][]string)
 	fungibleNativeAssets := make(map[uint64]map[string]*assetModel.NativeAsset)
 
 	re := regexp.MustCompile(constants.EvmCompatibleAddressPattern)
@@ -579,35 +410,6 @@ func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, Hed
 				wrappedToNative[wrappedChainId][wrappedAsset] = asset
 			}
 		}
-
-		for nativeAsset, nativeAssetMapping := range network.Tokens.Nft {
-			if nativeChainId != constants.HederaNetworkId {
-				nativeAsset = common.HexToAddress(nativeAsset).String()
-			}
-
-			if nativeToWrapped[nativeChainId][nativeAsset] == nil {
-				nativeToWrapped[nativeChainId][nativeAsset] = make(map[uint64]string)
-			}
-
-			nonFungibleNetworkAssets[nativeChainId] = append(nonFungibleNetworkAssets[nativeChainId], nativeAsset)
-
-			for wrappedChainId, wrappedAsset := range nativeAssetMapping.Networks {
-				if isMatch := re.MatchString(wrappedAsset); isMatch {
-					wrappedAsset = common.HexToAddress(wrappedAsset).String()
-				}
-
-				nativeToWrapped[nativeChainId][nativeAsset][wrappedChainId] = wrappedAsset
-				if wrappedToNative[wrappedChainId] == nil {
-					wrappedToNative[wrappedChainId] = make(map[string]*assetModel.NativeAsset)
-				}
-
-				nonFungibleNetworkAssets[wrappedChainId] = append(nonFungibleNetworkAssets[wrappedChainId], wrappedAsset)
-				wrappedToNative[wrappedChainId][wrappedAsset] = &assetModel.NativeAsset{
-					ChainId: nativeChainId,
-					Asset:   nativeAsset,
-				}
-			}
-		}
 	}
 	logger := config.GetLoggerFor("Assets Service")
 
@@ -616,7 +418,6 @@ func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, Hed
 		wrappedToNative:          wrappedToNative,
 		fungibleNativeAssets:     fungibleNativeAssets,
 		fungibleNetworkAssets:    fungibleNetworkAssets,
-		nonFungibleNetworkAssets: nonFungibleNetworkAssets,
 		bridgeAccountId:          bridgeAccountId,
 		logger:                   logger,
 	}
@@ -628,7 +429,6 @@ func initialize(networks map[uint64]*parser.Network, bridgeAccountId string, Hed
 	}
 	hederaTokenBalances := bridgeAccount.Balance.GetAccountTokenBalancesByAddress()
 	instance.loadFungibleAssetInfos(networks, mirrorNode, evmTokenClients, hederaTokenBalances)
-	instance.loadNonFungibleAssetInfos(networks, mirrorNode, evmNftClients, hederaTokenBalances)
 
 	return instance
 }
@@ -648,7 +448,6 @@ func bridgeCfgUpdateEventHandler(e event.Event, mirrorNode client.MirrorNode, in
 		params.RouterClients,
 		mirrorNode,
 		params.EvmFungibleTokenClients,
-		params.EvmNFTClients,
 	)
 	*instance = *newInstance
 	params.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*params.ParsedBridge, instance)

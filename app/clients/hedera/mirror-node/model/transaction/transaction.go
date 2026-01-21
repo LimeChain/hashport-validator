@@ -42,7 +42,6 @@ type (
 		TransactionID        string        `json:"transaction_id"`
 		Transfers            []Transfer    `json:"transfers"`
 		TokenTransfers       []Transfer    `json:"token_transfers"`
-		NftTransfers         []NftTransfer `json:"nft_transfers"`
 	}
 	// Transfer struct used by the Hedera Mirror node REST API
 	Transfer struct {
@@ -50,13 +49,6 @@ type (
 		Amount  int64  `json:"amount"`
 		// When retrieving ordinary hbar transfers, this field does not get populated
 		Token string `json:"token_id"`
-	}
-	// NftTransfer struct used by the Hedera mirror node REST API
-	NftTransfer struct {
-		ReceiverAccountID string `json:"receiver_account_id"`
-		SenderAccountID   string `json:"sender_account_id"`
-		SerialNumber      int64  `json:"serial_number"`
-		Token             string `json:"token_id"`
 	}
 	// Response struct used by the Hedera Mirror node REST API and returned once
 	// account transactions are queried
@@ -74,37 +66,12 @@ type (
 		PayerAccountId     string `json:"payer_account_id"`
 		ScheduleId         string `json:"schedule_id"`
 	}
-
-	// Nft struct used by Hedera Mirror node REST API to return information
-	// for a given Nft entity
-	Nft struct {
-		AccountID         string `json:"account_id"`         // The account ID of the account associated with the NFT
-		CreatedTimestamp  string `json:"created_timestamp"`  // The timestamp of when the NFT was created
-		Deleted           bool   `json:"deleted"`            // Whether the token was deleted or not
-		Metadata          string `json:"metadata"`           // The metadata of the NFT, in base64
-		ModifiedTimestamp string `json:"modified_timestamp"` // The last time the token properties were modified
-		SerialNumber      int64  `json:"serial_number"`      // The serial number of the NFT
-		TokenID           string `json:"token_id"`           // The token ID of the NFT
-	}
-	// NftTransactionsResponse struct used by Hedera Mirror node REST API to return information
-	// about an NFT's transaction
-	NftTransactionsResponse struct {
-		Transactions []NftTransaction `json:"transactions"`
-		Links        Pagination       `json:"links"`
-	}
-	NftTransaction struct {
-		TransactionID     string `json:"transaction_id"`      // The transaction ID of the transaction
-		Type              string `json:"type"`                // The type of transaction TOKENBURN, TOKEMINT, CRYPTOTRANSFER
-		SenderAccountID   string `json:"sender_account_id"`   // The account that sent the NFT
-		ReceiverAccountID string `json:"receiver_account_id"` // The account that received the NFT
-	}
 	Pagination struct {
 		Next string `json:"next"` // Hyperlink to the next page of results
 	}
 	// ParsedTransfer Used in GetIncomingTransfer to return the information about an Incoming Transfer
 	ParsedTransfer struct {
-		IsNft             bool
-		AmountOrSerialNum int64
+		Amount int64
 		Asset             string
 	}
 )
@@ -131,16 +98,6 @@ func (t Transaction) getIncomingTokenAmountFor(account string) (int64, string, e
 	return 0, "", errors.New("no incoming token transfer found")
 }
 
-func (t Transaction) getIncomingNftTransferFor(account string) (serialNum int64, token string, err error) {
-	for _, ntr := range t.NftTransfers {
-		if ntr.ReceiverAccountID == account {
-			return ntr.SerialNumber, ntr.Token, nil
-		}
-	}
-
-	return 0, "", errors.New("no incoming nft transfer found")
-}
-
 // GetHBARTransfer gets the HBAR transfer for an Account
 func (t Transaction) GetHBARTransfer(account string) (amount int64, isFound bool) {
 	for _, tr := range t.Transfers {
@@ -165,24 +122,13 @@ func (t Transaction) GetTokenTransfer(account string) (amount int64, isFound boo
 
 // Process Hedera -> EVM TX
 // GetIncomingTransfer returns the transfer to an account in the following order:
-// 1. Checks if there is an NFT transfer
-// 2. Checks if there is a Fungible Token transfer
-// 3. Checks if there is an HBAR transfer
+// 1. Checks if there is a Fungible Token transfer
+// 2. Checks if there is an HBAR transfer
 func (t Transaction) GetIncomingTransfer(account string) (parsed ParsedTransfer, err error) {
-	serialNum, asset, err := t.getIncomingNftTransferFor(account)
-	if err == nil {
-		return ParsedTransfer{
-			IsNft:             true,
-			AmountOrSerialNum: serialNum,
-			Asset:             asset,
-		}, nil
-	}
-
 	amount, asset, err := t.getIncomingTokenAmountFor(account)
 	if err == nil {
 		return ParsedTransfer{
-			IsNft:             false,
-			AmountOrSerialNum: amount,
+			Amount: amount,
 			Asset:             asset,
 		}, nil
 	}
@@ -190,8 +136,7 @@ func (t Transaction) GetIncomingTransfer(account string) (parsed ParsedTransfer,
 	amount, asset, err = t.getIncomingAmountFor(account)
 	if err == nil {
 		return ParsedTransfer{
-			IsNft:             false,
-			AmountOrSerialNum: amount,
+			Amount: amount,
 			Asset:             asset,
 		}, nil
 	}

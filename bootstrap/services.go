@@ -80,7 +80,6 @@ func PrepareServices(c *config.Config, parsedBridge *parser.Bridge, clients *Cli
 		clients.RouterClients,
 		clients.MirrorNode,
 		clients.EvmFungibleTokenClients,
-		clients.EvmNFTClients,
 	)
 	c.Bridge.LoadStaticMinAmountsForWrappedFungibleTokens(*parsedBridge, assetsService)
 

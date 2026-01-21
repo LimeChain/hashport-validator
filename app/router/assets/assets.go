@@ -45,17 +45,9 @@ type feePercentageInfo struct {
 	MaxPercentage int64 `json:"maxPercentage"`
 }
 
-type nonFungibleBridgeDetails struct {
-	*asset.NonFungibleAssetInfo
-	Fee              int64             `json:"fee"`
-	Networks         map[uint64]string `json:"networks"`
-	ReserveAmount    string            `json:"reserveAmount"`
-	ReleaseTimestamp uint64            `json:"releaseTimestamp,omitempty"`
-}
 
 type networkAssets struct {
 	Fungible    map[string]fungibleBridgeDetails    `json:"fungible"`
-	NonFungible map[string]nonFungibleBridgeDetails `json:"nonFungible"`
 }
 
 // Router for assets
@@ -77,11 +69,9 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 	response := make(map[uint64]networkAssets)
 
 	fungibleNetworkAssets := assetsService.FungibleNetworkAssets()
-	nonFungibleNetworkAssets := assetsService.NonFungibleNetworkAssets()
 	for networkId := range constants.NetworksById {
 		response[networkId] = networkAssets{
 			Fungible:    map[string]fungibleBridgeDetails{},
-			NonFungible: map[string]nonFungibleBridgeDetails{},
 		}
 
 		// Fungible
@@ -108,30 +98,6 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 					ReleaseTimestamp:  bridgeTokenInfo.ReleaseTimestamp,
 				}
 				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
-			}
-		}
-
-		// Non-Fungible
-		for _, assetAddress := range nonFungibleNetworkAssets[networkId] {
-			nonFungibleAssetInfo, exist := assetsService.NonFungibleAssetInfo(networkId, assetAddress)
-			if exist {
-				var nativeAddress string
-				if nonFungibleAssetInfo.IsNative {
-					nativeAddress = assetAddress
-				} else {
-					nativeAsset := assetsService.WrappedToNative(assetAddress, networkId)
-					nativeAddress = nativeAsset.Asset
-				}
-
-				bridgeTokenInfo := bridgeCfg.Networks[networkId].Tokens.Nft[nativeAddress]
-				nonFungibleAssetDetails := nonFungibleBridgeDetails{
-					NonFungibleAssetInfo: nonFungibleAssetInfo,
-					Fee:                  bridgeTokenInfo.Fee,
-					Networks:             bridgeTokenInfo.Networks,
-					ReserveAmount:        nonFungibleAssetInfo.ReserveAmount.String(),
-					ReleaseTimestamp:     bridgeTokenInfo.ReleaseTimestamp,
-				}
-				response[networkId].NonFungible[assetAddress] = nonFungibleAssetDetails
 			}
 		}
 	}

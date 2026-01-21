@@ -77,7 +77,6 @@ func createAssetsWatcher(
 	mirrorNode client.MirrorNode,
 	configuration *config.Config,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 
 ) *aw.Watcher {
@@ -86,7 +85,6 @@ func createAssetsWatcher(
 		mirrorNode,
 		configuration.Bridge,
 		evmFungibleTokenClients,
-		evmNonFungibleTokenClients,
 		assetsService)
 }
 
@@ -96,7 +94,6 @@ func createPrometheusWatcher(
 	configuration *config.Config,
 	prometheusService service.Prometheus,
 	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 
 ) *pw.Watcher {
@@ -107,6 +104,5 @@ func createPrometheusWatcher(
 		configuration.Bridge,
 		prometheusService,
 		evmFungibleTokenClients,
-		evmNonFungibleTokenClients,
 		assetsService)
 }

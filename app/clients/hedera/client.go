@@ -203,38 +203,12 @@ func (hc Node) SubmitScheduledHbarTransferTransaction(
 	return hc.submitScheduledTransferTransaction(payerAccountID, memo, transferTransaction)
 }
 
-func (hc Node) SubmitScheduledNftTransferTransaction(
-	nftID hedera.NftID,
-	payerAccount hedera.AccountID,
-	sender hedera.AccountID,
-	receiving hedera.AccountID,
-	memo string, approved bool) (*hedera.TransactionResponse, error) {
-
-	transferTransaction := hedera.
-		NewTransferTransaction().
-		AddApprovedNftTransfer(nftID, sender, receiving, approved)
-
-	return hc.submitScheduledTransferTransaction(payerAccount, memo, transferTransaction)
-}
-
 func (hc Node) TransactionReceiptQuery(transactionID hedera.TransactionID, nodeAccIds []hedera.AccountID) (hedera.TransactionReceipt, error) {
 	return hedera.NewTransactionReceiptQuery().
 		SetTransactionID(transactionID).
 		SetNodeAccountIDs(nodeAccIds).
 		SetMaxRetry(hc.maxRetry).
 		Execute(hc.GetClient())
-}
-
-func (hc Node) SubmitScheduledNftApproveTransaction(
-	payer hedera.AccountID,
-	memo string,
-	nftId hedera.NftID,
-	owner hedera.AccountID,
-	spender hedera.AccountID) (*hedera.TransactionResponse, error) {
-	tx := hedera.NewAccountAllowanceApproveTransaction().
-		ApproveTokenNftAllowance(nftId, owner, spender)
-
-	return hc.submitScheduledAllowTransaction(payer, memo, tx)
 }
 
 func (hc Node) submitScheduledAllowTransaction(payer hedera.AccountID, memo string, tx *hedera.AccountAllowanceApproveTransaction) (*hedera.TransactionResponse, error) {

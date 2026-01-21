@@ -33,7 +33,6 @@ type utilsService struct {
 	evmClients     map[uint64]client.EVM
 	burnEvt        service.BurnEvent
 	burnHash       common.Hash
-	burnErc721Hash common.Hash
 	lockHash       common.Hash
 	log            log.FieldLogger
 }
@@ -49,7 +48,6 @@ func New(evmClients map[uint64]client.EVM, burnEvt service.BurnEvent) *utilsServ
 		evmClients:     evmClients,
 		burnEvt:        burnEvt,
 		burnHash:       bridgeAbi.Events["Burn"].ID,
-		burnErc721Hash: bridgeAbi.Events["BurnERC721"].ID,
 		lockHash:       bridgeAbi.Events["Lock"].ID,
 		log:            config.GetLoggerFor("Utils Service"),
 	}
@@ -70,7 +68,7 @@ func (s *utilsService) ConvertEvmHashToBridgeTxId(txId string, chainId uint64) (
 	var txIdWithLogIndex string
 	for _, l := range receipt.Logs {
 		switch l.Topics[0] {
-		case s.burnHash, s.burnErc721Hash, s.lockHash:
+		case s.burnHash, s.lockHash:
 			txIdWithLogIndex = fmt.Sprintf("%s-%d", txId, l.Index)
 			goto finish
 		}

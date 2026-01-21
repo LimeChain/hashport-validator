@@ -46,7 +46,6 @@ type Watcher struct {
 	dashboardPolling           time.Duration
 	mirrorNode                 client.MirrorNode
 	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
-	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
 	bridgeCfg                  *config.Bridge
 	prometheusService          service.Prometheus
 	logger                     *log.Entry
@@ -71,14 +70,12 @@ func NewWatcher(
 	bridgeCfg *config.Bridge,
 	prometheusService service.Prometheus,
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
 	instance := &Watcher{
 		dashboardPolling:           dashboardPolling,
 		mirrorNode:                 mirrorNode,
 		evmFungibleTokenClients:    EvmFungibleTokenClients,
-		evmNonFungibleTokenClients: EvmNonFungibleTokenClients,
 		bridgeCfg:                  bridgeCfg,
 		prometheusService:          prometheusService,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
@@ -164,9 +161,7 @@ func (pw *Watcher) beginWatching() {
 
 func (pw *Watcher) registerAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
 	pw.registerAssetMetrics(fungibleAssets, true)
-	pw.registerAssetMetrics(nonFungibleAssets, false)
 }
 
 func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
@@ -220,13 +215,6 @@ func (pw *Watcher) registerAssetMetric(
 			}
 			name = assetInfo.Name
 			symbol = assetInfo.Symbol
-		} else {
-			assetInfo, exist := pw.assetsService.NonFungibleAssetInfo(wrappedNetworkId, assetAddress)
-			if !exist {
-				return
-			}
-			name = assetInfo.Name
-			symbol = assetInfo.Symbol
 		}
 
 		metricName, metricHelp := getMetricData(
@@ -273,9 +261,6 @@ func getMetricData(
 	}
 
 	fungleAddon := constants.FungibleAddon
-	if !isFungible {
-		fungleAddon = constants.NonFungibleAddon
-	}
 
 	name := fmt.Sprintf("%s_%s_%s_%s%s%s",
 		assetType,
@@ -340,9 +325,7 @@ func (pw *Watcher) getAccountBalance(account *account.AccountsResponse) float64 
 
 func (pw *Watcher) setAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
 	pw.setAssetsMetrics(fungibleAssets, true)
-	pw.setAssetsMetrics(nonFungibleAssets, false)
 }
 
 func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) {
@@ -374,12 +357,6 @@ func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
 			decimals = assetInfo.Decimals
 		}
-	} else {
-		decimals = 0
-		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetAddress)
-		if ok {
-			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
-		}
 	}
 
 	if decimals != 0 {
@@ -409,7 +386,6 @@ func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
 		return errors.New(errMsg)
 	}
 	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
-	instance.evmNonFungibleTokenClients = params.EvmNFTClients
 	instance.bridgeCfg = params.Bridge
 	// Clear All Metrics
 	for _, metricsInNetwork := range instance.assetsMetrics {

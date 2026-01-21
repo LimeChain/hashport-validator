@@ -33,7 +33,6 @@ type DiamondRouter interface {
 	ParseBurn(log types.Log) (*router.RouterBurn, error)
 	ParseLock(log types.Log) (*router.RouterLock, error)
 	ParseUnlock(log types.Log) (*router.RouterUnlock, error)
-	ParseBurnERC721(log types.Log) (*router.RouterBurnERC721, error)
 	WatchBurn(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error)
 	MembersCount(opts *bind.CallOpts) (*big.Int, error)
 	MemberAt(opts *bind.CallOpts, _index *big.Int) (common.Address, error)
@@ -43,6 +42,4 @@ type DiamondRouter interface {
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	}, error)
-	Erc721Fee(opts *bind.CallOpts, _erc721 common.Address) (*big.Int, error)
-	Erc721Payment(opts *bind.CallOpts, _erc721 common.Address) (common.Address, error)
 }

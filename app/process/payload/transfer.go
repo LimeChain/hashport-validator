@@ -29,9 +29,6 @@ type Transfer struct {
 	NativeAsset      string
 	Receiver         string
 	Amount           string
-	SerialNum        int64
-	Metadata         string
-	IsNft            bool
 	Originator       string
 	Timestamp        time.Time
 	NetworkTimestamp string
@@ -52,26 +49,5 @@ func New(txId string,
 		NativeAsset:   nativeAsset,
 		Receiver:      receiver,
 		Amount:        amount,
-		IsNft:         false,
-	}
-}
-
-// NewNft instantiates a Transfer, consisting of serial num and metadata for a given NFT
-func NewNft(
-	txId string,
-	sourceChainId, targetChainId, nativeChainId uint64, receiver, sourceAsset, targetAsset, nativeAsset string, serialNum int64, metadata string, fee int64) *Transfer {
-	return &Transfer{
-		TransactionId: txId,
-		SourceChainId: sourceChainId,
-		TargetChainId: targetChainId,
-		NativeChainId: nativeChainId,
-		SourceAsset:   sourceAsset,
-		TargetAsset:   targetAsset,
-		NativeAsset:   nativeAsset,
-		Receiver:      receiver,
-		SerialNum:     serialNum,
-		Metadata:      metadata,
-		IsNft:         true,
-		Fee:           fee,
 	}
 }

@@ -18,8 +18,6 @@ package transfer
 
 import (
 	"time"
-
-	"github.com/hashgraph/hedera-sdk-go/v2"
 )
 
 // Transfer serves as a data transfer object and response model
@@ -33,9 +31,6 @@ type Transfer struct {
 	NativeAsset   string    `json:"nativeAsset"`
 	Receiver      string    `json:"receiver"`
 	Amount        string    `json:"amount,omitempty"`
-	SerialNum     int64     `json:"serialNum,omitempty"`
-	Metadata      string    `json:"metadata,omitempty"`
-	IsNft         bool      `json:"isNft"`
 	Originator    string    `json:"originator"`
 	Timestamp     time.Time `json:"timestamp"`
 	Fee           string    `json:"fee,omitempty"`
@@ -63,7 +58,6 @@ type Filter struct {
 type SanityCheckResult struct {
 	ChainId    uint64
 	EvmAddress string
-	NftId      *hedera.NftID
 	Err        error
 }
 

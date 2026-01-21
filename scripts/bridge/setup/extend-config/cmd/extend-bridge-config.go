@@ -145,25 +145,6 @@ func updateAdditionalFieldsToCfg(extendedBridgeCfg *parser.ExtendedBridge, evmPr
 				}
 			}
 		}
-
-		// Non-Fungible Tokens
-		for nftAddress, nftInfo := range networkContent.Tokens.Nft {
-			if networkId == hederaNetworkId {
-				err := updateHederaNonFungibleAssetInfo(nftAddress, nftInfo, mirrorNodeClient)
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				token, err := wtoken.NewWtoken(common.HexToAddress(nftAddress), evmClients[networkId])
-				if err != nil {
-					panic(fmt.Sprintf("EVM NFT client failed to initialize for address [%s]. Err: [%s]", nftAddress, err))
-				}
-				err = updateEvmNonFungibleAssetInfo(nftInfo, networkId, nftAddress, token)
-				if err != nil {
-					panic(err)
-				}
-			}
-		}
 	}
 }
 
@@ -201,23 +182,6 @@ func updateHederaFungibleAssetInfo(
 	}
 
 	return nil
-}
-
-func updateHederaNonFungibleAssetInfo(
-	assetId string,
-	assetInfo *parser.NonFungibleTokenForDeploy,
-	mirrorNode client.MirrorNode,
-) error {
-
-	assetInfoResponse, e := mirrorNode.GetToken(assetId)
-	if e != nil {
-		log.Errorf("Hedera Mirror Node method GetToken for Asset [%s] - Error: [%s]", assetId, e)
-	} else {
-		assetInfo.Name = assetInfoResponse.Name
-		assetInfo.Symbol = assetInfoResponse.Symbol
-	}
-
-	return e
 }
 
 func updateEvmFungibleAssetInfo(
@@ -259,29 +223,6 @@ func updateEvmFungibleAssetInfo(
 	}
 
 	return err
-}
-
-func updateEvmNonFungibleAssetInfo(
-	assetInfo *parser.NonFungibleTokenForDeploy,
-	networkId uint64,
-	assetAddress string,
-	evmTokenClient client.EvmNft,
-) (err error) {
-	name, err := evmTokenClient.Name(&bind.CallOpts{})
-	if err != nil {
-		log.Errorf("Failed to get Name for Asset [%s] for EVM with networkId [%d]  - Error: [%s]", assetAddress, networkId, err)
-		return err
-	}
-	assetInfo.Name = name
-
-	symbol, err := evmTokenClient.Symbol(&bind.CallOpts{})
-	if err != nil {
-		log.Errorf("EVM with networkId [%d] for Asset [%s], and method Symbol - Error: [%s]", networkId, assetAddress, err)
-		return err
-	}
-	assetInfo.Symbol = symbol
-
-	return nil
 }
 
 func parseExtendedBridge(configPath *string) *parser.ExtendedBridge {

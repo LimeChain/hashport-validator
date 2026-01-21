@@ -253,9 +253,6 @@ func (r *Repository) create(ct *payload.Transfer, status string) (*entity.Transf
 		Receiver:      ct.Receiver,
 		Amount:        ct.Amount,
 		Status:        status,
-		SerialNumber:  ct.SerialNum,
-		Metadata:      ct.Metadata,
-		IsNft:         ct.IsNft,
 		Timestamp:     entity.NanoTime{Time: ct.Timestamp},
 		Originator:    ct.Originator,
 	}

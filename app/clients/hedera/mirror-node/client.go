@@ -227,33 +227,6 @@ func (c Client) GetMessagesForTopicBetween(topicId hedera.TopicID, from, to int6
 	return res, nil
 }
 
-// GetNftTransactions returns the nft transactions for tokenID and serialNum
-func (c Client) GetNftTransactions(tokenID string, serialNum int64) (transaction.NftTransactionsResponse, error) {
-	query := fmt.Sprintf("%stokens/%s/nfts/%d/transactions", c.mirrorAPIAddress, tokenID, serialNum)
-
-	httpResponse, err := c.get(query)
-	if err != nil {
-		return transaction.NftTransactionsResponse{}, err
-	}
-
-	bodyBytes, err := readResponseBody(httpResponse)
-	if err != nil {
-		return transaction.NftTransactionsResponse{}, err
-	}
-
-	if httpResponse.StatusCode != http.StatusOK {
-		return transaction.NftTransactionsResponse{}, fmt.Errorf("mirror Node API [%s] ended with Status Code [%d]. Body bytes: [%s]", query, httpResponse.StatusCode, bodyBytes)
-	}
-
-	var response *transaction.NftTransactionsResponse
-	err = json.Unmarshal(bodyBytes, &response)
-	if err != nil {
-		return transaction.NftTransactionsResponse{}, err
-	}
-
-	return *response, nil
-}
-
 func (c Client) GetTransaction(transactionID string) (*transaction.Response, error) {
 	transactionsDownloadQuery := fmt.Sprintf("/%s",
 		transactionID)
@@ -322,32 +295,6 @@ func (c Client) GetStateProof(transactionID string) ([]byte, error) {
 	}
 
 	return readResponseBody(response)
-}
-
-func (c Client) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error) {
-	nftQuery := fmt.Sprintf("%s%d", "/nfts/", serialNum)
-	query := fmt.Sprintf("%s%s%s%s", c.mirrorAPIAddress, "tokens/", tokenID, nftQuery)
-
-	httpResponse, e := c.get(query)
-	if e != nil {
-		return nil, e
-	}
-	if httpResponse.StatusCode >= 400 {
-		return nil, fmt.Errorf(`failed to execute query: [%s]. Error: [%s]`, query, query)
-	}
-
-	bodyBytes, e := readResponseBody(httpResponse)
-	if e != nil {
-		return nil, e
-	}
-
-	var response *transaction.Nft
-	e = json.Unmarshal(bodyBytes, &response)
-	if e != nil {
-		return nil, e
-	}
-
-	return response, nil
 }
 
 func (c Client) AccountExists(accountID hedera.AccountID) bool {

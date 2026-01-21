@@ -157,44 +157,6 @@ Example uses `Docker Compose`.
          --generateSupplyKeysFromMemberPrKeys = true
       ```
 
-   - 13 NFT setup. For now we can only bridge Hedera `Native` NFTs to other EVMs and those EVM wrapped versions back to the `Native` Hedera NFT.
-      * Deploy NFT on Hedera
-      ```
-      go run ./scripts/token/native/nft/create/cmd/create.go \
-         --privateKey=__ED25519_PRIVATE_KEY__ \
-         --accountID=__ED25519_ACC__ \
-         --network=testnet \
-         --memberPrKeys=__Alice__,__Bob__,__Carl__ \
-         --bridgeID=__Bridge_Topic_ID__
-      ```
-
-      * Mint the NFT on hedera
-      ```
-      go run scripts/token/native/nft/mint/main.go \
-         -privateKey __ED25519_PRIVATE_KEY__ \
-         -accountID __ED25519_ACC__ \
-         -network testnet \
-         -tokenID __ID_OF_DEPLOYED_NFT__ \
-         -metadata SomeTestMetaData
-      ```
-
-      * Deploy the wrapped versions of the Hedera NFT to the EVMs
-      ```
-      npx hardhat deploy-wrapped-erc721-transfer-ownership \
-         --network __EVM_NETWORK__ \
-         --name "__WRAPPED_NFT_NAME__" \
-         --router __EVM_ROUTER_ADDRESS__ \
-         --symbol "__WRAPPED_NFT_SYMBOL__"
-      ```
-
-      * Set payment token the Hedera NFT to the EVMs
-      ```
-      npx hardhat set-payment-token \
-         --network __EVM_NETWORK__ \
-         --router __EVM_ROUTER_ADDRESS__ \
-         --payment-token __TOKEN_ADDRESS__
-      ```
-
 !!! Make sure to have enough Tokens for paying fees and enough gas to use in each EVM Wallet.
 !!! Make sure to associate all tokens with all hedera accounts
 
@@ -303,12 +265,6 @@ bridge:
                networks:
                   __EVM_CHAIN_ID_1__: "__Wrapped_HBAR_Address__"
                   __EVM_CHAIN_ID_2__: "__Wrapped_HBAR_Address__"
-         nft:
-            "__HEDERA_NATIVE_NFT_TOPIC_ID__":
-               fee: 20000
-               networks:
-                  __EVM_CHAIN_ID_1__: "__Wrapped_NFT_Address__"
-                  __EVM_CHAIN_ID_2__: "__Wrapped_NFT_Address__"
    __EVM_CHAIN_ID_1__:
       name: "__EVM_CHAIN_NAME__"
       router_contract_address: "__EVM_ROUTER_ADDRESS__"

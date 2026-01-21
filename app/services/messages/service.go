@@ -119,27 +119,6 @@ func (ss *Service) SanityCheckFungibleSignature(topicMessage *proto_models.Topic
 	return match, nil
 }
 
-// SanityCheckNftSignature performs validation on the topic message metadata.
-// Validates it against the Transaction Record metadata from DB
-func (ss *Service) SanityCheckNftSignature(topicMessage *proto_models.TopicEthNftSignatureMessage) (bool, error) {
-	// In case a topic message for given transfer is being processed before the actual transfer
-	t, err := ss.awaitTransfer(topicMessage.TransferID)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to await incoming transfer and its fee. Error: [%s]", topicMessage.TransferID, err)
-		return false, err
-	}
-
-	match :=
-		topicMessage.Recipient == t.Receiver &&
-			int64(topicMessage.TokenId) == t.SerialNumber &&
-			topicMessage.Metadata == t.Metadata &&
-			topicMessage.Asset == t.TargetAsset &&
-			topicMessage.TargetChainId == t.TargetChainID &&
-			topicMessage.SourceChainId == t.SourceChainID &&
-			topicMessage.TransferID == t.TransactionID
-	return match, nil
-}
-
 func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 	authMsgHash, err := auth_message.EncodeFungibleBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.Receiver, tm.Amount)
 	if err != nil {
@@ -170,41 +149,6 @@ func (ss Service) SignFungibleMessage(tm payload.Transfer) ([]byte, error) {
 		ss.logger.Errorf("[%s] - Failed to encode Signature Message to bytes. Error [%s]", tm.TransactionId, err)
 		return nil, err
 	}
-	return bytes, nil
-}
-
-func (ss Service) SignNftMessage(tm payload.Transfer) ([]byte, error) {
-	authMsgHash, err := auth_message.EncodeNftBytesFrom(tm.SourceChainId, tm.TargetChainId, tm.TransactionId, tm.TargetAsset, tm.SerialNum, tm.Metadata, tm.Receiver)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to encode the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-
-	signatureBytes, err := ss.ethSigners[tm.TargetChainId].Sign(authMsgHash)
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to sign the authorisation signature. Error: [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-	signature := hex.EncodeToString(signatureBytes)
-
-	topicMessage := &proto_models.TopicEthNftSignatureMessage{
-		SourceChainId: tm.SourceChainId,
-		TargetChainId: tm.TargetChainId,
-		TransferID:    tm.TransactionId,
-		Asset:         tm.TargetAsset,
-		TokenId:       uint64(tm.SerialNum),
-		Metadata:      tm.Metadata,
-		Recipient:     tm.Receiver,
-		Signature:     signature,
-	}
-	msg := message.NewNftSignature(topicMessage)
-
-	bytes, err := msg.ToBytes()
-	if err != nil {
-		ss.logger.Errorf("[%s] - Failed to marshal NFT Signature Message to bytes. Error [%s]", tm.TransactionId, err)
-		return nil, err
-	}
-
 	return bytes, nil
 }
 

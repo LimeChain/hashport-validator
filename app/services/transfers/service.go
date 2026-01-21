@@ -23,7 +23,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	mirrorNodeTransaction "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
@@ -125,14 +124,6 @@ func (ts *Service) SanityCheckTransfer(tx mirrorNodeTransaction.Transaction) mod
 	result.ChainId = chainId
 	evmAddress := memoArgs[1]
 	result.EvmAddress = evmAddress
-	if len(memoArgs) > 2 {
-		nftId, e := hedera.NftIDFromString(memoArgs[2])
-		if e != nil {
-			result.Err = fmt.Errorf("[%s] - Could not parse NftId in transaction memo [%s]. Error: [%s]", tx.TransactionID, tx.MemoBase64, e)
-			return result
-		}
-		result.NftId = &nftId
-	}
 
 	return result
 }
@@ -194,60 +185,6 @@ func (ts *Service) ProcessNativeTransfer(tm payload.Transfer) error {
 	}
 
 	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
-}
-
-func (ts *Service) ProcessNativeNftTransfer(tm payload.Transfer) error {
-	ts.logger.Infof("[%s] - Sending NFT to bridge account.", tm.TransactionId)
-	status, wg, err := ts.transferNftToBridgeAccount(tm)
-	if err != nil {
-		return err
-	}
-
-	wg.Wait()
-	if *status == syncHelper.DONE {
-		ts.logger.Debugf("[%s] - Proceeding to process fee transfer to validators and mint wrapped NFT.", tm.TransactionId)
-	} else {
-		ts.logger.Errorf("[%s] - Scheduled Transaction for NFT transfer failed.", tm.TransactionId)
-		return errors.New("failed-scheduled-nft-transfer")
-	}
-
-	feePerValidator := ts.distributor.ValidAmount(tm.Fee)
-	go ts.processFeeTransfer(feePerValidator, tm.SourceChainId, tm.TargetChainId, tm.TransactionId, constants.Hbar)
-
-	signatureMessage, err := ts.messageService.SignNftMessage(tm)
-	if err != nil {
-		return err
-	}
-
-	return ts.submitTopicMessageAndWaitForTransaction(tm.TransactionId, signatureMessage)
-}
-
-func (ts *Service) transferNftToBridgeAccount(tm payload.Transfer) (status *string, wg *sync.WaitGroup, err error) {
-	status = new(string)
-	wg = new(sync.WaitGroup)
-	wg.Add(1)
-	onExecutionSuccess, onExecutionFail := hederaHelper.ScheduledNftTxExecutionCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, true, status, schedule.TRANSFER, wg)
-	onSuccess, onFail := hederaHelper.ScheduledNftTxMinedCallbacks(ts.transferRepository, ts.scheduleRepository, ts.logger, tm.TransactionId, status, wg)
-
-	token, err := hedera.TokenIDFromString(tm.SourceAsset)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to parse token [%s]. Error [%s].", tm.TransactionId, tm.TargetAsset, err)
-		return nil, nil, err
-	}
-
-	nftID := hedera.NftID{
-		TokenID:      token,
-		SerialNumber: tm.SerialNum,
-	}
-
-	sender, err := hedera.AccountIDFromString(tm.Originator)
-	if err != nil {
-		ts.logger.Errorf("[%s] - Failed to parse receiver [%s]. Error [%s].", tm.TransactionId, tm.Receiver, err)
-		return nil, nil, err
-	}
-
-	ts.scheduledService.ExecuteScheduledNftTransferTransaction(tm.TransactionId, nftID, sender, ts.bridgeAccountID, true, onExecutionSuccess, onExecutionFail, onSuccess, onFail)
-	return status, wg, err
 }
 
 func (ts *Service) ProcessWrappedTransfer(tm payload.Transfer) error {
@@ -319,7 +256,6 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	}
 
 	transferData := service.TransferData{
-		IsNft:         t.IsNft,
 		Recipient:     t.Receiver,
 		RouterAddress: ts.contractServices[t.TargetChainID].Address().String(),
 		SourceChainId: t.SourceChainID,
@@ -345,32 +281,25 @@ func (ts *Service) TransferData(txId string) (interface{}, error) {
 	transferData.Signatures = signatures
 	transferData.Majority = reachedMajority
 
-	if !t.IsNft {
-		signedAmount := t.Amount
-		if t.NativeChainID == constants.HederaNetworkId {
-			amount, err := strconv.ParseInt(t.Amount, 10, 64)
-			if err != nil {
-				ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
-				return nil, err
-			}
-
-			feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
-			if err != nil {
-				ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
-				return nil, err
-			}
-			signedAmount = strconv.FormatInt(amount-feeAmount, 10)
+	signedAmount := t.Amount
+	if t.NativeChainID == constants.HederaNetworkId {
+		amount, err := strconv.ParseInt(t.Amount, 10, 64)
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to parse transfer amount. Error [%s]", t.TransactionID, err)
+			return nil, err
 		}
-		return service.FungibleTransferData{
-			TransferData: transferData,
-			Amount:       signedAmount,
-		}, nil
+
+		feeAmount, err := strconv.ParseInt(t.Fee, 10, 64)
+		if err != nil {
+			ts.logger.Errorf("[%s] - Failed to parse fee amount. Error [%s]", t.TransactionID, err)
+			return nil, err
+		}
+		signedAmount = strconv.FormatInt(amount-feeAmount, 10)
 	}
 
-	return service.NonFungibleTransferData{
+	return service.FungibleTransferData{
 		TransferData: transferData,
-		TokenId:      t.SerialNumber,
-		Metadata:     t.Metadata,
+		Amount:       signedAmount,
 	}, nil
 }
 
