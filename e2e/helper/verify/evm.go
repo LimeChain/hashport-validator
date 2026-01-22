@@ -30,9 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
 )
 
 func BurnEvent(t *testing.T, txReceipt *types.Receipt, expectedRouterBurn *router.RouterBurn) string {
@@ -119,49 +117,6 @@ func LockEvent(t *testing.T, txReceipt *types.Receipt, expectedRouterLock *route
 	return ""
 }
 
-func BurnERC721Event(t *testing.T, txReceipt *types.Receipt, expectedRouterLock *router.RouterBurnERC721) string {
-	t.Helper()
-	parsedAbi, err := abi.JSON(strings.NewReader(router.RouterABI))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	event := router.RouterBurnERC721{}
-	eventSignature := parsedAbi.Events["BurnERC721"].ID
-	for _, log := range txReceipt.Logs {
-		if log.Topics[0] != eventSignature {
-			continue
-		}
-
-		err := parsedAbi.UnpackIntoInterface(&event, "BurnERC721", log.Data)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if event.TokenId.String() != expectedRouterLock.TokenId.String() {
-			t.Fatalf("Expected Burn-ERC721 Event TokenId [%v], actual [%v]", expectedRouterLock.TokenId, event.TokenId)
-		}
-
-		if event.TargetChain.String() != expectedRouterLock.TargetChain.String() {
-			t.Fatalf("Expected Burn-ERC721 Event Target Chain [%v], actual [%v]", expectedRouterLock.TargetChain, event.TargetChain)
-		}
-
-		if !reflect.DeepEqual(event.WrappedToken, expectedRouterLock.WrappedToken) {
-			t.Fatalf("Expected Burn-ERC721 Event Token [%v], actual [%v]", expectedRouterLock.WrappedToken, event.WrappedToken)
-		}
-
-		if !reflect.DeepEqual(event.Receiver, expectedRouterLock.Receiver) {
-			t.Fatalf("Expected Burn-ERC721 Event Receiver [%v], actual [%v]", expectedRouterLock.Receiver, event.Receiver)
-		}
-
-		expectedId := fmt.Sprintf("%s-%d", log.TxHash, log.Index)
-		return expectedId
-	}
-
-	t.Fatal("Could not retrieve valid Burn Event Log information.")
-	return ""
-}
-
 func WrappedAssetBalance(t *testing.T, evm evmSetup.Utils, nativeAsset string, mintAmount *big.Int, wrappedBalanceBefore *big.Int, wTokenReceiverAddress common.Address) {
 	t.Helper()
 	instance, err := evmSetup.InitAssetContract(nativeAsset, evm.EVMClient)
@@ -182,31 +137,5 @@ func WrappedAssetBalance(t *testing.T, evm evmSetup.Utils, nativeAsset string, m
 
 	if wrappedBalanceAfter.Cmp(expectedBalance) != 0 {
 		t.Fatalf("Incorrect token balance. Expected to be [%s], but was [%s].", expectedBalance, wrappedBalanceAfter)
-	}
-}
-
-func ERC721TokenId(t *testing.T, evm *evm.Client, wrappedToken string, serialNumber int64, receiver string, expectedMetadata string) {
-	t.Helper()
-	contract, err := werc721.NewWerc721(common.HexToAddress(wrappedToken), evm)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	owner, err := contract.OwnerOf(nil, big.NewInt(serialNumber))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if owner.String() != receiver {
-		t.Fatalf("Invalid owner. Expected owner for serial number [%d] to be [%s], but was [%s]", serialNumber, receiver, owner.String())
-	}
-
-	tokenURI, err := contract.TokenURI(nil, big.NewInt(serialNumber))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expectedMetadata != tokenURI {
-		t.Fatalf("Invalid token URI. Expected token URI for serial number [%d] to be [%s], but was [%s]", serialNumber, expectedMetadata, tokenURI)
 	}
 }

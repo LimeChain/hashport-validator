@@ -29,7 +29,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/utilities"
 
 	mirror_node "github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node"
-	read_only "github.com/limechain/hedera-eth-bridge-validator/app/services/read-only"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/transaction"
 
@@ -130,30 +129,6 @@ func TokenTransferToBridgeAccount(t *testing.T, hederaClient *hedera.Client, bri
 	}
 
 	return *transactionResponse, wrappedBalanceBefore
-}
-
-func NftOwner(t *testing.T, hederaClient *hedera.Client, tokenID string, serialNumber int64, expectedOwner hedera.AccountID) {
-	t.Helper()
-	nftID, err := hedera.NftIDFromString(fmt.Sprintf("%d@%s", serialNumber, tokenID))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nftInfo, err := hedera.NewTokenNftInfoQuery().
-		SetNftID(nftID).
-		Execute(hederaClient)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(nftInfo) != 1 {
-		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftID.String(), nftInfo)
-	}
-
-	owner := nftInfo[0].AccountID
-	if owner != expectedOwner {
-		t.Fatalf("Invalid NftID [%s] owner. Expected [%s], actual [%s].", nftID.String(), expectedOwner, owner)
-	}
 }
 
 func ReceiverAccountBalance(t *testing.T, hederaClient *hedera.Client, expectedReceiveAmount uint64, beforeHbarBalance hedera.AccountBalance, asset string, tokenId hedera.TokenID) {
@@ -273,50 +248,6 @@ func ScheduledBurnTx(t *testing.T, mirrorNodeClient *mirror_node.Client, account
 	return "", ""
 }
 
-func ScheduledNftTransfer(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, bridgeAccount hedera.AccountID, token string, serialNum int64) (transactionID, scheduleID string) {
-	sender := hederaClient.GetOperatorAccountID()
-	timeLeft := 20
-
-	for {
-		response, err := mirrorNodeClient.GetNftTransactions(token, serialNum)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, nftTransfer := range response.Transactions {
-			if nftTransfer.Type == "CRYPTOTRANSFER" &&
-				nftTransfer.ReceiverAccountID == bridgeAccount.String() &&
-				nftTransfer.SenderAccountID == sender.String() {
-
-				scheduledTx, err := mirrorNodeClient.GetScheduledTransaction(nftTransfer.TransactionID)
-				if err != nil {
-					t.Fatalf("Failed to retrieve scheduled transaction [%s]. Error: [%s]", nftTransfer.TransactionID, err)
-				}
-				for _, tx := range scheduledTx.Transactions {
-					if tx.Result == hedera.StatusSuccess.String() {
-						schedule, err := mirrorNodeClient.GetSchedule(tx.EntityId)
-						if err != nil {
-							t.Fatalf("[%s] - Failed to get scheduled transaction for NFT [%s]. Error: [%s]", token, scheduleID, err)
-						}
-						return nftTransfer.TransactionID, schedule.ScheduleId
-					}
-				}
-			}
-		}
-
-		if timeLeft > 0 {
-			fmt.Printf("Could not find any scheduled transactions for account [%s]. Trying again. Time left: ~[%d] seconds\n", bridgeAccount, timeLeft)
-			timeLeft--
-			time.Sleep(time.Minute)
-			continue
-		}
-		break
-	}
-
-	t.Fatalf("Could not find any scheduled transactions for account [%s]", bridgeAccount)
-	return "", ""
-}
-
 func ScheduledTx(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, account hedera.AccountID, asset string, expectedTransfers []transaction.Transfer, now time.Time) (transactionID, scheduleID string) {
 	t.Helper()
 	timeLeft := 180
@@ -415,31 +346,6 @@ func ListenForTx(t *testing.T, response *transaction.Response, mirrorNode *mirro
 	return "", ""
 }
 
-func SendNFTAllowance(hederaClient *hedera.Client, nftId hedera.NftID, ownerAccountId, spenderAccountId hedera.AccountID) (*hedera.TransactionResponse, error) {
-	fmt.Printf("Sending Allowance for NFT [%s] to account [%s]\n", nftId.String(), spenderAccountId.String())
-
-	res, err := hedera.NewAccountAllowanceApproveTransaction().
-		ApproveTokenNftAllowance(
-			nftId,
-			ownerAccountId,
-			spenderAccountId,
-		).Execute(hederaClient)
-
-	if err != nil {
-		return nil, err
-	}
-
-	rec, err := res.GetReceipt(hederaClient)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("TX broadcasted. ID [%s], Status: [%s]\n", res.TransactionID, rec.Status)
-
-	time.Sleep(4 * time.Second)
-
-	return &res, err
-}
-
 func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topicId hedera.TopicID, expectedValidatorsCount int, txId string, startTime int64) []string {
 	ethSignaturesCollected := 0
 	var receivedSignatures []string
@@ -468,10 +374,6 @@ func TopicMessagesWithStartTime(t *testing.T, hederaClient *hedera.Client, topic
 					transferID = message.TransferID
 					signature = message.Signature
 					break
-				case *model.TopicMessage_NftSignatureMessage:
-					message := msg.GetNftSignatureMessage()
-					transferID = message.TransferID
-					signature = message.Signature
 				}
 
 				// Verify that all the submitted messages have signed the same transaction
@@ -507,73 +409,4 @@ signatureLoop:
 	subscription.Unsubscribe()
 
 	return receivedSignatures
-}
-
-func ScheduledNftAllowanceApprove(t *testing.T, hederaClient *hedera.Client, mirrorNodeClient *mirror_node.Client, payerAccount hedera.AccountID, expectedTransactionID string, startTimestamp int64) (transactionID, scheduleID string) {
-	timeLeft := 20
-	receiver := hederaClient.GetOperatorAccountID()
-
-	for {
-		scheduleCreates, err := mirrorNodeClient.GetTransactionsAfterTimestamp(payerAccount, startTimestamp, read_only.CryptoApproveAllowance)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, scheduleCreate := range scheduleCreates {
-			scheduledTransaction, err := mirrorNodeClient.GetScheduledTransaction(scheduleCreate.TransactionID)
-			if err != nil {
-				t.Fatalf("Could not get scheduled transaction for [%s]", scheduleCreate.TransactionID)
-			}
-
-			for _, tx := range scheduledTransaction.Transactions {
-				schedule, err := mirrorNodeClient.GetSchedule(tx.EntityId)
-				if err != nil {
-					t.Fatalf("Could not get schedule entity for [%s]", tx.EntityId)
-				}
-
-				if schedule.Memo == expectedTransactionID {
-					return tx.TransactionID, tx.EntityId
-				}
-			}
-		}
-
-		if timeLeft > 0 {
-			fmt.Printf("Could not find any scheduled transactions for NFT Transfer for account [%s]. Trying again. Time left: ~[%d] seconds\n", receiver, timeLeft)
-			timeLeft--
-			time.Sleep(time.Minute)
-			continue
-		}
-		break
-	}
-
-	t.Fatalf("Could not find any scheduled transactions for NFT Transfer for account [%s]", receiver)
-	return "", ""
-}
-
-func NftSpender(t *testing.T, hederaClient *hedera.Client, tokenID string, serialNumber int64, expectedSpender hedera.AccountID) {
-	tokenIdFromString, err := hedera.TokenIDFromString(tokenID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nftId := hedera.NftID{
-		TokenID:      tokenIdFromString,
-		SerialNumber: serialNumber,
-	}
-
-	nftInfo, err := hedera.NewTokenNftInfoQuery().
-		SetNftID(nftId).
-		Execute(hederaClient)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(nftInfo) != 1 {
-		t.Fatalf("Invalid NFT Info [%s] length result. Result: [%v]", nftId.String(), nftInfo)
-	}
-
-	spender := nftInfo[0].SpenderID
-	if spender != expectedSpender {
-		t.Fatalf("Invalid NftID [%s] spender. Expected [%s], actual [%s].", nftId.String(), expectedSpender, spender)
-	}
 }

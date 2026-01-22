@@ -61,11 +61,6 @@ func (m *MockDiamondRouter) ParseUnlock(log types.Log) (*router.RouterUnlock, er
 	return args.Get(0).(*router.RouterUnlock), args.Error(1)
 }
 
-func (m *MockDiamondRouter) ParseBurnERC721(log types.Log) (*router.RouterBurnERC721, error) {
-	args := m.Called(log)
-	return args.Get(0).(*router.RouterBurnERC721), args.Error(1)
-}
-
 func (m *MockDiamondRouter) WatchBurn(opts *bind.WatchOpts, sink chan<- *router.RouterBurn) (event.Subscription, error) {
 	args := m.Called(opts, sink)
 	return args.Get(0).(event.Subscription), args.Error(1)
@@ -95,14 +90,4 @@ func (m *MockDiamondRouter) TokenFeeData(opts *bind.CallOpts, _token common.Addr
 		PreviousAccrued      *big.Int
 		Accumulator          *big.Int
 	}), args.Error(1)
-}
-
-func (m *MockDiamondRouter) Erc721Fee(opts *bind.CallOpts, _erc721 common.Address) (*big.Int, error) {
-	args := m.Called(opts, _erc721)
-	return args.Get(0).(*big.Int), args.Error(1)
-}
-
-func (m *MockDiamondRouter) Erc721Payment(opts *bind.CallOpts, _erc721 common.Address) (common.Address, error) {
-	args := m.Called(opts, _erc721)
-	return args.Get(0).(common.Address), args.Error(1)
 }

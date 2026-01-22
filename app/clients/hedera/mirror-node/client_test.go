@@ -466,39 +466,6 @@ func Test_GetMessagesForTopicBetween(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func Test_GetNftTransactions_HttpErr(t *testing.T) {
-	setup()
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	response, err := c.GetNftTransactions("0.0.42", sequenceNumber)
-	assert.Error(t, errors.New("some-error"), err)
-	assert.Equal(t, transaction.NftTransactionsResponse{}, response)
-}
-
-func Test_GetNftTransactions(t *testing.T) {
-	setup()
-
-	expected := transaction.NftTransactionsResponse{
-		Transactions: []transaction.NftTransaction{
-			{
-				TransactionID:     "TransactionID",
-				Type:              "Type",
-				SenderAccountID:   "SenderAccountID",
-				ReceiverAccountID: "ReceiverAccountID",
-			},
-		},
-	}
-
-	encodedContent, err := httpHelper.EncodeBodyContent(expected)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
-	response, err := c.GetNftTransactions("0.0.42", sequenceNumber)
-	assert.Nil(t, err)
-	assert.Equal(t, expected, response)
-}
-
 func Test_GetSuccessfulTransaction_HttpErr(t *testing.T) {
 	setup()
 
@@ -557,34 +524,6 @@ func Test_GetSchedule(t *testing.T) {
 	response, err := c.GetSchedule("0.0.42")
 	assert.Nil(t, err)
 	assert.Equal(t, expected.ConsensusTimestamp, response.ConsensusTimestamp)
-}
-
-func Test_GetNft_HttpErr(t *testing.T) {
-	setup()
-
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(nil, errors.New("some-error"))
-	response, err := c.GetNft("0.0.42", 42)
-	assert.Error(t, errors.New("some-error"), err)
-	assert.Nil(t, response)
-}
-
-func Test_GetNft(t *testing.T) {
-	setup()
-
-	expected := transaction.Nft{
-		CreatedTimestamp: "1",
-		SerialNumber:     42,
-	}
-
-	encodedContent, err := httpHelper.EncodeBodyContent(expected)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	mocks.MHTTPClient.On("Get", mock.Anything).Return(&http.Response{StatusCode: 200, Body: encodedContent}, nil)
-	response, err := c.GetNft("0.0.42", 42)
-	assert.Nil(t, err)
-	assert.Equal(t, expected.SerialNumber, response.SerialNumber)
 }
 
 func Test_AccountExists_ShouldNotExists(t *testing.T) {

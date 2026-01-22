@@ -50,7 +50,6 @@ var MDiamondRouter *client.MockDiamondRouter
 var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *client.MockEVM
 var MEvmFungibleTokenClient *client.MockEvmFungibleToken
-var MEvmNftClient *client.MockEvmNonFungibleToken
 var MPricingClient *client.MockPricingClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
@@ -90,7 +89,6 @@ func Setup() {
 	MEVMClient = &client.MockEVM{}
 	MEVMCoreClient = &client.MockEVMCore{}
 	MEvmFungibleTokenClient = &client.MockEvmFungibleToken{}
-	MEvmNftClient = &client.MockEvmNonFungibleToken{}
 	MHTTPClient = &client.MockHttp{}
 	MDiamondRouter = &client.MockDiamondRouter{}
 	MQueue = &queue.MockQueue{}

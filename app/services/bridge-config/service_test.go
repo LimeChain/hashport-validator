@@ -69,7 +69,6 @@ var (
 				Tokens: parser.Tokens{
 					Fungible: map[string]parser.Token{
 						"HBAR": {
-							Fee:               0,
 							FeePercentage:     10000,
 							MinFeeAmountInUsd: "0.001",
 							MinAmount:         nil,
@@ -81,7 +80,6 @@ var (
 							CoinMarketCapId: "4642",
 						},
 					},
-					Nft: nil,
 				},
 			},
 		},
