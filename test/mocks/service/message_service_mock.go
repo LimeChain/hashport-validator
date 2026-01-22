@@ -34,27 +34,9 @@ func (m *MockMessageService) SignFungibleMessage(transfer payload.Transfer) ([]b
 	return args[0].([]byte), args[1].(error)
 }
 
-func (m *MockMessageService) SignNftMessage(transfer payload.Transfer) ([]byte, error) {
-	args := m.Called(transfer)
-	if args[1] == nil {
-		return args[0].([]byte), nil
-	}
-	return args[0].([]byte), args[1].(error)
-}
-
 // SanityCheckFungibleSignature performs any validation required prior handling the topic message
 // (verifies metadata against the corresponding Transaction record)
 func (m *MockMessageService) SanityCheckFungibleSignature(tm *proto.TopicEthSignatureMessage) (bool, error) {
-	args := m.Called(tm)
-	if args[1] == nil {
-		return args[0].(bool), nil
-	}
-	return args[0].(bool), args[1].(error)
-}
-
-// SanityCheckNftSignature performs any validation required prior handling the topic message
-// (verifies metadata against the corresponding Transaction record)
-func (m *MockMessageService) SanityCheckNftSignature(tm *proto.TopicEthNftSignatureMessage) (bool, error) {
 	args := m.Called(tm)
 	if args[1] == nil {
 		return args[0].(bool), nil

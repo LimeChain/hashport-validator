@@ -31,9 +31,6 @@ var (
 	tokenAccountId               = "0.0.555555"
 	amount                       = int64(10)
 	token                        = "0.0.111111"
-	nftSenderAccountId           = "0.0.666666"
-	nftReceiverAccountId         = "0.0.777777"
-	serialNumber                 = int64(1234)
 	olderConsensusTimestamp      = "1631092490.303966000"
 	moreRecentConsensusTimestamp = "1631092491.483966000"
 	nonExistingAccount           = "0.0.non-existing"
@@ -64,9 +61,8 @@ func Test_GetIncomingTransfer_Transfer(t *testing.T) {
 	parsedTransfer, err := transaction.GetIncomingTransfer(transferAccountId)
 
 	assert.Nil(t, err)
-	assert.False(t, parsedTransfer.IsNft)
 	assert.Equal(t, constants.Hbar, parsedTransfer.Asset)
-	assert.Equal(t, amount, parsedTransfer.AmountOrSerialNum)
+	assert.Equal(t, amount, parsedTransfer.Amount)
 }
 
 func Test_GetIncomingTransfer_TokenTransfer(t *testing.T) {
@@ -75,20 +71,8 @@ func Test_GetIncomingTransfer_TokenTransfer(t *testing.T) {
 	parsedTransfer, err := transaction.GetIncomingTransfer(tokenAccountId)
 
 	assert.Nil(t, err)
-	assert.False(t, parsedTransfer.IsNft)
 	assert.Equal(t, token, parsedTransfer.Asset)
-	assert.Equal(t, amount, parsedTransfer.AmountOrSerialNum)
-}
-
-func Test_GetIncomingTransfer_NftTransfer(t *testing.T) {
-	setup()
-
-	parsedTransfer, err := transaction.GetIncomingTransfer(nftReceiverAccountId)
-
-	assert.Nil(t, err)
-	assert.True(t, parsedTransfer.IsNft)
-	assert.Equal(t, token, parsedTransfer.Asset)
-	assert.Equal(t, serialNumber, parsedTransfer.AmountOrSerialNum)
+	assert.Equal(t, amount, parsedTransfer.Amount)
 }
 
 func Test_GetIncomingTransfer_NonExisting(t *testing.T) {
@@ -156,14 +140,6 @@ func setup() {
 				Account: transferAccountId,
 				Amount:  amount,
 				Token:   constants.Hbar,
-			},
-		},
-		NftTransfers: []NftTransfer{
-			{
-				SenderAccountID:   nftSenderAccountId,
-				ReceiverAccountID: nftReceiverAccountId,
-				SerialNumber:      serialNumber,
-				Token:             token,
 			},
 		},
 		ConsensusTimestamp: olderConsensusTimestamp,

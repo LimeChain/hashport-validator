@@ -28,8 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/router"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/werc721"
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm/contracts/wtoken"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 )
 
@@ -55,34 +53,6 @@ func MintTransaction(t *testing.T, evm evmSetup.Utils, txId string, transactionD
 		tokenAddress,
 		evm.Receiver,
 		mintAmount,
-		signatures,
-	)
-
-	if err != nil {
-		t.Fatalf("Cannot execute transaction - Error: [%s].", err)
-	}
-	return res.Hash()
-}
-
-func MintERC721Transaction(t *testing.T, evm evmSetup.Utils, txId string, transactionData *service.NonFungibleTransferData) common.Hash {
-	t.Helper()
-	var signatures [][]byte
-	for i := 0; i < len(transactionData.Signatures); i++ {
-		signature, err := hex.DecodeString(transactionData.Signatures[i])
-		if err != nil {
-			t.Fatalf("Failed to decode signature with error: [%s]", err)
-		}
-		signatures = append(signatures, signature)
-	}
-
-	res, err := evm.RouterContract.MintERC721(
-		evm.KeyTransactor,
-		new(big.Int).SetUint64(transactionData.SourceChainId),
-		[]byte(txId),
-		common.HexToAddress(transactionData.TargetAsset),
-		big.NewInt(transactionData.TokenId),
-		transactionData.Metadata,
-		evm.Receiver,
 		signatures,
 	)
 
@@ -223,72 +193,6 @@ func LockEthTransaction(t *testing.T, evm evmSetup.Utils, asset string, targetCh
 	fmt.Printf("[%s] Lock Transaction mined and retrieved receipt\n", lockTxHash)
 
 	return lockTxReceipt, expectedRouterLock
-}
-
-func BurnERC721Transaction(t *testing.T, evm evmSetup.Utils, wrappedToken string, targetChainId uint64, receiver []byte, serialNumber int64) (*types.Receipt, *router.RouterBurnERC721) {
-	t.Helper()
-	wrappedAddress := common.HexToAddress(wrappedToken)
-
-	paymentToken, err := evm.RouterContract.Erc721Payment(nil, wrappedAddress)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fee, err := evm.RouterContract.Erc721Fee(nil, wrappedAddress)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	erc20Contract, err := wtoken.NewWtoken(paymentToken, evm.EVMClient.GetClient())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	approveERC20Tx, err := erc20Contract.Approve(evm.KeyTransactor, evm.RouterAddress, fee)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Printf("[%s] Waiting for ERC-20 Approval Transaction\n", approveERC20Tx.Hash())
-	WaitForTransaction(t, evm, approveERC20Tx.Hash())
-
-	erc721Contract, err := werc721.NewWerc721(wrappedAddress, evm.EVMClient)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tokenId := big.NewInt(serialNumber)
-
-	approveERC721Tx, err := erc721Contract.Approve(evm.KeyTransactor, evm.RouterAddress, tokenId)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Printf("[%s] Waiting for ERC-721 Approval Transaction\n", approveERC721Tx.Hash())
-	WaitForTransaction(t, evm, approveERC721Tx.Hash())
-	targetChainIdBigInt := new(big.Int).SetUint64(targetChainId)
-	burnTx, err := evm.RouterContract.BurnERC721(evm.KeyTransactor, targetChainIdBigInt, wrappedAddress, tokenId, paymentToken, fee, receiver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("[%s] Submitted Burn Transaction\n", burnTx.Hash())
-
-	expectedRouterBurn := &router.RouterBurnERC721{
-		TargetChain:  targetChainIdBigInt,
-		WrappedToken: common.HexToAddress(wrappedToken),
-		TokenId:      tokenId,
-		Receiver:     receiver,
-	}
-
-	burnTxHash := burnTx.Hash()
-
-	fmt.Printf("[%s] Waiting for Burn ERC-721 Transaction Receipt\n", burnTxHash)
-	burnTxReceipt, err := evm.EVMClient.WaitForTransactionReceipt(burnTxHash)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("[%s] Burn ERC-721 Transaction mined and retrieved receipt\n", burnTxHash)
-
-	return burnTxReceipt, expectedRouterBurn
 }
 
 func WaitForTransaction(t *testing.T, evm evmSetup.Utils, txHash common.Hash) {

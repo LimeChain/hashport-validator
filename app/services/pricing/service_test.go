@@ -24,12 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-
 	validatorClient "github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
-	decimalHelper "github.com/limechain/hedera-eth-bridge-validator/app/helper/decimal"
 
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
@@ -50,7 +45,6 @@ var (
 	coinMarketCapClient   *client.MockPricingClient
 	tokenPriceInfoMutex   *sync.RWMutex
 	minAmountsForApiMutex *sync.RWMutex
-	nftFeesForApiMutex    *sync.RWMutex
 	diamondRouters        map[uint64]validatorClient.DiamondRouter
 )
 
@@ -58,9 +52,6 @@ func Test_New(t *testing.T) {
 	setup(true, true)
 
 	actualService := NewService(test_config.TestConfig.Bridge, mocks.MAssetsService, diamondRouters, mocks.MHederaMirrorClient, coinGeckoClient, coinMarketCapClient)
-
-	// reset fields
-	serviceInstance.hederaNftDynamicFees = nil
 
 	assert.Equal(t, serviceInstance, actualService)
 }
@@ -172,7 +163,7 @@ func Test_PriceFetchingServiceDown(t *testing.T) {
 		DefaultMinAmount: big.NewInt(0),
 	}
 
-	//Throws error since HBAR UsdPrice is used for a lot of calculations ( exmpl NFTs )
+	//Throws error since HBAR UsdPrice is used for a lot of calculations
 	err = serviceInstance.updateHbarPrice(FetchResults2)
 	assert.Error(t, err)
 }
@@ -200,14 +191,6 @@ func Test_GetTokenPriceInfo_WhileUpdating(t *testing.T) {
 
 	ExecuteWithUpdatingService(t, func() {
 		serviceInstance.GetTokenPriceInfo(92919929912, "")
-	})
-}
-
-func Test_NftFees_WhileUpdating(t *testing.T) {
-	setup(true, true)
-
-	ExecuteWithUpdatingService(t, func() {
-		serviceInstance.NftFees()
 	})
 }
 
@@ -269,62 +252,12 @@ func Test_updatePricesWithoutHbar_NonExistingAddress(t *testing.T) {
 
 	assert.Nil(t, err)
 }
-func Test_GetHederaNftFee(t *testing.T) {
-	setup(true, true)
-
-	priceInUsd := decimal.NewFromInt(400)
-	expectedFee := decimalHelper.ToLowestDenomination(testConstants.HederaNftDynamicFees[testConstants.NetworkHederaNonFungibleNativeToken].Div(priceInUsd), serviceInstance.hbarFungibleAssetInfo.Decimals).Int64()
-
-	serviceInstance.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, serviceInstance.hbarFungibleAssetInfo.Decimals)
-
-	fee, ok := serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
-	assert.Equal(t, expectedFee, fee)
-	assert.True(t, ok)
-}
-
-func Test_GetHederaNftPrevFee_ShouldExists(t *testing.T) {
-	setup(true, true)
-
-	priceInUsd := decimal.NewFromInt(400)
-	expectedPrevFee := testConstants.HederaNftFees[testConstants.NetworkHederaNonFungibleNativeToken]
-	expectedFee := decimalHelper.ToLowestDenomination(testConstants.HederaNftDynamicFees[testConstants.NetworkHederaNonFungibleNativeToken].Div(priceInUsd), serviceInstance.hbarFungibleAssetInfo.Decimals).Int64()
-
-	fee, ok := serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
-	assert.Equal(t, testConstants.HederaNftFees[testConstants.NetworkHederaNonFungibleNativeToken], fee)
-	assert.True(t, ok)
-
-	serviceInstance.updateHederaNftDynamicFeesBasedOnHbar(priceInUsd, serviceInstance.hbarFungibleAssetInfo.Decimals)
-
-	fee, ok = serviceInstance.GetHederaNftFee(testConstants.NetworkHederaNonFungibleNativeToken)
-	assert.Equal(t, expectedFee, fee)
-	assert.True(t, ok)
-
-	prevFee, ok := serviceInstance.GetHederaNftPrevFee(testConstants.NetworkHederaNonFungibleNativeToken)
-	assert.Equal(t, expectedPrevFee, prevFee)
-	assert.True(t, ok)
-}
-
-func Test_GetHederaNftPrevFee_ShouldNotExists(t *testing.T) {
-	setup(true, true)
-
-	prevFee, ok := serviceInstance.GetHederaNftPrevFee(testConstants.NetworkHederaNonFungibleNativeToken)
-	assert.Equal(t, int64(0), prevFee)
-	assert.False(t, ok)
-}
 
 func ExecuteWithUpdatingService(t *testing.T, serviceCall func()) {
 	expectedTime := time.Millisecond * 200
-	waitTime := time.Second * 1
 
 	// Clear the mocks
 	mocks.MDiamondRouter.ExpectedCalls = []*mock.Call{}
-	mocks.MDiamondRouter.
-		On("Erc721Payment", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).
-		After(waitTime).
-		Return(common.HexToAddress(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].PaymentToken), nil).
-		On("Erc721Fee", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).
-		Return(big.NewInt(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].Fee.IntPart()), nil)
-
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -350,7 +283,6 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 	coinMarketCapClient = new(client.MockPricingClient)
 	tokenPriceInfoMutex = new(sync.RWMutex)
 	minAmountsForApiMutex = new(sync.RWMutex)
-	nftFeesForApiMutex = new(sync.RWMutex)
 	diamondRouters = map[uint64]validatorClient.DiamondRouter{
 		testConstants.PolygonNetworkId:  mocks.MDiamondRouter,
 		testConstants.EthereumNetworkId: mocks.MDiamondRouter,
@@ -370,12 +302,6 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		mocks.MAssetsService.On("FungibleAssetInfo", testConstants.EthereumNetworkId, testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHedera).Return(testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo, true)
 		mocks.MAssetsService.On("NativeToWrapped", constants.Hbar, constants.HederaNetworkId, testConstants.PolygonNetworkId).Return(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera)
 		mocks.MAssetsService.On("FungibleAssetInfo", testConstants.PolygonNetworkId, testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHedera).Return(testConstants.NetworkPolygonFungibleWrappedTokenForNetworkHederaFungibleAssetInfo, true)
-		mocks.MAssetsService.On("NonFungibleNetworkAssets").Return(testConstants.NonFungibleNetworkAssets)
-		mocks.MAssetsService.On("NonFungibleAssetInfo", testConstants.PolygonNetworkId, testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera).Return(testConstants.NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo, true)
-		mocks.MAssetsService.On("NonFungibleAssetInfo", testConstants.EthereumNetworkId, testConstants.NetworkEthereumNFTWrappedTokenForNetworkHedera).Return(testConstants.NetworkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo, true)
-		mocks.MAssetsService.On("NonFungibleAssetInfo", constants.HederaNetworkId, testConstants.NetworkHederaNonFungibleNativeToken).Return(testConstants.NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo, true)
-		mocks.MDiamondRouter.On("Erc721Payment", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).Return(common.HexToAddress(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].PaymentToken), nil)
-		mocks.MDiamondRouter.On("Erc721Fee", &bind.CallOpts{}, common.HexToAddress(testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera)).Return(big.NewInt(testConstants.NftFeesForApi[testConstants.PolygonNetworkId][testConstants.NetworkPolygonWrappedNonFungibleTokenForHedera].Fee.IntPart()), nil)
 	}
 
 	var (
@@ -402,18 +328,13 @@ func setup(setupMocks bool, setTokenPriceInfosAndMinAmounts bool) {
 		coinMarketCapClient:   coinMarketCapClient,
 		tokenPriceInfoMutex:   tokenPriceInfoMutex,
 		minAmountsForApiMutex: minAmountsForApiMutex,
-		nftFeesForApiMutex:    nftFeesForApiMutex,
 		coinMarketCapIds:      test_config.TestConfig.Bridge.CoinMarketCapIds,
 		coinGeckoIds:          test_config.TestConfig.Bridge.CoinGeckoIds,
 		tokensPriceInfo:       tokensPriceInfo,
 		minAmountsForApi:      minAmountsForApi,
 		hbarFungibleAssetInfo: testConstants.NetworkHederaFungibleNativeTokenFungibleAssetInfo,
 		hbarNativeAsset:       testConstants.NetworkHederaFungibleNativeAsset,
-		hederaNftDynamicFees:  testConstants.HederaNftDynamicFees,
-		hederaNftFees:         testConstants.HederaNftFees,
-		hederaNftPrevFees:     make(map[string]int64),
 		diamondRouters:        diamondRouters,
-		nftFeesForApi:         testConstants.NftFeesForApi,
 		logger:                config.GetLoggerFor("Pricing Service"),
 	}
 

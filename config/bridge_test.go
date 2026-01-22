@@ -51,9 +51,6 @@ var (
 	hbarCoinMarketCapId              = "4642"
 	networkHederaFungibleNativeToken = constants.Hbar
 
-	// Non-Fungible
-
-	networkHederaNFTNativeToken = "0.0.111122"
 
 	networkHederaFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
 		Name:          networkHederaFungibleNativeToken,
@@ -109,12 +106,6 @@ var (
 						MinAmount:         big.NewInt(1000000),
 					},
 				},
-				Nft: map[string]parser.Token{
-					networkHederaNFTNativeToken: {
-						Networks: map[uint64]string{},
-						Fee:      feePercentage,
-					},
-				},
 			},
 		},
 		ethereumNetworkId: {
@@ -128,7 +119,6 @@ var (
 						MinFeeAmountInUsd: minFeeAmountInUsd.String(),
 					},
 				},
-				Nft: nil,
 			},
 		},
 	}

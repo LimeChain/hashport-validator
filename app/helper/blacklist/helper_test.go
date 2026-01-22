@@ -30,30 +30,6 @@ func Test_IsBlacklistedAccount(t *testing.T) {
 	assert.False(t, IsBlacklistedAccount(blacklist, "0x000002"))
 }
 
-func Test_CheckNFTTxForBlacklistedAccounts(t *testing.T) {
-	tx := setupTX()
-	tx.NftTransfers = []transaction.NftTransfer{
-		{ReceiverAccountID: "0.0.111",
-			SenderAccountID: "0.0.233",
-			SerialNumber:    1,
-			Token:           "0.0.21241241"},
-	}
-
-	assert.NoError(t, CheckTxForBlacklistedAccounts(blacklist, tx))
-}
-
-func Test_CheckNFTTxForBlacklistedAccounts_Fails(t *testing.T) {
-	tx := setupTX()
-	tx.NftTransfers = []transaction.NftTransfer{
-		{ReceiverAccountID: "0.0.111",
-			SenderAccountID: "0.0.333",
-			SerialNumber:    1,
-			Token:           "0.0.21241241"},
-	}
-
-	assert.Error(t, CheckTxForBlacklistedAccounts(blacklist, tx))
-}
-
 func Test_CheckTokenTxForBlacklistedAccounts(t *testing.T) {
 	tx := setupTX()
 	assert.NoError(t, CheckTxForBlacklistedAccounts(blacklist, tx))

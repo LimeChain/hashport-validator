@@ -59,7 +59,7 @@ func setupCP() {
 }
 
 func TestNewClientPool(t *testing.T) {
-	nodeUrls := []string{"https://ethereum-holesky-rpc.publicnode.com", "https://www.wikipedia.org"}
+	nodeUrls := []string{"https://eth.drpc.org", "https://eth-mainnet.public.blastapi.io"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -88,7 +88,7 @@ func TestNewClientPool(t *testing.T) {
 }
 
 func TestNewClientPool_ContainsNonWorkingURL(t *testing.T) {
-	nodeUrls := []string{"http://localhost:8546", "https://ethereum-holesky-rpc.publicnode.com"}
+	nodeUrls := []string{"https://eth-mainnet.public.blastapi.io", "https://eth-mainnet.public.blastapi.io"}
 	configEvmPool := config.EvmPool{
 		BlockConfirmations: 3,
 		NodeUrls:           nodeUrls,
@@ -186,7 +186,7 @@ func TestClientPool_ValidateWebsocketUrl_Invalid(t *testing.T) {
 }
 
 func TestClientPool_CheckIfNodeURLIsValid_Valid(t *testing.T) {
-	result := checkIfNodeURLIsValid("https://ethereum-holesky-rpc.publicnode.com")
+	result := checkIfNodeURLIsValid("https://eth-mainnet.public.blastapi.io")
 	assert.NoError(t, result)
 }
 

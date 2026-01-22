@@ -52,42 +52,8 @@ func FungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.
 		t.Fatalf("Failed to parse transaction data. Error: [%s]", err)
 	}
 
-	if transferDataResponse.IsNft {
-		t.Fatalf("Transaction data mismatch: Expected response data to not be NFT related.")
-	}
 	if transferDataResponse.Amount != expectedSendAmount {
 		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", expectedSendAmount, transferDataResponse.Amount)
-	}
-	if transferDataResponse.NativeAsset != tokenID {
-		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", tokenId.String(), transferDataResponse.NativeAsset)
-	}
-	if transferDataResponse.Recipient != evm.Receiver.String() {
-		t.Fatalf("Receiver address mismatch: Expected [%s], but was [%s]", evm.Receiver.String(), transferDataResponse.Recipient)
-	}
-	if transferDataResponse.TargetAsset != targetAsset {
-		t.Fatalf("Token address mismatch: Expected [%s], but was [%s]", targetAsset, transferDataResponse.TargetAsset)
-	}
-
-	return transferDataResponse
-}
-
-func NonFungibleTransferFromValidatorAPI(t *testing.T, validatorClient *e2eClients.Validator, tokenId hedera.TokenID, evm evmSetup.Utils, txId string, tokenID string, metadata string, tokenIdOrSerialNum int64, targetAsset string) *service.NonFungibleTransferData {
-	t.Helper()
-
-	transferDataResponse, err := getNonFungibleTransferData(t, validatorClient, txId)
-
-	if err != nil {
-		t.Fatalf("Failed to parse transaction data. Error: [%s]", err)
-	}
-
-	if !transferDataResponse.IsNft {
-		t.Fatalf("Transaction data mismatch: Expected response data to be NFT related.")
-	}
-	if transferDataResponse.Metadata != metadata {
-		t.Fatalf("Transaction data mismatch: Expected [%s], but was [%s]", metadata, transferDataResponse.Metadata)
-	}
-	if transferDataResponse.TokenId != tokenIdOrSerialNum {
-		t.Fatalf("Transaction tokenId/serialNum mismatch: Expected [%d], but was [%d]", tokenIdOrSerialNum, transferDataResponse.TokenId)
 	}
 	if transferDataResponse.NativeAsset != tokenID {
 		t.Fatalf("Native Token mismatch: Expected [%s], but was [%s]", tokenId.String(), transferDataResponse.NativeAsset)
@@ -125,29 +91,4 @@ func getFungibleTransferData(t *testing.T, validatorClient *e2eClients.Validator
 	}
 
 	return nil, fmt.Errorf("fungible transaction data [%s] not found after %d retries", transactionID, current)
-}
-
-func getNonFungibleTransferData(t *testing.T, validatorClient *e2eClients.Validator, transactionID string) (*service.NonFungibleTransferData, error) {
-	current := 0
-
-	for current < validatorClient.WebRetryCount {
-		current++
-
-		bytes, err := validatorClient.GetTransferData(transactionID)
-		if err != nil {
-			return nil, err
-		}
-
-		var transferDataResponse *service.NonFungibleTransferData
-		err = json.Unmarshal(bytes, &transferDataResponse)
-
-		if len(transferDataResponse.Signatures) == validatorClient.ExpectedValidatorsCount {
-			return transferDataResponse, err
-		}
-
-		time.Sleep(validatorClient.WebRetryTimeout * time.Second)
-		t.Logf("Get non-fungible data [%s] retry %d", transactionID, current)
-	}
-
-	return nil, fmt.Errorf("non-fungible transaction data [%s] not found after %d retries", transactionID, current)
 }

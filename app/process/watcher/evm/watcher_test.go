@@ -70,7 +70,6 @@ var (
 	lockHash       = common.HexToHash("aa3a3bc72b8c754ca6ee8425a5531bafec37569ec012d62d5f682ca909ae06f1")
 	unlockHash     = common.HexToHash("483dd9d090112259cd3c44a9af4b3386be4b4b87145e6bf85bc0964a06062a73")
 	membersHash    = common.HexToHash("30f1d11f11278ba2cc669fd4c95ee8d46ede2c82f6af0b74e4f427369b3522d3")
-	burnERC721Hash = common.HexToHash("eb703661daf51ce0c247ebbf71a8747e6a79f36b2e93a4e5a22f191321e5750e")
 	topics         = [][]common.Hash{
 		{
 			mintHash,
@@ -78,7 +77,6 @@ var (
 			lockHash,
 			unlockHash,
 			membersHash,
-			burnERC721Hash,
 		},
 	}
 	filterConfig = FilterConfig{
@@ -500,7 +498,6 @@ func TestNewWatcher(t *testing.T) {
 	burnHashFromAbi := abi.Events["Burn"].ID
 	lockHashFromAbi := abi.Events["Lock"].ID
 	unlockHashFromAbi := abi.Events["Unlock"].ID
-	burnERC721HashAbi := abi.Events["BurnERC721"].ID
 	memberUpdatedHash := abi.Events["MemberUpdated"].ID
 
 	addresses := []common.Address{
@@ -515,7 +512,6 @@ func TestNewWatcher(t *testing.T) {
 		burnHash:          burnHashFromAbi,
 		lockHash:          lockHashFromAbi,
 		unlockHash:        unlockHashFromAbi,
-		burnERC721Hash:    burnERC721HashAbi,
 		memberUpdatedHash: memberUpdatedHash,
 		maxLogsBlocks:     220,
 	}
