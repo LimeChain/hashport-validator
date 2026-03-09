@@ -161,10 +161,10 @@ func (pw *Watcher) beginWatching() {
 
 func (pw *Watcher) registerAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	pw.registerAssetMetrics(fungibleAssets, true)
+	pw.registerAssetMetrics(fungibleAssets)
 }
 
-func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
+func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 
@@ -176,7 +176,6 @@ func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible b
 					assetAddress,
 					constants.BalanceAssetMetricNameSuffix,
 					constants.BalanceAssetMetricHelpPrefix,
-					isFungible,
 				)
 
 				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
@@ -188,7 +187,6 @@ func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible b
 						wrappedAssetAddress,
 						constants.SupplyAssetMetricNameSuffix,
 						constants.SupplyAssetMetricsHelpPrefix,
-						isFungible,
 					)
 				}
 			}
@@ -202,29 +200,20 @@ func (pw *Watcher) registerAssetMetric(
 	assetAddress string,
 	metricNameCnt string,
 	metricHelpCnt string,
-	isFungible bool,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		var (
-			name, symbol string
-		)
-		if isFungible {
-			assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
-			if !exist {
-				return
-			}
-			name = assetInfo.Name
-			symbol = assetInfo.Symbol
+		assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
+		if !exist {
+			return
 		}
 
 		metricName, metricHelp := getMetricData(
 			nativeNetworkId,
 			wrappedNetworkId,
 			assetAddress,
-			name,
+			assetInfo.Name,
 			metricNameCnt,
 			metricHelpCnt,
-			isFungible,
 		)
 
 		if pw.assetsMetrics[wrappedNetworkId] == nil {
@@ -236,7 +225,7 @@ func (pw *Watcher) registerAssetMetric(
 			Name: metricName,
 			Help: metricHelp,
 			ConstLabels: prometheus.Labels{
-				constants.AssetMetricLabelKey: symbol,
+				constants.AssetMetricLabelKey: assetInfo.Symbol,
 			},
 		})
 	}
@@ -249,7 +238,6 @@ func getMetricData(
 	assetName string,
 	metricNameSuffix string,
 	metricsHelpPrefix string,
-	isFungible bool,
 ) (string, string) {
 
 	nativeNetworkName := constants.NetworksById[nativeNetworkId]
@@ -260,12 +248,10 @@ func getMetricData(
 		assetType = constants.Native
 	}
 
-	fungleAddon := constants.FungibleAddon
-
 	name := fmt.Sprintf("%s_%s_%s_%s%s%s",
 		assetType,
 		nativeNetworkName,
-		fungleAddon,
+		constants.FungibleAddon,
 		wrappedNetworkName,
 		metricNameSuffix,
 		metrics.AssetAddressToMetricName(assetAddress))
@@ -325,24 +311,23 @@ func (pw *Watcher) getAccountBalance(account *account.AccountsResponse) float64 
 
 func (pw *Watcher) setAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	pw.setAssetsMetrics(fungibleAssets, true)
+	pw.setAssetsMetrics(fungibleAssets)
 }
 
-func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) {
+func (pw Watcher) setAssetsMetrics(assets map[uint64][]string) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 			if assetAddress == constants.Hbar { // skip HBAR
 				continue
 			}
 			isNative := pw.assetsService.IsNative(networkId, assetAddress)
-			pw.prepareAndSetAssetMetric(networkId, assetAddress, isFungible, isNative)
+			pw.prepareAndSetAssetMetric(networkId, assetAddress, isNative)
 		}
 	}
 }
 
 func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
-	isFungible,
 	isNative bool,
 ) {
 	var value float64
@@ -351,12 +336,10 @@ func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 		ReserveAmountInLowestDenomination *big.Int
 		decimals                          uint8
 	)
-	if isFungible {
-		assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetAddress)
-		if ok {
-			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
-			decimals = assetInfo.Decimals
-		}
+	assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetAddress)
+	if ok {
+		ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
+		decimals = assetInfo.Decimals
 	}
 
 	if decimals != 0 {
