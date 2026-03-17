@@ -138,7 +138,7 @@ func newSetup(config Config) (*Setup, error) {
 		return nil, err
 	}
 
-	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.WToken)
+	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.HederaNativeToken)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func newClients(config Config) (*clients, error) {
 			Signer:                  signer,
 			Receiver:                common.HexToAddress(signer.Address()),
 			RouterAddress:           routerContractAddress,
-			WTokenContractAddress:   config.Tokens.WToken,
+			HederaNativeTokenID:     config.Tokens.HederaNativeToken,
 			EVMFungibleTokenClients: make(map[string]client.EvmFungibleToken),
 		}
 	}
