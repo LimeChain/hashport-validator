@@ -25,8 +25,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/e2e/helper/verify"
 	evmSetup "github.com/limechain/hedera-eth-bridge-validator/e2e/setup/evm"
 
-	"github.com/shopspring/decimal"
-
 	"github.com/ethereum/go-ethereum/common"
 	hederaSDK "github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/clients/evm"
@@ -76,21 +74,17 @@ func Load() *Setup {
 			DbValidationProps: make([]config.Database, len(e2eConfig.Hedera.DbValidationProps)),
 			MirrorNode:        *new(config.MirrorNode).DefaultOrConfig(&e2eConfig.Hedera.MirrorNode),
 		},
-		EVM:             make(map[uint64]config.Evm),
-		Tokens:          e2eConfig.Tokens,
-		ValidatorUrl:    e2eConfig.ValidatorUrl,
-		Bridge:          e2eConfig.Bridge,
-		FeePercentages:  map[string]int64{},
-		NftConstantFees: map[string]int64{},
-		NftDynamicFees:  map[string]decimal.Decimal{},
-		Scenario:        e2eConfig.Scenario,
+		EVM:            make(map[uint64]config.Evm),
+		Tokens:         e2eConfig.Tokens,
+		ValidatorUrl:   e2eConfig.ValidatorUrl,
+		Bridge:         e2eConfig.Bridge,
+		FeePercentages: map[string]int64{},
+		Scenario:       e2eConfig.Scenario,
 	}
 
 	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
 		feeInfo := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
 		configuration.FeePercentages = feeInfo.FungiblePercentages
-		configuration.NftConstantFees = feeInfo.ConstantNftFees
-		configuration.NftDynamicFees = feeInfo.DynamicNftFees
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
@@ -106,29 +100,25 @@ func Load() *Setup {
 		panic(err)
 	}
 
-	routerClients, evmFungibleTokenClients, evmNftClients := evmSetup.RouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
-	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients, evmNftClients)
+	routerClients, evmFungibleTokenClients := evmSetup.RouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients)
 
 	return setup
 }
 
 // Setup used by the e2e tests. Preloaded with all necessary dependencies
 type Setup struct {
-	BridgeAccount   hederaSDK.AccountID
-	PayerAccount    hederaSDK.AccountID
-	TopicID         hederaSDK.TopicID
-	TokenID         hederaSDK.TokenID
-	NativeEvmToken  string
-	NftTokenID      hederaSDK.TokenID
-	NftSerialNumber int64
-	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]decimal.Decimal
-	FeePercentages  map[string]int64
-	Members         []hederaSDK.AccountID
-	Clients         *clients
-	DbValidator     *verify.Service
-	AssetMappings   service.Assets
-	Scenario        *ScenarioConfig
+	BridgeAccount  hederaSDK.AccountID
+	PayerAccount   hederaSDK.AccountID
+	TopicID        hederaSDK.TopicID
+	TokenID        hederaSDK.TokenID
+	NativeEvmToken string
+	FeePercentages map[string]int64
+	Members        []hederaSDK.AccountID
+	Clients        *clients
+	DbValidator    *verify.Service
+	AssetMappings  service.Assets
+	Scenario       *ScenarioConfig
 }
 
 // newSetup instantiates new Setup struct
@@ -149,11 +139,6 @@ func newSetup(config Config) (*Setup, error) {
 	}
 
 	tokenID, err := hederaSDK.TokenIDFromString(config.Tokens.WToken)
-	if err != nil {
-		return nil, err
-	}
-
-	nftTokenID, err := hederaSDK.TokenIDFromString(config.Tokens.NftToken)
 	if err != nil {
 		return nil, err
 	}
@@ -197,21 +182,17 @@ func newSetup(config Config) (*Setup, error) {
 	dbValidator.ExpectedValidatorsCount = scenario.ExpectedValidatorsCount
 
 	return &Setup{
-		BridgeAccount:   bridgeAccount,
-		PayerAccount:    payerAccount,
-		TopicID:         topicID,
-		TokenID:         tokenID,
-		NftTokenID:      nftTokenID,
-		NftSerialNumber: config.Tokens.NftSerialNumber,
-		NativeEvmToken:  config.Tokens.EvmNativeToken,
-		NftConstantFees: config.NftConstantFees,
-		NftDynamicFees:  config.NftDynamicFees,
-		FeePercentages:  config.FeePercentages,
-		Members:         members,
-		Clients:         clients,
-		DbValidator:     dbValidator,
-		AssetMappings:   config.AssetMappings,
-		Scenario:        scenario,
+		BridgeAccount:  bridgeAccount,
+		PayerAccount:   payerAccount,
+		TopicID:        topicID,
+		TokenID:        tokenID,
+		NativeEvmToken: config.Tokens.EvmNativeToken,
+		FeePercentages: config.FeePercentages,
+		Members:        members,
+		Clients:        clients,
+		DbValidator:    dbValidator,
+		AssetMappings:  config.AssetMappings,
+		Scenario:       scenario,
 	}, nil
 }
 
@@ -270,9 +251,8 @@ func newClients(config Config) (*clients, error) {
 			Signer:                  signer,
 			Receiver:                common.HexToAddress(signer.Address()),
 			RouterAddress:           routerContractAddress,
-			WTokenContractAddress:   config.Tokens.WToken,
+			WToken:                  config.Tokens.WToken,
 			EVMFungibleTokenClients: make(map[string]client.EvmFungibleToken),
-			EVMNftClients:           make(map[string]client.EvmNft),
 		}
 	}
 
@@ -280,13 +260,6 @@ func newClients(config Config) (*clients, error) {
 	for networkId := range config.EVM {
 		for tokenAddress, tokenClient := range evmFungibleTokenClients[networkId] {
 			EVM[networkId].EVMFungibleTokenClients[tokenAddress] = tokenClient
-		}
-	}
-
-	evmNftClients := bootstrap.InitEvmNftClients(config.Bridge.Networks, evmClients)
-	for networkId := range config.EVM {
-		for tokenAddress, tokenClient := range evmNftClients[networkId] {
-			EVM[networkId].EVMNftClients[tokenAddress] = tokenClient
 		}
 	}
 
@@ -391,16 +364,14 @@ func initHederaClient(sender Sender, networkType string) (*hederaSDK.Client, err
 
 // Config used to load and parse from application.yml
 type Config struct {
-	Hedera          Hedera
-	EVM             map[uint64]config.Evm
-	Tokens          e2eParser.Tokens
-	ValidatorUrl    string
-	Bridge          parser.Bridge
-	AssetMappings   service.Assets
-	FeePercentages  map[string]int64
-	NftConstantFees map[string]int64
-	NftDynamicFees  map[string]decimal.Decimal
-	Scenario        e2eParser.ScenarioParser
+	Hedera         Hedera
+	EVM            map[uint64]config.Evm
+	Tokens         e2eParser.Tokens
+	ValidatorUrl   string
+	Bridge         parser.Bridge
+	AssetMappings  service.Assets
+	FeePercentages map[string]int64
+	Scenario       e2eParser.ScenarioParser
 }
 
 // Hedera props from the application.yml

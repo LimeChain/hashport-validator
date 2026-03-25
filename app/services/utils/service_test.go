@@ -40,7 +40,6 @@ var (
 	svc              *utilsService
 	lockHash         common.Hash
 	burnHash         common.Hash
-	burnErc721       common.Hash
 	someHash         common.Hash
 	evmTx            = "0xa83be7d95c58f57e11f5c27dedd963217d47bdeab897bc98f2f5410d9f6c0026"
 	evmTxHash        = common.HexToHash(evmTx)
@@ -85,7 +84,6 @@ func setup() {
 	routerAbi, _ := abi.JSON(strings.NewReader(router.RouterABI))
 	burnHash = routerAbi.Events["Burn"].ID
 	lockHash = routerAbi.Events["Lock"].ID
-	burnErc721 = routerAbi.Events["BurnERC721"].ID
 
 	svc = &utilsService{
 		evmClients: map[uint64]client.EVM{
@@ -93,7 +91,6 @@ func setup() {
 		},
 		burnEvt:        mocks.MBurnService,
 		burnHash:       burnHash,
-		burnErc721Hash: burnErc721,
 		lockHash:       lockHash,
 		log:            config.GetLoggerFor("Utils Service"),
 	}
@@ -126,18 +123,6 @@ func Test_ConvertEvmHashToBridgeTxId_LockEvent(t *testing.T) {
 func Test_ConvertEvmHashToBridgeTxId_BurnEvent(t *testing.T) {
 	setup()
 	mockReceipt.Logs[3].Topics[0] = burnHash
-	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
-	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
-
-	actual, err := svc.ConvertEvmHashToBridgeTxId(evmTx, 80001)
-
-	assert.Nil(t, err)
-	assert.Equal(t, expectedResult, actual)
-}
-
-func Test_ConvertEvmHashToBridgeTxId_BurnErc721Event(t *testing.T) {
-	setup()
-	mockReceipt.Logs[3].Topics[0] = burnErc721
 	mocks.MEVMClient.On("WaitForTransactionReceipt", evmTxHash).Return(mockReceipt, nil)
 	mocks.MBurnService.On("TransactionID", fmt.Sprintf("%s-4", evmTx)).Return(expectedBridgeTx, nil)
 

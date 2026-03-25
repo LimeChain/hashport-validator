@@ -37,9 +37,6 @@ type Transfer struct {
 	Amount        string
 	Fee           string
 	Status        string
-	SerialNumber  int64
-	Metadata      string
-	IsNft         bool     `gorm:"default:false"`
 	Timestamp     NanoTime `sql:"type:bigint" gorm:"index:,sort:desc"`
 	Originator    string
 	Messages      []Message  `gorm:"foreignKey:TransferID"`
@@ -58,9 +55,6 @@ func (t *Transfer) ToDto() *transferModel.Transfer {
 		NativeAsset:   t.NativeAsset,
 		Receiver:      t.Receiver,
 		Amount:        t.Amount,
-		SerialNum:     t.SerialNumber,
-		Metadata:      t.Metadata,
-		IsNft:         t.IsNft,
 		Originator:    t.Originator,
 		Timestamp:     t.Timestamp.Time,
 		Fee:           t.Fee,

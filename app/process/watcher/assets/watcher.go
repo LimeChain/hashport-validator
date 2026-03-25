@@ -40,7 +40,6 @@ var (
 type Watcher struct {
 	mirrorNode                 client.MirrorNode
 	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
-	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
 	bridgeCfg                  *config.Bridge
 	assetsService              service.Assets
 	paused                     bool
@@ -51,14 +50,12 @@ func NewWatcher(
 	mirrorNode client.MirrorNode,
 	bridgeCfg *config.Bridge,
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
 
 	instance := &Watcher{
 		mirrorNode:                 mirrorNode,
 		evmFungibleTokenClients:    EvmFungibleTokenClients,
-		evmNonFungibleTokenClients: EvmNonFungibleTokenClients,
 		bridgeCfg:                  bridgeCfg,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Assets Watcher on interval [%v]", sleepTime)),
 		assetsService:              assetsService,
@@ -98,16 +95,14 @@ func (pw *Watcher) watchIteration() {
 
 	hederaTokenBalances := bridgeAccount.Balance.GetAccountTokenBalancesByAddress()
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
-	pw.updateAssetInfos(hederaTokenBalances, fungibleAssets, true)
-	pw.updateAssetInfos(hederaTokenBalances, nonFungibleAssets, false)
+	pw.updateAssetInfos(hederaTokenBalances, fungibleAssets)
 }
 
-func (pw *Watcher) updateAssetInfos(hederaTokenBalances map[string]int, assets map[uint64][]string, isFungible bool) {
+func (pw *Watcher) updateAssetInfos(hederaTokenBalances map[string]int, assets map[uint64][]string) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 			IsNative := pw.assetsService.IsNative(networkId, assetAddress)
-			pw.updateAssetInfo(networkId, assetAddress, hederaTokenBalances, isFungible, IsNative)
+			pw.updateAssetInfo(networkId, assetAddress, hederaTokenBalances, IsNative)
 		}
 	}
 }
@@ -121,32 +116,22 @@ func (pw *Watcher) getAccount(accountId string) (*account.AccountsResponse, erro
 	return account, nil
 }
 
-func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaTokenBalances map[string]int, isFungible bool, isNative bool) {
+func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaTokenBalances map[string]int, isNative bool) {
 	var (
 		reserveAmount *big.Int
+		err           error
 	)
 
-	var err error
 	if networkId == constants.HederaNetworkId {
 		reserveAmount, err = pw.assetsService.FetchHederaTokenReserveAmount(assetId, pw.mirrorNode, isNative, hederaTokenBalances)
 	} else {
-		if isFungible { // Fungible
-			reserveAmount, err = pw.assetsService.FetchEvmFungibleReserveAmount(
-				networkId,
-				assetId,
-				isNative,
-				pw.evmFungibleTokenClients[networkId][assetId],
-				pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
-			)
-		} else { // Non-Fungible
-			reserveAmount, err = pw.assetsService.FetchEvmNonFungibleReserveAmount(
-				networkId,
-				assetId,
-				isNative,
-				pw.evmNonFungibleTokenClients[networkId][assetId],
-				pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
-			)
-		}
+		reserveAmount, err = pw.assetsService.FetchEvmFungibleReserveAmount(
+			networkId,
+			assetId,
+			isNative,
+			pw.evmFungibleTokenClients[networkId][assetId],
+			pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
+		)
 	}
 
 	if err != nil {
@@ -154,16 +139,9 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 		return
 	}
 
-	if isFungible {
-		assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetId)
-		if ok {
-			assetInfo.ReserveAmount = reserveAmount
-		}
-	} else {
-		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetId)
-		if ok {
-			assetInfo.ReserveAmount = reserveAmount
-		}
+	assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetId)
+	if ok {
+		assetInfo.ReserveAmount = reserveAmount
 	}
 }
 
@@ -175,7 +153,6 @@ func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
 		return errors.New(errMsg)
 	}
 	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
-	instance.evmNonFungibleTokenClients = params.EvmNFTClients
 	instance.bridgeCfg = params.Bridge
 	instance.watchIteration()
 

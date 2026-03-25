@@ -17,7 +17,6 @@
 package service
 
 import (
-	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/transfer"
 )
 
@@ -30,10 +29,4 @@ type Scheduled interface {
 	ExecuteScheduledMintTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
 	// ExecuteScheduledBurnTransaction submits a scheduled burn transaction and executes provided functions when necessary
 	ExecuteScheduledBurnTransaction(id, asset string, amount int64, status *chan string, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
-	// ExecuteScheduledNftTransferTransaction submits a scheduled nft transfer transaction and executes provided functions when necessary
-	ExecuteScheduledNftTransferTransaction(id string, nftID hedera.NftID, sender hedera.AccountID, receiving hedera.AccountID, approved bool, onExecutionSuccess func(transactionID, scheduleID string), onExecutionFail, onSuccess, onFail func(transactionID string))
-	// ExecuteScheduledNftAllowTransaction submits a scheduled NFT allow transaction and executes provided functions when necessary
-	ExecuteScheduledNftAllowTransaction(
-		id string, nftID hedera.NftID, owner hedera.AccountID, spender hedera.AccountID,
-		onExecutionSuccess func(txId, scheduleId string), onExecutionFail, onSuccess, onFail func(txId string))
 }

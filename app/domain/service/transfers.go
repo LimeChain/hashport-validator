@@ -34,9 +34,6 @@ type Transfers interface {
 	// ProcessNativeTransfer processes the native fungible transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessNativeTransfer(tm payload.Transfer) error
-	// ProcessNativeNftTransfer processes the native nft transfer message by signing the required
-	// authorisation signature submitting it into the required HCS Topic
-	ProcessNativeNftTransfer(tm payload.Transfer) error
 	// ProcessWrappedTransfer processes the wrapped transfer message by signing the required
 	// authorisation signature submitting it into the required HCS Topic
 	ProcessWrappedTransfer(tm payload.Transfer) error
@@ -50,7 +47,6 @@ type Transfers interface {
 }
 
 type TransferData struct {
-	IsNft         bool     `json:"isNft"`
 	Recipient     string   `json:"recipient"`
 	RouterAddress string   `json:"routerAddress"`
 	SourceChainId uint64   `json:"sourceChainId"`
@@ -60,12 +56,6 @@ type TransferData struct {
 	TargetAsset   string   `json:"wrappedAsset"`
 	Signatures    []string `json:"signatures"`
 	Majority      bool     `json:"majority"`
-}
-
-type NonFungibleTransferData struct {
-	TransferData
-	TokenId  int64  `json:"tokenId"`
-	Metadata string `json:"metadata"`
 }
 
 type FungibleTransferData struct {

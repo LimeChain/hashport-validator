@@ -34,7 +34,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/client"
 	"github.com/limechain/hedera-eth-bridge-validator/scripts/token/associate"
 	nativeFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/create"
-	nativeNftCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/native/nft/create"
 	wrappedFungibleCreate "github.com/limechain/hedera-eth-bridge-validator/scripts/token/wrapped/create"
 	"gopkg.in/yaml.v2"
 )
@@ -240,33 +239,6 @@ func createAndAssociateNativeTokens(networkInfo *parser.NetworkForDeploy, client
 		if err == nil {
 			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Fungible, tokenAddress)
 			ExtendedBridge.Networks[hederaNetworkId].Tokens.Fungible[tokenId.String()] = tokenInfo
-		}
-	}
-
-	for tokenAddress, tokenInfo := range networkInfo.Tokens.Nft {
-		fmt.Printf("Creating Hedera Native Non-Fungible Token based on info of token with address [%s] ...\n", tokenAddress)
-		tokenId, err := nativeNftCreate.Nft(
-			client,
-			client.GetOperatorPublicKey(),
-			client.GetOperatorAccountID(),
-			tokenInfo.Name,
-			tokenInfo.Symbol,
-			client.GetOperatorPublicKey(),
-			true,
-		)
-		if err != nil {
-			fmt.Printf("[ERROR] Failed to Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s]. Error: [%s]\n", tokenId.String(), tokenAddress, err)
-			continue
-		}
-		fmt.Printf("Successfully Created Hedera Native Non-Fungible Token with address [%s] based on info of token [%s] ...\n", tokenId.String(), tokenAddress)
-
-		errBridge := associateToken(tokenId, client, *bridgeDeployResult.BridgeAccountID, "Bridge", bridgeDeployResult.MembersPrivateKeys)
-		errPayer := associateToken(tokenId, client, *bridgeDeployResult.PayerAccountID, "Payer", bridgeDeployResult.MembersPrivateKeys)
-		errMembersAcc := associateMembersToToken(client, *tokenId, bridgeDeployResult.MembersAccountIDs, bridgeDeployResult.MembersPrivateKeys)
-
-		if errBridge == nil && errPayer == nil && errMembersAcc == nil {
-			delete(ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft, tokenAddress)
-			ExtendedBridge.Networks[hederaNetworkId].Tokens.Nft[tokenId.String()] = tokenInfo
 		}
 	}
 }

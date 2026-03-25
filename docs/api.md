@@ -50,20 +50,6 @@ Example:
     }
     ```
 
-- `GET /fees/nft`: Returns the fees for porting/burning NFT assets grouped by network. Ex:
-- ```json
-  {
-    "295": {
-      "tokenId or address": {
-        "isNative": true,
-        "paymentToken": "HBAR or address of the payment token",
-        "fee": "fee amount"
-      }
-    },
-  ...
-  }
-  ```
-
 - `POST /transfer-reset`: Updates the stuck transfers to `COMPLETE` and `user_get_his_token` to 1
 - ```bash
   curl --location --request POST 'http://localhost:9200/api/v1/transfer-reset' \

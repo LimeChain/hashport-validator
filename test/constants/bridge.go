@@ -20,10 +20,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/limechain/hedera-eth-bridge-validator/app/clients/hedera/mirror-node/model/token"
-
-	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
-
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	constants "github.com/limechain/hedera-eth-bridge-validator/constants"
@@ -43,7 +39,6 @@ var (
 	ReserveAmount                 = int64(100)
 	ReserveAmountStr              = strconv.FormatInt(ReserveAmount, 10)
 	ReserveAmountBigInt           = big.NewInt(ReserveAmount)
-	ReserveAmountWrappedNFTBigInt = big.NewInt(0)
 
 	////////////////////////
 	// Network 0 (Hedera) //
@@ -66,53 +61,6 @@ var (
 		Decimals:      constants.HederaDefaultDecimals,
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
-	}
-
-	// Non-Fungible
-
-	NetworkHederaNonFungibleNativeToken = "0.0.111122"
-	NetworkHederaNonFungibleNativeAsset = &asset.NativeAsset{
-		ChainId: constants.HederaNetworkId,
-		Asset:   NetworkHederaNonFungibleNativeToken,
-	}
-	NetworkHederaNFTRoyaltyFeeForToken = asset.RoyaltyFee{
-		Amount: token.Fraction{
-			Numerator:   100,
-			Denominator: 100,
-		},
-		FallbackFee: asset.FixedFee{
-			Amount:              10,
-			DenominatingTokenId: &NetworkHederaFungibleNativeToken,
-		},
-		CollectorAccountID: "",
-	}
-	NetworkHederaNFTRoyaltyFeeHbarFallback = asset.RoyaltyFee{
-		Amount: token.Fraction{
-			Numerator:   100,
-			Denominator: 100,
-		},
-		FallbackFee: asset.FixedFee{
-			Amount:              100,
-			DenominatingTokenId: nil,
-		},
-		CollectorAccountID: "",
-	}
-	NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
-		Name:          NetworkHederaNonFungibleNativeToken,
-		Symbol:        NetworkHederaNonFungibleNativeToken,
-		IsNative:      true,
-		ReserveAmount: ReserveAmountBigInt,
-		CustomFees: asset.CustomFees{
-			CreatedTimestamp: "",
-			RoyaltyFees: []asset.RoyaltyFee{
-				NetworkHederaNFTRoyaltyFeeForToken,
-				NetworkHederaNFTRoyaltyFeeHbarFallback,
-			},
-		},
-		CustomFeeTotalAmounts: asset.CustomFeeTotalAmounts{
-			FallbackFeeAmountInHbar:     100,
-			FallbackFeeAmountsByTokenId: map[string]int64{NetworkHederaFungibleNativeToken: NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount},
-		},
 	}
 
 	// Wrapped Tokens //
@@ -151,10 +99,6 @@ var (
 		IsNative:      true,
 		ReserveAmount: ReserveAmountBigInt,
 	}
-
-	// Non-Fungible
-
-	NetworkEthereumNFTWrappedTokenForNetworkHedera = "0x0000000000000000000000000000000000009999"
 
 	// Wrapped Tokens //
 
@@ -220,15 +164,6 @@ var (
 		ReserveAmount: ReserveAmountBigInt,
 	}
 
-	// Non-Fungible
-
-	NetworkPolygonWrappedNonFungibleTokenForHedera                     = "0x0000000000000000000000000000000011111122"
-	NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo = &asset.NonFungibleAssetInfo{
-		Name:          NetworkPolygonWrappedNonFungibleTokenForHedera,
-		Symbol:        NetworkPolygonWrappedNonFungibleTokenForHedera,
-		ReserveAmount: ReserveAmountWrappedNFTBigInt,
-	}
-
 	Networks = map[uint64]*parser.Network{
 		constants.HederaNetworkId: {
 			Name:          "Hedera",
@@ -247,11 +182,6 @@ var (
 						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
-				Nft: map[string]parser.Token{
-					NetworkHederaNonFungibleNativeToken: {
-						Networks: map[uint64]string{PolygonNetworkId: NetworkPolygonWrappedNonFungibleTokenForHedera},
-					},
-				},
 			},
 		},
 		EthereumNetworkId: {
@@ -268,7 +198,6 @@ var (
 						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
-				Nft: nil,
 			},
 		},
 		PolygonNetworkId: {
@@ -284,7 +213,6 @@ var (
 						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
 					},
 				},
-				Nft: nil,
 			},
 		},
 	}
@@ -294,9 +222,6 @@ var (
 			NetworkHederaFungibleNativeToken: {
 				PolygonNetworkId:  NetworkPolygonFungibleWrappedTokenForNetworkHedera,
 				EthereumNetworkId: NetworkEthereumFungibleWrappedTokenForNetworkHedera,
-			},
-			NetworkHederaNonFungibleNativeToken: {
-				PolygonNetworkId: NetworkPolygonWrappedNonFungibleTokenForHedera,
 			},
 		},
 		EthereumNetworkId: {
@@ -323,7 +248,6 @@ var (
 		PolygonNetworkId: {
 			NetworkPolygonFungibleWrappedTokenForNetworkHedera:   NetworkHederaFungibleNativeAsset,
 			NetworkPolygonFungibleWrappedTokenForNetworkEthereum: NetworkEthereumFungibleNativeAsset,
-			NetworkPolygonWrappedNonFungibleTokenForHedera:       NetworkHederaNonFungibleNativeAsset,
 		},
 	}
 
@@ -364,65 +288,10 @@ var (
 		},
 	}
 
-	// Non-Fungible Assets //
-
-	NonFungibleNetworkAssets = map[uint64][]string{
-		constants.HederaNetworkId: {NetworkHederaNonFungibleNativeToken},
-		PolygonNetworkId:          {NetworkPolygonWrappedNonFungibleTokenForHedera},
-	}
-
-	NonFungibleAssetInfos = map[uint64]map[string]*asset.NonFungibleAssetInfo{
-		constants.HederaNetworkId: {
-			NetworkHederaNonFungibleNativeToken: NetworkHederaNonFungibleNativeTokenNonFungibleAssetInfo,
-		},
-		PolygonNetworkId: {
-			NetworkPolygonWrappedNonFungibleTokenForHedera: NetworkPolygonWrappedNonFungibleTokenForHederaNonFungibleAssetInfo,
-		},
-	}
-
 	ParserBridge = parser.Bridge{
 		UseLocalConfig:    true,
 		TopicId:           TopicId,
 		Networks:          Networks,
 		MonitoredAccounts: make(map[string]string),
-	}
-
-	HederaNftFees = map[string]int64{
-		NetworkHederaNonFungibleNativeToken: 1000,
-	}
-
-	HederaNftDynamicFees = map[string]decimal.Decimal{
-		NetworkHederaNonFungibleNativeToken: decimal.NewFromInt(2000),
-	}
-
-	PaymentTokens = map[uint64]string{
-		PolygonNetworkId: "0x0000000000000000000000000000000000006655",
-	}
-
-	NftFeesForApi = map[uint64]map[string]pricing.NonFungibleFee{
-		constants.HederaNetworkId: {
-			NetworkHederaNonFungibleNativeToken: pricing.NonFungibleFee{
-				IsNative:     true,
-				PaymentToken: constants.Hbar,
-				Fee:          decimal.NewFromInt(HederaNftFees[NetworkHederaNonFungibleNativeToken]),
-				CustomFees: []pricing.CustomFee{
-					{
-						PaymentToken: constants.Hbar,
-						Fee:          decimal.NewFromInt(NetworkHederaNFTRoyaltyFeeHbarFallback.FallbackFee.Amount),
-					},
-					{
-						PaymentToken: NetworkHederaFungibleNativeToken,
-						Fee:          decimal.NewFromInt(NetworkHederaNFTRoyaltyFeeForToken.FallbackFee.Amount),
-					},
-				},
-			},
-		},
-		PolygonNetworkId: {
-			NetworkPolygonWrappedNonFungibleTokenForHedera: pricing.NonFungibleFee{
-				IsNative:     false,
-				PaymentToken: PaymentTokens[PolygonNetworkId],
-				Fee:          decimal.NewFromBigInt(big.NewInt(10000000000), 0),
-			},
-		},
 	}
 )

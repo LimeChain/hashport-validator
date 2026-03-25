@@ -30,11 +30,6 @@ type MockHederaMirror struct {
 	mock.Mock
 }
 
-func (m *MockHederaMirror) GetNft(tokenID string, serialNum int64) (*transaction.Nft, error) {
-	args := m.Called(tokenID, serialNum)
-	return args.Get(0).(*transaction.Nft), args.Error(1)
-}
-
 func (m *MockHederaMirror) GetAccountTokenMintTransactionsAfterTimestampString(accountId hedera.AccountID, from string) (*transaction.Response, error) {
 	args := m.Called(accountId, from)
 	return args.Get(0).(*transaction.Response), args.Error(1)
@@ -73,11 +68,6 @@ func (m *MockHederaMirror) GetSuccessfulTransaction(transactionID string) (trans
 		return args.Get(0).(transaction.Transaction), nil
 	}
 	return transaction.Transaction{}, args.Get(1).(error)
-}
-
-func (m *MockHederaMirror) GetNftTransactions(tokenID string, serialNum int64) (transaction.NftTransactionsResponse, error) {
-	args := m.Called(tokenID, serialNum)
-	return args.Get(0).(transaction.NftTransactionsResponse), args.Error(1)
 }
 
 func (m *MockHederaMirror) GetAccountTokenBurnTransactionsAfterTimestamp(accountId hedera.AccountID, from int64) (*transaction.Response, error) {

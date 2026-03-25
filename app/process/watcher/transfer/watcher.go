@@ -17,7 +17,6 @@
 package cryptotransfer
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -203,12 +202,6 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	}
 	targetChainId := checkResult.ChainId
 
-	if checkResult.NftId == nil {
-		ctw.initSuccessRatePrometheusMetrics(tx, constants.HederaNetworkId, targetChainId, sourceAsset)
-	} else {
-		sourceAsset = checkResult.NftId.TokenID.String()
-	}
-
 	nativeAsset := &asset.NativeAsset{
 		ChainId: constants.HederaNetworkId,
 		Asset:   sourceAsset,
@@ -230,29 +223,7 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 
 	var transferMessage *payload.Transfer
 	originator := hederaHelper.OriginatorFromTxId(tx.TransactionID)
-	if checkResult.NftId != nil {
-		nftAssetInfo, ok := ctw.assetsService.NonFungibleAssetInfo(constants.HederaNetworkId, sourceAsset)
-		if !ok {
-			ctw.logger.Errorf("[%s] - Failed to get asset info for NFT [%s] not found.", tx.TransactionID, sourceAsset)
-			return
-		}
-
-		feeSent, found := tx.GetHBARTransfer(ctw.accountID.String())
-		if !found {
-			ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
-			return
-		}
-
-		feeForValidators, ok := ctw.validateNFTFeeSent(sourceAsset, tx, originator, nftAssetInfo, feeSent)
-		if !ok {
-			return
-		}
-
-		transferMessage, err = ctw.createNonFungiblePayload(tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, checkResult.NftId.SerialNumber, targetChainId, targetChainAsset, feeForValidators)
-
-	} else {
-		transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, parsedTransfer.AmountOrSerialNum, targetChainId, targetChainAsset)
-	}
+	transferMessage, err = ctw.createFungiblePayload(tx.TransactionID, checkResult.EvmAddress, sourceAsset, *nativeAsset, parsedTransfer.Amount, targetChainId, targetChainAsset)
 
 	if err != nil {
 		ctw.logger.Errorf("[%s] - Failed to create payload. Error: [%s]", tx.TransactionID, err)
@@ -271,102 +242,20 @@ func (ctw Watcher) processTransaction(txID string, q qi.Queue) {
 	topic := ""
 	if ctw.validator && transactionTimestamp > ctw.targetTimestamp {
 		if nativeAsset.ChainId == constants.HederaNetworkId {
-			if checkResult.NftId != nil {
-				topic = constants.HederaNativeNftTransfer
-			} else {
-				topic = constants.HederaTransferMessageSubmission
-			}
+			topic = constants.HederaTransferMessageSubmission
 		} else {
-			if checkResult.NftId != nil {
-				ctw.logger.Errorf("[%s] - NFT Transfer not supported", tx.TransactionID)
-				return
-			}
 			topic = constants.HederaBurnMessageSubmission
 		}
 	} else {
 		transferMessage.NetworkTimestamp = tx.ConsensusTimestamp
 		if nativeAsset.ChainId == constants.HederaNetworkId {
-			if checkResult.NftId != nil {
-				topic = constants.ReadOnlyHederaNativeNftTransfer
-			} else {
-				topic = constants.ReadOnlyHederaFeeTransfer
-			}
+			topic = constants.ReadOnlyHederaFeeTransfer
 		} else {
-			if checkResult.NftId != nil {
-				ctw.logger.Errorf("[%s] - NFT Read-only Transfer not supported", tx.TransactionID)
-				return
-			}
 			topic = constants.ReadOnlyHederaBurn
 		}
 	}
 
 	q.Push(&queue.Message{Payload: transferMessage, Topic: topic})
-}
-
-func (ctw Watcher) validateNFTFeeSent(sourceAsset string, tx transaction.Transaction, originator string, nftAssetInfo *asset.NonFungibleAssetInfo, feeSent int64) (int64, bool) {
-	fee, feeIsFound := ctw.pricingService.GetHederaNftFee(sourceAsset)
-	if !feeIsFound {
-		ctw.logger.Errorf("[%s] - Fee for [%s] not found.", tx.TransactionID, sourceAsset)
-		return 0, false
-	}
-
-	prevFee, prevFeeFound := ctw.pricingService.GetHederaNftPrevFee(sourceAsset)
-
-	totalHbarFeeExpected := fee
-	totalHbarFeeExpectedWithPrev := prevFee
-
-	feeForValidators := feeSent
-	if originator != nftAssetInfo.TreasuryAccountId {
-		// Custom Fees are expected only for Non-Treasury Account ID
-		totalHbarFeeExpected += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
-		totalHbarFeeExpectedWithPrev += nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
-
-		// Validate that the required Custom fees by Token ID are sent
-		if len(nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId) > 0 {
-			if !ctw.validateNftTokenCustomFees(nftAssetInfo, tx, sourceAsset) {
-				return 0, false
-			}
-		}
-
-		feeForValidators = feeForValidators - nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountInHbar
-	}
-
-	// Validate that the HBAR fee is sent (including the Custom Fee in HBAR)
-	if feeSent < totalHbarFeeExpected {
-		ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, fee, feeSent)
-
-		if prevFeeFound && fee != prevFee {
-			ctw.logger.Infof("[%s] - Trying to validate NFT Fee for [%s] in HBARs with previous price.", tx.TransactionID, sourceAsset)
-			if feeSent < totalHbarFeeExpectedWithPrev {
-				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in HBARs with previous price. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, prevFee, feeSent)
-				return 0, false
-			}
-		} else {
-			return 0, false
-		}
-	}
-
-	return feeForValidators, true
-}
-
-func (ctw Watcher) validateNftTokenCustomFees(nftAssetInfo *asset.NonFungibleAssetInfo, tx transaction.Transaction, sourceAsset string) bool {
-	for tokenId := range nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId {
-		feeForToken := nftAssetInfo.CustomFeeTotalAmounts.FallbackFeeAmountsByTokenId[tokenId]
-		if feeForToken > 0 {
-			tokenFeeSent, ok := tx.GetTokenTransfer(ctw.accountID.String())
-			if !ok {
-				ctw.logger.Errorf("[%s] - Transfer to [%s] not found.", tx.TransactionID, ctw.accountID.String())
-				return false
-			}
-
-			if tokenFeeSent < feeForToken {
-				ctw.logger.Errorf("[%s] - Invalid provided NFT Fee for [%s] in token [%s]. It should be [%d], but was [%d].", tx.TransactionID, sourceAsset, tokenId, feeForToken, tokenFeeSent)
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, sourceAsset string, asset asset.NativeAsset, amount int64, targetChainId uint64, targetChainAsset string) (*payload.Transfer, error) {
@@ -411,40 +300,6 @@ func (ctw Watcher) createFungiblePayload(transactionID string, receiver string, 
 		targetChainAsset,
 		nativeAsset.Asset,
 		targetAmount.String()), nil
-}
-
-func (ctw Watcher) createNonFungiblePayload(
-	transactionID string,
-	receiver string,
-	sourceAsset string,
-	nativeAsset asset.NativeAsset,
-	serialNum int64,
-	targetChainId uint64,
-	targetChainAsset string,
-	fee int64) (*payload.Transfer, error) {
-
-	nftData, err := ctw.client.GetNft(sourceAsset, serialNum)
-	if err != nil {
-		return nil, err
-	}
-
-	decodedMetadata, e := base64.StdEncoding.DecodeString(nftData.Metadata)
-	if e != nil {
-		return nil, fmt.Errorf("[%s] - Failed to decode metadata [%s]. Error [%s]", transactionID, nftData.Metadata, e)
-	}
-
-	return payload.NewNft(
-		transactionID,
-		constants.HederaNetworkId,
-		targetChainId,
-		nativeAsset.ChainId,
-		receiver,
-		sourceAsset,
-		targetChainAsset,
-		nativeAsset.Asset,
-		serialNum,
-		string(decodedMetadata),
-		fee), nil
 }
 
 func (ctw Watcher) initSuccessRatePrometheusMetrics(tx transaction.Transaction, sourceChainId, targetChainId uint64, asset string) {

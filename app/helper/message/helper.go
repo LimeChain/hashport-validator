@@ -29,12 +29,3 @@ func UpdateHederaChainIdOfFungibleMsg(msg *model.TopicEthSignatureMessage) {
 		msg.TargetChainId = constants.HederaNetworkId
 	}
 }
-
-func UpdateHederaChainIdOfNftMsg(msg *model.TopicEthNftSignatureMessage) {
-	if msg.SourceChainId == constants.OldHederaNetworkId {
-		msg.SourceChainId = constants.HederaNetworkId
-	}
-	if msg.TargetChainId == constants.OldHederaNetworkId {
-		msg.TargetChainId = constants.HederaNetworkId
-	}
-}

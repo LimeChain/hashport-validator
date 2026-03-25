@@ -28,21 +28,10 @@ var (
 		SourceChainId: constants.OldHederaNetworkId,
 		TargetChainId: constants.OldHederaNetworkId,
 	}
-
-	nonFungibleSignatureMsg = &model.TopicEthNftSignatureMessage{
-		SourceChainId: constants.OldHederaNetworkId,
-		TargetChainId: constants.OldHederaNetworkId,
-	}
 )
 
 func Test_UpdateHederaChainIdOfFungibleMsg(t *testing.T) {
 	UpdateHederaChainIdOfFungibleMsg(fungibleSignatureMsg)
 	assert.Equal(t, fungibleSignatureMsg.SourceChainId, constants.HederaNetworkId)
 	assert.Equal(t, fungibleSignatureMsg.TargetChainId, constants.HederaNetworkId)
-}
-
-func Test_UpdateHederaChainIdOfNftMsg(t *testing.T) {
-	UpdateHederaChainIdOfNftMsg(nonFungibleSignatureMsg)
-	assert.Equal(t, nonFungibleSignatureMsg.SourceChainId, constants.HederaNetworkId)
-	assert.Equal(t, nonFungibleSignatureMsg.TargetChainId, constants.HederaNetworkId)
 }

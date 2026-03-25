@@ -16,9 +16,6 @@ const (
 	sourceAsset   = "0.0.123"
 	nativeAsset   = "0.0.123"
 	targetAsset   = "0xwrapped00123"
-	serialNum     = 0
-	metadata      = "42"
-	nftFee        = 10
 )
 
 func Test_New(t *testing.T) {
@@ -42,36 +39,4 @@ func Test_New(t *testing.T) {
 		sourceAsset,
 		amount)
 	assert.Equal(t, expectedTransfer, actualTransfer)
-}
-
-func Test_NewNft(t *testing.T) {
-	expected := &Transfer{
-		TransactionId:    txId,
-		SourceChainId:    sourceChainId,
-		TargetChainId:    targetChainId,
-		NativeChainId:    nativeChainId,
-		SourceAsset:      sourceAsset,
-		TargetAsset:      targetAsset,
-		NativeAsset:      nativeAsset,
-		Receiver:         receiver,
-		SerialNum:        serialNum,
-		Metadata:         metadata,
-		IsNft:            true,
-		Amount:           "",
-		NetworkTimestamp: "",
-		Fee:              nftFee,
-	}
-
-	actual := NewNft(txId,
-		sourceChainId,
-		targetChainId,
-		nativeChainId,
-		receiver,
-		sourceAsset,
-		targetAsset,
-		nativeAsset,
-		serialNum,
-		metadata,
-		nftFee)
-	assert.Equal(t, expected, actual)
 }

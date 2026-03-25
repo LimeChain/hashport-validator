@@ -41,7 +41,6 @@ func Test_assetsResponse(t *testing.T) {
 	enc := json.NewEncoder(buf)
 
 	mocks.MAssetsService.On("FungibleNetworkAssets").Return(testConstants.FungibleNetworkAssets)
-	mocks.MAssetsService.On("NonFungibleNetworkAssets").Return(testConstants.NonFungibleNetworkAssets)
 	for networkId, networkAssets := range testConstants.FungibleNetworkAssets {
 		for _, networkAsset := range networkAssets {
 			fungibleAssetInfo := testConstants.FungibleAssetInfos[networkId][networkAsset]
@@ -53,17 +52,6 @@ func Test_assetsResponse(t *testing.T) {
 				mocks.MAssetsService.On("FungibleNativeAsset", networkId, networkAsset).
 					Return(testConstants.FungibleNativeAssets[networkId][networkAsset], true)
 			} else {
-				mocks.MAssetsService.On("WrappedToNative", networkAsset, networkId).
-					Return(testConstants.WrappedToNative[networkId][networkAsset], true)
-			}
-		}
-	}
-	for networkId, networkAssets := range testConstants.NonFungibleNetworkAssets {
-		for _, networkAsset := range networkAssets {
-			nonFungibleAssetInfo := testConstants.NonFungibleAssetInfos[networkId][networkAsset]
-			mocks.MAssetsService.On("NonFungibleAssetInfo", networkId, networkAsset).
-				Return(nonFungibleAssetInfo, true)
-			if !nonFungibleAssetInfo.IsNative {
 				mocks.MAssetsService.On("WrappedToNative", networkAsset, networkId).
 					Return(testConstants.WrappedToNative[networkId][networkAsset], true)
 			}

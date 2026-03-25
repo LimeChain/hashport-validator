@@ -94,14 +94,8 @@ func (cmh Handler) Handle(payload interface{}) {
 	case *proto.TopicMessage_FungibleSignatureMessage:
 		msgHelper.UpdateHederaChainIdOfFungibleMsg(msg.FungibleSignatureMessage)
 		cmh.handleFungibleSignatureMessage(msg.FungibleSignatureMessage, m.TransactionTimestamp)
-		break
-	case *proto.TopicMessage_NftSignatureMessage:
-		msgHelper.UpdateHederaChainIdOfNftMsg(msg.NftSignatureMessage)
-		cmh.handleNftSignatureMessage(msg.NftSignatureMessage, m.TransactionTimestamp)
-		break
 	default:
 		cmh.logger.Errorf("Invalid topic message provided: [%v]", msg)
-		break
 	}
 }
 
@@ -131,38 +125,10 @@ func (cmh Handler) handleFungibleSignatureMessage(tsm *proto.TopicEthSignatureMe
 		return
 	}
 
-	cmh.completeTransfer(tsm.TransferID, tsm.TargetChainId, tsm.SourceChainId, tsm.Asset, false)
+	cmh.completeTransfer(tsm.TransferID, tsm.TargetChainId, tsm.SourceChainId, tsm.Asset)
 }
 
-// handleNftSignatureMessage is the main component responsible for the processing of new incoming Signature Messages
-func (cmh Handler) handleNftSignatureMessage(tsm *proto.TopicEthNftSignatureMessage, timestamp int64) {
-	valid, err := cmh.messages.SanityCheckNftSignature(tsm)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to perform sanity check on nft incoming signature [%s].", tsm.TransferID, tsm.GetSignature())
-		return
-	}
-	if !valid {
-		cmh.logger.Errorf("[%s] - Incoming nft signature is invalid", tsm.TransferID)
-		return
-	}
-
-	// Parse incoming message
-	authMsgBytes, err := auth_message.EncodeNftBytesFrom(tsm.SourceChainId, tsm.TargetChainId, tsm.TransferID, tsm.Asset, int64(tsm.TokenId), tsm.Metadata, tsm.Recipient)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Failed to encode the authorisation nft signature. Error: [%s]", tsm.TransferID, err)
-		return
-	}
-
-	err = cmh.messages.ProcessSignature(tsm.TransferID, tsm.Signature, tsm.TargetChainId, timestamp, authMsgBytes)
-	if err != nil {
-		cmh.logger.Errorf("[%s] - Could not process nft signature [%s]", tsm.TransferID, tsm.GetSignature())
-		return
-	}
-
-	cmh.completeTransfer(tsm.TransferID, tsm.TargetChainId, tsm.SourceChainId, tsm.Asset, true)
-}
-
-func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChainId uint64, asset string, isNFT bool) {
+func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChainId uint64, asset string) {
 	majorityReached, err := cmh.checkMajority(transferID, targetChainId)
 	if err != nil {
 		cmh.logger.Errorf("[%s] - Could not determine whether majority was reached. Error: [%s]", transferID, err)
@@ -170,17 +136,16 @@ func (cmh Handler) completeTransfer(transferID string, targetChainId, sourceChai
 	}
 
 	if majorityReached {
-		if !isNFT { // metrics for fungible only
-			oppositeAsset := cmh.assetsService.OppositeAsset(sourceChainId, targetChainId, asset)
-			metrics.SetMajorityReached(
-				sourceChainId,
-				targetChainId,
-				oppositeAsset,
-				transferID,
-				cmh.prometheusService,
-				cmh.logger,
-			)
-		}
+		oppositeAsset := cmh.assetsService.OppositeAsset(sourceChainId, targetChainId, asset)
+		metrics.SetMajorityReached(
+			sourceChainId,
+			targetChainId,
+			oppositeAsset,
+			transferID,
+			cmh.prometheusService,
+			cmh.logger,
+		)
+		
 		err = cmh.transferRepository.UpdateStatusCompleted(transferID)
 		if err != nil {
 			cmh.logger.Errorf("[%s] - Failed to complete. Error: [%s]", transferID, err)

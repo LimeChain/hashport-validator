@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/hashgraph/hedera-sdk-go/v2"
 	"github.com/limechain/hedera-eth-bridge-validator/app/domain/client"
@@ -61,24 +60,6 @@ var (
 		TopicMessage: &proto.TopicMessage{
 			Message: &proto.TopicMessage_FungibleSignatureMessage{
 				FungibleSignatureMessage: topicEthFungibleMessage,
-			},
-		},
-	}
-
-	topicEthNftMessage = &proto.TopicEthNftSignatureMessage{
-		Recipient:     "0xb083879B1e10C8476802016CB12cd2F25a896691",
-		TokenId:       42,
-		Metadata:      "nft-metadata",
-		Asset:         asset,
-		TargetChainId: targetChainId,
-		SourceChainId: sourceChainId,
-		TransferID:    "some-transfer-id",
-	}
-
-	topicNftMessage = message.Message{
-		TopicMessage: &proto.TopicMessage{
-			Message: &proto.TopicMessage_NftSignatureMessage{
-				NftSignatureMessage: topicEthNftMessage,
 			},
 		},
 	}
@@ -141,36 +122,6 @@ func Test_SanityCheckFungibleSignature_ShouldReturnTrue(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func Test_SanityCheckNftSignature_ShouldReturnError(t *testing.T) {
-	setup()
-
-	mocks.MTransferRepository.On("GetByTransactionId", topicEthNftMessage.TransferID).Return(nil, errors.New("some-error"))
-
-	ok, err := serviceInstance.SanityCheckNftSignature(topicNftMessage.GetNftSignatureMessage())
-	assert.False(t, ok)
-	assert.NotNil(t, err)
-}
-
-func Test_SanityCheckNftSignature(t *testing.T) {
-	setup()
-
-	transfer := &entity.Transfer{
-		Receiver:      topicEthNftMessage.Recipient,
-		SerialNumber:  int64(topicEthNftMessage.TokenId),
-		Metadata:      topicEthNftMessage.Metadata,
-		TargetAsset:   topicEthNftMessage.Asset,
-		TargetChainID: topicEthNftMessage.TargetChainId,
-		SourceChainID: topicEthNftMessage.SourceChainId,
-		TransactionID: topicEthNftMessage.TransferID,
-	}
-
-	mocks.MTransferRepository.On("GetByTransactionId", topicEthNftMessage.TransferID).Return(transfer, nil)
-
-	ok, err := serviceInstance.SanityCheckNftSignature(topicNftMessage.GetNftSignatureMessage())
-	assert.True(t, ok)
-	assert.Nil(t, err)
-}
-
 func Test_SignFungibleMessage_ShouldReturnError(t *testing.T) {
 	setup()
 
@@ -213,60 +164,6 @@ func Test_SignFungibleMessage(t *testing.T) {
 	bytes, err := serviceInstance.SignFungibleMessage(tm)
 	assert.NotNil(t, bytes)
 	assert.Nil(t, err)
-}
-
-func Test_SignNftMessage_ShouldReturnError(t *testing.T) {
-	setup()
-
-	tm := payload.Transfer{
-		SourceChainId: topicEthNftMessage.SourceChainId,
-		TargetChainId: topicEthNftMessage.TargetChainId,
-		TransactionId: topicEthNftMessage.TransferID,
-		TargetAsset:   topicEthNftMessage.Asset,
-		Receiver:      topicEthNftMessage.Recipient,
-		SerialNum:     int64(topicEthNftMessage.TokenId),
-		IsNft:         true,
-	}
-
-	mocks.MSignerService.On("Sign", mock.Anything).Return(nil, errors.New("some-error"))
-
-	bytes, err := serviceInstance.SignNftMessage(tm)
-	assert.Nil(t, bytes)
-	assert.NotNil(t, err)
-}
-
-func Test_SignNftMessage(t *testing.T) {
-	setup()
-
-	tm := payload.Transfer{
-		SourceChainId: topicEthNftMessage.SourceChainId,
-		TargetChainId: topicEthNftMessage.TargetChainId,
-		TransactionId: topicEthNftMessage.TransferID,
-		TargetAsset:   topicEthNftMessage.Asset,
-		Receiver:      topicEthNftMessage.Recipient,
-		SerialNum:     int64(topicEthNftMessage.TokenId),
-		IsNft:         true,
-	}
-
-	mocks.MSignerService.On("Sign", mock.Anything).Return([]byte{}, nil)
-
-	bytes, err := serviceInstance.SignNftMessage(tm)
-	assert.NotNil(t, bytes)
-	assert.Nil(t, err)
-}
-
-func Test_ProcessSignature(t *testing.T) {
-	setup()
-
-	err := serviceInstance.ProcessSignature(
-		topicEthNftMessage.TransferID,
-		"signature",
-		topicEthNftMessage.TargetChainId,
-		time.Now().UnixNano(),
-		[]byte{},
-	)
-
-	assert.NotNil(t, err)
 }
 
 func setup() {

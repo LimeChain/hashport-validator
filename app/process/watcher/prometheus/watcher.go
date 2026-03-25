@@ -46,7 +46,6 @@ type Watcher struct {
 	dashboardPolling           time.Duration
 	mirrorNode                 client.MirrorNode
 	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
-	evmNonFungibleTokenClients map[uint64]map[string]client.EvmNft
 	bridgeCfg                  *config.Bridge
 	prometheusService          service.Prometheus
 	logger                     *log.Entry
@@ -71,14 +70,12 @@ func NewWatcher(
 	bridgeCfg *config.Bridge,
 	prometheusService service.Prometheus,
 	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
-	EvmNonFungibleTokenClients map[uint64]map[string]client.EvmNft,
 	assetsService service.Assets,
 ) *Watcher {
 	instance := &Watcher{
 		dashboardPolling:           dashboardPolling,
 		mirrorNode:                 mirrorNode,
 		evmFungibleTokenClients:    EvmFungibleTokenClients,
-		evmNonFungibleTokenClients: EvmNonFungibleTokenClients,
 		bridgeCfg:                  bridgeCfg,
 		prometheusService:          prometheusService,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
@@ -164,12 +161,10 @@ func (pw *Watcher) beginWatching() {
 
 func (pw *Watcher) registerAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
-	pw.registerAssetMetrics(fungibleAssets, true)
-	pw.registerAssetMetrics(nonFungibleAssets, false)
+	pw.registerAssetMetrics(fungibleAssets)
 }
 
-func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible bool) {
+func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 
@@ -181,7 +176,6 @@ func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible b
 					assetAddress,
 					constants.BalanceAssetMetricNameSuffix,
 					constants.BalanceAssetMetricHelpPrefix,
-					isFungible,
 				)
 
 				wrappedFromNative := pw.assetsService.WrappedFromNative(networkId, assetAddress)
@@ -193,7 +187,6 @@ func (pw *Watcher) registerAssetMetrics(assets map[uint64][]string, isFungible b
 						wrappedAssetAddress,
 						constants.SupplyAssetMetricNameSuffix,
 						constants.SupplyAssetMetricsHelpPrefix,
-						isFungible,
 					)
 				}
 			}
@@ -207,36 +200,20 @@ func (pw *Watcher) registerAssetMetric(
 	assetAddress string,
 	metricNameCnt string,
 	metricHelpCnt string,
-	isFungible bool,
 ) {
 	if assetAddress != constants.Hbar { // skip HBAR
-		var (
-			name, symbol string
-		)
-		if isFungible {
-			assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
-			if !exist {
-				return
-			}
-			name = assetInfo.Name
-			symbol = assetInfo.Symbol
-		} else {
-			assetInfo, exist := pw.assetsService.NonFungibleAssetInfo(wrappedNetworkId, assetAddress)
-			if !exist {
-				return
-			}
-			name = assetInfo.Name
-			symbol = assetInfo.Symbol
+		assetInfo, exist := pw.assetsService.FungibleAssetInfo(wrappedNetworkId, assetAddress)
+		if !exist {
+			return
 		}
 
 		metricName, metricHelp := getMetricData(
 			nativeNetworkId,
 			wrappedNetworkId,
 			assetAddress,
-			name,
+			assetInfo.Name,
 			metricNameCnt,
 			metricHelpCnt,
-			isFungible,
 		)
 
 		if pw.assetsMetrics[wrappedNetworkId] == nil {
@@ -248,7 +225,7 @@ func (pw *Watcher) registerAssetMetric(
 			Name: metricName,
 			Help: metricHelp,
 			ConstLabels: prometheus.Labels{
-				constants.AssetMetricLabelKey: symbol,
+				constants.AssetMetricLabelKey: assetInfo.Symbol,
 			},
 		})
 	}
@@ -261,7 +238,6 @@ func getMetricData(
 	assetName string,
 	metricNameSuffix string,
 	metricsHelpPrefix string,
-	isFungible bool,
 ) (string, string) {
 
 	nativeNetworkName := constants.NetworksById[nativeNetworkId]
@@ -272,15 +248,10 @@ func getMetricData(
 		assetType = constants.Native
 	}
 
-	fungleAddon := constants.FungibleAddon
-	if !isFungible {
-		fungleAddon = constants.NonFungibleAddon
-	}
-
 	name := fmt.Sprintf("%s_%s_%s_%s%s%s",
 		assetType,
 		nativeNetworkName,
-		fungleAddon,
+		constants.FungibleAddon,
 		wrappedNetworkName,
 		metricNameSuffix,
 		metrics.AssetAddressToMetricName(assetAddress))
@@ -340,26 +311,23 @@ func (pw *Watcher) getAccountBalance(account *account.AccountsResponse) float64 
 
 func (pw *Watcher) setAllAssetsMetrics() {
 	fungibleAssets := pw.assetsService.FungibleNetworkAssets()
-	nonFungibleAssets := pw.assetsService.NonFungibleNetworkAssets()
-	pw.setAssetsMetrics(fungibleAssets, true)
-	pw.setAssetsMetrics(nonFungibleAssets, false)
+	pw.setAssetsMetrics(fungibleAssets)
 }
 
-func (pw Watcher) setAssetsMetrics(assets map[uint64][]string, isFungible bool) {
+func (pw Watcher) setAssetsMetrics(assets map[uint64][]string) {
 	for networkId, networkAssets := range assets {
 		for _, assetAddress := range networkAssets {
 			if assetAddress == constants.Hbar { // skip HBAR
 				continue
 			}
 			isNative := pw.assetsService.IsNative(networkId, assetAddress)
-			pw.prepareAndSetAssetMetric(networkId, assetAddress, isFungible, isNative)
+			pw.prepareAndSetAssetMetric(networkId, assetAddress, isNative)
 		}
 	}
 }
 
 func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 	assetAddress string,
-	isFungible,
 	isNative bool,
 ) {
 	var value float64
@@ -368,18 +336,10 @@ func (pw *Watcher) prepareAndSetAssetMetric(networkId uint64,
 		ReserveAmountInLowestDenomination *big.Int
 		decimals                          uint8
 	)
-	if isFungible {
-		assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetAddress)
-		if ok {
-			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
-			decimals = assetInfo.Decimals
-		}
-	} else {
-		decimals = 0
-		assetInfo, ok := pw.assetsService.NonFungibleAssetInfo(networkId, assetAddress)
-		if ok {
-			ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
-		}
+	assetInfo, ok := pw.assetsService.FungibleAssetInfo(networkId, assetAddress)
+	if ok {
+		ReserveAmountInLowestDenomination = assetInfo.ReserveAmount
+		decimals = assetInfo.Decimals
 	}
 
 	if decimals != 0 {
@@ -409,7 +369,6 @@ func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
 		return errors.New(errMsg)
 	}
 	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
-	instance.evmNonFungibleTokenClients = params.EvmNFTClients
 	instance.bridgeCfg = params.Bridge
 	// Clear All Metrics
 	for _, metricsInNetwork := range instance.assetsMetrics {

@@ -38,10 +38,6 @@ func FromBytes(data []byte) (*Message, error) {
 		return nil, err
 	}
 	switch msg.Message.(type) {
-	case *model.TopicMessage_NftSignatureMessage:
-		nftMsg := msg.GetNftSignatureMessage()
-		msgHelper.UpdateHederaChainIdOfNftMsg(nftMsg)
-		return &Message{TopicMessage: msg}, nil
 	case *model.TopicMessage_FungibleSignatureMessage:
 		fungibleMsg := msg.GetFungibleSignatureMessage()
 		msgHelper.UpdateHederaChainIdOfFungibleMsg(fungibleMsg)
@@ -91,11 +87,6 @@ func FromString(data, ts string) (*Message, error) {
 // NewFungibleSignature instantiates Signature Message struct ready for submission to the Bridge Topic
 func NewFungibleSignature(topicMsg *model.TopicEthSignatureMessage) *Message {
 	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_FungibleSignatureMessage{FungibleSignatureMessage: topicMsg}}}
-}
-
-// NewNftSignature instantiates Signature Message struct ready for submission to the Bridge Topic
-func NewNftSignature(topicMsg *model.TopicEthNftSignatureMessage) *Message {
-	return &Message{TopicMessage: &model.TopicMessage{Message: &model.TopicMessage_NftSignatureMessage{NftSignatureMessage: topicMsg}}}
 }
 
 // ToBytes marshals the underlying protobuf Message into bytes

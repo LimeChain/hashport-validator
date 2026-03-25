@@ -45,11 +45,5 @@ func CheckTxForBlacklistedAccounts(blacklistedAccounts []string, tx transaction.
 		}
 	}
 
-	for i := range tx.NftTransfers {
-		if IsBlacklistedAccount(blacklistedAccounts, tx.NftTransfers[i].SenderAccountID) {
-			return fmt.Errorf("[%s], Acc: [%v] - Found blacklisted transfer", tx.TransactionID, tx.NftTransfers[i].SenderAccountID)
-		}
-	}
-
 	return nil
 }

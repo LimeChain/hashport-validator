@@ -28,14 +28,10 @@ import (
 	mh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message"
 	message_submission "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/message-submission"
 	mint_hts "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/mint-hts"
-	nfmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/nft/fee-message"
-	nth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/nft/transfer"
 	rbh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/burn"
 	rfh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee"
 	rfth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/fee-transfer"
 	rmth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/mint-hts"
-	rnfmh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/fee"
-	rnth "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/nft/transfer"
 	rthh "github.com/limechain/hedera-eth-bridge-validator/app/process/handler/read-only/transfer"
 	bridge_config "github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/bridge-config"
 	"github.com/limechain/hedera-eth-bridge-validator/app/process/watcher/evm"
@@ -62,11 +58,6 @@ func InitializeServerPairs(server *server.Server, services *Services, repositori
 	// Read-only handlers
 	registerReadOnlyHandlers(server, services, repositories, clients, configuration)
 
-	// Hedera Native Nft handlers
-	registerHederaNativeNFTHandlers(server, services, repositories, clients, configuration)
-
-	// Hedera Native unlock Nft Handlers
-	registerHederaNativeUnlockNftHandlers(server, services, repositories, configuration)
 
 	// Assets Watcher
 	registerAssetsWatcher(server, services, configuration, clients)
@@ -177,7 +168,6 @@ func registerAssetsWatcher(server *server.Server, services *Services, configurat
 		clients.MirrorNode,
 		configuration,
 		clients.EvmFungibleTokenClients,
-		clients.EvmNFTClients,
 		services.Assets))
 }
 
@@ -191,46 +181,10 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 			configuration,
 			services.Prometheus,
 			clients.EvmFungibleTokenClients,
-			clients.EvmNFTClients,
 			services.Assets))
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")
 	}
-}
-
-func registerHederaNativeUnlockNftHandlers(server *server.Server, services *Services, repositories *Repositories, configuration *config.Config) {
-	// HederaNftTransfer
-	server.AddHandler(constants.HederaNftTransfer, nth.NewHandler(
-		configuration.Bridge.Hedera.BridgeAccount,
-		repositories.Transfer,
-		repositories.Schedule,
-		services.transfers,
-		services.Scheduled))
-
-	// ReadOnlyHederaUnlockNftTransfer
-	server.AddHandler(constants.ReadOnlyHederaUnlockNftTransfer, rnth.NewHandler(
-		configuration.Bridge.Hedera.BridgeAccount,
-		configuration.Bridge.Hedera.PayerAccount,
-		repositories.Transfer,
-		repositories.Schedule,
-		services.ReadOnly,
-		services.transfers))
-}
-
-func registerHederaNativeNFTHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {
-	// HederaNativeNftTransfer
-	server.AddHandler(constants.HederaNativeNftTransfer, nfmh.NewHandler(services.transfers))
-
-	// ReadOnlyHederaNativeNftTransfer
-	server.AddHandler(constants.ReadOnlyHederaNativeNftTransfer, rnfmh.NewHandler(
-		repositories.Transfer,
-		repositories.Fee,
-		repositories.Schedule,
-		clients.MirrorNode,
-		configuration.Bridge.Hedera.BridgeAccount,
-		services.Distributor,
-		services.transfers,
-		services.ReadOnly))
 }
 
 func registerReadOnlyHandlers(server *server.Server, services *Services, repositories *Repositories, clients *Clients, configuration *config.Config) {

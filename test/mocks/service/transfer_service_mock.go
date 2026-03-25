@@ -63,14 +63,6 @@ func (mts *MockTransferService) ProcessNativeTransfer(tm payload.Transfer) error
 	return args.Get(0).(error)
 }
 
-func (mts *MockTransferService) ProcessNativeNftTransfer(tm payload.Transfer) error {
-	args := mts.Called(tm)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(error)
-}
-
 func (mts *MockTransferService) ProcessWrappedTransfer(tm payload.Transfer) error {
 	args := mts.Called(tm)
 	if args.Get(0) == nil {
