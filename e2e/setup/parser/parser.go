@@ -49,9 +49,9 @@ type Sender struct {
 }
 
 type Tokens struct {
-	WHbar              string `yaml:"whbar"`
-	HederaNativeToken  string `yaml:"hedera_native_token"`
-	EvmNativeToken     string `yaml:"evm_native_token"`
+	WHbar          string `yaml:"whbar"`
+	WToken         string `yaml:"wtoken"`
+	EvmNativeToken string `yaml:"evm_native_token"`
 }
 
 type E2E struct {

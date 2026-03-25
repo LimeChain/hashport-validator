@@ -37,7 +37,7 @@ type Utils struct {
 	Signer                  *evm_signer.Signer
 	Receiver                common.Address
 	RouterAddress           common.Address
-	HederaNativeTokenID     string
+	WToken                  string
 }
 
 func RouterAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]Utils) (
