@@ -40,7 +40,7 @@ func main() {
 	config.InitLogger(configuration.Node.LogLevel, configuration.Node.LogFormat)
 
 	// Prepare Clients
-	clients := bootstrap.PrepareClients(configuration.Node.Clients, configuration.Bridge.EVMs, parsedBridge.Networks)
+	clients := bootstrap.PrepareClients(configuration.Node.Clients, parsedBridge)
 
 	// Prepare Node
 	server := server.NewServer()

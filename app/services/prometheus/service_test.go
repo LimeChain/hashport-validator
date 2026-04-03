@@ -38,9 +38,9 @@ var (
 	counterOpts                  = prometheus.CounterOpts{Name: "CounterName", Help: "CounterHelp"}
 	counterSuffix                = "counter_suffix"
 	sourceNetworkId              = constants.HederaNetworkId
-	sourceNetworkName            = testConstants.Networks[constants.HederaNetworkId].Name
+	sourceNetworkName            = testConstants.HederaNetworks[constants.HederaNetworkId].Name
 	targetNetworkId              = testConstants.EthereumNetworkId
-	targetNetworkName            = testConstants.Networks[testConstants.EthereumNetworkId].Name
+	targetNetworkName            = testConstants.EVMNetworks[testConstants.EthereumNetworkId].Name
 	assetAddress                 = constants.Hbar
 	transactionId                = "0.0.1234-1234-1234"
 	transactionIdWithUnderscores = "0_0_1234_1234_1234"

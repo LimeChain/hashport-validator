@@ -49,7 +49,7 @@ var MHTTPClient *client.MockHttp
 var MDiamondRouter *client.MockDiamondRouter
 var MReadOnlyService *service.MockReadOnlyService
 var MEVMClient *client.MockEVM
-var MEvmFungibleTokenClient *client.MockEvmFungibleToken
+var MEvmRegularTokenClient *client.MockEvmRegularToken
 var MPricingClient *client.MockPricingClient
 var MSignerService *service.MockSignerService
 var MDatabase *database.MockDatabase
@@ -88,7 +88,7 @@ func Setup() {
 	MHederaNodeClient = &client.MockHederaNode{}
 	MEVMClient = &client.MockEVM{}
 	MEVMCoreClient = &client.MockEVMCore{}
-	MEvmFungibleTokenClient = &client.MockEvmFungibleToken{}
+	MEvmRegularTokenClient = &client.MockEvmRegularToken{}
 	MHTTPClient = &client.MockHttp{}
 	MDiamondRouter = &client.MockDiamondRouter{}
 	MQueue = &queue.MockQueue{}

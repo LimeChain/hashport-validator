@@ -39,7 +39,7 @@ var (
 
 type Watcher struct {
 	mirrorNode                 client.MirrorNode
-	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
+	evmRegularTokenClients    map[uint64]map[string]client.EvmRegularToken
 	bridgeCfg                  *config.Bridge
 	assetsService              service.Assets
 	paused                     bool
@@ -49,13 +49,13 @@ type Watcher struct {
 func NewWatcher(
 	mirrorNode client.MirrorNode,
 	bridgeCfg *config.Bridge,
-	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	EvmRegularTokenClients map[uint64]map[string]client.EvmRegularToken,
 	assetsService service.Assets,
 ) *Watcher {
 
 	instance := &Watcher{
 		mirrorNode:                 mirrorNode,
-		evmFungibleTokenClients:    EvmFungibleTokenClients,
+		evmRegularTokenClients:    EvmRegularTokenClients,
 		bridgeCfg:                  bridgeCfg,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Assets Watcher on interval [%v]", sleepTime)),
 		assetsService:              assetsService,
@@ -125,11 +125,11 @@ func (pw *Watcher) updateAssetInfo(networkId uint64, assetId string, hederaToken
 	if networkId == constants.HederaNetworkId {
 		reserveAmount, err = pw.assetsService.FetchHederaTokenReserveAmount(assetId, pw.mirrorNode, isNative, hederaTokenBalances)
 	} else {
-		reserveAmount, err = pw.assetsService.FetchEvmFungibleReserveAmount(
+		reserveAmount, err = pw.assetsService.FetchEvmRegularReserveAmount(
 			networkId,
 			assetId,
 			isNative,
-			pw.evmFungibleTokenClients[networkId][assetId],
+			pw.evmRegularTokenClients[networkId][assetId],
 			pw.bridgeCfg.EVMs[networkId].RouterContractAddress,
 		)
 	}
@@ -152,7 +152,7 @@ func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
 		log.Errorf(errMsg)
 		return errors.New(errMsg)
 	}
-	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
+	instance.evmRegularTokenClients = params.EvmRegularTokenClients
 	instance.bridgeCfg = params.Bridge
 	instance.watchIteration()
 

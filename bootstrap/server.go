@@ -167,7 +167,7 @@ func registerAssetsWatcher(server *server.Server, services *Services, configurat
 	server.AddWatcher(createAssetsWatcher(
 		clients.MirrorNode,
 		configuration,
-		clients.EvmFungibleTokenClients,
+		clients.EvmRegularTokenClients,
 		services.Assets))
 }
 
@@ -180,7 +180,7 @@ func registerPrometheusWatcher(server *server.Server, services *Services, config
 			clients.MirrorNode,
 			configuration,
 			services.Prometheus,
-			clients.EvmFungibleTokenClients,
+			clients.EvmRegularTokenClients,
 			services.Assets))
 	} else {
 		log.Infoln("Monitoring is disabled. No metrics will be added.")

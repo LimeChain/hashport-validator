@@ -25,6 +25,6 @@ import (
 type Params struct {
 	Bridge                  *config.Bridge
 	ParsedBridge            *parser.Bridge
-	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
+	EvmRegularTokenClients map[uint64]map[string]client.EvmRegularToken
 	RouterClients           map[uint64]client.DiamondRouter
 }

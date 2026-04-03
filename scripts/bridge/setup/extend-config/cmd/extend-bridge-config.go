@@ -188,7 +188,7 @@ func updateEvmFungibleAssetInfo(
 	assetInfo *parser.FungibleTokenForDeploy,
 	networkId uint64,
 	assetAddress string,
-	evmTokenClient client.EvmFungibleToken,
+	evmTokenClient client.EvmRegularToken,
 ) (err error) {
 	name, err := evmTokenClient.Name(&bind.CallOpts{})
 	if err != nil {

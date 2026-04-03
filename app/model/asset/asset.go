@@ -27,6 +27,7 @@ type NativeAsset struct {
 	ChainId           uint64
 	Asset             string
 	FeePercentage     int64
+	ReleaseTimestamp  uint64
 }
 
 type FungibleAssetInfo struct {

@@ -82,9 +82,10 @@ func Load() *Setup {
 		Scenario:       e2eConfig.Scenario,
 	}
 
-	if e2eConfig.Bridge.Networks[constants.HederaNetworkId] != nil {
-		feeInfo := config.LoadHederaFees(e2eConfig.Bridge.Networks[constants.HederaNetworkId].Tokens)
-		configuration.FeePercentages = feeInfo.FungiblePercentages
+	for tokenKey, regularToken := range e2eConfig.Bridge.RegularTokens {
+		if regularToken.NativeChain == constants.HederaNetworkId {
+			configuration.FeePercentages[tokenKey] = regularToken.FeePercentage
+		}
 	}
 
 	for i, props := range e2eConfig.Hedera.DbValidationProps {
@@ -100,8 +101,8 @@ func Load() *Setup {
 		panic(err)
 	}
 
-	routerClients, evmFungibleTokenClients := evmSetup.RouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
-	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.Networks, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmFungibleTokenClients)
+	routerClients, evmRegularTokenClients := evmSetup.RouterAndEVMTokenClientsFromEVMUtils(setup.Clients.EVM)
+	setup.AssetMappings = assets.NewService(e2eConfig.Bridge.RegularTokens, e2eConfig.Bridge.Networks.EVM, e2eConfig.Hedera.BridgeAccount, configuration.FeePercentages, routerClients, setup.Clients.MirrorNode, evmRegularTokenClients)
 
 	return setup
 }
@@ -230,7 +231,7 @@ func newClients(config Config) (*clients, error) {
 			return nil, errors.New("chain IDs mismatch config and actual")
 		}
 
-		network, ok := config.Bridge.Networks[configChainId]
+		network, ok := config.Bridge.Networks.EVM[configChainId]
 		if !ok || network.RouterContractAddress == "" {
 			continue
 		}
@@ -252,14 +253,14 @@ func newClients(config Config) (*clients, error) {
 			Receiver:                common.HexToAddress(signer.Address()),
 			RouterAddress:           routerContractAddress,
 			WToken:                  config.Tokens.WToken,
-			EVMFungibleTokenClients: make(map[string]client.EvmFungibleToken),
+			EVMRegularTokenClients: make(map[string]client.EvmRegularToken),
 		}
 	}
 
-	evmFungibleTokenClients := bootstrap.InitEvmFungibleTokenClients(config.Bridge.Networks, evmClients)
+	evmRegularTokenClients := bootstrap.InitEvmRegularTokenClients(config.Bridge.Networks.EVM, evmClients, config.Bridge.RegularTokens)
 	for networkId := range config.EVM {
-		for tokenAddress, tokenClient := range evmFungibleTokenClients[networkId] {
-			EVM[networkId].EVMFungibleTokenClients[tokenAddress] = tokenClient
+		for tokenAddress, tokenClient := range evmRegularTokenClients[networkId] {
+			EVM[networkId].EVMRegularTokenClients[tokenAddress] = tokenClient
 		}
 	}
 

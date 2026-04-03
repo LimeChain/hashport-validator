@@ -27,12 +27,14 @@ import (
 
 // parser.Bridge struct but without omit empty
 type newBridgeConfig struct {
-	UseLocalConfig    bool                       `yaml:"use_local_config" json:"useLocalConfig"`
-	ConfigTopicId     string                     `yaml:"config_topic_id" json:"configTopicId"`
-	PollingInterval   time.Duration              `yaml:"polling_interval" json:"pollingInterval"`
-	TopicId           string                     `yaml:"topic_id" json:"topicId"`
-	Networks          map[uint64]*parser.Network `yaml:"networks" json:"networks"`
-	MonitoredAccounts map[string]string          `yaml:"monitored_accounts" json:"monitoredAccounts"`
+	UseLocalConfig      bool                            `yaml:"use_local_config" json:"useLocalConfig"`
+	ConfigTopicId       string                          `yaml:"config_topic_id" json:"configTopicId"`
+	PollingInterval     time.Duration                   `yaml:"polling_interval" json:"pollingInterval"`
+	TopicId             string                          `yaml:"topic_id" json:"topicId"`
+	Networks            parser.Networks                 `yaml:"networks" json:"networks"`
+	RegularTokens       map[string]*parser.RegularToken `yaml:"regular_tokens" json:"regularTokens"`
+	MonitoredAccounts   map[string]string               `yaml:"monitored_accounts" json:"monitoredAccounts"`
+	BlacklistedAccounts []string                        `yaml:"blacklist" json:"blacklistedAccounts"`
 }
 
 type ExtendedConfig struct {
@@ -75,39 +77,61 @@ func (b *ExtendedBridge) ToBridgeParser() *newBridgeConfig {
 	parsedBridge.PollingInterval = b.PollingInterval
 	parsedBridge.TopicId = b.TopicId
 	parsedBridge.MonitoredAccounts = b.MonitoredAccounts
-	parsedBridge.Networks = make(map[uint64]*parser.Network)
+	parsedBridge.Networks = parser.Networks{
+		Hedera: make(map[uint64]*parser.HederaNetwork),
+		EVM:    make(map[uint64]*parser.EVMNetwork),
+	}
+	parsedBridge.RegularTokens = make(map[string]*parser.RegularToken)
 
 	for network, networkInfo := range b.Networks {
-		parsedBridge.Networks[network] = &parser.Network{
-			Name:                  networkInfo.Name,
-			BridgeAccount:         networkInfo.BridgeAccount,
-			PayerAccount:          networkInfo.PayerAccount,
-			RouterContractAddress: networkInfo.RouterContractAddress,
-			Members:               networkInfo.Members,
-			Tokens:                parser.Tokens{},
+		if networkInfo.BridgeAccount != "" {
+			parsedBridge.Networks.Hedera[network] = &parser.HederaNetwork{
+				Name:          networkInfo.Name,
+				BridgeAccount: networkInfo.BridgeAccount,
+				PayerAccount:  networkInfo.PayerAccount,
+				Members:       networkInfo.Members,
+			}
+		} else {
+			parsedBridge.Networks.EVM[network] = &parser.EVMNetwork{
+				Name:                  networkInfo.Name,
+				RouterContractAddress: networkInfo.RouterContractAddress,
+			}
 		}
 
-		parsedBridge.Networks[network].Tokens.Fungible = make(map[string]parser.Token)
 		for tokenAddress, tokenInfo := range networkInfo.Tokens.Fungible {
-			parsedBridge.Networks[network].Tokens.Fungible[tokenAddress] = parser.Token{
-				FeePercentage:     tokenInfo.FeePercentage,
-				MinFeeAmountInUsd: tokenInfo.MinFeeAmountInUsd,
-				MinAmount:         tokenInfo.MinAmount,
-				Networks:          tokenInfo.Networks,
-				CoinGeckoId:       tokenInfo.CoinGeckoId,
-				CoinMarketCapId:   tokenInfo.CoinMarketCapId,
-				ReleaseTimestamp:  tokenInfo.ReleaseTimestamp,
+			if networkInfo.BridgeAccount == "" && len(tokenInfo.Networks) == 0 {
+				// Skip wrapped-only tokens on EVM (no sub-networks)
+				continue
+			}
+			var addr *string
+			if networkInfo.BridgeAccount != "" {
+				if tokenAddress != constants.Hbar {
+					addr = &tokenAddress
+				}
+			} else {
+				a := tokenAddress
+				addr = &a
+			}
+			parsedBridge.RegularTokens[tokenAddress] = &parser.RegularToken{
+				NativeChain:         network,
+				Address:             addr,
+				CoinGeckoId:         tokenInfo.CoinGeckoId,
+				CoinMarketCapId:     tokenInfo.CoinMarketCapId,
+				FeePercentage:       tokenInfo.FeePercentage,
+				AddressesPerNetwork: tokenInfo.Networks,
 			}
 		}
 	}
 
 	return &newBridgeConfig{
-		UseLocalConfig:    parsedBridge.UseLocalConfig,
-		ConfigTopicId:     parsedBridge.ConfigTopicId,
-		PollingInterval:   parsedBridge.PollingInterval,
-		TopicId:           parsedBridge.TopicId,
-		MonitoredAccounts: parsedBridge.MonitoredAccounts,
-		Networks:          parsedBridge.Networks,
+		UseLocalConfig:      parsedBridge.UseLocalConfig,
+		ConfigTopicId:       parsedBridge.ConfigTopicId,
+		PollingInterval:     parsedBridge.PollingInterval,
+		TopicId:             parsedBridge.TopicId,
+		MonitoredAccounts:   parsedBridge.MonitoredAccounts,
+		Networks:            parsedBridge.Networks,
+		RegularTokens:       parsedBridge.RegularTokens,
+		BlacklistedAccounts: parsedBridge.BlacklistedAccounts,
 	}
 	// return parsedBridge
 }
@@ -122,7 +146,7 @@ type NetworkForDeploy struct {
 }
 
 type TokensForDeploy struct {
-	Fungible map[string]*FungibleTokenForDeploy    `yaml:"fungible,omitempty" json:"fungible,omitempty"`
+	Fungible map[string]*FungibleTokenForDeploy `yaml:"fungible,omitempty" json:"fungible,omitempty"`
 }
 
 type FungibleTokenForDeploy struct {

@@ -22,7 +22,7 @@ import (
 	"math/big"
 )
 
-type EvmFungibleToken interface {
+type EvmRegularToken interface {
 	Decimals(opts *bind.CallOpts) (uint8, error)
 	Name(opts *bind.CallOpts) (string, error)
 	Symbol(opts *bind.CallOpts) (string, error)

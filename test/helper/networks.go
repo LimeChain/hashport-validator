@@ -22,7 +22,11 @@ import (
 )
 
 func SetupNetworks() {
-	for networkId, networkInfo := range testConstants.Networks {
+	for networkId, networkInfo := range testConstants.HederaNetworks {
+		constants.NetworksById[networkId] = networkInfo.Name
+		constants.NetworksByName[networkInfo.Name] = networkId
+	}
+	for networkId, networkInfo := range testConstants.EVMNetworks {
 		constants.NetworksById[networkId] = networkInfo.Name
 		constants.NetworksByName[networkInfo.Name] = networkId
 	}

@@ -23,31 +23,31 @@ import (
 	"math/big"
 )
 
-type MockEvmFungibleToken struct {
+type MockEvmRegularToken struct {
 	mock.Mock
 }
 
-func (m *MockEvmFungibleToken) Decimals(opts *bind.CallOpts) (uint8, error) {
+func (m *MockEvmRegularToken) Decimals(opts *bind.CallOpts) (uint8, error) {
 	args := m.Called(opts)
 	return args.Get(0).(uint8), args.Error(1)
 }
 
-func (m *MockEvmFungibleToken) Name(opts *bind.CallOpts) (string, error) {
+func (m *MockEvmRegularToken) Name(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m *MockEvmFungibleToken) Symbol(opts *bind.CallOpts) (string, error) {
+func (m *MockEvmRegularToken) Symbol(opts *bind.CallOpts) (string, error) {
 	args := m.Called(opts)
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m *MockEvmFungibleToken) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
+func (m *MockEvmRegularToken) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
 	args := m.Called(opts)
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
-func (m *MockEvmFungibleToken) BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error) {
+func (m *MockEvmRegularToken) BalanceOf(opts *bind.CallOpts, account common.Address) (*big.Int, error) {
 	args := m.Called(opts, account)
 	return args.Get(0).(*big.Int), args.Error(1)
 }

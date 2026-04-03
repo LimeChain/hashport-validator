@@ -19,19 +19,22 @@ package parser
 import (
 	"math/big"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 /*
 Structs used to parse the bridge YAML configuration
 */
 type Bridge struct {
-	UseLocalConfig      bool                `yaml:"use_local_config,omitempty" json:"useLocalConfig,omitempty"`
-	ConfigTopicId       string              `yaml:"config_topic_id,omitempty" json:"configTopicId,omitempty"`
-	PollingInterval     time.Duration       `yaml:"polling_interval,omitempty" json:"pollingInterval,omitempty"`
-	TopicId             string              `yaml:"topic_id,omitempty" json:"topicId,omitempty"`
-	Networks            map[uint64]*Network `yaml:"networks,omitempty" json:"networks,omitempty"`
-	MonitoredAccounts   map[string]string   `yaml:"monitored_accounts,omitempty" json:"monitoredAccounts,omitempty"`
-	BlacklistedAccounts []string            `yaml:"blacklist,omitempty" json:"blacklistedAccounts,omitempty"`
+	UseLocalConfig      bool                     `yaml:"use_local_config,omitempty" json:"useLocalConfig,omitempty"`
+	ConfigTopicId       string                   `yaml:"config_topic_id,omitempty" json:"configTopicId,omitempty"`
+	PollingInterval     time.Duration            `yaml:"polling_interval,omitempty" json:"pollingInterval,omitempty"`
+	TopicId             string                   `yaml:"topic_id,omitempty" json:"topicId,omitempty"`
+	Networks            Networks                 `yaml:"networks,omitempty" json:"networks,omitempty"`
+	RegularTokens       map[string]*RegularToken `yaml:"regular_tokens,omitempty" json:"regularTokens,omitempty"`
+	MonitoredAccounts   map[string]string        `yaml:"monitored_accounts,omitempty" json:"monitoredAccounts,omitempty"`
+	BlacklistedAccounts []string                 `yaml:"blacklist,omitempty" json:"blacklistedAccounts,omitempty"`
 }
 
 func (b *Bridge) Update(from *Bridge) {
@@ -40,29 +43,44 @@ func (b *Bridge) Update(from *Bridge) {
 	b.PollingInterval = from.PollingInterval
 	b.TopicId = from.TopicId
 	b.Networks = from.Networks
+	b.RegularTokens = from.RegularTokens
 	b.MonitoredAccounts = from.MonitoredAccounts
 	b.BlacklistedAccounts = from.BlacklistedAccounts
 }
 
-type Network struct {
-	Name                  string   `yaml:"name,omitempty" json:"name,omitempty"`
-	BridgeAccount         string   `yaml:"bridge_account,omitempty" json:"bridgeAccount,omitempty"`
-	PayerAccount          string   `yaml:"payer_account,omitempty" json:"payerAccount,omitempty"`
-	RouterContractAddress string   `yaml:"router_contract_address,omitempty" json:"routerContractAddress,omitempty"`
-	Members               []string `yaml:"members,omitempty" json:"members,omitempty"`
-	Tokens                Tokens   `yaml:"tokens,omitempty" json:"tokens,omitempty"`
+type Networks struct {
+	Hedera map[uint64]*HederaNetwork `yaml:"hedera,omitempty" json:"hedera,omitempty"`
+	EVM    map[uint64]*EVMNetwork    `yaml:"evm,omitempty" json:"evm,omitempty"`
 }
 
-type Tokens struct {
-	Fungible map[string]Token `yaml:"fungible,omitempty" json:"fungible,omitempty"`
+type HederaNetwork struct {
+	Name          string   `yaml:"name,omitempty" json:"name,omitempty"`
+	BridgeAccount string   `yaml:"bridge_account,omitempty" json:"bridgeAccount,omitempty"`
+	PayerAccount  string   `yaml:"payer_account,omitempty" json:"payerAccount,omitempty"`
+	Members       []string `yaml:"members,omitempty" json:"members,omitempty"`
+	MintCost      float64  `yaml:"mint_cost,omitempty" json:"mintCost,omitempty"`
+	UnlockCost    float64  `yaml:"unlock_cost,omitempty" json:"unlockCost,omitempty"`
 }
 
-type Token struct {
-	FeePercentage     int64             `yaml:"fee_percentage,omitempty" json:"feePercentage,omitempty"`            // Represents a constant fee for Fungible Tokens. Applies only for Hedera Native Tokens
-	MinFeeAmountInUsd string            `yaml:"min_fee_amount_in_usd,omitempty" json:"minFeeAmountInUsd,omitempty"` // Represents a constant minimum fee amount in USD which is needed for the validator not to be on a loss
-	MinAmount         *big.Int          `yaml:"min_amount,omitempty" json:"minAmount,omitempty"`                    // Represents a constant for minimum amount which is used when there is no 'coin_gecko_id' or 'coin_market_cap_id' supplied in the config.
-	Networks          map[uint64]string `yaml:"networks,omitempty" json:"networks,omitempty"`
-	CoinGeckoId       string            `yaml:"coin_gecko_id,omitempty" json:"coinGeckoId,omitempty"`
-	CoinMarketCapId   string            `yaml:"coin_market_cap_id,omitempty" json:"coinMarketCapId,omitempty"`
-	ReleaseTimestamp  uint64            `yaml:"release_timestamp,omitempty" json:"releaseTimestamp,omitempty"`
+type EVMNetwork struct {
+	Name                   string                 `yaml:"name,omitempty" json:"name,omitempty"`
+	RouterContractAddress  string                 `yaml:"router_contract_address,omitempty" json:"routerContractAddress,omitempty"`
+	ContractOperationsCost ContractOperationsCost `yaml:"contract_operations_cost,omitempty" json:"contractOperationsCost,omitempty"`
+}
+
+type ContractOperationsCost struct {
+	MintGasUnits   uint64 `yaml:"mint_gas_units,omitempty" json:"mintGasUnits,omitempty"`
+	UnlockGasUnits uint64 `yaml:"unlock_gas_units,omitempty" json:"unlockGasUnits,omitempty"`
+}
+
+type RegularToken struct {
+	NativeChain         uint64            `yaml:"native_chain,omitempty" json:"nativeChain,omitempty"`
+	Address             *string           `yaml:"address" json:"address,omitempty"`
+	MinFeeAmountInUsd   *decimal.Decimal  `yaml:"min_fee_amount_in_usd,omitempty" json:"minFeeAmountInUsd,omitempty"`
+	CoinGeckoId         string            `yaml:"coin_gecko_id,omitempty" json:"coinGeckoId,omitempty"`
+	CoinMarketCapId     string            `yaml:"coin_market_cap_id,omitempty" json:"coinMarketCapId,omitempty"`
+	FeePercentage       int64             `yaml:"fee_percentage,omitempty" json:"feePercentage,omitempty"`
+	MinAmount           *big.Int          `yaml:"min_amount,omitempty" json:"minAmount,omitempty"`
+	ReleaseTimestamp    uint64            `yaml:"release_timestamp,omitempty" json:"releaseTimestamp,omitempty"`
+	AddressesPerNetwork map[uint64]string `yaml:"addresses_per_network,omitempty" json:"addressesPerNetwork,omitempty"`
 }

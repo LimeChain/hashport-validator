@@ -164,55 +164,57 @@ var (
 		ReserveAmount: ReserveAmountBigInt,
 	}
 
-	Networks = map[uint64]*parser.Network{
+	HederaNetworks = map[uint64]*parser.HederaNetwork{
 		constants.HederaNetworkId: {
 			Name:          "Hedera",
 			BridgeAccount: BridgeAccountId,
 			PayerAccount:  "0.0.476139",
 			Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					NetworkHederaFungibleNativeToken: {
-						Networks: map[uint64]string{
-							PolygonNetworkId:  NetworkPolygonFungibleWrappedTokenForNetworkHedera,
-							EthereumNetworkId: NetworkEthereumFungibleWrappedTokenForNetworkHedera,
-						},
-						CoinGeckoId:       HbarCoinGeckoId,
-						CoinMarketCapId:   HbarCoinMarketCapId,
-						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
-					},
-				},
-			},
 		},
+	}
+
+	EVMNetworks = map[uint64]*parser.EVMNetwork{
 		EthereumNetworkId: {
 			Name:                  "Ethereum",
 			RouterContractAddress: EthereumRouterContractAddress,
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					NetworkEthereumFungibleNativeToken: {
-						Networks: map[uint64]string{
-							PolygonNetworkId: NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
-						},
-						CoinGeckoId:       EthereumCoinGeckoId,
-						CoinMarketCapId:   EthereumCoinMarketCapId,
-						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
-					},
-				},
-			},
 		},
 		PolygonNetworkId: {
 			Name:                  "Polygon",
 			RouterContractAddress: PolygonRouterContractAddress,
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					NetworkPolygonFungibleNativeToken: {
-						Networks: map[uint64]string{
-							constants.HederaNetworkId: NetworkHederaFungibleWrappedTokenForNetworkPolygon,
-							EthereumNetworkId:         NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
-						},
-						MinFeeAmountInUsd: MinFeeAmountInUsd.String(),
-					},
-				},
+		},
+	}
+
+	RegularTokens = map[string]*parser.RegularToken{
+		NetworkHederaFungibleNativeToken: {
+			NativeChain:       constants.HederaNetworkId,
+			MinFeeAmountInUsd: &MinFeeAmountInUsd,
+			CoinGeckoId:       HbarCoinGeckoId,
+			CoinMarketCapId:   HbarCoinMarketCapId,
+			FeePercentage:     FeePercentage,
+			AddressesPerNetwork: map[uint64]string{
+				PolygonNetworkId:  NetworkPolygonFungibleWrappedTokenForNetworkHedera,
+				EthereumNetworkId: NetworkEthereumFungibleWrappedTokenForNetworkHedera,
+			},
+		},
+		NetworkEthereumFungibleNativeToken: {
+			NativeChain:       EthereumNetworkId,
+			Address:           &NetworkEthereumFungibleNativeToken,
+			MinFeeAmountInUsd: &MinFeeAmountInUsd,
+			CoinGeckoId:       EthereumCoinGeckoId,
+			CoinMarketCapId:   EthereumCoinMarketCapId,
+			FeePercentage:     FeePercentage,
+			AddressesPerNetwork: map[uint64]string{
+				PolygonNetworkId: NetworkPolygonFungibleWrappedTokenForNetworkEthereum,
+			},
+		},
+		NetworkPolygonFungibleNativeToken: {
+			NativeChain:       PolygonNetworkId,
+			Address:           &NetworkPolygonFungibleNativeToken,
+			MinFeeAmountInUsd: &MinFeeAmountInUsd,
+			FeePercentage:     FeePercentage,
+			AddressesPerNetwork: map[uint64]string{
+				constants.HederaNetworkId: NetworkHederaFungibleWrappedTokenForNetworkPolygon,
+				EthereumNetworkId:         NetworkEthereumFungibleWrappedTokenForNetworkPolygon,
 			},
 		},
 	}
@@ -289,9 +291,13 @@ var (
 	}
 
 	ParserBridge = parser.Bridge{
-		UseLocalConfig:    true,
-		TopicId:           TopicId,
-		Networks:          Networks,
+		UseLocalConfig: true,
+		TopicId:        TopicId,
+		Networks: parser.Networks{
+			Hedera: HederaNetworks,
+			EVM:    EVMNetworks,
+		},
+		RegularTokens:     RegularTokens,
 		MonitoredAccounts: make(map[string]string),
 	}
 )
