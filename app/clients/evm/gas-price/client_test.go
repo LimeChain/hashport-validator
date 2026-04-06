@@ -27,13 +27,13 @@ import (
 )
 
 var (
-	gasPriceClient *Client
+	gasPriceClient *GasClient
 	mockEVM        *mocksClient.MockEVM
 )
 
 func setup() {
 	mockEVM = &mocksClient.MockEVM{}
-	gasPriceClient = NewClient(mockEVM)
+	gasPriceClient = NewClient(mockEVM).(*GasClient)
 }
 
 func TestGetGasPrice_Success(t *testing.T) {

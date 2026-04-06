@@ -26,16 +26,22 @@ type gasPricer interface {
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 }
 
-type Client struct {
+type GasClienter interface {
+	GetGasPrice(ctx context.Context) (*big.Int, error)
+}
+
+var _ GasClienter = (*GasClient)(nil)
+
+type GasClient struct {
 	evmClient gasPricer
 }
 
-func NewClient(evmClient gasPricer) *Client {
-	return &Client{evmClient: evmClient}
+func NewClient(evmClient gasPricer) GasClienter {
+	return &GasClient{evmClient: evmClient}
 }
 
 // GetGasPrice returns the suggested gas price for the EVM chain
-func (c *Client) GetGasPrice(ctx context.Context) (*big.Int, error) {
+func (c *GasClient) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	gasPrice, err := c.evmClient.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get gas price: %w", err)

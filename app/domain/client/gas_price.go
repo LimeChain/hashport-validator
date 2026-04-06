@@ -21,7 +21,7 @@ import (
 	"math/big"
 )
 
-type GasPrice interface {
+type GasClienter interface {
 	// GetGasPrice returns the suggested gas price for the EVM chain
 	GetGasPrice(ctx context.Context) (*big.Int, error)
 }
