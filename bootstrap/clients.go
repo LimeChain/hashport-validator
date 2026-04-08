@@ -44,22 +44,22 @@ type Clients struct {
 	CoinGecko               client.Pricing
 	CoinMarketCap           client.Pricing
 	RouterClients           map[uint64]client.DiamondRouter
-	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken
+	EvmRegularTokenClients map[uint64]map[string]client.EvmRegularToken
 	ClientsConfig           config.Clients
 }
 
 // PrepareClients instantiates all the necessary clients for a validator node
-func PrepareClients(clientsCfg config.Clients, bridgeEvmsCfgs map[uint64]config.BridgeEvm, networks map[uint64]*parser.Network) *Clients {
-	EvmClients := InitEVMClients(clientsCfg, networks)
+func PrepareClients(clientsCfg config.Clients, parsedBridge *parser.Bridge) *Clients {
+	EvmClients := InitEVMClients(clientsCfg, parsedBridge.Networks.EVM)
 	instance := &Clients{
-		HederaNode:              hedera.NewNodeClient(clientsCfg.Hedera),
-		MirrorNode:              mirrornode.NewClient(clientsCfg.MirrorNode),
-		EvmClients:              EvmClients,
-		CoinGecko:               coin_gecko.NewClient(clientsCfg.CoinGecko),
-		CoinMarketCap:           coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
-		RouterClients:           InitRouterClients(bridgeEvmsCfgs, EvmClients),
-		EvmFungibleTokenClients: InitEvmFungibleTokenClients(networks, EvmClients),
-		ClientsConfig:           clientsCfg,
+		HederaNode:             hedera.NewNodeClient(clientsCfg.Hedera),
+		MirrorNode:             mirrornode.NewClient(clientsCfg.MirrorNode),
+		EvmClients:             EvmClients,
+		CoinGecko:              coin_gecko.NewClient(clientsCfg.CoinGecko),
+		CoinMarketCap:          coin_market_cap.NewClient(clientsCfg.CoinMarketCap),
+		RouterClients:          InitRouterClients(parsedBridge.Networks.EVM, EvmClients),
+		EvmRegularTokenClients: InitEvmRegularTokenClients(parsedBridge.Networks.EVM, EvmClients, parsedBridge.RegularTokens),
+		ClientsConfig:          clientsCfg,
 	}
 
 	event.On(constants.EventBridgeConfigUpdate, event.ListenerFunc(func(e event.Event) error {
@@ -74,16 +74,16 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 	if err != nil {
 		return err
 	}
-	instance.EvmClients = InitEVMClients(instance.ClientsConfig, params.ParsedBridge.Networks)
-	evmFungibleTokenClients := InitEvmFungibleTokenClients(params.ParsedBridge.Networks, instance.EvmClients)
-	routerClients := InitRouterClients(params.Bridge.EVMs, instance.EvmClients)
-	for networkId, ftClients := range evmFungibleTokenClients {
-		_, ok := instance.EvmFungibleTokenClients[networkId]
+	instance.EvmClients = InitEVMClients(instance.ClientsConfig, params.ParsedBridge.Networks.EVM)
+	evmRegularTokenClients := InitEvmRegularTokenClients(params.ParsedBridge.Networks.EVM, instance.EvmClients, params.ParsedBridge.RegularTokens)
+	routerClients := InitRouterClients(params.ParsedBridge.Networks.EVM, instance.EvmClients)
+	for networkId, ftClients := range evmRegularTokenClients {
+		_, ok := instance.EvmRegularTokenClients[networkId]
 		if !ok {
-			instance.EvmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
+			instance.EvmRegularTokenClients[networkId] = make(map[string]client.EvmRegularToken)
 		}
 		for key, ftClient := range ftClients {
-			instance.EvmFungibleTokenClients[networkId][key] = ftClient
+			instance.EvmRegularTokenClients[networkId][key] = ftClient
 		}
 	}
 
@@ -91,16 +91,16 @@ func bridgeCfgEventHandler(e event.Event, instance *Clients) error {
 		instance.RouterClients[networkId] = routerClient
 	}
 
-	params.EvmFungibleTokenClients = evmFungibleTokenClients
+	params.EvmRegularTokenClients = evmRegularTokenClients
 	params.RouterClients = routerClients
 
 	return nil
 }
 
-func InitEVMClients(clientsCfg config.Clients, networks map[uint64]*parser.Network) map[uint64]client.EVM {
+func InitEVMClients(clientsCfg config.Clients, evmNetworks map[uint64]*parser.EVMNetwork) map[uint64]client.EVM {
 	EVMClients := make(map[uint64]client.EVM)
 	for configChainId, ec := range clientsCfg.EvmPool {
-		network, ok := networks[configChainId]
+		network, ok := evmNetworks[configChainId]
 		if !ok || network.RouterContractAddress == "" {
 			continue
 		}
@@ -121,25 +121,25 @@ func InitEVMClients(clientsCfg config.Clients, networks map[uint64]*parser.Netwo
 	return EVMClients
 }
 
-func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients map[uint64]client.EVM) map[uint64]client.DiamondRouter {
+func InitRouterClients(evmNetworks map[uint64]*parser.EVMNetwork, evmClients map[uint64]client.EVM) map[uint64]client.DiamondRouter {
 	routers := make(map[uint64]client.DiamondRouter)
-	for networkId, bridgeEVMsCfg := range bridgeEVMsCfgs {
-		if bridgeEVMsCfg.RouterContractAddress == "" {
+	for networkId, evmNetwork := range evmNetworks {
+		if evmNetwork.RouterContractAddress == "" {
 			continue
 		}
 		evmClient, ok := evmClients[networkId]
 		if !ok {
 			log.Fatalf("failed to initialize RouterClient because of missing EVM client for network id: [%d]", networkId)
 		}
-		contractAddress, err := evmClient.ValidateContractDeployedAt(bridgeEVMsCfg.RouterContractAddress)
+		contractAddress, err := evmClient.ValidateContractDeployedAt(evmNetwork.RouterContractAddress)
 		additionalMsg := "Failed to initialize Router Contract Instance at [%s]. Error [%s]"
 		if err != nil {
-			log.Fatalf(additionalMsg, bridgeEVMsCfg.RouterContractAddress, err)
+			log.Fatalf(additionalMsg, evmNetwork.RouterContractAddress, err)
 		}
 
 		contractInstance, err := router.NewRouter(*contractAddress, evmClient.GetClient())
 		if err != nil {
-			log.Fatalf(additionalMsg, bridgeEVMsCfg.RouterContractAddress, err)
+			log.Fatalf(additionalMsg, evmNetwork.RouterContractAddress, err)
 		}
 		routers[networkId] = contractInstance
 	}
@@ -147,45 +147,52 @@ func InitRouterClients(bridgeEVMsCfgs map[uint64]config.BridgeEvm, evmClients ma
 	return routers
 }
 
-func InitEvmFungibleTokenClients(networks map[uint64]*parser.Network, evmClients map[uint64]client.EVM) map[uint64]map[string]client.EvmFungibleToken {
-	tokenClients := make(map[uint64]map[string]client.EvmFungibleToken)
-	for networkId, network := range networks {
+func InitEvmRegularTokenClients(evmNetworks map[uint64]*parser.EVMNetwork, evmClients map[uint64]client.EVM, regularTokens map[string]*parser.RegularToken) map[uint64]map[string]client.EvmRegularToken {
+	tokenClients := make(map[uint64]map[string]client.EvmRegularToken)
+	for networkId := range evmNetworks {
+		if _, ok := tokenClients[networkId]; !ok {
+			tokenClients[networkId] = make(map[string]client.EvmRegularToken)
+		}
+	}
 
-		if networkId != constants.HederaNetworkId {
-			if _, ok := tokenClients[networkId]; !ok {
-				tokenClients[networkId] = make(map[string]client.EvmFungibleToken)
+	for _, tokenInfo := range regularTokens {
+		nativeChainId := tokenInfo.NativeChain
+
+		// Native EVM token
+		if tokenInfo.Address != nil && *tokenInfo.Address != "" {
+			if _, isEVM := evmNetworks[nativeChainId]; isEVM {
+				if evmClient, ok := evmClients[nativeChainId]; ok {
+					nativeAddr := *tokenInfo.Address
+					tokenInstance, err := wtoken.NewWtoken(common.HexToAddress(nativeAddr), evmClient)
+					if err != nil {
+						log.Fatalf("Failed to initialize Native EvmRegularToken Contract Instance at token address [%s]. Error [%s]", nativeAddr, err)
+					}
+					tokenClients[nativeChainId][nativeAddr] = tokenInstance
+				}
 			}
 		}
 
-		// Native Tokens
-		for fungibleTokenAddress, tokenInfo := range network.Tokens.Fungible {
-
-			if networkId != constants.HederaNetworkId {
-				tokenInstance, err := wtoken.NewWtoken(common.HexToAddress(fungibleTokenAddress), evmClients[networkId])
-				if err != nil {
-					log.Fatalf("Failed to initialize Native EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", fungibleTokenAddress, err)
-				}
-				tokenClients[networkId][fungibleTokenAddress] = tokenInstance
+		// Wrapped tokens on EVM networks
+		for wrappedNetworkId, wrappedTokenAddress := range tokenInfo.AddressesPerNetwork {
+			if _, isEVM := evmNetworks[wrappedNetworkId]; !isEVM {
+				continue
 			}
 
-			// Wrapped tokens
-			for wrappedNetworkId, wrappedTokenAddress := range tokenInfo.Networks {
-				if wrappedNetworkId == constants.HederaNetworkId {
-					continue
-				}
-
-				if _, ok := tokenClients[wrappedNetworkId]; !ok {
-					tokenClients[wrappedNetworkId] = make(map[string]client.EvmFungibleToken)
-				}
-
-				wrappedTokenInstance, err := wtoken.NewWtoken(common.HexToAddress(wrappedTokenAddress), evmClients[wrappedNetworkId])
-				if err != nil {
-					log.Fatalf("Failed to initialize Wrapped EvmFungibleToken Contract Instance at token address [%s]. Error [%s]", wrappedTokenAddress, err)
-				}
-				tokenClients[wrappedNetworkId][wrappedTokenAddress] = wrappedTokenInstance
+			if _, ok := tokenClients[wrappedNetworkId]; !ok {
+				tokenClients[wrappedNetworkId] = make(map[string]client.EvmRegularToken)
 			}
+
+			evmClient, ok := evmClients[wrappedNetworkId]
+			if !ok {
+				continue
+			}
+
+			wrappedTokenInstance, err := wtoken.NewWtoken(common.HexToAddress(wrappedTokenAddress), evmClient)
+			if err != nil {
+				log.Fatalf("Failed to initialize Wrapped EvmRegularToken Contract Instance at token address [%s]. Error [%s]", wrappedTokenAddress, err)
+			}
+			tokenClients[wrappedNetworkId][wrappedTokenAddress] = wrappedTokenInstance
 		}
-
 	}
 
 	return tokenClients

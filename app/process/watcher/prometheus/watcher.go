@@ -45,7 +45,7 @@ var (
 type Watcher struct {
 	dashboardPolling           time.Duration
 	mirrorNode                 client.MirrorNode
-	evmFungibleTokenClients    map[uint64]map[string]client.EvmFungibleToken
+	evmRegularTokenClients    map[uint64]map[string]client.EvmRegularToken
 	bridgeCfg                  *config.Bridge
 	prometheusService          service.Prometheus
 	logger                     *log.Entry
@@ -69,13 +69,13 @@ func NewWatcher(
 	mirrorNode client.MirrorNode,
 	bridgeCfg *config.Bridge,
 	prometheusService service.Prometheus,
-	EvmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	EvmRegularTokenClients map[uint64]map[string]client.EvmRegularToken,
 	assetsService service.Assets,
 ) *Watcher {
 	instance := &Watcher{
 		dashboardPolling:           dashboardPolling,
 		mirrorNode:                 mirrorNode,
-		evmFungibleTokenClients:    EvmFungibleTokenClients,
+		evmRegularTokenClients:    EvmRegularTokenClients,
 		bridgeCfg:                  bridgeCfg,
 		prometheusService:          prometheusService,
 		logger:                     config.GetLoggerFor(fmt.Sprintf("Prometheus Metrics Watcher on interval [%s]", dashboardPolling)),
@@ -368,7 +368,7 @@ func bridgeCfgUpdateEventHandler(e event.Event, instance *Watcher) error {
 		log.Errorf(errMsg)
 		return errors.New(errMsg)
 	}
-	instance.evmFungibleTokenClients = params.EvmFungibleTokenClients
+	instance.evmRegularTokenClients = params.EvmRegularTokenClients
 	instance.bridgeCfg = params.Bridge
 	// Clear All Metrics
 	for _, metricsInNetwork := range instance.assetsMetrics {

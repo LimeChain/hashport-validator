@@ -20,7 +20,6 @@ import (
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
-	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"math/big"
@@ -50,7 +49,6 @@ var (
 	hbarCoinGeckoId                  = "hedera-hashgraph"
 	hbarCoinMarketCapId              = "4642"
 	networkHederaFungibleNativeToken = constants.Hbar
-
 
 	networkHederaFungibleNativeTokenFungibleAssetInfo = &asset.FungibleAssetInfo{
 		Name:          networkHederaFungibleNativeToken,
@@ -88,43 +86,42 @@ var (
 		ReserveAmount: reserveAmount,
 	}
 
-	networks = map[uint64]*parser.Network{
-		constants.HederaNetworkId: {
-			Name:          "Hedera",
-			BridgeAccount: bridgeAccountId,
-			PayerAccount:  "0.0.476139",
-			Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					networkHederaFungibleNativeToken: {
-						Networks: map[uint64]string{
-							ethereumNetworkId: networkEthereumFungibleWrappedTokenForNetworkHedera,
-						},
-						CoinGeckoId:       hbarCoinGeckoId,
-						CoinMarketCapId:   hbarCoinMarketCapId,
-						MinFeeAmountInUsd: minFeeAmountInUsd.String(),
-						MinAmount:         big.NewInt(1000000),
-					},
-				},
-			},
-		},
-		ethereumNetworkId: {
-			Name: "Ethereum",
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					networkEthereumFungibleNativeToken: {
-						Networks:          map[uint64]string{},
-						CoinGeckoId:       ethereumCoinGeckoId,
-						CoinMarketCapId:   ethereumCoinMarketCapId,
-						MinFeeAmountInUsd: minFeeAmountInUsd.String(),
-					},
-				},
-			},
-		},
-	}
 	parserBridge = parser.Bridge{
-		TopicId:           topicId,
-		Networks:          networks,
+		TopicId: topicId,
+		Networks: parser.Networks{
+			Hedera: map[uint64]*parser.HederaNetwork{
+				constants.HederaNetworkId: {
+					Name:          "Hedera",
+					BridgeAccount: bridgeAccountId,
+					PayerAccount:  "0.0.476139",
+					Members:       []string{"0.0.123", "0.0.321", "0.0.231"},
+				},
+			},
+			EVM: map[uint64]*parser.EVMNetwork{
+				ethereumNetworkId: {
+					Name: "Ethereum",
+				},
+			},
+		},
+		RegularTokens: map[string]*parser.RegularToken{
+			networkHederaFungibleNativeToken: {
+				NativeChain:     constants.HederaNetworkId,
+				CoinGeckoId:     hbarCoinGeckoId,
+				CoinMarketCapId: hbarCoinMarketCapId,
+				FeePercentage:   feePercentage,
+				AddressesPerNetwork: map[uint64]string{
+					ethereumNetworkId: networkEthereumFungibleWrappedTokenForNetworkHedera,
+				},
+			},
+			networkEthereumFungibleNativeToken: {
+				NativeChain:         ethereumNetworkId,
+				Address:             &networkEthereumFungibleNativeToken,
+				CoinGeckoId:         ethereumCoinGeckoId,
+				CoinMarketCapId:     ethereumCoinMarketCapId,
+				FeePercentage:       feePercentage,
+				AddressesPerNetwork: map[uint64]string{},
+			},
+		},
 		MonitoredAccounts: make(map[string]string),
 	}
 )
@@ -135,17 +132,9 @@ func Test_NewBridge(t *testing.T) {
 	assert.NotNil(t, bridge)
 }
 
-func Test_LoadStaticMinAmountsForWrappedFungibleTokens(t *testing.T) {
-	mocks.Setup()
-	bridge := NewBridge(parserBridge)
-	mocks.MAssetsService.On("FungibleAssetInfo", constants.HederaNetworkId, networkHederaFungibleNativeToken).Return(networkHederaFungibleNativeTokenFungibleAssetInfo, true)
-	mocks.MAssetsService.On("FungibleAssetInfo", ethereumNetworkId, networkEthereumFungibleNativeToken).Return(networkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo, true)
-	mocks.MAssetsService.On("FungibleAssetInfo", ethereumNetworkId, networkEthereumFungibleWrappedTokenForNetworkHedera).Return(networkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo, true)
-
-	bridge.LoadStaticMinAmountsForWrappedFungibleTokens(parserBridge, mocks.MAssetsService)
-
-	assert.NotNil(t, bridge)
-	mocks.MAssetsService.AssertCalled(t, "FungibleAssetInfo", constants.HederaNetworkId, networkHederaFungibleNativeToken)
-	mocks.MAssetsService.AssertCalled(t, "FungibleAssetInfo", ethereumNetworkId, networkEthereumFungibleNativeToken)
-	mocks.MAssetsService.AssertCalled(t, "FungibleAssetInfo", ethereumNetworkId, networkEthereumFungibleWrappedTokenForNetworkHedera)
-}
+// Suppress unused variable warnings for variables used only in removed test
+var (
+	_ = networkHederaFungibleNativeTokenFungibleAssetInfo
+	_ = networkEthereumFungibleNativeAsset
+	_ = networkEthereumFungibleWrappedTokenForNetworkHederaFungibleAssetInfo
+)

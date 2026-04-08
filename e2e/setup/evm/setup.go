@@ -31,7 +31,7 @@ import (
 
 type Utils struct {
 	EVMClient               *evm.Client
-	EVMFungibleTokenClients map[string]client.EvmFungibleToken
+	EVMRegularTokenClients map[string]client.EvmRegularToken
 	RouterContract          *router.Router
 	KeyTransactor           *bind.TransactOpts
 	Signer                  *evm_signer.Signer
@@ -42,20 +42,20 @@ type Utils struct {
 
 func RouterAndEVMTokenClientsFromEVMUtils(evmUtils map[uint64]Utils) (
 	routerClients map[uint64]client.DiamondRouter,
-	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmRegularTokenClients map[uint64]map[string]client.EvmRegularToken,
 ) {
 	routerClients = make(map[uint64]client.DiamondRouter)
-	evmFungibleTokenClients = make(map[uint64]map[string]client.EvmFungibleToken)
+	evmRegularTokenClients = make(map[uint64]map[string]client.EvmRegularToken)
 	for networkId, evmUtil := range evmUtils {
 		routerClients[networkId] = evmUtil.RouterContract
 
-		evmFungibleTokenClients[networkId] = make(map[string]client.EvmFungibleToken)
-		for tokenAddress, evmTokenClient := range evmUtil.EVMFungibleTokenClients {
-			evmFungibleTokenClients[networkId][tokenAddress] = evmTokenClient
+		evmRegularTokenClients[networkId] = make(map[string]client.EvmRegularToken)
+		for tokenAddress, evmTokenClient := range evmUtil.EVMRegularTokenClients {
+			evmRegularTokenClients[networkId][tokenAddress] = evmTokenClient
 		}
 	}
 
-	return routerClients, evmFungibleTokenClients
+	return routerClients, evmRegularTokenClients
 }
 
 func InitAssetContract(asset string, evmClient *evm.Client) (*wtoken.Wtoken, error) {
@@ -66,7 +66,7 @@ func NativeToWrappedAsset(assetsService service.Assets, sourceChain, targetChain
 	wrappedAsset := assetsService.NativeToWrapped(nativeAsset, sourceChain, targetChain)
 
 	if wrappedAsset == "" {
-		return "", fmt.Errorf("EvmFungibleToken [%s] is not supported", nativeAsset)
+		return "", fmt.Errorf("EvmRegularToken [%s] is not supported", nativeAsset)
 	}
 
 	return wrappedAsset, nil

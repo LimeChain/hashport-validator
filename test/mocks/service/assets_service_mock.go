@@ -105,8 +105,8 @@ func (mas *MockAssetsService) FetchHederaTokenReserveAmount(assetId string, mirr
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
-// FetchEvmFungibleReserveAmount Gets EVM's Fungible Token Reserve Amount
-func (mas *MockAssetsService) FetchEvmFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmFungibleToken, routerContractAddress string) (inLowestDenomination *big.Int, err error) {
+// FetchEvmRegularReserveAmount Gets EVM's Fungible Token Reserve Amount
+func (mas *MockAssetsService) FetchEvmRegularReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmRegularToken, routerContractAddress string) (inLowestDenomination *big.Int, err error) {
 	args := mas.Called(networkId, assetAddress, isNative, evmTokenClient, routerContractAddress)
 	return args.Get(0).(*big.Int), args.Error(1)
 }

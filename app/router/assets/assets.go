@@ -79,12 +79,16 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 			fungibleAssetInfo, existInfo := assetsService.FungibleAssetInfo(networkId, assetAddress)
 			minAmount, existMinAmount := pricingService.GetTokenPriceInfo(networkId, assetAddress)
 			if existInfo && existMinAmount {
-				bridgeTokenInfo := bridgeCfg.Networks[networkId].Tokens.Fungible[assetAddress]
 				var nativeAsset *asset.NativeAsset
+				var tokenNetworks map[uint64]string
 				if !fungibleAssetInfo.IsNative {
 					nativeAsset = assetsService.WrappedToNative(assetAddress, networkId)
+					if nativeAsset != nil {
+						tokenNetworks = assetsService.WrappedFromNative(nativeAsset.ChainId, nativeAsset.Asset)
+					}
 				} else {
 					nativeAsset = assetsService.FungibleNativeAsset(networkId, assetAddress)
+					tokenNetworks = assetsService.WrappedFromNative(networkId, assetAddress)
 				}
 				feePercentage := nativeAsset.FeePercentage
 
@@ -93,9 +97,9 @@ func generateResponseContent(assetsService service.Assets, pricingService servic
 					FeePercentage:     feePercentageInfo{feePercentage, constants.FeeMaxPercentage},
 					MinAmount:         minAmount.MinAmountWithFee.String(),
 					UsdPrice:          minAmount.UsdPrice.String(),
-					Networks:          bridgeTokenInfo.Networks,
+					Networks:          tokenNetworks,
 					ReserveAmount:     fungibleAssetInfo.ReserveAmount.String(),
-					ReleaseTimestamp:  bridgeTokenInfo.ReleaseTimestamp,
+					ReleaseTimestamp:  nativeAsset.ReleaseTimestamp,
 				}
 				response[networkId].Fungible[assetAddress] = fungibleAssetDetails
 			}

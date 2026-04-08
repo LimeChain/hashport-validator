@@ -51,9 +51,16 @@ func Test_assetsResponse(t *testing.T) {
 			if fungibleAssetInfo.IsNative {
 				mocks.MAssetsService.On("FungibleNativeAsset", networkId, networkAsset).
 					Return(testConstants.FungibleNativeAssets[networkId][networkAsset], true)
+				mocks.MAssetsService.On("WrappedFromNative", networkId, networkAsset).
+					Return(testConstants.NativeToWrapped[networkId][networkAsset])
 			} else {
 				mocks.MAssetsService.On("WrappedToNative", networkAsset, networkId).
 					Return(testConstants.WrappedToNative[networkId][networkAsset], true)
+				wrappedNative := testConstants.WrappedToNative[networkId][networkAsset]
+				if wrappedNative != nil {
+					mocks.MAssetsService.On("WrappedFromNative", wrappedNative.ChainId, wrappedNative.Asset).
+						Return(testConstants.NativeToWrapped[wrappedNative.ChainId][wrappedNative.Asset])
+				}
 			}
 		}
 	}

@@ -45,6 +45,6 @@ type Assets interface {
 	FungibleAssetInfo(networkId uint64, assetAddress string) (assetInfo *assetModel.FungibleAssetInfo, exist bool)
 	// FetchHederaTokenReserveAmount Gets Hedera's Token Reserve Amount
 	FetchHederaTokenReserveAmount(assetId string, mirrorNode client.MirrorNode, isNative bool, hederaTokenBalances map[string]int) (reserveAmount *big.Int, err error)
-	// FetchEvmFungibleReserveAmount Gets EVM's Fungible Token Reserve Amount
-	FetchEvmFungibleReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmFungibleToken, routerContractAddress string) (inLowestDenomination *big.Int, err error)
+	// FetchEvmRegularReserveAmount Gets EVM's Fungible Token Reserve Amount
+	FetchEvmRegularReserveAmount(networkId uint64, assetAddress string, isNative bool, evmTokenClient client.EvmRegularToken, routerContractAddress string) (inLowestDenomination *big.Int, err error)
 }

@@ -76,7 +76,7 @@ func createConsensusTopicWatcher(configuration *config.Config,
 func createAssetsWatcher(
 	mirrorNode client.MirrorNode,
 	configuration *config.Config,
-	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmRegularTokenClients map[uint64]map[string]client.EvmRegularToken,
 	assetsService service.Assets,
 
 ) *aw.Watcher {
@@ -84,7 +84,7 @@ func createAssetsWatcher(
 	return aw.NewWatcher(
 		mirrorNode,
 		configuration.Bridge,
-		evmFungibleTokenClients,
+		evmRegularTokenClients,
 		assetsService)
 }
 
@@ -93,7 +93,7 @@ func createPrometheusWatcher(
 	mirrorNode client.MirrorNode,
 	configuration *config.Config,
 	prometheusService service.Prometheus,
-	evmFungibleTokenClients map[uint64]map[string]client.EvmFungibleToken,
+	evmRegularTokenClients map[uint64]map[string]client.EvmRegularToken,
 	assetsService service.Assets,
 
 ) *pw.Watcher {
@@ -103,6 +103,6 @@ func createPrometheusWatcher(
 		mirrorNode,
 		configuration.Bridge,
 		prometheusService,
-		evmFungibleTokenClients,
+		evmRegularTokenClients,
 		assetsService)
 }

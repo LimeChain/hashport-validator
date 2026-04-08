@@ -32,7 +32,6 @@ import (
 	iservice "github.com/limechain/hedera-eth-bridge-validator/app/domain/service"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/asset"
 	"github.com/limechain/hedera-eth-bridge-validator/app/model/pricing"
-	"github.com/limechain/hedera-eth-bridge-validator/config/parser"
 	"github.com/limechain/hedera-eth-bridge-validator/constants"
 	"github.com/limechain/hedera-eth-bridge-validator/test/mocks"
 	"github.com/shopspring/decimal"
@@ -66,19 +65,6 @@ var (
 		ConsensusTimestamp: "1631092491.483966000",
 	}
 
-	networks = map[uint64]*parser.Network{
-		network0: {
-			Tokens: parser.Tokens{
-				Fungible: map[string]parser.Token{
-					nativeTokenAddressNetwork0: {
-						Networks: map[uint64]string{
-							network3: wrappedTokenAddressNetwork3,
-						},
-					},
-				},
-			},
-		},
-	}
 )
 
 func Test_NewMemo_MissingWrappedCorrelation(t *testing.T) {
